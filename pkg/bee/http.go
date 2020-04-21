@@ -1,4 +1,4 @@
-package peercount
+package bee
 
 import (
 	"bytes"

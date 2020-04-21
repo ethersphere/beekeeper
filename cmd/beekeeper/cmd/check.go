@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ethersphere/bee/pkg/logging"
-	"github.com/ethersphere/beekeeper/pkg/peercount"
+	"github.com/ethersphere/beekeeper/pkg/check"
 )
 
 func (c *command) initCheckCmd() (err error) {
@@ -47,7 +47,7 @@ func (c *command) initCheckCmd() (err error) {
 			}
 
 			logger.Info("beekeeper check")
-			peercount.Check(peercount.Options{
+			check.PeerCount(check.Options{
 				NodeCount:       c.config.GetInt(optionNameNodeCount),
 				NodeURLTemplate: c.config.GetString(optionNameNodeURLTemplate),
 			})
