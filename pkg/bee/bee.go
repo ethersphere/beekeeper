@@ -1,6 +1,8 @@
 package bee
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // Node ...
 type Node struct {
@@ -11,37 +13,22 @@ type Node struct {
 
 // NewNode ...
 func NewNode(DebugURL string) (node *Node, err error) {
-	addresses, err := getAddresses(DebugURL)
-	if err != nil {
-		return nil, err
+	node = &Node{DebugURL: DebugURL}
+	if err = node.addresses(); err != nil {
+		return &Node{}, err
 	}
 
-	peers, err := getPeers(DebugURL)
-	if err != nil {
-		return nil, err
+	if err = node.peers(); err != nil {
+		return &Node{}, err
 	}
 
-	return &Node{
-		DebugURL:  DebugURL,
-		Addresses: addresses,
-		Peers:     peers,
-	}, nil
+	return
 }
 
 // Addresses ...
 type Addresses struct {
 	Overlay  string   `json:"overlay"`
 	Underlay []string `json:"underlay"`
-}
-
-// getAddresses ...
-func getAddresses(nodeURL string) (addresses Addresses, err error) {
-	err = request(http.MethodGet, nodeURL+"/addresses", nil, &addresses)
-	if err != nil {
-		return Addresses{}, err
-	}
-
-	return
 }
 
 // Peers ...
@@ -54,12 +41,10 @@ type Peer struct {
 	Address string `json:"address"`
 }
 
-// // getPeers ...
-func getPeers(nodeURL string) (peers Peers, err error) {
-	err = request(http.MethodGet, nodeURL+"/peers", nil, &peers)
-	if err != nil {
-		return Peers{}, err
-	}
+func (n *Node) addresses() (err error) {
+	return request(http.MethodGet, n.DebugURL+"/addresses", nil, &n.Addresses)
+}
 
-	return
+func (n *Node) peers() (err error) {
+	return request(http.MethodGet, n.DebugURL+"/peers", nil, &n.Peers)
 }
