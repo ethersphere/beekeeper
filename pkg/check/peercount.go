@@ -11,6 +11,7 @@ import (
 
 // PeerCountOptions ...
 type PeerCountOptions struct {
+	BootNodeCount   int
 	NodeCount       int
 	NodeURLTemplate string
 }
@@ -19,7 +20,7 @@ var errPeerCount = errors.New("peer count")
 
 // PeerCount ...
 func PeerCount(opts PeerCountOptions) (err error) {
-	var resp debugapi.Peers
+	var expectedPeerCount = opts.NodeCount + opts.BootNodeCount - 1
 
 	for i := 0; i < opts.NodeCount; i++ {
 		nodeURL, err := url.Parse(fmt.Sprintf(opts.NodeURLTemplate, i))
@@ -30,15 +31,15 @@ func PeerCount(opts PeerCountOptions) (err error) {
 		bc := debugapi.NewClient(nodeURL, nil)
 		ctx := context.Background()
 
-		resp, err = bc.Node.Peers(ctx)
+		resp, err := bc.Node.Peers(ctx)
 		if err != nil {
 			return err
 		}
 
-		if len(resp.Peers) == opts.NodeCount {
-			fmt.Println(fmt.Sprintf("Node %d passed. Peers %d/%d.", i, len(resp.Peers), opts.NodeCount))
+		if len(resp.Peers) == expectedPeerCount {
+			fmt.Println(fmt.Sprintf("Node %d passed. Peers %d/%d.", i, len(resp.Peers), expectedPeerCount))
 		} else {
-			fmt.Println(fmt.Sprintf("Node %d failed. Peers %d/%d.", i, len(resp.Peers), opts.NodeCount))
+			fmt.Println(fmt.Sprintf("Node %d failed. Peers %d/%d.", i, len(resp.Peers), expectedPeerCount))
 			return errPeerCount
 		}
 	}

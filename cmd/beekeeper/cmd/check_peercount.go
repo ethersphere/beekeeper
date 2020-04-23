@@ -8,6 +8,7 @@ import (
 
 func (c *command) initCheckPeerCount() *cobra.Command {
 	const (
+		optionNameBootNodeCount   = "bootnode-count"
 		optionNameNodeCount       = "node-count"
 		optionNameNodeURLTemplate = "node-url-template"
 	)
@@ -17,6 +18,7 @@ func (c *command) initCheckPeerCount() *cobra.Command {
 		Short: "Check peer count",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return check.PeerCount(check.PeerCountOptions{
+				BootNodeCount:   c.config.GetInt(optionNameBootNodeCount),
 				NodeCount:       c.config.GetInt(optionNameNodeCount),
 				NodeURLTemplate: c.config.GetString(optionNameNodeURLTemplate),
 			})
@@ -26,8 +28,10 @@ func (c *command) initCheckPeerCount() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Int(optionNameNodeCount, 1, "bee node count")
-	cmd.Flags().String(optionNameNodeURLTemplate, "", "bee node URL template")
+	cmd.Flags().Int(optionNameBootNodeCount, 1, "bootnode count")
+	cmd.Flags().Int(optionNameNodeCount, 1, "node count")
+	cmd.Flags().String(optionNameNodeURLTemplate, "", "node URL template")
+	cmd.MarkFlagRequired(optionNameNodeURLTemplate)
 
 	return cmd
 }
