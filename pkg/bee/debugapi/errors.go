@@ -1,4 +1,4 @@
-package bee
+package debugapi
 
 import (
 	"errors"
@@ -32,7 +32,10 @@ var (
 	ErrUnauthorized        = errors.New("unauthorized")
 	ErrForbidden           = errors.New("forbidden")
 	ErrNotFound            = errors.New("not found")
+	ErrMethodNotAllowed    = errors.New("method not allowed")
 	ErrTooManyRequests     = errors.New("too many requests")
 	ErrInternalServerError = errors.New("internal server error")
 	ErrMaintenance         = errors.New("maintenance")
 )
+
+var errInvalidPageNumber = errors.New("invalid page number")
