@@ -10,14 +10,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/ethersphere/beekeeper"
 )
 
-const (
-	version = "0.1.0"
+const contentType = "application/json; charset=utf-8"
 
-	userAgent   = "beekeeper/" + version
-	contentType = "application/json; charset=utf-8"
-)
+var userAgent = "beekeeper/" + beekeeper.Version
 
 // Client manages communication with the Bee Debug API.
 type Client struct {
