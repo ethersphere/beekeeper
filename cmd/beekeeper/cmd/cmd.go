@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	cobra.EnableCommandSorting = false
+	cobra.EnableCommandSorting = true
 }
 
 type command struct {

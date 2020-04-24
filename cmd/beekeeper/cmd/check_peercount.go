@@ -15,10 +15,11 @@ func (c *command) initCheckPeerCount() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "peercount",
-		Short: "Check node's peer count for all nodes in the cluster",
-		Long: `Check node's peer count for all nodes in the cluster.
-Retrieves list of peers from node's Debug API (/peers endpoint).
-Compares number of node's peers against expected peer count (node-count + bootnode-count - 1).`,
+		Short: "Checks node's peer count for all nodes in the cluster",
+		Long: `Checks node's peer count for all nodes in the cluster.
+It retrieves list of peers from node's Debug API (/peers endpoint),
+and compares number of node's peers against expected peer count.
+Expected peer count equals: node-count + bootnode-count - 1.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return check.PeerCount(check.PeerCountOptions{
 				BootNodeCount:   c.config.GetInt(optionNameBootNodeCount),
