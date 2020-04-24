@@ -15,7 +15,10 @@ func (c *command) initCheckPeerCount() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "peercount",
-		Short: "Check peer count",
+		Short: "Check node's peer count",
+		Long: `Check node's peer count for all nodes in the cluster.
+Retrieves list of peers from node's Debug API (/peers endpoint).
+Compares number of node's peers against expected peer count (node-count + bootnode-count - 1).`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return check.PeerCount(check.PeerCountOptions{
 				BootNodeCount:   c.config.GetInt(optionNameBootNodeCount),
@@ -30,7 +33,7 @@ func (c *command) initCheckPeerCount() *cobra.Command {
 
 	cmd.Flags().Int(optionNameBootNodeCount, 1, "bootnode count")
 	cmd.Flags().Int(optionNameNodeCount, 1, "node count")
-	cmd.Flags().String(optionNameNodeURLTemplate, "", "node URL template")
+	cmd.Flags().String(optionNameNodeURLTemplate, "", "node URL template (e.g. http://bee-%d-debug.domain)")
 	cmd.MarkFlagRequired(optionNameNodeURLTemplate)
 
 	return cmd
