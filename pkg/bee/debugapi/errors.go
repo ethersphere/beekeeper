@@ -37,5 +37,3 @@ var (
 	ErrInternalServerError = errors.New("internal server error")
 	ErrMaintenance         = errors.New("maintenance")
 )
-
-var errInvalidPageNumber = errors.New("invalid page number")

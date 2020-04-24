@@ -39,9 +39,9 @@ func PeerCount(opts PeerCountOptions) (err error) {
 		}
 
 		if len(resp.Peers) == expectedPeerCount {
-			fmt.Println(fmt.Sprintf("Node %d passed. Peers %d/%d.", i, len(resp.Peers), expectedPeerCount))
+			fmt.Printf("Node %d passed. Peers %d/%d.\n", i, len(resp.Peers), expectedPeerCount)
 		} else {
-			fmt.Println(fmt.Sprintf("Node %d failed. Peers %d/%d.", i, len(resp.Peers), expectedPeerCount))
+			fmt.Printf("Node %d failed. Peers %d/%d.\n", i, len(resp.Peers), expectedPeerCount)
 			return errPeerCount
 		}
 	}

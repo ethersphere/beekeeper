@@ -35,7 +35,9 @@ Expected peer count equals: node-count + bootnode-count - 1.`,
 	cmd.Flags().IntP(optionNameBootNodeCount, "b", 1, "bootnode count")
 	cmd.Flags().IntP(optionNameNodeCount, "c", 1, "node count")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace")
-	cmd.MarkFlagRequired(optionNameNamespace)
+	if err := cmd.MarkFlagRequired(optionNameNamespace); err != nil {
+		panic(err)
+	}
 
 	return cmd
 }
