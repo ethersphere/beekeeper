@@ -24,10 +24,10 @@ cp dist/beekeeper /usr/local/bin/beekeeper
 Command **check** runs test(s) on Bee node(s).
  Each test is implemented as a subcommand.
 
-Available tests:
+Available subcommands:
 
-|command|description|
-|-------|-----------|
+|subcommand|description|
+|----------|-----------|
 | peercount | Check node's peer count for all nodes in the cluster |
 
 ### peercount
