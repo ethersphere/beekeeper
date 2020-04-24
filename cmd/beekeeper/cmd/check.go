@@ -7,7 +7,7 @@ import (
 func (c *command) initCheckCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "check",
-		Short: "Check Bees",
+		Short: "Run tests on Bee node(s)",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},
