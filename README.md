@@ -39,9 +39,9 @@ Expected peer count equals: *node-count + bootnode-count - 1*.
 
 Example:
 ```bash
-beekeeper --bootnode-count 1 --node-count 1 --node-url-template http://bee-%d-debug.bee.core.internal
+beekeeper --bootnode-count 1 --node-count 1 --namespace bee
 ```
  or, shorthand:
  ```bash
-beekeeper -b 1 -n 1 -u http://bee-%d-debug.bee.core.internal
+beekeeper -b 1 -c 1 -n bee
 ```

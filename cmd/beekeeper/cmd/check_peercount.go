@@ -8,9 +8,9 @@ import (
 
 func (c *command) initCheckPeerCount() *cobra.Command {
 	const (
-		optionNameBootNodeCount   = "bootnode-count"
-		optionNameNodeCount       = "node-count"
-		optionNameNodeURLTemplate = "node-url-template"
+		optionNameBootNodeCount = "bootnode-count"
+		optionNameNodeCount     = "node-count"
+		optionNameNamespace     = "namespace"
 	)
 
 	cmd := &cobra.Command{
@@ -22,9 +22,9 @@ and compares number of node's peers against expected peer count.
 Expected peer count equals: node-count + bootnode-count - 1.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return check.PeerCount(check.PeerCountOptions{
-				BootNodeCount:   c.config.GetInt(optionNameBootNodeCount),
-				NodeCount:       c.config.GetInt(optionNameNodeCount),
-				NodeURLTemplate: c.config.GetString(optionNameNodeURLTemplate),
+				BootNodeCount: c.config.GetInt(optionNameBootNodeCount),
+				NodeCount:     c.config.GetInt(optionNameNodeCount),
+				Namespace:     c.config.GetString(optionNameNamespace),
 			})
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -33,9 +33,9 @@ Expected peer count equals: node-count + bootnode-count - 1.`,
 	}
 
 	cmd.Flags().IntP(optionNameBootNodeCount, "b", 1, "bootnode count")
-	cmd.Flags().IntP(optionNameNodeCount, "n", 1, "node count")
-	cmd.Flags().StringP(optionNameNodeURLTemplate, "u", "", "node URL template (e.g. http://bee-%d-debug.domain)")
-	cmd.MarkFlagRequired(optionNameNodeURLTemplate)
+	cmd.Flags().IntP(optionNameNodeCount, "c", 1, "node count")
+	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace")
+	cmd.MarkFlagRequired(optionNameNamespace)
 
 	return cmd
 }
