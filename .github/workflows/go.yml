@@ -1,0 +1,46 @@
+name: Go
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go: [1.14, 1.x]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+    - name: Setup Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
+    - name: Setup env
+      run: |
+        echo "::set-env name=GOPATH::$(go env GOPATH)"
+        echo "::add-path::$(go env GOPATH)/bin"
+      shell: bash
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+    - name: Cache Go modules
+      uses: actions/cache@v1
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-build-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.OS }}-build-${{ env.cache-name }}-
+          ${{ runner.OS }}-build-
+          ${{ runner.OS }}-
+    - name: Setup GolangCI-Lint
+      run: go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+      working-directory: ~
+    - name: Lint
+      run: make lint
+    - name: Vet
+      run: make vet
+    - name: Build
+      run: make build
+    - name: Test
+      run: make test
