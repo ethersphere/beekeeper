@@ -11,6 +11,7 @@ func (c *command) initCheckPeerCount() *cobra.Command {
 		optionNameBootNodeCount = "bootnode-count"
 		optionNameNodeCount     = "node-count"
 		optionNameNamespace     = "namespace"
+		optionNameURLTemplate   = "url-template"
 	)
 
 	cmd := &cobra.Command{
@@ -25,9 +26,15 @@ Expected peer count equals: node-count + bootnode-count - 1.`,
 				BootNodeCount: c.config.GetInt(optionNameBootNodeCount),
 				NodeCount:     c.config.GetInt(optionNameNodeCount),
 				Namespace:     c.config.GetString(optionNameNamespace),
+				URLTemplate:   c.config.GetString(optionNameURLTemplate),
 			})
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if cmd.Flag(optionNameURLTemplate).Value.String() == "" {
+				if err := cmd.MarkFlagRequired(optionNameNamespace); err != nil {
+					panic(err)
+				}
+			}
 			return c.config.BindPFlags(cmd.Flags())
 		},
 	}
@@ -35,7 +42,8 @@ Expected peer count equals: node-count + bootnode-count - 1.`,
 	cmd.Flags().IntP(optionNameBootNodeCount, "b", 1, "bootnode count")
 	cmd.Flags().IntP(optionNameNodeCount, "c", 1, "node count")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace")
-	if err := cmd.MarkFlagRequired(optionNameNamespace); err != nil {
+	cmd.Flags().StringP(optionNameURLTemplate, "u", "", "URL template")
+	if err := cmd.Flags().MarkHidden(optionNameURLTemplate); err != nil {
 		panic(err)
 	}
 
