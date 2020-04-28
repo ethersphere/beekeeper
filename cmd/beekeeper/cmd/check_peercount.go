@@ -43,7 +43,7 @@ Expected peer count equals: node-count + bootnode-count - 1.`,
 	cmd.Flags().IntP(optionNameNodeCount, "c", 1, "node count")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace")
 	cmd.Flags().StringP(optionNameURLTemplate, "u", "", "URL template")
-	if err := cmd.Flags().MarkHidden("url-template"); err != nil {
+	if err := cmd.Flags().MarkHidden(optionNameURLTemplate); err != nil {
 		panic(err)
 	}
 
