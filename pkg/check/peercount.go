@@ -13,17 +13,16 @@ const debugAPIURLTemplate = "http://bee-%d-debug.%s.core.internal"
 
 // PeerCountOptions ...
 type PeerCountOptions struct {
-	BootNodeCount int
-	NodeCount     int
-	Namespace     string
-	URLTemplate   string
+	NodeCount   int
+	Namespace   string
+	URLTemplate string
 }
 
 var errPeerCount = errors.New("peer count")
 
 // PeerCount ...
 func PeerCount(opts PeerCountOptions) (err error) {
-	var expectedPeerCount = opts.NodeCount + opts.BootNodeCount - 1
+	var expectedPeerCount = opts.NodeCount - 1
 
 	for i := 0; i < opts.NodeCount; i++ {
 		var nodeURL *url.URL
