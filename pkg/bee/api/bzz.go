@@ -9,14 +9,26 @@ import (
 // BzzService ...
 type BzzService service
 
-// UploadResponse ...
-type UploadResponse struct {
+// BzzGetResponse ...
+type BzzGetResponse struct {
 	Hash string `json:"hash"`
 }
 
-// Upload ...
-func (b *BzzService) Upload(ctx context.Context, chunk io.Reader) (uploadResponse UploadResponse, err error) {
-	var r UploadResponse
-	err = b.client.request(ctx, http.MethodPost, "/bzz/", chunk, &r)
+// BzzGet ...
+func (b *BzzService) BzzGet(ctx context.Context, addr string) (resp BzzGetResponse, err error) {
+	var r BzzGetResponse
+	err = b.client.request(ctx, http.MethodPost, "/bzz/"+addr, nil, &r)
+	return r, err
+}
+
+// BzzUploadResponse ...
+type BzzUploadResponse struct {
+	Hash string `json:"hash"`
+}
+
+// BzzUpload ...
+func (b *BzzService) BzzUpload(ctx context.Context, data io.Reader) (resp BzzUploadResponse, err error) {
+	var r BzzUploadResponse
+	err = b.client.request(ctx, http.MethodPost, "/bzz/", data, &r)
 	return r, err
 }
