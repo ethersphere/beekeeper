@@ -1,15 +1,9 @@
 package check
 
 import (
-	crand "crypto/rand"
-	"encoding/binary"
-	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 )
-
-const maxChunkSize = 4096
 
 // PushSyncOptions ...
 type PushSyncOptions struct {
@@ -19,8 +13,6 @@ type PushSyncOptions struct {
 	RandomSeed  bool
 	URLTemplate string
 }
-
-var errPushSync = errors.New("push sync")
 
 // PushSync ...
 func PushSync(opts PushSyncOptions) (err error) {
@@ -38,26 +30,10 @@ func PushSync(opts PushSyncOptions) (err error) {
 	chunkSize := rand.Intn(maxChunkSize)
 	fmt.Println("chunkSize: ", chunkSize)
 
-	token := make([]byte, chunkSize)
-	if _, err := rand.Read(token); err != nil {
+	data := make([]byte, chunkSize)
+	if _, err := rand.Read(data); err != nil {
 		return err
 	}
 
 	return
-}
-
-type cryptoSource struct{}
-
-func (s cryptoSource) Seed(seed int64) {}
-
-func (s cryptoSource) Int63() int64 {
-	return int64(s.Uint64() & ^uint64(1<<63))
-}
-
-func (s cryptoSource) Uint64() (v uint64) {
-	err := binary.Read(crand.Reader, binary.BigEndian, &v)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return v
 }
