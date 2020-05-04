@@ -15,9 +15,9 @@ type Addresses struct {
 }
 
 // Addresses ...
-func (d *NodeService) Addresses(ctx context.Context) (addresses Addresses, err error) {
+func (n *NodeService) Addresses(ctx context.Context) (addresses Addresses, err error) {
 	var r Addresses
-	err = d.client.request(ctx, http.MethodGet, "/addresses", nil, &r)
+	err = n.client.request(ctx, http.MethodGet, "/addresses", nil, &r)
 	return r, err
 }
 
@@ -32,8 +32,8 @@ type Peer struct {
 }
 
 // Peers ...
-func (d *NodeService) Peers(ctx context.Context) (peers Peers, err error) {
+func (n *NodeService) Peers(ctx context.Context) (peers Peers, err error) {
 	var r Peers
-	err = d.client.request(ctx, http.MethodGet, "/peers", nil, &r)
+	err = n.client.request(ctx, http.MethodGet, "/peers", nil, &r)
 	return r, err
 }
