@@ -11,9 +11,9 @@ import (
 
 // PingPongOptions ...
 type PingPongOptions struct {
-	NodeCount   int
-	Namespace   string
-	URLTemplate string
+	DebugAPIURLTemplate string
+	Namespace           string
+	NodeCount           int
 }
 
 // PingPong ...
@@ -21,8 +21,8 @@ func PingPong(opts PingPongOptions) (err error) {
 	for i := 0; i < opts.NodeCount; i++ {
 		var debugAPIURL *url.URL
 		var err error
-		if opts.URLTemplate != "" {
-			debugAPIURL, err = url.Parse(fmt.Sprintf(opts.URLTemplate, i))
+		if opts.DebugAPIURLTemplate != "" {
+			debugAPIURL, err = url.Parse(fmt.Sprintf(opts.DebugAPIURLTemplate, i))
 		} else {
 			debugAPIURL, err = url.Parse(fmt.Sprintf(debugAPIURLTemplate, i, opts.Namespace))
 		}

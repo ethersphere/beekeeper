@@ -11,9 +11,9 @@ import (
 
 // PeerCountOptions ...
 type PeerCountOptions struct {
-	NodeCount   int
-	Namespace   string
-	URLTemplate string
+	DebugAPIURLTemplate string
+	Namespace           string
+	NodeCount           int
 }
 
 var errPeerCount = errors.New("peer count")
@@ -25,8 +25,8 @@ func PeerCount(opts PeerCountOptions) (err error) {
 	for i := 0; i < opts.NodeCount; i++ {
 		var nodeURL *url.URL
 		var err error
-		if opts.URLTemplate != "" {
-			nodeURL, err = url.Parse(fmt.Sprintf(opts.URLTemplate, i))
+		if opts.DebugAPIURLTemplate != "" {
+			nodeURL, err = url.Parse(fmt.Sprintf(opts.DebugAPIURLTemplate, i))
 		} else {
 			nodeURL, err = url.Parse(fmt.Sprintf(debugAPIURLTemplate, i, opts.Namespace))
 		}

@@ -7,11 +7,11 @@ import (
 
 // PushSyncOptions ...
 type PushSyncOptions struct {
-	NodeCount   int
-	Namespace   string
-	Seed        int64
-	RandomSeed  bool
-	URLTemplate string
+	DebugAPIURLTemplate string
+	Namespace           string
+	NodeCount           int
+	RandomSeed          bool
+	Seed                int64
 }
 
 // PushSync ...
