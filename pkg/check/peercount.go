@@ -9,8 +9,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 )
 
-const debugAPIURLTemplate = "http://bee-%d-debug.%s.core.internal"
-
 // PeerCountOptions ...
 type PeerCountOptions struct {
 	NodeCount   int
