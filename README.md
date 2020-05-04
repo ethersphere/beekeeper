@@ -33,15 +33,13 @@ Available subcommands:
 ### peercount
 
 **peercount** checks node's peer count for all nodes in the cluster.
-It retrieves list of peers from node's Debug API (/peers endpoint),
-and compares number of node's peers against expected peer count.
-Expected peer count equals: *node-count + bootnode-count - 1*.
+It retrieves list of peers from node's Debug API (/peers endpoint).
 
 Example:
 ```bash
-beekeeper --bootnode-count 1 --node-count 1 --namespace bee
+beekeeper --node-count 3 --namespace bee
 ```
  or, shorthand:
  ```bash
-beekeeper -b 1 -c 1 -n bee
+beekeeper -c 3 -n bee
 ```
