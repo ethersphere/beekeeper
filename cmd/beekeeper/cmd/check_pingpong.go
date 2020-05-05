@@ -7,7 +7,7 @@ import (
 )
 
 func (c *command) initCheckPingPong() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "pingpong",
 		Short: "Checks pingpong",
 		Long:  `Checks pingpong`,
@@ -17,14 +17,11 @@ func (c *command) initCheckPingPong() *cobra.Command {
 				APIDomain:               c.config.GetString(optionNameAPIDomain),
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
+				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				NodeCount:               c.config.GetInt(optionNameNodeCount),
 			})
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
-		},
+		PreRunE: c.checkPreRunE,
 	}
-
-	return cmd
 }

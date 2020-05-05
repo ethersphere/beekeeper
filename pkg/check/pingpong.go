@@ -14,6 +14,7 @@ type PingPongOptions struct {
 	APIDomain               string
 	DebugAPIHostnamePattern string
 	DebugAPIDomain          string
+	DisableNamespace        bool
 	Namespace               string
 	NodeCount               int
 }
@@ -21,7 +22,7 @@ type PingPongOptions struct {
 // PingPong ...
 func PingPong(opts PingPongOptions) (err error) {
 	for i := 0; i < opts.NodeCount; i++ {
-		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i)
+		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
 		if err != nil {
 			return err
 		}
@@ -34,7 +35,7 @@ func PingPong(opts PingPongOptions) (err error) {
 			return err
 		}
 
-		APIURL, err := createURL(scheme, opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, i)
+		APIURL, err := createURL(scheme, opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, i, opts.DisableNamespace)
 		if err != nil {
 			return err
 		}

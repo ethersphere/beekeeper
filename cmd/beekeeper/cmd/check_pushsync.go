@@ -26,9 +26,7 @@ func (c *command) initCheckPushSync() *cobra.Command {
 				RandomSeed:              c.config.GetBool(optionNameRandomSeed),
 			})
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
-		},
+		PreRunE: c.checkPreRunE,
 	}
 
 	cmd.Flags().Int64P(optionNameSeed, "s", 1, "seed")

@@ -13,12 +13,12 @@ const (
 	scheme       = "http"
 )
 
-func createURL(scheme, hostnamePattern, namespace, domain string, counter int) (nodeURL *url.URL, err error) {
+func createURL(scheme, hostnamePattern, namespace, domain string, counter int, disableNamespace bool) (nodeURL *url.URL, err error) {
 	hostname := fmt.Sprintf(hostnamePattern, counter)
-	if len(namespace) > 0 {
-		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", scheme, hostname, namespace, domain))
-	} else {
+	if disableNamespace {
 		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s", scheme, hostname, domain))
+	} else {
+		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", scheme, hostname, namespace, domain))
 	}
 	return
 }

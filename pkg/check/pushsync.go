@@ -9,6 +9,7 @@ import (
 type PushSyncOptions struct {
 	DebugAPIHostnamePattern string
 	DebugAPIDomain          string
+	DisableNamespace        bool
 	Namespace               string
 	NodeCount               int
 	RandomSeed              bool

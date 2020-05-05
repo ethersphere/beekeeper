@@ -12,6 +12,7 @@ import (
 type PeerCountOptions struct {
 	DebugAPIHostnamePattern string
 	DebugAPIDomain          string
+	DisableNamespace        bool
 	Namespace               string
 	NodeCount               int
 }
@@ -23,7 +24,7 @@ func PeerCount(opts PeerCountOptions) (err error) {
 	var expectedPeerCount = opts.NodeCount - 1
 
 	for i := 0; i < opts.NodeCount; i++ {
-		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i)
+		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
 		if err != nil {
 			return err
 		}
