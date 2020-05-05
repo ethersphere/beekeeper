@@ -54,7 +54,7 @@ func (c *command) checkPreRunE(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
-		cmd.Help()
+		return cmd.Help()
 	}
 	return
 }
