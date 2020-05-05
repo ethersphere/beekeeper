@@ -1,12 +1,18 @@
 package check
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"math/rand"
+
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 )
 
 // PushSyncOptions ...
 type PushSyncOptions struct {
+	APIHostnamePattern      string
+	APIDomain               string
 	DebugAPIHostnamePattern string
 	DebugAPIDomain          string
 	DisableNamespace        bool
@@ -27,14 +33,31 @@ func PushSync(opts PushSyncOptions) (err error) {
 		seed = opts.Seed
 	}
 	rand.Seed(seed)
-	fmt.Println("seed: ", seed)
+	fmt.Printf("seed: %d\n", seed)
 
 	chunkSize := rand.Intn(maxChunkSize)
-	fmt.Println("chunkSize: ", chunkSize)
+	fmt.Printf("chunkSize: %d\n", chunkSize)
 
 	data := make([]byte, chunkSize)
 	if _, err := rand.Read(data); err != nil {
 		return err
+	}
+
+	for i := 0; i < opts.NodeCount; i++ {
+		APIURL, err := createURL(scheme, opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, i, opts.DisableNamespace)
+		if err != nil {
+			return err
+		}
+
+		c := api.NewClient(APIURL, nil)
+		ctx := context.Background()
+
+		r, err := c.Bzz.Upload(ctx, bytes.NewReader(data))
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Node %d. Hash: %s\n", i, r.Hash)
 	}
 
 	return
