@@ -23,15 +23,15 @@ func PeerCount(opts PeerCountOptions) (err error) {
 	var expectedPeerCount = opts.NodeCount - 1
 
 	for i := 0; i < opts.NodeCount; i++ {
-		debugAPI, err := nodeURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i)
+		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i)
 		if err != nil {
 			return err
 		}
 
-		bc := debugapi.NewClient(debugAPI, nil)
+		dc := debugapi.NewClient(debugAPIURL, nil)
 		ctx := context.Background()
 
-		resp, err := bc.Node.Peers(ctx)
+		resp, err := dc.Node.Peers(ctx)
 		if err != nil {
 			return err
 		}
