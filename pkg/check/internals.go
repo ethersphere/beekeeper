@@ -9,10 +9,8 @@ import (
 )
 
 const (
-	scheme              = "http"
-	apiURLTemplate      = "http://bee-%d.%s.core.internal"
-	debugAPIURLTemplate = "http://bee-%d-debug.%s.core.internal"
-	maxChunkSize        = 4096
+	maxChunkSize = 4096
+	scheme       = "http"
 )
 
 func nodeURL(scheme, hostnamePattern, namespace, domain string, counter int) (nodeURL *url.URL, err error) {
