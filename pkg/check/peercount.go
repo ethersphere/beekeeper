@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 
 	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 )
 
 // PeerCountOptions ...
 type PeerCountOptions struct {
-	DebugAPIURLTemplate string
-	Namespace           string
-	NodeCount           int
+	DebugAPIHostnamePattern string
+	DebugAPIDomain          string
+	Namespace               string
+	NodeCount               int
 }
 
 var errPeerCount = errors.New("peer count")
@@ -23,18 +23,12 @@ func PeerCount(opts PeerCountOptions) (err error) {
 	var expectedPeerCount = opts.NodeCount - 1
 
 	for i := 0; i < opts.NodeCount; i++ {
-		var nodeURL *url.URL
-		var err error
-		if opts.DebugAPIURLTemplate != "" {
-			nodeURL, err = url.Parse(fmt.Sprintf(opts.DebugAPIURLTemplate, i))
-		} else {
-			nodeURL, err = url.Parse(fmt.Sprintf(debugAPIURLTemplate, i, opts.Namespace))
-		}
+		debugAPI, err := nodeURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i)
 		if err != nil {
 			return err
 		}
 
-		bc := debugapi.NewClient(nodeURL, nil)
+		bc := debugapi.NewClient(debugAPI, nil)
 		ctx := context.Background()
 
 		resp, err := bc.Node.Peers(ctx)

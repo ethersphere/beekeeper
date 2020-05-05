@@ -18,11 +18,12 @@ func (c *command) initCheckPushSync() *cobra.Command {
 		Long:  `Checks push sync`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return check.PushSync(check.PushSyncOptions{
-				DebugAPIURLTemplate: c.config.GetString(optionNameDebugAPIURLTemplate),
-				Namespace:           c.config.GetString(optionNameNamespace),
-				NodeCount:           c.config.GetInt(optionNameNodeCount),
-				Seed:                c.config.GetInt64(optionNameSeed),
-				RandomSeed:          c.config.GetBool(optionNameRandomSeed),
+				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
+				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
+				Namespace:               c.config.GetString(optionNameNamespace),
+				NodeCount:               c.config.GetInt(optionNameNodeCount),
+				Seed:                    c.config.GetInt64(optionNameSeed),
+				RandomSeed:              c.config.GetBool(optionNameRandomSeed),
 			})
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {

@@ -5,9 +5,12 @@ import (
 )
 
 const (
-	optionNameDebugAPIURLTemplate = "debug-api-url-template"
-	optionNameNamespace           = "namespace"
-	optionNameNodeCount           = "node-count"
+	optionNameAPIHostnamePattern      = "api-hostnames"
+	optionNameAPIDomain               = "api-domain"
+	optionNameDebugAPIHostnamePattern = "debug-api-hostnames"
+	optionNameDebugAPIDomain          = "debug-api-domain"
+	optionNameNamespace               = "namespace"
+	optionNameNodeCount               = "node-count"
 )
 
 func (c *command) initCheckCmd() (err error) {
@@ -18,19 +21,14 @@ func (c *command) initCheckCmd() (err error) {
 			return cmd.Help()
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Flag(optionNameDebugAPIURLTemplate).Value.String() == "" {
-				if err := cmd.MarkFlagRequired(optionNameNamespace); err != nil {
-					panic(err)
-				}
-			}
 			return c.config.BindPFlags(cmd.Flags())
 		},
 	}
 
-	cmd.PersistentFlags().String(optionNameDebugAPIURLTemplate, "", "Debug API URL template")
-	if err := cmd.PersistentFlags().MarkHidden(optionNameDebugAPIURLTemplate); err != nil {
-		panic(err)
-	}
+	cmd.PersistentFlags().String(optionNameAPIHostnamePattern, "bee-%d", "API hostname pattern")
+	cmd.PersistentFlags().String(optionNameAPIDomain, "core.internal", "API DNS domain")
+	cmd.PersistentFlags().String(optionNameDebugAPIHostnamePattern, "bee-%d-debug", "Debug API hostname pattern")
+	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "core.internal", "Debug API DNS domain")
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
 

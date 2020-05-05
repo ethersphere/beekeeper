@@ -3,7 +3,6 @@ package check
 import (
 	"context"
 	"fmt"
-	"net/url"
 
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
@@ -11,26 +10,23 @@ import (
 
 // PingPongOptions ...
 type PingPongOptions struct {
-	DebugAPIURLTemplate string
-	Namespace           string
-	NodeCount           int
+	APIHostnamePattern      string
+	APIDomain               string
+	DebugAPIHostnamePattern string
+	DebugAPIDomain          string
+	Namespace               string
+	NodeCount               int
 }
 
 // PingPong ...
 func PingPong(opts PingPongOptions) (err error) {
 	for i := 0; i < opts.NodeCount; i++ {
-		var debugAPIURL *url.URL
-		var err error
-		if opts.DebugAPIURLTemplate != "" {
-			debugAPIURL, err = url.Parse(fmt.Sprintf(opts.DebugAPIURLTemplate, i))
-		} else {
-			debugAPIURL, err = url.Parse(fmt.Sprintf(debugAPIURLTemplate, i, opts.Namespace))
-		}
+		debugAPI, err := nodeURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i)
 		if err != nil {
 			return err
 		}
 
-		bc := debugapi.NewClient(debugAPIURL, nil)
+		bc := debugapi.NewClient(debugAPI, nil)
 		ctx := context.Background()
 
 		resp, err := bc.Node.Peers(ctx)
@@ -38,11 +34,12 @@ func PingPong(opts PingPongOptions) (err error) {
 			return err
 		}
 
-		APIURL, err := url.Parse(fmt.Sprintf(apiURLTemplate, i, opts.Namespace))
+		API, err := nodeURL(scheme, opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, i)
 		if err != nil {
 			return err
 		}
-		c := api.NewClient(APIURL, nil)
+
+		c := api.NewClient(API, nil)
 		ctx = context.Background()
 
 		for j, p := range resp.Peers {

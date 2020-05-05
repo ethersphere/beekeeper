@@ -3,14 +3,27 @@ package check
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"log"
+	"net/url"
 )
 
 const (
+	scheme              = "http"
 	apiURLTemplate      = "http://bee-%d.%s.core.internal"
 	debugAPIURLTemplate = "http://bee-%d-debug.%s.core.internal"
 	maxChunkSize        = 4096
 )
+
+func nodeURL(scheme, hostnamePattern, namespace, domain string, counter int) (nodeURL *url.URL, err error) {
+	hostname := fmt.Sprintf(hostnamePattern, counter)
+	if len(namespace) > 0 {
+		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", scheme, hostname, namespace, domain))
+	} else {
+		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s", scheme, hostname, domain))
+	}
+	return
+}
 
 // cryptoSource is used to create truly random source
 type cryptoSource struct{}

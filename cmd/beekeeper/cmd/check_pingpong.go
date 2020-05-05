@@ -13,9 +13,12 @@ func (c *command) initCheckPingPong() *cobra.Command {
 		Long:  `Checks pingpong`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return check.PingPong(check.PingPongOptions{
-				DebugAPIURLTemplate: c.config.GetString(optionNameDebugAPIURLTemplate),
-				Namespace:           c.config.GetString(optionNameNamespace),
-				NodeCount:           c.config.GetInt(optionNameNodeCount),
+				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
+				APIDomain:               c.config.GetString(optionNameAPIDomain),
+				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
+				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
+				Namespace:               c.config.GetString(optionNameNamespace),
+				NodeCount:               c.config.GetInt(optionNameNodeCount),
 			})
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
