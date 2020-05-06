@@ -35,15 +35,15 @@ func PushSync(opts PushSyncOptions) (err error) {
 	rand.Seed(seed)
 	fmt.Printf("seed: %d\n", seed)
 
-	chunkSize := rand.Intn(maxChunkSize)
-	fmt.Printf("chunkSize: %d\n", chunkSize)
-
-	data := make([]byte, chunkSize)
-	if _, err := rand.Read(data); err != nil {
-		return err
-	}
-
 	for i := 0; i < opts.NodeCount; i++ {
+		chunkSize := rand.Intn(maxChunkSize)
+		fmt.Printf("chunkSize: %d\n", chunkSize)
+
+		data := make([]byte, chunkSize)
+		if _, err := rand.Read(data); err != nil {
+			return err
+		}
+
 		APIURL, err := createURL(scheme, opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, i, opts.DisableNamespace)
 		if err != nil {
 			return err
@@ -52,6 +52,7 @@ func PushSync(opts PushSyncOptions) (err error) {
 		c := api.NewClient(APIURL, nil)
 		ctx := context.Background()
 
+		fmt.Println(data)
 		r, err := c.Bzz.Upload(ctx, bytes.NewReader(data))
 		if err != nil {
 			return err
