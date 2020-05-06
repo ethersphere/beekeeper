@@ -1,12 +1,12 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
 
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
+	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 )
 
 // PushSyncOptions ...
@@ -53,12 +53,27 @@ func PushSync(opts PushSyncOptions) (err error) {
 		ctx := context.Background()
 
 		fmt.Println(data)
-		r, err := c.Bzz.Upload(ctx, bytes.NewReader(data))
+		r, err := c.Bzz.Upload(ctx, data)
 		if err != nil {
 			return err
 		}
 
 		fmt.Printf("Node %d. Hash: %s\n", i, r.Hash)
+
+		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
+		if err != nil {
+			return err
+		}
+
+		dc := debugapi.NewClient(debugAPIURL, nil)
+		ctx = context.Background()
+
+		resp, err := dc.Node.HasChunk(ctx, r.Hash)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Node %d. Hash: %s\n", i, resp.Message)
 	}
 
 	return

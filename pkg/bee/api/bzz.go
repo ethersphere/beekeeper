@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"io"
 	"net/http"
 )
 
@@ -15,7 +14,7 @@ type BzzUploadResponse struct {
 }
 
 // Upload ...
-func (b *BzzService) Upload(ctx context.Context, data io.Reader) (resp BzzUploadResponse, err error) {
+func (b *BzzService) Upload(ctx context.Context, data interface{}) (resp BzzUploadResponse, err error) {
 	var r BzzUploadResponse
 	err = b.client.request(ctx, http.MethodPost, "/bzz", data, &r)
 	return r, err
