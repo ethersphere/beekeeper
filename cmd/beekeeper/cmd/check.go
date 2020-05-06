@@ -36,6 +36,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
 
+	cmd.AddCommand(c.initCheckFullConnectivity())
 	cmd.AddCommand(c.initCheckPeerCount())
 	cmd.AddCommand(c.initCheckPingPong())
 	cmd.AddCommand(c.initCheckPushSync())

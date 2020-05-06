@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+
+	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 )
 
 const (
@@ -13,6 +15,23 @@ const (
 	scheme       = "http"
 )
 
+// node represents Bee node
+type node struct {
+	Addresses debugapi.Addresses
+	Peers     debugapi.Peers
+}
+
+// contains checks if slice of strings containes given string
+func contains(s []string, v string) bool {
+	for _, a := range s {
+		if a == v {
+			return true
+		}
+	}
+	return false
+}
+
+// createURL creates API or debug API URL
 func createURL(scheme, hostnamePattern, namespace, domain string, counter int, disableNamespace bool) (nodeURL *url.URL, err error) {
 	hostname := fmt.Sprintf(hostnamePattern, counter)
 	if disableNamespace {
