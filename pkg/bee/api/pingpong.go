@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"net/http"
+
+	"github.com/ethersphere/bee/pkg/swarm"
 )
 
 // PingPongService ...
@@ -14,7 +16,7 @@ type Pong struct {
 }
 
 // Ping ...
-func (p *PingPongService) Ping(ctx context.Context, overlayAddress string) (resp Pong, err error) {
-	err = p.client.requestJSON(ctx, http.MethodPost, "/pingpong/"+overlayAddress, nil, &resp)
+func (p *PingPongService) Ping(ctx context.Context, overylay swarm.Address) (resp Pong, err error) {
+	err = p.client.requestJSON(ctx, http.MethodPost, "/pingpong/"+overylay.String(), nil, &resp)
 	return
 }

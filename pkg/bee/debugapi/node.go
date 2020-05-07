@@ -3,6 +3,8 @@ package debugapi
 import (
 	"context"
 	"net/http"
+
+	"github.com/ethersphere/bee/pkg/swarm"
 )
 
 // NodeService ...
@@ -10,9 +12,8 @@ type NodeService service
 
 // Addresses ...
 type Addresses struct {
-	Overlay string `json:"overlay"`
-	// Overlay  swarm.Address `json:"overlay"`
-	Underlay []string `json:"underlay"`
+	Overlay  swarm.Address `json:"overlay"`
+	Underlay []string      `json:"underlay"`
 }
 
 // Addresses ...
@@ -40,8 +41,7 @@ type Peers struct {
 
 // Peer ...
 type Peer struct {
-	// Address swarm.Address `json:"address"`
-	Address string `json:"address"`
+	Address swarm.Address `json:"address"`
 }
 
 // Peers ...

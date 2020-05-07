@@ -1,6 +1,7 @@
 package check
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
@@ -52,8 +53,7 @@ func PushSync(opts PushSyncOptions) (err error) {
 		c := api.NewClient(APIURL, nil)
 		ctx := context.Background()
 
-		fmt.Println(data)
-		r, err := c.Bzz.Upload(ctx, data)
+		r, err := c.Bzz.Upload(ctx, bytes.NewReader(data))
 		if err != nil {
 			return err
 		}

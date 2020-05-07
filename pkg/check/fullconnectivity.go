@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 )
 
@@ -24,7 +25,7 @@ func FullConnectivity(opts FullConnectivityOptions) (err error) {
 	var expectedPeerCount = opts.NodeCount - 1
 
 	var nodes []node
-	var overlays []string
+	var overlays []swarm.Address
 	for i := 0; i < opts.NodeCount; i++ {
 		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
 		if err != nil {
@@ -68,4 +69,14 @@ func FullConnectivity(opts FullConnectivityOptions) (err error) {
 	}
 
 	return
+}
+
+// contains checks if slice of swarm.Address containes given swarm.Address
+func contains(s []swarm.Address, v swarm.Address) bool {
+	for _, a := range s {
+		if a.Equal(v) {
+			return true
+		}
+	}
+	return false
 }
