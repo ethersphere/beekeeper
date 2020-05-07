@@ -10,15 +10,15 @@ type NodeService service
 
 // Addresses ...
 type Addresses struct {
-	Overlay  string   `json:"overlay"`
+	Overlay string `json:"overlay"`
+	// Overlay  swarm.Address `json:"overlay"`
 	Underlay []string `json:"underlay"`
 }
 
 // Addresses ...
 func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error) {
-	var r Addresses
-	err = n.client.request(ctx, http.MethodGet, "/addresses", nil, &r)
-	return r, err
+	err = n.client.requestJSON(ctx, http.MethodGet, "/addresses", nil, &resp)
+	return
 }
 
 // StatusResponse ...
@@ -29,9 +29,8 @@ type StatusResponse struct {
 
 // HasChunk ...
 func (n *NodeService) HasChunk(ctx context.Context, address string) (resp StatusResponse, err error) {
-	var r StatusResponse
-	err = n.client.request(ctx, http.MethodGet, "/chunks/"+address, nil, &r)
-	return r, err
+	err = n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+address, nil, &resp)
+	return
 }
 
 // Peers ...
@@ -41,12 +40,12 @@ type Peers struct {
 
 // Peer ...
 type Peer struct {
+	// Address swarm.Address `json:"address"`
 	Address string `json:"address"`
 }
 
 // Peers ...
 func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
-	var r Peers
-	err = n.client.request(ctx, http.MethodGet, "/peers", nil, &r)
-	return r, err
+	err = n.client.requestJSON(ctx, http.MethodGet, "/peers", nil, &resp)
+	return
 }

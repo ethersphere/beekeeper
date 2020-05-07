@@ -15,7 +15,6 @@ type Pong struct {
 
 // Ping ...
 func (p *PingPongService) Ping(ctx context.Context, overlayAddress string) (resp Pong, err error) {
-	var r Pong
-	err = p.client.request(ctx, http.MethodPost, "/pingpong/"+overlayAddress, nil, &r)
-	return r, err
+	err = p.client.requestJSON(ctx, http.MethodPost, "/pingpong/"+overlayAddress, nil, &resp)
+	return
 }

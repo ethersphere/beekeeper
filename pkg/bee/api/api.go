@@ -81,11 +81,11 @@ func httpClientWithTransport(baseURL *url.URL, c *http.Client) *http.Client {
 	return c
 }
 
-// request handles the HTTP request response cycle. It JSON encodes the request
+// requestJSON handles the HTTP request response cycle. It JSON encodes the request
 // body, creates an HTTP request with provided method on a path with required
 // headers and decodes request body if the v argument is not nil and content type is
 // application/json.
-func (c *Client) request(ctx context.Context, method, path string, body, v interface{}) (err error) {
+func (c *Client) requestJSON(ctx context.Context, method, path string, body, v interface{}) (err error) {
 	var bodyBuffer io.ReadWriter
 	if body != nil {
 		bodyBuffer = new(bytes.Buffer)
@@ -94,16 +94,16 @@ func (c *Client) request(ctx context.Context, method, path string, body, v inter
 		}
 	}
 
-	req, err := http.NewRequest(method, path, bodyBuffer)
+	return c.request(ctx, method, path, bodyBuffer, v)
+}
+
+// request handles the HTTP request response cycle.
+func (c *Client) request(ctx context.Context, method, path string, body io.Reader, v interface{}) (err error) {
+	req, err := http.NewRequest(method, path, body)
 	if err != nil {
 		return err
 	}
 	req = req.WithContext(ctx)
-
-	if body != nil {
-		req.Header.Set("Content-Type", contentType)
-	}
-	req.Header.Set("Accept", contentType)
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
