@@ -103,6 +103,11 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	}
 	req = req.WithContext(ctx)
 
+	if body != nil {
+		req.Header.Set("Content-Type", contentType)
+	}
+	req.Header.Set("Accept", contentType)
+
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
