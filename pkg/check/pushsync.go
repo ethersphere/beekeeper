@@ -3,6 +3,7 @@ package check
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 
@@ -26,6 +27,8 @@ type PushSyncOptions struct {
 	TargetNode              int
 	UploadNodeCount         int
 }
+
+var errPushSync = errors.New("pushsync")
 
 // PushSync ...
 func PushSync(opts PushSyncOptions) (err error) {
@@ -58,6 +61,7 @@ func PushSync(opts PushSyncOptions) (err error) {
 		overlayAddresses = append(overlayAddresses, a.Overlay)
 	}
 
+	testFailed := false
 	for i := 0; i < opts.UploadNodeCount; i++ {
 		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < opts.ChunksPerNode; j++ {
@@ -101,16 +105,19 @@ func PushSync(opts PushSyncOptions) (err error) {
 			ctx = context.Background()
 
 			resp, err := dc.Node.HasChunk(ctx, r.Hash)
-			if err != nil {
+			if resp.Message == "OK" {
+				fmt.Printf("Chunk %d found on closest node\n", j)
+			} else if err == debugapi.ErrNotFound {
+				fmt.Printf("Chunk %d not found on closest node\n", j)
+				testFailed = true
+			} else if err != nil {
 				return err
 			}
-
-			if resp.Message == "OK" {
-				fmt.Printf("Chunk %d found\n", j)
-			} else {
-				fmt.Printf("Chunk %d not found\n", j)
-			}
 		}
+	}
+
+	if testFailed {
+		return errPushSync
 	}
 
 	return
