@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"net/http"
+
+	"github.com/ethersphere/bee/pkg/swarm"
 )
 
 // BzzService ...
@@ -11,7 +13,7 @@ type BzzService service
 
 // BzzUploadResponse ...
 type BzzUploadResponse struct {
-	Hash string `json:"hash"`
+	Hash swarm.Address `json:"hash"`
 }
 
 // Upload ...

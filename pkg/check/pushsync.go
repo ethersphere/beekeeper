@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 )
@@ -39,6 +40,24 @@ func PushSync(opts PushSyncOptions) (err error) {
 	rand.Seed(seed)
 	fmt.Printf("seed: %d\n", seed)
 
+	var overlayAddresses []swarm.Address
+	for i := 0; i < opts.NodeCount; i++ {
+		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
+		if err != nil {
+			return err
+		}
+
+		dc := debugapi.NewClient(debugAPIURL, nil)
+		ctx := context.Background()
+
+		a, err := dc.Node.Addresses(ctx)
+		if err != nil {
+			return err
+		}
+
+		overlayAddresses = append(overlayAddresses, a.Overlay)
+	}
+
 	for i := 0; i < opts.UploadNodeCount; i++ {
 		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < opts.ChunksPerNode; j++ {
@@ -66,7 +85,14 @@ func PushSync(opts PushSyncOptions) (err error) {
 
 			fmt.Printf("Chunk %d hash: %s\n", j, r.Hash)
 
-			debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
+			closestNode, err := closest(r.Hash, overlayAddresses)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Chunk %d closest node: %s\n", j, closestNode)
+
+			index := overlayIndex(closestNode, overlayAddresses)
+			debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, index, opts.DisableNamespace)
 			if err != nil {
 				return err
 			}
@@ -84,9 +110,39 @@ func PushSync(opts PushSyncOptions) (err error) {
 			} else {
 				fmt.Printf("Chunk %d not found\n", j)
 			}
-
 		}
 	}
 
 	return
+}
+
+func closest(addr swarm.Address, addrs []swarm.Address) (closest swarm.Address, err error) {
+	closest = addrs[0]
+	for _, a := range addrs[1:] {
+		dcmp, err := swarm.DistanceCmp(addr.Bytes(), closest.Bytes(), a.Bytes())
+		if err != nil {
+			return swarm.Address{}, err
+		}
+		switch dcmp {
+		case 0:
+			// do nothing
+		case -1:
+			// current peer is closer
+			closest = a
+		case 1:
+			// closest is already closer to chunk
+			// do nothing
+		}
+	}
+
+	return
+}
+
+func overlayIndex(addr swarm.Address, overlayAddresses []swarm.Address) int {
+	for i, a := range overlayAddresses {
+		if addr.Equal(a) {
+			return i
+		}
+	}
+	return -1
 }

@@ -29,8 +29,8 @@ type StatusResponse struct {
 }
 
 // HasChunk ...
-func (n *NodeService) HasChunk(ctx context.Context, address string) (resp StatusResponse, err error) {
-	err = n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+address, nil, &resp)
+func (n *NodeService) HasChunk(ctx context.Context, address swarm.Address) (resp StatusResponse, err error) {
+	err = n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+address.String(), nil, &resp)
 	return
 }
 
