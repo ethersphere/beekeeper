@@ -28,7 +28,23 @@ Available subcommands:
 
 |subcommand|description|
 |----------|-----------|
+| fullconnectivity | Checks full connectivity in the cluster |
 | peercount | Check node's peer count for all nodes in the cluster |
+| pingpong | Checks pingpong |
+| pushsync | Checks push sync |
+
+### fullconnectivity
+
+**fullconnectivity** checks full connectivity in the cluster.
+
+Example:
+```bash
+beekeeper check fullconnectivity --node-count 3 --namespace bee
+```
+ or, shorthand:
+ ```bash
+beekeeper check fullconnectivity -c 3 -n bee
+```
 
 ### peercount
 
@@ -37,9 +53,35 @@ It retrieves list of peers from node's Debug API (/peers endpoint).
 
 Example:
 ```bash
-beekeeper --node-count 3 --namespace bee
+beekeeper check peercount --node-count 3 --namespace bee
 ```
  or, shorthand:
  ```bash
-beekeeper -c 3 -n bee
+beekeeper check peercount -c 3 -n bee
+```
+
+### pingpong
+
+**pingpong** checks pingpong.
+
+Example:
+```bash
+beekeeper check pingpong --node-count 3 --namespace bee
+```
+ or, shorthand:
+ ```bash
+beekeeper check pingpong -c 3 -n bee
+```
+
+### pushsync
+
+**pushsync** checks push-sync.
+
+Example:
+```bash
+beekeeper check pushsync --node-count 3 --namespace bee
+```
+ or, shorthand:
+ ```bash
+beekeeper check pushsync -c 3 -n bee
 ```
