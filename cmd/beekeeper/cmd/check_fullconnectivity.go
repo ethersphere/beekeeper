@@ -6,14 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initCheckPeerCount() *cobra.Command {
+func (c *command) initCheckFullConnectivity() *cobra.Command {
 	return &cobra.Command{
-		Use:   "peercount",
-		Short: "Checks node's peer count for all nodes in the cluster",
-		Long: `Checks node's peer count for all nodes in the cluster.
-It retrieves list of peers from node's Debug API (/peers endpoint).`,
+		Use:   "fullconnectivity",
+		Short: "Checks full connectivity in the cluster",
+		Long:  `Checks full connectivity in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return check.PeerCount(check.PeerCountOptions{
+			return check.FullConnectivity(check.FullConnectivityOptions{
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
 				DisableNamespace:        disableNamespace,
