@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
@@ -104,6 +105,7 @@ func PushSync(opts PushSyncOptions) (err error) {
 			dc := debugapi.NewClient(debugAPIURL, nil)
 			ctx = context.Background()
 
+			time.Sleep(1 * time.Second)
 			resp, err := dc.Node.HasChunk(ctx, r.Hash)
 			if resp.Message == "OK" {
 				fmt.Printf("Chunk %d found on closest node\n", j)
