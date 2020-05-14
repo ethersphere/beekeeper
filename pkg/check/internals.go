@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	maxChunkSize = 4096
-	scheme       = "http"
+	scheme = "http"
 )
 
 // node represents Bee node

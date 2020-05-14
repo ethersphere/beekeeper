@@ -41,7 +41,6 @@ func PushSync(opts PushSyncOptions) (err error) {
 	} else {
 		seed = opts.Seed
 	}
-	rand.Seed(seed)
 	fmt.Printf("seed: %d\n", seed)
 
 	chunks, err := generateChunks(opts.UploadNodeCount, opts.ChunksPerNode, seed)
@@ -54,13 +53,21 @@ func PushSync(opts PushSyncOptions) (err error) {
 		return err
 	}
 
+	allNodes, err := NewNNodes(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, opts.DisableNamespace, opts.NodeCount)
+	if err != nil {
+		return err
+	}
+	fmt.Println(allNodes)
+
 	testFailed := false
 	for i := 0; i < opts.UploadNodeCount; i++ {
 		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < opts.ChunksPerNode; j++ {
+			// select chunk
 			chunk := chunks[i][j]
-			fmt.Printf("Chunk %d size: %d\n", j, len(chunk))
+			fmt.Printf("Chunk %d size: %d\n", j, len(chunk.Data))
 
+			// upload chunk
 			APIURL, err := createURL(scheme, opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, i, opts.DisableNamespace)
 			if err != nil {
 				return err
@@ -68,16 +75,17 @@ func PushSync(opts PushSyncOptions) (err error) {
 
 			c := api.NewClient(APIURL, nil)
 			ctx := context.Background()
-			data := bytes.NewReader(chunk)
+			data := bytes.NewReader(chunk.Data)
 
 			r, err := c.Bzz.Upload(ctx, data)
 			if err != nil {
 				return err
 			}
+			chunk.Address = r.Hash
+			fmt.Printf("Chunk %d hash: %s\n", j, chunk.Address)
 
-			fmt.Printf("Chunk %d hash: %s\n", j, r.Hash)
-
-			closestNode, err := closest(r.Hash, overlayAddresses)
+			// finc chunk's closest node
+			closestNode, err := chunk.ClosestNode(overlayAddresses)
 			if err != nil {
 				return err
 			}
@@ -93,7 +101,7 @@ func PushSync(opts PushSyncOptions) (err error) {
 			ctx = context.Background()
 
 			time.Sleep(1 * time.Second)
-			resp, err := dc.Node.HasChunk(ctx, r.Hash)
+			resp, err := dc.Node.HasChunk(ctx, chunk.Address)
 			if resp.Message == "OK" {
 				fmt.Printf("Chunk %d found on closest node\n", j)
 			} else if err == debugapi.ErrNotFound {
@@ -112,28 +120,6 @@ func PushSync(opts PushSyncOptions) (err error) {
 	return
 }
 
-func closest(addr swarm.Address, addrs []swarm.Address) (closest swarm.Address, err error) {
-	closest = addrs[0]
-	for _, a := range addrs[1:] {
-		dcmp, err := swarm.DistanceCmp(addr.Bytes(), closest.Bytes(), a.Bytes())
-		if err != nil {
-			return swarm.Address{}, err
-		}
-		switch dcmp {
-		case 0:
-			// do nothing
-		case -1:
-			// current peer is closer
-			closest = a
-		case 1:
-			// closest is already closer to chunk
-			// do nothing
-		}
-	}
-
-	return
-}
-
 func overlayIndex(addr swarm.Address, overlayAddresses []swarm.Address) int {
 	for i, a := range overlayAddresses {
 		if addr.Equal(a) {
@@ -144,18 +130,23 @@ func overlayIndex(addr swarm.Address, overlayAddresses []swarm.Address) int {
 }
 
 // generateChunks generates chunks for nodes
-func generateChunks(nodeCount, chunksPerNode int, seed int64) (chunks map[int]map[int][]byte, err error) {
-	chunks = make(map[int]map[int][]byte)
+func generateChunks(nodeCount, chunksPerNode int, seed int64) (chunks map[int]map[int]Chunk, err error) {
+	randomChunks, err := NewNRandomChunks(seed, nodeCount*chunksPerNode)
+	if err != nil {
+		return map[int]map[int]Chunk{}, err
+	}
+
+	chunks = make(map[int]map[int]Chunk)
 	for i := 0; i < nodeCount; i++ {
-		node := make(map[int][]byte)
+		tmp := randomChunks[0:chunksPerNode]
+
+		nodeChunks := make(map[int]Chunk)
 		for j := 0; j < chunksPerNode; j++ {
-			chunk := make([]byte, rand.Intn(maxChunkSize))
-			if _, err := rand.Read(chunk); err != nil {
-				return map[int]map[int][]byte{}, err
-			}
-			node[j] = chunk
+			nodeChunks[j] = tmp[j]
 		}
-		chunks[i] = node
+
+		chunks[i] = nodeChunks
+		randomChunks = randomChunks[chunksPerNode:]
 	}
 
 	return
