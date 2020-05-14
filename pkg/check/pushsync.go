@@ -44,35 +44,22 @@ func PushSync(opts PushSyncOptions) (err error) {
 	rand.Seed(seed)
 	fmt.Printf("seed: %d\n", seed)
 
-	var overlayAddresses []swarm.Address
-	for i := 0; i < opts.NodeCount; i++ {
-		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
-		if err != nil {
-			return err
-		}
+	chunks, err := generateChunks(opts.UploadNodeCount, opts.ChunksPerNode, seed)
+	if err != nil {
+		return err
+	}
 
-		dc := debugapi.NewClient(debugAPIURL, nil)
-		ctx := context.Background()
-
-		a, err := dc.Node.Addresses(ctx)
-		if err != nil {
-			return err
-		}
-
-		overlayAddresses = append(overlayAddresses, a.Overlay)
+	overlayAddresses, err := getOverlayAddresses(opts.NodeCount, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, opts.DisableNamespace)
+	if err != nil {
+		return err
 	}
 
 	testFailed := false
 	for i := 0; i < opts.UploadNodeCount; i++ {
 		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < opts.ChunksPerNode; j++ {
-			chunkSize := rand.Intn(maxChunkSize)
-			fmt.Printf("Chunk %d size: %d\n", j, chunkSize)
-
-			chunk := make([]byte, chunkSize)
-			if _, err := rand.Read(chunk); err != nil {
-				return err
-			}
+			chunk := chunks[i][j]
+			fmt.Printf("Chunk %d size: %d\n", j, len(chunk))
 
 			APIURL, err := createURL(scheme, opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, i, opts.DisableNamespace)
 			if err != nil {
@@ -154,4 +141,44 @@ func overlayIndex(addr swarm.Address, overlayAddresses []swarm.Address) int {
 		}
 	}
 	return -1
+}
+
+// generateChunks generates chunks for nodes
+func generateChunks(nodeCount, chunksPerNode int, seed int64) (chunks map[int]map[int][]byte, err error) {
+	chunks = make(map[int]map[int][]byte)
+	for i := 0; i < nodeCount; i++ {
+		node := make(map[int][]byte)
+		for j := 0; j < chunksPerNode; j++ {
+			chunk := make([]byte, rand.Intn(maxChunkSize))
+			if _, err := rand.Read(chunk); err != nil {
+				return map[int]map[int][]byte{}, err
+			}
+			node[j] = chunk
+		}
+		chunks[i] = node
+	}
+
+	return
+}
+
+// getOverlayAddresses returns overlay addresses of all nodes
+func getOverlayAddresses(nodeCount int, debugAPIHostnamePattern, namespace, debugAPIDomain string, disableNamespace bool) (addresses []swarm.Address, err error) {
+	for i := 0; i < nodeCount; i++ {
+		debugAPIURL, err := createURL(scheme, debugAPIHostnamePattern, namespace, debugAPIDomain, i, disableNamespace)
+		if err != nil {
+			return []swarm.Address{}, err
+		}
+
+		dc := debugapi.NewClient(debugAPIURL, nil)
+		ctx := context.Background()
+
+		a, err := dc.Node.Addresses(ctx)
+		if err != nil {
+			return []swarm.Address{}, err
+		}
+
+		addresses = append(addresses, a.Overlay)
+	}
+
+	return
 }
