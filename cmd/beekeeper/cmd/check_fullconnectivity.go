@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
 
 	"github.com/spf13/cobra"
@@ -12,15 +13,21 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 		Short: "Checks full connectivity in the cluster",
 		Long:  `Checks full connectivity in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return check.FullConnectivity(check.FullConnectivityOptions{
-				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
-				APIDomain:               c.config.GetString(optionNameAPIDomain),
-				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
-				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DisableNamespace:        disableNamespace,
-				Namespace:               c.config.GetString(optionNameNamespace),
-				NodeCount:               c.config.GetInt(optionNameNodeCount),
-			})
+			nodes, err := bee.NewNNodes(
+				c.config.GetString(optionNameAPIHostnamePattern),
+				c.config.GetString(optionNameNamespace),
+				c.config.GetString(optionNameAPIDomain),
+				c.config.GetString(optionNameDebugAPIHostnamePattern),
+				c.config.GetString(optionNameNamespace),
+				c.config.GetString(optionNameDebugAPIDomain),
+				disableNamespace,
+				c.config.GetInt(optionNameNodeCount),
+			)
+			if err != nil {
+				return err
+			}
+
+			return check.FullConnectivity(nodes)
 		},
 		PreRunE: c.checkPreRunE,
 	}

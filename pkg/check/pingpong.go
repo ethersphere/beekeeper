@@ -7,26 +7,9 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// PingPongOptions ...
-type PingPongOptions struct {
-	APIHostnamePattern      string
-	APIDomain               string
-	DebugAPIHostnamePattern string
-	DebugAPIDomain          string
-	DisableNamespace        bool
-	Namespace               string
-	NodeCount               int
-}
-
 // PingPong ...
-func PingPong(opts PingPongOptions) (err error) {
+func PingPong(nodes []bee.Node) (err error) {
 	ctx := context.Background()
-
-	nodes, err := bee.NewNNodes(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, opts.DisableNamespace, opts.NodeCount)
-	if err != nil {
-		return err
-	}
-
 	for i, n := range nodes {
 		a, err := n.DebugAPI.Node.Addresses(ctx)
 		if err != nil {

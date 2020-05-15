@@ -1,8 +1,14 @@
 package cmd
 
 import (
+	crand "crypto/rand"
+	"encoding/binary"
 	"errors"
+	"fmt"
+	"log"
+	"math/rand"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
 
 	"github.com/spf13/cobra"
@@ -24,19 +30,40 @@ func (c *command) initCheckPushSync() *cobra.Command {
 			if c.config.GetInt(optionNameUploadNodeCount) > c.config.GetInt(optionNameNodeCount) {
 				return errors.New("upload-node-count must be less or equal to node-count")
 			}
-			return check.PushSync(check.PushSyncOptions{
-				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
-				APIDomain:               c.config.GetString(optionNameAPIDomain),
-				ChunksPerNode:           c.config.GetInt(optionNameChunksPerNode),
-				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
-				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DisableNamespace:        disableNamespace,
-				Namespace:               c.config.GetString(optionNameNamespace),
-				NodeCount:               c.config.GetInt(optionNameNodeCount),
-				RandomSeed:              c.config.GetBool(optionNameRandomSeed),
-				Seed:                    c.config.GetInt64(optionNameSeed),
-				UploadNodeCount:         c.config.GetInt(optionNameUploadNodeCount),
-			})
+			var seed int64
+			if c.config.GetBool(optionNameRandomSeed) {
+				var src cryptoSource
+				rnd := rand.New(src)
+				seed = rnd.Int63()
+			} else {
+				seed = c.config.GetInt64(optionNameSeed)
+			}
+			fmt.Printf("seed: %d\n", seed)
+
+			chunks, err := generateChunks(
+				c.config.GetInt(optionNameUploadNodeCount),
+				c.config.GetInt(optionNameChunksPerNode),
+				seed,
+			)
+			if err != nil {
+				return err
+			}
+
+			nodes, err := bee.NewNNodes(
+				c.config.GetString(optionNameAPIHostnamePattern),
+				c.config.GetString(optionNameNamespace),
+				c.config.GetString(optionNameAPIDomain),
+				c.config.GetString(optionNameDebugAPIHostnamePattern),
+				c.config.GetString(optionNameNamespace),
+				c.config.GetString(optionNameDebugAPIDomain),
+				disableNamespace,
+				c.config.GetInt(optionNameNodeCount),
+			)
+			if err != nil {
+				return err
+			}
+
+			return check.PushSync(nodes, chunks)
 		},
 		PreRunE: c.checkPreRunE,
 	}
@@ -47,4 +74,44 @@ func (c *command) initCheckPushSync() *cobra.Command {
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload chunks to")
 
 	return cmd
+}
+
+// cryptoSource is used to create truly random source
+type cryptoSource struct{}
+
+func (s cryptoSource) Seed(seed int64) {}
+
+func (s cryptoSource) Int63() int64 {
+	return int64(s.Uint64() & ^uint64(1<<63))
+}
+
+func (s cryptoSource) Uint64() (v uint64) {
+	err := binary.Read(crand.Reader, binary.BigEndian, &v)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return v
+}
+
+// generateChunks generates chunks for nodes
+func generateChunks(nodeCount, chunksPerNode int, seed int64) (chunks map[int]map[int]bee.Chunk, err error) {
+	randomChunks, err := bee.NewNRandomChunks(seed, nodeCount*chunksPerNode)
+	if err != nil {
+		return map[int]map[int]bee.Chunk{}, err
+	}
+
+	chunks = make(map[int]map[int]bee.Chunk)
+	for i := 0; i < nodeCount; i++ {
+		tmp := randomChunks[0:chunksPerNode]
+
+		nodeChunks := make(map[int]bee.Chunk)
+		for j := 0; j < chunksPerNode; j++ {
+			nodeChunks[j] = tmp[j]
+		}
+
+		chunks[i] = nodeChunks
+		randomChunks = randomChunks[chunksPerNode:]
+	}
+
+	return
 }

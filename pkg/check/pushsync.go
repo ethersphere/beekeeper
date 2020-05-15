@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -13,48 +12,11 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
 
-// PushSyncOptions ...
-type PushSyncOptions struct {
-	APIHostnamePattern      string
-	APIDomain               string
-	DebugAPIHostnamePattern string
-	DebugAPIDomain          string
-	DisableNamespace        bool
-	Namespace               string
-	NodeCount               int
-
-	ChunksPerNode   int
-	TargetNode      int
-	UploadNodeCount int
-
-	RandomSeed bool
-	Seed       int64
-}
-
 var errPushSync = errors.New("pushsync")
 
 // PushSync ...
-func PushSync(opts PushSyncOptions) (err error) {
-	var seed int64
-	if opts.RandomSeed {
-		var src cryptoSource
-		rnd := rand.New(src)
-		seed = rnd.Int63()
-	} else {
-		seed = opts.Seed
-	}
-	fmt.Printf("seed: %d\n", seed)
-
-	chunks, err := generateChunks(opts.UploadNodeCount, opts.ChunksPerNode, seed)
-	if err != nil {
-		return err
-	}
-
+func PushSync(nodes []bee.Node, chunks map[int]map[int]bee.Chunk) (err error) {
 	ctx := context.Background()
-	nodes, err := bee.NewNNodes(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, opts.DisableNamespace, opts.NodeCount)
-	if err != nil {
-		return err
-	}
 
 	var overlays []swarm.Address
 	for _, n := range nodes {
@@ -67,10 +29,10 @@ func PushSync(opts PushSyncOptions) (err error) {
 	}
 
 	testFailed := false
-	uploadNodes := nodes[:opts.UploadNodeCount]
+	uploadNodes := nodes[:len(chunks)]
 	for i, n := range uploadNodes {
 		fmt.Printf("Node %d:\n", i)
-		for j := 0; j < opts.ChunksPerNode; j++ {
+		for j := 0; j < len(chunks[i]); j++ {
 			// make data
 			chunk := chunks[i][j]
 			data := bytes.NewReader(chunk.Data)
@@ -120,27 +82,4 @@ func findIndex(overlays []swarm.Address, addr swarm.Address) int {
 		}
 	}
 	return -1
-}
-
-// generateChunks generates chunks for nodes
-func generateChunks(nodeCount, chunksPerNode int, seed int64) (chunks map[int]map[int]bee.Chunk, err error) {
-	randomChunks, err := bee.NewNRandomChunks(seed, nodeCount*chunksPerNode)
-	if err != nil {
-		return map[int]map[int]bee.Chunk{}, err
-	}
-
-	chunks = make(map[int]map[int]bee.Chunk)
-	for i := 0; i < nodeCount; i++ {
-		tmp := randomChunks[0:chunksPerNode]
-
-		nodeChunks := make(map[int]bee.Chunk)
-		for j := 0; j < chunksPerNode; j++ {
-			nodeChunks[j] = tmp[j]
-		}
-
-		chunks[i] = nodeChunks
-		randomChunks = randomChunks[chunksPerNode:]
-	}
-
-	return
 }
