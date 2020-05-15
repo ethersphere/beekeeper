@@ -11,18 +11,18 @@ import (
 func PingPong(nodes []bee.Node) (err error) {
 	ctx := context.Background()
 	for i, n := range nodes {
-		a, err := n.DebugAPI.Node.Addresses(ctx)
+		a, err := n.DebugAPI().Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
 
-		p, err := n.DebugAPI.Node.Peers(ctx)
+		p, err := n.DebugAPI().Node.Peers(ctx)
 		if err != nil {
 			return err
 		}
 
 		for j, peer := range p.Peers {
-			r, err := n.API.PingPong.Ping(ctx, peer.Address)
+			r, err := n.API().PingPong.Ping(ctx, peer.Address)
 			if err != nil {
 				return err
 			}

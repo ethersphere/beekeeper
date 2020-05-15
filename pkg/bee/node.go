@@ -14,8 +14,8 @@ const (
 
 // Node represents Bee node
 type Node struct {
-	API      *api.Client
-	DebugAPI *debugapi.Client
+	api      *api.Client
+	debugAPI *debugapi.Client
 }
 
 // NodeOptions represents Bee node options
@@ -35,8 +35,8 @@ func NewNode(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatter
 	}
 
 	node = Node{
-		API:      api.NewClient(APIURL, nil),
-		DebugAPI: debugapi.NewClient(debugAPIURL, nil),
+		api:      api.NewClient(APIURL, nil),
+		debugAPI: debugapi.NewClient(debugAPIURL, nil),
 	}
 
 	return
@@ -54,6 +54,16 @@ func NewNNodes(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatt
 	}
 
 	return
+}
+
+// API returns Bee API Client
+func (n *Node) API() *api.Client {
+	return n.api
+}
+
+// DebugAPI returns Bee debug API Client
+func (n *Node) DebugAPI() *debugapi.Client {
+	return n.debugAPI
 }
 
 // createURL creates API or debug API URL

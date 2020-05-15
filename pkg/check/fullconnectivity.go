@@ -17,7 +17,7 @@ func FullConnectivity(nodes []bee.Node) (err error) {
 
 	var overlays []swarm.Address
 	for _, n := range nodes {
-		a, err := n.DebugAPI.Node.Addresses(ctx)
+		a, err := n.DebugAPI().Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
@@ -27,7 +27,7 @@ func FullConnectivity(nodes []bee.Node) (err error) {
 
 	var expectedPeerCount = len(nodes) - 1
 	for i, n := range nodes {
-		p, err := n.DebugAPI.Node.Peers(ctx)
+		p, err := n.DebugAPI().Node.Peers(ctx)
 		if err != nil {
 			return err
 		}

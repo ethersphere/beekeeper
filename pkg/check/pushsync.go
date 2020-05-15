@@ -20,7 +20,7 @@ func PushSync(nodes []bee.Node, chunks map[int]map[int]bee.Chunk) (err error) {
 
 	var overlays []swarm.Address
 	for _, n := range nodes {
-		a, err := n.DebugAPI.Node.Addresses(ctx)
+		a, err := n.DebugAPI().Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
@@ -39,7 +39,7 @@ func PushSync(nodes []bee.Node, chunks map[int]map[int]bee.Chunk) (err error) {
 			fmt.Printf("Chunk %d size: %d\n", j, len(chunk.Data))
 
 			// upload data
-			r, err := n.API.Bzz.Upload(ctx, data)
+			r, err := n.API().Bzz.Upload(ctx, data)
 			if err != nil {
 				return err
 			}
@@ -56,7 +56,7 @@ func PushSync(nodes []bee.Node, chunks map[int]map[int]bee.Chunk) (err error) {
 
 			time.Sleep(1 * time.Second)
 			// check
-			resp, err := nodes[closestIndex].DebugAPI.Node.HasChunk(ctx, chunk.Address)
+			resp, err := nodes[closestIndex].DebugAPI().Node.HasChunk(ctx, chunk.Address)
 			if resp.Message == "OK" {
 				fmt.Printf("Chunk %d found on closest node\n", j)
 			} else if err == debugapi.ErrNotFound {
