@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 )
 
 // PingPongOptions ...
@@ -40,19 +39,11 @@ func PingPong(opts PingPongOptions) (err error) {
 
 		p, err := n.DebugAPI.Node.Peers(ctx)
 		if err != nil {
-			fmt.Println(2)
 			return err
 		}
-
-		APIURL, err := createURL(scheme, opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, i, opts.DisableNamespace)
-		if err != nil {
-			return err
-		}
-		c := api.NewClient(APIURL, nil)
 
 		for j, peer := range p.Peers {
-			r, err := c.PingPong.Ping(ctx, peer.Address)
-			// r, err := n.API.PingPong.Ping(ctx, peer.Address)
+			r, err := n.API.PingPong.Ping(ctx, peer.Address)
 			if err != nil {
 				return err
 			}

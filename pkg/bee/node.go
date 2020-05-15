@@ -1,7 +1,6 @@
 package bee
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 
@@ -46,23 +45,7 @@ func NewNNodes(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatt
 			return []Node{}, err
 		}
 
-		ctx := context.Background()
-		a, err := n.DebugAPI.Node.Addresses(ctx)
-		if err != nil {
-			return []Node{}, err
-		}
-		fmt.Println(i, a.Overlay)
-
 		nodes = append(nodes, n)
-	}
-
-	for i, n := range nodes {
-		ctx := context.Background()
-		a, err := n.DebugAPI.Node.Addresses(ctx)
-		if err != nil {
-			return []Node{}, err
-		}
-		fmt.Println(i, a.Overlay)
 	}
 
 	return
