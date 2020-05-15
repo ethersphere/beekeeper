@@ -13,6 +13,8 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 		Long:  `Checks full connectivity in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return check.FullConnectivity(check.FullConnectivityOptions{
+				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
+				APIDomain:               c.config.GetString(optionNameAPIDomain),
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
 				DisableNamespace:        disableNamespace,

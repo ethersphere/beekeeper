@@ -6,11 +6,13 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
 // FullConnectivityOptions ...
 type FullConnectivityOptions struct {
+	APIHostnamePattern      string
+	APIDomain               string
 	DebugAPIHostnamePattern string
 	DebugAPIDomain          string
 	DisableNamespace        bool
@@ -23,49 +25,42 @@ var errFullConnectivity = errors.New("full connectivity")
 // FullConnectivity ...
 func FullConnectivity(opts FullConnectivityOptions) (err error) {
 	var expectedPeerCount = opts.NodeCount - 1
+	ctx := context.Background()
 
-	var nodes []node
+	nodes, err := bee.NewNNodes(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, opts.DisableNamespace, opts.NodeCount)
+	if err != nil {
+		return err
+	}
+
 	var overlays []swarm.Address
-	for i := 0; i < opts.NodeCount; i++ {
-		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
+	for _, n := range nodes {
+		a, err := n.DebugAPI.Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
 
-		dc := debugapi.NewClient(debugAPIURL, nil)
-		ctx := context.Background()
-
-		a, err := dc.Node.Addresses(ctx)
-		if err != nil {
-			return err
-		}
-
-		p, err := dc.Node.Peers(ctx)
-		if err != nil {
-			return err
-		}
-
-		nodes = append(nodes, node{
-			Addresses: a,
-			Peers:     p,
-		})
 		overlays = append(overlays, a.Overlay)
 	}
 
 	for i, n := range nodes {
-		if len(n.Peers.Peers) != expectedPeerCount {
-			fmt.Printf("Node %d failed. Peers %d/%d.\n", i, len(n.Peers.Peers), expectedPeerCount)
+		p, err := n.DebugAPI.Node.Peers(ctx)
+		if err != nil {
+			return err
+		}
+
+		if len(p.Peers) != expectedPeerCount {
+			fmt.Printf("Node %d failed. Peers %d/%d.\n", i, len(p.Peers), expectedPeerCount)
 			return errFullConnectivity
 		}
 
-		for _, p := range n.Peers.Peers {
+		for _, p := range p.Peers {
 			if !contains(overlays, p.Address) {
 				fmt.Printf("Node %d failed. Invalid peer: %s\n", i, p.Address)
 				return errFullConnectivity
 			}
 		}
 
-		fmt.Printf("Node %d passed. Peers %d/%d. All peers are valid.\n", i, len(n.Peers.Peers), expectedPeerCount)
+		fmt.Printf("Node %d passed. Peers %d/%d. All peers are valid.\n", i, len(p.Peers), expectedPeerCount)
 	}
 
 	return
