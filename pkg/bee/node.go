@@ -18,6 +18,11 @@ type Node struct {
 	DebugAPI *debugapi.Client
 }
 
+// NodeOptions represents Bee node options
+type NodeOptions struct {
+	// TODO
+}
+
 // NewNode returns Bee node
 func NewNode(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePattern, DebugAPINamespace, DebugAPIDomain string, index int, disableNamespace bool) (node Node, err error) {
 	APIURL, err := createURL(scheme, APIHostnamePattern, APINamespace, APIDomain, index, disableNamespace)
