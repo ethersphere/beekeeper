@@ -2,7 +2,6 @@ package check
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -18,8 +17,6 @@ type PingPongOptions struct {
 	Namespace               string
 	NodeCount               int
 }
-
-var errPingPong = errors.New("ping pong")
 
 // PingPong ...
 func PingPong(opts PingPongOptions) (err error) {
