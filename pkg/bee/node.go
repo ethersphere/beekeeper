@@ -1,17 +1,22 @@
-package check
+package bee
 
 import (
 	"context"
 	"fmt"
+	"net/url"
 
-	"github.com/ethersphere/beekeeper/pkg/bee/api"
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
+)
+
+const (
+	scheme = "http"
 )
 
 // Node represents Bee node
 type Node struct {
-	a *api.Client
-	d *debugapi.Client
+	A *api.Client
+	D *debugapi.Client
 }
 
 // NewNode returns Bee node
@@ -26,8 +31,8 @@ func NewNode(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatter
 	}
 
 	node = Node{
-		a: api.NewClient(APIURL, nil),
-		d: debugapi.NewClient(debugAPIURL, nil),
+		A: api.NewClient(APIURL, nil),
+		D: debugapi.NewClient(debugAPIURL, nil),
 	}
 
 	return
@@ -42,7 +47,7 @@ func NewNNodes(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatt
 		}
 
 		ctx := context.Background()
-		a, err := n.d.Node.Addresses(ctx)
+		a, err := n.D.Node.Addresses(ctx)
 		if err != nil {
 			return []Node{}, err
 		}
@@ -53,12 +58,23 @@ func NewNNodes(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatt
 
 	for i, n := range nodes {
 		ctx := context.Background()
-		a, err := n.d.Node.Addresses(ctx)
+		a, err := n.D.Node.Addresses(ctx)
 		if err != nil {
 			return []Node{}, err
 		}
 		fmt.Println(i, a.Overlay)
 	}
 
+	return
+}
+
+// createURL creates API or debug API URL
+func createURL(scheme, hostnamePattern, namespace, domain string, counter int, disableNamespace bool) (nodeURL *url.URL, err error) {
+	hostname := fmt.Sprintf(hostnamePattern, counter)
+	if disableNamespace {
+		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s", scheme, hostname, domain))
+	} else {
+		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", scheme, hostname, namespace, domain))
+	}
 	return
 }

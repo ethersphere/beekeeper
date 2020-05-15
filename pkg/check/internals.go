@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
 
 const (

@@ -2,10 +2,11 @@ package check
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee/api"
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 )
 
 // PingPongOptions ...
@@ -19,19 +20,22 @@ type PingPongOptions struct {
 	NodeCount               int
 }
 
+var errPingPong = errors.New("ping pong")
+
 // PingPong ...
 func PingPong(opts PingPongOptions) (err error) {
+	ctx := context.Background()
+
 	for i := 0; i < opts.NodeCount; i++ {
-		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
+		n, err := bee.NewNode(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
 		if err != nil {
+			fmt.Println(1)
 			return err
 		}
 
-		dc := debugapi.NewClient(debugAPIURL, nil)
-		ctx := context.Background()
-
-		resp, err := dc.Node.Peers(ctx)
+		p, err := n.D.Node.Peers(ctx)
 		if err != nil {
+			fmt.Println(2)
 			return err
 		}
 
@@ -39,16 +43,15 @@ func PingPong(opts PingPongOptions) (err error) {
 		if err != nil {
 			return err
 		}
-
 		c := api.NewClient(APIURL, nil)
-		ctx = context.Background()
 
-		for j, p := range resp.Peers {
-			resp, err := c.PingPong.Ping(ctx, p.Address)
+		for j, peer := range p.Peers {
+			r, err := c.PingPong.Ping(ctx, peer.Address)
+			// r, err := n.A.PingPong.Ping(ctx, peer.Address)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("RTT [Node %d - Peer %d]: %s\n", i, j, resp.RTT)
+			fmt.Printf("RTT [Node %d - Peer %d]: %s\n", i, j, r.RTT)
 		}
 	}
 

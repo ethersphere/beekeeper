@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee/api"
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
 
 // PushSyncOptions ...
@@ -53,7 +54,7 @@ func PushSync(opts PushSyncOptions) (err error) {
 		return err
 	}
 
-	allNodes, err := NewNNodes(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, opts.DisableNamespace, opts.NodeCount)
+	allNodes, err := bee.NewNNodes(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, opts.DisableNamespace, opts.NodeCount)
 	if err != nil {
 		return err
 	}
@@ -130,17 +131,17 @@ func overlayIndex(addr swarm.Address, overlayAddresses []swarm.Address) int {
 }
 
 // generateChunks generates chunks for nodes
-func generateChunks(nodeCount, chunksPerNode int, seed int64) (chunks map[int]map[int]Chunk, err error) {
-	randomChunks, err := NewNRandomChunks(seed, nodeCount*chunksPerNode)
+func generateChunks(nodeCount, chunksPerNode int, seed int64) (chunks map[int]map[int]bee.Chunk, err error) {
+	randomChunks, err := bee.NewNRandomChunks(seed, nodeCount*chunksPerNode)
 	if err != nil {
-		return map[int]map[int]Chunk{}, err
+		return map[int]map[int]bee.Chunk{}, err
 	}
 
-	chunks = make(map[int]map[int]Chunk)
+	chunks = make(map[int]map[int]bee.Chunk)
 	for i := 0; i < nodeCount; i++ {
 		tmp := randomChunks[0:chunksPerNode]
 
-		nodeChunks := make(map[int]Chunk)
+		nodeChunks := make(map[int]bee.Chunk)
 		for j := 0; j < chunksPerNode; j++ {
 			nodeChunks[j] = tmp[j]
 		}

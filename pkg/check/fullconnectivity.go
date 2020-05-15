@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
 
 // FullConnectivityOptions ...

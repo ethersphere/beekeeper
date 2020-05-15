@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
 // PeerCountOptions ...
 type PeerCountOptions struct {
+	APIHostnamePattern      string
+	APIDomain               string
 	DebugAPIHostnamePattern string
 	DebugAPIDomain          string
 	DisableNamespace        bool
@@ -24,23 +26,26 @@ func PeerCount(opts PeerCountOptions) (err error) {
 	var expectedPeerCount = opts.NodeCount - 1
 
 	for i := 0; i < opts.NodeCount; i++ {
-		debugAPIURL, err := createURL(scheme, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
+		n, err := bee.NewNode(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
 		if err != nil {
 			return err
 		}
 
-		dc := debugapi.NewClient(debugAPIURL, nil)
 		ctx := context.Background()
-
-		resp, err := dc.Node.Peers(ctx)
+		a, err := n.D.Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
 
-		if len(resp.Peers) == expectedPeerCount {
-			fmt.Printf("Node %d passed. Peers %d/%d.\n", i, len(resp.Peers), expectedPeerCount)
+		p, err := n.D.Node.Peers(ctx)
+		if err != nil {
+			return err
+		}
+
+		if len(p.Peers) == expectedPeerCount {
+			fmt.Printf("Node %d passed. Peers %d/%d. Overlay %s.\n", i, len(p.Peers), expectedPeerCount, a.Overlay.String())
 		} else {
-			fmt.Printf("Node %d failed. Peers %d/%d.\n", i, len(resp.Peers), expectedPeerCount)
+			fmt.Printf("Node %d failed. Peers %d/%d. Overlay %s.\n", i, len(p.Peers), expectedPeerCount, a.Overlay.String())
 			return errPeerCount
 		}
 	}
