@@ -26,12 +26,12 @@ func PeerCount(opts PeerCountOptions) (err error) {
 	var expectedPeerCount = opts.NodeCount - 1
 	ctx := context.Background()
 
-	for i := 0; i < opts.NodeCount; i++ {
-		n, err := bee.NewNode(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, i, opts.DisableNamespace)
-		if err != nil {
-			return err
-		}
+	nodes, err := bee.NewNNodes(opts.APIHostnamePattern, opts.Namespace, opts.APIDomain, opts.DebugAPIHostnamePattern, opts.Namespace, opts.DebugAPIDomain, opts.DisableNamespace, opts.NodeCount)
+	if err != nil {
+		return err
+	}
 
+	for i, n := range nodes {
 		a, err := n.DebugAPI.Node.Addresses(ctx)
 		if err != nil {
 			return err
