@@ -15,8 +15,8 @@ const (
 
 // Node represents Bee node
 type Node struct {
-	A *api.Client
-	D *debugapi.Client
+	API      *api.Client
+	DebugAPI *debugapi.Client
 }
 
 // NewNode returns Bee node
@@ -31,8 +31,8 @@ func NewNode(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatter
 	}
 
 	node = Node{
-		A: api.NewClient(APIURL, nil),
-		D: debugapi.NewClient(debugAPIURL, nil),
+		API:      api.NewClient(APIURL, nil),
+		DebugAPI: debugapi.NewClient(debugAPIURL, nil),
 	}
 
 	return
@@ -47,7 +47,7 @@ func NewNNodes(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatt
 		}
 
 		ctx := context.Background()
-		a, err := n.D.Node.Addresses(ctx)
+		a, err := n.DebugAPI.Node.Addresses(ctx)
 		if err != nil {
 			return []Node{}, err
 		}
@@ -58,7 +58,7 @@ func NewNNodes(APIHostnamePattern, APINamespace, APIDomain, DebugAPIHostnamePatt
 
 	for i, n := range nodes {
 		ctx := context.Background()
-		a, err := n.D.Node.Addresses(ctx)
+		a, err := n.DebugAPI.Node.Addresses(ctx)
 		if err != nil {
 			return []Node{}, err
 		}

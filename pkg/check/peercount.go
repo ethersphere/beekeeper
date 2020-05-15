@@ -32,12 +32,12 @@ func PeerCount(opts PeerCountOptions) (err error) {
 		}
 
 		ctx := context.Background()
-		a, err := n.D.Node.Addresses(ctx)
+		a, err := n.DebugAPI.Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
 
-		p, err := n.D.Node.Peers(ctx)
+		p, err := n.DebugAPI.Node.Peers(ctx)
 		if err != nil {
 			return err
 		}

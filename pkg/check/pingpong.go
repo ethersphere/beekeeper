@@ -33,7 +33,7 @@ func PingPong(opts PingPongOptions) (err error) {
 			return err
 		}
 
-		p, err := n.D.Node.Peers(ctx)
+		p, err := n.DebugAPI.Node.Peers(ctx)
 		if err != nil {
 			fmt.Println(2)
 			return err
@@ -47,7 +47,7 @@ func PingPong(opts PingPongOptions) (err error) {
 
 		for j, peer := range p.Peers {
 			r, err := c.PingPong.Ping(ctx, peer.Address)
-			// r, err := n.A.PingPong.Ping(ctx, peer.Address)
+			// r, err := n.API.PingPogng.Ping(ctx, peer.Address)
 			if err != nil {
 				return err
 			}
