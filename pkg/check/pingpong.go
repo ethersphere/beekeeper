@@ -33,6 +33,11 @@ func PingPong(opts PingPongOptions) (err error) {
 			return err
 		}
 
+		a, err := n.DebugAPI.Node.Addresses(ctx)
+		if err != nil {
+			return err
+		}
+
 		p, err := n.DebugAPI.Node.Peers(ctx)
 		if err != nil {
 			fmt.Println(2)
@@ -47,11 +52,11 @@ func PingPong(opts PingPongOptions) (err error) {
 
 		for j, peer := range p.Peers {
 			r, err := c.PingPong.Ping(ctx, peer.Address)
-			// r, err := n.API.PingPogng.Ping(ctx, peer.Address)
+			// r, err := n.API.PingPong.Ping(ctx, peer.Address)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("RTT [Node %d - Peer %d]: %s\n", i, j, r.RTT)
+			fmt.Printf("RTT %s. Node %d - Peer %d. %s - %s. \n", r.RTT, i, j, a.Overlay.String(), peer.Address)
 		}
 	}
 
