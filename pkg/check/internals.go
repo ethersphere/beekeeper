@@ -6,10 +6,6 @@ import (
 	"log"
 )
 
-const (
-	scheme = "http"
-)
-
 // cryptoSource is used to create truly random source
 type cryptoSource struct{}
 
