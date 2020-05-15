@@ -3,33 +3,12 @@ package check
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"fmt"
 	"log"
-	"net/url"
-
-	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
 
 const (
 	scheme = "http"
 )
-
-// node represents Bee node
-type node struct {
-	Addresses debugapi.Addresses
-	Peers     debugapi.Peers
-}
-
-// createURL creates API or debug API URL
-func createURL(scheme, hostnamePattern, namespace, domain string, counter int, disableNamespace bool) (nodeURL *url.URL, err error) {
-	hostname := fmt.Sprintf(hostnamePattern, counter)
-	if disableNamespace {
-		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s", scheme, hostname, domain))
-	} else {
-		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", scheme, hostname, namespace, domain))
-	}
-	return
-}
 
 // cryptoSource is used to create truly random source
 type cryptoSource struct{}
