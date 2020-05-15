@@ -39,7 +39,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 		o = new(ClientOptions)
 	}
 	if o.HTTPClient == nil {
-		o.HTTPClient = http.DefaultClient
+		o.HTTPClient = new(http.Client)
 	}
 
 	return newClient(httpClientWithTransport(baseURL, o.HTTPClient))
