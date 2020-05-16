@@ -8,9 +8,9 @@ import (
 )
 
 // PingPong ...
-func PingPong(nodes []bee.Node) (err error) {
+func PingPong(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
-	for i, n := range nodes {
+	for i, n := range cluster.Nodes {
 		a, err := n.DebugAPI().Node.Addresses(ctx)
 		if err != nil {
 			return err

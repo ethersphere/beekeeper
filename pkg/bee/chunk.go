@@ -32,8 +32,8 @@ func NewRandomChunk(seed int64) (c Chunk, err error) {
 	return
 }
 
-// NewNRandomChunks creates new N random chunks
-func NewNRandomChunks(seed int64, n int) (chunks []Chunk, err error) {
+// NewRandomChunks creates new N random chunks
+func NewRandomChunks(seed int64, n int) (chunks []Chunk, err error) {
 	src := rand.NewSource(seed)
 	r := rand.New(src)
 

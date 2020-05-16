@@ -9,11 +9,11 @@ import (
 )
 
 // PeerCount ...
-func PeerCount(nodes []bee.Node) (err error) {
-	var expectedPeerCount = len(nodes) - 1
+func PeerCount(cluster bee.Cluster) (err error) {
+	var expectedPeerCount = cluster.Size() - 1
 
 	ctx := context.Background()
-	for i, n := range nodes {
+	for i, n := range cluster.Nodes {
 		a, err := n.DebugAPI().Node.Addresses(ctx)
 		if err != nil {
 			return err

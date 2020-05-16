@@ -12,11 +12,11 @@ import (
 var errFullConnectivity = errors.New("full connectivity")
 
 // FullConnectivity ...
-func FullConnectivity(nodes []bee.Node) (err error) {
+func FullConnectivity(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
 
 	var overlays []swarm.Address
-	for _, n := range nodes {
+	for _, n := range cluster.Nodes {
 		a, err := n.DebugAPI().Node.Addresses(ctx)
 		if err != nil {
 			return err
@@ -25,8 +25,8 @@ func FullConnectivity(nodes []bee.Node) (err error) {
 		overlays = append(overlays, a.Overlay)
 	}
 
-	var expectedPeerCount = len(nodes) - 1
-	for i, n := range nodes {
+	var expectedPeerCount = cluster.Size() - 1
+	for i, n := range cluster.Nodes {
 		p, err := n.DebugAPI().Node.Peers(ctx)
 		if err != nil {
 			return err

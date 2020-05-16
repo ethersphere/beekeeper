@@ -49,21 +49,19 @@ func (c *command) initCheckPushSync() *cobra.Command {
 				return err
 			}
 
-			nodes, err := bee.NewNNodes(
-				c.config.GetString(optionNameAPIHostnamePattern),
-				c.config.GetString(optionNameNamespace),
-				c.config.GetString(optionNameAPIDomain),
-				c.config.GetString(optionNameDebugAPIHostnamePattern),
-				c.config.GetString(optionNameNamespace),
-				c.config.GetString(optionNameDebugAPIDomain),
-				disableNamespace,
-				c.config.GetInt(optionNameNodeCount),
-			)
+			cluster, err := bee.NewCluster(bee.ClusterOptions{
+				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
+				APIDomain:               c.config.GetString(optionNameAPIDomain),
+				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
+				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
+				Namespace:               c.config.GetString(optionNameNamespace),
+				Size:                    c.config.GetInt(optionNameNodeCount),
+			})
 			if err != nil {
 				return err
 			}
 
-			return check.PushSync(nodes, chunks)
+			return check.PushSync(cluster, chunks)
 		},
 		PreRunE: c.checkPreRunE,
 	}
@@ -95,7 +93,7 @@ func (s cryptoSource) Uint64() (v uint64) {
 
 // generateChunks generates chunks for nodes
 func generateChunks(nodeCount, chunksPerNode int, seed int64) (chunks map[int]map[int]bee.Chunk, err error) {
-	randomChunks, err := bee.NewNRandomChunks(seed, nodeCount*chunksPerNode)
+	randomChunks, err := bee.NewRandomChunks(seed, nodeCount*chunksPerNode)
 	if err != nil {
 		return map[int]map[int]bee.Chunk{}, err
 	}
