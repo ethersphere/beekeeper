@@ -17,19 +17,19 @@ type Addresses struct {
 }
 
 // Addresses returns node's addresses
-func (n *NodeService) Addresses(ctx context.Context) (a Addresses, err error) {
-	err = n.client.requestJSON(ctx, http.MethodGet, "/addresses", nil, &a)
+func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error) {
+	err = n.client.requestJSON(ctx, http.MethodGet, "/addresses", nil, &resp)
 	return
 }
 
 // HasChunk returns true/false if node has a chunk
-func (n *NodeService) HasChunk(ctx context.Context, address swarm.Address) (bool, error) {
-	r := struct {
+func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	resp := struct {
 		Message string `json:"message,omitempty"`
 		Code    int    `json:"code,omitempty"`
 	}{}
 
-	err := n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+address.String(), nil, &r)
+	err := n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+a.String(), nil, &resp)
 	if err == ErrNotFound {
 		return false, nil
 	} else if err != nil {
@@ -50,7 +50,7 @@ type Peer struct {
 }
 
 // Peers returns node's peers
-func (n *NodeService) Peers(ctx context.Context) (p Peers, err error) {
-	err = n.client.requestJSON(ctx, http.MethodGet, "/peers", nil, &p)
+func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
+	err = n.client.requestJSON(ctx, http.MethodGet, "/peers", nil, &resp)
 	return
 }

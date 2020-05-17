@@ -28,7 +28,7 @@ type ClusterOptions struct {
 }
 
 // NewCluster returns new cluster
-func NewCluster(o ClusterOptions) (cluster Cluster, err error) {
+func NewCluster(o ClusterOptions) (c Cluster, err error) {
 	for i := 0; i < o.Size; i++ {
 		a, err := createURL(scheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, i)
 		if err != nil {
@@ -45,21 +45,21 @@ func NewCluster(o ClusterOptions) (cluster Cluster, err error) {
 			DebugURL: d,
 		})
 
-		cluster.Nodes = append(cluster.Nodes, n)
+		c.Nodes = append(c.Nodes, n)
 	}
 
 	return
 }
 
 // Overlays returns overlay addresses of all nodes in the cluster
-func (c *Cluster) Overlays(ctx context.Context) (o []swarm.Address, err error) {
+func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err error) {
 	for _, n := range c.Nodes {
 		a, err := n.Overlay(ctx)
 		if err != nil {
 			return []swarm.Address{}, err
 		}
 
-		o = append(o, a)
+		overlays = append(overlays, a)
 	}
 
 	return

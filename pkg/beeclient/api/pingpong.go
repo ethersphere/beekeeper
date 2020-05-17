@@ -15,8 +15,8 @@ type Pong struct {
 	RTT string `json:"rtt"`
 }
 
-// Ping pings other node
-func (p *PingPongService) Ping(ctx context.Context, overlay swarm.Address) (resp Pong, err error) {
-	err = p.client.requestJSON(ctx, http.MethodPost, "/pingpong/"+overlay.String(), nil, &resp)
+// Ping pings given node
+func (p *PingPongService) Ping(ctx context.Context, a swarm.Address) (resp Pong, err error) {
+	err = p.client.requestJSON(ctx, http.MethodPost, "/pingpong/"+a.String(), nil, &resp)
 	return
 }

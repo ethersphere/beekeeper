@@ -49,14 +49,14 @@ func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 }
 
 // Peers returns addresses of node's peers
-func (n *Node) Peers(ctx context.Context) (p []swarm.Address, err error) {
-	peers, err := n.debug.Node.Peers(ctx)
+func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
+	ps, err := n.debug.Node.Peers(ctx)
 	if err != nil {
 		return []swarm.Address{}, err
 	}
 
-	for _, peer := range peers.Peers {
-		p = append(p, peer.Address)
+	for _, p := range ps.Peers {
+		peers = append(peers, p.Address)
 	}
 
 	return

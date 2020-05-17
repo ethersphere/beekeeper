@@ -40,7 +40,7 @@ func NewRandomChunk(seed int64) (c Chunk, err error) {
 }
 
 // NewRandomChunks returns N pseudorandom chunks
-func NewRandomChunks(seed int64, n int) (chunks []Chunk, err error) {
+func NewRandomChunks(seed int64, n int) (cs []Chunk, err error) {
 	src := rand.NewSource(seed)
 	r := rand.New(src)
 
@@ -49,7 +49,7 @@ func NewRandomChunks(seed int64, n int) (chunks []Chunk, err error) {
 		if _, err := r.Read(c.data); err != nil {
 			return []Chunk{}, err
 		}
-		chunks = append(chunks, c)
+		cs = append(cs, c)
 	}
 
 	return
