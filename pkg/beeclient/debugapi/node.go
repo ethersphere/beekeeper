@@ -22,16 +22,21 @@ func (n *NodeService) Addresses(ctx context.Context) (a Addresses, err error) {
 	return
 }
 
-// StatusResponse ...
-type StatusResponse struct {
-	Message string `json:"message,omitempty"`
-	Code    int    `json:"code,omitempty"`
-}
-
 // HasChunk ...
-func (n *NodeService) HasChunk(ctx context.Context, address swarm.Address) (resp StatusResponse, err error) {
-	err = n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+address.String(), nil, &resp)
-	return
+func (n *NodeService) HasChunk(ctx context.Context, address swarm.Address) (bool, error) {
+	r := struct {
+		Message string `json:"message,omitempty"`
+		Code    int    `json:"code,omitempty"`
+	}{}
+
+	err := n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+address.String(), nil, &r)
+	if err == ErrNotFound {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // Peers ...

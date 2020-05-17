@@ -33,23 +33,14 @@ func NewNode(opts NodeOptions) Node {
 	}
 }
 
-// Debug returns Bee debug API Client
-func (n *Node) Debug() *debugapi.Client {
-	return n.debug
-}
-
 // HasChunk returns if Bee node has chunk
 func (n *Node) HasChunk(ctx context.Context, chunk Chunk) (bool, error) {
-	r, err := n.debug.Node.HasChunk(ctx, chunk.Address())
-	if r.Message == "OK" {
-		return true, nil
-	}
-	return true, nil
+	return n.debug.Node.HasChunk(ctx, chunk.Address())
 }
 
 // Overlay returns Bee overlay address
 func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
-	a, err := n.Debug().Node.Addresses(ctx)
+	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
 		return swarm.Address{}, err
 	}
@@ -59,7 +50,7 @@ func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 
 // Peers returns Bee peer's addresses
 func (n *Node) Peers(ctx context.Context) ([]debugapi.Peer, error) {
-	p, err := n.Debug().Node.Peers(ctx)
+	p, err := n.debug.Node.Peers(ctx)
 	if err != nil {
 		return []debugapi.Peer{}, err
 	}

@@ -8,7 +8,6 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
 
 var errPushSync = errors.New("pushsync")
@@ -42,20 +41,21 @@ func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error)
 			if err != nil {
 				return err
 			}
-			closestIndex := findIndex(overlays, closest)
+			index := findIndex(overlays, closest)
 			fmt.Printf("Chunk %d closest node: %s\n", j, closest)
 
 			time.Sleep(1 * time.Second)
 			// check
-			resp, err := cluster.Nodes[closestIndex].Debug().Node.HasChunk(ctx, chunk.Address())
-			if resp.Message == "OK" {
-				fmt.Printf("Chunk %d found on closest node\n", j)
-			} else if err == debugapi.ErrNotFound {
-				fmt.Printf("Chunk %d not found on closest node\n", j)
-				testFailed = true
-			} else if err != nil {
+			hasChunk, err := cluster.Nodes[index].HasChunk(ctx, chunk)
+			if err != nil {
 				return err
 			}
+			if !hasChunk {
+				fmt.Printf("Chunk %d not found on closest node\n", j)
+				testFailed = true
+			}
+
+			fmt.Printf("Chunk %d found on closest node\n", j)
 		}
 	}
 
