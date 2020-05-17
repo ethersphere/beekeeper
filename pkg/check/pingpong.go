@@ -11,22 +11,22 @@ import (
 func PingPong(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
 	for i, n := range cluster.Nodes {
-		a, err := n.DebugAPI().Node.Addresses(ctx)
+		a, err := n.Debug().Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
 
-		p, err := n.DebugAPI().Node.Peers(ctx)
+		p, err := n.Debug().Node.Peers(ctx)
 		if err != nil {
 			return err
 		}
 
 		for j, peer := range p.Peers {
-			r, err := n.API().PingPong.Ping(ctx, peer.Address)
+			rtt, err := n.Ping(ctx, peer.Address)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("RTT %s. Node %d - Peer %d. %s - %s. \n", r.RTT, i, j, a.Overlay.String(), peer.Address)
+			fmt.Printf("RTT %s. Node %d - Peer %d. %s - %s. \n", rtt, i, j, a.Overlay.String(), peer.Address)
 		}
 	}
 

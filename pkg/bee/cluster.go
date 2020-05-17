@@ -38,8 +38,8 @@ func NewCluster(o ClusterOptions) (cluster Cluster, err error) {
 		}
 
 		n := NewNode(NodeOptions{
-			APIURL:      a,
-			DebugAPIURL: d,
+			APIURL:   a,
+			DebugURL: d,
 		})
 
 		cluster.Nodes = append(cluster.Nodes, n)

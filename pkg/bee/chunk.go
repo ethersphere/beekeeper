@@ -11,41 +11,51 @@ const maxChunkSize = 4096
 // Chunk represents Bee chunk
 type Chunk struct {
 	Address swarm.Address
-	Data    []byte
+	data    []byte
 }
 
 // NewChunk creates new Chunk
 func NewChunk() Chunk {
-	return Chunk{Data: []byte{}}
+	return Chunk{data: []byte{}}
 }
 
-// NewRandomChunk creates new random chunk
+// NewRandomChunk creates pseudo random chunk
 func NewRandomChunk(seed int64) (c Chunk, err error) {
 	src := rand.NewSource(seed)
 	r := rand.New(src)
 
-	c = Chunk{Data: make([]byte, r.Intn(maxChunkSize))}
-	if _, err := r.Read(c.Data); err != nil {
+	c = Chunk{data: make([]byte, r.Intn(maxChunkSize))}
+	if _, err := r.Read(c.data); err != nil {
 		return NewChunk(), err
 	}
 
 	return
 }
 
-// NewRandomChunks creates new N random chunks
+// NewRandomChunks creates N pseudo random chunks
 func NewRandomChunks(seed int64, n int) (chunks []Chunk, err error) {
 	src := rand.NewSource(seed)
 	r := rand.New(src)
 
 	for i := 0; i < n; i++ {
-		c := Chunk{Data: make([]byte, r.Intn(maxChunkSize))}
-		if _, err := r.Read(c.Data); err != nil {
+		c := Chunk{data: make([]byte, r.Intn(maxChunkSize))}
+		if _, err := r.Read(c.data); err != nil {
 			return []Chunk{}, err
 		}
 		chunks = append(chunks, c)
 	}
 
 	return
+}
+
+// Data returns chunk's data
+func (c *Chunk) Data() []byte {
+	return c.data
+}
+
+// Size returns chunk size
+func (c *Chunk) Size() int {
+	return len(c.data)
 }
 
 // ClosestNode returns chunk's closest node

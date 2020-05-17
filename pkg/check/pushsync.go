@@ -1,7 +1,6 @@
 package check
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -20,7 +19,7 @@ func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error)
 
 	var overlays []swarm.Address
 	for _, n := range cluster.Nodes {
-		a, err := n.DebugAPI().Node.Addresses(ctx)
+		a, err := n.Debug().Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
@@ -33,17 +32,15 @@ func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error)
 	for i, n := range uploadNodes {
 		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < len(chunks[i]); j++ {
-			// make data
+			// select data
 			chunk := chunks[i][j]
-			data := bytes.NewReader(chunk.Data)
-			fmt.Printf("Chunk %d size: %d\n", j, len(chunk.Data))
+			fmt.Printf("Chunk %d size: %d\n", j, chunk.Size())
 
-			// upload data
-			r, err := n.API().Bzz.Upload(ctx, data)
+			// upload chunk
+			chunk.Address, err = n.UploadChunk(ctx, chunk)
 			if err != nil {
 				return err
 			}
-			chunk.Address = r.Hash
 			fmt.Printf("Chunk %d hash: %s\n", j, chunk.Address)
 
 			// find chunk's closest node
@@ -56,7 +53,7 @@ func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error)
 
 			time.Sleep(1 * time.Second)
 			// check
-			resp, err := cluster.Nodes[closestIndex].DebugAPI().Node.HasChunk(ctx, chunk.Address)
+			resp, err := cluster.Nodes[closestIndex].Debug().Node.HasChunk(ctx, chunk.Address)
 			if resp.Message == "OK" {
 				fmt.Printf("Chunk %d found on closest node\n", j)
 			} else if err == debugapi.ErrNotFound {

@@ -14,12 +14,12 @@ func PeerCount(cluster bee.Cluster) (err error) {
 
 	ctx := context.Background()
 	for i, n := range cluster.Nodes {
-		a, err := n.DebugAPI().Node.Addresses(ctx)
+		a, err := n.Debug().Node.Addresses(ctx)
 		if err != nil {
 			return err
 		}
 
-		p, err := n.DebugAPI().Node.Peers(ctx)
+		p, err := n.Debug().Node.Peers(ctx)
 		if err != nil {
 			return err
 		}
