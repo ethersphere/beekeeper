@@ -14,20 +14,20 @@ func PeerCount(cluster bee.Cluster) (err error) {
 
 	ctx := context.Background()
 	for i, n := range cluster.Nodes {
-		a, err := n.Debug().Node.Addresses(ctx)
+		o, err := n.Overlay(ctx)
 		if err != nil {
 			return err
 		}
 
-		p, err := n.Debug().Node.Peers(ctx)
+		peers, err := n.Peers(ctx)
 		if err != nil {
 			return err
 		}
 
-		if len(p.Peers) == expectedPeerCount {
-			fmt.Printf("Node %d passed. Peers %d/%d. Overlay %s.\n", i, len(p.Peers), expectedPeerCount, a.Overlay.String())
+		if len(peers) == expectedPeerCount {
+			fmt.Printf("Node %d passed. Peers %d/%d. Overlay %s.\n", i, len(peers), expectedPeerCount, o.String())
 		} else {
-			fmt.Printf("Node %d failed. Peers %d/%d. Overlay %s.\n", i, len(p.Peers), expectedPeerCount, a.Overlay.String())
+			fmt.Printf("Node %d failed. Peers %d/%d. Overlay %s.\n", i, len(peers), expectedPeerCount, o.String())
 			return errors.New("peer count")
 		}
 	}

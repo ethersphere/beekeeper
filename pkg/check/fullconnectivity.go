@@ -15,36 +15,31 @@ var errFullConnectivity = errors.New("full connectivity")
 func FullConnectivity(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
 
-	var overlays []swarm.Address
-	for _, n := range cluster.Nodes {
-		a, err := n.Debug().Node.Addresses(ctx)
-		if err != nil {
-			return err
-		}
-
-		overlays = append(overlays, a.Overlay)
+	overlays, err := cluster.Overlays(ctx)
+	if err != nil {
+		return err
 	}
 
 	var expectedPeerCount = cluster.Size() - 1
 	for i, n := range cluster.Nodes {
-		p, err := n.Debug().Node.Peers(ctx)
+		peers, err := n.Peers(ctx)
 		if err != nil {
 			return err
 		}
 
-		if len(p.Peers) != expectedPeerCount {
-			fmt.Printf("Node %d failed. Peers %d/%d.\n", i, len(p.Peers), expectedPeerCount)
+		if len(peers) != expectedPeerCount {
+			fmt.Printf("Node %d failed. Peers %d/%d.\n", i, len(peers), expectedPeerCount)
 			return errFullConnectivity
 		}
 
-		for _, p := range p.Peers {
+		for _, p := range peers {
 			if !contains(overlays, p.Address) {
 				fmt.Printf("Node %d failed. Invalid peer: %s\n", i, p.Address)
 				return errFullConnectivity
 			}
 		}
 
-		fmt.Printf("Node %d passed. Peers %d/%d. All peers are valid. Overlay %s.\n", i, len(p.Peers), expectedPeerCount, overlays[i])
+		fmt.Printf("Node %d passed. Peers %d/%d. All peers are valid. Overlay %s.\n", i, len(peers), expectedPeerCount, overlays[i])
 	}
 
 	return

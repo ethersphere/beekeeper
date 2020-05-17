@@ -38,6 +38,35 @@ func (n *Node) Debug() *debugapi.Client {
 	return n.debug
 }
 
+// HasChunk returns if Bee node has chunk
+func (n *Node) HasChunk(ctx context.Context, chunk Chunk) (bool, error) {
+	r, err := n.debug.Node.HasChunk(ctx, chunk.Address())
+	if r.Message == "OK" {
+		return true, nil
+	}
+	return true, nil
+}
+
+// Overlay returns Bee overlay address
+func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
+	a, err := n.Debug().Node.Addresses(ctx)
+	if err != nil {
+		return swarm.Address{}, err
+	}
+
+	return a.Overlay, nil
+}
+
+// Peers returns Bee peer's addresses
+func (n *Node) Peers(ctx context.Context) ([]debugapi.Peer, error) {
+	p, err := n.Debug().Node.Peers(ctx)
+	if err != nil {
+		return []debugapi.Peer{}, err
+	}
+
+	return p.Peers, nil
+}
+
 // Ping pings other Bee node
 func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
 	r, err := n.api.PingPong.Ping(ctx, node)
@@ -48,10 +77,12 @@ func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err er
 }
 
 // UploadChunk uploads chunk to the node
-func (n *Node) UploadChunk(ctx context.Context, c Chunk) (address swarm.Address, err error) {
+func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 	r, err := n.api.Bzz.Upload(ctx, bytes.NewReader(c.Data()))
 	if err != nil {
-		return swarm.Address{}, err
+		return err
 	}
-	return r.Hash, nil
+
+	c.setAddress(r.Hash)
+	return
 }

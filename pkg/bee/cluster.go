@@ -1,8 +1,11 @@
 package bee
 
 import (
+	"context"
 	"fmt"
 	"net/url"
+
+	"github.com/ethersphere/bee/pkg/swarm"
 )
 
 const (
@@ -43,6 +46,20 @@ func NewCluster(o ClusterOptions) (cluster Cluster, err error) {
 		})
 
 		cluster.Nodes = append(cluster.Nodes, n)
+	}
+
+	return
+}
+
+// Overlays returns Bee overlay addresses
+func (c *Cluster) Overlays(ctx context.Context) (o []swarm.Address, err error) {
+	for _, n := range c.Nodes {
+		a, err := n.Overlay(ctx)
+		if err != nil {
+			return []swarm.Address{}, err
+		}
+
+		o = append(o, a)
 	}
 
 	return

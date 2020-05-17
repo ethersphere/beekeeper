@@ -1,6 +1,7 @@
 package bee
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -8,15 +9,21 @@ import (
 
 const maxChunkSize = 4096
 
+var errChunkSize = fmt.Errorf("chunk size too big (max %d)", maxChunkSize)
+
 // Chunk represents Bee chunk
 type Chunk struct {
-	Address swarm.Address
+	address swarm.Address
 	data    []byte
 }
 
 // NewChunk creates new Chunk
-func NewChunk() Chunk {
-	return Chunk{data: []byte{}}
+func NewChunk(data []byte) (Chunk, error) {
+	if len(data) > maxChunkSize {
+		return Chunk{}, errChunkSize
+	}
+
+	return Chunk{data: data}, nil
 }
 
 // NewRandomChunk creates pseudo random chunk
@@ -26,7 +33,7 @@ func NewRandomChunk(seed int64) (c Chunk, err error) {
 
 	c = Chunk{data: make([]byte, r.Intn(maxChunkSize))}
 	if _, err := r.Read(c.data); err != nil {
-		return NewChunk(), err
+		return Chunk{}, err
 	}
 
 	return
@@ -48,6 +55,16 @@ func NewRandomChunks(seed int64, n int) (chunks []Chunk, err error) {
 	return
 }
 
+// setAddress sets chunk's address
+func (c *Chunk) setAddress(a swarm.Address) {
+	c.address = a
+}
+
+// Address returns chunk's address
+func (c *Chunk) Address() swarm.Address {
+	return c.address
+}
+
 // Data returns chunk's data
 func (c *Chunk) Data() []byte {
 	return c.data
@@ -62,7 +79,7 @@ func (c *Chunk) Size() int {
 func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err error) {
 	closest = nodes[0]
 	for _, a := range nodes[1:] {
-		dcmp, err := swarm.DistanceCmp(c.Address.Bytes(), closest.Bytes(), a.Bytes())
+		dcmp, err := swarm.DistanceCmp(c.Address().Bytes(), closest.Bytes(), a.Bytes())
 		if err != nil {
 			return swarm.Address{}, err
 		}
