@@ -27,7 +27,7 @@ type ClusterOptions struct {
 	Size                    int
 }
 
-// NewCluster returns Bee cluster
+// NewCluster returns new cluster
 func NewCluster(o ClusterOptions) (cluster Cluster, err error) {
 	for i := 0; i < o.Size; i++ {
 		a, err := createURL(scheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, i)
@@ -51,7 +51,7 @@ func NewCluster(o ClusterOptions) (cluster Cluster, err error) {
 	return
 }
 
-// Overlays returns Bee overlay addresses
+// Overlays returns overlay addresses of all nodes in the cluster
 func (c *Cluster) Overlays(ctx context.Context) (o []swarm.Address, err error) {
 	for _, n := range c.Nodes {
 		a, err := n.Overlay(ctx)
@@ -65,7 +65,7 @@ func (c *Cluster) Overlays(ctx context.Context) (o []swarm.Address, err error) {
 	return
 }
 
-// Size returns size of a cluster
+// Size returns size of the cluster
 func (c *Cluster) Size() int {
 	return len(c.Nodes)
 }

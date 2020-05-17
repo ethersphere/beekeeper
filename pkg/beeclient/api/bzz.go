@@ -8,16 +8,16 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 )
 
-// BzzService ...
+// BzzService represents Bee's Bzz service
 type BzzService service
 
-// BzzUploadResponse ...
-type BzzUploadResponse struct {
+// UploadResponse represents Upload's response
+type UploadResponse struct {
 	Hash swarm.Address `json:"hash"`
 }
 
-// Upload ...
-func (b *BzzService) Upload(ctx context.Context, data io.Reader) (resp BzzUploadResponse, err error) {
+// Upload uploads data to the node
+func (b *BzzService) Upload(ctx context.Context, data io.Reader) (resp UploadResponse, err error) {
 	err = b.client.request(ctx, http.MethodPost, "/bzz", data, &resp)
 	return
 }

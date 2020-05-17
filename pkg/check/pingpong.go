@@ -7,7 +7,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// PingPong ...
+// PingPong checks ping from all nodes to all other nodes in the cluster
 func PingPong(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
 	for i, n := range cluster.Nodes {

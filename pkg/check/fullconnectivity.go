@@ -11,7 +11,7 @@ import (
 
 var errFullConnectivity = errors.New("full connectivity")
 
-// FullConnectivity ...
+// FullConnectivity checks if cluster is fully connected
 func FullConnectivity(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
 
@@ -45,7 +45,7 @@ func FullConnectivity(cluster bee.Cluster) (err error) {
 	return
 }
 
-// contains checks if slice of swarm.Address containes given swarm.Address
+// contains checks if a given set of swarm.Address containes given swarm.Address
 func contains(s []swarm.Address, v swarm.Address) bool {
 	for _, a := range s {
 		if a.Equal(v) {

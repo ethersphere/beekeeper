@@ -25,7 +25,7 @@ type NodeOptions struct {
 	DebugURL *url.URL
 }
 
-// NewNode returns Bee node
+// NewNode returns new node
 func NewNode(opts NodeOptions) Node {
 	return Node{
 		api:   api.NewClient(opts.APIURL, nil),
@@ -33,12 +33,12 @@ func NewNode(opts NodeOptions) Node {
 	}
 }
 
-// HasChunk returns if Bee node has chunk
+// HasChunk returns true/false if node has a chunk
 func (n *Node) HasChunk(ctx context.Context, chunk Chunk) (bool, error) {
 	return n.debug.Node.HasChunk(ctx, chunk.Address())
 }
 
-// Overlay returns Bee overlay address
+// Overlay returns node's overlay address
 func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
@@ -48,7 +48,7 @@ func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 	return a.Overlay, nil
 }
 
-// Peers returns Bee peer's addresses
+// Peers returns addresses of node's peers
 func (n *Node) Peers(ctx context.Context) (p []swarm.Address, err error) {
 	peers, err := n.debug.Node.Peers(ctx)
 	if err != nil {
@@ -62,7 +62,7 @@ func (n *Node) Peers(ctx context.Context) (p []swarm.Address, err error) {
 	return
 }
 
-// Ping pings other Bee node
+// Ping pings other node
 func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
 	r, err := n.api.PingPong.Ping(ctx, node)
 	if err != nil {

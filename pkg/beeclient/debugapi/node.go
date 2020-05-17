@@ -7,22 +7,22 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 )
 
-// NodeService ...
+// NodeService represents Bee's Node service
 type NodeService service
 
-// Addresses ...
+// Addresses represents node's addresses
 type Addresses struct {
 	Overlay  swarm.Address `json:"overlay"`
 	Underlay []string      `json:"underlay"`
 }
 
-// Addresses ...
+// Addresses returns node's addresses
 func (n *NodeService) Addresses(ctx context.Context) (a Addresses, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/addresses", nil, &a)
 	return
 }
 
-// HasChunk ...
+// HasChunk returns true/false if node has a chunk
 func (n *NodeService) HasChunk(ctx context.Context, address swarm.Address) (bool, error) {
 	r := struct {
 		Message string `json:"message,omitempty"`
@@ -39,17 +39,17 @@ func (n *NodeService) HasChunk(ctx context.Context, address swarm.Address) (bool
 	return true, nil
 }
 
-// Peers ...
+// Peers represents node's peers
 type Peers struct {
 	Peers []Peer `json:"peers"`
 }
 
-// Peer ...
+// Peer represents node's peer
 type Peer struct {
 	Address swarm.Address `json:"address"`
 }
 
-// Peers ...
+// Peers returns node's peers
 func (n *NodeService) Peers(ctx context.Context) (p Peers, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/peers", nil, &p)
 	return

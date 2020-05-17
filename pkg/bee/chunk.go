@@ -17,7 +17,7 @@ type Chunk struct {
 	data    []byte
 }
 
-// NewChunk creates new Chunk
+// NewChunk returns new chunk
 func NewChunk(data []byte) (Chunk, error) {
 	if len(data) > maxChunkSize {
 		return Chunk{}, errChunkSize
@@ -26,7 +26,7 @@ func NewChunk(data []byte) (Chunk, error) {
 	return Chunk{data: data}, nil
 }
 
-// NewRandomChunk creates pseudo random chunk
+// NewRandomChunk returns new pseudorandom chunk
 func NewRandomChunk(seed int64) (c Chunk, err error) {
 	src := rand.NewSource(seed)
 	r := rand.New(src)
@@ -39,7 +39,7 @@ func NewRandomChunk(seed int64) (c Chunk, err error) {
 	return
 }
 
-// NewRandomChunks creates N pseudo random chunks
+// NewRandomChunks returns N pseudorandom chunks
 func NewRandomChunks(seed int64, n int) (chunks []Chunk, err error) {
 	src := rand.NewSource(seed)
 	r := rand.New(src)
@@ -75,7 +75,7 @@ func (c *Chunk) Size() int {
 	return len(c.data)
 }
 
-// ClosestNode returns chunk's closest node
+// ClosestNode returns chunk's closest node of a given set of nodes
 func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err error) {
 	closest = nodes[0]
 	for _, a := range nodes[1:] {

@@ -8,7 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// PeerCount ...
+// PeerCount checks cluster's peer count
 func PeerCount(cluster bee.Cluster) (err error) {
 	var expectedPeerCount = cluster.Size() - 1
 

@@ -12,7 +12,7 @@ import (
 
 var errPushSync = errors.New("pushsync")
 
-// PushSync ...
+// PushSync checks cluster's pushsync ability
 func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
 	ctx := context.Background()
 
@@ -66,6 +66,7 @@ func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error)
 	return
 }
 
+// findIndex returns index of a given swarm.Address in a given set of swarm.Addresses, or -1 if not found
 func findIndex(overlays []swarm.Address, addr swarm.Address) int {
 	for i, a := range overlays {
 		if addr.Equal(a) {
