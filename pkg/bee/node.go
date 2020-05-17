@@ -49,13 +49,17 @@ func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 }
 
 // Peers returns Bee peer's addresses
-func (n *Node) Peers(ctx context.Context) ([]debugapi.Peer, error) {
-	p, err := n.debug.Node.Peers(ctx)
+func (n *Node) Peers(ctx context.Context) (p []swarm.Address, err error) {
+	peers, err := n.debug.Node.Peers(ctx)
 	if err != nil {
-		return []debugapi.Peer{}, err
+		return []swarm.Address{}, err
 	}
 
-	return p.Peers, nil
+	for _, peer := range peers.Peers {
+		p = append(p, peer.Address)
+	}
+
+	return
 }
 
 // Ping pings other Bee node

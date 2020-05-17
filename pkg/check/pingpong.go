@@ -22,11 +22,11 @@ func PingPong(cluster bee.Cluster) (err error) {
 		}
 
 		for j, p := range peers {
-			rtt, err := n.Ping(ctx, p.Address)
+			rtt, err := n.Ping(ctx, p)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("RTT %s. Node %d - Peer %d. %s - %s. \n", rtt, i, j, o.String(), p.Address)
+			fmt.Printf("RTT %s. Node %d - Peer %d. %s - %s. \n", rtt, i, j, o.String(), p.String())
 		}
 	}
 

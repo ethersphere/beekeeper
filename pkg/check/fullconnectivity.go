@@ -33,8 +33,8 @@ func FullConnectivity(cluster bee.Cluster) (err error) {
 		}
 
 		for _, p := range peers {
-			if !contains(overlays, p.Address) {
-				fmt.Printf("Node %d failed. Invalid peer: %s\n", i, p.Address)
+			if !contains(overlays, p) {
+				fmt.Printf("Node %d failed. Invalid peer: %s\n", i, p.String())
 				return errFullConnectivity
 			}
 		}
