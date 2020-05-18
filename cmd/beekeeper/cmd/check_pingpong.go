@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
 
 	"github.com/spf13/cobra"
 )
@@ -9,18 +10,23 @@ import (
 func (c *command) initCheckPingPong() *cobra.Command {
 	return &cobra.Command{
 		Use:   "pingpong",
-		Short: "Checks pingpong",
-		Long:  `Checks pingpong`,
+		Short: "Executes ping from all nodes to all other nodes in the cluster",
+		Long: `Executes ping from all nodes to all other nodes in the cluster,
+and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return check.PingPong(check.PingPongOptions{
+			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
 				APIDomain:               c.config.GetString(optionNameAPIDomain),
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
-				NodeCount:               c.config.GetInt(optionNameNodeCount),
+				Size:                    c.config.GetInt(optionNameNodeCount),
 			})
+			if err != nil {
+				return err
+			}
+
+			return pingpong.Check(cluster)
 		},
 		PreRunE: c.checkPreRunE,
 	}

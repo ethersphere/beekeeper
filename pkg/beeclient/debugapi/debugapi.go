@@ -1,4 +1,4 @@
-package api
+package debugapi
 
 import (
 	"bytes"
@@ -18,14 +18,13 @@ const contentType = "application/json; charset=utf-8"
 
 var userAgent = "beekeeper/" + beekeeper.Version
 
-// Client manages communication with the Bee API.
+// Client manages communication with the Bee Debug API.
 type Client struct {
 	httpClient *http.Client // HTTP client must handle authentication implicitly.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
-	Bzz      *BzzService
-	PingPong *PingPongService
+	Node *NodeService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -39,7 +38,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 		o = new(ClientOptions)
 	}
 	if o.HTTPClient == nil {
-		o.HTTPClient = http.DefaultClient
+		o.HTTPClient = new(http.Client)
 	}
 
 	return newClient(httpClientWithTransport(baseURL, o.HTTPClient))
@@ -50,8 +49,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 func newClient(httpClient *http.Client) (c *Client) {
 	c = &Client{httpClient: httpClient}
 	c.service.client = c
-	c.Bzz = (*BzzService)(&c.service)
-	c.PingPong = (*PingPongService)(&c.service)
+	c.Node = (*NodeService)(&c.service)
 	return c
 }
 

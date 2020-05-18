@@ -1,25 +1,30 @@
 package cmd
 
 import (
-	"github.com/ethersphere/beekeeper/pkg/check"
-
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/check/peercount"
 	"github.com/spf13/cobra"
 )
 
 func (c *command) initCheckPeerCount() *cobra.Command {
 	return &cobra.Command{
 		Use:   "peercount",
-		Short: "Checks node's peer count for all nodes in the cluster",
-		Long: `Checks node's peer count for all nodes in the cluster.
-It retrieves list of peers from node's Debug API (/peers endpoint).`,
+		Short: "Counts peers for all nodes in the cluster",
+		Long:  `Counts peers for all nodes in the cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return check.PeerCount(check.PeerCountOptions{
+			cluster, err := bee.NewCluster(bee.ClusterOptions{
+				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
+				APIDomain:               c.config.GetString(optionNameAPIDomain),
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
-				NodeCount:               c.config.GetInt(optionNameNodeCount),
+				Size:                    c.config.GetInt(optionNameNodeCount),
 			})
+			if err != nil {
+				return err
+			}
+
+			return peercount.Check(cluster)
 		},
 		PreRunE: c.checkPreRunE,
 	}
