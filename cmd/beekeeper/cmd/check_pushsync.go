@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
-	"math/rand"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
@@ -14,9 +12,9 @@ import (
 
 func (c *command) initCheckPushSync() *cobra.Command {
 	const (
+		optionNameUploadNodeCount = "upload-node-count"
 		optionNameChunksPerNode   = "chunks-per-node"
 		optionNameSeed            = "seed"
-		optionNameUploadNodeCount = "upload-node-count"
 	)
 
 	cmd := &cobra.Command{
@@ -34,7 +32,6 @@ func (c *command) initCheckPushSync() *cobra.Command {
 			} else {
 				seed = random.Int64()
 			}
-			fmt.Printf("seed: %d\n", seed)
 
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
@@ -49,9 +46,9 @@ func (c *command) initCheckPushSync() *cobra.Command {
 			}
 
 			return pushsync.Check(cluster, pushsync.Options{
-				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
-				Rand:            rand.New(rand.NewSource(seed)),
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
+				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
+				Seed:            seed,
 			})
 		},
 		PreRunE: c.checkPreRunE,

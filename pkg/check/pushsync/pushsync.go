@@ -13,9 +13,9 @@ import (
 
 // Options ...
 type Options struct {
-	ChunksPerNode   int
-	Rand            *rand.Rand
 	UploadNodeCount int
+	ChunksPerNode   int
+	Seed            int64
 }
 
 var errPushSync = errors.New("push sync")
@@ -23,6 +23,8 @@ var errPushSync = errors.New("push sync")
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
 func Check(c bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
+	rnd := rand.New(rand.NewSource(o.Seed))
+	fmt.Printf("Seed: %d\n", o.Seed)
 
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
@@ -33,7 +35,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < o.ChunksPerNode; j++ {
 			// select data
-			chunk, err := bee.NewRandomChunk(o.Rand)
+			chunk, err := bee.NewRandomChunk(rnd)
 			if err != nil {
 				return err
 			}
