@@ -28,18 +28,18 @@ func Check(cluster bee.Cluster) (err error) {
 		}
 
 		if len(peers) != expectedPeerCount {
-			fmt.Printf("Node %d failed. Peers %d/%d.\n", i, len(peers), expectedPeerCount)
+			fmt.Printf("Node %d. Failed. Peers %d/%d. Node: %s\n", i, len(peers), expectedPeerCount, overlays[i].String())
 			return errFullConnectivity
 		}
 
 		for _, p := range peers {
 			if !contains(overlays, p) {
-				fmt.Printf("Node %d failed. Invalid peer: %s\n", i, p.String())
+				fmt.Printf("Node %d. Failed. Invalid peer: %s. Node: %s\n", i, p.String(), overlays[i].String())
 				return errFullConnectivity
 			}
 		}
 
-		fmt.Printf("Node %d passed. Peers %d/%d. All peers are valid. Overlay %s.\n", i, len(peers), expectedPeerCount, overlays[i])
+		fmt.Printf("Node %d. Passed. Peers %d/%d. All peers are valid. Node: %s\n", i, len(peers), expectedPeerCount, overlays[i].String())
 	}
 
 	return

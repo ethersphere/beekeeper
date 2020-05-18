@@ -10,8 +10,9 @@ import (
 func (c *command) initCheckPingPong() *cobra.Command {
 	return &cobra.Command{
 		Use:   "pingpong",
-		Short: "Checks pingpong",
-		Long:  `Checks pingpong`,
+		Short: "Executes ping from all nodes to all other nodes in the cluster",
+		Long: `Executes ping from all nodes to all other nodes in the cluster,
+and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),

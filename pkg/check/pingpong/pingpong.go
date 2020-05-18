@@ -26,7 +26,7 @@ func Check(cluster bee.Cluster) (err error) {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("RTT %s. Node %d - Peer %d. %s - %s. \n", rtt, i, j, o.String(), p.String())
+			fmt.Printf("Node %d. Peer %d RTT: %s. Node: %s Peer: %s \n", i, j, rtt, o.String(), p.String())
 		}
 	}
 

@@ -11,7 +11,7 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 	return &cobra.Command{
 		Use:   "fullconnectivity",
 		Short: "Checks full connectivity in the cluster",
-		Long:  `Checks full connectivity in the cluster.`,
+		Long:  `Checks if every node has connectivity to all other nodes in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),

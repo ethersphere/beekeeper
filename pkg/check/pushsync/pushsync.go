@@ -11,7 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// Options ...
+// Options represents pushsync check options
 type Options struct {
 	UploadNodeCount int
 	ChunksPerNode   int
@@ -32,41 +32,33 @@ func Check(c bee.Cluster, o Options) (err error) {
 	}
 
 	for i := 0; i < o.UploadNodeCount; i++ {
-		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < o.ChunksPerNode; j++ {
-			// select data
 			chunk, err := bee.NewRandomChunk(rnd)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Chunk %d size: %d\n", j, chunk.Size())
 
-			// upload chunk
 			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
 				return err
 			}
-			fmt.Printf("Chunk %d hash: %s\n", j, chunk.Address())
 
-			// find chunk's closest node
 			closest, err := chunk.ClosestNode(overlays)
 			if err != nil {
 				return err
 			}
 			index := findIndex(overlays, closest)
-			fmt.Printf("Chunk %d closest node: %s\n", j, closest)
 
 			time.Sleep(1 * time.Second)
-			// check
 			synced, err := c.Nodes[index].HasChunk(ctx, chunk)
 			if err != nil {
 				return err
 			}
 			if !synced {
-				fmt.Printf("Chunk %d not found on closest node\n", j)
+				fmt.Printf("Node %d. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
 				return errPushSync
 			}
 
-			fmt.Printf("Chunk %d found on closest node\n", j)
+			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
 		}
 	}
 

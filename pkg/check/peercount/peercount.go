@@ -27,9 +27,9 @@ func Check(cluster bee.Cluster) (err error) {
 		}
 
 		if len(peers) == expectedPeerCount {
-			fmt.Printf("Node %d passed. Peers %d/%d. Overlay %s.\n", i, len(peers), expectedPeerCount, o.String())
+			fmt.Printf("Node %d. Passed. Peers %d/%d. Node: %s\n", i, len(peers), expectedPeerCount, o.String())
 		} else {
-			fmt.Printf("Node %d failed. Peers %d/%d. Overlay %s.\n", i, len(peers), expectedPeerCount, o.String())
+			fmt.Printf("Node %d. Failed. Peers %d/%d. Node: %s\n", i, len(peers), expectedPeerCount, o.String())
 			return errPeerCount
 		}
 	}

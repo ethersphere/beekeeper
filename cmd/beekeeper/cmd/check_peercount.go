@@ -9,9 +9,8 @@ import (
 func (c *command) initCheckPeerCount() *cobra.Command {
 	return &cobra.Command{
 		Use:   "peercount",
-		Short: "Checks node's peer count for all nodes in the cluster",
-		Long: `Checks node's peer count for all nodes in the cluster.
-It retrieves list of peers from node's Debug API (/peers endpoint).`,
+		Short: "Counts peers for all nodes in the cluster",
+		Long:  `Counts peers for all nodes in the cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),

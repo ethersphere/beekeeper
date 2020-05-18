@@ -29,59 +29,44 @@ Available subcommands:
 |subcommand|description|
 |----------|-----------|
 | fullconnectivity | Checks full connectivity in the cluster |
-| peercount | Check node's peer count for all nodes in the cluster |
-| pingpong | Checks pingpong |
-| pushsync | Checks push sync |
+| peercount | Count peers for all nodes in the cluster |
+| pingpong | Executes ping from all nodes to all other nodes in the cluster |
+| pushsync | Checks pushsync ability of the cluster |
 
 ### fullconnectivity
 
-**fullconnectivity** checks full connectivity in the cluster.
+**fullconnectivity** checks if every node has connectivity to all other nodes in the cluster.
 
 Example:
 ```bash
-beekeeper check fullconnectivity --node-count 3 --namespace bee
-```
- or, shorthand:
- ```bash
-beekeeper check fullconnectivity -c 3 -n bee
+beekeeper check fullconnectivity --namespace bee --node-count 3
 ```
 
 ### peercount
 
-**peercount** checks node's peer count for all nodes in the cluster.
-It retrieves list of peers from node's Debug API (/peers endpoint).
+**peercount** counts peers for all nodes in the cluster.
 
 Example:
 ```bash
-beekeeper check peercount --node-count 3 --namespace bee
-```
- or, shorthand:
- ```bash
-beekeeper check peercount -c 3 -n bee
+beekeeper check peercount --namespace bee --node-count 3
 ```
 
 ### pingpong
 
-**pingpong** checks pingpong.
+**pingpong** executes ping from all nodes to all other nodes in the cluster,
+and prints round-trip time (RTT) of each ping.
 
 Example:
 ```bash
-beekeeper check pingpong --node-count 3 --namespace bee
-```
- or, shorthand:
- ```bash
-beekeeper check pingpong -c 3 -n bee
+beekeeper check pingpong --namespace bee --node-count 3
 ```
 
 ### pushsync
 
-**pushsync** checks push-sync.
+**pushsync** checks pushsync ability of the cluster.
+It uploads given number of chunks to given number of nodes, and checks if chunks are synced to their closest nodes.
 
 Example:
 ```bash
-beekeeper check pushsync --node-count 3 --namespace bee
-```
- or, shorthand:
- ```bash
-beekeeper check pushsync -c 3 -n bee
+beekeeper check pushsync --namespace bee --node-count 3 --upload-node-count 2 --chunks-per-node 4
 ```
