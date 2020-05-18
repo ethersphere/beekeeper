@@ -1,5 +1,7 @@
 # Ethereum Swarm Beekeeper
 
+[![Go](https://github.com/ethersphere/beekeeper/workflows/Go/badge.svg)](https://github.com/ethersphere/beekeeper/actions)
+
 **Ethereum Swarm Beekeeper** is tool used for testing of [Ethereum Swarm Bee](https://github.com/ethersphere/bee).
 
 # Installing
