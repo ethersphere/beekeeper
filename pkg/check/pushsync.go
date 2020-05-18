@@ -10,7 +10,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-var errPushSync = errors.New("pushsync")
+var errPushSync = errors.New("push sync")
 
 // PushSync checks cluster's pushsync ability
 func PushSync(c bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {

@@ -8,6 +8,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
+var errPeerCount = errors.New("peer count")
+
 // PeerCount checks cluster's peer count
 func PeerCount(cluster bee.Cluster) (err error) {
 	var expectedPeerCount = cluster.Size() - 1
@@ -28,7 +30,7 @@ func PeerCount(cluster bee.Cluster) (err error) {
 			fmt.Printf("Node %d passed. Peers %d/%d. Overlay %s.\n", i, len(peers), expectedPeerCount, o.String())
 		} else {
 			fmt.Printf("Node %d failed. Peers %d/%d. Overlay %s.\n", i, len(peers), expectedPeerCount, o.String())
-			return errors.New("peer count")
+			return errPeerCount
 		}
 	}
 
