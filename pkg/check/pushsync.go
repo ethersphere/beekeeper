@@ -13,17 +13,16 @@ import (
 var errPushSync = errors.New("pushsync")
 
 // PushSync checks cluster's pushsync ability
-func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
+func PushSync(c bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
 	ctx := context.Background()
 
-	overlays, err := cluster.Overlays(ctx)
+	overlays, err := c.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
 	testFailed := false
-	uploadNodes := cluster.Nodes[:len(chunks)]
-	for i, n := range uploadNodes {
+	for i := 0; i < len(chunks); i++ {
 		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < len(chunks[i]); j++ {
 			// select data
@@ -31,7 +30,7 @@ func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error)
 			fmt.Printf("Chunk %d size: %d\n", j, chunk.Size())
 
 			// upload chunk
-			if err := n.UploadChunk(ctx, &chunk); err != nil {
+			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
 				return err
 			}
 			fmt.Printf("Chunk %d hash: %s\n", j, chunk.Address())
@@ -46,7 +45,7 @@ func PushSync(cluster bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error)
 
 			time.Sleep(1 * time.Second)
 			// check
-			hasChunk, err := cluster.Nodes[index].HasChunk(ctx, chunk)
+			hasChunk, err := c.Nodes[index].HasChunk(ctx, chunk)
 			if err != nil {
 				return err
 			}
