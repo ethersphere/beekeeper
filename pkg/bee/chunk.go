@@ -26,30 +26,11 @@ func NewChunk(data []byte) (Chunk, error) {
 	return Chunk{data: data}, nil
 }
 
-// NewRandomChunk returns new pseudorandom chunk TODO pass rand
-func NewRandomChunk(seed int64) (c Chunk, err error) {
-	src := rand.NewSource(seed)
-	r := rand.New(src)
-
+// NewRandomChunk returns new pseudorandom chunk
+func NewRandomChunk(r *rand.Rand) (c Chunk, err error) {
 	c = Chunk{data: make([]byte, r.Intn(maxChunkSize))}
 	if _, err := r.Read(c.data); err != nil {
 		return Chunk{}, err
-	}
-
-	return
-}
-
-// NewRandomChunks returns N pseudorandom chunks
-func NewRandomChunks(seed int64, n int) (cs []Chunk, err error) {
-	src := rand.NewSource(seed)
-	r := rand.New(src)
-
-	for i := 0; i < n; i++ {
-		c := Chunk{data: make([]byte, r.Intn(maxChunkSize))}
-		if _, err := r.Read(c.data); err != nil {
-			return []Chunk{}, err
-		}
-		cs = append(cs, c)
 	}
 
 	return

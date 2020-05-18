@@ -4,16 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
+// Options ...
+type Options struct {
+	ChunksPerNode   int
+	Rand            *rand.Rand
+	UploadNodeCount int
+}
+
 var errPushSync = errors.New("push sync")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
+func Check(c bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 
 	overlays, err := c.Overlays(ctx)
@@ -21,11 +29,14 @@ func Check(c bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
 		return err
 	}
 
-	for i := 0; i < len(chunks); i++ {
+	for i := 0; i < o.UploadNodeCount; i++ {
 		fmt.Printf("Node %d:\n", i)
-		for j := 0; j < len(chunks[i]); j++ {
+		for j := 0; j < o.ChunksPerNode; j++ {
 			// select data
-			chunk := chunks[i][j]
+			chunk, err := bee.NewRandomChunk(o.Rand)
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Chunk %d size: %d\n", j, chunk.Size())
 
 			// upload chunk
