@@ -21,7 +21,6 @@ func PushSync(c bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
 		return err
 	}
 
-	testFailed := false
 	for i := 0; i < len(chunks); i++ {
 		fmt.Printf("Node %d:\n", i)
 		for j := 0; j < len(chunks[i]); j++ {
@@ -45,21 +44,17 @@ func PushSync(c bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
 
 			time.Sleep(1 * time.Second)
 			// check
-			hasChunk, err := c.Nodes[index].HasChunk(ctx, chunk)
+			synced, err := c.Nodes[index].HasChunk(ctx, chunk)
 			if err != nil {
 				return err
 			}
-			if !hasChunk {
+			if !synced {
 				fmt.Printf("Chunk %d not found on closest node\n", j)
-				testFailed = true
+				return errPushSync
 			}
 
 			fmt.Printf("Chunk %d found on closest node\n", j)
 		}
-	}
-
-	if testFailed {
-		return errPushSync
 	}
 
 	return
