@@ -9,7 +9,7 @@ import (
 	"math/rand"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
 
 	"github.com/spf13/cobra"
 )
@@ -61,7 +61,7 @@ func (c *command) initCheckPushSync() *cobra.Command {
 				return err
 			}
 
-			return check.PushSync(cluster, chunks)
+			return pushsync.Check(cluster, chunks)
 		},
 		PreRunE: c.checkPreRunE,
 	}

@@ -1,4 +1,4 @@
-package check
+package pingpong
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// PingPong checks ping from all nodes to all other nodes in the cluster
-func PingPong(cluster bee.Cluster) (err error) {
+// Check executes ping from all nodes to all other nodes in the cluster
+func Check(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
 	for i, n := range cluster.Nodes {
 		o, err := n.Overlay(ctx)

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 
 	"github.com/spf13/cobra"
 )
@@ -25,7 +25,7 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 				return err
 			}
 
-			return check.FullConnectivity(cluster)
+			return fullconnectivity.Check(cluster)
 		},
 		PreRunE: c.checkPreRunE,
 	}

@@ -1,4 +1,4 @@
-package check
+package peercount
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 
 var errPeerCount = errors.New("peer count")
 
-// PeerCount checks cluster's peer count
-func PeerCount(cluster bee.Cluster) (err error) {
+// Check executes peer count check on cluster
+func Check(cluster bee.Cluster) (err error) {
 	var expectedPeerCount = cluster.Size() - 1
 
 	ctx := context.Background()

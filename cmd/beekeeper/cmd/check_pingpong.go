@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
 
 	"github.com/spf13/cobra"
 )
@@ -25,7 +25,7 @@ func (c *command) initCheckPingPong() *cobra.Command {
 				return err
 			}
 
-			return check.PingPong(cluster)
+			return pingpong.Check(cluster)
 		},
 		PreRunE: c.checkPreRunE,
 	}

@@ -26,7 +26,7 @@ func NewChunk(data []byte) (Chunk, error) {
 	return Chunk{data: data}, nil
 }
 
-// NewRandomChunk returns new pseudorandom chunk
+// NewRandomChunk returns new pseudorandom chunk TODO pass rand
 func NewRandomChunk(seed int64) (c Chunk, err error) {
 	src := rand.NewSource(seed)
 	r := rand.New(src)
@@ -53,11 +53,6 @@ func NewRandomChunks(seed int64, n int) (cs []Chunk, err error) {
 	}
 
 	return
-}
-
-// setAddress sets chunk's address
-func (c *Chunk) setAddress(a swarm.Address) {
-	c.address = a
 }
 
 // Address returns chunk's address

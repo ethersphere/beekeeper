@@ -14,9 +14,6 @@ import (
 type Node struct {
 	api   *api.Client
 	debug *debugapi.Client
-
-	// chunks uploaded to the node
-	uploadedChunks []Chunk
 }
 
 // NodeOptions represents Bee node options
@@ -78,13 +75,7 @@ func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 		return err
 	}
 
-	c.setAddress(r.Hash)
-	n.uploadedChunks = append(n.uploadedChunks, *c)
+	c.address = r.Hash
 
 	return
-}
-
-// UploadedChunks returns chunks uploaded to the node
-func (n *Node) UploadedChunks() []Chunk {
-	return n.uploadedChunks
 }

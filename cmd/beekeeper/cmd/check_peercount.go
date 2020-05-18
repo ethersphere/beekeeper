@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/check/peercount"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ It retrieves list of peers from node's Debug API (/peers endpoint).`,
 				return err
 			}
 
-			return check.PeerCount(cluster)
+			return peercount.Check(cluster)
 		},
 		PreRunE: c.checkPreRunE,
 	}

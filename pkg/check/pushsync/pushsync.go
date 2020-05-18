@@ -1,4 +1,4 @@
-package check
+package pushsync
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 
 var errPushSync = errors.New("push sync")
 
-// PushSync checks cluster's pushsync ability
-func PushSync(c bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
+// Check uploads given chunks on cluster and checks pushsync ability of the cluster
+func Check(c bee.Cluster, chunks map[int]map[int]bee.Chunk) (err error) {
 	ctx := context.Background()
 
 	overlays, err := c.Overlays(ctx)
