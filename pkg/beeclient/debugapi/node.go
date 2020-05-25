@@ -3,6 +3,7 @@ package debugapi
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 )
@@ -52,5 +53,21 @@ type Peer struct {
 // Peers returns node's peers
 func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/peers", nil, &resp)
+	return
+}
+
+// Topology represents topology
+type Topology struct {
+	BaseAddr       swarm.Address `json:"baseAddr"`
+	Population     int           `json:"population"`
+	Connected      int           `json:"connected"`
+	Timestamp      time.Time     `json:"timestamp"`
+	NnLowWatermark int           `json:"nnLowWatermark"`
+	Depth          int           `json:"depth"`
+}
+
+// Topology returns topology
+func (n *NodeService) Topology(ctx context.Context) (resp Topology, err error) {
+	err = n.client.requestJSON(ctx, http.MethodGet, "/topology", nil, &resp)
 	return
 }

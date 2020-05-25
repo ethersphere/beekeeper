@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -74,6 +75,17 @@ func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err er
 		return "", err
 	}
 	return r.RTT, nil
+}
+
+// Topology returns topology
+func (n *Node) Topology(ctx context.Context) (r debugapi.Topology, err error) {
+	r, err = n.debug.Node.Topology(ctx)
+	if err != nil {
+		return debugapi.Topology{}, err
+	}
+	fmt.Printf("%+v\n", r)
+
+	return
 }
 
 // UploadChunk uploads chunk to the node
