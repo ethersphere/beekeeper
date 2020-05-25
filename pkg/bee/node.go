@@ -3,6 +3,8 @@ package bee
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"net/http"
 	"net/url"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -18,15 +20,21 @@ type Node struct {
 
 // NodeOptions represents Bee node options
 type NodeOptions struct {
-	APIURL   *url.URL
-	DebugURL *url.URL
+	APIURL              *url.URL
+	APIInsecureTLS      bool
+	DebugAPIURL         *url.URL
+	DebugAPIInsecureTLS bool
 }
 
 // NewNode returns new node
 func NewNode(opts NodeOptions) Node {
 	return Node{
-		api:   api.NewClient(opts.APIURL, nil),
-		debug: debugapi.NewClient(opts.DebugURL, nil),
+		api: api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
+		}}}),
+		debug: debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
+		}}}),
 	}
 }
 
