@@ -169,7 +169,7 @@ func responseErrorHandler(r *http.Response) (err error) {
 	case http.StatusInternalServerError:
 		return ErrInternalServerError
 	case http.StatusServiceUnavailable:
-		return ErrMaintenance
+		return ErrServiceUnavailable
 	default:
 		return errors.New(strings.ToLower(r.Status))
 	}

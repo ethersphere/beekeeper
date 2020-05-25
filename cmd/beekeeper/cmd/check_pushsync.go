@@ -29,10 +29,14 @@ and checks if chunks are synced to their closest nodes.`,
 			}
 
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
+				APIScheme:               c.config.GetString(optionNameAPIScheme),
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
 				APIDomain:               c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:          insecureTLSAPI,
+				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})

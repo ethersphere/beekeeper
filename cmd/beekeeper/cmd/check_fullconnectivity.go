@@ -14,10 +14,14 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 		Long:  `Checks if every node has connectivity to all other nodes in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
+				APIScheme:               c.config.GetString(optionNameAPIScheme),
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
 				APIDomain:               c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:          insecureTLSAPI,
+				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})

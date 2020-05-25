@@ -8,10 +8,6 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 )
 
-const (
-	scheme = "http"
-)
-
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
 	Nodes []Node
@@ -19,10 +15,14 @@ type Cluster struct {
 
 // ClusterOptions represents Bee cluster options
 type ClusterOptions struct {
+	APIScheme               string
 	APIHostnamePattern      string
 	APIDomain               string
+	APIInsecureTLS          bool
+	DebugAPIScheme          string
 	DebugAPIHostnamePattern string
 	DebugAPIDomain          string
+	DebugAPIInsecureTLS     bool
 	Namespace               string
 	Size                    int
 }
@@ -30,19 +30,21 @@ type ClusterOptions struct {
 // NewCluster returns new cluster
 func NewCluster(o ClusterOptions) (c Cluster, err error) {
 	for i := 0; i < o.Size; i++ {
-		a, err := createURL(scheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, i)
+		a, err := createURL(o.APIScheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, i)
 		if err != nil {
 			return Cluster{}, err
 		}
 
-		d, err := createURL(scheme, o.DebugAPIHostnamePattern, o.Namespace, o.DebugAPIDomain, i)
+		d, err := createURL(o.DebugAPIScheme, o.DebugAPIHostnamePattern, o.Namespace, o.DebugAPIDomain, i)
 		if err != nil {
 			return Cluster{}, err
 		}
 
 		n := NewNode(NodeOptions{
-			APIURL:   a,
-			DebugURL: d,
+			APIURL:              a,
+			APIInsecureTLS:      o.APIInsecureTLS,
+			DebugAPIURL:         d,
+			DebugAPIInsecureTLS: o.DebugAPIInsecureTLS,
 		})
 
 		c.Nodes = append(c.Nodes, n)

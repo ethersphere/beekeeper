@@ -15,10 +15,14 @@ func (c *command) initCheckPingPong() *cobra.Command {
 and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
+				APIScheme:               c.config.GetString(optionNameAPIScheme),
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
 				APIDomain:               c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:          insecureTLSAPI,
+				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})
