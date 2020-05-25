@@ -35,5 +35,5 @@ var (
 	ErrMethodNotAllowed    = errors.New("method not allowed")
 	ErrTooManyRequests     = errors.New("too many requests")
 	ErrInternalServerError = errors.New("internal server error")
-	ErrMaintenance         = errors.New("maintenance")
+	ErrServiceUnavailable  = errors.New("service unavailable")
 )
