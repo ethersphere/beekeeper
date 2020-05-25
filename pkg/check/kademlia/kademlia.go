@@ -17,7 +17,7 @@ func Check(cluster bee.Cluster) (err error) {
 			return err
 		}
 
-		fmt.Printf("%d %+v\n", i, t)
+		fmt.Printf("CHECK %d %+v\n", i, t)
 	}
 
 	return

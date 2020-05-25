@@ -2,8 +2,8 @@ package debugapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 )
@@ -58,16 +58,20 @@ func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
 
 // Topology represents topology
 type Topology struct {
-	BaseAddr       swarm.Address `json:"baseAddr"`
-	Population     int           `json:"population"`
-	Connected      int           `json:"connected"`
-	Timestamp      time.Time     `json:"timestamp"`
-	NnLowWatermark int           `json:"nnLowWatermark"`
-	Depth          int           `json:"depth"`
+	// BaseAddr       swarm.Address `json:"baseAddr"`
+	Population int `json:"population"`
+	Connected  int `json:"connected"`
+	// Timestamp      time.Time     `json:"timestamp"`
+	NnLowWatermark int `json:"nnLowWatermark"`
+	Depth          int `json:"depth"`
 }
 
 // Topology returns topology
 func (n *NodeService) Topology(ctx context.Context) (resp Topology, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/topology", nil, &resp)
+	if err != nil {
+		return Topology{}, err
+	}
+	fmt.Printf("CLIENT %+v\n", resp)
 	return
 }

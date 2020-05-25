@@ -83,7 +83,7 @@ func (n *Node) Topology(ctx context.Context) (r debugapi.Topology, err error) {
 	if err != nil {
 		return debugapi.Topology{}, err
 	}
-	fmt.Printf("%+v\n", r)
+	fmt.Printf("BEE %+v\n", r)
 
 	return
 }
