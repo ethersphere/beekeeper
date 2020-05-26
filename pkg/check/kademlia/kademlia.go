@@ -16,7 +16,7 @@ var (
 	errKademliaFullConnectivity = errors.New("full connectivity present")
 	errKadmeliaNotHealthy       = errors.New("kademlia not healthy")
 	errKadmeliaBinConnected     = errors.New("at least 2 connected peers are required in a bin which is shallower than depth")
-	errKadmeliaBinDisconnected  = errors.New("peer disconnected at proximity order >= depth")
+	errKadmeliaBinDisconnected  = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
 )
 
 // Check executes Kademlia topology check on cluster
@@ -52,7 +52,7 @@ func Check(cluster bee.Cluster) (err error) {
 			}
 
 			if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
-				return errKadmeliaBinDisconnected
+				return fmt.Errorf(errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
 			}
 		}
 	}
