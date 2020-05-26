@@ -42,6 +42,6 @@ func (c *command) initListOverlays() *cobra.Command {
 
 			return
 		},
-		PreRunE: c.checkPreRunE,
+		PreRunE: c.listPreRunE,
 	}
 }
