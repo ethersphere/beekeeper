@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -77,13 +76,50 @@ func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err er
 	return r.RTT, nil
 }
 
-// Topology returns topology
-func (n *Node) Topology(ctx context.Context) (r debugapi.Topology, err error) {
-	r, err = n.debug.Node.Topology(ctx)
+// Topology represents Kademlia topology
+type Topology struct {
+	Overlay        swarm.Address
+	Connected      int
+	Population     int
+	NnLowWatermark int
+	Depth          int
+	Bins           map[string]Bin
+}
+
+// Bin represents Kademlia bin
+type Bin struct {
+	Connected         int
+	ConnectedPeers    []swarm.Address
+	DisconnectedPeers []swarm.Address
+	Population        int
+}
+
+// Topology returns Kademlia topology
+func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
+	t, err := n.debug.Node.Topology(ctx)
 	if err != nil {
-		return debugapi.Topology{}, err
+		return Topology{}, err
 	}
-	fmt.Printf("BEE %+v\n", r)
+
+	topology = Topology{
+		Overlay:        t.BaseAddr,
+		Connected:      t.Connected,
+		Population:     t.Population,
+		NnLowWatermark: t.NnLowWatermark,
+		Depth:          t.Depth,
+		Bins:           make(map[string]Bin),
+	}
+
+	for k, b := range t.Bins {
+		if b.Population > 0 {
+			topology.Bins[k] = Bin{
+				Connected:         b.Connected,
+				ConnectedPeers:    b.ConnectedPeers,
+				DisconnectedPeers: b.DisconnectedPeers,
+				Population:        b.Population,
+			}
+		}
+	}
 
 	return
 }
