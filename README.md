@@ -31,9 +31,11 @@ Available subcommands:
 |subcommand|description|
 |----------|-----------|
 | fullconnectivity | Checks full connectivity in the cluster |
+| kademlia | Checks Kademlia topology in the cluster |
 | peercount | Count peers for all nodes in the cluster |
 | pingpong | Executes ping from all nodes to all other nodes in the cluster |
 | pushsync | Checks pushsync ability of the cluster |
+| retrieval | Checks retrieval ability of the cluster |
 
 ### fullconnectivity
 
@@ -42,6 +44,15 @@ Available subcommands:
 Example:
 ```bash
 beekeeper check fullconnectivity --namespace bee --node-count 3
+```
+
+### kademlia
+
+**kademlia** checks Kademlia topology in the cluster
+
+Example:
+```bash
+beekeeper check kademlia --namespace bee --node-count 3
 ```
 
 ### peercount
@@ -71,4 +82,15 @@ It uploads given number of chunks to given number of nodes, and checks if chunks
 Example:
 ```bash
 beekeeper check pushsync --namespace bee --node-count 3 --upload-node-count 2 --chunks-per-node 4
+```
+
+### retrieval
+
+**retrieval** checks retrieval ability of the cluster.
+It uploads given number of chunks to given number of nodes, 
+and attempts retrieval of those chunks from the last node in the cluster.
+
+Example:
+```bash
+beekeeper check retrieval --namespace bee --node-count 3 --upload-node-count 2 --chunks-per-node 4
 ```

@@ -10,8 +10,8 @@ import (
 func (c *command) initCheckKademlia() *cobra.Command {
 	return &cobra.Command{
 		Use:   "kademlia",
-		Short: "kademlia",
-		Long:  `kademlia.`,
+		Short: "Checks Kademlia topology in the cluster",
+		Long:  `Checks Kademlia topology in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIScheme:               c.config.GetString(optionNameAPIScheme),
