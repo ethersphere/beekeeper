@@ -11,6 +11,11 @@ import (
 // BzzService represents Bee's Bzz service
 type BzzService service
 
+// Download downloads data from the node
+func (b *BzzService) Download(ctx context.Context, a swarm.Address) (resp io.ReadCloser, err error) {
+	return b.client.requestData(ctx, http.MethodGet, "/bzz/"+a.String(), nil, nil)
+}
+
 // UploadResponse represents Upload's response
 type UploadResponse struct {
 	Hash swarm.Address `json:"hash"`

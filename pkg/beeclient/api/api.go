@@ -97,7 +97,7 @@ func (c *Client) requestJSON(ctx context.Context, method, path string, body, v i
 	return c.request(ctx, method, path, bodyBuffer, v)
 }
 
-// request handles the HTTP request response cycle.
+// request handles the HTTP JSON request response cycle.
 func (c *Client) request(ctx context.Context, method, path string, body io.Reader, v interface{}) (err error) {
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
@@ -123,7 +123,29 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		return json.NewDecoder(r.Body).Decode(&v)
 	}
+
 	return nil
+}
+
+// requestData handles the HTTP request response cycle.
+func (c *Client) requestData(ctx context.Context, method, path string, body io.Reader, v interface{}) (resp io.ReadCloser, err error) {
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+
+	if body != nil {
+		req.Header.Set("Content-Type", contentType)
+	}
+	req.Header.Set("Accept", contentType)
+
+	r, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Body, nil
 }
 
 // encodeJSON writes a JSON-encoded v object to the provided writer with

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -74,6 +75,64 @@ func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err er
 		return "", err
 	}
 	return r.RTT, nil
+}
+
+// Topology represents Kademlia topology
+type Topology struct {
+	Overlay        swarm.Address
+	Connected      int
+	Population     int
+	NnLowWatermark int
+	Depth          int
+	Bins           map[string]Bin
+}
+
+// Bin represents Kademlia bin
+type Bin struct {
+	Connected         int
+	ConnectedPeers    []swarm.Address
+	DisconnectedPeers []swarm.Address
+	Population        int
+}
+
+// Topology returns Kademlia topology
+func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
+	t, err := n.debug.Node.Topology(ctx)
+	if err != nil {
+		return Topology{}, err
+	}
+
+	topology = Topology{
+		Overlay:        t.BaseAddr,
+		Connected:      t.Connected,
+		Population:     t.Population,
+		NnLowWatermark: t.NnLowWatermark,
+		Depth:          t.Depth,
+		Bins:           make(map[string]Bin),
+	}
+
+	for k, b := range t.Bins {
+		if b.Population > 0 {
+			topology.Bins[k] = Bin{
+				Connected:         b.Connected,
+				ConnectedPeers:    b.ConnectedPeers,
+				DisconnectedPeers: b.DisconnectedPeers,
+				Population:        b.Population,
+			}
+		}
+	}
+
+	return
+}
+
+// DownloadChunk downloads chunk from the node
+func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.Bzz.Download(ctx, a)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return ioutil.ReadAll(r)
 }
 
 // UploadChunk uploads chunk to the node

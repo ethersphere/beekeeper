@@ -4,31 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	optionNameAPIScheme               = "api-scheme"
-	optionNameAPIHostnamePattern      = "api-hostnames"
-	optionNameAPIDomain               = "api-domain"
-	optionNameAPIInsecureTLS          = "api-insecure-tls"
-	optionNameDebugAPIScheme          = "debug-api-scheme"
-	optionNameDebugAPIHostnamePattern = "debug-api-hostnames"
-	optionNameDebugAPIDomain          = "debug-api-domain"
-	optionNameDebugAPIInsecureTLS     = "debug-api-insecure-tls"
-	optionNameDisableNamespace        = "disable-namespace"
-	optionNameInsecureTLS             = "insecure-tls"
-	optionNameNamespace               = "namespace"
-	optionNameNodeCount               = "node-count"
-)
-
-var (
-	disableNamespace    bool
-	insecureTLSAPI      bool
-	insecureTLSDebugAPI bool
-)
-
-func (c *command) initCheckCmd() (err error) {
+func (c *command) initListCmd() (err error) {
 	cmd := &cobra.Command{
-		Use:   "check",
-		Short: "Run tests on Bee node(s)",
+		Use:   "list",
+		Short: "List info from Bee node(s)",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},
@@ -50,18 +29,13 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
 
-	cmd.AddCommand(c.initCheckFullConnectivity())
-	cmd.AddCommand(c.initCheckKademlia())
-	cmd.AddCommand(c.initCheckPeerCount())
-	cmd.AddCommand(c.initCheckPingPong())
-	cmd.AddCommand(c.initCheckPushSync())
-	cmd.AddCommand(c.initCheckRetrieval())
+	cmd.AddCommand(c.initListOverlays())
 
 	c.root.AddCommand(cmd)
 	return nil
 }
 
-func (c *command) checkPreRunE(cmd *cobra.Command, args []string) (err error) {
+func (c *command) listPreRunE(cmd *cobra.Command, args []string) (err error) {
 	if !disableNamespace {
 		if err = cmd.MarkFlagRequired(optionNameNamespace); err != nil {
 			return
