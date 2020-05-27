@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initListOverlays() *cobra.Command {
+func (c *command) initPrintOverlay() *cobra.Command {
 	return &cobra.Command{
-		Use:   "overlays",
-		Short: "List overlay addresses",
-		Long:  `List overlay address for every node in the cluster`,
+		Use:   "overlay",
+		Short: "Print overlay addresses",
+		Long:  `Print overlay address for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIScheme:               c.config.GetString(optionNameAPIScheme),
@@ -31,17 +31,21 @@ func (c *command) initListOverlays() *cobra.Command {
 			}
 
 			ctx := context.Background()
-			for i, n := range cluster.Nodes {
-				o, err := n.Overlay(ctx)
-				if err != nil {
-					return err
-				}
 
-				fmt.Printf("Node %d. Overlay: %s\n", i, o.String())
-			}
-
-			return
+			return printOverlay(ctx, cluster)
 		},
-		PreRunE: c.listPreRunE,
+		PreRunE: c.printPreRunE,
 	}
+}
+
+func printOverlay(ctx context.Context, cluster bee.Cluster) (err error) {
+	for i, n := range cluster.Nodes {
+		a, err := n.Addresses(ctx)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%d. %s\n", i, a.Overlay)
+	}
+	return
 }

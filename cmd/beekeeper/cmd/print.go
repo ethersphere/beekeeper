@@ -4,10 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initListCmd() (err error) {
+func (c *command) initPrintCmd() (err error) {
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List info from Bee node(s)",
+		Use:   "print",
+		Short: "Print Bee cluster info",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},
@@ -29,13 +29,16 @@ func (c *command) initListCmd() (err error) {
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
 
-	cmd.AddCommand(c.initListOverlays())
+	cmd.AddCommand(c.initPrintAddresses())
+	cmd.AddCommand(c.initPrintOverlay())
+	cmd.AddCommand(c.initPrintUnderlay())
 
 	c.root.AddCommand(cmd)
+
 	return nil
 }
 
-func (c *command) listPreRunE(cmd *cobra.Command, args []string) (err error) {
+func (c *command) printPreRunE(cmd *cobra.Command, args []string) (err error) {
 	if !disableNamespace {
 		if err = cmd.MarkFlagRequired(optionNameNamespace); err != nil {
 			return

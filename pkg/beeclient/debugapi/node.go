@@ -40,6 +40,17 @@ func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, erro
 	return true, nil
 }
 
+// Health represents node's health
+type Health struct {
+	Status string `json:"status"`
+}
+
+// Health returns node's health
+func (n *NodeService) Health(ctx context.Context) (resp Health, err error) {
+	err = n.client.requestJSON(ctx, http.MethodGet, "/health", nil, &resp)
+	return
+}
+
 // Peers represents node's peers
 type Peers struct {
 	Peers []Peer `json:"peers"`
@@ -53,6 +64,17 @@ type Peer struct {
 // Peers returns node's peers
 func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/peers", nil, &resp)
+	return
+}
+
+// Readiness represents node's readiness
+type Readiness struct {
+	Status string `json:"status"`
+}
+
+// Readiness returns node's readiness
+func (n *NodeService) Readiness(ctx context.Context) (resp Readiness, err error) {
+	err = n.client.requestJSON(ctx, http.MethodGet, "/readiness", nil, &resp)
 	return
 }
 

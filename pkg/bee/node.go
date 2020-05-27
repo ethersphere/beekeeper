@@ -39,6 +39,35 @@ func NewNode(opts NodeOptions) Node {
 	}
 }
 
+// Addresses represents node's addresses
+type Addresses struct {
+	Overlay  swarm.Address
+	Underlay []string
+}
+
+// Addresses returns node's addresses
+func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
+	a, err := n.debug.Node.Addresses(ctx)
+	if err != nil {
+		return Addresses{}, err
+	}
+
+	return Addresses{
+		Overlay:  a.Overlay,
+		Underlay: a.Underlay,
+	}, nil
+}
+
+// DownloadChunk downloads chunk from the node
+func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.Bzz.Download(ctx, a)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return ioutil.ReadAll(r)
+}
+
 // HasChunk returns true/false if node has a chunk
 func (n *Node) HasChunk(ctx context.Context, c Chunk) (bool, error) {
 	return n.debug.Node.HasChunk(ctx, c.Address())
@@ -125,14 +154,14 @@ func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
 	return
 }
 
-// DownloadChunk downloads chunk from the node
-func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
-	r, err := n.api.Bzz.Download(ctx, a)
+// Underlay returns node's underlay addresses
+func (n *Node) Underlay(ctx context.Context) ([]string, error) {
+	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
-		return []byte{}, err
+		return []string{}, err
 	}
 
-	return ioutil.ReadAll(r)
+	return a.Underlay, nil
 }
 
 // UploadChunk uploads chunk to the node

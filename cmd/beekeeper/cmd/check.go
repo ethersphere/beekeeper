@@ -28,7 +28,7 @@ var (
 func (c *command) initCheckCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "check",
-		Short: "Run tests on Bee node(s)",
+		Short: "Run tests on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},
