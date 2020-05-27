@@ -31,21 +31,17 @@ func (c *command) initPrintAddresses() *cobra.Command {
 			}
 
 			ctx := context.Background()
+			addresses, err := cluster.Addresses(ctx)
+			if err != nil {
+				return err
+			}
 
-			return printAddresses(ctx, cluster)
+			for i, a := range addresses {
+				fmt.Printf("%d. %s\n", i, a)
+			}
+
+			return
 		},
 		PreRunE: c.printPreRunE,
 	}
-}
-
-func printAddresses(ctx context.Context, cluster bee.Cluster) (err error) {
-	for i, n := range cluster.Nodes {
-		a, err := n.Addresses(ctx)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("%d. %+v\n", i, a)
-	}
-	return
 }

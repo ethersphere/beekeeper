@@ -31,21 +31,17 @@ func (c *command) initPrintUnderlay() *cobra.Command {
 			}
 
 			ctx := context.Background()
+			underlays, err := cluster.Underlays(ctx)
+			if err != nil {
+				return err
+			}
 
-			return printUnderlay(ctx, cluster)
+			for i, u := range underlays {
+				fmt.Printf("%d. %s\n", i, u)
+			}
+
+			return
 		},
 		PreRunE: c.printPreRunE,
 	}
-}
-
-func printUnderlay(ctx context.Context, cluster bee.Cluster) (err error) {
-	for i, n := range cluster.Nodes {
-		a, err := n.Addresses(ctx)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("%d. %s\n", i, a.Underlay)
-	}
-	return
 }

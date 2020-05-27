@@ -53,6 +53,20 @@ func NewCluster(o ClusterOptions) (c Cluster, err error) {
 	return
 }
 
+// Addresses returns addresses of all nodes in the cluster
+func (c *Cluster) Addresses(ctx context.Context) (resp []Addresses, err error) {
+	for _, n := range c.Nodes {
+		a, err := n.Addresses(ctx)
+		if err != nil {
+			return []Addresses{}, err
+		}
+
+		resp = append(resp, a)
+	}
+
+	return
+}
+
 // Overlays returns overlay addresses of all nodes in the cluster
 func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err error) {
 	for _, n := range c.Nodes {
@@ -70,6 +84,20 @@ func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err e
 // Size returns size of the cluster
 func (c *Cluster) Size() int {
 	return len(c.Nodes)
+}
+
+// Underlays returns underlay addresses of all nodes in the cluster
+func (c *Cluster) Underlays(ctx context.Context) (underlays [][]string, err error) {
+	for _, n := range c.Nodes {
+		u, err := n.Underlay(ctx)
+		if err != nil {
+			return [][]string{}, err
+		}
+
+		underlays = append(underlays, u)
+	}
+
+	return
 }
 
 // createURL creates API or debug API URL
