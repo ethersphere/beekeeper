@@ -55,6 +55,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.AddCommand(c.initCheckPeerCount())
 	cmd.AddCommand(c.initCheckPingPong())
 	cmd.AddCommand(c.initCheckPushSync())
+	cmd.AddCommand(c.initCheckRetrieval())
 
 	c.root.AddCommand(cmd)
 	return nil

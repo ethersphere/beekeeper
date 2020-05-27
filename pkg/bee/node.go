@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -122,6 +123,16 @@ func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
 	}
 
 	return
+}
+
+// DownloadChunk downloads chunk from the node
+func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.Bzz.Download(ctx, a)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return ioutil.ReadAll(r)
 }
 
 // UploadChunk uploads chunk to the node
