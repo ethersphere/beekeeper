@@ -36,8 +36,8 @@ func (c *command) initPrintUnderlay() *cobra.Command {
 				return err
 			}
 
-			for _, u := range underlays {
-				fmt.Printf("%s\n", u)
+			for i, u := range underlays {
+				fmt.Printf("%d. %s\n", i, u)
 			}
 
 			return

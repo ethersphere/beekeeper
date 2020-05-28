@@ -36,8 +36,8 @@ func (c *command) initPrintAddresses() *cobra.Command {
 				return err
 			}
 
-			for _, a := range addresses {
-				fmt.Printf("%s\n", a)
+			for i, a := range addresses {
+				fmt.Printf("%d. %s\n", i, a)
 			}
 
 			return

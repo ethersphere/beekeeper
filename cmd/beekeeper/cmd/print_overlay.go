@@ -36,8 +36,8 @@ func (c *command) initPrintOverlay() *cobra.Command {
 				return err
 			}
 
-			for _, o := range overlays {
-				fmt.Printf("%s\n", o.String())
+			for i, o := range overlays {
+				fmt.Printf("%d. %s\n", i, o.String())
 			}
 
 			return

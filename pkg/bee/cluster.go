@@ -85,8 +85,7 @@ type AddressesStreamMsg struct {
 
 // AddressesStream returns stream of addresses of all nodes in the cluster
 func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg {
-	addressStream := make(chan AddressesStreamMsg, c.Size())
-	defer close(addressStream)
+	addressStream := make(chan AddressesStreamMsg)
 
 	var wg sync.WaitGroup
 	for i, node := range c.Nodes {
@@ -102,7 +101,11 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 			}
 		}(i, node)
 	}
-	wg.Wait()
+
+	go func() {
+		wg.Wait()
+		close(addressStream)
+	}()
 
 	return addressStream
 }
@@ -120,7 +123,7 @@ func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err e
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return []swarm.Address{}, m.Error
+			return nil, m.Error
 		}
 		overlays = append(overlays, m.Address)
 	}
@@ -136,9 +139,9 @@ type OverlaysStreamMsg struct {
 }
 
 // OverlaysStream returns stream of overlay addresses of all nodes in the cluster
+// TODO: add semaphor
 func (c *Cluster) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
-	overlaysStream := make(chan OverlaysStreamMsg, c.Size())
-	defer close(overlaysStream)
+	overlaysStream := make(chan OverlaysStreamMsg)
 
 	var wg sync.WaitGroup
 	for i, node := range c.Nodes {
@@ -154,7 +157,11 @@ func (c *Cluster) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
 			}
 		}(i, node)
 	}
-	wg.Wait()
+
+	go func() {
+		wg.Wait()
+		close(overlaysStream)
+	}()
 
 	return overlaysStream
 }
@@ -194,8 +201,7 @@ type UnderlaysStreamMsg struct {
 
 // UnderlaysStream returns stream of underlay addresses of all nodes in the cluster
 func (c *Cluster) UnderlaysStream(ctx context.Context) <-chan UnderlaysStreamMsg {
-	underlaysStream := make(chan UnderlaysStreamMsg, c.Size())
-	defer close(underlaysStream)
+	underlaysStream := make(chan UnderlaysStreamMsg)
 
 	var wg sync.WaitGroup
 	for i, node := range c.Nodes {
@@ -211,7 +217,11 @@ func (c *Cluster) UnderlaysStream(ctx context.Context) <-chan UnderlaysStreamMsg
 			}
 		}(i, node)
 	}
-	wg.Wait()
+
+	go func() {
+		wg.Wait()
+		close(underlaysStream)
+	}()
 
 	return underlaysStream
 }
