@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
@@ -11,7 +10,7 @@ import (
 
 func (c *command) initPrintOverlay() *cobra.Command {
 	return &cobra.Command{
-		Use:   "overlay",
+		Use:   "overlays",
 		Short: "Print overlay addresses",
 		Long:  `Print overlay address for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
@@ -31,16 +30,15 @@ func (c *command) initPrintOverlay() *cobra.Command {
 				return err
 			}
 
-			t0 := time.Now()
 			ctx := context.Background()
 			overlays, err := cluster.Overlays(ctx)
 			if err != nil {
 				return err
 			}
+
 			for _, o := range overlays {
 				fmt.Printf("%s\n", o.String())
 			}
-			fmt.Printf("Overlay took %s\n", time.Since(t0))
 
 			return
 		},

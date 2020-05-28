@@ -55,28 +55,23 @@ func NewCluster(o ClusterOptions) (c Cluster, err error) {
 	return
 }
 
-// Addresses returns addresses of all nodes in the cluster
-func (c *Cluster) Addresses(ctx context.Context) (resp []Addresses, err error) {
-	var wg sync.WaitGroup
-	var l sync.RWMutex
-
-	for _, node := range c.Nodes {
-		wg.Add(1)
-		go func(n Node) {
-			defer wg.Done()
-
-			a, err := n.Addresses(ctx)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			l.Lock()
-			resp = append(resp, a)
-			l.Unlock()
-		}(node)
-
+// Addresses returns ordered list of addresses of all nodes in the cluster
+func (c *Cluster) Addresses(ctx context.Context) (addrs []Addresses, err error) {
+	var msgs []AddressesStreamMsg
+	for m := range c.AddressesStream(ctx) {
+		msgs = append(msgs, m)
 	}
-	wg.Wait()
+
+	sort.SliceStable(msgs, func(i, j int) bool {
+		return msgs[i].Index < msgs[j].Index
+	})
+
+	for _, m := range msgs {
+		if m.Error != nil {
+			return []Addresses{}, m.Error
+		}
+		addrs = append(addrs, m.Addresses)
+	}
 
 	return
 }
@@ -112,7 +107,7 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 	return addressStream
 }
 
-// Overlays returns overlay addresses of all nodes in the cluster
+// Overlays returns ordered list of overlay addresses of all nodes in the cluster
 func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err error) {
 	var msgs []OverlaysStreamMsg
 	for m := range c.OverlaysStream(ctx) {
@@ -164,39 +159,27 @@ func (c *Cluster) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
 	return overlaysStream
 }
 
-// OverlaysStreamE returns stream of overlay addresses of all nodes in the cluster
-func (c *Cluster) OverlaysStreamE(ctx context.Context) <-chan OverlaysStreamMsg {
-	overlaysStream := make(chan OverlaysStreamMsg, c.Size())
-
-	go func() {
-		defer close(overlaysStream)
-		for i, n := range c.Nodes {
-			a, err := n.Overlay(ctx)
-			overlaysStream <- OverlaysStreamMsg{
-				Address: a,
-				Index:   i,
-				Error:   err,
-			}
-		}
-	}()
-
-	return overlaysStream
-}
-
 // Size returns size of the cluster
 func (c *Cluster) Size() int {
 	return len(c.Nodes)
 }
 
-// Underlays returns underlay addresses of all nodes in the cluster
+// Underlays returns ordered list of underlay addresses of all nodes in the cluster
 func (c *Cluster) Underlays(ctx context.Context) (underlays [][]string, err error) {
-	for _, n := range c.Nodes {
-		u, err := n.Underlay(ctx)
-		if err != nil {
-			return [][]string{}, err
-		}
+	var msgs []UnderlaysStreamMsg
+	for m := range c.UnderlaysStream(ctx) {
+		msgs = append(msgs, m)
+	}
 
-		underlays = append(underlays, u)
+	sort.SliceStable(msgs, func(i, j int) bool {
+		return msgs[i].Index < msgs[j].Index
+	})
+
+	for _, m := range msgs {
+		if m.Error != nil {
+			return [][]string{}, m.Error
+		}
+		underlays = append(underlays, m.Address)
 	}
 
 	return
