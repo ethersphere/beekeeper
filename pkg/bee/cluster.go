@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sync"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 )
@@ -55,16 +56,59 @@ func NewCluster(o ClusterOptions) (c Cluster, err error) {
 
 // Addresses returns addresses of all nodes in the cluster
 func (c *Cluster) Addresses(ctx context.Context) (resp []Addresses, err error) {
-	for _, n := range c.Nodes {
-		a, err := n.Addresses(ctx)
-		if err != nil {
-			return []Addresses{}, err
-		}
+	var wg sync.WaitGroup
+	var l sync.RWMutex
 
-		resp = append(resp, a)
+	for _, node := range c.Nodes {
+		wg.Add(1)
+		go func(n Node) {
+			defer wg.Done()
+
+			a, err := n.Addresses(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			l.Lock()
+			resp = append(resp, a)
+			l.Unlock()
+		}(node)
+
 	}
+	wg.Wait()
 
 	return
+}
+
+// AddressesStreamMsg represents message sent over the AddressStream channel
+type AddressesStreamMsg struct {
+	Addresses Addresses
+	Index     int
+	Error     error
+}
+
+// AddressesStream returns stream of addresses of all nodes in the cluster
+func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg {
+	addressStream := make(chan AddressesStreamMsg, c.Size())
+	defer close(addressStream)
+
+	var wg sync.WaitGroup
+	for i, node := range c.Nodes {
+		wg.Add(1)
+		go func(i int, n Node) {
+			defer wg.Done()
+
+			a, err := n.Addresses(ctx)
+			addressStream <- AddressesStreamMsg{
+				Addresses: a,
+				Index:     i,
+				Error:     err,
+			}
+		}(i, node)
+	}
+	wg.Wait()
+
+	return addressStream
 }
 
 // Overlays returns overlay addresses of all nodes in the cluster
@@ -79,6 +123,56 @@ func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err e
 	}
 
 	return
+}
+
+// OverlaysStreamMsg represents message sent over the OverlaysStream channel
+type OverlaysStreamMsg struct {
+	Address swarm.Address
+	Index   int
+	Error   error
+}
+
+// OverlaysStream returns stream of overlay addresses of all nodes in the cluster
+func (c *Cluster) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
+	overlaysStream := make(chan OverlaysStreamMsg, c.Size())
+	defer close(overlaysStream)
+
+	var wg sync.WaitGroup
+	for i, node := range c.Nodes {
+		wg.Add(1)
+		go func(i int, n Node) {
+			defer wg.Done()
+
+			a, err := n.Overlay(ctx)
+			overlaysStream <- OverlaysStreamMsg{
+				Address: a,
+				Index:   i,
+				Error:   err,
+			}
+		}(i, node)
+	}
+	wg.Wait()
+
+	return overlaysStream
+}
+
+// OverlaysStreamE returns stream of overlay addresses of all nodes in the cluster
+func (c *Cluster) OverlaysStreamE(ctx context.Context) <-chan OverlaysStreamMsg {
+	overlaysStream := make(chan OverlaysStreamMsg, c.Size())
+
+	go func() {
+		defer close(overlaysStream)
+		for i, n := range c.Nodes {
+			a, err := n.Overlay(ctx)
+			overlaysStream <- OverlaysStreamMsg{
+				Address: a,
+				Index:   i,
+				Error:   err,
+			}
+		}
+	}()
+
+	return overlaysStream
 }
 
 // Size returns size of the cluster
@@ -98,6 +192,37 @@ func (c *Cluster) Underlays(ctx context.Context) (underlays [][]string, err erro
 	}
 
 	return
+}
+
+// UnderlaysStreamMsg represents message sent over the UnderlaysStream channel
+type UnderlaysStreamMsg struct {
+	Address []string
+	Index   int
+	Error   error
+}
+
+// UnderlaysStream returns stream of underlay addresses of all nodes in the cluster
+func (c *Cluster) UnderlaysStream(ctx context.Context) <-chan UnderlaysStreamMsg {
+	underlaysStream := make(chan UnderlaysStreamMsg, c.Size())
+	defer close(underlaysStream)
+
+	var wg sync.WaitGroup
+	for i, node := range c.Nodes {
+		wg.Add(1)
+		go func(i int, n Node) {
+			defer wg.Done()
+
+			a, err := n.Underlay(ctx)
+			underlaysStream <- UnderlaysStreamMsg{
+				Address: a,
+				Index:   i,
+				Error:   err,
+			}
+		}(i, node)
+	}
+	wg.Wait()
+
+	return underlaysStream
 }
 
 // createURL creates API or debug API URL

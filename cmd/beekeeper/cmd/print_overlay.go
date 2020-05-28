@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
@@ -30,15 +31,17 @@ func (c *command) initPrintOverlay() *cobra.Command {
 				return err
 			}
 
+			t0 := time.Now()
 			ctx := context.Background()
-			overlays, err := cluster.Overlays(ctx)
-			if err != nil {
-				return err
+			for o := range cluster.OverlaysStream(ctx) {
+				if o.Error != nil {
+					fmt.Printf("%d %s\n", o.Index, o.Error)
+					continue
+				}
+				fmt.Printf("%d %s\n", o.Index, o.Address)
 			}
-
-			for i, o := range overlays {
-				fmt.Printf("%d. %s\n", i, o.String())
-			}
+			t1 := time.Since(t0)
+			fmt.Printf("Overlay took %s\n", t1)
 
 			return
 		},

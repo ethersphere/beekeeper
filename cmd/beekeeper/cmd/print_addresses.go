@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
@@ -30,15 +31,17 @@ func (c *command) initPrintAddresses() *cobra.Command {
 				return err
 			}
 
+			t0 := time.Now()
 			ctx := context.Background()
-			addresses, err := cluster.Addresses(ctx)
-			if err != nil {
-				return err
+			for a := range cluster.AddressesStream(ctx) {
+				if a.Error != nil {
+					fmt.Printf("%d %s\n", a.Index, a.Error)
+					continue
+				}
+				fmt.Printf("%d %s\n", a.Index, a.Addresses)
 			}
-
-			for i, a := range addresses {
-				fmt.Printf("%d. %s\n", i, a)
-			}
+			t1 := time.Since(t0)
+			fmt.Printf("Addresses took %s\n", t1)
 
 			return
 		},
