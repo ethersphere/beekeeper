@@ -33,15 +33,14 @@ func (c *command) initPrintOverlay() *cobra.Command {
 
 			t0 := time.Now()
 			ctx := context.Background()
-			for o := range cluster.OverlaysStream(ctx) {
-				if o.Error != nil {
-					fmt.Printf("%d %s\n", o.Index, o.Error)
-					continue
-				}
-				fmt.Printf("%d %s\n", o.Index, o.Address)
+			overlays, err := cluster.Overlays(ctx)
+			if err != nil {
+				return err
 			}
-			t1 := time.Since(t0)
-			fmt.Printf("Overlay took %s\n", t1)
+			for _, o := range overlays {
+				fmt.Printf("%s\n", o.String())
+			}
+			fmt.Printf("Overlay took %s\n", time.Since(t0))
 
 			return
 		},

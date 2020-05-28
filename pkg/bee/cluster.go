@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 	"sync"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -113,13 +114,20 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 
 // Overlays returns overlay addresses of all nodes in the cluster
 func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err error) {
-	for _, n := range c.Nodes {
-		a, err := n.Overlay(ctx)
-		if err != nil {
-			return []swarm.Address{}, err
-		}
+	var msgs []OverlaysStreamMsg
+	for m := range c.OverlaysStream(ctx) {
+		msgs = append(msgs, m)
+	}
 
-		overlays = append(overlays, a)
+	sort.SliceStable(msgs, func(i, j int) bool {
+		return msgs[i].Index < msgs[j].Index
+	})
+
+	for _, m := range msgs {
+		if m.Error != nil {
+			return []swarm.Address{}, m.Error
+		}
+		overlays = append(overlays, m.Address)
 	}
 
 	return
