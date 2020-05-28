@@ -68,7 +68,7 @@ func (c *Cluster) Addresses(ctx context.Context) (addrs []Addresses, err error) 
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return []Addresses{}, m.Error
+			return nil, m.Error
 		}
 		addrs = append(addrs, m.Addresses)
 	}
@@ -184,7 +184,7 @@ func (c *Cluster) Underlays(ctx context.Context) (underlays [][]string, err erro
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return [][]string{}, m.Error
+			return nil, m.Error
 		}
 		underlays = append(underlays, m.Address)
 	}
