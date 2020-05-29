@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -49,7 +50,7 @@ type Addresses struct {
 func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
-		return Addresses{}, err
+		return Addresses{}, fmt.Errorf("get addresses: %w", err)
 	}
 
 	return Addresses{
@@ -62,7 +63,7 @@ func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
 	r, err := n.api.Bzz.Download(ctx, a)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
 
 	return ioutil.ReadAll(r)
@@ -77,7 +78,7 @@ func (n *Node) HasChunk(ctx context.Context, c Chunk) (bool, error) {
 func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
-		return swarm.Address{}, err
+		return swarm.Address{}, fmt.Errorf("get overlay: %w", err)
 	}
 
 	return a.Overlay, nil
@@ -87,7 +88,7 @@ func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 	ps, err := n.debug.Node.Peers(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get peers: %w", err)
 	}
 
 	for _, p := range ps.Peers {
@@ -101,7 +102,7 @@ func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
 	r, err := n.api.PingPong.Ping(ctx, node)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("ping node %s: %w", node, err)
 	}
 	return r.RTT, nil
 }
@@ -128,7 +129,7 @@ type Bin struct {
 func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
 	t, err := n.debug.Node.Topology(ctx)
 	if err != nil {
-		return Topology{}, err
+		return Topology{}, fmt.Errorf("get topology: %w", err)
 	}
 
 	topology = Topology{
@@ -158,7 +159,7 @@ func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
 func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get underlay: %w", err)
 	}
 
 	return a.Underlay, nil
@@ -168,7 +169,7 @@ func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 	r, err := n.api.Bzz.Upload(ctx, bytes.NewReader(c.Data()))
 	if err != nil {
-		return err
+		return fmt.Errorf("upload chunk: %w", err)
 	}
 
 	c.address = r.Hash

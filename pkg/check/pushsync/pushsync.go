@@ -35,23 +35,23 @@ func Check(c bee.Cluster, o Options) (err error) {
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnd)
 			if err != nil {
-				return err
+				return fmt.Errorf("node %d: %w", i, err)
 			}
 
 			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
-				return err
+				return fmt.Errorf("node %d: %w", i, err)
 			}
 
 			closest, err := chunk.ClosestNode(overlays)
 			if err != nil {
-				return err
+				return fmt.Errorf("node %d: %w", i, err)
 			}
 			index := findIndex(overlays, closest)
 
 			time.Sleep(1 * time.Second)
 			synced, err := c.Nodes[index].HasChunk(ctx, chunk)
 			if err != nil {
-				return err
+				return fmt.Errorf("node %d: %w", index, err)
 			}
 			if !synced {
 				fmt.Printf("Node %d. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())

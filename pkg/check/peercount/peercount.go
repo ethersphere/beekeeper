@@ -2,13 +2,10 @@ package peercount
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
-
-var errPeerCount = errors.New("peer count")
 
 // Check executes peer count check on cluster
 func Check(cluster bee.Cluster) (err error) {
@@ -18,20 +15,15 @@ func Check(cluster bee.Cluster) (err error) {
 	for i, n := range cluster.Nodes {
 		o, err := n.Overlay(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("node %d: %w", i, err)
 		}
 
 		peers, err := n.Peers(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("node %d: %w", i, err)
 		}
 
-		if len(peers) == expectedPeerCount {
-			fmt.Printf("Node %d. Passed. Peers %d/%d. Node: %s\n", i, len(peers), expectedPeerCount, o.String())
-		} else {
-			fmt.Printf("Node %d. Failed. Peers %d/%d. Node: %s\n", i, len(peers), expectedPeerCount, o.String())
-			return errPeerCount
-		}
+		fmt.Printf("Node %d. Peers %d/%d. Node: %s\n", i, len(peers), expectedPeerCount, o.String())
 	}
 
 	return

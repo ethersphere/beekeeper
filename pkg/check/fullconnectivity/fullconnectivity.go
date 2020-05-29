@@ -24,7 +24,7 @@ func Check(cluster bee.Cluster) (err error) {
 	for i, n := range cluster.Nodes {
 		peers, err := n.Peers(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("node %d: %w", i, err)
 		}
 
 		if len(peers) != expectedPeerCount {
