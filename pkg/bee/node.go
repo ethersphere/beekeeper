@@ -62,7 +62,7 @@ func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
 	r, err := n.api.Bzz.Download(ctx, a)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
 	return ioutil.ReadAll(r)
@@ -87,7 +87,7 @@ func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 	ps, err := n.debug.Node.Peers(ctx)
 	if err != nil {
-		return []swarm.Address{}, err
+		return nil, err
 	}
 
 	for _, p := range ps.Peers {
@@ -158,7 +158,7 @@ func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
 func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 
 	return a.Underlay, nil

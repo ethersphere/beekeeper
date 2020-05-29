@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initPrintUnderlay() *cobra.Command {
+func (c *command) initPrintPeers() *cobra.Command {
 	return &cobra.Command{
-		Use:   "underlays",
-		Short: "Print underlay addresses",
-		Long:  `Print underlay addresses for every node in a cluster`,
+		Use:   "peers",
+		Short: "Print peers",
+		Long:  `Print list of peers for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIScheme:               c.config.GetString(optionNameAPIScheme),
@@ -31,13 +31,13 @@ func (c *command) initPrintUnderlay() *cobra.Command {
 			}
 
 			ctx := context.Background()
-			underlays, err := cluster.Underlays(ctx)
+			peers, err := cluster.Peers(ctx)
 			if err != nil {
 				return err
 			}
 
-			for i, u := range underlays {
-				fmt.Printf("%d. %s\n", i, u)
+			for i, a := range peers {
+				fmt.Printf("%d. %s\n", i, a)
 			}
 
 			return
