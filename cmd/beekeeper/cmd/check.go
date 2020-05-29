@@ -62,7 +62,7 @@ func (c *command) initCheckCmd() (err error) {
 }
 
 func (c *command) checkPreRunE(cmd *cobra.Command, args []string) (err error) {
-	if !disableNamespace {
+	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
 		if err = cmd.MarkFlagRequired(optionNameNamespace); err != nil {
 			return
 		}
