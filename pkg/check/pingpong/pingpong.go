@@ -56,8 +56,6 @@ func Check(cluster bee.Cluster) (err error) {
 				Address:     address,
 				PingResults: pingResults,
 			})
-
-			return
 		}(i, node)
 	}
 	wg.Wait()
