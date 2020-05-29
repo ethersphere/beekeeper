@@ -5,77 +5,113 @@ import (
 	"fmt"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
+// SHOULD BEEKEEPER BE AWARE OF THE OREDER
+// SHOULD BEEKEEPER BE AWARE OF THE OREDER
+// SHOULD BEEKEEPER BE AWARE OF THE OREDER
+
 // Check executes ping from all nodes to all other nodes in the cluster
 func Check(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
-	t1 := time.Now()
+	var result []nodeResult
+
 	var wg sync.WaitGroup
 	for i, node := range cluster.Nodes {
 		wg.Add(1)
 		go func(i int, n bee.Node) {
 			defer wg.Done()
 
-			overlay, err := n.Overlay(ctx)
+			address, err := n.Overlay(ctx)
 			if err != nil {
-				fmt.Printf("node %d: %s\n", i, err)
+				result = append(result, nodeResult{
+					Index: i,
+					Error: err,
+				})
+				return
 			}
 
 			peers, err := n.Peers(ctx)
 			if err != nil {
-				fmt.Printf("node %d: %s\n", i, err)
+				result = append(result, nodeResult{
+					Index: i,
+					Error: err,
+				})
+				return
 			}
 
-			var msgs []pingStreamMsg
+			var pingResults []pingStreamMsg
 			for m := range pingStream(ctx, n, peers) {
-				msgs = append(msgs, m)
+				pingResults = append(pingResults, m)
 			}
-
-			sort.SliceStable(msgs, func(i, j int) bool {
-				return msgs[i].Index < msgs[j].Index
+			sort.SliceStable(pingResults, func(i, j int) bool {
+				return pingResults[i].Index < pingResults[j].Index
 			})
 
-			for j, m := range msgs {
-				if m.Error != nil {
-					fmt.Printf("node %d had error pinging peer %s: %s\n", i, peers[j], m.Error)
-				}
-				fmt.Printf("Node %d. Peer %d RTT: %s. Node: %s Peer: %s \n", i, j, m.RTT, overlay, peers[j])
-			}
+			result = append(result, nodeResult{
+				Index:       i,
+				Address:     address,
+				PingResults: pingResults,
+			})
+
+			return
 		}(i, node)
 	}
 	wg.Wait()
 
-	fmt.Println("Elapsed: ", time.Since(t1))
+	sort.SliceStable(result, func(i, j int) bool {
+		return result[i].Index < result[j].Index
+	})
+
+	for i, n := range result {
+		if n.Error != nil {
+			fmt.Printf("node %d: %s\n", i, n.Error)
+			continue
+		}
+		for j, p := range n.PingResults {
+			if p.Error != nil {
+				fmt.Printf("node %d had error pinging peer %d: %s\n", i, j, p.Error)
+			}
+			fmt.Printf("Node %d. Peer %d RTT: %s. Node: %s Peer: %s\n", i, j, p.RTT, n.Address, p.Address)
+		}
+	}
 
 	return
 }
 
+type nodeResult struct {
+	Index       int
+	Address     swarm.Address
+	PingResults []pingStreamMsg
+	Error       error
+}
+
 type pingStreamMsg struct {
-	RTT   string
-	Index int
-	Error error
+	Index   int
+	Address swarm.Address
+	RTT     string
+	Error   error
 }
 
 func pingStream(ctx context.Context, node bee.Node, peers []swarm.Address) <-chan pingStreamMsg {
 	pingStream := make(chan pingStreamMsg)
 
 	var wg sync.WaitGroup
-	for i, p := range peers {
+	for i, peer := range peers {
 		wg.Add(1)
-		go func(i int, n bee.Node, p swarm.Address) {
+		go func(n bee.Node, i int, p swarm.Address) {
 			defer wg.Done()
 			rtt, err := n.Ping(ctx, p)
 			pingStream <- pingStreamMsg{
-				RTT:   rtt,
-				Index: i,
-				Error: err,
+				Index:   i,
+				Address: p,
+				RTT:     rtt,
+				Error:   err,
 			}
-		}(i, node, p)
+		}(node, i, peer)
 	}
 
 	go func() {
