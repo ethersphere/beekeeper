@@ -34,12 +34,12 @@ func NewCluster(o ClusterOptions) (c Cluster, err error) {
 	for i := 0; i < o.Size; i++ {
 		a, err := createURL(o.APIScheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, i)
 		if err != nil {
-			return Cluster{}, err
+			return Cluster{}, fmt.Errorf("create cluster: %w", err)
 		}
 
 		d, err := createURL(o.DebugAPIScheme, o.DebugAPIHostnamePattern, o.Namespace, o.DebugAPIDomain, i)
 		if err != nil {
-			return Cluster{}, err
+			return Cluster{}, fmt.Errorf("create cluster: %w", err)
 		}
 
 		n := NewNode(NodeOptions{
@@ -66,9 +66,9 @@ func (c *Cluster) Addresses(ctx context.Context) (addrs []Addresses, err error) 
 		return msgs[i].Index < msgs[j].Index
 	})
 
-	for _, m := range msgs {
+	for i, m := range msgs {
 		if m.Error != nil {
-			return nil, m.Error
+			return nil, fmt.Errorf("node %d: %w", i, m.Error)
 		}
 		addrs = append(addrs, m.Addresses)
 	}
@@ -121,9 +121,9 @@ func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err e
 		return msgs[i].Index < msgs[j].Index
 	})
 
-	for _, m := range msgs {
+	for i, m := range msgs {
 		if m.Error != nil {
-			return nil, m.Error
+			return nil, fmt.Errorf("node %d: %w", i, m.Error)
 		}
 		overlays = append(overlays, m.Address)
 	}
@@ -177,9 +177,9 @@ func (c *Cluster) Peers(ctx context.Context) (peers [][]swarm.Address, err error
 		return msgs[i].Index < msgs[j].Index
 	})
 
-	for _, m := range msgs {
+	for i, m := range msgs {
 		if m.Error != nil {
-			return nil, m.Error
+			return nil, fmt.Errorf("node %d: %w", i, m.Error)
 		}
 		peers = append(peers, m.Peers)
 	}
@@ -237,9 +237,9 @@ func (c *Cluster) Topologies(ctx context.Context) (topologies []Topology, err er
 		return msgs[i].Index < msgs[j].Index
 	})
 
-	for _, m := range msgs {
+	for i, m := range msgs {
 		if m.Error != nil {
-			return nil, m.Error
+			return nil, fmt.Errorf("node %d: %w", i, m.Error)
 		}
 		topologies = append(topologies, m.Topology)
 	}

@@ -32,7 +32,7 @@ func Check(cluster bee.Cluster) (err error) {
 	for i, n := range cluster.Nodes {
 		t, err := n.Topology(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("node %d: %w", i, err)
 		}
 
 		if t.Depth == 0 {
@@ -44,7 +44,7 @@ func Check(cluster bee.Cluster) (err error) {
 		for k, b := range t.Bins {
 			binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
 			if err != nil {
-				return err
+				return fmt.Errorf("node %d: %w", i, err)
 			}
 			fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
 			if binDepth < t.Depth && b.Connected < 2 {

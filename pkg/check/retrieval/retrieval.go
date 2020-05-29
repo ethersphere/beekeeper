@@ -34,16 +34,16 @@ func Check(c bee.Cluster, o Options) (err error) {
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnd)
 			if err != nil {
-				return err
+				return fmt.Errorf("node %d: %w", i, err)
 			}
 
 			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
-				return err
+				return fmt.Errorf("node %d: %w", i, err)
 			}
 
 			data, err := c.Nodes[c.Size()-1].DownloadChunk(ctx, chunk.Address())
 			if err != nil {
-				return err
+				return fmt.Errorf("node %d: %w", c.Size()-1, err)
 			}
 
 			if !bytes.Equal(chunk.Data(), data) {

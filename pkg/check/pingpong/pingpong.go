@@ -13,12 +13,12 @@ func Check(cluster bee.Cluster) (err error) {
 	for i, n := range cluster.Nodes {
 		o, err := n.Overlay(ctx)
 		if err != nil {
-			return fmt.Errorf("error getting overlay for node %d: %w", i, err)
+			return fmt.Errorf("node %d: %w", i, err)
 		}
 
 		peers, err := n.Peers(ctx)
 		if err != nil {
-			return fmt.Errorf("error getting peers for node %d: %w", i, err)
+			return fmt.Errorf("node %d: %w", i, err)
 		}
 
 		for j, p := range peers {

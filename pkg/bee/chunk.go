@@ -9,8 +9,6 @@ import (
 
 const maxChunkSize = 4096
 
-var errChunkSize = fmt.Errorf("chunk size too big (max %d)", maxChunkSize)
-
 // Chunk represents Bee chunk
 type Chunk struct {
 	address swarm.Address
@@ -20,7 +18,7 @@ type Chunk struct {
 // NewChunk returns new chunk
 func NewChunk(data []byte) (Chunk, error) {
 	if len(data) > maxChunkSize {
-		return Chunk{}, errChunkSize
+		return Chunk{}, fmt.Errorf("create chunk: size too big (max %d)", maxChunkSize)
 	}
 
 	return Chunk{data: data}, nil
@@ -30,7 +28,7 @@ func NewChunk(data []byte) (Chunk, error) {
 func NewRandomChunk(r *rand.Rand) (c Chunk, err error) {
 	c = Chunk{data: make([]byte, r.Intn(maxChunkSize))}
 	if _, err := r.Read(c.data); err != nil {
-		return Chunk{}, err
+		return Chunk{}, fmt.Errorf("create random chunk: %w", err)
 	}
 
 	return
@@ -57,7 +55,7 @@ func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err e
 	for _, a := range nodes[1:] {
 		dcmp, err := swarm.DistanceCmp(c.Address().Bytes(), closest.Bytes(), a.Bytes())
 		if err != nil {
-			return swarm.Address{}, err
+			return swarm.Address{}, fmt.Errorf("find closest node: %w", err)
 		}
 		switch dcmp {
 		case 0:
