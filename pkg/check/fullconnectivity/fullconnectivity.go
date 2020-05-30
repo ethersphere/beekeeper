@@ -20,26 +20,28 @@ func Check(cluster bee.Cluster) (err error) {
 		return err
 	}
 
-	var expectedPeerCount = cluster.Size() - 1
-	for i, n := range cluster.Nodes {
-		peers, err := n.Peers(ctx)
-		if err != nil {
-			return fmt.Errorf("node %d: %w", i, err)
-		}
+	peers, err := cluster.Peers(ctx)
+	if err != nil {
+		return err
+	}
 
-		if len(peers) != expectedPeerCount {
-			fmt.Printf("Node %d. Failed. Peers %d/%d. Node: %s\n", i, len(peers), expectedPeerCount, overlays[i].String())
+	clusterSize := cluster.Size()
+	expectedPeerCount := clusterSize - 1
+
+	for i := 0; i < clusterSize; i++ {
+		if len(peers[i]) != expectedPeerCount {
+			fmt.Printf("Node %d. Failed. Peers %d/%d. Node: %s\n", i, len(peers[i]), expectedPeerCount, overlays[i])
 			return errFullConnectivity
 		}
 
-		for _, p := range peers {
+		for _, p := range peers[i] {
 			if !contains(overlays, p) {
-				fmt.Printf("Node %d. Failed. Invalid peer: %s. Node: %s\n", i, p.String(), overlays[i].String())
+				fmt.Printf("Node %d. Failed. Invalid peer: %s. Node: %s\n", i, p.String(), overlays[i])
 				return errFullConnectivity
 			}
 		}
 
-		fmt.Printf("Node %d. Passed. Peers %d/%d. All peers are valid. Node: %s\n", i, len(peers), expectedPeerCount, overlays[i].String())
+		fmt.Printf("Node %d. Passed. Peers %d/%d. All peers are valid. Node: %s\n", i, len(peers[i]), expectedPeerCount, overlays[i])
 	}
 
 	return
