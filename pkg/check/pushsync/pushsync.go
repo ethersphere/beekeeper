@@ -25,6 +25,7 @@ var errPushSync = errors.New("push sync")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
 func Check(c bee.Cluster, o Options) (err error) {
+	t1 := time.Now()
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -65,17 +66,18 @@ func Check(c bee.Cluster, o Options) (err error) {
 		}
 	}
 
-	return
-}
+	// for i := 0; i < o.UploadNodeCount; i++ {
+	// 	var chunkResults []chunkStreamMsg
+	// 	for m := range chunkStream(ctx, c.Nodes[i], rnds[i], o.ChunksPerNode) {
+	// 		chunkResults = append(chunkResults, m)
+	// 	}
+	// 	for j, c := range chunkResults {
+	// 		fmt.Println(i, j, c.Index, c.Chunk.Size(), c.Error)
+	// 	}
+	// }
 
-// findIndex returns index of a given swarm.Address in a given set of swarm.Addresses, or -1 if not found
-func findIndex(overlays []swarm.Address, addr swarm.Address) int {
-	for i, a := range overlays {
-		if addr.Equal(a) {
-			return i
-		}
-	}
-	return -1
+	fmt.Println("Elapsed: ", time.Since(t1))
+	return
 }
 
 type chunkStreamMsg struct {
@@ -87,12 +89,15 @@ type chunkStreamMsg struct {
 func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) <-chan chunkStreamMsg {
 	chunkStream := make(chan chunkStreamMsg)
 
+	// var l sync.RWMutex
 	var wg sync.WaitGroup
 	for i := 0; i < count; i++ {
 		wg.Add(1)
 		go func(n bee.Node, i int) {
 			defer wg.Done()
+			// l.Lock()
 			chunk, err := bee.NewRandomChunk(rnd)
+			// l.Unlock()
 			if err != nil {
 				chunkStream <- chunkStreamMsg{Index: i, Error: err}
 				return
@@ -113,4 +118,14 @@ func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) 
 	}()
 
 	return chunkStream
+}
+
+// findIndex returns index of a given swarm.Address in a given set of swarm.Addresses, or -1 if not found
+func findIndex(overlays []swarm.Address, addr swarm.Address) int {
+	for i, a := range overlays {
+		if addr.Equal(a) {
+			return i
+		}
+	}
+	return -1
 }
