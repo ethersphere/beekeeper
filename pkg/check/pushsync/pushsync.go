@@ -50,7 +50,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 			index := findIndex(overlays, closest)
 
 			time.Sleep(1 * time.Second)
-			synced, err := c.Nodes[index].HasChunk(ctx, chunk)
+			synced, err := c.Nodes[index].HasChunk(ctx, chunk.Address())
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
 			}

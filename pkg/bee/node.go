@@ -70,8 +70,8 @@ func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte,
 }
 
 // HasChunk returns true/false if node has a chunk
-func (n *Node) HasChunk(ctx context.Context, c Chunk) (bool, error) {
-	return n.debug.Node.HasChunk(ctx, c.Address())
+func (n *Node) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	return n.debug.Node.HasChunk(ctx, a)
 }
 
 // Overlay returns node's overlay address
