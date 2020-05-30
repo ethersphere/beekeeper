@@ -7,6 +7,15 @@ import (
 	"math/rand"
 )
 
+// PseudoGenerators returns list of n *rand.Rand
+func PseudoGenerators(seed int64, n int) (g []*rand.Rand) {
+	rnd := rand.New(rand.NewSource(seed))
+	for i := 0; i < n; i++ {
+		g = append(g, rand.New(rand.NewSource(rnd.Int63())))
+	}
+	return
+}
+
 // Int64 returns random int64
 func Int64() int64 {
 	var src cryptoSource
