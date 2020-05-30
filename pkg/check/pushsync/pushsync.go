@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -74,4 +76,41 @@ func findIndex(overlays []swarm.Address, addr swarm.Address) int {
 		}
 	}
 	return -1
+}
+
+type chunkStreamMsg struct {
+	Index int
+	Chunk bee.Chunk
+	Error error
+}
+
+func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) <-chan chunkStreamMsg {
+	chunkStream := make(chan chunkStreamMsg)
+
+	var wg sync.WaitGroup
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func(n bee.Node, i int) {
+			defer wg.Done()
+			chunk, err := bee.NewRandomChunk(rnd)
+			if err != nil {
+				chunkStream <- chunkStreamMsg{Index: i, Error: err}
+				return
+			}
+
+			if err := n.UploadChunk(ctx, &chunk); err != nil {
+				chunkStream <- chunkStreamMsg{Index: i, Error: err}
+				return
+			}
+
+			chunkStream <- chunkStreamMsg{Index: i, Chunk: chunk}
+		}(node, i)
+	}
+
+	go func() {
+		wg.Wait()
+		close(chunkStream)
+	}()
+
+	return chunkStream
 }
