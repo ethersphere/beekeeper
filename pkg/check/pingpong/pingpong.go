@@ -17,49 +17,11 @@ import (
 // Check executes ping from all nodes to all other nodes in the cluster
 func Check(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
-	var result []nodeResult
 
-	var wg sync.WaitGroup
-	for i, node := range cluster.Nodes {
-		wg.Add(1)
-		go func(i int, n bee.Node) {
-			defer wg.Done()
-
-			address, err := n.Overlay(ctx)
-			if err != nil {
-				result = append(result, nodeResult{
-					Index: i,
-					Error: err,
-				})
-				return
-			}
-
-			peers, err := n.Peers(ctx)
-			if err != nil {
-				result = append(result, nodeResult{
-					Index: i,
-					Error: err,
-				})
-				return
-			}
-
-			var pingResults []pingStreamMsg
-			for m := range pingStream(ctx, n, peers) {
-				pingResults = append(pingResults, m)
-			}
-			sort.SliceStable(pingResults, func(i, j int) bool {
-				return pingResults[i].Index < pingResults[j].Index
-			})
-
-			result = append(result, nodeResult{
-				Index:       i,
-				Address:     address,
-				PingResults: pingResults,
-			})
-		}(i, node)
+	var result []nodeStreamMsg
+	for n := range nodeStream(ctx, cluster.Nodes) {
+		result = append(result, n)
 	}
-	wg.Wait()
-
 	sort.SliceStable(result, func(i, j int) bool {
 		return result[i].Index < result[j].Index
 	})
@@ -80,11 +42,56 @@ func Check(cluster bee.Cluster) (err error) {
 	return
 }
 
-type nodeResult struct {
+type nodeStreamMsg struct {
 	Index       int
 	Address     swarm.Address
 	PingResults []pingStreamMsg
 	Error       error
+}
+
+func nodeStream(ctx context.Context, nodes []bee.Node) <-chan nodeStreamMsg {
+	nodeStream := make(chan nodeStreamMsg)
+
+	var wg sync.WaitGroup
+	for i, node := range nodes {
+		wg.Add(1)
+		go func(i int, n bee.Node) {
+			defer wg.Done()
+
+			address, err := n.Overlay(ctx)
+			if err != nil {
+				nodeStream <- nodeStreamMsg{Index: i, Error: err}
+				return
+			}
+
+			peers, err := n.Peers(ctx)
+			if err != nil {
+				nodeStream <- nodeStreamMsg{Index: i, Error: err}
+				return
+			}
+
+			var pingResults []pingStreamMsg
+			for m := range pingStream(ctx, n, peers) {
+				pingResults = append(pingResults, m)
+			}
+			sort.SliceStable(pingResults, func(i, j int) bool {
+				return pingResults[i].Index < pingResults[j].Index
+			})
+
+			nodeStream <- nodeStreamMsg{
+				Index:       i,
+				Address:     address,
+				PingResults: pingResults,
+			}
+		}(i, node)
+	}
+
+	go func() {
+		wg.Wait()
+		close(nodeStream)
+	}()
+
+	return nodeStream
 }
 
 type pingStreamMsg struct {
