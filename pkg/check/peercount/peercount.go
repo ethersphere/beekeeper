@@ -9,21 +9,21 @@ import (
 
 // Check executes peer count check on cluster
 func Check(cluster bee.Cluster) (err error) {
-	var expectedPeerCount = cluster.Size() - 1
-
 	ctx := context.Background()
-	for i, n := range cluster.Nodes {
-		o, err := n.Overlay(ctx)
-		if err != nil {
-			return fmt.Errorf("node %d: %w", i, err)
-		}
 
-		peers, err := n.Peers(ctx)
-		if err != nil {
-			return fmt.Errorf("node %d: %w", i, err)
-		}
+	overlays, err := cluster.Overlays(ctx)
+	if err != nil {
+		return err
+	}
 
-		fmt.Printf("Node %d. Peers %d/%d. Node: %s\n", i, len(peers), expectedPeerCount, o.String())
+	peers, err := cluster.Peers(ctx)
+	if err != nil {
+		return err
+	}
+
+	clusterSize := cluster.Size()
+	for i := 0; i < clusterSize; i++ {
+		fmt.Printf("Node %d. Peers %d/%d. Node: %s\n", i, len(peers[i]), clusterSize-1, overlays[i])
 	}
 
 	return
