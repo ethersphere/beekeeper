@@ -37,7 +37,9 @@ func (c *command) initPrintPeers() *cobra.Command {
 			}
 
 			for i, a := range peers {
-				fmt.Printf("%d. %s\n", i, a)
+				for _, p := range a {
+					fmt.Printf("Node %d. %s\n", i, p)
+				}
 			}
 
 			return

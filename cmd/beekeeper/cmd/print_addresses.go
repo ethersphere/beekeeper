@@ -37,7 +37,10 @@ func (c *command) initPrintAddresses() *cobra.Command {
 			}
 
 			for i, a := range addresses {
-				fmt.Printf("%d. %s\n", i, a)
+				fmt.Printf("Node %d. overlay: %s\n", i, a.Overlay)
+				for _, u := range a.Underlay {
+					fmt.Printf("Node %d. underlay: %s\n", i, u)
+				}
 			}
 
 			return
