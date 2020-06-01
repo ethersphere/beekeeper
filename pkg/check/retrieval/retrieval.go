@@ -5,9 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // Options represents pushsync check options
@@ -22,7 +22,7 @@ var errRetrieval = errors.New("retrieval")
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
 func Check(c bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
-	rnd := rand.New(rand.NewSource(o.Seed))
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
 	overlays, err := c.Overlays(ctx)
@@ -32,7 +32,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.ChunksPerNode; j++ {
-			chunk, err := bee.NewRandomChunk(rnd)
+			chunk, err := bee.NewRandomChunk(rnds[i])
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}

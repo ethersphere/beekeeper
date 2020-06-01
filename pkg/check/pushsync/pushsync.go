@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
+
+	"github.com/ethersphere/beekeeper/pkg/random"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -23,7 +26,7 @@ var errPushSync = errors.New("push sync")
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
 func Check(c bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
-	rnd := rand.New(rand.NewSource(o.Seed))
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
 	overlays, err := c.Overlays(ctx)
@@ -33,7 +36,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.ChunksPerNode; j++ {
-			chunk, err := bee.NewRandomChunk(rnd)
+			chunk, err := bee.NewRandomChunk(rnds[i])
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
@@ -49,7 +52,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 			index := findIndex(overlays, closest)
 
 			time.Sleep(1 * time.Second)
-			synced, err := c.Nodes[index].HasChunk(ctx, chunk)
+			synced, err := c.Nodes[index].HasChunk(ctx, chunk.Address())
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
 			}
@@ -63,6 +66,62 @@ func Check(c bee.Cluster, o Options) (err error) {
 	}
 
 	return
+}
+
+// CheckConcurrent uploads given chunks concurrently on cluster and checks pushsync ability of the cluster
+func CheckConcurrent(c bee.Cluster, o Options) (err error) {
+	ctx := context.Background()
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	fmt.Printf("Seed: %d\n", o.Seed)
+
+	for i := 0; i < o.UploadNodeCount; i++ {
+		var chunkResults []chunkStreamMsg
+		for m := range chunkStream(ctx, c.Nodes[i], rnds[i], o.ChunksPerNode) {
+			chunkResults = append(chunkResults, m)
+		}
+		for j, c := range chunkResults {
+			fmt.Println(i, j, c.Index, c.Chunk.Size(), c.Error)
+		}
+	}
+
+	return
+}
+
+type chunkStreamMsg struct {
+	Index int
+	Chunk bee.Chunk
+	Error error
+}
+
+func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) <-chan chunkStreamMsg {
+	chunkStream := make(chan chunkStreamMsg)
+
+	var wg sync.WaitGroup
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func(n bee.Node, i int) {
+			defer wg.Done()
+			chunk, err := bee.NewRandomChunk(rnd)
+			if err != nil {
+				chunkStream <- chunkStreamMsg{Index: i, Error: err}
+				return
+			}
+
+			if err := n.UploadChunk(ctx, &chunk); err != nil {
+				chunkStream <- chunkStreamMsg{Index: i, Error: err}
+				return
+			}
+
+			chunkStream <- chunkStreamMsg{Index: i, Chunk: chunk}
+		}(node, i)
+	}
+
+	go func() {
+		wg.Wait()
+		close(chunkStream)
+	}()
+
+	return chunkStream
 }
 
 // findIndex returns index of a given swarm.Address in a given set of swarm.Addresses, or -1 if not found
