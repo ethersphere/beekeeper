@@ -19,7 +19,6 @@ func Check(cluster bee.Cluster) (err error) {
 			continue
 		}
 		fmt.Printf("Node %d. Peer %d RTT: %s. Node: %s Peer: %s\n", n.Index, n.PeerIndex, n.RTT, n.Address, n.PeerAddress)
-
 	}
 
 	return
