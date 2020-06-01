@@ -15,7 +15,9 @@ func (c *command) initCheckPushSync() *cobra.Command {
 		optionNameUploadNodeCount = "upload-node-count"
 		optionNameChunksPerNode   = "chunks-per-node"
 		optionNameSeed            = "seed"
+		optionNameConcurrent      = "concurrent"
 	)
+	var concurrent bool
 
 	cmd := &cobra.Command{
 		Use:   "pushsync",
@@ -51,6 +53,14 @@ and checks if chunks are synced to their closest nodes.`,
 				seed = random.Int64()
 			}
 
+			if concurrent {
+				return pushsync.CheckConcurrent(cluster, pushsync.Options{
+					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
+					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
+					Seed:            seed,
+				})
+			}
+
 			return pushsync.Check(cluster, pushsync.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
@@ -63,6 +73,7 @@ and checks if chunks are synced to their closest nodes.`,
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload chunks to")
 	cmd.Flags().IntP(optionNameChunksPerNode, "p", 1, "number of chunks to upload per node")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
+	cmd.Flags().BoolVar(&concurrent, optionNameConcurrent, false, "upload chunks concurrently")
 
 	return cmd
 }

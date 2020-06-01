@@ -10,10 +10,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// SHOULD BEEKEEPER BE AWARE OF THE OREDER
-// SHOULD BEEKEEPER BE AWARE OF THE OREDER
-// SHOULD BEEKEEPER BE AWARE OF THE OREDER
-
 // Check executes ping from all nodes to all other nodes in the cluster
 func Check(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
@@ -70,6 +66,7 @@ func nodeStream(ctx context.Context, nodes []bee.Node) <-chan nodeStreamMsg {
 				return
 			}
 
+			// TODO: remove pingResults and ordering and send result in channel
 			var pingResults []pingStreamMsg
 			for m := range pingStream(ctx, n, peers) {
 				pingResults = append(pingResults, m)

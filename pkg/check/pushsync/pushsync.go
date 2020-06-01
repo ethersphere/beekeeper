@@ -25,7 +25,6 @@ var errPushSync = errors.New("push sync")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
 func Check(c bee.Cluster, o Options) (err error) {
-	t1 := time.Now()
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -66,17 +65,25 @@ func Check(c bee.Cluster, o Options) (err error) {
 		}
 	}
 
-	// for i := 0; i < o.UploadNodeCount; i++ {
-	// 	var chunkResults []chunkStreamMsg
-	// 	for m := range chunkStream(ctx, c.Nodes[i], rnds[i], o.ChunksPerNode) {
-	// 		chunkResults = append(chunkResults, m)
-	// 	}
-	// 	for j, c := range chunkResults {
-	// 		fmt.Println(i, j, c.Index, c.Chunk.Size(), c.Error)
-	// 	}
-	// }
+	return
+}
 
-	fmt.Println("Elapsed: ", time.Since(t1))
+// CheckConcurrent uploads given chunks concurrently on cluster and checks pushsync ability of the cluster
+func CheckConcurrent(c bee.Cluster, o Options) (err error) {
+	ctx := context.Background()
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	fmt.Printf("Seed: %d\n", o.Seed)
+
+	for i := 0; i < o.UploadNodeCount; i++ {
+		var chunkResults []chunkStreamMsg
+		for m := range chunkStream(ctx, c.Nodes[i], rnds[i], o.ChunksPerNode) {
+			chunkResults = append(chunkResults, m)
+		}
+		for j, c := range chunkResults {
+			fmt.Println(i, j, c.Index, c.Chunk.Size(), c.Error)
+		}
+	}
+
 	return
 }
 
@@ -89,15 +96,12 @@ type chunkStreamMsg struct {
 func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) <-chan chunkStreamMsg {
 	chunkStream := make(chan chunkStreamMsg)
 
-	// var l sync.RWMutex
 	var wg sync.WaitGroup
 	for i := 0; i < count; i++ {
 		wg.Add(1)
 		go func(n bee.Node, i int) {
 			defer wg.Done()
-			// l.Lock()
 			chunk, err := bee.NewRandomChunk(rnd)
-			// l.Unlock()
 			if err != nil {
 				chunkStream <- chunkStreamMsg{Index: i, Error: err}
 				return
