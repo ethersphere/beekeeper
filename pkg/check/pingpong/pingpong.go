@@ -40,22 +40,22 @@ func nodeStream(ctx context.Context, nodes []bee.Node) <-chan nodeStreamMsg {
 	var wg sync.WaitGroup
 	for i, node := range nodes {
 		wg.Add(1)
-		go func(i int, n bee.Node) {
+		go func(i int, node bee.Node) {
 			defer wg.Done()
 
-			address, err := n.Overlay(ctx)
+			address, err := node.Overlay(ctx)
 			if err != nil {
 				nodeStream <- nodeStreamMsg{Index: i, Error: err}
 				return
 			}
 
-			peers, err := n.Peers(ctx)
+			peers, err := node.Peers(ctx)
 			if err != nil {
 				nodeStream <- nodeStreamMsg{Index: i, Error: err}
 				return
 			}
 
-			for m := range pingStream(ctx, n, peers) {
+			for m := range pingStream(ctx, node, peers) {
 				if m.Error != nil {
 					nodeStream <- nodeStreamMsg{Index: i, Error: fmt.Errorf("ping peer %d: %s", m.Index, m.Error)}
 				}
@@ -64,6 +64,7 @@ func nodeStream(ctx context.Context, nodes []bee.Node) <-chan nodeStreamMsg {
 					Address:     address,
 					PeerIndex:   m.Index,
 					PeerAddress: m.Address,
+					RTT:         m.RTT,
 				}
 			}
 		}(i, node)
@@ -90,16 +91,16 @@ func pingStream(ctx context.Context, node bee.Node, peers []swarm.Address) <-cha
 	var wg sync.WaitGroup
 	for i, peer := range peers {
 		wg.Add(1)
-		go func(n bee.Node, i int, p swarm.Address) {
+		go func(i int, peer swarm.Address) {
 			defer wg.Done()
-			rtt, err := n.Ping(ctx, p)
+			rtt, err := node.Ping(ctx, peer)
 			pingStream <- pingStreamMsg{
 				Index:   i,
-				Address: p,
+				Address: peer,
 				RTT:     rtt,
 				Error:   err,
 			}
-		}(node, i, peer)
+		}(i, peer)
 	}
 
 	go func() {
