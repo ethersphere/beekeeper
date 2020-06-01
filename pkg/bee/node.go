@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
@@ -105,6 +106,42 @@ func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err er
 		return "", fmt.Errorf("ping node %s: %w", node, err)
 	}
 	return r.RTT, nil
+}
+
+// PingStreamMsg represents message sent over the PingStream channel
+type PingStreamMsg struct {
+	Node  swarm.Address
+	RTT   string
+	Index int
+	Error error
+}
+
+// PingStream returns stream of ping results for given nodes
+func (n *Node) PingStream(ctx context.Context, nodes []swarm.Address) <-chan PingStreamMsg {
+	pingStream := make(chan PingStreamMsg)
+
+	var wg sync.WaitGroup
+	for i, node := range nodes {
+		wg.Add(1)
+		go func(i int, node swarm.Address) {
+			defer wg.Done()
+
+			rtt, err := n.Ping(ctx, node)
+			pingStream <- PingStreamMsg{
+				Node:  node,
+				RTT:   rtt,
+				Index: i,
+				Error: err,
+			}
+		}(i, node)
+	}
+
+	go func() {
+		wg.Wait()
+		close(pingStream)
+	}()
+
+	return pingStream
 }
 
 // Topology represents Kademlia topology
