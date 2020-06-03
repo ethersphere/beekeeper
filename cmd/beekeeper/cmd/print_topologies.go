@@ -37,7 +37,14 @@ func (c *command) initPrintTopologies() *cobra.Command {
 			}
 
 			for i, t := range topologies {
-				fmt.Printf("%d. %+v\n", i, t)
+				fmt.Printf("Node %d. overlay: %s\n", i, t.Overlay)
+				fmt.Printf("Node %d. population: %d\n", i, t.Population)
+				fmt.Printf("Node %d. connected: %d\n", i, t.Connected)
+				fmt.Printf("Node %d. depth: %d\n", i, t.Depth)
+				fmt.Printf("Node %d. nnLowWatermark: %d\n", i, t.NnLowWatermark)
+				for k, v := range t.Bins {
+					fmt.Printf("Node %d. %s %+v\n", i, k, v)
+				}
 			}
 
 			return

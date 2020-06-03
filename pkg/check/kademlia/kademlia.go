@@ -23,9 +23,11 @@ var (
 func Check(cluster bee.Cluster) (err error) {
 	ctx := context.Background()
 
+	fmt.Printf("Checking for full connectivity:\n")
 	if err := fullconnectivity.Check(cluster); err == nil {
 		return errKademliaFullConnectivity
 	}
+	fmt.Printf("Full connectivity not present, continuing with kademlia topology check\n")
 
 	topologies, err := cluster.Topologies(ctx)
 	if err != nil {
