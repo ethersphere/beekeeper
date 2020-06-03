@@ -19,6 +19,7 @@ cp dist/beekeeper /usr/local/bin/beekeeper
 |-------|-----------|
 | check | Run tests on Bee node(s) |
 | help | Help about any command |
+| print | Print Bee cluster info |
 | version | Print version number |
 
 ## check
@@ -94,3 +95,17 @@ Example:
 ```bash
 beekeeper check retrieval --namespace bee --node-count 3 --upload-node-count 2 --chunks-per-node 4
 ```
+
+## print
+
+Command **print** prints info about Bee cluster.
+ Each type of information is implemented as a subcommand.
+
+Available subcommands:
+
+|subcommand|description|
+|----------|-----------|
+| addresses | Print addresses for every node in a cluster |
+| overlays | Print overlay address for every node in a cluster |
+| peers | Print list of peers for every node in a cluster |
+| topologies | Print list of Kademlia topology for every node in a cluster |
