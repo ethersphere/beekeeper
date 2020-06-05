@@ -8,7 +8,7 @@ func networkPartition(mode1 string, value1 string, mode2 string, value2 string, 
 			"apiVersion": "pingcap.com/v1alpha1",
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
-				"name":      "network-partition-" + mode1,
+				"name":      "network-partition-" + mode1 + "-" + podname1,
 				"namespace": "chaos-testing",
 			},
 			"spec": map[string]interface{}{
@@ -49,7 +49,7 @@ func networkLoss(mode string, value string, namespace string, label string, podn
 			"apiVersion": "pingcap.com/v1alpha1",
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
-				"name":      "network-loss-" + mode,
+				"name":      "network-loss-" + mode + "-" + podname,
 				"namespace": "chaos-testing",
 			},
 			"spec": map[string]interface{}{
@@ -82,7 +82,7 @@ func networkDelay(mode string, value string, namespace string, label string, pod
 			"apiVersion": "pingcap.com/v1alpha1",
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
-				"name":      "network-delay-" + mode,
+				"name":      "network-delay-" + mode + "-" + podname,
 				"namespace": "chaos-testing",
 			},
 			"spec": map[string]interface{}{
@@ -116,7 +116,7 @@ func networkDuplicate(mode string, value string, namespace string, label string,
 			"apiVersion": "pingcap.com/v1alpha1",
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
-				"name":      "network-duplicate-" + mode,
+				"name":      "network-duplicate-" + mode + "-" + podname,
 				"namespace": "chaos-testing",
 			},
 			"spec": map[string]interface{}{
@@ -149,7 +149,7 @@ func networkCorrupt(mode string, value string, namespace string, label string, p
 			"apiVersion": "pingcap.com/v1alpha1",
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
-				"name":      "network-corrupt-" + mode,
+				"name":      "network-corrupt-" + mode + "-" + podname,
 				"namespace": "chaos-testing",
 			},
 			"spec": map[string]interface{}{

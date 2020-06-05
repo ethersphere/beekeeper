@@ -42,7 +42,7 @@ func (c *command) initTurnOnCmd() (err error) {
 	cmd.PersistentFlags().String(optionNameValue, "", "depends on the mode, for one and all leave empty")
 	cmd.PersistentFlags().String(optionNameDuration, "", "defines the duration for each chaos scenario [15s|5m|1h]")
 	cmd.PersistentFlags().String(optionNameCron, "", "defines the scheduler rules for the running time of the chaos @every [15s|5m|1h]")
-	cmd.PersistentFlags().String(optionNamePodname, "", "if empty it will use random bee pod from the namespace")
+	cmd.PersistentFlags().String(optionNamePodname, "bee", "if not specified it will use random bee pod from the namespace")
 	cmd.PersistentFlags().String(optionNameMode2, "one", "same as mode, used only for networkPartition scenario")
 	cmd.PersistentFlags().String(optionNameValue2, "", "same as value, used only for networkPartition scenario")
 	cmd.PersistentFlags().String(optionNameDirection, "both", "specifies the partition direction, used only for networkPartition scenario [from|to|both]")
@@ -76,6 +76,7 @@ func (c *command) initTurnOffCmd() (err error) {
 	cmd.PersistentFlags().StringP(optionNameChaosNamespace, "n", "bee", "kubernetes namespace")
 	cmd.PersistentFlags().String(optionNameMode, "one", "defines the mode to run chaos scenario [one|all|fixed|fixed-percent|random-max-percent]")
 	cmd.PersistentFlags().String(optionNameValue, "", "depends on the mode, for one and all leave empty")
+	cmd.PersistentFlags().String(optionNamePodname, "bee", "if not specified it will use random bee pod from the namespace")
 
 	cmd.AddCommand(c.initTurnPodfailure("delete"))
 	cmd.AddCommand(c.initTurnPodkill("delete"))

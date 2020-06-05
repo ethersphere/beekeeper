@@ -8,7 +8,7 @@ func podFailure(mode string, value string, namespace string, label string, podna
 			"apiVersion": "pingcap.com/v1alpha1",
 			"kind":       "PodChaos",
 			"metadata": map[string]interface{}{
-				"name":      "pod-failure-" + mode,
+				"name":      "pod-failure-" + mode + "-" + podname,
 				"namespace": "chaos-testing",
 			},
 			"spec": map[string]interface{}{
@@ -37,7 +37,7 @@ func podKillCron(mode string, value string, namespace string, label string, podn
 			"apiVersion": "pingcap.com/v1alpha1",
 			"kind":       "PodChaos",
 			"metadata": map[string]interface{}{
-				"name":      "pod-kill-" + mode,
+				"name":      "pod-kill-" + mode + "-" + podname,
 				"namespace": "chaos-testing",
 			},
 			"spec": map[string]interface{}{
@@ -65,7 +65,7 @@ func podKill(mode string, value string, namespace string, label string, podname 
 			"apiVersion": "pingcap.com/v1alpha1",
 			"kind":       "PodChaos",
 			"metadata": map[string]interface{}{
-				"name":      "pod-kill-" + mode,
+				"name":      "pod-kill-" + mode + "-" + podname,
 				"namespace": "chaos-testing",
 			},
 			"spec": map[string]interface{}{

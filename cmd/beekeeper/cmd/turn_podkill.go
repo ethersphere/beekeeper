@@ -23,14 +23,19 @@ func (c *command) initTurnPodkill(action string) *cobra.Command {
 			podname := c.config.GetString(optionNamePodname)
 			cron := c.config.GetString(optionNameCron)
 
+			err = chaos.CheckChaosMesh(ctx, kubeconfig, namespace)
+			if err != nil {
+				return err
+			}
+
 			err = chaos.PodKill(ctx, kubeconfig, action, mode, value, namespace, podname, cron)
 			if err != nil {
 				return err
 			}
 			if action == "create" {
-				fmt.Printf("Turned on pod-kill-%s\n", mode)
+				fmt.Printf("Turned on pod-kill-%s-%s\n", mode, podname)
 			} else {
-				fmt.Printf("Turned off pod-kill-%s\n", mode)
+				fmt.Printf("Turned off pod-kill-%s-%s\n", mode, podname)
 			}
 			return
 		},

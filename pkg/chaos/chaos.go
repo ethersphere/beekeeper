@@ -9,20 +9,31 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+func CheckChaosMesh(ctx context.Context, kubeconfig string, namespace string) (err error) {
+	kubeRes := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"}
+	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", kubeRes)
+	if err != nil {
+		fmt.Printf("error: %+v", err)
+	}
+	_, err = client.Get(ctx, "chaos-mesh-controller-manager")
+	if err != nil {
+		return fmt.Errorf("error getting chaos-mesh-controller-manager service: %+v", err)
+	}
+	return
+}
+
 func PodFailure(ctx context.Context, kubeconfig string, action string, mode string, value string, namespace string, podname string, duration string, cron string) (err error) {
 	chaosRes := schema.GroupVersionResource{Group: "pingcap.com", Version: "v1alpha1", Resource: "podchaos"}
 
 	var label string
-	var object *unstructured.Unstructured
 
-	if podname != "" {
-		label = "statefulset.kubernetes.io/pod-name"
-	} else {
+	if podname == "bee" {
 		label = "app.kubernetes.io/name"
-		podname = "bee"
+	} else {
+		label = "statefulset.kubernetes.io/pod-name"
 	}
 
-	object = podFailure(mode, value, namespace, label, podname, duration, cron)
+	object := podFailure(mode, value, namespace, label, podname, duration, cron)
 
 	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", chaosRes)
 	if err != nil {
@@ -37,12 +48,12 @@ func PodFailure(ctx context.Context, kubeconfig string, action string, mode stri
 	// TODO: needs resourceVersion
 	// if action == "update" {
 	// 	err = client.Update(ctx, object)
-	// if err != nil {
-	// 	fmt.Printf("error: %+v", err)
-	// }
+	// 	if err != nil {
+	// 		fmt.Printf("error: %+v", err)
+	// 	}
 	// }
 	if action == "delete" {
-		err = client.Delete(ctx, "pod-failure-"+mode)
+		err = client.Delete(ctx, "pod-failure-"+mode+"-"+podname)
 		if err != nil {
 			fmt.Printf("error: %+v", err)
 		}
@@ -56,11 +67,10 @@ func PodKill(ctx context.Context, kubeconfig string, action string, mode string,
 	var label string
 	var object *unstructured.Unstructured
 
-	if podname != "" {
-		label = "statefulset.kubernetes.io/pod-name"
-	} else {
+	if podname == "bee" {
 		label = "app.kubernetes.io/name"
-		podname = "bee"
+	} else {
+		label = "statefulset.kubernetes.io/pod-name"
 	}
 
 	if cron != "" {
@@ -87,7 +97,7 @@ func PodKill(ctx context.Context, kubeconfig string, action string, mode string,
 	// }
 	// }
 	if action == "delete" {
-		err = client.Delete(ctx, "pod-kill-"+mode)
+		err = client.Delete(ctx, "pod-kill-"+mode+"-"+podname)
 		if err != nil {
 			fmt.Printf("error: %+v", err)
 		}
@@ -102,16 +112,16 @@ func NetworkPartition(ctx context.Context, kubeconfig string, action string, mod
 	var label2 string
 
 	if podname1 != "" {
-		label1 = "statefulset.kubernetes.io/pod-name"
-	} else {
 		label1 = "app.kubernetes.io/name"
+	} else {
+		label1 = "statefulset.kubernetes.io/pod-name"
 		podname1 = "bee"
 	}
 
 	if podname2 != "" {
-		label2 = "statefulset.kubernetes.io/pod-name"
-	} else {
 		label2 = "app.kubernetes.io/name"
+	} else {
+		label2 = "statefulset.kubernetes.io/pod-name"
 		podname2 = "bee"
 	}
 
@@ -139,7 +149,7 @@ func NetworkPartition(ctx context.Context, kubeconfig string, action string, mod
 	// }
 	// }
 	if action == "delete" {
-		err = client.Delete(ctx, "network-partition-"+mode1)
+		err = client.Delete(ctx, "network-partition-"+mode1+"-"+podname1)
 		if err != nil {
 			fmt.Printf("error: %+v", err)
 		}
@@ -152,11 +162,10 @@ func NetworkLoss(ctx context.Context, kubeconfig string, action string, mode str
 
 	var label string
 
-	if podname != "" {
-		label = "statefulset.kubernetes.io/pod-name"
-	} else {
+	if podname == "bee" {
 		label = "app.kubernetes.io/name"
-		podname = "bee"
+	} else {
+		label = "statefulset.kubernetes.io/pod-name"
 	}
 
 	object := networkLoss(mode, value, namespace, label, podname, loss, correlation, duration, cron)
@@ -179,7 +188,7 @@ func NetworkLoss(ctx context.Context, kubeconfig string, action string, mode str
 	// }
 	// }
 	if action == "delete" {
-		err = client.Delete(ctx, "network-loss-"+mode)
+		err = client.Delete(ctx, "network-loss-"+mode+"-"+podname)
 		if err != nil {
 			fmt.Printf("error: %+v", err)
 		}
@@ -192,11 +201,10 @@ func NetworkDelay(ctx context.Context, kubeconfig string, action string, mode st
 
 	var label string
 
-	if podname != "" {
-		label = "statefulset.kubernetes.io/pod-name"
-	} else {
+	if podname == "bee" {
 		label = "app.kubernetes.io/name"
-		podname = "bee"
+	} else {
+		label = "statefulset.kubernetes.io/pod-name"
 	}
 
 	object := networkDelay(mode, value, namespace, label, podname, latency, correlation, jitter, duration, cron)
@@ -219,7 +227,7 @@ func NetworkDelay(ctx context.Context, kubeconfig string, action string, mode st
 	// }
 	// }
 	if action == "delete" {
-		err = client.Delete(ctx, "network-delay-"+mode)
+		err = client.Delete(ctx, "network-delay-"+mode+"-"+podname)
 		if err != nil {
 			fmt.Printf("error: %+v", err)
 		}
@@ -232,11 +240,10 @@ func NetworkDuplicate(ctx context.Context, kubeconfig string, action string, mod
 
 	var label string
 
-	if podname != "" {
-		label = "statefulset.kubernetes.io/pod-name"
-	} else {
+	if podname == "bee" {
 		label = "app.kubernetes.io/name"
-		podname = "bee"
+	} else {
+		label = "statefulset.kubernetes.io/pod-name"
 	}
 
 	object := networkDuplicate(mode, value, namespace, label, podname, duplicate, correlation, duration, cron)
@@ -259,7 +266,7 @@ func NetworkDuplicate(ctx context.Context, kubeconfig string, action string, mod
 	// }
 	// }
 	if action == "delete" {
-		err = client.Delete(ctx, "network-duplicate-"+mode)
+		err = client.Delete(ctx, "network-duplicate-"+mode+"-"+podname)
 		if err != nil {
 			fmt.Printf("error: %+v", err)
 		}
@@ -272,11 +279,10 @@ func NetworkCorrupt(ctx context.Context, kubeconfig string, action string, mode 
 
 	var label string
 
-	if podname != "" {
-		label = "statefulset.kubernetes.io/pod-name"
-	} else {
+	if podname == "bee" {
 		label = "app.kubernetes.io/name"
-		podname = "bee"
+	} else {
+		label = "statefulset.kubernetes.io/pod-name"
 	}
 
 	object := networkCorrupt(mode, value, namespace, label, podname, corrupt, correlation, duration, cron)
@@ -299,7 +305,7 @@ func NetworkCorrupt(ctx context.Context, kubeconfig string, action string, mode 
 	// }
 	// }
 	if action == "delete" {
-		err = client.Delete(ctx, "network-corrupt-"+mode)
+		err = client.Delete(ctx, "network-corrupt-"+mode+"-"+podname)
 		if err != nil {
 			fmt.Printf("error: %+v", err)
 		}
