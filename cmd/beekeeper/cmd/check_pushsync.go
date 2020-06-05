@@ -61,7 +61,7 @@ and checks if chunks are synced to their closest nodes.`,
 				})
 			}
 
-			return pushsync.Check(cluster, pushsync.Options{
+			return pushsync.Check2(cluster, pushsync.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Seed:            seed,
