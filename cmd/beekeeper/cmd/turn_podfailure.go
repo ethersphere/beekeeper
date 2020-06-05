@@ -24,14 +24,19 @@ func (c *command) initTurnPodfailure(action string) *cobra.Command {
 			duration := c.config.GetString(optionNameDuration)
 			cron := c.config.GetString(optionNameCron)
 
+			err = chaos.CheckChaosMesh(ctx, kubeconfig, namespace)
+			if err != nil {
+				return err
+			}
+
 			err = chaos.PodFailure(ctx, kubeconfig, action, mode, value, namespace, podname, duration, cron)
 			if err != nil {
 				return err
 			}
 			if action == "create" {
-				fmt.Printf("Turned on pod-failure-%s\n", mode)
+				fmt.Printf("Turned on pod-failure-%s-%s\n", mode, podname)
 			} else {
-				fmt.Printf("Turned off pod-failure-%s\n", mode)
+				fmt.Printf("Turned off pod-failure-%s-%s\n", mode, podname)
 			}
 			return
 		},

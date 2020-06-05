@@ -54,19 +54,24 @@ func (c *Client) Create(ctx context.Context, object *unstructured.Unstructured) 
 	crdClient := c.crdClient
 	_, err = crdClient.Create(ctx, object, metav1.CreateOptions{})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error creating k8s object: %+v", err)
 	}
-	return nil
+	return
 }
 
 func (c *Client) Update(ctx context.Context, object *unstructured.Unstructured) (err error) {
 
 	crdClient := c.crdClient
+	crd, err := crdClient.Get(ctx, object.GetName(), metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting resourceVersion k8s object: %+v", err)
+	}
+	object.SetResourceVersion(crd.GetResourceVersion())
 	_, err = crdClient.Update(ctx, object, metav1.UpdateOptions{})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error updating k8s object: %+v", err)
 	}
-	return nil
+	return
 }
 
 func (c *Client) Delete(ctx context.Context, name string) (err error) {
@@ -74,7 +79,17 @@ func (c *Client) Delete(ctx context.Context, name string) (err error) {
 	crdClient := c.crdClient
 	err = crdClient.Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error deleting k8s object: %+v", err)
 	}
-	return nil
+	return
+}
+
+func (c *Client) Get(ctx context.Context, name string) (resp *unstructured.Unstructured, err error) {
+
+	crdClient := c.crdClient
+	resp, err = crdClient.Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("error creating k8s object: %+v", err)
+	}
+	return resp, nil
 }
