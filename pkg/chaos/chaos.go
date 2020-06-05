@@ -29,14 +29,23 @@ func PodFailure(ctx context.Context, kubeconfig string, action string, mode stri
 		fmt.Printf("error: %+v", err)
 	}
 	if action == "create" {
-		client.Create(ctx, object)
+		err = client.Create(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	// TODO: needs resourceVersion
 	// if action == "update" {
-	// 	client.Update(ctx, object)
+	// 	err = client.Update(ctx, object)
+	// if err != nil {
+	// 	fmt.Printf("error: %+v", err)
+	// }
 	// }
 	if action == "delete" {
-		client.Delete(ctx, "pod-failure-"+mode)
+		err = client.Delete(ctx, "pod-failure-"+mode)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	return
 }
@@ -65,14 +74,23 @@ func PodKill(ctx context.Context, kubeconfig string, action string, mode string,
 		fmt.Printf("error: %+v", err)
 	}
 	if action == "create" {
-		client.Create(ctx, object)
+		err = client.Create(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	// TODO: needs resourceVersion
 	// if action == "update" {
-	// 	client.Update(ctx, object)
+	// 	err = client.Update(ctx, object)
+	// if err != nil {
+	// 	fmt.Printf("error: %+v", err)
+	// }
 	// }
 	if action == "delete" {
-		client.Delete(ctx, "pod-kill-"+mode)
+		err = client.Delete(ctx, "pod-kill-"+mode)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	return
 }
@@ -108,14 +126,23 @@ func NetworkPartition(ctx context.Context, kubeconfig string, action string, mod
 		fmt.Printf("error: %+v", err)
 	}
 	if action == "create" {
-		client.Create(ctx, object)
+		err = client.Create(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	// TODO: needs resourceVersion
 	// if action == "update" {
-	// 	client.Update(ctx, object)
+	// 	err = client.Update(ctx, object)
+	// if err != nil {
+	// 	fmt.Printf("error: %+v", err)
+	// }
 	// }
 	if action == "delete" {
-		client.Delete(ctx, "network-partition-"+mode1)
+		err = client.Delete(ctx, "network-partition-"+mode1)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	return
 }
@@ -139,14 +166,23 @@ func NetworkLoss(ctx context.Context, kubeconfig string, action string, mode str
 		fmt.Printf("error: %+v", err)
 	}
 	if action == "create" {
-		client.Create(ctx, object)
+		err = client.Create(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	// TODO: needs resourceVersion
 	// if action == "update" {
-	// 	client.Update(ctx, object)
+	// 	err = client.Update(ctx, object)
+	// if err != nil {
+	// 	fmt.Printf("error: %+v", err)
+	// }
 	// }
 	if action == "delete" {
-		client.Delete(ctx, "network-loss-"+mode)
+		err = client.Delete(ctx, "network-loss-"+mode)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	return
 }
@@ -170,14 +206,23 @@ func NetworkDelay(ctx context.Context, kubeconfig string, action string, mode st
 		fmt.Printf("error: %+v", err)
 	}
 	if action == "create" {
-		client.Create(ctx, object)
+		err = client.Create(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	// TODO: needs resourceVersion
 	// if action == "update" {
-	// 	client.Update(ctx, object)
+	// 	err = client.Update(ctx, object)
+	// if err != nil {
+	// 	fmt.Printf("error: %+v", err)
+	// }
 	// }
 	if action == "delete" {
-		client.Delete(ctx, "network-delay-"+mode)
+		err = client.Delete(ctx, "network-delay-"+mode)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	return
 }
@@ -201,14 +246,23 @@ func NetworkDuplicate(ctx context.Context, kubeconfig string, action string, mod
 		fmt.Printf("error: %+v", err)
 	}
 	if action == "create" {
-		client.Create(ctx, object)
+		err = client.Create(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	// TODO: needs resourceVersion
 	// if action == "update" {
-	// 	client.Update(ctx, object)
+	// 	err = client.Update(ctx, object)
+	// if err != nil {
+	// 	fmt.Printf("error: %+v", err)
+	// }
 	// }
 	if action == "delete" {
-		client.Delete(ctx, "network-duplicate-"+mode)
+		err = client.Delete(ctx, "network-duplicate-"+mode)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	return
 }
@@ -232,14 +286,23 @@ func NetworkCorrupt(ctx context.Context, kubeconfig string, action string, mode 
 		fmt.Printf("error: %+v", err)
 	}
 	if action == "create" {
-		client.Create(ctx, object)
+		err = client.Create(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	// TODO: needs resourceVersion
 	// if action == "update" {
-	// 	client.Update(ctx, object)
+	// 	err = client.Update(ctx, object)
+	// if err != nil {
+	// 	fmt.Printf("error: %+v", err)
+	// }
 	// }
 	if action == "delete" {
-		client.Delete(ctx, "network-corrupt-"+mode)
+		err = client.Delete(ctx, "network-corrupt-"+mode)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
 	}
 	return
 }
