@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"hash"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -13,6 +14,8 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
+	bmtlegacy "github.com/ethersphere/bmt/legacy"
+	"golang.org/x/crypto/sha3"
 )
 
 // Node represents Bee node
@@ -63,6 +66,16 @@ func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 // DownloadChunk downloads chunk from the node
 func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
 	r, err := n.api.Bzz.Download(ctx, a)
+	if err != nil {
+		return nil, fmt.Errorf("download chunk %s: %w", a, err)
+	}
+
+	return ioutil.ReadAll(r)
+}
+
+// DownloadBzzChunk downloads chunk from the node
+func (n *Node) DownloadBzzChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.BzzChunk.Download(ctx, a)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
@@ -210,6 +223,32 @@ func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 	}
 
 	c.address = r.Hash
+
+	return
+}
+
+func hashFunc() hash.Hash {
+	return sha3.NewLegacyKeccak256()
+}
+
+// UploadBzzChunk uploads chunk to the node
+func (n *Node) UploadBzzChunk(ctx context.Context, c *Chunk) (err error) {
+	p := bmtlegacy.NewTreePool(hashFunc, swarm.Branches, bmtlegacy.PoolSize)
+	hasher := bmtlegacy.New(p)
+	err = hasher.SetSpan(int64(c.Size()))
+	if err != nil {
+		return fmt.Errorf("upload chunk: %w", err)
+	}
+	_, err = hasher.Write(c.Data())
+	if err != nil {
+		return fmt.Errorf("upload chunk: %w", err)
+	}
+	c.address = swarm.NewAddress(hasher.Sum(nil))
+
+	_, err = n.api.BzzChunk.Upload(ctx, c.address, bytes.NewReader(c.Data()))
+	if err != nil {
+		return fmt.Errorf("upload chunk: %w", err)
+	}
 
 	return
 }

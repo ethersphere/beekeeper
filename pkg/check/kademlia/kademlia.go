@@ -15,7 +15,7 @@ import (
 var (
 	errKademliaFullConnectivity = errors.New("full connectivity present")
 	errKadmeliaNotHealthy       = errors.New("kademlia not healthy")
-	errKadmeliaBinConnected     = errors.New("at least 2 connected peers are required in a bin which is shallower than depth")
+	errKadmeliaBinConnected     = errors.New("at least 1 connected peer is required in a bin which is shallower than depth")
 	errKadmeliaBinDisconnected  = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
 )
 
@@ -47,7 +47,7 @@ func Check(cluster bee.Cluster) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 			fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
-			if binDepth < t.Depth && b.Connected < 2 {
+			if binDepth < t.Depth && b.Connected < 1 {
 				return errKadmeliaBinConnected
 			}
 

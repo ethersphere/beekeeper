@@ -25,6 +25,7 @@ type Client struct {
 
 	// Services that API provides.
 	Bzz      *BzzService
+	BzzChunk *BzzChunkService
 	PingPong *PingPongService
 }
 
@@ -51,6 +52,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c = &Client{httpClient: httpClient}
 	c.service.client = c
 	c.Bzz = (*BzzService)(&c.service)
+	c.BzzChunk = (*BzzChunkService)(&c.service)
 	c.PingPong = (*PingPongService)(&c.service)
 	return c
 }
