@@ -24,10 +24,6 @@ const (
 	optionNameCorrupt        = "corrupt"
 )
 
-var (
-	action string
-)
-
 func (c *command) initTurnOnCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "turn-on",
