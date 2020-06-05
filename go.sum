@@ -519,5 +519,6 @@ resenje.org/jsonresponse v0.1.2/go.mod h1:L+alM0Xnew+XnpuINkpoyJI8Q6zaVKqmGkW8EL
 resenje.org/logging v0.1.5/go.mod h1:1IdoCm3+UwYfsplxDGV2pHCkUrLlQzlWwp4r28XfPx4=
 resenje.org/marshal v0.1.1/go.mod h1:P7Cla6Ju5CFvW4Y8JbRgWX1Hcy4L1w4qcCsyadO7G94=
 resenje.org/recovery v0.1.1/go.mod h1:3S6aCVKMJEWsSAb61oZTteaiqkIfQPTr1RdiWnRbhME=
+resenje.org/web v0.4.0 h1:EBoea/NwSJIPAXhKdYUOEAvCG0IyQGB9AZLD44y9gEQ=
 resenje.org/web v0.4.0/go.mod h1:NIqBGFkZRjbdpgpTjbo5UwXrzVSS0IaGX6QH4OHHcsg=
 resenje.org/x v0.2.4/go.mod h1:1b2Xpo29FRc3IMvg/u46/IyjySl5IjvtuSjXTA/AOnk=

@@ -68,8 +68,27 @@ func Check(c bee.Cluster, o Options) (err error) {
 	return
 }
 
-// Check2 uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check2(c bee.Cluster, o Options) (err error) {
+// CheckConcurrent uploads given chunks concurrently on cluster and checks pushsync ability of the cluster
+func CheckConcurrent(c bee.Cluster, o Options) (err error) {
+	ctx := context.Background()
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	fmt.Printf("Seed: %d\n", o.Seed)
+
+	for i := 0; i < o.UploadNodeCount; i++ {
+		var chunkResults []chunkStreamMsg
+		for m := range chunkStream(ctx, c.Nodes[i], rnds[i], o.ChunksPerNode) {
+			chunkResults = append(chunkResults, m)
+		}
+		for j, c := range chunkResults {
+			fmt.Println(i, j, c.Index, c.Chunk.Size(), c.Error)
+		}
+	}
+
+	return
+}
+
+// CheckBzzChunk uploads given chunks on cluster and checks pushsync ability of the cluster
+func CheckBzzChunk(c bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -86,7 +105,7 @@ func Check2(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			if err := c.Nodes[i].UploadChunk2(ctx, &chunk); err != nil {
+			if err := c.Nodes[i].UploadBzzChunk(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
@@ -107,25 +126,6 @@ func Check2(c bee.Cluster, o Options) (err error) {
 			}
 
 			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
-		}
-	}
-
-	return
-}
-
-// CheckConcurrent uploads given chunks concurrently on cluster and checks pushsync ability of the cluster
-func CheckConcurrent(c bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
-	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
-	fmt.Printf("Seed: %d\n", o.Seed)
-
-	for i := 0; i < o.UploadNodeCount; i++ {
-		var chunkResults []chunkStreamMsg
-		for m := range chunkStream(ctx, c.Nodes[i], rnds[i], o.ChunksPerNode) {
-			chunkResults = append(chunkResults, m)
-		}
-		for j, c := range chunkResults {
-			fmt.Println(i, j, c.Index, c.Chunk.Size(), c.Error)
 		}
 	}
 
