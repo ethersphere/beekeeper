@@ -87,6 +87,51 @@ func CheckConcurrent(c bee.Cluster, o Options) (err error) {
 	return
 }
 
+// CheckBzzChunk uploads given chunks on cluster and checks pushsync ability of the cluster
+func CheckBzzChunk(c bee.Cluster, o Options) (err error) {
+	ctx := context.Background()
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	fmt.Printf("Seed: %d\n", o.Seed)
+
+	overlays, err := c.Overlays(ctx)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < o.UploadNodeCount; i++ {
+		for j := 0; j < o.ChunksPerNode; j++ {
+			chunk, err := bee.NewRandomChunk(rnds[i])
+			if err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+
+			if err := c.Nodes[i].UploadBzzChunk(ctx, &chunk); err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+
+			closest, err := chunk.ClosestNode(overlays)
+			if err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+			index := findIndex(overlays, closest)
+
+			time.Sleep(1 * time.Second)
+			synced, err := c.Nodes[index].HasChunk(ctx, chunk.Address())
+			if err != nil {
+				return fmt.Errorf("node %d: %w", index, err)
+			}
+			if !synced {
+				fmt.Printf("Node %d. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+				return errPushSync
+			}
+
+			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+		}
+	}
+
+	return
+}
+
 type chunkStreamMsg struct {
 	Index int
 	Chunk bee.Chunk
