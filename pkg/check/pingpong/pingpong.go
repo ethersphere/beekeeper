@@ -3,15 +3,54 @@ package pingpong
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/push"
+)
+
+var (
+	pingCount = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			// Namespace: "svetomir",
+			// Subsystem: "pingpong",
+			Name: "ping_count_total",
+			Help: "Total ping count",
+		},
+		[]string{"node_index", "peer_index", "node_address", "peer_address"},
+	)
+	rttGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			// Namespace: "svetomir",
+			// Subsystem: "pingpong",
+			Name: "ping_rtt_gauge_seconds",
+			Help: "Round-trip time of a ping",
+		},
+		[]string{"node_index", "peer_index", "node_address", "peer_address"},
+	)
+	rttHistogram = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			// Namespace: "svetomir",
+			// Subsystem: "pingpong",
+			Name:    "ping_rtt_histogram_seconds",
+			Help:    "Round-trip time of a ping",
+			Buckets: prometheus.LinearBuckets(2, 2, 10),
+		},
+		[]string{"node_index", "peer_index", "node_address", "peer_address"},
+	)
 )
 
 // Check executes ping from all nodes to all other nodes in the cluster
-func Check(cluster bee.Cluster) (err error) {
+func Check(cluster bee.Cluster, pusher *push.Pusher) (err error) {
 	ctx := context.Background()
+
+	pusher.Collector(pingCount)
+	pusher.Collector(rttGauge)
+	pusher.Collector(rttHistogram)
 
 	for n := range nodeStream(ctx, cluster.Nodes) {
 		if n.Error != nil {
@@ -19,6 +58,19 @@ func Check(cluster bee.Cluster) (err error) {
 			continue
 		}
 		fmt.Printf("Node %d. Peer %d RTT: %s. Node: %s Peer: %s\n", n.Index, n.PeerIndex, n.RTT, n.Address, n.PeerAddress)
+
+		pingCount.WithLabelValues(strconv.Itoa(n.Index), strconv.Itoa(n.PeerIndex), n.Address.String(), n.PeerAddress.String()).Inc()
+		rtt, err := rttParse(n.RTT)
+		if err != nil {
+			fmt.Printf("node %d: %s\n", n.Index, err)
+			continue
+		}
+		rttGauge.WithLabelValues(strconv.Itoa(n.Index), strconv.Itoa(n.PeerIndex), n.Address.String(), n.PeerAddress.String()).Set(rtt)
+		rttHistogram.WithLabelValues(strconv.Itoa(n.Index), strconv.Itoa(n.PeerIndex), n.Address.String(), n.PeerAddress.String()).Observe(rtt)
+
+		if err := pusher.Push(); err != nil {
+			fmt.Printf("node %d: %s\n", n.Index, err)
+		}
 	}
 
 	return
@@ -75,4 +127,12 @@ func nodeStream(ctx context.Context, nodes []bee.Node) <-chan nodeStreamMsg {
 	}()
 
 	return nodeStream
+}
+
+func rttParse(rtt string) (float64, error) {
+	rttMs, err := strconv.ParseFloat(strings.Split(rtt, "ms")[0], 64)
+	if err != nil {
+		return 0, err
+	}
+	return rttMs / 1000, err
 }

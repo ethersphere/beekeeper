@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
+	"github.com/prometheus/client_golang/prometheus/push"
 
 	"github.com/spf13/cobra"
 )
@@ -30,7 +31,9 @@ and prints round-trip time (RTT) of each ping.`,
 				return err
 			}
 
-			return pingpong.Check(cluster)
+			pusher := push.New(c.config.GetString(optionNamePushGateway), "beekeeper_check_pingpong")
+
+			return pingpong.Check(cluster, pusher)
 		},
 		PreRunE: c.checkPreRunE,
 	}
