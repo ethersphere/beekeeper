@@ -147,6 +147,10 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 		return nil, err
 	}
 
+	if err = responseErrorHandler(r); err != nil {
+		return nil, err
+	}
+
 	return r.Body, nil
 }
 
