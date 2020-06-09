@@ -7,8 +7,8 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_pingpong",
-			Name:      "rtt_gauge_seconds",
-			Help:      "Round-trip time of a ping",
+			Name:      "rtt_seconds",
+			Help:      "Ping round-trip time Gauge",
 		},
 		[]string{"node", "peer"},
 	)
@@ -17,7 +17,7 @@ var (
 			Namespace: "beekeeper",
 			Subsystem: "check_pingpong",
 			Name:      "rtt_duration_seconds",
-			Help:      "Round-trip time of a ping",
+			Help:      "Ping round-trip time Histogram",
 			Buckets:   prometheus.LinearBuckets(0, 0.003, 10),
 		},
 	)
