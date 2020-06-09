@@ -31,7 +31,7 @@ and prints round-trip time (RTT) of each ping.`,
 				return err
 			}
 
-			pusher := push.New(c.config.GetString(optionNamePushGateway), "beekeeper_check_pingpong")
+			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			return pingpong.Check(cluster, pusher)
 		},
