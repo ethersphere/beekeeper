@@ -31,10 +31,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 	fmt.Printf("Seed: %d\n", o.Seed)
 
 	pusher.Collector(uploadedCounter)
-	pusher.Collector(syncedCounter)
-	pusher.Collector(notSyncedCounter)
 	pusher.Collector(uploadTimeGauge)
 	pusher.Collector(uploadTimeHistogram)
+	pusher.Collector(syncedCounter)
+	pusher.Collector(notSyncedCounter)
 
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
