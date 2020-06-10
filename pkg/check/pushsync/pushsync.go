@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -24,10 +25,16 @@ type Options struct {
 var errPushSync = errors.New("push sync")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c bee.Cluster, o Options) (err error) {
+func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
+
+	pusher.Collector(uploadedCounter)
+	pusher.Collector(syncedCounter)
+	pusher.Collector(notSyncedCounter)
+	pusher.Collector(uploadTimeGauge)
+	pusher.Collector(uploadTimeHistogram)
 
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
@@ -41,9 +48,15 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
+			t0 := time.Now()
 			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
+			d0 := time.Since(t0)
+
+			uploadedCounter.WithLabelValues(overlays[i].String()).Inc()
+			uploadTimeGauge.WithLabelValues(overlays[i].String(), chunk.Address().String()).Set(d0.Seconds())
+			uploadTimeHistogram.Observe(d0.Seconds())
 
 			closest, err := chunk.ClosestNode(overlays)
 			if err != nil {
@@ -57,11 +70,17 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", index, err)
 			}
 			if !synced {
+				notSyncedCounter.WithLabelValues(overlays[i].String()).Inc()
 				fmt.Printf("Node %d. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
 				return errPushSync
 			}
 
+			syncedCounter.WithLabelValues(overlays[i].String()).Inc()
 			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+
+			if err := pusher.Push(); err != nil {
+				fmt.Printf("node %d: %s\n", i, err)
+			}
 		}
 	}
 

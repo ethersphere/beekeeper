@@ -6,6 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 
 	"github.com/spf13/cobra"
 )
@@ -58,6 +59,8 @@ and checks if chunks are synced to their closest nodes.`,
 				seed = random.Int64()
 			}
 
+			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+
 			if concurrent {
 				return pushsync.CheckConcurrent(cluster, pushsync.Options{
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
@@ -78,7 +81,7 @@ and checks if chunks are synced to their closest nodes.`,
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Seed:            seed,
-			})
+			}, pusher)
 		},
 		PreRunE: c.checkPreRunE,
 	}
