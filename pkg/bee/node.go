@@ -235,11 +235,11 @@ func hashFunc() hash.Hash {
 func (n *Node) UploadBzzChunk(ctx context.Context, c *Chunk) (err error) {
 	p := bmtlegacy.NewTreePool(hashFunc, swarm.Branches, bmtlegacy.PoolSize)
 	hasher := bmtlegacy.New(p)
-	err = hasher.SetSpan(int64(c.Size()))
+	err = hasher.SetSpan(int64(c.Span()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
-	_, err = hasher.Write(c.Data())
+	_, err = hasher.Write(c.Data()[8:])
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
