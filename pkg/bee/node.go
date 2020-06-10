@@ -114,7 +114,7 @@ func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 
 // Ping pings other node
 func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
-	r, err := n.api.PingPong.Ping(ctx, node)
+	r, err := n.debug.PingPong.Ping(ctx, node)
 	if err != nil {
 		return "", fmt.Errorf("ping node %s: %w", node, err)
 	}
