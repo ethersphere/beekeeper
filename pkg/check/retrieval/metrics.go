@@ -7,7 +7,7 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_retrieval",
-			Name:      "chunks_uploaded",
+			Name:      "chunks_uploaded_count",
 			Help:      "Number of uploaded chunks.",
 		},
 		[]string{"node"},
@@ -16,7 +16,7 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_retrieval",
-			Name:      "chunk_upload_seconds",
+			Name:      "chunk_upload_duration_seconds",
 			Help:      "Chunk upload duration Gauge.",
 		},
 		[]string{"node", "chunk"},
@@ -25,7 +25,7 @@ var (
 		prometheus.HistogramOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_retrieval",
-			Name:      "chunk_upload_duration_seconds",
+			Name:      "chunk_upload_seconds",
 			Help:      "Chunk upload duration Histogram.",
 			Buckets:   prometheus.LinearBuckets(0, 0.1, 10),
 		},
@@ -34,7 +34,7 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_retrieval",
-			Name:      "chunks_downloaded",
+			Name:      "chunks_downloaded_count",
 			Help:      "Number of downloaded chunks.",
 		},
 		[]string{"node"},
@@ -43,7 +43,7 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_retrieval",
-			Name:      "chunk_download_seconds",
+			Name:      "chunk_download_duration_seconds",
 			Help:      "Chunk download duration Gauge.",
 		},
 		[]string{"node", "chunk"},
@@ -52,7 +52,7 @@ var (
 		prometheus.HistogramOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_retrieval",
-			Name:      "chunk_download_duration_seconds",
+			Name:      "chunk_download_seconds",
 			Help:      "Chunk download duration Histogram.",
 			Buckets:   prometheus.LinearBuckets(0, 0.1, 10),
 		},
@@ -61,7 +61,7 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_retrieval",
-			Name:      "chunks_retrieved",
+			Name:      "chunks_retrieved_count",
 			Help:      "Number of chunks that has been retrieved.",
 		},
 		[]string{"node"},
@@ -70,7 +70,7 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_retrieval",
-			Name:      "chunks_not_retrieved",
+			Name:      "chunks_not_retrieved_count",
 			Help:      "Number of chunks that has not been retrieved.",
 		},
 		[]string{"node"},
