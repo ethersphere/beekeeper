@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -81,22 +80,6 @@ func httpClientWithTransport(baseURL *url.URL, c *http.Client) *http.Client {
 	return c
 }
 
-// requestJSON handles the HTTP request response cycle. It JSON encodes the request
-// body, creates an HTTP request with provided method on a path with required
-// headers and decodes request body if the v argument is not nil and content type is
-// application/json.
-func (c *Client) requestJSON(ctx context.Context, method, path string, body, v interface{}) (err error) {
-	var bodyBuffer io.ReadWriter
-	if body != nil {
-		bodyBuffer = new(bytes.Buffer)
-		if err = encodeJSON(bodyBuffer, body); err != nil {
-			return err
-		}
-	}
-
-	return c.request(ctx, method, path, bodyBuffer, v)
-}
-
 // request handles the HTTP JSON request response cycle.
 func (c *Client) request(ctx context.Context, method, path string, body io.Reader, v interface{}) (err error) {
 	req, err := http.NewRequest(method, path, body)
@@ -150,14 +133,6 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	}
 
 	return r.Body, nil
-}
-
-// encodeJSON writes a JSON-encoded v object to the provided writer with
-// SetEscapeHTML set to false.
-func encodeJSON(w io.Writer, v interface{}) (err error) {
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(false)
-	return enc.Encode(v)
 }
 
 // drain discards all of the remaining data from the reader and closes it,
