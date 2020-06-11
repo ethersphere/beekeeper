@@ -63,9 +63,9 @@ func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 	}, nil
 }
 
-// DownloadChunk downloads chunk from the node
-func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
-	r, err := n.api.Bzz.Download(ctx, a)
+// DownloadBytes downloads chunk from the node
+func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.Bytes.Download(ctx, a)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
@@ -73,9 +73,9 @@ func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte,
 	return ioutil.ReadAll(r)
 }
 
-// DownloadBzzChunk downloads chunk from the node
-func (n *Node) DownloadBzzChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
-	r, err := n.api.BzzChunk.Download(ctx, a)
+// DownloadChunks downloads chunk from the node
+func (n *Node) DownloadChunks(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.Chunks.Download(ctx, a)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
@@ -215,14 +215,14 @@ func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 	return a.Underlay, nil
 }
 
-// UploadChunk uploads chunk to the node
-func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
-	r, err := n.api.Bzz.Upload(ctx, bytes.NewReader(c.Data()))
+// UploadBytes uploads chunk to the node
+func (n *Node) UploadBytes(ctx context.Context, c *Chunk) (err error) {
+	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(c.Data()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
 
-	c.address = r.Hash
+	c.address = r.Reference
 
 	return
 }
@@ -231,8 +231,8 @@ func hashFunc() hash.Hash {
 	return sha3.NewLegacyKeccak256()
 }
 
-// UploadBzzChunk uploads chunk to the node
-func (n *Node) UploadBzzChunk(ctx context.Context, c *Chunk) (err error) {
+// UploadChunks uploads chunk to the node
+func (n *Node) UploadChunks(ctx context.Context, c *Chunk) (err error) {
 	p := bmtlegacy.NewTreePool(hashFunc, swarm.Branches, bmtlegacy.PoolSize)
 	hasher := bmtlegacy.New(p)
 	err = hasher.SetSpan(int64(c.Span()))
@@ -245,7 +245,7 @@ func (n *Node) UploadBzzChunk(ctx context.Context, c *Chunk) (err error) {
 	}
 	c.address = swarm.NewAddress(hasher.Sum(nil))
 
-	_, err = n.api.BzzChunk.Upload(ctx, c.address, bytes.NewReader(c.Data()))
+	_, err = n.api.Chunks.Upload(ctx, c.address, bytes.NewReader(c.Data()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}

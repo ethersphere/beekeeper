@@ -37,11 +37,11 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
+			if err := c.Nodes[i].UploadBytes(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			data, err := c.Nodes[c.Size()-1].DownloadChunk(ctx, chunk.Address())
+			data, err := c.Nodes[c.Size()-1].DownloadBytes(ctx, chunk.Address())
 			if err != nil {
 				return fmt.Errorf("node %d: %w", c.Size()-1, err)
 			}
