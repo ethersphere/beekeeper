@@ -87,8 +87,8 @@ func CheckConcurrent(c bee.Cluster, o Options) (err error) {
 	return
 }
 
-// CheckBzzChunk uploads given chunks on cluster and checks pushsync ability of the cluster
-func CheckBzzChunk(c bee.Cluster, o Options) (err error) {
+// CheckChunks uploads given chunks on cluster and checks pushsync ability of the cluster
+func CheckChunks(c bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
