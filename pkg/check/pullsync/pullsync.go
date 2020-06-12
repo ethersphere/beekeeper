@@ -50,7 +50,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 			index := findIndex(overlays, closest)
-			fmt.Printf("Node %d. Chunk: %d. Closest: %d %s\n", i, j, index, closest.String())
+			fmt.Printf("Upload node %d. Chunk: %d. Closest: %d %s\n", i, j, index, closest.String())
 
 			topolgy, err := c.Nodes[index].Topology(ctx)
 			if err != nil {
@@ -60,11 +60,11 @@ func Check(c bee.Cluster, o Options) (err error) {
 			po := swarm.Proximity(chunk.Address().Bytes(), closest.Bytes())
 
 			if po < topolgy.Depth {
-				fmt.Printf("Node %d. Chunk: %d. Chunk does not fall within a depth. Proximity: %d Depth: %d\n", i, j, po, topolgy.Depth)
+				fmt.Printf("Upload node %d. Chunk: %d. Chunk does not fall within a depth. Proximity: %d Depth: %d\n", i, j, po, topolgy.Depth)
 				// TODO:  add indication whether a chunk does not fall within any node's depth in the cluster
 				return errPullSync
 			}
-			fmt.Printf("Node %d. Chunk: %d. Chunk falls within a depth. Proximity: %d Depth: %d\n", i, j, po, topolgy.Depth)
+			fmt.Printf("Upload node %d. Chunk: %d. Chunk falls within a depth. Proximity: %d Depth: %d\n", i, j, po, topolgy.Depth)
 
 			var nodesWithinDepth []swarm.Address
 			for k, v := range topolgy.Bins {
@@ -88,10 +88,10 @@ func Check(c bee.Cluster, o Options) (err error) {
 					return fmt.Errorf("node %d: %w", ni, err)
 				}
 				if !synced {
-					fmt.Printf("Node %d. Chunk %d not found on the node within a depth. Node: %s Chunk: %s Node within a depth: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
+					fmt.Printf("Upload node %d. Chunk %d not found on the node within a depth. Upload node: %s Chunk: %s Node within a depth: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
 					continue
 				}
-				fmt.Printf("Node %d. Chunk %d found on the node within a depth node. Node: %s Chunk: %s Node within a depth: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
+				fmt.Printf("Upload node %d. Chunk %d found on the node within a depth node. Upload node: %s Chunk: %s Node within a depth: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
 			}
 		}
 	}
