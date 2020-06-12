@@ -13,7 +13,10 @@ import (
 	"github.com/ethersphere/beekeeper"
 )
 
-const contentType = "application/json; charset=utf-8"
+const (
+	apiVersion  = "v1"
+	contentType = "application/json; charset=utf-8"
+)
 
 var userAgent = "beekeeper/" + beekeeper.Version
 
@@ -23,8 +26,8 @@ type Client struct {
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
-	Bzz      *BzzService
-	BzzChunk *BzzChunkService
+	Bytes  *BytesService
+	Chunks *ChunksService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -49,8 +52,8 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 func newClient(httpClient *http.Client) (c *Client) {
 	c = &Client{httpClient: httpClient}
 	c.service.client = c
-	c.Bzz = (*BzzService)(&c.service)
-	c.BzzChunk = (*BzzChunkService)(&c.service)
+	c.Bytes = (*BytesService)(&c.service)
+	c.Chunks = (*ChunksService)(&c.service)
 	return c
 }
 
