@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -48,24 +50,49 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 			index := findIndex(overlays, closest)
+			fmt.Printf("Node %d. Chunk: %d. Closest: %d %s\n", i, j, index, closest.String())
 
-			time.Sleep(1 * time.Second)
-			synced, err := c.Nodes[index].HasChunk(ctx, chunk.Address())
+			topolgy, err := c.Nodes[index].Topology(ctx)
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
 			}
-			if !synced {
-				fmt.Printf("Node %d. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+
+			po := swarm.Proximity(chunk.Address().Bytes(), closest.Bytes())
+
+			if po < topolgy.Depth {
+				fmt.Printf("Node %d. Chunk: %d. Chunk does not fall within a depth. Proximity: %d Depth: %d\n", i, j, po, topolgy.Depth)
+				// TODO:  add indication whether a chunk does not fall within any node's depth in the cluster
 				return errPullSync
 			}
+			fmt.Printf("Node %d. Chunk: %d. Chunk falls within a depth. Proximity: %d Depth: %d\n", i, j, po, topolgy.Depth)
 
-			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+			var nodesWithinDepth []swarm.Address
+			for k, v := range topolgy.Bins {
 
-			crf, err := c.ChunkReplicationFactor(ctx, chunk.Address())
-			if err != nil {
-				return fmt.Errorf("node %d: %w", index, err)
+				bin, err := strconv.Atoi(strings.Split(k, "_")[1])
+				if err != nil {
+					return fmt.Errorf("node %d: %w", i, err)
+				}
+
+				if bin >= topolgy.Depth {
+					nodesWithinDepth = append(nodesWithinDepth, v.ConnectedPeers...)
+				}
 			}
-			fmt.Println("crf", crf)
+
+			time.Sleep(3 * time.Second)
+			for _, n := range nodesWithinDepth {
+				ni := findIndex(overlays, n)
+
+				synced, err := c.Nodes[ni].HasChunk(ctx, chunk.Address())
+				if err != nil {
+					return fmt.Errorf("node %d: %w", ni, err)
+				}
+				if !synced {
+					fmt.Printf("Node %d. Chunk %d not found on the node within a depth. Node: %s Chunk: %s Node within a depth: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
+					continue
+				}
+				fmt.Printf("Node %d. Chunk %d found on the node within a depth node. Node: %s Chunk: %s Node within a depth: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
+			}
 		}
 	}
 

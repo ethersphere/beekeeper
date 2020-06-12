@@ -110,8 +110,9 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 	return addressStream
 }
 
-// ChunkReplicationFactor returns replication factor for a given chunk
-func (c *Cluster) ChunkReplicationFactor(ctx context.Context, a swarm.Address) (counter int, err error) {
+// GlobalReplicationFactor returns replication factor for a given chunk
+func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (gcrf float64, err error) {
+	var counter int
 	for m := range c.HasChunkStream(ctx, a) {
 		if m.Error != nil {
 			return 0, fmt.Errorf("node %d: %w", m.Index, m.Error)
@@ -120,6 +121,8 @@ func (c *Cluster) ChunkReplicationFactor(ctx context.Context, a swarm.Address) (
 			counter++
 		}
 	}
+
+	gcrf = float64(counter) / float64(c.Size())
 
 	return
 }
