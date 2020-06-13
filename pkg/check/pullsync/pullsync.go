@@ -64,7 +64,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 				// TODO:  add indication whether a chunk does not fall within any node's depth in the cluster
 				return errPullSync
 			}
-			fmt.Printf("Upload node %d. Chunk: %d. Chunk falls within a depth. Proximity: %d Depth: %d\n", i, j, po, topolgy.Depth)
+			fmt.Printf("Upload node %d. Chunk: %d. Chunk falls within a depth of node %d. Proximity: %d Depth: %d\n", i, j, index, po, topolgy.Depth)
 
 			var nodesWithinDepth []swarm.Address
 			for k, v := range topolgy.Bins {
@@ -79,7 +79,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 				}
 			}
 
-			time.Sleep(3 * time.Second)
+			time.Sleep(10 * time.Second)
 			for _, n := range nodesWithinDepth {
 				ni := findIndex(overlays, n)
 
