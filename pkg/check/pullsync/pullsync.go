@@ -48,7 +48,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
+			if err := c.Nodes[i].UploadBytes(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
@@ -73,11 +73,11 @@ func Check(c bee.Cluster, o Options) (err error) {
 					pidx := findIndex(overlays, peer)
 					pivotTopology := topologies[pidx]
 					pivotDepth := pivotTopology.Depth
-					switch pivotPo := swarm.Proximity(chunk.Address().Bytes(), peer.Bytes()); pivotPo {
+					switch pivotPo := swarm.Proximity(chunk.Address().Bytes(), peer.Bytes()); {
 					case pivotPo >= pivotDepth:
 						// chunk within replicating node depth
 						replicatingNodes = append(replicatingNodes, peer)
-					case po < depth && pivotToClosestPo == pivotPo:
+					case po < pivotDepth && pivotToClosestPo == pivotPo:
 						// chunk outside our depth
 						// po with chunk must equal po with closest
 						replicatingNodes = append(replicatingNodes, peer)
