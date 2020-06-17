@@ -28,6 +28,7 @@ type Client struct {
 	// Services that API provides.
 	Bytes  *BytesService
 	Chunks *ChunksService
+	Files  *FilesService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -54,6 +55,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.service.client = c
 	c.Bytes = (*BytesService)(&c.service)
 	c.Chunks = (*ChunksService)(&c.service)
+	c.Files = (*FilesService)(&c.service)
 	return c
 }
 

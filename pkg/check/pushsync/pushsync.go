@@ -105,7 +105,7 @@ func CheckChunks(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			if err := c.Nodes[i].UploadChunks(ctx, &chunk); err != nil {
+			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
