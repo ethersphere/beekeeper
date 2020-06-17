@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -34,6 +32,15 @@ func Check(c bee.Cluster, o Options) (err error) {
 		return err
 	}
 
+	topologies, err := c.Topologies(ctx)
+	if err != nil {
+		return err
+	}
+
+	// find closest node to chunk
+	// go to all nodes which are connected to this node and check their topology
+	// if the PO(chunk,closest) >= depth(pivot) (pivot is the node connected to the closest), then chunk should be synced
+	// if the PO(chunk,closest) < depth(pivot) && PO(chunk,closest) == PO(pivot,closest) (chunk outside depth and equals peerPO bin - should be synced)
 	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])
@@ -52,35 +59,39 @@ func Check(c bee.Cluster, o Options) (err error) {
 			index := findIndex(overlays, closest)
 			fmt.Printf("Upload node %d. Chunk: %d. Closest: %d %s\n", i, j, index, closest.String())
 
-			topolgy, err := c.Nodes[index].Topology(ctx)
+			topology, err := c.Nodes[index].Topology(ctx)
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
 			}
-
 			po := swarm.Proximity(chunk.Address().Bytes(), closest.Bytes())
+			var replicatingNodes []swarm.Address
 
-			if po < topolgy.Depth {
-				fmt.Printf("Upload node %d. Chunk: %d. Chunk does not fall within a depth. Proximity: %d Depth: %d\n", i, j, po, topolgy.Depth)
-				// TODO:  add indication whether a chunk does not fall within any node's depth in the cluster
+			for _, v := range topology.Bins {
+				for _, peer := range v.ConnectedPeers {
+					peer := peer
+					pivotToClosestPo := swarm.Proximity(peer.Bytes(), closest.Bytes())
+					pidx := findIndex(overlays, peer)
+					pivotTopology := topologies[pidx]
+					pivotDepth := pivotTopology.Depth
+					switch pivotPo := swarm.Proximity(chunk.Address().Bytes(), peer.Bytes()); pivotPo {
+					case pivotPo >= pivotDepth:
+						// chunk within replicating node depth
+						replicatingNodes = append(replicatingNodes, peer)
+					case po < depth && pivotToClosestPo == pivotPo:
+						// chunk outside our depth
+						// po with chunk must equal po with closest
+						replicatingNodes = append(replicatingNodes, peer)
+					}
+				}
+			}
+
+			if len(replicatingNodes) == 0 {
+				fmt.Printf("Upload node %d. Chunk: %d. Chunk does not have any designated replicators. Proximity: %d Depth: %d\n", i, j, po, topology.Depth)
 				return errPullSync
 			}
-			fmt.Printf("Upload node %d. Chunk: %d. Chunk falls within a depth of node %d. Proximity: %d Depth: %d\n", i, j, index, po, topolgy.Depth)
 
-			var nodesWithinDepth []swarm.Address
-			for k, v := range topolgy.Bins {
-
-				bin, err := strconv.Atoi(strings.Split(k, "_")[1])
-				if err != nil {
-					return fmt.Errorf("node %d: %w", i, err)
-				}
-
-				if bin >= topolgy.Depth {
-					nodesWithinDepth = append(nodesWithinDepth, v.ConnectedPeers...)
-				}
-			}
-
-			time.Sleep(10 * time.Second)
-			for _, n := range nodesWithinDepth {
+			time.Sleep(5 * time.Second)
+			for _, n := range replicatingNodes {
 				ni := findIndex(overlays, n)
 
 				synced, err := c.Nodes[ni].HasChunk(ctx, chunk.Address())
