@@ -28,6 +28,7 @@ type Client struct {
 	// Services that API provides.
 	Bytes  *BytesService
 	Chunks *ChunksService
+	Files  *FilesService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -54,6 +55,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.service.client = c
 	c.Bytes = (*BytesService)(&c.service)
 	c.Chunks = (*ChunksService)(&c.service)
+	c.Files = (*FilesService)(&c.service)
 	return c
 }
 
@@ -136,6 +138,33 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	}
 
 	return r.Body, nil
+}
+
+// requestWithHeader handles the HTTP request response cycle.
+func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (err error) {
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+
+	req.Header = header
+	req.Header.Add("Accept", contentType)
+
+	r, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if err = responseErrorHandler(r); err != nil {
+		return err
+	}
+
+	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		return json.NewDecoder(r.Body).Decode(&v)
+	}
+
+	return
 }
 
 // drain discards all of the remaining data from the reader and closes it,

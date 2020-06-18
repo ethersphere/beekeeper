@@ -73,11 +73,21 @@ func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte,
 	return ioutil.ReadAll(r)
 }
 
-// DownloadChunks downloads chunk from the node
-func (n *Node) DownloadChunks(ctx context.Context, a swarm.Address) (data []byte, err error) {
+// DownloadChunk downloads chunk from the node
+func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
 	r, err := n.api.Chunks.Download(ctx, a)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
+	}
+
+	return ioutil.ReadAll(r)
+}
+
+// DownloadFile downloads chunk from the node
+func (n *Node) DownloadFile(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.Files.Download(ctx, a)
+	if err != nil {
+		return nil, fmt.Errorf("download file %s: %w", a, err)
 	}
 
 	return ioutil.ReadAll(r)
@@ -231,8 +241,8 @@ func hashFunc() hash.Hash {
 	return sha3.NewLegacyKeccak256()
 }
 
-// UploadChunks uploads chunk to the node
-func (n *Node) UploadChunks(ctx context.Context, c *Chunk) (err error) {
+// UploadChunk uploads chunk to the node
+func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 	p := bmtlegacy.NewTreePool(hashFunc, swarm.Branches, bmtlegacy.PoolSize)
 	hasher := bmtlegacy.New(p)
 	err = hasher.SetSpan(int64(c.Span()))
@@ -249,6 +259,18 @@ func (n *Node) UploadChunks(ctx context.Context, c *Chunk) (err error) {
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
+
+	return
+}
+
+// UploadFile uploads file to the node
+func (n *Node) UploadFile(ctx context.Context, f *File) (err error) {
+	r, err := n.api.Files.Upload(ctx, f.Name(), bytes.NewReader(f.Data()), f.Size())
+	if err != nil {
+		return fmt.Errorf("upload file: %w", err)
+	}
+
+	f.address = r.Reference
 
 	return
 }

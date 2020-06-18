@@ -31,12 +31,24 @@ Available subcommands:
 
 |subcommand|description|
 |----------|-----------|
+| fileretrieval | Checks file retrieval ability of the cluster |
 | fullconnectivity | Checks full connectivity in the cluster |
 | kademlia | Checks Kademlia topology in the cluster |
 | peercount | Count peers for all nodes in the cluster |
 | pingpong | Executes ping from all nodes to all other nodes in the cluster |
 | pushsync | Checks pushsync ability of the cluster |
 | retrieval | Checks retrieval ability of the cluster |
+
+### fileretrieval
+
+**fileretrieval** checks file retrieval ability of the cluster.
+It uploads given number of files to given number of nodes, 
+and attempts retrieval of those files from the last node in the cluster.
+
+Example:
+```bash
+beekeeper check fileretrieval --namespace bee --node-count 3 --upload-node-count 2 --files-per-node 4 --file-size 1048576
+```
 
 ### fullconnectivity
 
