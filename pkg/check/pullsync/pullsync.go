@@ -58,6 +58,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 			uploaderToChunkPo := swarm.Proximity(overlays[i].Bytes(), chunk.Address().Bytes())
+			fmt.Printf("Uploaded chunk %s\n", chunk.Address())
 
 			// check uploader and non-NN replication
 			uploaderTopology := topologies[i]
