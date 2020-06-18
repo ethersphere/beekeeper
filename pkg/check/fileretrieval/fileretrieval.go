@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -48,6 +49,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", c.Size()-1, err)
 			}
 
+			time.Sleep(1 * time.Second)
 			if !bytes.Equal(file.Data(), data) {
 				fmt.Printf("Node %d. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", i, j, file.Size(), len(data), overlays[i].String(), file.Address().String())
 				if bytes.Contains(file.Data(), data) {
