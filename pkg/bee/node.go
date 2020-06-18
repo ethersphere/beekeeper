@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -264,13 +265,16 @@ func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 }
 
 // UploadFile uploads file to the node
-func (n *Node) UploadFile(ctx context.Context, c *Chunk) (err error) {
-	r, err := n.api.Files.Upload(ctx, bytes.NewReader(c.Data()))
+func (n *Node) UploadFile(ctx context.Context, name, contentType string, contentLength int, f *os.File) (addr swarm.Address, err error) {
+	_, err = f.Seek(0, 0)
 	if err != nil {
-		return fmt.Errorf("upload file: %w", err)
+		return swarm.Address{}, fmt.Errorf("upload file: %w", err)
 	}
 
-	c.address = r.Reference
+	r, err := n.api.Files.Upload(ctx, name, contentType, contentLength, f)
+	if err != nil {
+		return swarm.Address{}, fmt.Errorf("upload file: %w", err)
+	}
 
-	return
+	return r.Reference, nil
 }

@@ -140,6 +140,33 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	return r.Body, nil
 }
 
+// requestWithHeader handles the HTTP request response cycle.
+func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (err error) {
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+
+	req.Header = header
+	req.Header.Add("Accept", contentType)
+
+	r, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if err = responseErrorHandler(r); err != nil {
+		return err
+	}
+
+	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		return json.NewDecoder(r.Body).Decode(&v)
+	}
+
+	return
+}
+
 // drain discards all of the remaining data from the reader and closes it,
 // asynchronously.
 func drain(r io.ReadCloser) {

@@ -23,7 +23,7 @@ type Chunk struct {
 // NewChunk returns new chunk
 func NewChunk(data []byte) (Chunk, error) {
 	if len(data) > maxChunkSize {
-		return Chunk{}, fmt.Errorf("create chunk: size too big (max %d)", maxChunkSize)
+		return Chunk{}, fmt.Errorf("create chunk: requested size too big (max %d bytes)", maxChunkSize)
 	}
 
 	return Chunk{data: data}, nil

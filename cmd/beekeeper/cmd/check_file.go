@@ -13,7 +13,9 @@ import (
 func (c *command) initCheckFile() *cobra.Command {
 	const (
 		optionNameUploadNodeCount = "upload-node-count"
-		optionNameChunksPerNode   = "chunks-per-node"
+		optionNameFilesPerNode    = "files-per-node"
+		optionNameFilesName       = "files-name"
+		optionNameFilesSize       = "files-size"
 		optionNameSeed            = "seed"
 	)
 
@@ -22,7 +24,7 @@ func (c *command) initCheckFile() *cobra.Command {
 		Short: "Checks file ability of the cluster",
 		Long: `Checks file ability of the cluster.
 It uploads given number of files to given number of nodes, 
-and attempts retrieval of those chunks from the last node in the cluster.`,
+and attempts retrieval of those files from the last node in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if c.config.GetInt(optionNameUploadNodeCount) > c.config.GetInt(optionNameNodeCount) {
 				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
@@ -53,16 +55,20 @@ and attempts retrieval of those chunks from the last node in the cluster.`,
 
 			return file.Check(cluster, file.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
-				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
+				FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
+				FileName:        c.config.GetString(optionNameFilesName),
+				FileSize:        c.config.GetInt(optionNameFilesSize),
 				Seed:            seed,
 			})
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload chunks to")
-	cmd.Flags().IntP(optionNameChunksPerNode, "p", 1, "number of chunks to upload per node")
-	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
+	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload files to")
+	cmd.Flags().IntP(optionNameFilesPerNode, "p", 1, "number of files to upload per node")
+	cmd.Flags().String(optionNameFilesName, "file", "file name template")
+	cmd.Flags().Int(optionNameFilesSize, 11048576, "file size in bytes")
+	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 
 	return cmd
 }
