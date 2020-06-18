@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	charSet     = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	maxFileSize = 104857600 // 100MB
 )
 

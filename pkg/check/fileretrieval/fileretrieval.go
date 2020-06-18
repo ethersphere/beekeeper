@@ -1,6 +1,7 @@
-package file
+package fileretrieval
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -18,7 +19,7 @@ type Options struct {
 	Seed            int64
 }
 
-var errFile = errors.New("file")
+var errFileRetrieval = errors.New("file retrieval")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
 func Check(c bee.Cluster, o Options) (err error) {
@@ -26,10 +27,10 @@ func Check(c bee.Cluster, o Options) (err error) {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	// overlays, err := c.Overlays(ctx)
-	// if err != nil {
-	// 	return err
-	// }
+	overlays, err := c.Overlays(ctx)
+	if err != nil {
+		return err
+	}
 
 	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.FilesPerNode; j++ {
@@ -42,12 +43,20 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			_, err = c.Nodes[c.Size()-1].DownloadFile(ctx, file.Address())
+			data, err := c.Nodes[c.Size()-1].DownloadFile(ctx, file.Address())
 			if err != nil {
 				return fmt.Errorf("node %d: %w", c.Size()-1, err)
 			}
 
-			fmt.Printf("%s %s %d\n", file.Name(), file.Address().String(), file.Size())
+			if !bytes.Equal(file.Data(), data) {
+				fmt.Printf("Node %d. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", i, j, file.Size(), len(data), overlays[i].String(), file.Address().String())
+				if bytes.Contains(file.Data(), data) {
+					fmt.Printf("Downloaded data is subset of the uploaded data\n")
+				}
+				return errFileRetrieval
+			}
+
+			fmt.Printf("Node %d. File %d retrieved successfully. Node: %s File: %s\n", i, j, overlays[i].String(), file.Address().String())
 		}
 	}
 

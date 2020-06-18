@@ -4,13 +4,13 @@ import (
 	"errors"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check/file"
+	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/random"
 
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initCheckFile() *cobra.Command {
+func (c *command) initCheckFileRetrieval() *cobra.Command {
 	const (
 		optionNameUploadNodeCount = "upload-node-count"
 		optionNameFilesPerNode    = "files-per-node"
@@ -20,9 +20,9 @@ func (c *command) initCheckFile() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "file",
-		Short: "Checks file ability of the cluster",
-		Long: `Checks file ability of the cluster.
+		Use:   "fileretrieval",
+		Short: "Checks file retrieval ability of the cluster",
+		Long: `Checks file retrieval ability of the cluster.
 It uploads given number of files to given number of nodes, 
 and attempts retrieval of those files from the last node in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
@@ -53,7 +53,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				seed = random.Int64()
 			}
 
-			return file.Check(cluster, file.Options{
+			return fileretrieval.Check(cluster, fileretrieval.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
 				FileName:        c.config.GetString(optionNameFilesName),
