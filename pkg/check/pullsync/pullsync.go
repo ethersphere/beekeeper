@@ -76,9 +76,8 @@ func Check(c bee.Cluster, o Options) (err error) {
 						fmt.Printf("uploader nn rep. pivotPo %d pivotDepth %d, uploaderPo %d\n", pivotPo, pivotDepth, uploaderToChunkPo)
 						nnRep++
 					case pivotPo != 0 && uploaderToChunkPo != 0 && pivotPo < pivotDepth && uploaderToChunkPo == pivotToUploaderPo:
-						// if the po of the chunk with the closest == to our po with the closest, then we need to sync it
+						// if the po of the chunk with the uploader == to our po with the uploader, then we need to sync it
 						// chunk outside our depth
-						// po with chunk must equal po with closest
 						replicatingNodes = append(replicatingNodes, peer)
 						fmt.Printf("uploader no nn rep. pivotPo %d pivotDepth %d, pivotToUploaderPo %d, uploaderToChunkPo %d\n", pivotPo, pivotDepth, pivotToUploaderPo, uploaderToChunkPo)
 						peerPoBinRep++
