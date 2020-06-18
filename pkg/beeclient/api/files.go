@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -23,11 +24,11 @@ type FilesUploadResponse struct {
 }
 
 // Upload uploads files to the node
-func (f *FilesService) Upload(ctx context.Context, name, contentType string, contentLength int, data io.Reader) (resp FilesUploadResponse, err error) {
+func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, size int) (resp FilesUploadResponse, err error) {
 	header := make(http.Header)
-	header.Set("Content-Type", contentType)
-	header.Set("Content-Length", strconv.Itoa(contentLength))
-	// TODO: escape name
-	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/files"+"?name="+name, header, data, &resp)
+	header.Set("Content-Type", "application/octet-stream")
+	header.Set("Content-Length", strconv.Itoa(size))
+
+	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/files?"+url.QueryEscape("name="+name), header, data, &resp)
 	return
 }

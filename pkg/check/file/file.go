@@ -33,23 +33,21 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.FilesPerNode; j++ {
-			f, err := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s%d%d", o.FileName, i, j), o.FileSize)
-			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
-			}
-			defer f.Close()
-
-			fileAddr, err := c.Nodes[i].UploadFile(ctx, fmt.Sprintf("%s%d%d", o.FileName, i, j), "application/octet-stream", o.FileSize, f)
+			file, err := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			_, err = c.Nodes[c.Size()-1].DownloadFile(ctx, fileAddr)
+			if err := c.Nodes[i].UploadFile(ctx, &file); err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+
+			_, err = c.Nodes[c.Size()-1].DownloadFile(ctx, file.Address())
 			if err != nil {
 				return fmt.Errorf("node %d: %w", c.Size()-1, err)
 			}
 
-			fmt.Println(i, j, fileAddr)
+			fmt.Printf("%s %s %d\n", file.Name(), file.Address().String(), file.Size())
 		}
 	}
 
