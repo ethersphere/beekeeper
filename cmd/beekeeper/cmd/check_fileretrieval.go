@@ -14,8 +14,8 @@ func (c *command) initCheckFileRetrieval() *cobra.Command {
 	const (
 		optionNameUploadNodeCount = "upload-node-count"
 		optionNameFilesPerNode    = "files-per-node"
-		optionNameFilesName       = "files-name"
-		optionNameFilesSize       = "files-size"
+		optionNameFileName        = "file-name"
+		optionNameFileSize        = "file-size"
 		optionNameSeed            = "seed"
 	)
 
@@ -56,8 +56,8 @@ and attempts retrieval of those files from the last node in the cluster.`,
 			return fileretrieval.Check(cluster, fileretrieval.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
-				FileName:        c.config.GetString(optionNameFilesName),
-				FileSize:        c.config.GetInt(optionNameFilesSize),
+				FileName:        c.config.GetString(optionNameFileName),
+				FileSize:        c.config.GetInt(optionNameFileSize),
 				Seed:            seed,
 			})
 		},
@@ -66,8 +66,8 @@ and attempts retrieval of those files from the last node in the cluster.`,
 
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload files to")
 	cmd.Flags().IntP(optionNameFilesPerNode, "p", 1, "number of files to upload per node")
-	cmd.Flags().String(optionNameFilesName, "file", "file name template")
-	cmd.Flags().Int(optionNameFilesSize, 1048576, "file size in bytes")
+	cmd.Flags().String(optionNameFileName, "file", "file name template")
+	cmd.Flags().Int(optionNameFileSize, 1048576, "file size in bytes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 
 	return cmd
