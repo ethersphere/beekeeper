@@ -2,37 +2,29 @@ package bee
 
 import (
 	"fmt"
+	"hash"
+	"io"
 	"math/rand"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-)
-
-const (
-	maxFileSize = 104857600 // 100MB
+	"golang.org/x/crypto/sha3"
 )
 
 // File represents Bee file
 type File struct {
-	address swarm.Address
-	name    string
-	data    []byte
-	size    int
+	address    swarm.Address
+	name       string
+	hash       []byte
+	dataReader io.Reader
+	size       int64
 }
 
 // NewRandomFile returns new pseudorandom file
-func NewRandomFile(r *rand.Rand, name string, size int) (f File, err error) {
-	if size > maxFileSize {
-		return File{}, fmt.Errorf("create random file: requested size too big (max %d bytes)", maxFileSize)
-	}
-
-	data := make([]byte, size)
-	if _, err := r.Read(data); err != nil {
-		return File{}, fmt.Errorf("create random file: %w", err)
-	}
-
-	f = File{name: name, data: data, size: size}
-
-	return
+func NewRandomFile(r *rand.Rand, name string, size int64) File {
+	return File{
+		name:       name,
+		dataReader: io.LimitReader(r, size),
+		size:       size}
 }
 
 // Address returns file's address
@@ -45,13 +37,18 @@ func (f *File) Name() string {
 	return f.name
 }
 
-// Data returns file's data
-func (f *File) Data() []byte {
-	return f.data
+// Hash returns file's hash
+func (f *File) Hash() []byte {
+	return f.hash
+}
+
+// DataReader returns file's data reader
+func (f *File) DataReader() io.Reader {
+	return f.dataReader
 }
 
 // Size returns file size
-func (f *File) Size() int {
+func (f *File) Size() int64 {
 	return f.size
 }
 
@@ -76,4 +73,8 @@ func (f *File) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err er
 	}
 
 	return
+}
+
+func fileHahser() hash.Hash {
+	return sha3.New256()
 }

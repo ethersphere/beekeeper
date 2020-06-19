@@ -3,9 +3,11 @@ package bee
 import (
 	"encoding/binary"
 	"fmt"
+	"hash"
 	"math/rand"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -86,4 +88,8 @@ func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err e
 	}
 
 	return
+}
+
+func chunkHahser() hash.Hash {
+	return sha3.NewLegacyKeccak256()
 }

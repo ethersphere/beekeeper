@@ -57,7 +57,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
 				FileName:        c.config.GetString(optionNameFileName),
-				FileSize:        c.config.GetInt(optionNameFileSize),
+				FileSize:        c.config.GetInt64(optionNameFileSize),
 				Seed:            seed,
 			})
 		},
@@ -67,7 +67,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload files to")
 	cmd.Flags().IntP(optionNameFilesPerNode, "p", 1, "number of files to upload per node")
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
-	cmd.Flags().Int(optionNameFileSize, 1048576, "file size in bytes")
+	cmd.Flags().Int64(optionNameFileSize, 1048576, "file size in bytes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 
 	return cmd

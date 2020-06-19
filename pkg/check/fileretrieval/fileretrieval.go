@@ -16,7 +16,7 @@ type Options struct {
 	UploadNodeCount int
 	FilesPerNode    int
 	FileName        string
-	FileSize        int
+	FileSize        int64
 	Seed            int64
 }
 
@@ -35,26 +35,20 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.FilesPerNode; j++ {
-			file, err := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
-			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
-			}
+			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			if err := c.Nodes[i].UploadFile(ctx, &file); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			data, err := c.Nodes[c.Size()-1].DownloadFile(ctx, file.Address())
+			time.Sleep(1 * time.Second)
+			size, hash, err := c.Nodes[c.Size()-1].DownloadFile(ctx, file.Address())
 			if err != nil {
 				return fmt.Errorf("node %d: %w", c.Size()-1, err)
 			}
 
-			time.Sleep(1 * time.Second)
-			if !bytes.Equal(file.Data(), data) {
-				fmt.Printf("Node %d. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", i, j, file.Size(), len(data), overlays[i].String(), file.Address().String())
-				if bytes.Contains(file.Data(), data) {
-					fmt.Printf("Downloaded data is subset of the uploaded data\n")
-				}
+			if !bytes.Equal(file.Hash(), hash) {
+				fmt.Printf("Node %d. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", i, j, file.Size(), size, overlays[i].String(), file.Address().String())
 				return errFileRetrieval
 			}
 
