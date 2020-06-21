@@ -93,3 +93,22 @@ func (c *Client) Get(ctx context.Context, name string) (resp *unstructured.Unstr
 	}
 	return resp, nil
 }
+
+// func (c *Client) UpdateBeeReplica(ctx context.Context, replica int64) (err error) {
+// 	crdClient := c.crdClient
+// 	crd, err := crdClient.Get(ctx, "bee", metav1.GetOptions{})
+// 	if err != nil {
+// 		return fmt.Errorf("error getting resourceVersion k8s object: %+v", err)
+// 	}
+
+// 	err = unstructured.SetNestedField(crd.Object, replica, "spec", "replicas")
+// 	if err != nil {
+// 		return fmt.Errorf("error updating k8s object: %+v", err)
+// 	}
+
+// 	_, err = crdClient.Update(ctx, crd, metav1.UpdateOptions{})
+// 	if err != nil {
+// 		return fmt.Errorf("error updating k8s object: %+v", err)
+// 	}
+// 	return
+// }

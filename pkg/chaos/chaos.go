@@ -312,3 +312,16 @@ func NetworkCorrupt(ctx context.Context, kubeconfig string, action string, mode 
 	}
 	return
 }
+
+// func BeeReplicaSet(ctx context.Context, kubeconfig string, namespace string, replica int64) (err error) {
+// 	kubeRes := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "statefulsets"}
+// 	client, err := dynamick8s.NewClient(kubeconfig, namespace, kubeRes)
+// 	if err != nil {
+// 		fmt.Printf("error: %+v", err)
+// 	}
+// 	_ = client.UpdateBeeReplica(ctx, replica)
+// 	if err != nil {
+// 		return fmt.Errorf("error getting chaos-mesh-controller-manager service: %+v", err)
+// 	}
+// 	return
+// }
