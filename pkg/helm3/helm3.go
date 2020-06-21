@@ -33,12 +33,14 @@ func Upgrade(kubeconfig string, namespace string, release string, chart string, 
 		}
 	}
 
+	os.Setenv("KUBECONFIG", kubeconfig)
+
 	if release == "" {
 		return fmt.Errorf("error release has to be specified")
 	}
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), debug); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), noDebug); err != nil {
 		log.Fatal(err)
 	}
 	client := action.NewUpgrade(actionConfig)
@@ -50,7 +52,9 @@ func Upgrade(kubeconfig string, namespace string, release string, chart string, 
 		log.Fatal(err)
 	}
 
+	// TODO: Add reuse values and wait as cli arguments
 	client.ReuseValues = true
+	client.Wait = true
 
 	p := getter.All(settings)
 	valueOpts := &values.Options{}
@@ -58,8 +62,6 @@ func Upgrade(kubeconfig string, namespace string, release string, chart string, 
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Printf("VALUES: %+v", vals)
 
 	// Add args
 	if err := strvals.ParseInto(args["set"], vals); err != nil {
@@ -77,32 +79,11 @@ func Upgrade(kubeconfig string, namespace string, release string, chart string, 
 		log.Fatal(err)
 	}
 
-	// if req := chartRequested.Metadata.Dependencies; req != nil {
-	// 	if err := action.CheckDependencies(chartRequested, req); err != nil {
-	// 		if client.DependencyUpdate {
-	// 			man := &downloader.Manager{
-	// 				Out:              os.Stdout,
-	// 				ChartPath:        cp,
-	// 				Keyring:          client.ChartPathOptions.Keyring,
-	// 				SkipUpdate:       false,
-	// 				Getters:          p,
-	// 				RepositoryConfig: settings.RepositoryConfig,
-	// 				RepositoryCache:  settings.RepositoryCache,
-	// 			}
-	// 			if err := man.Update(); err != nil {
-	// 				log.Fatal(err)
-	// 			}
-	// 		} else {
-	// 			log.Fatal(err)
-	// 		}
-	// 	}
-	// }
-
-	rel, err := client.Run(release, chartRequested, vals)
+	_, err = client.Run(release, chartRequested, vals)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(rel.Manifest)
+	// fmt.Println(rel.Manifest)
 
 	return nil
 }
@@ -115,7 +96,12 @@ func isChartInstallable(ch *chart.Chart) (bool, error) {
 	return false, errors.Errorf("%s charts are not installable", ch.Metadata.Type)
 }
 
-func debug(format string, v ...interface{}) {
-	format = fmt.Sprintf("[debug] %s\n", format)
-	log.Output(2, fmt.Sprintf(format, v...))
+// func debug(format string, v ...interface{}) {
+// 	format = fmt.Sprintf("[debug] %s\n", format)
+// 	_ = log.Output(2, fmt.Sprintf(format, v...))
+// }
+
+func noDebug(format string, v ...interface{}) {
+	// format = fmt.Sprintf("[debug] %s\n", format)
+	// _ = log.Output(2, fmt.Sprintf(format, v...))
 }
