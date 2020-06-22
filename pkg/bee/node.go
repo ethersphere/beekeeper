@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"hash"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,7 +15,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
-	"golang.org/x/crypto/sha3"
 )
 
 // Node represents Bee node
@@ -63,9 +62,9 @@ func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 	}, nil
 }
 
-// DownloadChunk downloads chunk from the node
-func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
-	r, err := n.api.Bzz.Download(ctx, a)
+// DownloadBytes downloads chunk from the node
+func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.Bytes.Download(ctx, a)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
@@ -73,14 +72,30 @@ func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte,
 	return ioutil.ReadAll(r)
 }
 
-// DownloadBzzChunk downloads chunk from the node
-func (n *Node) DownloadBzzChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
-	r, err := n.api.BzzChunk.Download(ctx, a)
+// DownloadChunk downloads chunk from the node
+func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := n.api.Chunks.Download(ctx, a)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
 
 	return ioutil.ReadAll(r)
+}
+
+// DownloadFile downloads chunk from the node and returns it's size and hash
+func (n *Node) DownloadFile(ctx context.Context, a swarm.Address) (size int64, hash []byte, err error) {
+	r, err := n.api.Files.Download(ctx, a)
+	if err != nil {
+		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
+	}
+
+	h := fileHahser()
+	size, err = io.Copy(h, r)
+	if err != nil {
+		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
+	}
+
+	return size, h.Sum(nil), nil
 }
 
 // HasChunk returns true/false if node has a chunk
@@ -114,7 +129,7 @@ func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 
 // Ping pings other node
 func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
-	r, err := n.api.PingPong.Ping(ctx, node)
+	r, err := n.debug.PingPong.Ping(ctx, node)
 	if err != nil {
 		return "", fmt.Errorf("ping node %s: %w", node, err)
 	}
@@ -215,40 +230,50 @@ func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 	return a.Underlay, nil
 }
 
-// UploadChunk uploads chunk to the node
-func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
-	r, err := n.api.Bzz.Upload(ctx, bytes.NewReader(c.Data()))
+// UploadBytes uploads chunk to the node
+func (n *Node) UploadBytes(ctx context.Context, c *Chunk) (err error) {
+	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(c.Data()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
 
-	c.address = r.Hash
+	c.address = r.Reference
 
 	return
 }
 
-func hashFunc() hash.Hash {
-	return sha3.NewLegacyKeccak256()
-}
-
-// UploadBzzChunk uploads chunk to the node
-func (n *Node) UploadBzzChunk(ctx context.Context, c *Chunk) (err error) {
-	p := bmtlegacy.NewTreePool(hashFunc, swarm.Branches, bmtlegacy.PoolSize)
+// UploadChunk uploads chunk to the node
+func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
+	p := bmtlegacy.NewTreePool(chunkHahser, swarm.Branches, bmtlegacy.PoolSize)
 	hasher := bmtlegacy.New(p)
-	err = hasher.SetSpan(int64(c.Size()))
+	err = hasher.SetSpan(int64(c.Span()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
-	_, err = hasher.Write(c.Data())
+	_, err = hasher.Write(c.Data()[8:])
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
 	c.address = swarm.NewAddress(hasher.Sum(nil))
 
-	_, err = n.api.BzzChunk.Upload(ctx, c.address, bytes.NewReader(c.Data()))
+	_, err = n.api.Chunks.Upload(ctx, c.address, bytes.NewReader(c.Data()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
+
+	return
+}
+
+// UploadFile uploads file to the node
+func (n *Node) UploadFile(ctx context.Context, f *File) (err error) {
+	h := fileHahser()
+	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size())
+	if err != nil {
+		return fmt.Errorf("upload file: %w", err)
+	}
+
+	f.address = r.Reference
+	f.hash = h.Sum(nil)
 
 	return
 }

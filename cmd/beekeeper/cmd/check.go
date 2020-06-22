@@ -52,10 +52,12 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
 	cmd.PersistentFlags().String(optionNamePushGateway, "http://localhost:9091/", "Prometheus PushGateway")
 
+	cmd.AddCommand(c.initCheckFileRetrieval())
 	cmd.AddCommand(c.initCheckFullConnectivity())
 	cmd.AddCommand(c.initCheckKademlia())
 	cmd.AddCommand(c.initCheckPeerCount())
 	cmd.AddCommand(c.initCheckPingPong())
+	cmd.AddCommand(c.initCheckPullSync())
 	cmd.AddCommand(c.initCheckPushSync())
 	cmd.AddCommand(c.initCheckRetrieval())
 
