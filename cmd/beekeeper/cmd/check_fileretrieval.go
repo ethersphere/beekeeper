@@ -6,7 +6,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/random"
-
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +57,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				seed = random.Int64()
 			}
 
-			fileSize := c.config.GetInt64(optionNameFileSize) * 1024 * 1024
+			fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
 
 			if full {
 				return fileretrieval.CheckFull(cluster, fileretrieval.Options{
@@ -84,9 +83,16 @@ and attempts retrieval of those files from the last node in the cluster.`,
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload files to")
 	cmd.Flags().IntP(optionNameFilesPerNode, "p", 1, "number of files to upload per node")
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
-	cmd.Flags().Int64(optionNameFileSize, 1, "file size in MB")
+	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().BoolVar(&full, optionNameFull, false, "tries to download from all nodes in the cluster")
 
 	return cmd
+}
+
+func round(val float64) int64 {
+	if val < 0 {
+		return int64(val - 0.5)
+	}
+	return int64(val + 0.5)
 }
