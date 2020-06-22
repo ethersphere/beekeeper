@@ -110,6 +110,57 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 	return addressStream
 }
 
+// GlobalReplicationFactor returns replication factor for a given chunk
+func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (gcrf float64, err error) {
+	var counter int
+	for m := range c.HasChunkStream(ctx, a) {
+		if m.Error != nil {
+			return 0, fmt.Errorf("node %d: %w", m.Index, m.Error)
+		}
+		if m.Found {
+			counter++
+		}
+	}
+
+	gcrf = float64(counter) / float64(c.Size())
+
+	return gcrf, err
+}
+
+// HasChunkStreamMsg represents message sent over the HasChunkStream channel
+type HasChunkStreamMsg struct {
+	Found bool
+	Index int
+	Error error
+}
+
+// HasChunkStream returns stream of HasChunk requests for all nodes in the cluster
+func (c *Cluster) HasChunkStream(ctx context.Context, a swarm.Address) <-chan HasChunkStreamMsg {
+	hasChunkStream := make(chan HasChunkStreamMsg)
+
+	go func() {
+		var wg sync.WaitGroup
+		for i, node := range c.Nodes {
+			wg.Add(1)
+			go func(i int, n Node) {
+				defer wg.Done()
+
+				found, err := n.HasChunk(ctx, a)
+				hasChunkStream <- HasChunkStreamMsg{
+					Found: found,
+					Index: i,
+					Error: err,
+				}
+			}(i, node)
+		}
+
+		wg.Wait()
+		close(hasChunkStream)
+	}()
+
+	return hasChunkStream
+}
+
 // Overlays returns ordered list of overlay addresses of all nodes in the cluster
 func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err error) {
 	var msgs []OverlaysStreamMsg
