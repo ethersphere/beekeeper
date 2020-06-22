@@ -55,6 +55,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.AddCommand(c.initCheckKademlia())
 	cmd.AddCommand(c.initCheckPeerCount())
 	cmd.AddCommand(c.initCheckPingPong())
+	cmd.AddCommand(c.initCheckPullSync())
 	cmd.AddCommand(c.initCheckPushSync())
 	cmd.AddCommand(c.initCheckRetrieval())
 
