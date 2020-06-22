@@ -6,6 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 )
 
@@ -50,6 +51,8 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				return err
 			}
 
+			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+
 			var seed int64
 			if cmd.Flags().Changed("seed") {
 				seed = c.config.GetInt64(optionNameSeed)
@@ -66,7 +69,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 					FileName:        c.config.GetString(optionNameFileName),
 					FileSize:        fileSize,
 					Seed:            seed,
-				})
+				}, pusher)
 			}
 
 			return fileretrieval.Check(cluster, fileretrieval.Options{
@@ -75,7 +78,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				FileName:        c.config.GetString(optionNameFileName),
 				FileSize:        fileSize,
 				Seed:            seed,
-			})
+			}, pusher)
 		},
 		PreRunE: c.checkPreRunE,
 	}
