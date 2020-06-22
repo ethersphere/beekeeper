@@ -37,10 +37,6 @@ func Check(c bee.Cluster, o Options) (err error) {
 		return err
 	}
 
-	// find closest node to chunk
-	// go to all nodes which are connected to this node and check their topology
-	// if the PO(chunk,pivot) >= depth(pivot) (pivot is the node connected to the closest), then chunk should be synced
-	// if the PO(chunk,pivot) < depth(pivot) && PO(chunk,closest) == PO(pivot,closest) (chunk outside depth and equals peerPO bin - should be synced)
 	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (
@@ -86,7 +82,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 				}
 			}
 
-			// check closest and NN replication
+			// check closest and NN replication (non-nn replication is not realistic)
 			closest, err := chunk.ClosestNode(overlays)
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
@@ -110,14 +106,14 @@ func Check(c bee.Cluster, o Options) (err error) {
 					case pivotPo >= pivotDepth:
 						// chunk within replicating node depth
 						replicatingNodes = append(replicatingNodes, peer)
-						fmt.Printf("nn rep. pivotPo %d pivotDepth %d, closestPo %d\n", pivotPo, pivotDepth, po)
+						fmt.Printf("closest nn rep. pivotPo %d pivotDepth %d, closestPo %d\n", pivotPo, pivotDepth, po)
 						nnRep++
 					case pivotPo != 0 && pivotPo < pivotDepth && po == pivotToClosestPo:
 						// if the po of the chunk with the closest == to our po with the closest, then we need to sync it
 						// chunk outside our depth
 						// po with chunk must equal po with closest
 						replicatingNodes = append(replicatingNodes, peer)
-						fmt.Printf("no nn rep. pivotPo %d pivotDepth %d, pivotToClosestPo %d, closestPo %d\n", pivotPo, pivotDepth, pivotToClosestPo, po)
+						fmt.Printf("closest no nn rep. pivotPo %d pivotDepth %d, pivotToClosestPo %d, closestPo %d\n", pivotPo, pivotDepth, pivotToClosestPo, po)
 						peerPoBinRep++
 					}
 				}

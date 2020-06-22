@@ -124,7 +124,7 @@ func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) 
 
 	gcrf = float64(counter) / float64(c.Size())
 
-	return
+	return gcrf, err
 }
 
 // HasChunkStreamMsg represents message sent over the HasChunkStream channel
@@ -136,29 +136,29 @@ type HasChunkStreamMsg struct {
 
 // HasChunkStream returns stream of HasChunk requests for all nodes in the cluster
 func (c *Cluster) HasChunkStream(ctx context.Context, a swarm.Address) <-chan HasChunkStreamMsg {
-	HasChunkStream := make(chan HasChunkStreamMsg)
-
-	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
-		wg.Add(1)
-		go func(i int, n Node) {
-			defer wg.Done()
-
-			found, err := n.HasChunk(ctx, a)
-			HasChunkStream <- HasChunkStreamMsg{
-				Found: found,
-				Index: i,
-				Error: err,
-			}
-		}(i, node)
-	}
+	hasChunkStream := make(chan HasChunkStreamMsg)
 
 	go func() {
+		var wg sync.WaitGroup
+		for i, node := range c.Nodes {
+			wg.Add(1)
+			go func(i int, n Node) {
+				defer wg.Done()
+
+				found, err := n.HasChunk(ctx, a)
+				hasChunkStream <- HasChunkStreamMsg{
+					Found: found,
+					Index: i,
+					Error: err,
+				}
+			}(i, node)
+		}
+
 		wg.Wait()
-		close(HasChunkStream)
+		close(hasChunkStream)
 	}()
 
-	return HasChunkStream
+	return hasChunkStream
 }
 
 // Overlays returns ordered list of overlay addresses of all nodes in the cluster
