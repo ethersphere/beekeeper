@@ -21,7 +21,7 @@ dist:
 
 .PHONY: lint
 lint:
-	$(GOLANGCI_LINT) run
+	$(GOLANGCI_LINT) run --timeout 5m
 
 .PHONY: linter
 linter:
