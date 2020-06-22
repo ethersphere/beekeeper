@@ -8,4 +8,6 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.6.3
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
+	k8s.io/apimachinery v0.18.3
+	k8s.io/client-go v0.18.3
 )
