@@ -17,6 +17,11 @@ func (c *command) initCheckFileRetrieval() *cobra.Command {
 		optionNameFileName        = "file-name"
 		optionNameFileSize        = "file-size"
 		optionNameSeed            = "seed"
+		optionNameFull            = "full"
+	)
+
+	var (
+		full bool
 	)
 
 	cmd := &cobra.Command{
@@ -55,6 +60,16 @@ and attempts retrieval of those files from the last node in the cluster.`,
 
 			fileSize := c.config.GetInt64(optionNameFileSize) * 1024 * 1024
 
+			if full {
+				return fileretrieval.CheckFull(cluster, fileretrieval.Options{
+					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
+					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
+					FileName:        c.config.GetString(optionNameFileName),
+					FileSize:        fileSize,
+					Seed:            seed,
+				})
+			}
+
 			return fileretrieval.Check(cluster, fileretrieval.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
@@ -71,6 +86,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
 	cmd.Flags().Int64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
+	cmd.Flags().BoolVar(&full, optionNameFull, false, "tries to download from all nodes in the cluster")
 
 	return cmd
 }
