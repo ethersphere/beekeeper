@@ -48,6 +48,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
+			t0 := time.Now()
 			if err := c.Nodes[i].UploadBytes(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}

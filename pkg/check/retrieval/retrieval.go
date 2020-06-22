@@ -47,7 +47,8 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
-
+			
+			t0 := time.Now()t0 := time.Now()
 			if err := c.Nodes[i].UploadBytes(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
@@ -57,6 +58,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 			uploadTimeGauge.WithLabelValues(overlays[i].String(), chunk.Address().String()).Set(d0.Seconds())
 			uploadTimeHistogram.Observe(d0.Seconds())
 
+			t1 := time.Now()
 			data, err := c.Nodes[c.Size()-1].DownloadBytes(ctx, chunk.Address())
 			if err != nil {
 				return fmt.Errorf("node %d: %w", c.Size()-1, err)
