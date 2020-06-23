@@ -34,7 +34,7 @@ and prints round-trip time (RTT) of each ping.`,
 
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
-			return pingpong.Check(cluster, pusher, enableMetrics)
+			return pingpong.Check(cluster, pusher, pushMetrics)
 		},
 		PreRunE: c.checkPreRunE,
 	}

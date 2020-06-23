@@ -13,7 +13,7 @@ import (
 )
 
 // Check executes ping from all nodes to all other nodes in the cluster
-func Check(cluster bee.Cluster, pusher *push.Pusher, metrics bool) (err error) {
+func Check(cluster bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 
 	pusher.Collector(rttGauge)
@@ -37,7 +37,7 @@ func Check(cluster bee.Cluster, pusher *push.Pusher, metrics bool) (err error) {
 		rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
 		rttHistogram.Observe(rtt.Seconds())
 
-		if metrics {
+		if pushMetrics {
 			if err := pusher.Push(); err != nil {
 				fmt.Printf("node %d: %s\n", n.Index, err)
 			}

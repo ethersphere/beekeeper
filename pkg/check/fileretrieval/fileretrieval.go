@@ -25,7 +25,7 @@ type Options struct {
 var errFileRetrieval = errors.New("file retrieval")
 
 // Check uploads files on cluster and downloads them from the last node in the cluster
-func Check(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err error) {
+func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -81,7 +81,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err err
 			retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 			fmt.Printf("Node %d. File %d retrieved successfully. Node: %s File: %s\n", i, j, overlays[i].String(), file.Address().String())
 
-			if metrics {
+			if pushMetrics {
 				if err := pusher.Push(); err != nil {
 					fmt.Printf("node %d: %s\n", i, err)
 				}
@@ -93,7 +93,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err err
 }
 
 // CheckFull uploads files on cluster and downloads them from the all nodes in the cluster
-func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err error) {
+func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -154,7 +154,7 @@ func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err
 				retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 				fmt.Printf("Node %d. File %d retrieved successfully from node %d. Node: %s Download node: %s File: %s\n", i, j, d, overlays[i].String(), overlays[d].String(), file.Address().String())
 
-				if metrics {
+				if pushMetrics {
 					if err := pusher.Push(); err != nil {
 						fmt.Printf("node %d: %s\n", i, err)
 					}

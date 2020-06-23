@@ -18,14 +18,14 @@ const (
 	optionNameNamespace               = "namespace"
 	optionNameNodeCount               = "node-count"
 	optionNamePushGateway             = "push-gateway"
-	optionNameMetrics                 = "metrics"
+	optionNamePushMetrics             = "push-metrics"
 )
 
 var (
 	disableNamespace    bool
 	insecureTLSAPI      bool
 	insecureTLSDebugAPI bool
-	enableMetrics       bool
+	pushMetrics         bool
 )
 
 func (c *command) initCheckCmd() (err error) {
@@ -50,10 +50,10 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&insecureTLSDebugAPI, optionNameDebugAPIInsecureTLS, false, "skips TLS verification for debug API")
 	cmd.PersistentFlags().BoolVar(&disableNamespace, optionNameDisableNamespace, false, "disable Kubernetes namespace")
 	cmd.PersistentFlags().Bool(optionNameInsecureTLS, false, "skips TLS verification for both API and debug API")
-	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "bee", "Kubernetes namespace, must be set or disabled")
+	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
 	cmd.PersistentFlags().String(optionNamePushGateway, "http://localhost:9091/", "Prometheus PushGateway")
-	cmd.PersistentFlags().BoolVar(&enableMetrics, optionNameMetrics, false, "send metrics to pushgateway")
+	cmd.PersistentFlags().BoolVar(&pushMetrics, optionNamePushMetrics, false, "push metrics to pushgateway")
 
 	cmd.AddCommand(c.initCheckFileRetrieval())
 	cmd.AddCommand(c.initCheckFullConnectivity())
@@ -69,8 +69,16 @@ func (c *command) initCheckCmd() (err error) {
 }
 
 func (c *command) checkPreRunE(cmd *cobra.Command, args []string) (err error) {
+	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
+		if err = cmd.MarkFlagRequired(optionNameNamespace); err != nil {
+			return
+		}
+	}
 	if err = c.config.BindPFlags(cmd.Flags()); err != nil {
 		return
+	}
+	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
+		return cmd.Help()
 	}
 
 	if c.config.GetBool(optionNameInsecureTLS) {

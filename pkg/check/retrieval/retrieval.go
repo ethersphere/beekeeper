@@ -23,7 +23,7 @@ type Options struct {
 var errRetrieval = errors.New("retrieval")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err error) {
+func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -84,7 +84,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err err
 			retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 			fmt.Printf("Node %d. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", i, j, overlays[i].String(), chunk.Address().String())
 
-			if metrics {
+			if pushMetrics {
 				if err := pusher.Push(); err != nil {
 					fmt.Printf("node %d: %s\n", i, err)
 				}
