@@ -45,6 +45,7 @@ and checks if chunks are synced to their closest nodes.`,
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
+				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})
@@ -81,7 +82,7 @@ and checks if chunks are synced to their closest nodes.`,
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Seed:            seed,
-			}, pusher)
+			}, pusher, enableMetrics)
 		},
 		PreRunE: c.checkPreRunE,
 	}

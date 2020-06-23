@@ -9,14 +9,17 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/common/expfmt"
 )
 
 // Check executes ping from all nodes to all other nodes in the cluster
-func Check(cluster bee.Cluster, pusher *push.Pusher) (err error) {
+func Check(cluster bee.Cluster, pusher *push.Pusher, metrics bool) (err error) {
 	ctx := context.Background()
 
 	pusher.Collector(rttGauge)
 	pusher.Collector(rttHistogram)
+
+	pusher.Format(expfmt.FmtText)
 
 	for n := range nodeStream(ctx, cluster.Nodes) {
 		if n.Error != nil {
@@ -34,8 +37,10 @@ func Check(cluster bee.Cluster, pusher *push.Pusher) (err error) {
 		rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
 		rttHistogram.Observe(rtt.Seconds())
 
-		if err := pusher.Push(); err != nil {
-			fmt.Printf("node %d: %s\n", n.Index, err)
+		if metrics {
+			if err := pusher.Push(); err != nil {
+				fmt.Printf("node %d: %s\n", n.Index, err)
+			}
 		}
 	}
 

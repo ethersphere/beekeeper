@@ -10,6 +10,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/common/expfmt"
 )
 
 // Options represents pushsync check options
@@ -22,7 +23,7 @@ type Options struct {
 var errRetrieval = errors.New("retrieval")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
+func Check(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -35,6 +36,8 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 	pusher.Collector(downloadTimeHistogram)
 	pusher.Collector(retrievedCounter)
 	pusher.Collector(notRetrievedCounter)
+
+	pusher.Format(expfmt.FmtText)
 
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
@@ -81,8 +84,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 			retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 			fmt.Printf("Node %d. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", i, j, overlays[i].String(), chunk.Address().String())
 
-			if err := pusher.Push(); err != nil {
-				fmt.Printf("node %d: %s\n", i, err)
+			if metrics {
+				if err := pusher.Push(); err != nil {
+					fmt.Printf("node %d: %s\n", i, err)
+				}
 			}
 		}
 	}

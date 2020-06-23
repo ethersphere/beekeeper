@@ -38,6 +38,7 @@ and attempts retrieval of those chunks from the last node in the cluster.`,
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
+				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})
@@ -58,7 +59,7 @@ and attempts retrieval of those chunks from the last node in the cluster.`,
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Seed:            seed,
-			}, pusher)
+			}, pusher, enableMetrics)
 		},
 		PreRunE: c.checkPreRunE,
 	}

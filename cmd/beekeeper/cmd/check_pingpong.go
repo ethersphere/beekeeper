@@ -24,6 +24,7 @@ and prints round-trip time (RTT) of each ping.`,
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
+				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})
@@ -33,7 +34,7 @@ and prints round-trip time (RTT) of each ping.`,
 
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
-			return pingpong.Check(cluster, pusher)
+			return pingpong.Check(cluster, pusher, enableMetrics)
 		},
 		PreRunE: c.checkPreRunE,
 	}

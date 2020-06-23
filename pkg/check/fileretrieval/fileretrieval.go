@@ -10,6 +10,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/common/expfmt"
 )
 
 // Options represents pushsync check options
@@ -24,7 +25,7 @@ type Options struct {
 var errFileRetrieval = errors.New("file retrieval")
 
 // Check uploads files on cluster and downloads them from the last node in the cluster
-func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
+func Check(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -37,6 +38,8 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 	pusher.Collector(downloadTimeHistogram)
 	pusher.Collector(retrievedCounter)
 	pusher.Collector(notRetrievedCounter)
+
+	pusher.Format(expfmt.FmtText)
 
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
@@ -78,8 +81,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 			retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 			fmt.Printf("Node %d. File %d retrieved successfully. Node: %s File: %s\n", i, j, overlays[i].String(), file.Address().String())
 
-			if err := pusher.Push(); err != nil {
-				fmt.Printf("node %d: %s\n", i, err)
+			if metrics {
+				if err := pusher.Push(); err != nil {
+					fmt.Printf("node %d: %s\n", i, err)
+				}
 			}
 		}
 	}
@@ -88,7 +93,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 }
 
 // CheckFull uploads files on cluster and downloads them from the all nodes in the cluster
-func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
+func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher, metrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -101,6 +106,8 @@ func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 	pusher.Collector(downloadTimeHistogram)
 	pusher.Collector(retrievedCounter)
 	pusher.Collector(notRetrievedCounter)
+
+	pusher.Format(expfmt.FmtText)
 
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
@@ -147,8 +154,10 @@ func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher) (err error) {
 				retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 				fmt.Printf("Node %d. File %d retrieved successfully from node %d. Node: %s Download node: %s File: %s\n", i, j, d, overlays[i].String(), overlays[d].String(), file.Address().String())
 
-				if err := pusher.Push(); err != nil {
-					fmt.Printf("node %d: %s\n", i, err)
+				if metrics {
+					if err := pusher.Push(); err != nil {
+						fmt.Printf("node %d: %s\n", i, err)
+					}
 				}
 			}
 		}
