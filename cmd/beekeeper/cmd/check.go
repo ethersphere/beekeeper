@@ -17,12 +17,15 @@ const (
 	optionNameInsecureTLS             = "insecure-tls"
 	optionNameNamespace               = "namespace"
 	optionNameNodeCount               = "node-count"
+	optionNamePushGateway             = "push-gateway"
+	optionNamePushMetrics             = "push-metrics"
 )
 
 var (
 	disableNamespace    bool
 	insecureTLSAPI      bool
 	insecureTLSDebugAPI bool
+	pushMetrics         bool
 )
 
 func (c *command) initCheckCmd() (err error) {
@@ -49,6 +52,8 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().Bool(optionNameInsecureTLS, false, "skips TLS verification for both API and debug API")
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
+	cmd.PersistentFlags().String(optionNamePushGateway, "http://localhost:9091/", "Prometheus PushGateway")
+	cmd.PersistentFlags().BoolVar(&pushMetrics, optionNamePushMetrics, false, "push metrics to pushgateway")
 
 	cmd.AddCommand(c.initCheckFileRetrieval())
 	cmd.AddCommand(c.initCheckFullConnectivity())
