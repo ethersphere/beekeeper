@@ -70,7 +70,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 					FileName:        c.config.GetString(optionNameFileName),
 					FileSize:        fileSize,
 					Seed:            seed,
-				}, pusher, pushMetrics)
+				}, pusher, c.config.GetBool(optionNamePushMetrics))
 			}
 
 			return fileretrieval.Check(cluster, fileretrieval.Options{
@@ -79,7 +79,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				FileName:        c.config.GetString(optionNameFileName),
 				FileSize:        fileSize,
 				Seed:            seed,
-			}, pusher, pushMetrics)
+			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
 	}
