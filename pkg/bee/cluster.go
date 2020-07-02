@@ -24,6 +24,7 @@ type ClusterOptions struct {
 	DebugAPIScheme          string
 	DebugAPIHostnamePattern string
 	DebugAPIDomain          string
+	DisableNamespace        bool
 	DebugAPIInsecureTLS     bool
 	Namespace               string
 	Size                    int
@@ -32,12 +33,12 @@ type ClusterOptions struct {
 // NewCluster returns new cluster
 func NewCluster(o ClusterOptions) (c Cluster, err error) {
 	for i := 0; i < o.Size; i++ {
-		a, err := createURL(o.APIScheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, i)
+		a, err := createURL(o.APIScheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, o.DisableNamespace, i)
 		if err != nil {
 			return Cluster{}, fmt.Errorf("create cluster: %w", err)
 		}
 
-		d, err := createURL(o.DebugAPIScheme, o.DebugAPIHostnamePattern, o.Namespace, o.DebugAPIDomain, i)
+		d, err := createURL(o.DebugAPIScheme, o.DebugAPIHostnamePattern, o.Namespace, o.DebugAPIDomain, o.DisableNamespace, i)
 		if err != nil {
 			return Cluster{}, fmt.Errorf("create cluster: %w", err)
 		}
@@ -333,9 +334,9 @@ func (c *Cluster) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg {
 }
 
 // createURL creates API or debug API URL
-func createURL(scheme, hostnamePattern, namespace, domain string, index int) (nodeURL *url.URL, err error) {
+func createURL(scheme, hostnamePattern, namespace, domain string, disableNamespace bool, index int) (nodeURL *url.URL, err error) {
 	hostname := fmt.Sprintf(hostnamePattern, index)
-	if len(namespace) == 0 {
+	if disableNamespace {
 		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s", scheme, hostname, domain))
 	} else {
 		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", scheme, hostname, namespace, domain))

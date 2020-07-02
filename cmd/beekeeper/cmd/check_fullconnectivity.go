@@ -22,6 +22,7 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
+				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})

@@ -6,7 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/random"
-
+	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +17,11 @@ func (c *command) initCheckFileRetrieval() *cobra.Command {
 		optionNameFileName        = "file-name"
 		optionNameFileSize        = "file-size"
 		optionNameSeed            = "seed"
+		optionNameFull            = "full"
+	)
+
+	var (
+		full bool
 	)
 
 	cmd := &cobra.Command{
@@ -39,12 +44,15 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
+				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})
 			if err != nil {
 				return err
 			}
+
+			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			var seed int64
 			if cmd.Flags().Changed("seed") {
@@ -53,13 +61,25 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				seed = random.Int64()
 			}
 
+			fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
+
+			if full {
+				return fileretrieval.CheckFull(cluster, fileretrieval.Options{
+					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
+					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
+					FileName:        c.config.GetString(optionNameFileName),
+					FileSize:        fileSize,
+					Seed:            seed,
+				}, pusher, c.config.GetBool(optionNamePushMetrics))
+			}
+
 			return fileretrieval.Check(cluster, fileretrieval.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
 				FileName:        c.config.GetString(optionNameFileName),
-				FileSize:        c.config.GetInt64(optionNameFileSize),
+				FileSize:        fileSize,
 				Seed:            seed,
-			})
+			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
 	}
@@ -67,8 +87,16 @@ and attempts retrieval of those files from the last node in the cluster.`,
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload files to")
 	cmd.Flags().IntP(optionNameFilesPerNode, "p", 1, "number of files to upload per node")
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
-	cmd.Flags().Int64(optionNameFileSize, 1048576, "file size in bytes")
+	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
+	cmd.Flags().BoolVar(&full, optionNameFull, false, "tries to download from all nodes in the cluster")
 
 	return cmd
+}
+
+func round(val float64) int64 {
+	if val < 0 {
+		return int64(val - 0.5)
+	}
+	return int64(val + 0.5)
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
+	"github.com/prometheus/client_golang/prometheus/push"
 
 	"github.com/spf13/cobra"
 )
@@ -23,6 +24,7 @@ and prints round-trip time (RTT) of each ping.`,
 				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
 				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
+				DisableNamespace:        disableNamespace,
 				Namespace:               c.config.GetString(optionNameNamespace),
 				Size:                    c.config.GetInt(optionNameNodeCount),
 			})
@@ -30,7 +32,9 @@ and prints round-trip time (RTT) of each ping.`,
 				return err
 			}
 
-			return pingpong.Check(cluster)
+			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+
+			return pingpong.Check(cluster, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
 	}
