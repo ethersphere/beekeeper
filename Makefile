@@ -21,7 +21,7 @@ dist:
 
 .PHONY: lint
 lint:
-	$(GOLANGCI_LINT) run --timeout 5m --skip-dirs '(^|/)pkg/helm3($|/)'
+	$(GOLANGCI_LINT) run
 
 .PHONY: linter
 linter:
