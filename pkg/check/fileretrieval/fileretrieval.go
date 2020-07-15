@@ -165,3 +165,71 @@ func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) 
 
 	return
 }
+
+// CheckDynamic uploads files on cluster and downloads them from the last node in the cluster
+func CheckDynamic(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+	ctx := context.Background()
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	fmt.Printf("Seed: %d\n", o.Seed)
+
+	pusher.Collector(uploadedCounter)
+	pusher.Collector(uploadTimeGauge)
+	pusher.Collector(uploadTimeHistogram)
+	pusher.Collector(downloadedCounter)
+	pusher.Collector(downloadTimeGauge)
+	pusher.Collector(downloadTimeHistogram)
+	pusher.Collector(retrievedCounter)
+	pusher.Collector(notRetrievedCounter)
+
+	pusher.Format(expfmt.FmtText)
+
+	overlays, err := c.Overlays(ctx)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < o.UploadNodeCount; i++ {
+		for j := 0; j < o.FilesPerNode; j++ {
+			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
+
+			t0 := time.Now()
+			if err := c.Nodes[i].UploadFile(ctx, &file); err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+			d0 := time.Since(t0)
+
+			uploadedCounter.WithLabelValues(overlays[i].String()).Inc()
+			uploadTimeGauge.WithLabelValues(overlays[i].String(), file.Address().String()).Set(d0.Seconds())
+			uploadTimeHistogram.Observe(d0.Seconds())
+
+			time.Sleep(1 * time.Second)
+			t1 := time.Now()
+			size, hash, err := c.Nodes[c.Size()-1].DownloadFile(ctx, file.Address())
+			if err != nil {
+				return fmt.Errorf("node %d: %w", c.Size()-1, err)
+			}
+			d1 := time.Since(t1)
+
+			downloadedCounter.WithLabelValues(overlays[i].String()).Inc()
+			downloadTimeGauge.WithLabelValues(overlays[i].String(), file.Address().String()).Set(d1.Seconds())
+			downloadTimeHistogram.Observe(d1.Seconds())
+
+			if !bytes.Equal(file.Hash(), hash) {
+				notRetrievedCounter.WithLabelValues(overlays[i].String()).Inc()
+				fmt.Printf("Node %d. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", i, j, file.Size(), size, overlays[i].String(), file.Address().String())
+				return errFileRetrieval
+			}
+
+			retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
+			fmt.Printf("Node %d. File %d retrieved successfully. Node: %s File: %s\n", i, j, overlays[i].String(), file.Address().String())
+
+			if pushMetrics {
+				if err := pusher.Push(); err != nil {
+					fmt.Printf("node %d: %s\n", i, err)
+				}
+			}
+		}
+	}
+
+	return
+}

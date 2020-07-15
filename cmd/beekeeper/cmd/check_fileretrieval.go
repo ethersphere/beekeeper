@@ -18,10 +18,12 @@ func (c *command) initCheckFileRetrieval() *cobra.Command {
 		optionNameFileSize        = "file-size"
 		optionNameSeed            = "seed"
 		optionNameFull            = "full"
+		optionNameDynamic         = "dynamic"
 	)
 
 	var (
-		full bool
+		full    bool
+		dynamic bool
 	)
 
 	cmd := &cobra.Command{
@@ -73,6 +75,16 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				}, pusher, c.config.GetBool(optionNamePushMetrics))
 			}
 
+			if dynamic {
+				return fileretrieval.CheckDynamic(cluster, fileretrieval.Options{
+					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
+					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
+					FileName:        c.config.GetString(optionNameFileName),
+					FileSize:        fileSize,
+					Seed:            seed,
+				}, pusher, c.config.GetBool(optionNamePushMetrics))
+			}
+
 			return fileretrieval.Check(cluster, fileretrieval.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
@@ -90,6 +102,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().BoolVar(&full, optionNameFull, false, "tries to download from all nodes in the cluster")
+	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "enables dynamic cluster")
 
 	return cmd
 }
