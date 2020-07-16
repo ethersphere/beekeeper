@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/chaos"
@@ -15,10 +16,44 @@ import (
 // Options represents pushsync check options
 type Options struct {
 	DownloadNodeCount int
-	FilesPerNode      int
+	StopPodCount      int
 	FileName          string
 	FileSize          int64
 	Seed              int64
+}
+
+// ChaosOptions ...
+type ChaosOptions struct {
+	Kubeconfig string
+	Action     string
+	Mode       string
+	Value      string
+	Namespace  string
+	Podname    string
+	Duration   string
+	Cron       string
+}
+
+var chaosStart = ChaosOptions{
+	Kubeconfig: "/Users/svetomir.smiljkovic/.kube/config",
+	Action:     "create",
+	Mode:       "one",
+	Value:      "",
+	Namespace:  "svetomir",
+	Podname:    "bee",
+	Duration:   "59s",
+	Cron:       "60s",
+}
+
+var chaosStop = ChaosOptions{
+	Kubeconfig: "/Users/svetomir.smiljkovic/.kube/config",
+	Action:     "delete",
+	Mode:       "one",
+	Value:      "",
+	Namespace:  "svetomir",
+	Podname:    "bee",
+	Duration:   "59s",
+	Cron:       "60s",
 }
 
 var errFileRetrievalDynamic = errors.New("file retrieval dynamic")
@@ -46,6 +81,29 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			found = true
 		}
 	}
+	sIndexes := []int{}
+	found = false
+	for !found {
+		i := rnd.Intn(c.Size())
+		if i != 0 && !contains(sIndexes, i) {
+			sIndexes = append(sIndexes, i)
+		}
+		if len(sIndexes) == o.StopPodCount {
+			found = true
+		}
+	}
+	d2Indexes := []int{}
+	found = false
+	for !found {
+		i := rnd.Intn(c.Size())
+		if uIndex != i && !contains(dIndexes, i) && !contains(d2Indexes, i) && !contains(sIndexes, i) {
+			d2Indexes = append(d2Indexes, i)
+		}
+		if len(d2Indexes) == o.DownloadNodeCount {
+			found = true
+		}
+	}
+	d3Indexes := append(dIndexes, d2Indexes...)
 
 	file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
 	if err := c.Nodes[uIndex].UploadFile(ctx, &file); err != nil {
@@ -67,37 +125,56 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
 	}
 
+	// STOP NODES
 	fmt.Printf("Alter cluster\n")
-	fmt.Printf("Bee-1 fail\n")
+	for _, sIndex := range sIndexes {
+		if err = chaos.PodFailure(ctx, chaosStart.Kubeconfig, chaosStart.Action, chaosStart.Mode, chaosStart.Value, chaosStart.Namespace, fmt.Sprintf("%s-%d", chaosStart.Podname, sIndex), chaosStart.Duration, chaosStart.Cron); err != nil {
+			return err
+		}
+		fmt.Printf("Node %s-%d stopped\n", chaosStart.Podname, sIndex)
+	}
+	time.Sleep(60 * time.Second)
 
-	kubeconfig := "~/.kube/config"
-	action := "create"
-	mode := "one"
-	value := ""
-	namespace := "svetomir"
-	podname := "bee-1"
-	duration := "59.99s"
-	cron := "60s"
+	for _, dIndex := range d2Indexes {
+		if contains(sIndexes, dIndex) {
+			fmt.Printf("Node %d. Stopped. Node %s\n", dIndex, overlays[dIndex].String())
+			continue
+		}
+		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
+		if err != nil {
+			return fmt.Errorf("node %d: %w", dIndex, err)
+		}
 
-	err = chaos.PodFailure(ctx, kubeconfig, action, mode, value, namespace, podname, duration, cron)
-	if err != nil {
-		return err
+		if !bytes.Equal(file.Hash(), hash) {
+			notRetrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
+			fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", dIndex, file.Address().String(), overlays[dIndex].String(), file.Size(), size)
+			return errFileRetrievalDynamic
+		}
+		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
 	}
 
-	fmt.Printf("Bee-1 back\n")
+	// START NODES
+	fmt.Printf("Restore cluster\n")
+	for _, sIndex := range sIndexes {
+		if err = chaos.PodFailure(ctx, chaosStop.Kubeconfig, chaosStop.Action, chaosStop.Mode, chaosStop.Value, chaosStop.Namespace, fmt.Sprintf("%s-%d", chaosStop.Podname, sIndex), chaosStop.Duration, chaosStop.Cron); err != nil {
+			return err
+		}
+		fmt.Printf("Node %s-%d started\n", chaosStop.Podname, sIndex)
+	}
+	time.Sleep(120 * time.Second)
 
-	kubeconfig = "~/.kube/config"
-	action = "delete"
-	mode = "one"
-	value = ""
-	namespace = "svetomir"
-	podname = "bee-1"
-	duration = "59.99s"
-	cron = "60s"
+	for _, dIndex := range d3Indexes {
+		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
+		if err != nil {
+			return fmt.Errorf("node %d: %w", dIndex, err)
+		}
 
-	err = chaos.PodFailure(ctx, kubeconfig, action, mode, value, namespace, podname, duration, cron)
-	if err != nil {
-		return err
+		if !bytes.Equal(file.Hash(), hash) {
+			notRetrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
+			fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", dIndex, file.Address().String(), overlays[dIndex].String(), file.Size(), size)
+			return errFileRetrievalDynamic
+		}
+		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
 	}
 
 	return

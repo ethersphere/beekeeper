@@ -13,7 +13,7 @@ import (
 func (c *command) initCheckFileRetrievalDynamic() *cobra.Command {
 	const (
 		optionNameDownloadNodeCount = "download-node-count"
-		optionNameFilesPerNode      = "files-per-node"
+		optionNameStopPodCount      = "stop-pod-count"
 		optionNameFileName          = "file-name"
 		optionNameFileSize          = "file-size"
 		optionNameSeed              = "seed"
@@ -60,7 +60,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 
 			return fileretrievaldynamic.Check(cluster, fileretrievaldynamic.Options{
 				DownloadNodeCount: c.config.GetInt(optionNameDownloadNodeCount),
-				FilesPerNode:      c.config.GetInt(optionNameFilesPerNode),
+				StopPodCount:      c.config.GetInt(optionNameStopPodCount),
 				FileName:          c.config.GetString(optionNameFileName),
 				FileSize:          fileSize,
 				Seed:              seed,
@@ -70,7 +70,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 	}
 
 	cmd.Flags().IntP(optionNameDownloadNodeCount, "d", 1, "number of nodes to download files from")
-	cmd.Flags().IntP(optionNameFilesPerNode, "p", 1, "number of files to upload per node")
+	cmd.Flags().IntP(optionNameStopPodCount, "p", 1, "number of pods to stop")
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
