@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/chaos"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
@@ -67,6 +68,37 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 
 	fmt.Printf("Alter cluster\n")
+	fmt.Printf("Bee-1 fail\n")
+
+	kubeconfig := "~/.kube/config"
+	action := "create"
+	mode := "one"
+	value := ""
+	namespace := "svetomir"
+	podname := "bee-1"
+	duration := "59.99s"
+	cron := "60s"
+
+	err = chaos.PodFailure(ctx, kubeconfig, action, mode, value, namespace, podname, duration, cron)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Bee-1 back\n")
+
+	kubeconfig = "~/.kube/config"
+	action = "delete"
+	mode = "one"
+	value = ""
+	namespace = "svetomir"
+	podname = "bee-1"
+	duration = "59.99s"
+	cron = "60s"
+
+	err = chaos.PodFailure(ctx, kubeconfig, action, mode, value, namespace, podname, duration, cron)
+	if err != nil {
+		return err
+	}
 
 	return
 }
