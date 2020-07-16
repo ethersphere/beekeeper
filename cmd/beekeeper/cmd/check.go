@@ -56,6 +56,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&pushMetrics, optionNamePushMetrics, false, "push metrics to pushgateway")
 
 	cmd.AddCommand(c.initCheckFileRetrieval())
+	cmd.AddCommand(c.initCheckFileRetrievalDynamic())
 	cmd.AddCommand(c.initCheckFullConnectivity())
 	cmd.AddCommand(c.initCheckKademlia())
 	cmd.AddCommand(c.initCheckPeerCount())
