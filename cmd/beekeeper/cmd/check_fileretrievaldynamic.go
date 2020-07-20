@@ -13,10 +13,11 @@ import (
 func (c *command) initCheckFileRetrievalDynamic() *cobra.Command {
 	const (
 		optionNameDownloadNodeCount = "download-node-count"
-		optionNameStopPodCount      = "stop-pod-count"
 		optionNameFileName          = "file-name"
 		optionNameFileSize          = "file-size"
+		optionNameNewNodeCount      = "new-node-count"
 		optionNameSeed              = "seed"
+		optionNameStopNodeCount     = "stop-node-count"
 	)
 
 	cmd := &cobra.Command{
@@ -26,8 +27,11 @@ func (c *command) initCheckFileRetrievalDynamic() *cobra.Command {
 It uploads given number of files to given number of nodes, 
 and attempts retrieval of those files from the last node in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if c.config.GetInt(optionNameDownloadNodeCount) <= 0 || c.config.GetInt(optionNameDownloadNodeCount) >= c.config.GetInt(optionNameNodeCount) {
-				return errors.New("bad parameters: download-node-count must be greater than 0 and less than node-count")
+			if c.config.GetInt(optionNameDownloadNodeCount) <= 0 {
+				return errors.New("bad parameters: download-node-count must be greater than 0")
+			}
+			if c.config.GetInt(optionNameDownloadNodeCount) >= c.config.GetInt(optionNameNodeCount)-c.config.GetInt(optionNameStopNodeCount) {
+				return errors.New("bad parameters: download-node-count must be less than node-count - stop-node-count")
 			}
 
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
@@ -60,20 +64,22 @@ and attempts retrieval of those files from the last node in the cluster.`,
 
 			return fileretrievaldynamic.Check(cluster, fileretrievaldynamic.Options{
 				DownloadNodeCount: c.config.GetInt(optionNameDownloadNodeCount),
-				StopPodCount:      c.config.GetInt(optionNameStopPodCount),
 				FileName:          c.config.GetString(optionNameFileName),
 				FileSize:          fileSize,
+				NewNodeCount:      c.config.GetInt(optionNameNewNodeCount),
 				Seed:              seed,
+				StopNodeCount:     c.config.GetInt(optionNameStopNodeCount),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
 	cmd.Flags().IntP(optionNameDownloadNodeCount, "d", 1, "number of nodes to download files from")
-	cmd.Flags().IntP(optionNameStopPodCount, "p", 1, "number of pods to stop")
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
+	cmd.Flags().Int(optionNameNewNodeCount, 0, "number of new nodes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
+	cmd.Flags().Int(optionNameStopNodeCount, 1, "number of nodes to stop")
 
 	return cmd
 }
