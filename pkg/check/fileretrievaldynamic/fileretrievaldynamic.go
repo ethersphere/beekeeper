@@ -141,7 +141,6 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			found = true
 		}
 	}
-	fmt.Printf("Alter cluster\n")
 	for _, sIndex := range sIndexes {
 		if err = chaos.PodFailure(ctx, chaosStart.Kubeconfig, chaosStart.Action, chaosStart.Mode, chaosStart.Value, chaosStart.Namespace, fmt.Sprintf("%s-%d", chaosStart.Podname, sIndex), chaosStart.Duration, chaosStart.Cron); err != nil {
 			return err
@@ -180,17 +179,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
 	}
 
-	// add new nodes and download
-	if o.NewNodeCount > 0 {
-		if err := helm3.Upgrade(helmScale.Kubeconfig, helmScale.Namespace, helmScale.Release, helmScale.Chart, helmScale.Args); err != nil {
-			return fmt.Errorf("helm3: %w", err)
-		}
-		fmt.Println("cluster scaled")
-		// TODO: download from all new nodes
-		// time.Sleep(120 * time.Second)
-	}
-
-	// start stopped nodes and download
+	// start stopped nodes and download from them
 	fmt.Printf("Restore cluster\n")
 	for _, sIndex := range sIndexes {
 		if err = chaos.PodFailure(ctx, chaosStop.Kubeconfig, chaosStop.Action, chaosStop.Mode, chaosStop.Value, chaosStop.Namespace, fmt.Sprintf("%s-%d", chaosStop.Podname, sIndex), chaosStop.Duration, chaosStop.Cron); err != nil {
@@ -200,8 +189,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 	time.Sleep(120 * time.Second)
 
-	d4Indexes := append(dIndexes, d2Indexes...)
-	for _, dIndex := range d4Indexes {
+	for _, dIndex := range sIndexes {
 		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %d: %w", dIndex, err)
@@ -215,14 +203,55 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
 	}
 
-	// remove new nodes and download
+	// add new nodes and download from them
 	if o.NewNodeCount > 0 {
+		if err := helm3.Upgrade(helmScale.Kubeconfig, helmScale.Namespace, helmScale.Release, helmScale.Chart, helmScale.Args); err != nil {
+			return fmt.Errorf("helm3: %w", err)
+		}
+		fmt.Println("cluster scaled")
+		c.AddNodes(o.NewNodeCount)
+		time.Sleep(300 * time.Second)
+
+		// TODO: stop nodes again
+		for i := c.Size() - o.NewNodeCount; i < c.Size(); i++ {
+			overlay, err := c.Nodes[i].Overlay(ctx)
+			if err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+
+			size, hash, err := c.Nodes[i].DownloadFile(ctx, file.Address())
+			if err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+
+			if !bytes.Equal(file.Hash(), hash) {
+				notRetrievedCounter.WithLabelValues(overlay.String()).Inc()
+				fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", i, file.Address().String(), overlay.String(), file.Size(), size)
+				return errFileRetrievalDynamic
+			}
+			fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", i, file.Address().String(), overlay.String())
+		}
+
 		if err := helm3.Upgrade(helmRestore.Kubeconfig, helmRestore.Namespace, helmRestore.Release, helmRestore.Chart, helmRestore.Args); err != nil {
 			return fmt.Errorf("helm3: %w", err)
 		}
 		fmt.Println("cluster restored")
-		// TODO: download from all inital nodes
-		// time.Sleep(120 * time.Second)
+		c.RemoveNodes(o.NewNodeCount)
+		time.Sleep(120 * time.Second)
+
+		for i := 0; i < c.Size(); i++ {
+			size, hash, err := c.Nodes[i].DownloadFile(ctx, file.Address())
+			if err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+
+			if !bytes.Equal(file.Hash(), hash) {
+				notRetrievedCounter.WithLabelValues(overlays[i].String()).Inc()
+				fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", i, file.Address().String(), overlays[i].String(), file.Size(), size)
+				return errFileRetrievalDynamic
+			}
+			fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", i, file.Address().String(), overlays[i].String())
+		}
 	}
 
 	return
