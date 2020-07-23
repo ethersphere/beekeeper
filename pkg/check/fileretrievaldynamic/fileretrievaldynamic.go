@@ -232,7 +232,7 @@ func downloadFile(ctx context.Context, c bee.Cluster, file bee.File, indexes []i
 	return nil
 }
 
-// randomIndexes finds n random indexes <max and but excludes skiped
+// randomIndexes finds n random indexes <max and but excludes skipped
 func randomIndexes(rnd *rand.Rand, n, max int, skipped []int) (indexes []int, err error) {
 	if n > max-len(skipped) {
 		return []int{}, fmt.Errorf("not enough nodes")
