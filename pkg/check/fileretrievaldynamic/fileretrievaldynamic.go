@@ -14,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/helm3"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/common/expfmt"
 )
 
 // Options represents pushsync check options, there are two conditions:
@@ -50,6 +51,15 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
+	pusher.Collector(uploadTimeGauge)
+	pusher.Collector(downloadedCounter)
+	pusher.Collector(downloadTimeGauge)
+	pusher.Collector(downloadTimeHistogram)
+	pusher.Collector(retrievedCounter)
+	pusher.Collector(notRetrievedCounter)
+
+	pusher.Format(expfmt.FmtText)
+
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
 		return err
@@ -58,9 +68,12 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	// upload file to random node
 	uIndex := rnd.Intn(c.Size())
 	file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
+	t0 := time.Now()
 	if err := c.Nodes[uIndex].UploadFile(ctx, &file); err != nil {
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
+	d0 := time.Since(t0)
+	uploadTimeGauge.WithLabelValues(overlays[uIndex].String(), file.Address().String()).Set(d0.Seconds())
 	fmt.Printf("Node %d. File %s uploaded successfully to node %s\n", uIndex, file.Address().String(), overlays[uIndex].String())
 
 	// download from random nodes
@@ -69,7 +82,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	if err != nil {
 		return fmt.Errorf("d1Indexes: %w", err)
 	}
-	if err := downloadFile(ctx, c, file, d1Indexes, overlays); err != nil {
+	if err := downloadFile(ctx, c, file, d1Indexes, overlays, pusher, pushMetrics); err != nil {
 		return err
 	}
 
@@ -96,7 +109,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	if err != nil {
 		return fmt.Errorf("d2Indexes: %w", err)
 	}
-	if err := downloadFile(ctx, c, file, d2Indexes, overlays); err != nil {
+	if err := downloadFile(ctx, c, file, d2Indexes, overlays, pusher, pushMetrics); err != nil {
 		return err
 	}
 
@@ -109,7 +122,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 	fmt.Printf("Waiting for %ds\n", o.StopNodeCount*30)
 	time.Sleep(time.Duration(o.StopNodeCount) * 30 * time.Second)
-	if err := downloadFile(ctx, c, file, s1Indexes, overlays); err != nil {
+	if err := downloadFile(ctx, c, file, s1Indexes, overlays, pusher, pushMetrics); err != nil {
 		return err
 	}
 
@@ -155,7 +168,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err != nil {
 			return fmt.Errorf("d3Indexes: %w", err)
 		}
-		if err := downloadFile(ctx, c, file, d3Indexes, overlays); err != nil {
+		if err := downloadFile(ctx, c, file, d3Indexes, overlays, pusher, pushMetrics); err != nil {
 			return err
 		}
 
@@ -168,7 +181,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 		fmt.Printf("Waiting for %ds\n", o.StopNodeCount*30)
 		time.Sleep(time.Duration(o.StopNodeCount) * 30 * time.Second)
-		if err := downloadFile(ctx, c, file, s2Indexes, overlays); err != nil {
+		if err := downloadFile(ctx, c, file, s2Indexes, overlays, pusher, pushMetrics); err != nil {
 			return err
 		}
 
@@ -184,19 +197,32 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 }
 
 // downloadFile downloads file from given (indexes) nodes from the cluster
-func downloadFile(ctx context.Context, c bee.Cluster, file bee.File, indexes []int, overlays []swarm.Address) error {
+func downloadFile(ctx context.Context, c bee.Cluster, file bee.File, indexes []int, overlays []swarm.Address, pusher *push.Pusher, pushMetrics bool) error {
 	for _, i := range indexes {
+		t1 := time.Now()
 		size, hash, err := c.Nodes[i].DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %d: %w", i, err)
 		}
+		d1 := time.Since(t1)
+
+		downloadedCounter.WithLabelValues(overlays[i].String()).Inc()
+		downloadTimeGauge.WithLabelValues(overlays[i].String(), file.Address().String()).Set(d1.Seconds())
+		downloadTimeHistogram.Observe(d1.Seconds())
 
 		if !bytes.Equal(file.Hash(), hash) {
 			notRetrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 			fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", i, file.Address().String(), overlays[i].String(), file.Size(), size)
 			return errFileRetrievalDynamic
 		}
+		retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", i, file.Address().String(), overlays[i].String())
+
+		if pushMetrics {
+			if err := pusher.Push(); err != nil {
+				fmt.Printf("node %d: %s\n", i, err)
+			}
+		}
 	}
 
 	return nil
