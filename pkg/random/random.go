@@ -7,6 +7,12 @@ import (
 	"math/rand"
 )
 
+// PseudoGenerator returns *rand.Rand
+func PseudoGenerator(seed int64) (g *rand.Rand) {
+	rnd := rand.New(rand.NewSource(seed))
+	return rand.New(rand.NewSource(rnd.Int63()))
+}
+
 // PseudoGenerators returns list of n *rand.Rand
 func PseudoGenerators(seed int64, n int) (g []*rand.Rand) {
 	rnd := rand.New(rand.NewSource(seed))

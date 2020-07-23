@@ -13,6 +13,7 @@ import (
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
 	Nodes []Node
+	opts  ClusterOptions
 }
 
 // ClusterOptions represents Bee cluster options
@@ -32,6 +33,7 @@ type ClusterOptions struct {
 
 // NewCluster returns new cluster
 func NewCluster(o ClusterOptions) (c Cluster, err error) {
+	c.opts = o
 	for i := 0; i < o.Size; i++ {
 		a, err := createURL(o.APIScheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, o.DisableNamespace, i)
 		if err != nil {
@@ -48,6 +50,34 @@ func NewCluster(o ClusterOptions) (c Cluster, err error) {
 			APIInsecureTLS:      o.APIInsecureTLS,
 			DebugAPIURL:         d,
 			DebugAPIInsecureTLS: o.DebugAPIInsecureTLS,
+		})
+
+		c.Nodes = append(c.Nodes, n)
+	}
+
+	return
+}
+
+// AddNodes adds new nodes to the cluster
+func (c *Cluster) AddNodes(count int) (err error) {
+	start, stop := c.Size(), c.Size()+count
+
+	for i := start; i < stop; i++ {
+		a, err := createURL(c.opts.APIScheme, c.opts.APIHostnamePattern, c.opts.Namespace, c.opts.APIDomain, c.opts.DisableNamespace, i)
+		if err != nil {
+			return fmt.Errorf("add nodes: %w", err)
+		}
+
+		d, err := createURL(c.opts.DebugAPIScheme, c.opts.DebugAPIHostnamePattern, c.opts.Namespace, c.opts.DebugAPIDomain, c.opts.DisableNamespace, i)
+		if err != nil {
+			return fmt.Errorf("add nodes: %w", err)
+		}
+
+		n := NewNode(NodeOptions{
+			APIURL:              a,
+			APIInsecureTLS:      c.opts.APIInsecureTLS,
+			DebugAPIURL:         d,
+			DebugAPIInsecureTLS: c.opts.DebugAPIInsecureTLS,
 		})
 
 		c.Nodes = append(c.Nodes, n)
@@ -271,6 +301,13 @@ func (c *Cluster) PeersStream(ctx context.Context) <-chan PeersStreamMsg {
 	}()
 
 	return peersStream
+}
+
+// RemoveNodes removes nodes from the cluster
+func (c *Cluster) RemoveNodes(count int) (err error) {
+	c.Nodes = c.Nodes[:c.Size()-count]
+
+	return
 }
 
 // Size returns size of the cluster
