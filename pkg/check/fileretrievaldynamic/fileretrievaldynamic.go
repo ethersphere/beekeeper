@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/chaos"
 	"github.com/ethersphere/beekeeper/pkg/helm3"
@@ -14,7 +16,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-// Options represents pushsync check options
+// Options represents pushsync check options, there are two conditions:
+// 1. 2x DownloadNodeCount + StopNodeCount + 2 <= NodeCount
+// 2. 3x DownloadNodeCount + 2x StopNodeCount + 2 <= NodeCount + NewNodeCount
 type Options struct {
 	DownloadNodeCount int
 	FileName          string
@@ -22,66 +26,21 @@ type Options struct {
 	NewNodeCount      int
 	Seed              int64
 	StopNodeCount     int
+	KubeConfig        string
+	Namespace         string
+	HelmRelease       string
+	HelmChart         string
 }
 
-// ChaosOptions ...
-type ChaosOptions struct {
-	Kubeconfig string
-	Action     string
-	Mode       string
-	Value      string
-	Namespace  string
-	Podname    string
-	Duration   string
-	Cron       string
-}
-
-// HelmOptions ...
-type HelmOptions struct {
-	Kubeconfig string
-	Namespace  string
-	Release    string
-	Chart      string
-	Args       map[string]string
-}
-
-var chaosStart = ChaosOptions{
-	Kubeconfig: "/Users/svetomir.smiljkovic/.kube/config",
-	Action:     "create",
-	Mode:       "one",
-	Value:      "",
-	Namespace:  "svetomir",
-	Podname:    "bee",
-	Duration:   "59s",
-	Cron:       "60s",
-}
-
-var chaosStop = ChaosOptions{
-	Kubeconfig: "/Users/svetomir.smiljkovic/.kube/config",
-	Action:     "delete",
-	Mode:       "one",
-	Value:      "",
-	Namespace:  "svetomir",
-	Podname:    "bee",
-	Duration:   "59s",
-	Cron:       "60s",
-}
-
-var helmScale = HelmOptions{
-	Kubeconfig: "/Users/svetomir.smiljkovic/.kube/config",
-	Namespace:  "svetomir",
-	Release:    "bee",
-	Chart:      "ethersphere/bee",
-	Args:       map[string]string{"set": "replicaCount=20"},
-}
-
-var helmRestore = HelmOptions{
-	Kubeconfig: "/Users/svetomir.smiljkovic/.kube/config",
-	Namespace:  "svetomir",
-	Release:    "bee",
-	Chart:      "ethersphere/bee",
-	Args:       map[string]string{"set": "replicaCount=15"},
-}
+var (
+	chaosCreate   = "create"
+	chaosDelete   = "delete"
+	chaosMode     = "one"
+	chaosValue    = ""
+	chaosPodname  = "bee"
+	chaosDuration = "59s"
+	chaosCron     = "60s"
+)
 
 var errFileRetrievalDynamic = errors.New("file retrieval dynamic")
 
@@ -96,6 +55,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		return err
 	}
 
+	// upload file to random node
 	uIndex := rnd.Intn(c.Size())
 	file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
 	if err := c.Nodes[uIndex].UploadFile(ctx, &file); err != nil {
@@ -103,154 +63,159 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 	fmt.Printf("Node %d. File %s uploaded successfully to node %s\n", uIndex, file.Address().String(), overlays[uIndex].String())
 
-	// download from unaltered cluster
-	dIndexes := []int{}
-	found := false
-	for !found {
-		i := rnd.Intn(c.Size())
-		if uIndex != i && !contains(dIndexes, i) {
-			dIndexes = append(dIndexes, i)
-		}
-		if len(dIndexes) == o.DownloadNodeCount {
-			found = true
-		}
+	// download from random nodes
+	d1Skip := []int{uIndex}
+	d1Indexes, err := randomIndexes(rnd, o.DownloadNodeCount, c.Size(), d1Skip)
+	if err != nil {
+		return fmt.Errorf("d1Indexes: %w", err)
 	}
-	for _, dIndex := range dIndexes {
-		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
-		if err != nil {
-			return fmt.Errorf("node %d: %w", dIndex, err)
-		}
-
-		if !bytes.Equal(file.Hash(), hash) {
-			notRetrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
-			fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", dIndex, file.Address().String(), overlays[dIndex].String(), file.Size(), size)
-			return errFileRetrievalDynamic
-		}
-		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
+	if err := downloadFile(ctx, c, file, d1Indexes, overlays); err != nil {
+		return err
 	}
 
-	// stop nodes
-	sIndexes := []int{}
-	found = false
-	for !found {
-		i := rnd.Intn(c.Size())
-		if i != 0 && !contains(sIndexes, i) {
-			sIndexes = append(sIndexes, i)
-		}
-		if len(sIndexes) == o.StopNodeCount {
-			found = true
-		}
+	// stop random nodes
+	s1Skip := []int{0}
+	s1Indexes, err := randomIndexes(rnd, o.StopNodeCount, c.Size(), s1Skip)
+	if err != nil {
+		return fmt.Errorf("s1Indexes: %w", err)
 	}
-	for _, sIndex := range sIndexes {
-		if err = chaos.PodFailure(ctx, chaosStart.Kubeconfig, chaosStart.Action, chaosStart.Mode, chaosStart.Value, chaosStart.Namespace, fmt.Sprintf("%s-%d", chaosStart.Podname, sIndex), chaosStart.Duration, chaosStart.Cron); err != nil {
+	for _, sIndex := range s1Indexes {
+		if err = chaos.PodFailure(ctx, o.KubeConfig, chaosCreate, chaosMode, chaosValue, o.Namespace, fmt.Sprintf("%s-%d", chaosPodname, sIndex), chaosDuration, chaosCron); err != nil {
 			return err
 		}
-		fmt.Printf("Node %s-%d stopped\n", chaosStart.Podname, sIndex)
+		fmt.Printf("Node %s-%d stopped\n", chaosPodname, sIndex)
 	}
-	time.Sleep(60 * time.Second)
+	fmt.Printf("Waiting for %ds\n", o.StopNodeCount*15)
+	time.Sleep(time.Duration(o.StopNodeCount) * 15 * time.Second)
 
-	// download from cluster with stopped nodes
-	d2Indexes := []int{}
-	found = false
-	for !found {
-		i := rnd.Intn(c.Size())
-		if uIndex != i && !contains(dIndexes, i) && !contains(d2Indexes, i) && !contains(sIndexes, i) {
-			d2Indexes = append(d2Indexes, i)
-		}
-		if len(d2Indexes) == o.DownloadNodeCount {
-			found = true
-		}
+	// download from other random nodes
+	d2Skip := []int{uIndex}
+	d2Skip = append(d2Skip, d1Indexes...)
+	d2Skip = append(d2Skip, s1Indexes...)
+	d2Indexes, err := randomIndexes(rnd, o.DownloadNodeCount, c.Size(), d2Skip)
+	if err != nil {
+		return fmt.Errorf("d2Indexes: %w", err)
 	}
-	for _, dIndex := range d2Indexes {
-		if contains(sIndexes, dIndex) {
-			fmt.Printf("Node %d. Stopped. Node %s\n", dIndex, overlays[dIndex].String())
-			continue
-		}
-		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
-		if err != nil {
-			return fmt.Errorf("node %d: %w", dIndex, err)
-		}
-
-		if !bytes.Equal(file.Hash(), hash) {
-			notRetrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
-			fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", dIndex, file.Address().String(), overlays[dIndex].String(), file.Size(), size)
-			return errFileRetrievalDynamic
-		}
-		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
+	if err := downloadFile(ctx, c, file, d2Indexes, overlays); err != nil {
+		return err
 	}
 
 	// start stopped nodes and download from them
-	fmt.Printf("Restore cluster\n")
-	for _, sIndex := range sIndexes {
-		if err = chaos.PodFailure(ctx, chaosStop.Kubeconfig, chaosStop.Action, chaosStop.Mode, chaosStop.Value, chaosStop.Namespace, fmt.Sprintf("%s-%d", chaosStop.Podname, sIndex), chaosStop.Duration, chaosStop.Cron); err != nil {
+	for _, sIndex := range s1Indexes {
+		if err = chaos.PodFailure(ctx, o.KubeConfig, chaosDelete, chaosMode, chaosValue, o.Namespace, fmt.Sprintf("%s-%d", chaosPodname, sIndex), chaosDuration, chaosCron); err != nil {
 			return err
 		}
-		fmt.Printf("Node %s-%d started\n", chaosStop.Podname, sIndex)
+		fmt.Printf("Node %s-%d started\n", chaosPodname, sIndex)
 	}
-	time.Sleep(120 * time.Second)
-
-	for _, dIndex := range sIndexes {
-		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
-		if err != nil {
-			return fmt.Errorf("node %d: %w", dIndex, err)
-		}
-
-		if !bytes.Equal(file.Hash(), hash) {
-			notRetrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
-			fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", dIndex, file.Address().String(), overlays[dIndex].String(), file.Size(), size)
-			return errFileRetrievalDynamic
-		}
-		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
+	fmt.Printf("Waiting for %ds\n", o.StopNodeCount*30)
+	time.Sleep(time.Duration(o.StopNodeCount) * 30 * time.Second)
+	if err := downloadFile(ctx, c, file, s1Indexes, overlays); err != nil {
+		return err
 	}
 
 	// add new nodes and download from them
 	if o.NewNodeCount > 0 {
-		if err := helm3.Upgrade(helmScale.Kubeconfig, helmScale.Namespace, helmScale.Release, helmScale.Chart, helmScale.Args); err != nil {
+		// add nodes to the cluster
+		if err := helm3.Upgrade(o.KubeConfig, o.Namespace, o.HelmRelease, o.HelmChart, map[string]string{"set": fmt.Sprintf("replicaCount=%d", c.Size()+o.NewNodeCount)}); err != nil {
 			return fmt.Errorf("helm3: %w", err)
 		}
-		fmt.Println("cluster scaled")
 		c.AddNodes(o.NewNodeCount)
-		time.Sleep(300 * time.Second)
+		fmt.Printf("%d nodes added to the cluster\n", o.NewNodeCount)
+		fmt.Printf("Waiting for %ds\n", o.NewNodeCount*60)
+		time.Sleep(time.Duration(o.NewNodeCount) * 60 * time.Second)
 
-		// TODO: stop nodes again
-		for i := c.Size() - o.NewNodeCount; i < c.Size(); i++ {
-			overlay, err := c.Nodes[i].Overlay(ctx)
-			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
-			}
-
-			size, hash, err := c.Nodes[i].DownloadFile(ctx, file.Address())
-			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
-			}
-
-			if !bytes.Equal(file.Hash(), hash) {
-				notRetrievedCounter.WithLabelValues(overlay.String()).Inc()
-				fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", i, file.Address().String(), overlay.String(), file.Size(), size)
-				return errFileRetrievalDynamic
-			}
-			fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", i, file.Address().String(), overlay.String())
+		overlays, err := c.Overlays(ctx)
+		if err != nil {
+			return err
 		}
 
-		if err := helm3.Upgrade(helmRestore.Kubeconfig, helmRestore.Namespace, helmRestore.Release, helmRestore.Chart, helmRestore.Args); err != nil {
+		// stop random nodes
+		s2Skip := []int{0}
+		s2Skip = append(s2Skip, s1Indexes...)
+		s2Indexes, err := randomIndexes(rnd, o.StopNodeCount, c.Size(), s2Skip)
+		if err != nil {
+			return fmt.Errorf("s2Indexes: %w", err)
+		}
+		for _, sIndex := range s2Indexes {
+			if err = chaos.PodFailure(ctx, o.KubeConfig, chaosCreate, chaosMode, chaosValue, o.Namespace, fmt.Sprintf("%s-%d", chaosPodname, sIndex), chaosDuration, chaosCron); err != nil {
+				return err
+			}
+			fmt.Printf("Node %s-%d stopped\n", chaosPodname, sIndex)
+		}
+		fmt.Printf("Waiting for %ds\n", o.StopNodeCount*15)
+		time.Sleep(time.Duration(o.StopNodeCount) * 15 * time.Second)
+
+		// download from other random nodes
+		d3Skip := []int{uIndex}
+		d3Skip = append(d3Skip, d1Indexes...)
+		d3Skip = append(d3Skip, d2Indexes...)
+		d3Skip = append(d3Skip, s1Indexes...)
+		d3Skip = append(d3Skip, s2Indexes...)
+		d3Indexes, err := randomIndexes(rnd, o.DownloadNodeCount, c.Size(), d3Skip)
+		if err != nil {
+			return fmt.Errorf("d3Indexes: %w", err)
+		}
+		if err := downloadFile(ctx, c, file, d3Indexes, overlays); err != nil {
+			return err
+		}
+
+		// start stopped nodes and download from them
+		for _, sIndex := range s2Indexes {
+			if err = chaos.PodFailure(ctx, o.KubeConfig, chaosDelete, chaosMode, chaosValue, o.Namespace, fmt.Sprintf("%s-%d", chaosPodname, sIndex), chaosDuration, chaosCron); err != nil {
+				return err
+			}
+			fmt.Printf("Node %s-%d started\n", chaosPodname, sIndex)
+		}
+		fmt.Printf("Waiting for %ds\n", o.StopNodeCount*30)
+		time.Sleep(time.Duration(o.StopNodeCount) * 30 * time.Second)
+		if err := downloadFile(ctx, c, file, s2Indexes, overlays); err != nil {
+			return err
+		}
+
+		// restore cluster to original state
+		if err := helm3.Upgrade(o.KubeConfig, o.Namespace, o.HelmRelease, o.HelmChart, map[string]string{"set": fmt.Sprintf("replicaCount=%d", c.Size()-o.NewNodeCount)}); err != nil {
 			return fmt.Errorf("helm3: %w", err)
 		}
-		fmt.Println("cluster restored")
+		fmt.Printf("Cluster restored to original state\n")
 		c.RemoveNodes(o.NewNodeCount)
-		time.Sleep(120 * time.Second)
+	}
 
-		for i := 0; i < c.Size(); i++ {
-			size, hash, err := c.Nodes[i].DownloadFile(ctx, file.Address())
-			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
-			}
+	return
+}
 
-			if !bytes.Equal(file.Hash(), hash) {
-				notRetrievedCounter.WithLabelValues(overlays[i].String()).Inc()
-				fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", i, file.Address().String(), overlays[i].String(), file.Size(), size)
-				return errFileRetrievalDynamic
-			}
-			fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", i, file.Address().String(), overlays[i].String())
+// downloadFile downloads file from given (indexes) nodes from the cluster
+func downloadFile(ctx context.Context, c bee.Cluster, file bee.File, indexes []int, overlays []swarm.Address) error {
+	for _, i := range indexes {
+		size, hash, err := c.Nodes[i].DownloadFile(ctx, file.Address())
+		if err != nil {
+			return fmt.Errorf("node %d: %w", i, err)
+		}
+
+		if !bytes.Equal(file.Hash(), hash) {
+			notRetrievedCounter.WithLabelValues(overlays[i].String()).Inc()
+			fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", i, file.Address().String(), overlays[i].String(), file.Size(), size)
+			return errFileRetrievalDynamic
+		}
+		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", i, file.Address().String(), overlays[i].String())
+	}
+
+	return nil
+}
+
+// randomIndexes finds n random indexes <max and but excludes skiped
+func randomIndexes(rnd *rand.Rand, n, max int, skiped []int) (indexes []int, err error) {
+	if n > max-len(skiped) {
+		return []int{}, fmt.Errorf("not enough nodes")
+	}
+
+	found := false
+	for !found {
+		i := rnd.Intn(max)
+		if !contains(indexes, i) && !contains(skiped, i) {
+			indexes = append(indexes, i)
+		}
+		if len(indexes) == n {
+			found = true
 		}
 	}
 

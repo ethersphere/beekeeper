@@ -7,8 +7,8 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_fileretrieval",
-			Name:      "chunks_uploaded_count",
-			Help:      "Number of uploaded chunks.",
+			Name:      "files_uploaded_count",
+			Help:      "Number of uploaded files.",
 		},
 		[]string{"node"},
 	)
@@ -16,17 +16,17 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_fileretrieval",
-			Name:      "chunk_upload_duration_seconds",
-			Help:      "Chunk upload duration Gauge.",
+			Name:      "file_upload_duration_seconds",
+			Help:      "File upload duration Gauge.",
 		},
-		[]string{"node", "chunk"},
+		[]string{"node", "file"},
 	)
 	uploadTimeHistogram = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_fileretrieval",
-			Name:      "chunk_upload_seconds",
-			Help:      "Chunk upload duration Histogram.",
+			Name:      "file_upload_seconds",
+			Help:      "File upload duration Histogram.",
 			Buckets:   prometheus.LinearBuckets(0, 0.1, 10),
 		},
 	)
@@ -34,8 +34,8 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_fileretrieval",
-			Name:      "chunks_downloaded_count",
-			Help:      "Number of downloaded chunks.",
+			Name:      "files_downloaded_count",
+			Help:      "Number of downloaded files.",
 		},
 		[]string{"node"},
 	)
@@ -43,17 +43,17 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_fileretrieval",
-			Name:      "chunk_download_duration_seconds",
-			Help:      "Chunk download duration Gauge.",
+			Name:      "file_download_duration_seconds",
+			Help:      "File download duration Gauge.",
 		},
-		[]string{"node", "chunk"},
+		[]string{"node", "file"},
 	)
 	downloadTimeHistogram = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_fileretrieval",
-			Name:      "chunk_download_seconds",
-			Help:      "Chunk download duration Histogram.",
+			Name:      "file_download_seconds",
+			Help:      "File download duration Histogram.",
 			Buckets:   prometheus.LinearBuckets(0, 0.1, 10),
 		},
 	)
@@ -61,8 +61,8 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_fileretrieval",
-			Name:      "chunks_retrieved_count",
-			Help:      "Number of chunks that has been retrieved.",
+			Name:      "files_retrieved_count",
+			Help:      "Number of files that has been retrieved.",
 		},
 		[]string{"node"},
 	)
@@ -70,8 +70,8 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "beekeeper",
 			Subsystem: "check_fileretrieval",
-			Name:      "chunks_not_retrieved_count",
-			Help:      "Number of chunks that has not been retrieved.",
+			Name:      "files_not_retrieved_count",
+			Help:      "Number of files that has not been retrieved.",
 		},
 		[]string{"node"},
 	)

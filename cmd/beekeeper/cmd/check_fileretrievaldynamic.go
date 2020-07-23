@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrievaldynamic"
@@ -18,6 +19,9 @@ func (c *command) initCheckFileRetrievalDynamic() *cobra.Command {
 		optionNameNewNodeCount      = "new-node-count"
 		optionNameSeed              = "seed"
 		optionNameStopNodeCount     = "stop-node-count"
+		optionNameKubeConfig        = "kubeconfig"
+		optionNameHelmRelease       = "helm-release"
+		optionNameHelmChart         = "helm-chart"
 	)
 
 	cmd := &cobra.Command{
@@ -27,11 +31,21 @@ func (c *command) initCheckFileRetrievalDynamic() *cobra.Command {
 It uploads given number of files to given number of nodes, 
 and attempts retrieval of those files from the last node in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			if len(c.config.GetString(optionNameKubeConfig)) == 0 {
+				return errors.New("bad parameters: full path to KubeConfig must be provided")
+			}
 			if c.config.GetInt(optionNameDownloadNodeCount) <= 0 {
 				return errors.New("bad parameters: download-node-count must be greater than 0")
 			}
-			if c.config.GetInt(optionNameDownloadNodeCount) >= c.config.GetInt(optionNameNodeCount)-c.config.GetInt(optionNameStopNodeCount) {
-				return errors.New("bad parameters: download-node-count must be less than node-count - stop-node-count")
+			l1 := 2*c.config.GetInt(optionNameDownloadNodeCount) + c.config.GetInt(optionNameStopNodeCount) + 2
+			r1 := c.config.GetInt(optionNameNodeCount)
+			if l1 > r1 {
+				return fmt.Errorf("bad parameters: 2x download-node-count + stop-node-count + 2 must be <= node-count ; now: %d > %d", l1, r1)
+			}
+			l2 := 3*c.config.GetInt(optionNameDownloadNodeCount) + 2*c.config.GetInt(optionNameStopNodeCount) + 2
+			r2 := c.config.GetInt(optionNameNodeCount) + c.config.GetInt(optionNameNewNodeCount)
+			if l2 > r2 {
+				return fmt.Errorf("bad parameters: 3x download-node-count + 2x stop-node-count + 2 must be <= node-count + new-node-count ; now: %d > %d", l2, r2)
 			}
 
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
@@ -69,6 +83,9 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				NewNodeCount:      c.config.GetInt(optionNameNewNodeCount),
 				Seed:              seed,
 				StopNodeCount:     c.config.GetInt(optionNameStopNodeCount),
+				KubeConfig:        c.config.GetString(optionNameKubeConfig),
+				HelmRelease:       c.config.GetString(optionNameHelmRelease),
+				HelmChart:         c.config.GetString(optionNameHelmChart),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
@@ -80,6 +97,9 @@ and attempts retrieval of those files from the last node in the cluster.`,
 	cmd.Flags().Int(optionNameNewNodeCount, 0, "number of new nodes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().Int(optionNameStopNodeCount, 1, "number of nodes to stop")
+	cmd.Flags().String(optionNameKubeConfig, "", "full path to KubeConfig")
+	cmd.Flags().String(optionNameHelmRelease, "bee", "helm release")
+	cmd.Flags().String(optionNameHelmChart, "ethersphere/bee", "helm chart")
 
 	return cmd
 }
