@@ -132,7 +132,9 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err := helm3.Upgrade(o.KubeConfig, o.Namespace, o.HelmRelease, o.HelmChart, map[string]string{"set": fmt.Sprintf("replicaCount=%d", c.Size()+o.NewNodeCount)}); err != nil {
 			return fmt.Errorf("helm3: %w", err)
 		}
-		c.AddNodes(o.NewNodeCount)
+		if err := c.AddNodes(o.NewNodeCount); err != nil {
+			return fmt.Errorf("adding nodes to the cluster: %w", err)
+		}
 		fmt.Printf("%d nodes added to the cluster\n", o.NewNodeCount)
 		fmt.Printf("Waiting for %ds\n", o.NewNodeCount*60)
 		time.Sleep(time.Duration(o.NewNodeCount) * 60 * time.Second)
@@ -190,7 +192,9 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return fmt.Errorf("helm3: %w", err)
 		}
 		fmt.Printf("Cluster restored to original state\n")
-		c.RemoveNodes(o.NewNodeCount)
+		if err := c.RemoveNodes(o.NewNodeCount); err != nil {
+			return fmt.Errorf("removing nodes from the cluster: %w", err)
+		}
 	}
 
 	return
@@ -229,15 +233,15 @@ func downloadFile(ctx context.Context, c bee.Cluster, file bee.File, indexes []i
 }
 
 // randomIndexes finds n random indexes <max and but excludes skiped
-func randomIndexes(rnd *rand.Rand, n, max int, skiped []int) (indexes []int, err error) {
-	if n > max-len(skiped) {
+func randomIndexes(rnd *rand.Rand, n, max int, skipped []int) (indexes []int, err error) {
+	if n > max-len(skipped) {
 		return []int{}, fmt.Errorf("not enough nodes")
 	}
 
 	found := false
 	for !found {
 		i := rnd.Intn(max)
-		if !contains(indexes, i) && !contains(skiped, i) {
+		if !contains(indexes, i) && !contains(skipped, i) {
 			indexes = append(indexes, i)
 		}
 		if len(indexes) == n {
