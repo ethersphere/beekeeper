@@ -42,12 +42,13 @@ and attempts retrieval of those files from the last node in the cluster.`,
 			if l1 > r1 {
 				return fmt.Errorf("bad parameters: 2x download-node-count + stop-node-count + 2 must be <= node-count ; now: %d > %d", l1, r1)
 			}
-			l2 := 3*c.config.GetInt(optionNameDownloadNodeCount) + 2*c.config.GetInt(optionNameStopNodeCount) + 2
-			r2 := c.config.GetInt(optionNameNodeCount) + c.config.GetInt(optionNameNewNodeCount)
-			if l2 > r2 {
-				return fmt.Errorf("bad parameters: 3x download-node-count + 2x stop-node-count + 2 must be <= node-count + new-node-count ; now: %d > %d", l2, r2)
+			if c.config.GetInt(optionNameNewNodeCount) > 0 {
+				l2 := 3*c.config.GetInt(optionNameDownloadNodeCount) + 2*c.config.GetInt(optionNameStopNodeCount) + 2
+				r2 := c.config.GetInt(optionNameNodeCount) + c.config.GetInt(optionNameNewNodeCount)
+				if l2 > r2 {
+					return fmt.Errorf("bad parameters: 3x download-node-count + 2x stop-node-count + 2 must be <= node-count + new-node-count ; now: %d > %d", l2, r2)
+				}
 			}
-
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIScheme:               c.config.GetString(optionNameAPIScheme),
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
