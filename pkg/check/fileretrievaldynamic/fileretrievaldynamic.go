@@ -3,7 +3,6 @@ package fileretrievaldynamic
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -43,7 +42,7 @@ var (
 	chaosCron     = "60s"
 )
 
-var errFileRetrievalDynamic = errors.New("file retrieval dynamic")
+// var errFileRetrievalDynamic = errors.New("file retrieval dynamic")
 
 // Check uploads file on cluster and downloads them from N random nodes
 func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
