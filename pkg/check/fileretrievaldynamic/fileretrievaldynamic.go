@@ -3,7 +3,6 @@ package fileretrievaldynamic
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -43,7 +42,7 @@ var (
 	chaosCron     = "60s"
 )
 
-var errFileRetrievalDynamic = errors.New("file retrieval dynamic")
+// var errFileRetrievalDynamic = errors.New("file retrieval dynamic")
 
 // Check uploads file on cluster and downloads them from N random nodes
 func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
@@ -206,7 +205,8 @@ func downloadFile(ctx context.Context, c bee.Cluster, file bee.File, indexes []i
 		t1 := time.Now()
 		size, hash, err := c.Nodes[i].DownloadFile(ctx, file.Address())
 		if err != nil {
-			return fmt.Errorf("node %d: %w", i, err)
+			fmt.Printf("error: node %d: %s\n", i, err)
+			// return fmt.Errorf("node %d: %w", i, err)
 		}
 		d1 := time.Since(t1)
 
@@ -216,15 +216,15 @@ func downloadFile(ctx context.Context, c bee.Cluster, file bee.File, indexes []i
 
 		if !bytes.Equal(file.Hash(), hash) {
 			notRetrievedCounter.WithLabelValues(overlays[i].String()).Inc()
-			fmt.Printf("Node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", i, file.Address().String(), overlays[i].String(), file.Size(), size)
-			return errFileRetrievalDynamic
+			fmt.Printf("error: node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", i, file.Address().String(), overlays[i].String(), file.Size(), size)
+			// return errFileRetrievalDynamic
 		}
 		retrievedCounter.WithLabelValues(overlays[i].String()).Inc()
 		fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", i, file.Address().String(), overlays[i].String())
 
 		if pushMetrics {
 			if err := pusher.Push(); err != nil {
-				fmt.Printf("node %d: %s\n", i, err)
+				fmt.Printf("error: node %d: %s\n", i, err)
 			}
 		}
 	}
