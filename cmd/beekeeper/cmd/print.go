@@ -33,6 +33,7 @@ func (c *command) initPrintCmd() (err error) {
 	cmd.AddCommand(c.initPrintOverlay())
 	cmd.AddCommand(c.initPrintPeers())
 	cmd.AddCommand(c.initPrintTopologies())
+	cmd.AddCommand(c.initPrintDepths())
 
 	c.root.AddCommand(cmd)
 

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/common/expfmt"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -24,10 +26,18 @@ type Options struct {
 var errPushSync = errors.New("push sync")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c bee.Cluster, o Options) (err error) {
+func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
+
+	pusher.Collector(uploadedCounter)
+	pusher.Collector(uploadTimeGauge)
+	pusher.Collector(uploadTimeHistogram)
+	pusher.Collector(syncedCounter)
+	pusher.Collector(notSyncedCounter)
+
+	pusher.Format(expfmt.FmtText)
 
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
@@ -41,9 +51,15 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
+			t0 := time.Now()
+			if err := c.Nodes[i].UploadBytes(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
+			d0 := time.Since(t0)
+
+			uploadedCounter.WithLabelValues(overlays[i].String()).Inc()
+			uploadTimeGauge.WithLabelValues(overlays[i].String(), chunk.Address().String()).Set(d0.Seconds())
+			uploadTimeHistogram.Observe(d0.Seconds())
 
 			closest, err := chunk.ClosestNode(overlays)
 			if err != nil {
@@ -57,11 +73,19 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", index, err)
 			}
 			if !synced {
+				notSyncedCounter.WithLabelValues(overlays[i].String()).Inc()
 				fmt.Printf("Node %d. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
 				return errPushSync
 			}
 
+			syncedCounter.WithLabelValues(overlays[i].String()).Inc()
 			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+
+			if pushMetrics {
+				if err := pusher.Push(); err != nil {
+					fmt.Printf("node %d: %s\n", i, err)
+				}
+			}
 		}
 	}
 
@@ -87,8 +111,8 @@ func CheckConcurrent(c bee.Cluster, o Options) (err error) {
 	return
 }
 
-// CheckBzzChunk uploads given chunks on cluster and checks pushsync ability of the cluster
-func CheckBzzChunk(c bee.Cluster, o Options) (err error) {
+// CheckChunks uploads given chunks on cluster and checks pushsync ability of the cluster
+func CheckChunks(c bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -105,7 +129,7 @@ func CheckBzzChunk(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			if err := c.Nodes[i].UploadBzzChunk(ctx, &chunk); err != nil {
+			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
@@ -152,7 +176,7 @@ func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) 
 				return
 			}
 
-			if err := n.UploadChunk(ctx, &chunk); err != nil {
+			if err := n.UploadBytes(ctx, &chunk); err != nil {
 				chunkStream <- chunkStreamMsg{Index: i, Error: err}
 				return
 			}

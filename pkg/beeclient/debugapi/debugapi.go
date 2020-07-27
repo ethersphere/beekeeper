@@ -24,7 +24,8 @@ type Client struct {
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
-	Node *NodeService
+	Node     *NodeService
+	PingPong *PingPongService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -50,6 +51,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c = &Client{httpClient: httpClient}
 	c.service.client = c
 	c.Node = (*NodeService)(&c.service)
+	c.PingPong = (*PingPongService)(&c.service)
 	return c
 }
 

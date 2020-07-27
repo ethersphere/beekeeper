@@ -47,7 +47,7 @@ func Check(cluster bee.Cluster) (err error) {
 	return
 }
 
-// contains checks if a given set of swarm.Address containes given swarm.Address
+// contains checks if a given set of swarm.Address contains given swarm.Address
 func contains(s []swarm.Address, v swarm.Address) bool {
 	for _, a := range s {
 		if a.Equal(v) {

@@ -17,12 +17,15 @@ const (
 	optionNameInsecureTLS             = "insecure-tls"
 	optionNameNamespace               = "namespace"
 	optionNameNodeCount               = "node-count"
+	optionNamePushGateway             = "push-gateway"
+	optionNamePushMetrics             = "push-metrics"
 )
 
 var (
 	disableNamespace    bool
 	insecureTLSAPI      bool
 	insecureTLSDebugAPI bool
+	pushMetrics         bool
 )
 
 func (c *command) initCheckCmd() (err error) {
@@ -39,22 +42,27 @@ func (c *command) initCheckCmd() (err error) {
 
 	cmd.PersistentFlags().String(optionNameAPIScheme, "https", "API scheme")
 	cmd.PersistentFlags().String(optionNameAPIHostnamePattern, "bee-%d", "API hostname pattern")
-	cmd.PersistentFlags().String(optionNameAPIDomain, "core.internal", "API DNS domain")
+	cmd.PersistentFlags().String(optionNameAPIDomain, "staging.internal", "API DNS domain")
 	cmd.PersistentFlags().BoolVar(&insecureTLSAPI, optionNameAPIInsecureTLS, false, "skips TLS verification for API")
 	cmd.PersistentFlags().String(optionNameDebugAPIScheme, "https", "debug API scheme")
 	cmd.PersistentFlags().String(optionNameDebugAPIHostnamePattern, "bee-%d-debug", "debug API hostname pattern")
-	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "core.internal", "debug API DNS domain")
+	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "staging.internal", "debug API DNS domain")
 	cmd.PersistentFlags().BoolVar(&insecureTLSDebugAPI, optionNameDebugAPIInsecureTLS, false, "skips TLS verification for debug API")
 	cmd.PersistentFlags().BoolVar(&disableNamespace, optionNameDisableNamespace, false, "disable Kubernetes namespace")
 	cmd.PersistentFlags().Bool(optionNameInsecureTLS, false, "skips TLS verification for both API and debug API")
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
+	cmd.PersistentFlags().String(optionNamePushGateway, "http://localhost:9091/", "Prometheus PushGateway")
+	cmd.PersistentFlags().BoolVar(&pushMetrics, optionNamePushMetrics, false, "push metrics to pushgateway")
 
+	cmd.AddCommand(c.initCheckFileRetrieval())
+	cmd.AddCommand(c.initCheckFileRetrievalDynamic())
 	cmd.AddCommand(c.initCheckFullConnectivity())
 	cmd.AddCommand(c.initCheckKademlia())
 	cmd.AddCommand(c.initCheckLocalPinning())
 	cmd.AddCommand(c.initCheckPeerCount())
 	cmd.AddCommand(c.initCheckPingPong())
+	cmd.AddCommand(c.initCheckPullSync())
 	cmd.AddCommand(c.initCheckPushSync())
 	cmd.AddCommand(c.initCheckRetrieval())
 
