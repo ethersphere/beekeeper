@@ -127,6 +127,53 @@ func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 	return
 }
 
+// PinChunk returns true/false if chunk pinning is successful
+func (n *Node) PinChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	return n.debug.Node.PinChunk(ctx, a)
+}
+
+// PinnedChunk represents pinned chunk
+type PinnedChunk struct {
+	Address    swarm.Address
+	PinCounter int
+}
+
+// PinnedChunk returns pinned chunk
+func (n *Node) PinnedChunk(ctx context.Context, a swarm.Address) (PinnedChunk, error) {
+	p, err := n.debug.Node.PinnedChunk(ctx, a)
+	if err != nil {
+		return PinnedChunk{}, fmt.Errorf("get pinned chunk: %w", err)
+	}
+
+	return PinnedChunk{
+		Address:    p.Address,
+		PinCounter: p.PinCounter,
+	}, nil
+}
+
+// PinnedChunks represents pinned chunks
+type PinnedChunks struct {
+	Chunks []PinnedChunk
+}
+
+// PinnedChunks returns pinned chunks
+func (n *Node) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
+	p, err := n.debug.Node.PinnedChunks(ctx)
+	if err != nil {
+		return PinnedChunks{}, fmt.Errorf("get pinned chunks: %w", err)
+	}
+
+	r := PinnedChunks{}
+	for _, c := range p.Chunks {
+		r.Chunks = append(r.Chunks, PinnedChunk{
+			Address:    c.Address,
+			PinCounter: c.PinCounter,
+		})
+	}
+
+	return r, nil
+}
+
 // Ping pings other node
 func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
 	r, err := n.debug.PingPong.Ping(ctx, node)
@@ -228,6 +275,11 @@ func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 	}
 
 	return a.Underlay, nil
+}
+
+// UnpinChunk returns true/false if chunk unpinning is successful
+func (n *Node) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	return n.debug.Node.UnpinChunk(ctx, a)
 }
 
 // UploadBytes uploads chunk to the node
