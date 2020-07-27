@@ -87,14 +87,19 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 	fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file11.Address().String(), overlays[dIndex].String())
 
-	pcs, err := c.Nodes[uIndex].PinnedChunks(ctx)
+	pins, err := c.Nodes[uIndex].PinnedChunks(ctx)
 	if err != nil {
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
-	for _, pc := range pcs.Chunks {
-		if pc.Address.Equal(file11.Address()) {
-			fmt.Printf("Node %d. File %s found in the pinned chunk list\n", dIndex, file11.Address().String())
+	pinFound := false
+	for _, pin := range pins.Chunks {
+		if pin.Address.Equal(file11.Address()) {
+			pinFound = true
 		}
+	}
+	if !pinFound {
+		fmt.Printf("Node %d. File %s not found in the pinned chunk list\n", uIndex, file11.Address().String())
+		return errLocalPinning
 	}
 
 	return
