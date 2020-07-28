@@ -3,7 +3,6 @@ package localpinning
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 
@@ -14,12 +13,13 @@ import (
 
 // Options represents localpinning check options
 type Options struct {
-	DiskSize int64
-	FileName string
-	Seed     int64
+	DBCapacity     int64
+	FileName       string
+	LargeFileCount int
+	LargeFileSize  int64
+	Seed           int64
+	SmallFileSize  int64
 }
-
-var errLocalPinning = errors.New("local pinning")
 
 // Check ...
 func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
@@ -32,60 +32,59 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		return err
 	}
 
-	// upload file to random node
+	// upload reference file to random node
 	uIndex := rnd.Intn(c.Size())
-	file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.DiskSize)
-	if err := c.Nodes[uIndex].UploadFile(ctx, &file); err != nil {
+	refFile := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.SmallFileSize)
+	if err := c.Nodes[uIndex].UploadFile(ctx, &refFile); err != nil {
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
-	fmt.Printf("Node %d. File %s uploaded successfully to node %s\n", uIndex, file.Address().String(), overlays[uIndex].String())
+	fmt.Printf("Node %d. Reference file %s (size: %d) uploaded successfully to node %s\n", uIndex, refFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 
-	// download from random node
+	// download reference from random node
 	dSkip := []int{uIndex}
 	dIndexes, err := randomIndexes(rnd, 1, c.Size(), dSkip)
 	dIndex := dIndexes[0]
-	size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
+	refSize, refHash, err := c.Nodes[dIndex].DownloadFile(ctx, refFile.Address())
 	if err != nil {
 		return fmt.Errorf("node %d: %w", dIndex, err)
 	}
-	if !bytes.Equal(file.Hash(), hash) {
-		fmt.Printf("error: node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", dIndex, file.Address().String(), overlays[dIndex].String(), file.Size(), size)
-		return errLocalPinning
+	if !bytes.Equal(refFile.Hash(), refHash) {
+		return fmt.Errorf("Node %d. Reference file %s (size: %d) not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d", dIndex, refFile.Address().String(), refSize, overlays[dIndex].String(), refFile.Size(), refSize)
 	}
-	fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file.Address().String(), overlays[dIndex].String())
+	fmt.Printf("Node %d. Reference file %s (size: %d) downloaded successfully from node %s\n", dIndex, refFile.Address().String(), refSize, overlays[dIndex].String())
 
-	// Pinning Testcase 1
-	file11 := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.DiskSize)
-	if err := c.Nodes[uIndex].UploadFile(ctx, &file11); err != nil {
+	smallFile := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.SmallFileSize)
+	if err := c.Nodes[uIndex].UploadFile(ctx, &smallFile); err != nil {
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
-	fmt.Printf("Node %d. File %s uploaded successfully to node %s\n", uIndex, file11.Address().String(), overlays[uIndex].String())
+	fmt.Printf("Node %d. Small file %s (size: %d) uploaded successfully to node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 
-	pinned, err := c.Nodes[uIndex].PinChunk(ctx, file11.Address())
+	pinned, err := c.Nodes[uIndex].PinChunk(ctx, smallFile.Address())
 	if err != nil {
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
 	if !pinned {
 		// notSyncedCounter.WithLabelValues(overlays[i].String()).Inc()
-		fmt.Printf("Node %d. File %s not pinned\n", uIndex, file11.Address().String())
-		return errLocalPinning
+		return fmt.Errorf("Node %d. Small file %s (size: %d) not pinned successfully on node %s", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 	}
+	fmt.Printf("Node %d. Small file %s (size: %d) pinned successfully on node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 
-	file12 := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.DiskSize)
-	if err := c.Nodes[uIndex].UploadFile(ctx, &file12); err != nil {
-		return fmt.Errorf("node %d: %w", uIndex, err)
-	}
-	fmt.Printf("Node %d. File %s uploaded successfully to node %s\n", uIndex, file12.Address().String(), overlays[uIndex].String())
+	for i := 0; i < o.LargeFileCount; i++ {
+		largeFile := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.LargeFileSize)
+		if err := c.Nodes[uIndex].UploadFile(ctx, &largeFile); err != nil {
+			return fmt.Errorf("node %d: %w", uIndex, err)
+		}
+		fmt.Printf("Node %d. Large file %s (size: %d) uploaded successfully to node %s\n", uIndex, largeFile.Address().String(), o.LargeFileSize, overlays[uIndex].String())
 
-	size11, hash11, err := c.Nodes[dIndex].DownloadFile(ctx, file11.Address())
-	if err != nil {
-		return fmt.Errorf("node %d: %w", dIndex, err)
+		smallSize, smallHash, err := c.Nodes[dIndex].DownloadFile(ctx, smallFile.Address())
+		if err != nil {
+			return fmt.Errorf("node %d: %w", dIndex, err)
+		}
+		if !bytes.Equal(smallFile.Hash(), smallHash) {
+			return fmt.Errorf("Node %d. Small file %s (size: %d) not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d", dIndex, smallFile.Address().String(), smallSize, overlays[dIndex].String(), smallFile.Size(), smallSize)
+		}
+		fmt.Printf("Node %d. Small file %s (size: %d) downloaded successfully from node %s\n", dIndex, smallFile.Address().String(), smallSize, overlays[dIndex].String())
 	}
-	if !bytes.Equal(file11.Hash(), hash11) {
-		fmt.Printf("error: node %d. File %s not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d\n", dIndex, file11.Address().String(), overlays[dIndex].String(), file11.Size(), size11)
-		return errLocalPinning
-	}
-	fmt.Printf("Node %d. File %s downloaded successfully from node %s\n", dIndex, file11.Address().String(), overlays[dIndex].String())
 
 	pins, err := c.Nodes[uIndex].PinnedChunks(ctx)
 	if err != nil {
@@ -93,14 +92,24 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 	pinFound := false
 	for _, pin := range pins.Chunks {
-		if pin.Address.Equal(file11.Address()) {
+		if pin.Address.Equal(smallFile.Address()) {
 			pinFound = true
 		}
 	}
 	if !pinFound {
-		fmt.Printf("Node %d. File %s not found in the pinned chunk list\n", uIndex, file11.Address().String())
-		return errLocalPinning
+		return fmt.Errorf("Node %d. Small file %s not found in the pinned chunk list", uIndex, smallFile.Address().String())
 	}
+
+	// cleanup
+	unpinned, err := c.Nodes[uIndex].UnpinChunk(ctx, smallFile.Address())
+	if err != nil {
+		return fmt.Errorf("node %d: %w", uIndex, err)
+	}
+	if !unpinned {
+		// notSyncedCounter.WithLabelValues(overlays[i].String()).Inc()
+		return fmt.Errorf("Node %d. Small file %s (size: %d) not unpinned successfully on node %s", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
+	}
+	fmt.Printf("Node %d. Small file %s (size: %d) unpinned successfully on node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 
 	return
 }

@@ -11,9 +11,12 @@ import (
 
 func (c *command) initCheckLocalPinning() *cobra.Command {
 	const (
-		optionNameDiskSize = "disk-size"
-		optionNameFileName = "file-name"
-		optionNameSeed     = "seed"
+		optionNameDBCapacity         = "db-capacity"
+		optionNameFileName           = "file-name"
+		optionNameLargeFileCount     = "large-file-count"
+		optionNameLargeFileDiskRatio = "large-file-disk-ratio"
+		optionNameSeed               = "seed"
+		optionNameSmallFileDiskRatio = "small-file-disk-ratio"
 	)
 
 	cmd := &cobra.Command{
@@ -46,20 +49,27 @@ func (c *command) initCheckLocalPinning() *cobra.Command {
 				seed = random.Int64()
 			}
 
-			diskSize := round(c.config.GetFloat64(optionNameDiskSize) * 1024 * 1024)
+			smallFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * c.config.GetFloat64(optionNameSmallFileDiskRatio))
+			largeFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * c.config.GetFloat64(optionNameLargeFileDiskRatio))
 
 			return localpinning.Check(cluster, localpinning.Options{
-				DiskSize: diskSize,
-				FileName: c.config.GetString(optionNameFileName),
-				Seed:     seed,
+				DBCapacity:     c.config.GetInt64(optionNameDBCapacity),
+				FileName:       c.config.GetString(optionNameFileName),
+				LargeFileCount: c.config.GetInt(optionNameLargeFileCount),
+				LargeFileSize:  largeFileSize,
+				Seed:           seed,
+				SmallFileSize:  smallFileSize,
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmd.Flags().Float64(optionNameDiskSize, 1, "file size in MB")
+	cmd.Flags().Float64(optionNameDBCapacity, 500, "DB capacity in chunks")
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
+	cmd.Flags().Int(optionNameLargeFileCount, 1, "number of large files to be uploaded")
+	cmd.Flags().Float64(optionNameLargeFileDiskRatio, 0.1, "large-file-size = db-capacity * large-file-disk-ratio")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
+	cmd.Flags().Float64(optionNameSmallFileDiskRatio, 0.01, "small-file-size = db-capacity * small-file-disk-ratio")
 
 	return cmd
 }
