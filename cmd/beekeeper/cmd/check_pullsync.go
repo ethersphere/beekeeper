@@ -62,7 +62,7 @@ func (c *command) initCheckPullSync() *cobra.Command {
 	}
 
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload chunks to")
-	cmd.Flags().IntP(optionNameReplicationFactor, "rf", 2, "minimal replication factor per chunk")
+	cmd.Flags().IntP(optionNameReplicationFactor, "r", 2, "minimal replication factor per chunk")
 	cmd.Flags().IntP(optionNameChunksPerNode, "p", 1, "number of chunks to upload per node")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 
