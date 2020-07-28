@@ -67,6 +67,9 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	// download reference from random node
 	dSkip := []int{uIndex}
 	dIndexes, err := randomIndexes(rnd, 1, c.Size(), dSkip)
+	if err != nil {
+		return fmt.Errorf("random indexes: %w", err)
+	}
 	dIndex := dIndexes[0]
 	t1 := time.Now()
 	refSize, refHash, err := c.Nodes[dIndex].DownloadFile(ctx, refFile.Address())
