@@ -35,7 +35,7 @@ func PodFailure(ctx context.Context, kubeconfig string, action string, mode stri
 
 	object := podFailure(mode, value, namespace, label, podname, duration, cron)
 
-	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", chaosRes)
+	client, err := dynamick8s.NewClient(kubeconfig, namespace, chaosRes)
 	if err != nil {
 		fmt.Printf("error: %+v", err)
 	}
@@ -45,13 +45,12 @@ func PodFailure(ctx context.Context, kubeconfig string, action string, mode stri
 			fmt.Printf("error: %+v", err)
 		}
 	}
-	// TODO: needs resourceVersion
-	// if action == "update" {
-	// 	err = client.Update(ctx, object)
-	// 	if err != nil {
-	// 		fmt.Printf("error: %+v", err)
-	// 	}
-	// }
+	if action == "update" {
+		err = client.Update(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
+	}
 	if action == "delete" {
 		err = client.Delete(ctx, "pod-failure-"+mode+"-"+podname)
 		if err != nil {
@@ -79,7 +78,7 @@ func PodKill(ctx context.Context, kubeconfig string, action string, mode string,
 		object = podKill(mode, value, namespace, label, podname)
 	}
 
-	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", chaosRes)
+	client, err := dynamick8s.NewClient(kubeconfig, namespace, chaosRes)
 	if err != nil {
 		fmt.Printf("error: %+v", err)
 	}
@@ -89,13 +88,12 @@ func PodKill(ctx context.Context, kubeconfig string, action string, mode string,
 			fmt.Printf("error: %+v", err)
 		}
 	}
-	// TODO: needs resourceVersion
-	// if action == "update" {
-	// 	err = client.Update(ctx, object)
-	// if err != nil {
-	// 	fmt.Printf("error: %+v", err)
-	// }
-	// }
+	if action == "update" {
+		err = client.Update(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
+	}
 	if action == "delete" {
 		err = client.Delete(ctx, "pod-kill-"+mode+"-"+podname)
 		if err != nil {
@@ -131,7 +129,7 @@ func NetworkPartition(ctx context.Context, kubeconfig string, action string, mod
 
 	object := networkPartition(mode1, value1, mode2, value2, namespace, label1, podname1, label2, podname2, direction, duration, cron)
 
-	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", chaosRes)
+	client, err := dynamick8s.NewClient(kubeconfig, namespace, chaosRes)
 	if err != nil {
 		fmt.Printf("error: %+v", err)
 	}
@@ -141,13 +139,12 @@ func NetworkPartition(ctx context.Context, kubeconfig string, action string, mod
 			fmt.Printf("error: %+v", err)
 		}
 	}
-	// TODO: needs resourceVersion
-	// if action == "update" {
-	// 	err = client.Update(ctx, object)
-	// if err != nil {
-	// 	fmt.Printf("error: %+v", err)
-	// }
-	// }
+	if action == "update" {
+		err = client.Update(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
+	}
 	if action == "delete" {
 		err = client.Delete(ctx, "network-partition-"+mode1+"-"+podname1)
 		if err != nil {
@@ -170,7 +167,7 @@ func NetworkLoss(ctx context.Context, kubeconfig string, action string, mode str
 
 	object := networkLoss(mode, value, namespace, label, podname, loss, correlation, duration, cron)
 
-	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", chaosRes)
+	client, err := dynamick8s.NewClient(kubeconfig, namespace, chaosRes)
 	if err != nil {
 		fmt.Printf("error: %+v", err)
 	}
@@ -180,13 +177,12 @@ func NetworkLoss(ctx context.Context, kubeconfig string, action string, mode str
 			fmt.Printf("error: %+v", err)
 		}
 	}
-	// TODO: needs resourceVersion
-	// if action == "update" {
-	// 	err = client.Update(ctx, object)
-	// if err != nil {
-	// 	fmt.Printf("error: %+v", err)
-	// }
-	// }
+	if action == "update" {
+		err = client.Update(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
+	}
 	if action == "delete" {
 		err = client.Delete(ctx, "network-loss-"+mode+"-"+podname)
 		if err != nil {
@@ -209,7 +205,7 @@ func NetworkDelay(ctx context.Context, kubeconfig string, action string, mode st
 
 	object := networkDelay(mode, value, namespace, label, podname, latency, correlation, jitter, duration, cron)
 
-	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", chaosRes)
+	client, err := dynamick8s.NewClient(kubeconfig, namespace, chaosRes)
 	if err != nil {
 		fmt.Printf("error: %+v", err)
 	}
@@ -219,13 +215,12 @@ func NetworkDelay(ctx context.Context, kubeconfig string, action string, mode st
 			fmt.Printf("error: %+v", err)
 		}
 	}
-	// TODO: needs resourceVersion
-	// if action == "update" {
-	// 	err = client.Update(ctx, object)
-	// if err != nil {
-	// 	fmt.Printf("error: %+v", err)
-	// }
-	// }
+	if action == "update" {
+		err = client.Update(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
+	}
 	if action == "delete" {
 		err = client.Delete(ctx, "network-delay-"+mode+"-"+podname)
 		if err != nil {
@@ -248,7 +243,7 @@ func NetworkDuplicate(ctx context.Context, kubeconfig string, action string, mod
 
 	object := networkDuplicate(mode, value, namespace, label, podname, duplicate, correlation, duration, cron)
 
-	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", chaosRes)
+	client, err := dynamick8s.NewClient(kubeconfig, namespace, chaosRes)
 	if err != nil {
 		fmt.Printf("error: %+v", err)
 	}
@@ -258,13 +253,12 @@ func NetworkDuplicate(ctx context.Context, kubeconfig string, action string, mod
 			fmt.Printf("error: %+v", err)
 		}
 	}
-	// TODO: needs resourceVersion
-	// if action == "update" {
-	// 	err = client.Update(ctx, object)
-	// if err != nil {
-	// 	fmt.Printf("error: %+v", err)
-	// }
-	// }
+	if action == "update" {
+		err = client.Update(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
+	}
 	if action == "delete" {
 		err = client.Delete(ctx, "network-duplicate-"+mode+"-"+podname)
 		if err != nil {
@@ -287,7 +281,7 @@ func NetworkCorrupt(ctx context.Context, kubeconfig string, action string, mode 
 
 	object := networkCorrupt(mode, value, namespace, label, podname, corrupt, correlation, duration, cron)
 
-	client, err := dynamick8s.NewClient(kubeconfig, "chaos-testing", chaosRes)
+	client, err := dynamick8s.NewClient(kubeconfig, namespace, chaosRes)
 	if err != nil {
 		fmt.Printf("error: %+v", err)
 	}
@@ -297,13 +291,12 @@ func NetworkCorrupt(ctx context.Context, kubeconfig string, action string, mode 
 			fmt.Printf("error: %+v", err)
 		}
 	}
-	// TODO: needs resourceVersion
-	// if action == "update" {
-	// 	err = client.Update(ctx, object)
-	// if err != nil {
-	// 	fmt.Printf("error: %+v", err)
-	// }
-	// }
+	if action == "update" {
+		err = client.Update(ctx, object)
+		if err != nil {
+			fmt.Printf("error: %+v", err)
+		}
+	}
 	if action == "delete" {
 		err = client.Delete(ctx, "network-corrupt-"+mode+"-"+podname)
 		if err != nil {
