@@ -9,7 +9,7 @@ func podFailure(mode string, value string, namespace string, label string, podna
 			"kind":       "PodChaos",
 			"metadata": map[string]interface{}{
 				"name":      "pod-failure-" + mode + "-" + podname,
-				"namespace": "chaos-testing",
+				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
 				"action":   "pod-failure",
@@ -38,7 +38,7 @@ func podKillCron(mode string, value string, namespace string, label string, podn
 			"kind":       "PodChaos",
 			"metadata": map[string]interface{}{
 				"name":      "pod-kill-" + mode + "-" + podname,
-				"namespace": "chaos-testing",
+				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
 				"action": "pod-kill",
@@ -66,7 +66,7 @@ func podKill(mode string, value string, namespace string, label string, podname 
 			"kind":       "PodChaos",
 			"metadata": map[string]interface{}{
 				"name":      "pod-kill-" + mode + "-" + podname,
-				"namespace": "chaos-testing",
+				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
 				"action": "pod-kill",

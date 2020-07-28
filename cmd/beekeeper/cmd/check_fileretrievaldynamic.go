@@ -85,6 +85,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				Seed:              seed,
 				StopNodeCount:     c.config.GetInt(optionNameStopNodeCount),
 				KubeConfig:        c.config.GetString(optionNameKubeConfig),
+				Namespace:         c.config.GetString(optionNameNamespace),
 				HelmRelease:       c.config.GetString(optionNameHelmRelease),
 				HelmChart:         c.config.GetString(optionNameHelmChart),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))

@@ -114,7 +114,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 	// start stopped nodes and download from them
 	for _, sIndex := range s1Indexes {
-		if err = chaos.NetworkPartition(ctx, o.KubeConfig, chaosCreate, chaosMode, chaosValue, "all", "", o.Namespace, fmt.Sprintf("%s-%d", chaosPodname, sIndex), "", "both", chaosDuration, chaosCron); err != nil {
+		if err = chaos.NetworkPartition(ctx, o.KubeConfig, chaosDelete, chaosMode, chaosValue, "all", "", o.Namespace, fmt.Sprintf("%s-%d", chaosPodname, sIndex), "", "both", chaosDuration, chaosCron); err != nil {
 			return err
 		}
 		fmt.Printf("Node %s-%d started\n", chaosPodname, sIndex)
@@ -175,7 +175,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 		// start stopped nodes and download from them
 		for _, sIndex := range s2Indexes {
-			if err = chaos.NetworkPartition(ctx, o.KubeConfig, chaosCreate, chaosMode, chaosValue, "all", "", o.Namespace, fmt.Sprintf("%s-%d", chaosPodname, sIndex), "", "both", chaosDuration, chaosCron); err != nil {
+			if err = chaos.NetworkPartition(ctx, o.KubeConfig, chaosDelete, chaosMode, chaosValue, "all", "", o.Namespace, fmt.Sprintf("%s-%d", chaosPodname, sIndex), "", "both", chaosDuration, chaosCron); err != nil {
 				return err
 			}
 			fmt.Printf("Node %s-%d started\n", chaosPodname, sIndex)

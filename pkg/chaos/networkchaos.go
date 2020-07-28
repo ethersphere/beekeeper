@@ -9,7 +9,7 @@ func networkPartition(mode1 string, value1 string, mode2 string, value2 string, 
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
 				"name":      "network-partition-" + mode1 + "-" + podname1,
-				"namespace": "chaos-testing",
+				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
 				"action":   "partition",
@@ -34,9 +34,9 @@ func networkPartition(mode1 string, value1 string, mode2 string, value2 string, 
 					},
 					"mode":  mode2,
 					"value": value2,
-					"scheduler": map[string]interface{}{
-						"cron": "@every " + cron,
-					},
+				},
+				"scheduler": map[string]interface{}{
+					"cron": "@every " + cron,
 				},
 			},
 		},
@@ -50,7 +50,7 @@ func networkLoss(mode string, value string, namespace string, label string, podn
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
 				"name":      "network-loss-" + mode + "-" + podname,
-				"namespace": "chaos-testing",
+				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
 				"action":   "loss",
@@ -83,7 +83,7 @@ func networkDelay(mode string, value string, namespace string, label string, pod
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
 				"name":      "network-delay-" + mode + "-" + podname,
-				"namespace": "chaos-testing",
+				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
 				"action":   "delay",
@@ -117,7 +117,7 @@ func networkDuplicate(mode string, value string, namespace string, label string,
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
 				"name":      "network-duplicate-" + mode + "-" + podname,
-				"namespace": "chaos-testing",
+				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
 				"action":   "duplicate",
@@ -150,7 +150,7 @@ func networkCorrupt(mode string, value string, namespace string, label string, p
 			"kind":       "NetworkChaos",
 			"metadata": map[string]interface{}{
 				"name":      "network-corrupt-" + mode + "-" + podname,
-				"namespace": "chaos-testing",
+				"namespace": namespace,
 			},
 			"spec": map[string]interface{}{
 				"action":   "corrupt",
