@@ -12,9 +12,10 @@ import (
 
 func (c *command) initCheckPullSync() *cobra.Command {
 	const (
-		optionNameUploadNodeCount = "upload-node-count"
-		optionNameChunksPerNode   = "chunks-per-node"
-		optionNameSeed            = "seed"
+		optionNameUploadNodeCount   = "upload-node-count"
+		optionNameReplicationFactor = "replication-factor"
+		optionNameChunksPerNode     = "chunks-per-node"
+		optionNameSeed              = "seed"
 	)
 
 	cmd := &cobra.Command{
@@ -51,15 +52,17 @@ func (c *command) initCheckPullSync() *cobra.Command {
 			}
 
 			return pullsync.Check(cluster, pullsync.Options{
-				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
-				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
-				Seed:            seed,
+				UploadNodeCount:            c.config.GetInt(optionNameUploadNodeCount),
+				ReplicationFactorThreshold: c.config.GetInt(optionNameReplicationFactor),
+				ChunksPerNode:              c.config.GetInt(optionNameChunksPerNode),
+				Seed:                       seed,
 			})
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload chunks to")
+	cmd.Flags().IntP(optionNameReplicationFactor, "rf", 2, "minimal replication factor per chunk")
 	cmd.Flags().IntP(optionNameChunksPerNode, "p", 1, "number of chunks to upload per node")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 

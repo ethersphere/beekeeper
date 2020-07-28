@@ -14,17 +14,22 @@ import (
 
 // Options represents pullsync check options
 type Options struct {
-	UploadNodeCount int
-	ChunksPerNode   int
-	Seed            int64
+	UploadNodeCount            int
+	ChunksPerNode              int
+	ReplicationFactorThreshold int
+	Seed                       int64
 }
 
 var errPullSync = errors.New("pull sync")
 
 // Check uploads given chunks on cluster and checks pullsync ability of the cluster
 func Check(c bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
-	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	var (
+		ctx                    = context.Background()
+		rnds                   = random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+		totalReplicationFactor float64
+	)
+
 	fmt.Printf("Seed: %d\n", o.Seed)
 
 	overlays, err := c.Overlays(ctx)
@@ -134,12 +139,25 @@ func Check(c bee.Cluster, o Options) (err error) {
 					return fmt.Errorf("node %d: %w", ni, err)
 				}
 				if !synced {
-					fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
-					continue
+					return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
 				}
 			}
+
+			rf, err := c.GlobalReplicationFactor(ctx, chunk.Address())
+			if err != nil {
+				return fmt.Errorf("replication factor: %w", err)
+			}
+
+			if rf < o.ReplicationFactorThreshold {
+				fmt.Errorf("chunk %s has low replication factor. got %d want %d", chunk.Address().String(), rf, o.ReplicationFactorThreshold)
+			}
+			totalReplicationFactor += float64(rf)
+			fmt.Println("chunk replication factor %d", rf)
 		}
 	}
+
+	totalReplicationFactor = totalReplicationFactor / float64(o.UploadNodeCount*o.ChunksPerNode)
+	fmt.Printf("Done with average replication factor: %f", totalReplicationFactor)
 
 	return
 }

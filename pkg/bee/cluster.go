@@ -142,7 +142,7 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 }
 
 // GlobalReplicationFactor returns replication factor for a given chunk
-func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (gcrf float64, err error) {
+func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (int, error) {
 	var counter int
 	for m := range c.HasChunkStream(ctx, a) {
 		if m.Error != nil {
@@ -153,9 +153,7 @@ func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) 
 		}
 	}
 
-	gcrf = float64(counter) / float64(c.Size())
-
-	return gcrf, err
+	return counter, nil
 }
 
 // HasChunkStreamMsg represents message sent over the HasChunkStream channel
