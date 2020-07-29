@@ -109,18 +109,16 @@ func NetworkPartition(ctx context.Context, kubeconfig string, action string, mod
 	var label1 string
 	var label2 string
 
-	if podname1 != "" {
+	if podname1 == "bee" {
 		label1 = "app.kubernetes.io/name"
 	} else {
 		label1 = "statefulset.kubernetes.io/pod-name"
-		podname1 = "bee"
 	}
 
-	if podname2 != "" {
+	if podname2 == "bee" {
 		label2 = "app.kubernetes.io/name"
 	} else {
 		label2 = "statefulset.kubernetes.io/pod-name"
-		podname2 = "bee"
 	}
 
 	if direction == "" {
