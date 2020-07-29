@@ -142,7 +142,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 					return fmt.Errorf("node %d: %w", ni, err)
 				}
 				if !synced {
-					return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
+					return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), chunk.Address().String(), n)
 				}
 			}
 
@@ -152,7 +152,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 			}
 
 			if rf < o.ReplicationFactorThreshold {
-				fmt.Errorf("chunk %s has low replication factor. got %d want %d", chunk.Address().String(), rf, o.ReplicationFactorThreshold)
+				return fmt.Errorf("chunk %s has low replication factor. got %d want %d", chunk.Address().String(), rf, o.ReplicationFactorThreshold)
 			}
 			totalReplicationFactor += float64(rf)
 			fmt.Printf("Chunk replication factor %d\n", rf)
