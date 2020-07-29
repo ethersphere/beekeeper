@@ -141,7 +141,7 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 	return addressStream
 }
 
-// GlobalReplicationFactor returns replication factor for a given chunk
+// GlobalReplicationFactor returns the total number of nodes that contain given chunk
 func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (int, error) {
 	var counter int
 	for m := range c.HasChunkStream(ctx, a) {
