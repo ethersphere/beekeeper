@@ -14,17 +14,22 @@ import (
 
 // Options represents pullsync check options
 type Options struct {
-	UploadNodeCount int
-	ChunksPerNode   int
-	Seed            int64
+	UploadNodeCount            int
+	ChunksPerNode              int
+	ReplicationFactorThreshold int
+	Seed                       int64
 }
 
 var errPullSync = errors.New("pull sync")
 
 // Check uploads given chunks on cluster and checks pullsync ability of the cluster
 func Check(c bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
-	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	var (
+		ctx                    = context.Background()
+		rnds                   = random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+		totalReplicationFactor float64
+	)
+
 	fmt.Printf("Seed: %d\n", o.Seed)
 
 	overlays, err := c.Overlays(ctx)
@@ -68,17 +73,18 @@ func Check(c bee.Cluster, o Options) (err error) {
 					switch pivotPo := swarm.Proximity(chunk.Address().Bytes(), peer.Bytes()); {
 					case pivotPo >= pivotDepth:
 						// chunk within replicating node depth
-						replicatingNodes = append(replicatingNodes, peer)
-						fmt.Printf("uploader nn rep. pivotPo %d pivotDepth %d, uploaderPo %d\n", pivotPo, pivotDepth, uploaderToChunkPo)
-						nnRep++
+						if findIndex(replicatingNodes, peer) == -1 {
+							replicatingNodes = append(replicatingNodes, peer)
+							nnRep++
+						}
 					case pivotPo != 0 && uploaderToChunkPo != 0 && pivotPo < pivotDepth && uploaderToChunkPo == pivotToUploaderPo:
 						// if the po of the chunk with the uploader == to our po with the uploader, then we need to sync it
 						// chunk outside our depth
-						replicatingNodes = append(replicatingNodes, peer)
-						fmt.Printf("uploader no nn rep. pivotPo %d pivotDepth %d, pivotToUploaderPo %d, uploaderToChunkPo %d\n", pivotPo, pivotDepth, pivotToUploaderPo, uploaderToChunkPo)
-						peerPoBinRep++
+						if findIndex(replicatingNodes, peer) == -1 {
+							replicatingNodes = append(replicatingNodes, peer)
+							peerPoBinRep++
+						}
 					}
-
 				}
 			}
 
@@ -105,22 +111,24 @@ func Check(c bee.Cluster, o Options) (err error) {
 					switch pivotPo := swarm.Proximity(chunk.Address().Bytes(), peer.Bytes()); {
 					case pivotPo >= pivotDepth:
 						// chunk within replicating node depth
-						replicatingNodes = append(replicatingNodes, peer)
-						fmt.Printf("closest nn rep. pivotPo %d pivotDepth %d, closestPo %d\n", pivotPo, pivotDepth, po)
-						nnRep++
+						if findIndex(replicatingNodes, peer) == -1 {
+							replicatingNodes = append(replicatingNodes, peer)
+							nnRep++
+						}
 					case pivotPo != 0 && pivotPo < pivotDepth && po == pivotToClosestPo:
 						// if the po of the chunk with the closest == to our po with the closest, then we need to sync it
 						// chunk outside our depth
 						// po with chunk must equal po with closest
-						replicatingNodes = append(replicatingNodes, peer)
-						fmt.Printf("closest no nn rep. pivotPo %d pivotDepth %d, pivotToClosestPo %d, closestPo %d\n", pivotPo, pivotDepth, pivotToClosestPo, po)
-						peerPoBinRep++
+						if findIndex(replicatingNodes, peer) == -1 {
+							replicatingNodes = append(replicatingNodes, peer)
+							peerPoBinRep++
+						}
 					}
 				}
 			}
 
 			if len(replicatingNodes) == 0 {
-				fmt.Printf("Upload node %d. Chunk: %d. Chunk does not have any designated replicators.", i, j)
+				fmt.Printf("Upload node %d. Chunk: %d. Chunk does not have any designated replicators.\n", i, j)
 				return errPullSync
 			}
 
@@ -134,12 +142,25 @@ func Check(c bee.Cluster, o Options) (err error) {
 					return fmt.Errorf("node %d: %w", ni, err)
 				}
 				if !synced {
-					fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
-					continue
+					return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), chunk.Address().String(), n)
 				}
 			}
+
+			rf, err := c.GlobalReplicationFactor(ctx, chunk.Address())
+			if err != nil {
+				return fmt.Errorf("replication factor: %w", err)
+			}
+
+			if rf < o.ReplicationFactorThreshold {
+				return fmt.Errorf("chunk %s has low replication factor. got %d want %d", chunk.Address().String(), rf, o.ReplicationFactorThreshold)
+			}
+			totalReplicationFactor += float64(rf)
+			fmt.Printf("Chunk replication factor %d\n", rf)
 		}
 	}
+
+	totalReplicationFactor = totalReplicationFactor / float64(o.UploadNodeCount*o.ChunksPerNode)
+	fmt.Printf("Done with average replication factor: %f\n", totalReplicationFactor)
 
 	return
 }
