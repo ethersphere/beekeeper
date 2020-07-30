@@ -28,8 +28,10 @@ func (c *command) initCheckFileRetrievalDynamic() *cobra.Command {
 		Use:   "fileretrievaldynamic",
 		Short: "Checks file retrieval ability of the dynamic cluster",
 		Long: `Checks file retrieval ability of the dynamic cluster.
-It uploads given number of files to given number of nodes, 
-and attempts retrieval of those files from the last node in the cluster.`,
+It uploads file to a random node, than it downloads that file from given number of random nodes.
+Than it stops given number of other random nodes, and tries to download file again from other random nodes.
+Than it starts stopped nodes and downloads file from them.
+It has an option to add new nodes to the cluster and repeat previous steps with the updated cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if len(c.config.GetString(optionNameKubeConfig)) == 0 {
 				return errors.New("bad parameters: full path to KubeConfig must be provided")
