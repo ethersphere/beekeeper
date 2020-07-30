@@ -32,10 +32,13 @@ Available subcommands:
 |subcommand|description|
 |----------|-----------|
 | fileretrieval | Checks file retrieval ability of the cluster |
+| fileretrievaldynamic | Checks file retrieval ability of the dynamic cluster |
 | fullconnectivity | Checks full connectivity in the cluster |
 | kademlia | Checks Kademlia topology in the cluster |
+| localpinning | Checks local pinning ability of the cluster |
 | peercount | Count peers for all nodes in the cluster |
 | pingpong | Executes ping from all nodes to all other nodes in the cluster |
+| pullsync | Checks pullsync ability of the cluster |
 | pushsync | Checks pushsync ability of the cluster |
 | retrieval | Checks retrieval ability of the cluster |
 
@@ -48,6 +51,16 @@ and attempts retrieval of those files from the last node in the cluster.
 Example:
 ```bash
 beekeeper check fileretrieval --namespace bee --node-count 3 --upload-node-count 2 --files-per-node 4 --file-size 1048576
+```
+
+### fileretrievaldynamic
+
+**fileretrievaldynamic** checks file retrieval ability of the dynamic cluster. It uploads file to a random node, than it downloads that file from given number of random nodes. Than it stops given number of other random nodes, and tries to download file again from other random nodes. It starts stopped nodes and downloads file from them.
+It has an option to add new nodes to the cluster and repeat previous steps with the updated cluster.
+
+Example:
+```bash
+beekeeper check fileretrievaldynamic --namespace bee --node-count 5 --new-node-count 3 --kubeconfig /Users/<user>/.kube/config 
 ```
 
 ### fullconnectivity
@@ -68,6 +81,15 @@ Example:
 beekeeper check kademlia --namespace bee --node-count 3
 ```
 
+### localpinning
+
+**localpinning** checks local pinning ability of the cluster.
+
+Example:
+```bash
+beekeeper check localpinning --namespace bee --node-count 3
+```
+
 ### peercount
 
 **peercount** counts peers for all nodes in the cluster.
@@ -85,6 +107,15 @@ and prints round-trip time (RTT) of each ping.
 Example:
 ```bash
 beekeeper check pingpong --namespace bee --node-count 3
+```
+
+### pullsync
+
+**pullsync** checks pullsync ability of the cluster.
+
+Example:
+```bash
+beekeeper check pullsync --namespace bee --node-count 3
 ```
 
 ### pushsync
