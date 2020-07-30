@@ -30,7 +30,7 @@ If everything goes well with the reference file, it uploads new small file to an
 It uploads large file to the same node, and tries downloading small file from other random node. This step can be repeated multiple times (large-file-count).
 If everything goes well, it unpins the file.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if c.config.GetInt(optionNameSmallFileDiskRatio) >= c.config.GetInt(optionNameLargeFileDiskRatio) || c.config.GetFloat64(optionNameSmallFileDiskRatio) >= 1 {
+			if c.config.GetFloat64(optionNameSmallFileDiskRatio) >= c.config.GetFloat64(optionNameLargeFileDiskRatio) || c.config.GetFloat64(optionNameSmallFileDiskRatio) >= 1 {
 				return errors.New("bad parameters: small-file-disk-ratio must be less than large-file-disk-ratio, and less than 1")
 			}
 			if c.config.GetInt64(optionNameDBCapacity) <= 0 || c.config.GetInt(optionNameLargeFileCount) <= 0 || c.config.GetFloat64(optionNameLargeFileDiskRatio) <= 0 || c.config.GetFloat64(optionNameSmallFileDiskRatio) <= 0 {
