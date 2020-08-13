@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const chunkSize = 4096
+
 func (c *command) initCheckLocalPinning() *cobra.Command {
 	const (
 		optionNameDBCapacity         = "db-capacity"
@@ -63,8 +65,8 @@ If everything goes well, it unpins the file.`,
 				seed = random.Int64()
 			}
 
-			smallFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * c.config.GetFloat64(optionNameSmallFileDiskRatio))
-			largeFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * c.config.GetFloat64(optionNameLargeFileDiskRatio))
+			smallFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * c.config.GetFloat64(optionNameSmallFileDiskRatio) * chunkSize)
+			largeFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * c.config.GetFloat64(optionNameLargeFileDiskRatio) * chunkSize)
 
 			return localpinning.Check(cluster, localpinning.Options{
 				DBCapacity:     c.config.GetInt64(optionNameDBCapacity),
