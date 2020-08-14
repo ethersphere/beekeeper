@@ -144,12 +144,11 @@ func Check(c bee.Cluster, o Options) (err error) {
 					}
 					if synced {
 						break
-					} else {
-						t++
-						fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
-						if t > 3 {
-							return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), chunk.Address().String(), n)
-						}
+					}
+					t++
+					fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
+					if t > 3 {
+						return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), chunk.Address().String(), n)
 					}
 				}
 			}
