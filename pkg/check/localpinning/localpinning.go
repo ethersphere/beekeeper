@@ -15,7 +15,6 @@ import (
 
 // Options represents localpinning check options
 type Options struct {
-	DBCapacity     int64
 	FileName       string
 	LargeFileCount int
 	LargeFileSize  int64
@@ -58,7 +57,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
 	d0 := time.Since(t0)
-	fmt.Printf("Node %d. Reference file %s (size: %d) uploaded successfully to node %s\n", uIndex, refFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
+	fmt.Printf("Node %d. Reference file %s (size: %d bytes) uploaded successfully to node %s\n", uIndex, refFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 
 	uploadedCounter.WithLabelValues(overlays[uIndex].String()).Inc()
 	uploadTimeGauge.WithLabelValues(overlays[uIndex].String(), refFile.Address().String()).Set(d0.Seconds())
@@ -86,10 +85,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	if !bytes.Equal(refFile.Hash(), refHash) {
 		notRetrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
 		metricsHandler(pusher, pushMetrics)
-		return fmt.Errorf("Node %d. Reference file %s (size: %d) not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d", dIndex, refFile.Address().String(), refSize, overlays[dIndex].String(), refFile.Size(), refSize)
+		return fmt.Errorf("Node %d. Reference file %s (size: %d bytes) not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d", dIndex, refFile.Address().String(), refSize, overlays[dIndex].String(), refFile.Size(), refSize)
 	}
 	retrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
-	fmt.Printf("Node %d. Reference file %s (size: %d) downloaded successfully from node %s\n", dIndex, refFile.Address().String(), refSize, overlays[dIndex].String())
+	fmt.Printf("Node %d. Reference file %s (size: %d bytes) downloaded successfully from node %s\n", dIndex, refFile.Address().String(), refSize, overlays[dIndex].String())
 
 	smallFile := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.SmallFileSize)
 	t2 := time.Now()
@@ -98,7 +97,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
 	d2 := time.Since(t2)
-	fmt.Printf("Node %d. Small file %s (size: %d) uploaded successfully to node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
+	fmt.Printf("Node %d. Small file %s (size: %d bytes) uploaded successfully to node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 
 	uploadedCounter.WithLabelValues(overlays[uIndex].String()).Inc()
 	uploadTimeGauge.WithLabelValues(overlays[uIndex].String(), smallFile.Address().String()).Set(d2.Seconds())
@@ -112,10 +111,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	if !pinned {
 		notPinnedCounter.WithLabelValues(overlays[uIndex].String()).Inc()
 		metricsHandler(pusher, pushMetrics)
-		return fmt.Errorf("Node %d. Small file %s (size: %d) not pinned successfully on node %s", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
+		return fmt.Errorf("Node %d. Small file %s (size: %d bytes) not pinned successfully on node %s", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 	}
 	pinnedCounter.WithLabelValues(overlays[uIndex].String()).Inc()
-	fmt.Printf("Node %d. Small file %s (size: %d) pinned successfully on node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
+	fmt.Printf("Node %d. Small file %s (size: %d bytes) pinned successfully on node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 
 	for i := 0; i < o.LargeFileCount; i++ {
 		largeFile := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.LargeFileSize)
@@ -125,7 +124,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return fmt.Errorf("node %d: %w", uIndex, err)
 		}
 		d3 := time.Since(t3)
-		fmt.Printf("Node %d. Large file %s (size: %d) uploaded successfully to node %s\n", uIndex, largeFile.Address().String(), o.LargeFileSize, overlays[uIndex].String())
+		fmt.Printf("Node %d. Large file %s (size: %d bytes) uploaded successfully to node %s\n", uIndex, largeFile.Address().String(), o.LargeFileSize, overlays[uIndex].String())
 
 		uploadedCounter.WithLabelValues(overlays[uIndex].String()).Inc()
 		uploadTimeGauge.WithLabelValues(overlays[uIndex].String(), largeFile.Address().String()).Set(d3.Seconds())
@@ -146,11 +145,11 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if !bytes.Equal(smallFile.Hash(), smallHash) {
 			notRetrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
 			metricsHandler(pusher, pushMetrics)
-			return fmt.Errorf("Node %d. Small file %s (size: %d) not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d", dIndex, smallFile.Address().String(), smallSize, overlays[dIndex].String(), smallFile.Size(), smallSize)
+			return fmt.Errorf("Node %d. Small file %s (size: %d bytes) not downloaded successfully from node %s. Uploaded size: %d Downloaded size: %d", dIndex, smallFile.Address().String(), smallSize, overlays[dIndex].String(), smallFile.Size(), smallSize)
 		}
 
 		retrievedCounter.WithLabelValues(overlays[dIndex].String()).Inc()
-		fmt.Printf("Node %d. Small file %s (size: %d) downloaded successfully from node %s\n", dIndex, smallFile.Address().String(), smallSize, overlays[dIndex].String())
+		fmt.Printf("Node %d. Small file %s (size: %d bytes) downloaded successfully from node %s\n", dIndex, smallFile.Address().String(), smallSize, overlays[dIndex].String())
 	}
 
 	pins, err := c.Nodes[uIndex].PinnedChunks(ctx)
@@ -178,10 +177,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	if !unpinned {
 		notUnpinnedCounter.WithLabelValues(overlays[uIndex].String()).Inc()
 		metricsHandler(pusher, pushMetrics)
-		return fmt.Errorf("Node %d. Small file %s (size: %d) not unpinned successfully on node %s", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
+		return fmt.Errorf("Node %d. Small file %s (size: %d bytes) not unpinned successfully on node %s", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 	}
 	unpinnedCounter.WithLabelValues(overlays[uIndex].String()).Inc()
-	fmt.Printf("Node %d. Small file %s (size: %d) unpinned successfully on node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
+	fmt.Printf("Node %d. Small file %s (size: %d bytes) unpinned successfully on node %s\n", uIndex, smallFile.Address().String(), o.SmallFileSize, overlays[uIndex].String())
 
 	metricsHandler(pusher, pushMetrics)
 
