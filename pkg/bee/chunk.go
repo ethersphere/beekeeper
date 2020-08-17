@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	maxChunkSize = 4096
+	// MaxChunkSize represents max chunk size in bytes
+	MaxChunkSize = 4096
 	spanInfoSize = 8
 )
 
@@ -24,8 +25,8 @@ type Chunk struct {
 
 // NewChunk returns new chunk
 func NewChunk(data []byte) (Chunk, error) {
-	if len(data) > maxChunkSize {
-		return Chunk{}, fmt.Errorf("create chunk: requested size too big (max %d bytes)", maxChunkSize)
+	if len(data) > MaxChunkSize {
+		return Chunk{}, fmt.Errorf("create chunk: requested size too big (max %d bytes)", MaxChunkSize)
 	}
 
 	return Chunk{data: data}, nil
@@ -33,7 +34,7 @@ func NewChunk(data []byte) (Chunk, error) {
 
 // NewRandomChunk returns new pseudorandom chunk
 func NewRandomChunk(r *rand.Rand) (c Chunk, err error) {
-	data := make([]byte, r.Intn(maxChunkSize-spanInfoSize))
+	data := make([]byte, r.Intn(MaxChunkSize-spanInfoSize))
 	if _, err := r.Read(data); err != nil {
 		return Chunk{}, fmt.Errorf("create random chunk: %w", err)
 	}
