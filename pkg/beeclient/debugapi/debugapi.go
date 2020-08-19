@@ -26,6 +26,7 @@ type Client struct {
 	// Services that API provides.
 	Node     *NodeService
 	PingPong *PingPongService
+	Chunks   *ChunksService
 }
 
 // ClientOptions holds optional parameters for the Client.
