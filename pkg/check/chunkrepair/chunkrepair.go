@@ -75,7 +75,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return err
 		}
 
-		// download the chunk from nodeC again (this time it should trigger chunk repair)
+		// trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair)
 		data, err = nodeC.DownloadChunk(ctx, chunk.Address())
 		if err != nil { // for status Accepted (209), a nil is returned
 			return err
@@ -84,6 +84,8 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return err
 		}
 		time.Sleep(5 * time.Second) // give sometime so that the repair happens
+
+		// download again to see if the chunk is repaired
 		data, err = nodeC.DownloadChunk(ctx, chunk.Address())
 		if err != nil { // this time it should succeed
 			return err
