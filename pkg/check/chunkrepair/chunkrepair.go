@@ -149,7 +149,7 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (*bee.Node, *b
 		return nil, nil, nil, nil, err
 	}
 	found := false
-	dist := big.NewInt(math.MaxUint64) // some large distance to initialise
+	dist := big.NewInt(math.MaxInt64) // some large distance to initialise
 	for _, b := range addresses {
 		// addressB should not be the same as addressA
 		if bytes.Equal(b.Overlay.Bytes(), addressA.Overlay.Bytes()) {
