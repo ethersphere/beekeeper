@@ -73,8 +73,8 @@ func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte,
 }
 
 // DownloadChunk downloads chunk from the node
-func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address) (data []byte, err error) {
-	r, err := n.api.Chunks.Download(ctx, a)
+func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address, targets string) (data []byte, err error) {
+	r, err := n.api.Chunks.Download(ctx, a, targets)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}

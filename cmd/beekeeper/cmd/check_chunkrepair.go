@@ -63,7 +63,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmd.Flags().IntP(optionNameChunkRepairNodeCount, "rc", 3, "number of nodes required to run the chunk repair test")
+	cmd.Flags().IntP(optionNameChunkRepairNodeCount, "r", 3, "number of nodes required to run the chunk repair test")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 	cmd.Flags().Float64(optionNumberOfChunks, 1, "no of chunks to repair")
 	return cmd

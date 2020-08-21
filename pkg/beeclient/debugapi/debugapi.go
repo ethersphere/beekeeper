@@ -53,6 +53,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.service.client = c
 	c.Node = (*NodeService)(&c.service)
 	c.PingPong = (*PingPongService)(&c.service)
+	c.Chunks = (*ChunksService)(&c.service)
 	return c
 }
 
