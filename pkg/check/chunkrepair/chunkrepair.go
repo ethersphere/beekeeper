@@ -11,10 +11,11 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
+
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // Options represents chunk repair check options
@@ -52,15 +53,22 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return err
 		}
 
-		// check if the node is there in the local store of node B
-		// this does a get chunk instead of Has chunk, so the following
-		// call just checks if the chunk is accessible from nodeB
-		present, err := nodeB.HasChunk(ctx, chunk.Address())
-		if err != nil {
-			return err
-		}
-		if !present {
-			return errors.New("nodeB could not retrieve the uploaded chunk")
+		for {
+			// check if the node is there in the local store of node B
+			// this does a get chunk instead of Has chunk, so the following
+			// call just checks if the chunk is accessible from nodeB
+			present, err := nodeB.HasChunk(ctx, chunk.Address())
+			if err != nil {
+				fmt.Println("sleeping...")
+
+				// give time for the chunk to reach its destination
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+
+			if present {
+				break
+			}
 		}
 
 		// download the chunk from nodeC
@@ -81,13 +89,11 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 
 		// trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair)
-		data2, err := nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
-		if err != nil { // for status Accepted (209), a nil is returned
+		_, err = nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
+		if err == nil { // for status Accepted (209), a error is returned
 			return err
 		}
-		if len(data2) == len(chunk.Data()) { // if we had got 209, the data should not match
-			return err
-		}
+
 		// by the time the NodeC creates a trojan chunk and asks NodeA to repair, upload the
 		// original chunk in nodeA and pin it
 		err = uploadAndPinChunkToNode(ctx, &nodeA, chunk)
@@ -104,6 +110,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if !bytes.Equal(data3, chunk.Data()) {
 			return errors.New("chunk downloaded in NodeC does not have proper data")
 		}
+		fmt.Println("repaired chunk ", chunk.Address().String())
 
 		if pushMetrics {
 			if err := pusher.Push(); err != nil {
@@ -153,6 +160,10 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 		chunk = c
 		break
 	}
+	fmt.Println("overlayA: ", overlayA.String())
+	fmt.Println("overlayB: ", overlayB.String())
+	fmt.Println("overlayC: ", overlayC.String())
+	fmt.Println("chunk Address:", chunk.Address().String())
 
 	// get the nodes for all the addresses
 	var nodeA bee.Node

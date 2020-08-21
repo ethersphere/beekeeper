@@ -185,6 +185,9 @@ func drain(r io.ReadCloser) {
 // responseErrorHandler returns an error based on the HTTP status code or nil if
 // the status code is from 200 to 299.
 func responseErrorHandler(r *http.Response) (err error) {
+	if r.StatusCode == http.StatusAccepted {
+		return ErrRecoveryInitiated
+	}
 	if r.StatusCode/100 == 2 {
 		return nil
 	}

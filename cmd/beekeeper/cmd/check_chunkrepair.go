@@ -55,7 +55,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 			}
 
 			return chunkrepair.Check(cluster, chunkrepair.Options{
-				NumberOfChunksToRepair: c.config.GetInt(optionNameChunkRepairNodeCount),
+				NumberOfChunksToRepair: c.config.GetInt(optionNumberOfChunks),
 				Seed:                   seed,
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 
