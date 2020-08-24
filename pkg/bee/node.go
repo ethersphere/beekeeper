@@ -318,11 +318,7 @@ func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 
 // RemoveChunk removes the given chunk from the node's local store
 func (n *Node) RemoveChunk(ctx context.Context, c *Chunk) (err error) {
-	err = n.debug.Chunks.Remove(ctx, c.Address())
-	if err != nil {
-		return fmt.Errorf("remove chunk: %w", err)
-	}
-	return
+	return n.debug.Chunks.Remove(ctx, c.Address())
 }
 
 // UploadFile uploads file to the node

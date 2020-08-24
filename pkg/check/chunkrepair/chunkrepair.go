@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -59,8 +60,6 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			// call just checks if the chunk is accessible from nodeB
 			present, err := nodeB.HasChunk(ctx, chunk.Address())
 			if err != nil {
-				fmt.Println("sleeping...")
-
 				// give time for the chunk to reach its destination
 				time.Sleep(100 * time.Millisecond)
 				continue
@@ -90,8 +89,8 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 		// trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair)
 		_, err = nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
-		if err == nil { // for status Accepted (209), a error is returned
-			return err
+		if err != api.ErrRecoveryInitiated { // return error, if chunk recovery is not started
+			return fmt.Errorf("chunk recovery not triggered")
 		}
 
 		// by the time the NodeC creates a trojan chunk and asks NodeA to repair, upload the
@@ -100,17 +99,26 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err != nil {
 			return err
 		}
-		time.Sleep(5 * time.Second) // give sometime so that the repair happens
 
-		// download again to see if the chunk is repaired
-		data3, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
-		if err != nil { // this time it should succeed
-			return err
+		t0 := time.Now()
+		for {
+			time.Sleep(100 * time.Millisecond) // give sometime so that the repair happens
+
+			// download again to see if the chunk is repaired
+			data3, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
+			if err != nil {
+				continue // if the download is not successful, try again
+			}
+			if !bytes.Equal(data3, chunk.Data()) {
+				return errors.New("chunk downloaded in NodeC does not have proper data")
+			}
+			d0 := time.Since(t0)
+			fmt.Println("repaired chunk ", chunk.Address().String())
+			repairedCounter.WithLabelValues(chunk.Address().String()).Inc()
+			repairedTimeGauge.WithLabelValues(chunk.Address().String()).Set(d0.Seconds())
+			repairedTimeHistogram.Observe(d0.Seconds())
+			break
 		}
-		if !bytes.Equal(data3, chunk.Data()) {
-			return errors.New("chunk downloaded in NodeC does not have proper data")
-		}
-		fmt.Println("repaired chunk ", chunk.Address().String())
 
 		if pushMetrics {
 			if err := pusher.Push(); err != nil {
@@ -199,7 +207,7 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Node, chunk *bee.Chu
 		return err
 	}
 	if !pinned {
-		return errors.New("could not pin chunk in nodeA")
+		return errors.New("could not pin chunk")
 	}
 	return nil
 }
@@ -240,7 +248,7 @@ func findFarthestNodes(overlays []swarm.Address) (swarm.Address, swarm.Address, 
 	dist := big.NewInt(0)
 	for _, a := range overlays {
 		for _, c := range overlays {
-			if bytes.Equal(a.Bytes(), c.Bytes()) {
+			if a.Equal(c) {
 				continue
 			}
 			currDist, err := Distance(a.Bytes(), c.Bytes())
