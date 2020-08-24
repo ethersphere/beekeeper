@@ -1,6 +1,5 @@
 package chunkrepair
 
-import "C"
 import (
 	"bytes"
 	"context"
@@ -167,10 +166,10 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 		chunk = c
 		break
 	}
-	fmt.Println("overlayA: ", overlayA.String())
-	fmt.Println("overlayB: ", overlayB.String())
-	fmt.Println("overlayC: ", overlayC.String())
-	fmt.Println("chunk Address:", chunk.Address().String())
+	fmt.Printf("overlayA: %s\n", overlayA.String())
+	fmt.Printf("overlayB: %s\n", overlayB.String())
+	fmt.Printf("overlayC: %s\n", overlayC.String())
+	fmt.Printf("chunk Address: %s\n", chunk.Address().String())
 
 	// get the nodes for all the addresses
 	var nodeA bee.Node
@@ -250,7 +249,7 @@ func findFarthestNodes(overlays []swarm.Address) (swarm.Address, swarm.Address, 
 			if a.Equal(c) {
 				continue
 			}
-			currDist, err := Distance(a.Bytes(), c.Bytes())
+			currDist, err := distance(a.Bytes(), c.Bytes())
 			if err != nil {
 				return swarm.ZeroAddress, swarm.ZeroAddress, err
 			}
@@ -266,8 +265,8 @@ func findFarthestNodes(overlays []swarm.Address) (swarm.Address, swarm.Address, 
 
 // Distance returns the distance between address x and address y as a (comparable) big integer using the distance metric defined in the swarm specification.
 // Fails if not all addresses are of equal length.
-func Distance(x, y []byte) (*big.Int, error) {
-	distanceBytes, err := DistanceRaw(x, y)
+func distance(x, y []byte) (*big.Int, error) {
+	distanceBytes, err := distanceRaw(x, y)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +277,7 @@ func Distance(x, y []byte) (*big.Int, error) {
 
 // DistanceRaw returns the distance between address x and address y in big-endian binary format using the distance metric defined in the swarm specfication.
 // Fails if not all addresses are of equal length.
-func DistanceRaw(x, y []byte) ([]byte, error) {
+func distanceRaw(x, y []byte) ([]byte, error) {
 	if len(x) != len(y) {
 		return nil, errors.New("address length must match")
 	}
