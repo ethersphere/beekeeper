@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
-	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
+
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // Options represents chunk repair check options
@@ -22,6 +22,10 @@ type Options struct {
 	NumberOfChunksToRepair int
 	Seed                   int64
 }
+
+const (
+	MaxIterations = 10
+)
 
 // Check ...
 func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
@@ -52,7 +56,12 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return err
 		}
 
+		count := 0
 		for {
+			if count > MaxIterations {
+				return fmt.Errorf("could not get chunk even after several attempts")
+			}
+
 			// check if the node is there in the local store of node B
 			// this does a get chunk instead of Has chunk, so the following
 			// call just checks if the chunk is accessible from nodeB
@@ -60,6 +69,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			if err != nil {
 				// give time for the chunk to reach its destination
 				time.Sleep(100 * time.Millisecond)
+				count++
 				continue
 			}
 
@@ -87,7 +97,8 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 		// trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair)
 		_, err = nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
-		if err != api.ErrRecoveryInitiated { // return error, if chunk recovery is not started
+		errMessage := fmt.Sprintf("download chunk %s: try again later", chunk.Address().String())
+		if err != nil && err.Error() != errMessage { // return error, if chunk recovery is not started
 			return fmt.Errorf("chunk recovery not triggered")
 		}
 
@@ -98,22 +109,29 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return err
 		}
 
+		count = 0
 		t0 := time.Now()
 		for {
-			time.Sleep(100 * time.Millisecond) // give sometime so that the repair happens
+			if count > MaxIterations {
+				return fmt.Errorf("could not download even after several attempts")
+			}
 
 			// download again to see if the chunk is repaired
 			data3, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
 			if err != nil {
-				continue // if the download is not successful, try again
+				count++
+				time.Sleep(1 * time.Second) // give sometime so that the repair happens
+				continue                    // if the download is not successful, try again
 			}
+			d0 := time.Since(t0)
+
 			if !bytes.Equal(data3, chunk.Data()) {
 				return errors.New("chunk downloaded in NodeC does not have proper data")
 			}
-			d0 := time.Since(t0)
+
 			fmt.Println("repaired chunk ", chunk.Address().String())
-			repairedCounter.WithLabelValues(chunk.Address().String()).Inc()
-			repairedTimeGauge.WithLabelValues(chunk.Address().String()).Set(d0.Seconds())
+			repairedCounter.WithLabelValues(addressA.String()).Inc()
+			repairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
 			repairedTimeHistogram.Observe(d0.Seconds())
 			break
 		}
