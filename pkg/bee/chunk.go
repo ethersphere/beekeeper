@@ -7,6 +7,7 @@ import (
 	"math/rand"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	bmtlegacy "github.com/ethersphere/bmt/legacy"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -66,6 +67,22 @@ func (c *Chunk) Size() int {
 // Span returns chunk span
 func (c *Chunk) Span() int {
 	return c.span
+}
+
+// SetAddress calculates the address of a chunk and assign's it to address field
+func (c *Chunk) SetAddress() error {
+	p := bmtlegacy.NewTreePool(chunkHahser, swarm.Branches, bmtlegacy.PoolSize)
+	hasher := bmtlegacy.New(p)
+	err := hasher.SetSpan(int64(c.Span()))
+	if err != nil {
+		return err
+	}
+	_, err = hasher.Write(c.Data()[8:])
+	if err != nil {
+		return err
+	}
+	c.address = swarm.NewAddress(hasher.Sum(nil))
+	return nil
 }
 
 // ClosestNode returns chunk's closest node of a given set of nodes

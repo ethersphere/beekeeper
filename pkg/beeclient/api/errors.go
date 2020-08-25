@@ -36,4 +36,5 @@ var (
 	ErrTooManyRequests     = errors.New("too many requests")
 	ErrInternalServerError = errors.New("internal server error")
 	ErrServiceUnavailable  = errors.New("service unavailable")
+	ErrRecoveryInitiated   = errors.New("try again later")
 )
