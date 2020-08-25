@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"errors"
-
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/chunkrepair"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -12,9 +10,8 @@ import (
 
 func (c *command) initCheckChunkRepair() *cobra.Command {
 	const (
-		optionNameChunkRepairNodeCount = "chunk-repair-node-count"
-		optionNameSeed                 = "seed"
-		optionNumberOfChunks           = "number-of-chunks"
+		optionNameSeed       = "seed"
+		optionNumberOfChunks = "number-of-chunks"
 	)
 
 	cmd := &cobra.Command{
@@ -24,10 +21,6 @@ func (c *command) initCheckChunkRepair() *cobra.Command {
 It uploads given number of chunks to given number of nodes, 
 and attempts repairing of those chunks for the other nodes in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if c.config.GetInt(optionNameChunkRepairNodeCount) > c.config.GetInt(optionNameNodeCount) {
-				return errors.New("bad parameters: chunk-repair-node-count must be less or equal to node-count")
-			}
-
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIScheme:               c.config.GetString(optionNameAPIScheme),
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
@@ -63,7 +56,6 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmd.Flags().IntP(optionNameChunkRepairNodeCount, "r", 3, "number of nodes required to run the chunk repair test")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 	cmd.Flags().Float64(optionNumberOfChunks, 1, "no of chunks to repair")
 	return cmd

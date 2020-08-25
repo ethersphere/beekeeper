@@ -10,11 +10,10 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/prometheus/client_golang/prometheus/push"
-	"github.com/prometheus/common/expfmt"
-
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/common/expfmt"
 )
 
 // Options represents chunk repair check options
@@ -24,7 +23,12 @@ type Options struct {
 }
 
 const (
-	MaxIterations = 10
+	maxIterations    = 10
+	minNodesRequired = 3
+)
+
+var (
+	errLessNodesForTest = errors.New("node count is less than the minimum count required")
 )
 
 // Check ...
@@ -58,7 +62,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 		count := 0
 		for {
-			if count > MaxIterations {
+			if count > maxIterations {
 				return fmt.Errorf("could not get chunk even after several attempts")
 			}
 
@@ -112,7 +116,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		count = 0
 		t0 := time.Now()
 		for {
-			if count > MaxIterations {
+			if count > maxIterations {
 				return fmt.Errorf("could not download even after several attempts")
 			}
 
@@ -158,6 +162,10 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
 		return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
+	}
+
+	if len(overlays) < minNodesRequired {
+		return bee.Node{}, bee.Node{}, bee.Node{}, nil, errLessNodesForTest
 	}
 
 	// find node A and C, such that they have the greatest distance between them in the cluster
