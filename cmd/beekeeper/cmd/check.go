@@ -66,6 +66,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.AddCommand(c.initCheckPushSync())
 	cmd.AddCommand(c.initCheckRetrieval())
 	cmd.AddCommand(c.initCheckChunkRepair())
+	cmd.AddCommand(c.initCheckManifest())
 
 	c.root.AddCommand(cmd)
 	return nil

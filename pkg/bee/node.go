@@ -334,3 +334,33 @@ func (n *Node) UploadFile(ctx context.Context, f *File) (err error) {
 
 	return
 }
+
+// UploadCollection uploads TAR collection bytes to the node
+func (n *Node) UploadCollection(ctx context.Context, f *File) (err error) {
+	h := fileHahser()
+	r, err := n.api.Dirs.Upload(ctx, io.TeeReader(f.DataReader(), h), f.Size())
+	if err != nil {
+		return fmt.Errorf("upload collection: %w", err)
+	}
+
+	f.address = r.Reference
+	f.hash = h.Sum(nil)
+
+	return
+}
+
+// DownloadManifestFile downloads manifest file from the node and returns it's size and hash
+func (n *Node) DownloadManifestFile(ctx context.Context, a swarm.Address, path string) (size int64, hash []byte, err error) {
+	r, err := n.api.Dirs.Download(ctx, a, path)
+	if err != nil {
+		return 0, nil, fmt.Errorf("download manifest file %s: %w", path, err)
+	}
+
+	h := fileHahser()
+	size, err = io.Copy(h, r)
+	if err != nil {
+		return 0, nil, fmt.Errorf("download manifest file %s: %w", path, err)
+	}
+
+	return size, h.Sum(nil), nil
+}

@@ -36,6 +36,7 @@ Available subcommands:
 | fullconnectivity | Checks full connectivity in the cluster |
 | kademlia | Checks Kademlia topology in the cluster |
 | localpinning | Checks local pinning ability of the cluster |
+| manifest | Checks manifest functionality on the cluster |
 | peercount | Count peers for all nodes in the cluster |
 | pingpong | Executes ping from all nodes to all other nodes in the cluster |
 | pullsync | Checks pullsync ability of the cluster |
@@ -88,6 +89,15 @@ beekeeper check kademlia --namespace bee --node-count 3
 Example:
 ```bash
 beekeeper check localpinning --namespace bee --node-count 3
+```
+
+### manifest
+
+**manifest** checks manifest functionality on the cluster.
+
+Example:
+```bash
+beekeeper check manifest --namespace bee --node-count 3
 ```
 
 ### peercount
