@@ -29,6 +29,7 @@ type Client struct {
 	Bytes  *BytesService
 	Chunks *ChunksService
 	Files  *FilesService
+	Dirs   *DirsService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -56,6 +57,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.Bytes = (*BytesService)(&c.service)
 	c.Chunks = (*ChunksService)(&c.service)
 	c.Files = (*FilesService)(&c.service)
+	c.Dirs = (*DirsService)(&c.service)
 	return c
 }
 

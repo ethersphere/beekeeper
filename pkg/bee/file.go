@@ -1,6 +1,7 @@
 package bee
 
 import (
+	"bytes"
 	"fmt"
 	"hash"
 	"io"
@@ -25,6 +26,34 @@ func NewRandomFile(r *rand.Rand, name string, size int64) File {
 		name:       name,
 		dataReader: io.LimitReader(r, size),
 		size:       size}
+}
+
+// NewBufferFile returns new file with specified buffer
+func NewBufferFile(name string, buffer *bytes.Buffer) File {
+	return File{
+		name:       name,
+		dataReader: buffer,
+		size:       int64(buffer.Len()),
+	}
+}
+
+// CalculateHash calculates hash from dataReader.
+// It replaces dataReader with another that will contain the data.
+func (f *File) CalculateHash() error {
+	h := fileHahser()
+
+	var buf bytes.Buffer
+	tee := io.TeeReader(f.DataReader(), &buf)
+
+	_, err := io.Copy(h, tee)
+	if err != nil {
+		return err
+	}
+
+	f.hash = h.Sum(nil)
+	f.dataReader = &buf
+
+	return nil
 }
 
 // Address returns file's address
