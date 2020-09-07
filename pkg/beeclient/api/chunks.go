@@ -28,6 +28,6 @@ type ChunksUploadResponse struct {
 
 // Upload uploads chunks to the node
 func (c *ChunksService) Upload(ctx context.Context, a swarm.Address, data io.Reader) (resp ChunksUploadResponse, err error) {
-	err = c.client.requestJSON(ctx, http.MethodPost, "/"+apiVersion+"/chunks/"+a.String(), data, &resp)
+	err = c.client.request(ctx, http.MethodPost, "/"+apiVersion+"/chunks/"+a.String(), data, &resp)
 	return
 }
