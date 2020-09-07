@@ -132,6 +132,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		return json.NewDecoder(r.Body).Decode(&v)
 	}
+
 	return nil
 }
 
