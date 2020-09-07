@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -26,10 +27,11 @@ type Client struct {
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
-	Bytes  *BytesService
-	Chunks *ChunksService
-	Files  *FilesService
-	Dirs   *DirsService
+	Bytes   *BytesService
+	Chunks  *ChunksService
+	Files   *FilesService
+	Dirs    *DirsService
+	Pinning *PinningService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -58,6 +60,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.Chunks = (*ChunksService)(&c.service)
 	c.Files = (*FilesService)(&c.service)
 	c.Dirs = (*DirsService)(&c.service)
+	c.Pinning = (*PinningService)(&c.service)
 	return c
 }
 
@@ -87,7 +90,23 @@ func httpClientWithTransport(baseURL *url.URL, c *http.Client) *http.Client {
 	return c
 }
 
-// request handles the HTTP JSON request response cycle.
+// requestJSON handles the HTTP request response cycle. It JSON encodes the request
+// body, creates an HTTP request with provided method on a path with required
+// headers and decodes request body if the v argument is not nil and content type is
+// application/json.
+func (c *Client) requestJSON(ctx context.Context, method, path string, body, v interface{}) (err error) {
+	var bodyBuffer io.ReadWriter
+	if body != nil {
+		bodyBuffer = new(bytes.Buffer)
+		if err = encodeJSON(bodyBuffer, body); err != nil {
+			return err
+		}
+	}
+
+	return c.request(ctx, method, path, bodyBuffer, v)
+}
+
+// request handles the HTTP request response cycle.
 func (c *Client) request(ctx context.Context, method, path string, body io.Reader, v interface{}) (err error) {
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
@@ -113,8 +132,15 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		return json.NewDecoder(r.Body).Decode(&v)
 	}
-
 	return nil
+}
+
+// encodeJSON writes a JSON-encoded v object to the provided writer with
+// SetEscapeHTML set to false.
+func encodeJSON(w io.Writer, v interface{}) (err error) {
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	return enc.Encode(v)
 }
 
 // requestData handles the HTTP request response cycle.
