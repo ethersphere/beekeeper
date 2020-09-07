@@ -23,6 +23,6 @@ type BytesUploadResponse struct {
 
 // Upload uploads bytes to the node
 func (b *BytesService) Upload(ctx context.Context, data io.Reader) (resp BytesUploadResponse, err error) {
-	err = b.client.requestJSON(ctx, http.MethodPost, "/"+apiVersion+"/bytes", data, &resp)
+	err = b.client.request(ctx, http.MethodPost, "/"+apiVersion+"/bytes", data, &resp)
 	return
 }
