@@ -23,6 +23,29 @@ func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error)
 	return
 }
 
+// Balance represents node's balance with a peer
+type Balance struct {
+	Balance int    `json:"balance"`
+	Peer    string `json:"peer"`
+}
+
+// Balance returns node's balance with a given peer
+func (n *NodeService) Balance(ctx context.Context, a swarm.Address) (resp Balance, err error) {
+	err = n.client.request(ctx, http.MethodGet, "/balances/"+a.String(), nil, &resp)
+	return
+}
+
+// Balances represents node's balances with all peers
+type Balances struct {
+	Balances []Balance `json:"balances"`
+}
+
+// Balances returns node's balances with all peers
+func (n *NodeService) Balances(ctx context.Context) (resp Balances, err error) {
+	err = n.client.request(ctx, http.MethodGet, "/balances", nil, &resp)
+	return
+}
+
 // HasChunk returns true/false if node has a chunk
 func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	resp := struct {

@@ -62,6 +62,47 @@ func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 	}, nil
 }
 
+// Balance represents node's balance with peer
+type Balance struct {
+	Balance int
+	Peer    string
+}
+
+// Balance returns node's balance with a given peer
+func (n *Node) Balance(ctx context.Context, a swarm.Address) (resp Balance, err error) {
+	b, err := n.debug.Node.Balance(ctx, a)
+	if err != nil {
+		return Balance{}, fmt.Errorf("get balance with node %s: %w", a.String(), err)
+	}
+
+	return Balance{
+		Balance: b.Balance,
+		Peer:    b.Peer,
+	}, nil
+}
+
+// Balances represents Balances's response
+type Balances struct {
+	Balances []Balance
+}
+
+// Balances returns node's balances
+func (n *Node) Balances(ctx context.Context) (resp Balances, err error) {
+	r, err := n.debug.Node.Balances(ctx)
+	if err != nil {
+		return Balances{}, fmt.Errorf("get balances: %w", err)
+	}
+
+	for _, b := range r.Balances {
+		resp.Balances = append(resp.Balances, Balance{
+			Balance: b.Balance,
+			Peer:    b.Peer,
+		})
+	}
+
+	return
+}
+
 // DownloadBytes downloads chunk from the node
 func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte, err error) {
 	r, err := n.api.Bytes.Download(ctx, a)
