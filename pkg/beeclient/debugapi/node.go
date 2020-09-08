@@ -90,46 +90,6 @@ func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
 	return
 }
 
-// PinChunk pins chunk
-func (n *NodeService) PinChunk(ctx context.Context, a swarm.Address) (bool, error) {
-	resp := struct {
-		Message string `json:"message,omitempty"`
-		Code    int    `json:"code,omitempty"`
-	}{}
-
-	err := n.client.requestJSON(ctx, http.MethodPost, "/chunks-pin/"+a.String(), nil, &resp)
-	if err == ErrNotFound {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-// PinnedChunk represents pinned chunk
-type PinnedChunk struct {
-	Address    swarm.Address `json:"address"`
-	PinCounter int           `json:"pinCounter"`
-}
-
-// PinnedChunk gets pinned chunk
-func (n *NodeService) PinnedChunk(ctx context.Context, a swarm.Address) (resp PinnedChunk, err error) {
-	err = n.client.requestJSON(ctx, http.MethodGet, "/chunks-pin/"+a.String(), nil, &resp)
-	return
-}
-
-// PinnedChunks represents pinned chunks
-type PinnedChunks struct {
-	Chunks []PinnedChunk `json:"chunks"`
-}
-
-// PinnedChunks gets pinned chunks
-func (n *NodeService) PinnedChunks(ctx context.Context) (resp PinnedChunks, err error) {
-	err = n.client.requestJSON(ctx, http.MethodGet, "/chunks-pin", nil, &resp)
-	return
-}
-
 // Readiness represents node's readiness
 type Readiness struct {
 	Status string `json:"status"`
@@ -168,21 +128,4 @@ func (n *NodeService) Topology(ctx context.Context) (resp Topology, err error) {
 	}
 
 	return
-}
-
-// UnpinChunk unpins chunk
-func (n *NodeService) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
-	resp := struct {
-		Message string `json:"message,omitempty"`
-		Code    int    `json:"code,omitempty"`
-	}{}
-
-	err := n.client.requestJSON(ctx, http.MethodDelete, "/chunks-pin/"+a.String(), nil, &resp)
-	if err == ErrNotFound {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return true, nil
 }
