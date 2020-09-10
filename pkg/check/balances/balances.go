@@ -104,11 +104,11 @@ func DryRunCheck(c bee.Cluster) (err error) {
 }
 
 // validateBalances checks if balances are valid
-func validateBalances(overlays []swarm.Address, all []bee.Balances) (err error) {
+func validateBalances(overlays []swarm.Address, clusterBalances []bee.Balances) (err error) {
 	balances := make(map[string]map[string]int)
 	for i := 0; i < len(overlays); i++ {
 		tmp := make(map[string]int)
-		for _, b := range all[i].Balances {
+		for _, b := range clusterBalances[i].Balances {
 			tmp[b.Peer] = b.Balance
 		}
 		balances[overlays[i].String()] = tmp
