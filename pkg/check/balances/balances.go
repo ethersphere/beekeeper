@@ -104,24 +104,24 @@ func DryRunCheck(c bee.Cluster) (err error) {
 }
 
 // validateBalances checks if balances are valid
-func validateBalances(overlays []swarm.Address, balances []bee.Balances) (err error) {
-	ob := make(map[string]map[string]int)
+func validateBalances(overlays []swarm.Address, all []bee.Balances) (err error) {
+	balances := make(map[string]map[string]int)
 	for i := 0; i < len(overlays); i++ {
 		tmp := make(map[string]int)
-		for _, b := range balances[i].Balances {
+		for _, b := range all[i].Balances {
 			tmp[b.Peer] = b.Balance
 		}
-		ob[overlays[i].String()] = tmp
+		balances[overlays[i].String()] = tmp
 	}
 
 	// check balance symmetry
 	var noSymmetry bool
-	for node, v := range ob {
+	for node, v := range balances {
 		for peer, balance := range v {
-			diff := balance + ob[peer][node]
+			diff := balance + balances[peer][node]
 			if diff != 0 {
 				fmt.Printf("Node %s has balance %d with peer %s\n", node, balance, peer)
-				fmt.Printf("Peer %s has balance %d with node %s\n", peer, ob[peer][node], node)
+				fmt.Printf("Peer %s has balance %d with node %s\n", peer, balances[peer][node], node)
 				fmt.Printf("Difference: %d\n", diff)
 				noSymmetry = true
 			}
