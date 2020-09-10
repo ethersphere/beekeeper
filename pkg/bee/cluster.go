@@ -141,6 +141,61 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 	return addressStream
 }
 
+// Balances returns ordered list of balances of all nodes in the cluster
+func (c *Cluster) Balances(ctx context.Context) (addrs []Balances, err error) {
+	var msgs []BalancesStreamMsg
+	for m := range c.BalancesStream(ctx) {
+		msgs = append(msgs, m)
+	}
+
+	sort.SliceStable(msgs, func(i, j int) bool {
+		return msgs[i].Index < msgs[j].Index
+	})
+
+	for i, m := range msgs {
+		if m.Error != nil {
+			return nil, fmt.Errorf("node %d: %w", i, m.Error)
+		}
+		addrs = append(addrs, m.Balances)
+	}
+
+	return
+}
+
+// BalancesStreamMsg represents message sent over the BalancesStream channel
+type BalancesStreamMsg struct {
+	Balances Balances
+	Index    int
+	Error    error
+}
+
+// BalancesStream returns stream of balances of all nodes in the cluster
+func (c *Cluster) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg {
+	balancesStream := make(chan BalancesStreamMsg)
+
+	var wg sync.WaitGroup
+	for i, node := range c.Nodes {
+		wg.Add(1)
+		go func(i int, n Node) {
+			defer wg.Done()
+
+			b, err := n.Balances(ctx)
+			balancesStream <- BalancesStreamMsg{
+				Balances: b,
+				Index:    i,
+				Error:    err,
+			}
+		}(i, node)
+	}
+
+	go func() {
+		wg.Wait()
+		close(balancesStream)
+	}()
+
+	return balancesStream
+}
+
 // GlobalReplicationFactor returns the total number of nodes that contain given chunk
 func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (int, error) {
 	var counter int

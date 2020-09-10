@@ -55,6 +55,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().String(optionNamePushGateway, "http://localhost:9091/", "Prometheus PushGateway")
 	cmd.PersistentFlags().BoolVar(&pushMetrics, optionNamePushMetrics, false, "push metrics to pushgateway")
 
+	cmd.AddCommand(c.initCheckBalances())
 	cmd.AddCommand(c.initCheckFileRetrieval())
 	cmd.AddCommand(c.initCheckFileRetrievalDynamic())
 	cmd.AddCommand(c.initCheckFullConnectivity())
