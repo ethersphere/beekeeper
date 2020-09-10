@@ -31,14 +31,6 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		return err
 	}
 
-	balances, err := c.Balances(ctx)
-	if err != nil {
-		return err
-	}
-	if err := validateBalances(overlays, balances); err != nil {
-		return fmt.Errorf("initial validation")
-	}
-
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// validate balances before uploading a file
 		b, err := c.Balances(ctx)
@@ -113,25 +105,30 @@ func DryRunCheck(c bee.Cluster) (err error) {
 
 // validateBalances checks if balances are valid
 func validateBalances(overlays []swarm.Address, balances []bee.Balances) (err error) {
-	initialValidation := true
-	for _, b := range balances {
-		if len(b.Balances) != 0 {
-			initialValidation = false
-		}
-	}
-	if initialValidation {
-		return
-	}
-
-	ob := make(map[string][]bee.Balance)
+	ob := make(map[string]map[string]int)
 	for i := 0; i < len(overlays); i++ {
-		ob[overlays[i].String()] = balances[i].Balances
+		tmp := make(map[string]int)
+		for _, b := range balances[i].Balances {
+			tmp[b.Peer] = b.Balance
+		}
+		ob[overlays[i].String()] = tmp
 	}
 
-	for k, v := range ob {
-		for _, b := range v {
-			fmt.Printf("Node %s has balance %d with node %s\n", k, b.Balance, b.Peer)
+	// check balance symmetry
+	var noSymmetry bool
+	for node, v := range ob {
+		for peer, balance := range v {
+			diff := balance + ob[peer][node]
+			if diff != 0 {
+				fmt.Printf("Node %s has balance %d with peer %s\n", node, balance, peer)
+				fmt.Printf("Peer %s has balance %d with node %s\n", peer, ob[peer][node], node)
+				fmt.Printf("Difference: %d\n", diff)
+				noSymmetry = true
+			}
 		}
+	}
+	if noSymmetry {
+		return fmt.Errorf("invalid balances: no symmetry")
 	}
 
 	return
