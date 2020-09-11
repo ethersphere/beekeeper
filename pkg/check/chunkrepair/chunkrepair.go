@@ -46,7 +46,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 	pusher.Format(expfmt.FmtText)
 
-	if err := fullconnectivity.Check(c); err != nil {
+	if err := fullconnectivity.Check(c); err == nil {
 		return errFullConnectivity
 	}
 
