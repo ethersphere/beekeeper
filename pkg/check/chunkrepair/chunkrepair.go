@@ -9,13 +9,13 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/storage"
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/common/expfmt"
+
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
-	"github.com/prometheus/common/expfmt"
 )
 
 // Options represents chunk repair check options
@@ -111,10 +111,6 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			if bytes.Equal(data, chunk.Data()) {
 				return fmt.Errorf("should not have received chunk")
 			}
-		}
-
-		if !errors.Is(err, storage.ErrNotFound) {
-			return err
 		}
 
 		// 5) Now trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair )
