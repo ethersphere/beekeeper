@@ -9,8 +9,10 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/ethersphere/bee/pkg/storage"
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -29,6 +31,7 @@ const (
 
 var (
 	errLessNodesForTest = errors.New("node count is less than the minimum count required")
+	errFullConnectivity = errors.New("full connectivity, chunk repair cannot be tested")
 )
 
 // Check ...
@@ -43,6 +46,17 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 	pusher.Format(expfmt.FmtText)
 
+	if err := fullconnectivity.Check(c); err != nil {
+		return errFullConnectivity
+	}
+
+	// for every chunk
+	// 1) Upload and pin the chunk in NodeA
+	// 2) check if it reached nodeB
+	// 3) delete chunk from all nodes except nodeA
+	// 4) try downloading from NodeC ( it should fail as the chunk is not there in proper node in the network)
+	// 5) Now try downloading with nodeA as target (this time we should get the repaired chunk)
+	// 6) try step 4 again (it should succeed now as chunk repairing would have placed the chunk in proper node in the network)
 	for i := 0; i < o.NumberOfChunksToRepair; i++ {
 		// Pick node A, B, C and a chunk which is closest to B
 		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, c, rnds[i])
@@ -54,12 +68,13 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return err
 		}
 
-		// upload the chunk in nodeA
-		err = nodeA.UploadChunk(ctx, chunk)
+		// 1) upload and pin the chunk in nodeA
+		err = uploadAndPinChunkToNode(ctx, &nodeA, chunk)
 		if err != nil {
 			return err
 		}
 
+		// 2) checking if the node reached nodeB
 		count := 0
 		for {
 			if count > maxIterations {
@@ -82,61 +97,62 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			}
 		}
 
-		// download the chunk from nodeC
-		data1, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
-		if err != nil {
-			return err
-		}
-		if !bytes.Equal(data1, chunk.Data()) {
-			return errors.New("chunk downloaded in NodeC does not have proper data")
-		}
-
-		// delete the chunk from all nodes. If the chunk from nodeA is not deleted,
-		// it is hard to simulate the chunk failure in small clusters. We would need a
-		// fairly large cluster then.
-		err = deleteChunkFromAllNodes(ctx, c, chunk)
+		// 3) delete the chunk from all nodes except nodeA
+		var nodes []bee.Node
+		exceptNodes := append(nodes, nodeA)
+		err = deleteChunkFromAllNodesExceptNode(ctx, c, chunk, exceptNodes)
 		if err != nil {
 			return err
 		}
 
-		// trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair)
-		_, err = nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
-		errMessage := fmt.Sprintf("download chunk %s: try again later", chunk.Address().String())
-		if err != nil && err.Error() != errMessage { // return error, if chunk recovery is not started
+		// 4) download the chunk from nodeC
+		data, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
+		if err == nil {
+			if bytes.Equal(data, chunk.Data()) {
+				return fmt.Errorf("should not have received chunk")
+			}
+		}
+
+		if !errors.Is(err, storage.ErrNotFound) {
+			return err
+		}
+
+		// 5) Now trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair )
+		t0 := time.Now()
+		data1, err := nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
+		d0 := time.Since(t0)
+		if err != nil {
 			return fmt.Errorf("chunk recovery not triggered")
 		}
 
-		// by the time the NodeC creates a trojan chunk and asks NodeA to repair, upload the
-		// original chunk in nodeA and pin it
-		err = uploadAndPinChunkToNode(ctx, &nodeA, chunk)
-		if err != nil {
-			return err
+		if !bytes.Equal(data1, chunk.Data()) {
+			return fmt.Errorf("chunk recovery failed")
 		}
 
+		fmt.Println("got repaired chunk", chunk.Address().String())
+		repairedCounter.WithLabelValues(addressA.String()).Inc()
+		repairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
+		repairedTimeHistogram.Observe(d0.Seconds())
+
 		count = 0
-		t0 := time.Now()
+
 		for {
 			if count > maxIterations {
 				return fmt.Errorf("could not download even after several attempts")
 			}
 
-			// download again to see if the chunk is repaired
+			// 6) download again from nodeC without targets to see if the chunk is repaired in the network
 			data3, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
 			if err != nil {
 				count++
 				time.Sleep(1 * time.Second) // give sometime so that the repair happens
 				continue                    // if the download is not successful, try again
 			}
-			d0 := time.Since(t0)
 
 			if !bytes.Equal(data3, chunk.Data()) {
 				return errors.New("chunk downloaded in NodeC does not have proper data")
 			}
-
-			fmt.Println("repaired chunk ", chunk.Address().String())
-			repairedCounter.WithLabelValues(addressA.String()).Inc()
-			repairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
-			repairedTimeHistogram.Observe(d0.Seconds())
+			fmt.Println("chunk repaired in network", chunk.Address().String())
 			break
 		}
 
@@ -236,12 +252,24 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Node, chunk *bee.Chu
 	return nil
 }
 
-// deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
-func deleteChunkFromAllNodes(ctx context.Context, c bee.Cluster, chunk *bee.Chunk) error {
+// deleteChunkFromAllNodesExceptNode deletes a given chunk from al the nodes of the cluster.
+func deleteChunkFromAllNodesExceptNode(ctx context.Context, c bee.Cluster, chunk *bee.Chunk, exceptNodes []bee.Node) error {
 	for _, node := range c.Nodes {
-		err := node.RemoveChunk(ctx, chunk)
+		overlay, err := node.Overlay(ctx)
 		if err != nil {
 			return err
+		}
+		for _, exceptNode := range exceptNodes {
+			exceptOverlay, err := exceptNode.Overlay(ctx)
+			if err != nil {
+				return err
+			}
+			if !overlay.Equal(exceptOverlay) {
+				err := node.RemoveChunk(ctx, chunk)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
