@@ -101,6 +101,32 @@ func (n *NodeService) Readiness(ctx context.Context) (resp Readiness, err error)
 	return
 }
 
+// Settlement represents node's settlement with a peer
+type Settlement struct {
+	Peer     string `json:"peer"`
+	Received string `json:"received"`
+	Sent     string `json:"sent"`
+}
+
+// Settlement returns node's settlement with a given peer
+func (n *NodeService) Settlement(ctx context.Context, a swarm.Address) (resp Settlement, err error) {
+	err = n.client.request(ctx, http.MethodGet, "/settlements/"+a.String(), nil, &resp)
+	return
+}
+
+// Settlements represents node's settlements with all peers
+type Settlements struct {
+	Settlements   []Settlement `json:"settlements"`
+	TotalReceived string       `json:"totalreceived"`
+	TotalSent     string       `json:"totalsent"`
+}
+
+// Settlements returns node's settlements with all peers
+func (n *NodeService) Settlements(ctx context.Context) (resp Settlements, err error) {
+	err = n.client.request(ctx, http.MethodGet, "/settlements", nil, &resp)
+	return
+}
+
 // Topology represents Kademlia topology
 type Topology struct {
 	BaseAddr       swarm.Address  `json:"baseAddr"`

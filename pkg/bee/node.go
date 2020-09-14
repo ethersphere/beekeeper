@@ -260,6 +260,54 @@ func (n *Node) PingStream(ctx context.Context, nodes []swarm.Address) <-chan Pin
 	return pingStream
 }
 
+// Settlement represents node's settlement with peer
+type Settlement struct {
+	Peer     string
+	Received string
+	Sent     string
+}
+
+// Settlement returns node's settlement with a given peer
+func (n *Node) Settlement(ctx context.Context, a swarm.Address) (resp Settlement, err error) {
+	b, err := n.debug.Node.Settlement(ctx, a)
+	if err != nil {
+		return Settlement{}, fmt.Errorf("get settlement with node %s: %w", a.String(), err)
+	}
+
+	return Settlement{
+		Peer:     b.Peer,
+		Received: b.Received,
+		Sent:     b.Sent,
+	}, nil
+}
+
+// Settlements represents Settlements's response
+type Settlements struct {
+	Settlements   []Settlement
+	TotalReceived string
+	TotalSent     string
+}
+
+// Settlements returns node's settlements
+func (n *Node) Settlements(ctx context.Context) (resp Settlements, err error) {
+	r, err := n.debug.Node.Settlements(ctx)
+	if err != nil {
+		return Settlements{}, fmt.Errorf("get settlements: %w", err)
+	}
+
+	for _, b := range r.Settlements {
+		resp.Settlements = append(resp.Settlements, Settlement{
+			Peer:     b.Peer,
+			Received: b.Received,
+			Sent:     b.Sent,
+		})
+	}
+	resp.TotalReceived = r.TotalReceived
+	resp.TotalSent = r.TotalSent
+
+	return
+}
+
 // Topology represents Kademlia topology
 type Topology struct {
 	Overlay        swarm.Address
