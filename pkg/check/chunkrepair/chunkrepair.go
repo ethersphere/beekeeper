@@ -51,12 +51,12 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 
 	// for every chunk
-	// 1) Upload and pin the chunk in NodeA
+	// 1) Upload the chunk in NodeA
 	// 2) check if it reached nodeB
-	// 3) delete chunk from all nodes except nodeA
-	// 4) try downloading from NodeC ( it should fail as the chunk is not there in proper node in the network)
-	// 5) Now try downloading with nodeA as target (this time we should get the repaired chunk)
-	// 6) try step 4 again (it should succeed now as chunk repairing would have placed the chunk in proper node in the network)
+	// 3) download the chunk from NodeC
+	// 4) delete chunk from all nodes except nodeA
+	// 5) Now try downloading with nodeA as target (we should get the repaired chunk)
+	// 6) download the chunk again without target (it should succeed now as chunk repairing would have placed the chunk in proper node in the network)
 	for i := 0; i < o.NumberOfChunksToRepair; i++ {
 		// Pick node A, B, C and a chunk which is closest to B
 		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, c, rnds[i])
@@ -68,8 +68,8 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return err
 		}
 
-		// 1) upload and pin the chunk in nodeA
-		err = uploadAndPinChunkToNode(ctx, &nodeA, chunk)
+		// 1) upload the chunk in nodeA
+		err = nodeA.UploadChunk(ctx, chunk)
 		if err != nil {
 			return err
 		}
@@ -97,7 +97,16 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			}
 		}
 
-		// 3) delete the chunk from all nodes except nodeA
+		// 3) download the chunk from nodeC ( it should work as NodeB has the chunk)
+		data1, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(data1, chunk.Data()) {
+			return errors.New("chunk downloaded in NodeC does not have proper data")
+		}
+
+		// 4) delete the chunk from all nodes except nodeA
 		var nodes []bee.Node
 		exceptNodes := append(nodes, nodeA)
 		err = deleteChunkFromAllNodesExceptNode(ctx, c, chunk, exceptNodes)
@@ -105,27 +114,24 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			return err
 		}
 
-		// 4) download the chunk from nodeC
-		data, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
-		if err == nil {
-			if bytes.Equal(data, chunk.Data()) {
-				return fmt.Errorf("should not have received chunk")
-			}
-		}
-
 		// 5) Now trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair )
+		var d0 time.Duration
 		t0 := time.Now()
-		data1, err := nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
-		d0 := time.Since(t0)
+		data3, err := nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
+		d0 = time.Since(t0)
 		if err != nil {
-			return fmt.Errorf("chunk recovery not triggered")
+			return fmt.Errorf("chunk recovery not triggered: %w", err)
 		}
 
-		if !bytes.Equal(data1, chunk.Data()) {
+		if !bytes.Equal(data3, chunk.Data()) {
 			return fmt.Errorf("chunk recovery failed")
 		}
 
-		fmt.Println("got repaired chunk", chunk.Address().String())
+		fmt.Println("got chunk in ", chunk.Address().String(), d0.String())
+		if d0.Seconds() < (50 * time.Second).Seconds() {
+			return fmt.Errorf("chunk was not obtained through repairing")
+		}
+
 		repairedCounter.WithLabelValues(addressA.String()).Inc()
 		repairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
 		repairedTimeHistogram.Observe(d0.Seconds())
@@ -180,30 +186,24 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 		return bee.Node{}, bee.Node{}, bee.Node{}, nil, errLessNodesForTest
 	}
 
-	// find node A and C, such that they have the greatest distance between them in the cluster
-	overlayA, overlayC, err = findFarthestNodes(overlays)
+	// find node B
+	// generate a chunk and pick the closest address from all the available addresses
+	overlayB, chunk, err = getRandomChunkAndClosestNode(overlays, rnd)
 	if err != nil {
 		return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
 	}
 
-	// find node B
-	// generate a chunk and pick the closest address from all the available addresses
-	for {
-		closestOverlay, c, err := getRandomChunkAndClosestNode(overlays, rnd)
-		if err != nil {
-			return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
-		}
-		if bytes.Equal(closestOverlay.Bytes(), overlayA.Bytes()) {
-			continue
-		}
-		if bytes.Equal(closestOverlay.Bytes(), overlayC.Bytes()) {
-			continue
-		}
-		// we found our chunk and closest node
-		overlayB = closestOverlay
-		chunk = c
-		break
+	peers, err := c.Peers(ctx)
+	if err != nil {
+		return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
 	}
+
+	// find node A and C, such that they have the greatest distance between them in the cluster
+	overlayA, overlayC, err = findFarthestNodes(overlays, peers, overlayB)
+	if err != nil {
+		return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
+	}
+
 	fmt.Printf("overlayA: %s\n", overlayA.String())
 	fmt.Printf("overlayB: %s\n", overlayB.String())
 	fmt.Printf("overlayC: %s\n", overlayC.String())
@@ -230,22 +230,6 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 		}
 	}
 	return nodeA, nodeB, nodeC, chunk, nil
-}
-
-// uploadAndPinChunkToNode uploads a given chunk to a given node and pins it.
-func uploadAndPinChunkToNode(ctx context.Context, node *bee.Node, chunk *bee.Chunk) error {
-	err := node.UploadChunk(ctx, chunk)
-	if err != nil {
-		return err
-	}
-	pinned, err := node.PinChunk(ctx, chunk.Address())
-	if err != nil {
-		return err
-	}
-	if !pinned {
-		return errors.New("could not pin chunk")
-	}
-	return nil
 }
 
 // deleteChunkFromAllNodesExceptNode deletes a given chunk from al the nodes of the cluster.
@@ -290,23 +274,37 @@ func getRandomChunkAndClosestNode(overlays []swarm.Address, rnd *rand.Rand) (swa
 }
 
 // findFarthestNodes finds two farthest nodes in the cluster
-func findFarthestNodes(overlays []swarm.Address) (swarm.Address, swarm.Address, error) {
+func findFarthestNodes(overlays []swarm.Address, peers [][]swarm.Address, overlayB swarm.Address) (swarm.Address, swarm.Address, error) {
 	var overlayA swarm.Address
 	var overlayC swarm.Address
 	dist := big.NewInt(0)
-	for _, a := range overlays {
+
+	for _, ps := range peers {
+		// if the peer is connected to all the peers, then ignore it
+		if len(ps) == len(peers)-1 {
+			continue
+		}
+
+		// if the peer does not contain overlayB in its peer list, then ignore it
+		if !contains(ps, overlayB) {
+			continue
+		}
+
+		// find the farthest peer and also the peer should not be in the neighbour list
 		for _, c := range overlays {
-			if a.Equal(c) {
-				continue
-			}
-			currDist, err := distance(a.Bytes(), c.Bytes())
-			if err != nil {
-				return swarm.ZeroAddress, swarm.ZeroAddress, err
-			}
-			if currDist.Cmp(dist) == 1 {
-				dist = currDist
-				overlayA = a
-				overlayC = c
+			for _, a := range ps {
+				if a.Equal(c) {
+					continue
+				}
+				currDist, err := distance(a.Bytes(), c.Bytes())
+				if err != nil {
+					return swarm.ZeroAddress, swarm.ZeroAddress, err
+				}
+				if currDist.Cmp(dist) == 1 && !contains(ps, c) {
+					dist = currDist
+					overlayA = a
+					overlayC = c
+				}
 			}
 		}
 	}
@@ -336,4 +334,14 @@ func distanceRaw(x, y []byte) ([]byte, error) {
 		c[i] = addr ^ y[i]
 	}
 	return c, nil
+}
+
+// contains checks if a given set of swarm.Address contains given swarm.Address
+func contains(s []swarm.Address, v swarm.Address) bool {
+	for _, a := range s {
+		if a.Equal(v) {
+			return true
+		}
+	}
+	return false
 }
