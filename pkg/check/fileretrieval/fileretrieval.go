@@ -51,7 +51,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			t0 := time.Now()
-			if err := c.Nodes[i].UploadFile(ctx, &file); err != nil {
+			if err := c.Nodes[i].UploadFile(ctx, &file, false); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 			d0 := time.Since(t0)
@@ -119,7 +119,7 @@ func CheckFull(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) 
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			t0 := time.Now()
-			if err := c.Nodes[i].UploadFile(ctx, &file); err != nil {
+			if err := c.Nodes[i].UploadFile(ctx, &file, false); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 			d0 := time.Since(t0)

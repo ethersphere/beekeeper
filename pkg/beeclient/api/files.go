@@ -24,10 +24,13 @@ type FilesUploadResponse struct {
 }
 
 // Upload uploads files to the node
-func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, size int64) (resp FilesUploadResponse, err error) {
+func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, size int64, pin bool) (resp FilesUploadResponse, err error) {
 	header := make(http.Header)
 	header.Set("Content-Type", "application/octet-stream")
 	header.Set("Content-Length", strconv.FormatInt(size, 10))
+	if pin {
+		header.Set("Swarm-Pin", "true")
+	}
 
 	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/files?"+url.QueryEscape("name="+name), header, data, &resp)
 	return

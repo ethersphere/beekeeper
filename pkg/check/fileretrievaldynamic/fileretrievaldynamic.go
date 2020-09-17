@@ -68,7 +68,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	uIndex := rnd.Intn(c.Size())
 	file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
 	t0 := time.Now()
-	if err := c.Nodes[uIndex].UploadFile(ctx, &file); err != nil {
+	if err := c.Nodes[uIndex].UploadFile(ctx, &file, false); err != nil {
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
 	d0 := time.Since(t0)
