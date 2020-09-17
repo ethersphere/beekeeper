@@ -263,8 +263,8 @@ func (n *Node) PingStream(ctx context.Context, nodes []swarm.Address) <-chan Pin
 // Settlement represents node's settlement with peer
 type Settlement struct {
 	Peer     string
-	Received string
-	Sent     string
+	Received int
+	Sent     int
 }
 
 // Settlement returns node's settlement with a given peer
@@ -284,8 +284,8 @@ func (n *Node) Settlement(ctx context.Context, a swarm.Address) (resp Settlement
 // Settlements represents Settlements's response
 type Settlements struct {
 	Settlements   []Settlement
-	TotalReceived string
-	TotalSent     string
+	TotalReceived int
+	TotalSent     int
 }
 
 // Settlements returns node's settlements

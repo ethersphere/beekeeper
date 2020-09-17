@@ -363,6 +363,61 @@ func (c *Cluster) RemoveNodes(count int) (err error) {
 	return
 }
 
+// Settlements returns ordered list of settlements of all nodes in the cluster
+func (c *Cluster) Settlements(ctx context.Context) (addrs []Settlements, err error) {
+	var msgs []SettlementsStreamMsg
+	for m := range c.SettlementsStream(ctx) {
+		msgs = append(msgs, m)
+	}
+
+	sort.SliceStable(msgs, func(i, j int) bool {
+		return msgs[i].Index < msgs[j].Index
+	})
+
+	for i, m := range msgs {
+		if m.Error != nil {
+			return nil, fmt.Errorf("node %d: %w", i, m.Error)
+		}
+		addrs = append(addrs, m.Settlements)
+	}
+
+	return
+}
+
+// SettlementsStreamMsg represents message sent over the SettlementsStream channel
+type SettlementsStreamMsg struct {
+	Settlements Settlements
+	Index       int
+	Error       error
+}
+
+// SettlementsStream returns stream of settlements of all nodes in the cluster
+func (c *Cluster) SettlementsStream(ctx context.Context) <-chan SettlementsStreamMsg {
+	SettlementsStream := make(chan SettlementsStreamMsg)
+
+	var wg sync.WaitGroup
+	for i, node := range c.Nodes {
+		wg.Add(1)
+		go func(i int, n Node) {
+			defer wg.Done()
+
+			s, err := n.Settlements(ctx)
+			SettlementsStream <- SettlementsStreamMsg{
+				Settlements: s,
+				Index:       i,
+				Error:       err,
+			}
+		}(i, node)
+	}
+
+	go func() {
+		wg.Wait()
+		close(SettlementsStream)
+	}()
+
+	return SettlementsStream
+}
+
 // Size returns size of the cluster
 func (c *Cluster) Size() int {
 	return len(c.Nodes)

@@ -17,6 +17,12 @@ func (c *command) initCheckSettlements() *cobra.Command {
 		optionNameFileName        = "file-name"
 		optionNameFileSize        = "file-size"
 		optionNameSeed            = "seed"
+		optionNameThreshold       = "threshold"
+		optionNameDryRun          = "dry-run"
+	)
+
+	var (
+		dryRun bool
 	)
 
 	cmd := &cobra.Command{
@@ -47,6 +53,10 @@ func (c *command) initCheckSettlements() *cobra.Command {
 
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
+			if dryRun {
+				return settlements.DryRunCheck(cluster)
+			}
+
 			var seed int64
 			if cmd.Flags().Changed("seed") {
 				seed = c.config.GetInt64(optionNameSeed)
@@ -61,6 +71,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 				FileName:        c.config.GetString(optionNameFileName),
 				FileSize:        fileSize,
 				Seed:            seed,
+				Threshold:       c.config.GetInt(optionNameThreshold),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
@@ -70,6 +81,8 @@ func (c *command) initCheckSettlements() *cobra.Command {
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
+	cmd.Flags().IntP(optionNameThreshold, "t", 100000, "balances treshold")
+	cmd.Flags().BoolVar(&dryRun, optionNameDryRun, false, "don't upload and download files, just validate")
 
 	return cmd
 }
