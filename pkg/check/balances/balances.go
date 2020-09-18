@@ -40,7 +40,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err := validateBalances(overlays, b); err != nil {
 			return fmt.Errorf("invalid balances before uploading a file")
 		}
-		fmt.Printf("Valid balances\n")
+		fmt.Println("Valid balances")
 
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
@@ -58,7 +58,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err := validateBalances(overlays, b); err != nil {
 			return fmt.Errorf("invalid balances after uploading a file")
 		}
-		fmt.Printf("Valid balances\n")
+		fmt.Println("Valid balances")
 
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
@@ -79,7 +79,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err := validateBalances(overlays, b); err != nil {
 			return fmt.Errorf("invalid balances after downloading a file")
 		}
-		fmt.Printf("Valid balances\n")
+		fmt.Println("Valid balances")
 	}
 
 	return
@@ -102,7 +102,7 @@ func DryRunCheck(c bee.Cluster) (err error) {
 	if err := validateBalances(overlays, balances); err != nil {
 		return fmt.Errorf("invalid balances")
 	}
-	fmt.Printf("Valid balances\n")
+	fmt.Println("Valid balances")
 
 	return
 }
