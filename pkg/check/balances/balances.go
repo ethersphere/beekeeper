@@ -45,7 +45,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
-		if err := c.Nodes[uIndex].UploadFile(ctx, &file); err != nil {
+		if err := c.Nodes[uIndex].UploadFile(ctx, &file, false); err != nil {
 			return fmt.Errorf("node %d: %w", uIndex, err)
 		}
 		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uIndex].String())

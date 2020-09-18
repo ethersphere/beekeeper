@@ -411,9 +411,9 @@ func (n *Node) RemoveChunk(ctx context.Context, c *Chunk) (err error) {
 }
 
 // UploadFile uploads file to the node
-func (n *Node) UploadFile(ctx context.Context, f *File) (err error) {
+func (n *Node) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
 	h := fileHahser()
-	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size())
+	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin)
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
