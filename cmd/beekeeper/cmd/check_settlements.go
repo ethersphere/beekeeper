@@ -53,10 +53,6 @@ func (c *command) initCheckSettlements() *cobra.Command {
 
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
-			if dryRun {
-				return settlements.DryRunCheck(cluster)
-			}
-
 			var seed int64
 			if cmd.Flags().Changed("seed") {
 				seed = c.config.GetInt64(optionNameSeed)
@@ -65,6 +61,16 @@ func (c *command) initCheckSettlements() *cobra.Command {
 			}
 
 			fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
+
+			if dryRun {
+				return settlements.DryRunCheck(cluster, settlements.Options{
+					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
+					FileName:        c.config.GetString(optionNameFileName),
+					FileSize:        fileSize,
+					Seed:            seed,
+					Threshold:       c.config.GetInt(optionNameThreshold),
+				})
+			}
 
 			return settlements.Check(cluster, settlements.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),

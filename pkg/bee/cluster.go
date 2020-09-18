@@ -141,22 +141,32 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 	return addressStream
 }
 
-// Balances returns ordered list of balances of all nodes in the cluster
-func (c *Cluster) Balances(ctx context.Context) (addrs []Balances, err error) {
+// Balances returns balances of all nodes in the cluster
+func (c *Cluster) Balances(ctx context.Context) (balances map[string]map[string]int, err error) {
+	overlays, err := c.Overlays(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var msgs []BalancesStreamMsg
 	for m := range c.BalancesStream(ctx) {
 		msgs = append(msgs, m)
 	}
-
 	sort.SliceStable(msgs, func(i, j int) bool {
 		return msgs[i].Index < msgs[j].Index
 	})
 
+	balances = make(map[string]map[string]int)
 	for i, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("node %d: %w", i, m.Error)
 		}
-		addrs = append(addrs, m.Balances)
+
+		tmp := make(map[string]int)
+		for _, b := range m.Balances.Balances {
+			tmp[b.Peer] = b.Balance
+		}
+		balances[overlays[i].String()] = tmp
 	}
 
 	return
@@ -363,22 +373,41 @@ func (c *Cluster) RemoveNodes(count int) (err error) {
 	return
 }
 
-// Settlements returns ordered list of settlements of all nodes in the cluster
-func (c *Cluster) Settlements(ctx context.Context) (addrs []Settlements, err error) {
+// SentReceived object
+type SentReceived struct {
+	Received int
+	Sent     int
+}
+
+// Settlements returns settlements of all nodes in the cluster
+func (c *Cluster) Settlements(ctx context.Context) (settlements map[string]map[string]SentReceived, err error) {
+	overlays, err := c.Overlays(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var msgs []SettlementsStreamMsg
 	for m := range c.SettlementsStream(ctx) {
 		msgs = append(msgs, m)
 	}
-
 	sort.SliceStable(msgs, func(i, j int) bool {
 		return msgs[i].Index < msgs[j].Index
 	})
 
+	settlements = make(map[string]map[string]SentReceived)
 	for i, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("node %d: %w", i, m.Error)
 		}
-		addrs = append(addrs, m.Settlements)
+
+		tmp := make(map[string]SentReceived)
+		for _, s := range m.Settlements.Settlements {
+			tmp[s.Peer] = SentReceived{
+				Received: s.Received,
+				Sent:     s.Sent,
+			}
+		}
+		settlements[overlays[i].String()] = tmp
 	}
 
 	return

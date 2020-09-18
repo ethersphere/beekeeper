@@ -42,10 +42,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err != nil {
 			return err
 		}
-		fmt.Println("settlements", s)
 		if err := validateSettlements(o.Threshold, overlays, b, s); err != nil {
 			return fmt.Errorf("invalid settlements before uploading a file: %s", err.Error())
 		}
+		fmt.Printf("Valid settlements\n")
 
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
@@ -64,10 +64,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err != nil {
 			return err
 		}
-		fmt.Println("settlements", s)
 		if err := validateSettlements(o.Threshold, overlays, b, s); err != nil {
 			return fmt.Errorf("invalid settlements after uploading a file: %s", err.Error())
 		}
+		fmt.Printf("Valid settlements\n")
 
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
@@ -89,17 +89,17 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err != nil {
 			return err
 		}
-		fmt.Println("settlements", s)
 		if err := validateSettlements(o.Threshold, overlays, b, s); err != nil {
 			return fmt.Errorf("invalid settlements after downloading a file: %s", err.Error())
 		}
+		fmt.Printf("Valid settlements\n")
 	}
 
 	return
 }
 
 // DryRunCheck executes settlements validation check without files uploading/downloading
-func DryRunCheck(c bee.Cluster) (err error) {
+func DryRunCheck(c bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 
 	overlays, err := c.Overlays(ctx)
@@ -112,62 +112,64 @@ func DryRunCheck(c bee.Cluster) (err error) {
 		return err
 	}
 
-	if err := validateBalances(overlays, balances); err != nil {
-		return fmt.Errorf("invalid balances")
+	settlements, err := c.Settlements(ctx)
+	if err != nil {
+		return err
 	}
-	fmt.Printf("valid balances\n")
+
+	if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
+		return fmt.Errorf("invalid settlements")
+	}
+	fmt.Printf("Valid settlements\n")
 
 	return
 }
 
-// validateSettlements checks if balances are valid
-func validateSettlements(threshold int, overlays []swarm.Address, clusterBalances []bee.Balances, clusterSettlements []bee.Settlements) (err error) {
+// validateSettlements checks if settlements are valid
+func validateSettlements(threshold int, overlays []swarm.Address, balances map[string]map[string]int, settlements map[string]map[string]bee.SentReceived) (err error) {
 	// threshold validation
-	for i, bs := range clusterBalances {
-		for _, b := range bs.Balances {
-			if b.Balance > threshold {
-				return fmt.Errorf("threshold %d (max %d) exceeded on node %s with peer %s", b.Balance, threshold, overlays[i], b.Peer)
-
+	for node, v := range balances {
+		for _, balance := range v {
+			if balance > threshold {
+				return fmt.Errorf("node %s has balance %d that exceeds threshold %d", node, balance, threshold)
 			}
 		}
-	}
-
-	for i, ss := range clusterSettlements {
-		for j, s := range ss.Settlements {
-			fmt.Println(i, j, s)
-		}
-	}
-
-	return
-}
-
-// validateBalances checks if balances are valid
-func validateBalances(overlays []swarm.Address, clusterBalances []bee.Balances) (err error) {
-	balances := make(map[string]map[string]int)
-	for i := 0; i < len(overlays); i++ {
-		tmp := make(map[string]int)
-		for _, b := range clusterBalances[i].Balances {
-			tmp[b.Peer] = b.Balance
-		}
-		balances[overlays[i].String()] = tmp
 	}
 
 	// check balance symmetry
-	var noSymmetry bool
+	var noBalanceSymmetry bool
 	for node, v := range balances {
 		for peer, balance := range v {
 			diff := balance + balances[peer][node]
-			fmt.Printf("Node %s has symmetric balance with peer %s\n", node, peer)
 			if diff != 0 {
+				fmt.Printf("Node %s has asymmetric balance with peer %s\n", node, peer)
 				fmt.Printf("Node %s has balance %d with peer %s\n", node, balance, peer)
 				fmt.Printf("Peer %s has balance %d with node %s\n", peer, balances[peer][node], node)
 				fmt.Printf("Difference: %d\n", diff)
-				noSymmetry = true
+				noBalanceSymmetry = true
 			}
 		}
 	}
-	if noSymmetry {
+	if noBalanceSymmetry {
 		return fmt.Errorf("invalid balances: no symmetry")
+	}
+
+	// check settlements symmetry
+	var nosettlementsSentymmetry bool
+	for node, v := range settlements {
+		for peer, settlement := range v {
+			diff := settlement.Received - settlements[peer][node].Sent
+			if diff != 0 {
+				fmt.Printf("Node %s has asymmetric settlement with peer %s\n", node, peer)
+				fmt.Printf("Node %s received %d from peer %s\n", node, settlement.Received, peer)
+				fmt.Printf("Peer %s sent %d to node %s\n", peer, settlements[peer][node].Sent, node)
+				fmt.Printf("Difference: %d\n", diff)
+				nosettlementsSentymmetry = true
+			}
+		}
+	}
+	if nosettlementsSentymmetry {
+		fmt.Printf("invalid settlements: no symmetry\n")
 	}
 
 	return

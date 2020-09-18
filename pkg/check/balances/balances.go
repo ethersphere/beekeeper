@@ -40,6 +40,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err := validateBalances(overlays, b); err != nil {
 			return fmt.Errorf("invalid balances before uploading a file")
 		}
+		fmt.Printf("Valid balances\n")
 
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
@@ -57,6 +58,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err := validateBalances(overlays, b); err != nil {
 			return fmt.Errorf("invalid balances after uploading a file")
 		}
+		fmt.Printf("Valid balances\n")
 
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
@@ -77,6 +79,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if err := validateBalances(overlays, b); err != nil {
 			return fmt.Errorf("invalid balances after downloading a file")
 		}
+		fmt.Printf("Valid balances\n")
 	}
 
 	return
@@ -99,29 +102,19 @@ func DryRunCheck(c bee.Cluster) (err error) {
 	if err := validateBalances(overlays, balances); err != nil {
 		return fmt.Errorf("invalid balances")
 	}
-	fmt.Printf("valid balances\n")
+	fmt.Printf("Valid balances\n")
 
 	return
 }
 
-// validateBalances checks if balances are valid
-func validateBalances(overlays []swarm.Address, clusterBalances []bee.Balances) (err error) {
-	balances := make(map[string]map[string]int)
-	for i := 0; i < len(overlays); i++ {
-		tmp := make(map[string]int)
-		for _, b := range clusterBalances[i].Balances {
-			tmp[b.Peer] = b.Balance
-		}
-		balances[overlays[i].String()] = tmp
-	}
-
-	// check balance symmetry
+// validateBalances checks balances symmetry
+func validateBalances(overlays []swarm.Address, balances map[string]map[string]int) (err error) {
 	var noSymmetry bool
 	for node, v := range balances {
 		for peer, balance := range v {
 			diff := balance + balances[peer][node]
-			fmt.Printf("Node %s has symmetric balance with peer %s\n", node, peer)
 			if diff != 0 {
+				fmt.Printf("Node %s has asymmetric balance with peer %s\n", node, peer)
 				fmt.Printf("Node %s has balance %d with peer %s\n", node, balance, peer)
 				fmt.Printf("Peer %s has balance %d with node %s\n", peer, balances[peer][node], node)
 				fmt.Printf("Difference: %d\n", diff)
