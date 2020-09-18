@@ -46,7 +46,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 	fmt.Printf("Settlements are valid\n")
 
-	previousSettlements := make(map[string]map[string]bee.SentReceived)
+	previousSettlements := settlements
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
@@ -184,18 +184,17 @@ func validateSettlements(threshold int, overlays []swarm.Address, balances map[s
 	return
 }
 
-// settlementsHaveHappened checks if settlements have happend
+// settlementsHaveHappened checks if settlements have happened
 func settlementsHaveHappened(current, previous map[string]map[string]bee.SentReceived) {
 	for node, v := range current {
-		for peer, settlment := range v {
-			if settlment.Received != previous[node][peer].Received || settlment.Sent != previous[node][peer].Sent {
-				fmt.Printf("Settlements have happend\n")
+		for peer, settlement := range v {
+			if settlement.Received != previous[node][peer].Received || settlement.Sent != previous[node][peer].Sent {
+				fmt.Printf("Settlements have happened\n")
 				return
 			}
 		}
 	}
 	fmt.Printf("Settlements have not happened\n")
-	return
 }
 
 // randomIndex finds random index <max and not equal to unallowed
