@@ -32,21 +32,22 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		return err
 	}
 
-	for i := 0; i < o.UploadNodeCount; i++ {
-		fmt.Printf("Validate settlements before uploading a file:\n")
-		b, err := c.Balances(ctx)
-		if err != nil {
-			return err
-		}
-		s, err := c.Settlements(ctx)
-		if err != nil {
-			return err
-		}
-		if err := validateSettlements(o.Threshold, overlays, b, s); err != nil {
-			return fmt.Errorf("invalid settlements before uploading a file: %s", err.Error())
-		}
-		fmt.Printf("Valid settlements\n")
+	// Initial settlement validation
+	balances, err := c.Balances(ctx)
+	if err != nil {
+		return err
+	}
+	settlements, err := c.Settlements(ctx)
+	if err != nil {
+		return err
+	}
+	if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
+		return fmt.Errorf("invalid initial settlements: %s", err.Error())
+	}
+	fmt.Printf("Settlements are valid\n")
 
+	previousSettlements := make(map[string]map[string]bee.SentReceived)
+	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
@@ -55,19 +56,27 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uIndex].String())
 
-		fmt.Printf("Validate settlements after uploading a file:\n")
-		b, err = c.Balances(ctx)
+		// Validate settlements after uploading a file
+		balances, err = c.Balances(ctx)
 		if err != nil {
 			return err
 		}
-		s, err = c.Settlements(ctx)
+
+		previousSettlements = settlements
+		settlements, err = c.Settlements(ctx)
 		if err != nil {
 			return err
 		}
-		if err := validateSettlements(o.Threshold, overlays, b, s); err != nil {
+		if settlementsHaveHappened(settlements, previousSettlements) {
+			fmt.Printf("Settlements have happend\n")
+		} else {
+			fmt.Printf("Settlements have not happened\n")
+		}
+
+		if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
 			return fmt.Errorf("invalid settlements after uploading a file: %s", err.Error())
 		}
-		fmt.Printf("Valid settlements\n")
+		fmt.Printf("Settlements are valid\n")
 
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
@@ -80,19 +89,27 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 		fmt.Printf("File downloaded successfully %s from node %s\n", file.Address().String(), overlays[dIndex].String())
 
-		fmt.Printf("Validate settlements after downloading a file:\n")
-		b, err = c.Balances(ctx)
+		// Validate settlements after downloading a file
+		balances, err = c.Balances(ctx)
 		if err != nil {
 			return err
 		}
-		s, err = c.Settlements(ctx)
+
+		previousSettlements = settlements
+		settlements, err = c.Settlements(ctx)
 		if err != nil {
 			return err
 		}
-		if err := validateSettlements(o.Threshold, overlays, b, s); err != nil {
+		if settlementsHaveHappened(settlements, previousSettlements) {
+			fmt.Printf("Settlements have happend\n")
+		} else {
+			fmt.Printf("Settlements have not happened\n")
+		}
+
+		if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
 			return fmt.Errorf("invalid settlements after downloading a file: %s", err.Error())
 		}
-		fmt.Printf("Valid settlements\n")
+		fmt.Printf("Settlements are valid\n")
 	}
 
 	return
@@ -120,7 +137,7 @@ func DryRunCheck(c bee.Cluster, o Options) (err error) {
 	if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
 		return fmt.Errorf("invalid settlements")
 	}
-	fmt.Printf("Valid settlements\n")
+	fmt.Printf("Settlements are valid\n")
 
 	return
 }
@@ -172,6 +189,18 @@ func validateSettlements(threshold int, overlays []swarm.Address, balances map[s
 		fmt.Printf("invalid settlements: no symmetry\n")
 	}
 
+	return
+}
+
+// settlementsHaveHappened checks if settlements have happend
+func settlementsHaveHappened(current, previous map[string]map[string]bee.SentReceived) (happend bool) {
+	for node, v := range current {
+		for peer, settlment := range v {
+			if settlment.Received != previous[node][peer].Received || settlment.Sent != previous[node][peer].Sent {
+				return true
+			}
+		}
+	}
 	return
 }
 
