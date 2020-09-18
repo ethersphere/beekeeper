@@ -46,7 +46,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	}
 	fmt.Printf("Settlements are valid\n")
 
-	previousSettlements := settlements
+	var previousSettlements map[string]map[string]bee.SentReceived
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
