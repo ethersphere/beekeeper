@@ -31,17 +31,18 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		return err
 	}
 
-	for i := 0; i < o.UploadNodeCount; i++ {
-		fmt.Printf("Validate balances before uploading a file:\n")
-		b, err := c.Balances(ctx)
-		if err != nil {
-			return err
-		}
-		if err := validateBalances(overlays, b); err != nil {
-			return fmt.Errorf("invalid balances before uploading a file")
-		}
-		fmt.Println("Valid balances")
+	// Initial balances validation
+	balances, err := c.Balances(ctx)
+	if err != nil {
+		return err
+	}
+	if err := validateBalances(overlays, balances); err != nil {
+		return fmt.Errorf("invalid initial balances: %s", err.Error())
+	}
+	fmt.Println("Balances are valid")
 
+	var previousBalances map[string]map[string]int
+	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
@@ -50,15 +51,18 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uIndex].String())
 
-		fmt.Printf("Validate balances after uploading a file:\n")
-		b, err = c.Balances(ctx)
+		// Validate balances after uploading a file
+		previousBalances = balances
+		balances, err = c.Balances(ctx)
 		if err != nil {
 			return err
 		}
-		if err := validateBalances(overlays, b); err != nil {
+		balancesHaveChanged(balances, previousBalances)
+
+		if err := validateBalances(overlays, balances); err != nil {
 			return fmt.Errorf("invalid balances after uploading a file")
 		}
-		fmt.Println("Valid balances")
+		fmt.Println("Balances are valid")
 
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
@@ -71,15 +75,18 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 		fmt.Printf("File downloaded successfully %s from node %s\n", file.Address().String(), overlays[dIndex].String())
 
-		fmt.Printf("Validate balances after downloading a file:\n")
-		b, err = c.Balances(ctx)
+		// Validate balances after downloading a file
+		previousBalances = balances
+		balances, err = c.Balances(ctx)
 		if err != nil {
 			return err
 		}
-		if err := validateBalances(overlays, b); err != nil {
+		balancesHaveChanged(balances, previousBalances)
+
+		if err := validateBalances(overlays, balances); err != nil {
 			return fmt.Errorf("invalid balances after downloading a file")
 		}
-		fmt.Println("Valid balances")
+		fmt.Println("Balances are valid")
 	}
 
 	return
@@ -102,7 +109,7 @@ func DryRunCheck(c bee.Cluster) (err error) {
 	if err := validateBalances(overlays, balances); err != nil {
 		return fmt.Errorf("invalid balances")
 	}
-	fmt.Println("Valid balances")
+	fmt.Println("Balances are valid")
 
 	return
 }
@@ -127,6 +134,19 @@ func validateBalances(overlays []swarm.Address, balances map[string]map[string]i
 	}
 
 	return
+}
+
+// balancesHaveChanged checks if balances have changed
+func balancesHaveChanged(current, previous map[string]map[string]int) {
+	for node, v := range current {
+		for peer, balance := range v {
+			if balance != previous[node][peer] {
+				fmt.Println("Balances have changed")
+				return
+			}
+		}
+	}
+	fmt.Println("Balances have not changed")
 }
 
 // randomIndex finds random index <max and not equal to unallowed
