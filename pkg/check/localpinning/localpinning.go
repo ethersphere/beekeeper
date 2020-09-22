@@ -100,7 +100,7 @@ DOWNLOAD:
 	t3 = time.Now()
 	smallSize, smallHash, err := c.Nodes[dIndex].DownloadFile(ctx, smallFile.Address())
 	if err != nil {
-		if counter == 5 {
+		if counter > 5 {
 			metricsHandler(pusher, pushMetrics)
 			return fmt.Errorf("node %d: %w", dIndex, err)
 		}
