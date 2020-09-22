@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -21,7 +22,7 @@ type Options struct {
 	Seed              int64
 }
 
-var errManifest = errors.New("manifest")
+var errManifest = errors.New("manifest data mismatch")
 
 func Check(c bee.Cluster, o Options) error {
 	ctx := context.Background()
@@ -51,12 +52,20 @@ func Check(c bee.Cluster, o Options) error {
 	}
 
 	lastNodeIndex := c.Size() - 1
+	try := 0
+
+DOWNLOAD:
+	time.Sleep(5 * time.Second)
+	try++
+	if try > 5 {
+		return errors.New("failed getting manifest files after too many retries")
+	}
 
 	for i, file := range files {
-
 		size, hash, err := c.Nodes[lastNodeIndex].DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
-			return fmt.Errorf("node %d: %w", lastNodeIndex, err)
+			fmt.Printf("node %d: error retrieving file: %v", lastNodeIndex, err)
+			goto DOWNLOAD
 		}
 
 		if !bytes.Equal(file.Hash(), hash) {
