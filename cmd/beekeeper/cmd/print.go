@@ -18,11 +18,11 @@ func (c *command) initPrintCmd() (err error) {
 
 	cmd.PersistentFlags().String(optionNameAPIScheme, "https", "API scheme")
 	cmd.PersistentFlags().String(optionNameAPIHostnamePattern, "bee-%d", "API hostname pattern")
-	cmd.PersistentFlags().String(optionNameAPIDomain, "core.internal", "API DNS domain")
+	cmd.PersistentFlags().String(optionNameAPIDomain, "staging.internal", "API DNS domain")
 	cmd.PersistentFlags().BoolVar(&insecureTLSAPI, optionNameAPIInsecureTLS, false, "skips TLS verification for API")
 	cmd.PersistentFlags().String(optionNameDebugAPIScheme, "https", "debug API scheme")
 	cmd.PersistentFlags().String(optionNameDebugAPIHostnamePattern, "bee-%d-debug", "debug API hostname pattern")
-	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "core.internal", "debug API DNS domain")
+	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "staging.internal", "debug API DNS domain")
 	cmd.PersistentFlags().BoolVar(&insecureTLSDebugAPI, optionNameDebugAPIInsecureTLS, false, "skips TLS verification for debug API")
 	cmd.PersistentFlags().BoolVar(&disableNamespace, optionNameDisableNamespace, false, "disable Kubernetes namespace")
 	cmd.PersistentFlags().Bool(optionNameInsecureTLS, false, "skips TLS verification for both API and debug API")
