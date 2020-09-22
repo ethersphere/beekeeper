@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -64,6 +65,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 		fmt.Println("Balances are valid")
 
+		time.Sleep(20 * time.Second)
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
 		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
