@@ -103,7 +103,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		_, err = nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
 		errMessage := fmt.Sprintf("download chunk %s: try again later", chunk.Address().String())
 		if err != nil && err.Error() != errMessage { // return error, if chunk recovery is not started
-			return fmt.Errorf("chunk recovery not triggered")
+			return fmt.Errorf("chunk recovery not triggered: %w", err)
 		}
 
 		// by the time the NodeC creates a trojan chunk and asks NodeA to repair, upload the
