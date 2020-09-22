@@ -135,21 +135,24 @@ func Check(c bee.Cluster, o Options) (err error) {
 			fmt.Printf("Chunk should be on %d nodes. %d within depth, %d outside\n", len(replicatingNodes), nnRep, peerPoBinRep)
 			for _, n := range replicatingNodes {
 				ni := findIndex(overlays, n)
-				t := 1
-				for {
+				var (
+					synced bool
+					err    error
+				)
+
+				for t := 1; t < 5; t++ {
 					time.Sleep(2 * time.Duration(t) * time.Second)
-					synced, err := c.Nodes[ni].HasChunk(ctx, chunk.Address())
+					synced, err = c.Nodes[ni].HasChunk(ctx, chunk.Address())
 					if err != nil {
 						return fmt.Errorf("node %d: %w", ni, err)
 					}
 					if synced {
 						break
 					}
-					t++
-					fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s\n", i, j, overlays[i].String(), chunk.Address().String(), n)
-					if t > 5 {
-						return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), chunk.Address().String(), n)
-					}
+					fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s. Retrying...\n", i, j, overlays[i].String(), chunk.Address().String(), n)
+				}
+				if !synced {
+					return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), chunk.Address().String(), n)
 				}
 			}
 
