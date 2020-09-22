@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"errors"
-
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -29,10 +27,6 @@ func (c *command) initCheckBalances() *cobra.Command {
 		Short: "Executes balances check",
 		Long:  `Executes balances check.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if c.config.GetInt(optionNameUploadNodeCount) > c.config.GetInt(optionNameNodeCount) {
-				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
-			}
-
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIScheme:               c.config.GetString(optionNameAPIScheme),
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
