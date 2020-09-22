@@ -75,7 +75,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if !bytes.Equal(file.Hash(), hash) {
 			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dIndex].String(), file.Size(), size)
 		}
-		fmt.Printf("File downloaded successfully %s from node %s\n", file.Address().String(), overlays[dIndex].String())
+		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dIndex].String())
 
 		// Validate balances after downloading a file
 		previousBalances = balances
