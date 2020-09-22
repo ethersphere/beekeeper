@@ -3,11 +3,13 @@ package localpinning
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -89,11 +91,23 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		uploadTimeHistogram.Observe(d2.Seconds())
 	}
 
-	t3 := time.Now()
+	var (
+		counter = 0
+		t3      time.Time
+	)
+DOWNLOAD:
+	counter++
+	t3 = time.Now()
 	smallSize, smallHash, err := c.Nodes[dIndex].DownloadFile(ctx, smallFile.Address())
 	if err != nil {
-		metricsHandler(pusher, pushMetrics)
-		return fmt.Errorf("node %d: %w", dIndex, err)
+		if counter == 5 {
+			metricsHandler(pusher, pushMetrics)
+			return fmt.Errorf("node %d: %w", dIndex, err)
+		}
+		if errors.Is(err, api.ErrServiceUnavailable) {
+			time.Sleep(1 * time.Second)
+			goto DOWNLOAD
+		}
 	}
 	d3 := time.Since(t3)
 
