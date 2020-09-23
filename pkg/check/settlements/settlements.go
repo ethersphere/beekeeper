@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -14,11 +15,12 @@ import (
 
 // Options represents settlements check options
 type Options struct {
-	UploadNodeCount int
-	FileName        string
-	FileSize        int64
-	Seed            int64
-	Threshold       int
+	UploadNodeCount    int
+	FileName           string
+	FileSize           int64
+	Seed               int64
+	Threshold          int
+	WaitBeforeDownload int
 }
 
 // Check executes settlements check
@@ -44,7 +46,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
 		return fmt.Errorf("invalid initial settlements: %s", err.Error())
 	}
-	fmt.Printf("Settlements are valid\n")
+	fmt.Println("Settlements are valid")
 
 	var previousSettlements map[string]map[string]bee.SentReceived
 	for i := 0; i < o.UploadNodeCount; i++ {
@@ -57,23 +59,33 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uIndex].String())
 
 		// validate settlements after uploading a file
-		balances, err = c.Balances(ctx)
-		if err != nil {
-			return err
-		}
-
 		previousSettlements = settlements
-		settlements, err = c.Settlements(ctx)
-		if err != nil {
-			return err
-		}
-		settlementsHaveHappened(settlements, previousSettlements)
+		for t := 0; t < 5; t++ {
+			time.Sleep(2 * time.Duration(t) * time.Second)
 
-		if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
-			return fmt.Errorf("invalid settlements after uploading a file: %s", err.Error())
-		}
-		fmt.Printf("Settlements are valid\n")
+			balances, err = c.Balances(ctx)
+			if err != nil {
+				return err
+			}
 
+			settlements, err = c.Settlements(ctx)
+			if err != nil {
+				return err
+			}
+			settlementsHaveHappened(settlements, previousSettlements)
+
+			err = validateSettlements(o.Threshold, overlays, balances, settlements)
+			if err != nil {
+				fmt.Printf("Invalid settlements after uploading a file: %s\n", err.Error())
+				fmt.Println("Retrying ...")
+				continue
+			}
+
+			fmt.Println("Settlements are valid")
+			break
+		}
+
+		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
 		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
@@ -83,25 +95,34 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if !bytes.Equal(file.Hash(), hash) {
 			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dIndex].String(), file.Size(), size)
 		}
-		fmt.Printf("File downloaded successfully %s from node %s\n", file.Address().String(), overlays[dIndex].String())
+		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dIndex].String())
 
 		// validate settlements after downloading a file
-		balances, err = c.Balances(ctx)
-		if err != nil {
-			return err
-		}
-
 		previousSettlements = settlements
-		settlements, err = c.Settlements(ctx)
-		if err != nil {
-			return err
-		}
-		settlementsHaveHappened(settlements, previousSettlements)
+		for t := 0; t < 5; t++ {
+			time.Sleep(2 * time.Duration(t) * time.Second)
 
-		if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
-			return fmt.Errorf("invalid settlements after downloading a file: %s", err.Error())
+			balances, err = c.Balances(ctx)
+			if err != nil {
+				return err
+			}
+
+			settlements, err = c.Settlements(ctx)
+			if err != nil {
+				return err
+			}
+			settlementsHaveHappened(settlements, previousSettlements)
+
+			err = validateSettlements(o.Threshold, overlays, balances, settlements)
+			if err != nil {
+				fmt.Printf("Invalid settlements after downloading a file: %s\n", err.Error())
+				fmt.Println("Retrying ...")
+				continue
+			}
+
+			fmt.Println("Settlements are valid")
+			break
 		}
-		fmt.Printf("Settlements are valid\n")
 	}
 
 	return
@@ -129,7 +150,7 @@ func DryRunCheck(c bee.Cluster, o Options) (err error) {
 	if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
 		return fmt.Errorf("invalid settlements")
 	}
-	fmt.Printf("Settlements are valid\n")
+	fmt.Println("Settlements are valid")
 
 	return
 }
@@ -178,7 +199,7 @@ func validateSettlements(threshold int, overlays []swarm.Address, balances map[s
 		}
 	}
 	if nosettlementsSentymmetry {
-		fmt.Printf("invalid settlements: no symmetry\n")
+		fmt.Println("invalid settlements: no symmetry")
 	}
 
 	return
@@ -189,12 +210,12 @@ func settlementsHaveHappened(current, previous map[string]map[string]bee.SentRec
 	for node, v := range current {
 		for peer, settlement := range v {
 			if settlement.Received != previous[node][peer].Received || settlement.Sent != previous[node][peer].Sent {
-				fmt.Printf("Settlements have happened\n")
+				fmt.Println("Settlements have happened")
 				return
 			}
 		}
 	}
-	fmt.Printf("Settlements have not happened\n")
+	fmt.Println("Settlements have not happened")
 }
 
 // randomIndex finds random index <max and not equal to unallowed

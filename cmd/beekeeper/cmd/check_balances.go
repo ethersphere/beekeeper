@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"errors"
-
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -13,11 +11,12 @@ import (
 
 func (c *command) initCheckBalances() *cobra.Command {
 	const (
-		optionNameUploadNodeCount = "upload-node-count"
-		optionNameFileName        = "file-name"
-		optionNameFileSize        = "file-size"
-		optionNameSeed            = "seed"
-		optionNameDryRun          = "dry-run"
+		optionNameUploadNodeCount    = "upload-node-count"
+		optionNameFileName           = "file-name"
+		optionNameFileSize           = "file-size"
+		optionNameSeed               = "seed"
+		optionNameDryRun             = "dry-run"
+		optionNameWaitBeforeDownload = "wait-before-download"
 	)
 
 	var (
@@ -29,10 +28,6 @@ func (c *command) initCheckBalances() *cobra.Command {
 		Short: "Executes balances check",
 		Long:  `Executes balances check.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if c.config.GetInt(optionNameUploadNodeCount) > c.config.GetInt(optionNameNodeCount) {
-				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
-			}
-
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
 				APIScheme:               c.config.GetString(optionNameAPIScheme),
 				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
@@ -66,10 +61,11 @@ func (c *command) initCheckBalances() *cobra.Command {
 			fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
 
 			return balances.Check(cluster, balances.Options{
-				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
-				FileName:        c.config.GetString(optionNameFileName),
-				FileSize:        fileSize,
-				Seed:            seed,
+				UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
+				FileName:           c.config.GetString(optionNameFileName),
+				FileSize:           fileSize,
+				Seed:               seed,
+				WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
@@ -80,6 +76,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().BoolVar(&dryRun, optionNameDryRun, false, "don't upload and download files, just validate")
+	cmd.Flags().IntP(optionNameWaitBeforeDownload, "w", 5, "wait before downloading a file [s]")
 
 	return cmd
 }

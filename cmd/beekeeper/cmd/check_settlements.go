@@ -11,12 +11,13 @@ import (
 
 func (c *command) initCheckSettlements() *cobra.Command {
 	const (
-		optionNameUploadNodeCount = "upload-node-count"
-		optionNameFileName        = "file-name"
-		optionNameFileSize        = "file-size"
-		optionNameSeed            = "seed"
-		optionNameThreshold       = "threshold"
-		optionNameDryRun          = "dry-run"
+		optionNameUploadNodeCount    = "upload-node-count"
+		optionNameFileName           = "file-name"
+		optionNameFileSize           = "file-size"
+		optionNameSeed               = "seed"
+		optionNameThreshold          = "threshold"
+		optionNameDryRun             = "dry-run"
+		optionNameWaitBeforeDownload = "wait-before-download"
 	)
 
 	var (
@@ -58,20 +59,22 @@ func (c *command) initCheckSettlements() *cobra.Command {
 
 			if dryRun {
 				return settlements.DryRunCheck(cluster, settlements.Options{
-					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
-					FileName:        c.config.GetString(optionNameFileName),
-					FileSize:        fileSize,
-					Seed:            seed,
-					Threshold:       c.config.GetInt(optionNameThreshold),
+					UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
+					FileName:           c.config.GetString(optionNameFileName),
+					FileSize:           fileSize,
+					Seed:               seed,
+					Threshold:          c.config.GetInt(optionNameThreshold),
+					WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
 				})
 			}
 
 			return settlements.Check(cluster, settlements.Options{
-				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
-				FileName:        c.config.GetString(optionNameFileName),
-				FileSize:        fileSize,
-				Seed:            seed,
-				Threshold:       c.config.GetInt(optionNameThreshold),
+				UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
+				FileName:           c.config.GetString(optionNameFileName),
+				FileSize:           fileSize,
+				Seed:               seed,
+				Threshold:          c.config.GetInt(optionNameThreshold),
+				WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
@@ -83,6 +86,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().IntP(optionNameThreshold, "t", 100000, "balances treshold")
 	cmd.Flags().BoolVar(&dryRun, optionNameDryRun, false, "don't upload and download files, just validate")
+	cmd.Flags().IntP(optionNameWaitBeforeDownload, "w", 5, "wait before downloading a file [s]")
 
 	return cmd
 }
