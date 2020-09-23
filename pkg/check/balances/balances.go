@@ -67,7 +67,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			err = validateBalances(overlays, balances)
 			if err != nil {
 				fmt.Printf("invalid balances after uploading a file: %s\n", err.Error())
-				fmt.Println("retrying ...")
+				fmt.Println("Retrying ...")
 				continue
 			}
 
@@ -101,7 +101,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			err := validateBalances(overlays, balances)
 			if err != nil {
 				fmt.Printf("invalid balances after downloading a file: %s\n", err.Error())
-				fmt.Println("retrying ...")
+				fmt.Println("Retrying ...")
 				continue
 			}
 

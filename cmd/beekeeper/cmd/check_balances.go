@@ -76,7 +76,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().BoolVar(&dryRun, optionNameDryRun, false, "don't upload and download files, just validate")
-	cmd.Flags().Int(optionNameWaitBeforeDownload, 5, "wait before downloading a file [s]")
+	cmd.Flags().IntP(optionNameWaitBeforeDownload, "w", 5, "wait before downloading a file [s]")
 
 	return cmd
 }
