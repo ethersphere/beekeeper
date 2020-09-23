@@ -190,7 +190,7 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
     if [[ $ACTION == "manifest" ]] || [[ $ACTION == "all" ]]; then
         _manifest
     fi
-    if [[ $ACTION == "localpinning" ]] || [[ $ACTION == "all" ]]; then
+    if [[ $ACTION == "localpinning" ]]; then
         _localpinning
     fi
 fi
