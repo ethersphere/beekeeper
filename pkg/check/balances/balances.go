@@ -15,10 +15,11 @@ import (
 
 // Options represents balances check options
 type Options struct {
-	UploadNodeCount int
-	FileName        string
-	FileSize        int64
-	Seed            int64
+	UploadNodeCount    int
+	FileName           string
+	FileSize           int64
+	Seed               int64
+	WaitBeforeDownload int
 }
 
 // Check executes balances check
@@ -74,7 +75,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			break
 		}
 
-		time.Sleep(20 * time.Second)
+		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
 		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
