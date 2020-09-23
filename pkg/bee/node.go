@@ -133,7 +133,7 @@ func (n *Node) DownloadFile(ctx context.Context, a swarm.Address) (size int64, h
 	h := fileHahser()
 	size, err = io.Copy(h, r)
 	if err != nil {
-		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
+		return 0, nil, fmt.Errorf("download file %s, hashing copy: %w", a, err)
 	}
 
 	return size, h.Sum(nil), nil
