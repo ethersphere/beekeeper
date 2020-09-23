@@ -76,7 +76,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 			err = validateSettlements(o.Threshold, overlays, balances, settlements)
 			if err != nil {
-				fmt.Printf("invalid settlements after uploading a file: %s\n", err.Error())
+				fmt.Printf("Invalid settlements after uploading a file: %s\n", err.Error())
 				fmt.Println("Retrying ...")
 				continue
 			}
@@ -95,7 +95,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		if !bytes.Equal(file.Hash(), hash) {
 			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dIndex].String(), file.Size(), size)
 		}
-		fmt.Printf("File downloaded successfully %s from node %s\n", file.Address().String(), overlays[dIndex].String())
+		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dIndex].String())
 
 		// validate settlements after downloading a file
 		previousSettlements = settlements
@@ -115,7 +115,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 			err = validateSettlements(o.Threshold, overlays, balances, settlements)
 			if err != nil {
-				fmt.Printf("invalid settlements after downloading a file: %s\n", err.Error())
+				fmt.Printf("Invalid settlements after downloading a file: %s\n", err.Error())
 				fmt.Println("Retrying ...")
 				continue
 			}
