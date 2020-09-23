@@ -54,16 +54,25 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 		// Validate balances after uploading a file
 		previousBalances = balances
-		balances, err = c.Balances(ctx)
-		if err != nil {
-			return err
-		}
-		balancesHaveChanged(balances, previousBalances)
+		for t := 0; t < 5; t++ {
+			time.Sleep(2 * time.Duration(t) * time.Second)
 
-		if err := validateBalances(overlays, balances); err != nil {
-			return fmt.Errorf("invalid balances after uploading a file")
+			balances, err = c.Balances(ctx)
+			if err != nil {
+				return err
+			}
+			balancesHaveChanged(balances, previousBalances)
+
+			err = validateBalances(overlays, balances)
+			if err != nil {
+				fmt.Printf("invalid balances after uploading a file: %s\n", err.Error())
+				fmt.Println("retrying ...")
+				continue
+			}
+
+			fmt.Println("Balances are valid")
+			break
 		}
-		fmt.Println("Balances are valid")
 
 		time.Sleep(20 * time.Second)
 		// download file from random node
@@ -79,16 +88,25 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 		// Validate balances after downloading a file
 		previousBalances = balances
-		balances, err = c.Balances(ctx)
-		if err != nil {
-			return err
-		}
-		balancesHaveChanged(balances, previousBalances)
+		for t := 0; t < 5; t++ {
+			time.Sleep(2 * time.Duration(t) * time.Second)
 
-		if err := validateBalances(overlays, balances); err != nil {
-			return fmt.Errorf("invalid balances after downloading a file")
+			balances, err = c.Balances(ctx)
+			if err != nil {
+				return err
+			}
+			balancesHaveChanged(balances, previousBalances)
+
+			err := validateBalances(overlays, balances)
+			if err != nil {
+				fmt.Printf("invalid balances after downloading a file: %s\n", err.Error())
+				fmt.Println("retrying ...")
+				continue
+			}
+
+			fmt.Println("Balances are valid")
+			break
 		}
-		fmt.Println("Balances are valid")
 	}
 
 	return
