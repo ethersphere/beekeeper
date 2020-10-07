@@ -21,14 +21,12 @@ func (c *command) initK8SCheck() *cobra.Command {
 
 			config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 			if err != nil {
-				fmt.Printf("The kubeconfig cannot be loaded: %v\n", err)
-				return err
+				return fmt.Errorf("the kubeconfig cannot be loaded: %v", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				fmt.Printf("Client cannot be set: %v\n", err)
-				return err
+				return fmt.Errorf("client cannot be set: %v", err)
 			}
 
 			fmt.Println("k8s")
