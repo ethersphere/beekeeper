@@ -4,6 +4,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	optionNameK8SConfig    = "kubeconfig"
+	optionNameK8SNamespace = "namespace"
+)
+
 func (c *command) initK8SCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "k8s",
@@ -16,6 +21,9 @@ func (c *command) initK8SCmd() (err error) {
 		},
 	}
 
+	cmd.PersistentFlags().String(optionNameK8SConfig, "~/.kube/config", "kubernetes config file")
+	cmd.PersistentFlags().StringP(optionNameK8SNamespace, "n", "beekeeper", "kubernetes namespace")
+
 	cmd.AddCommand(c.initK8SCheck())
 
 	c.root.AddCommand(cmd)
@@ -24,22 +32,9 @@ func (c *command) initK8SCmd() (err error) {
 }
 
 func (c *command) k8sPreRunE(cmd *cobra.Command, args []string) (err error) {
-	// if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
-	// 	if err = cmd.MarkFlagRequired(optionNameNamespace); err != nil {
-	// 		return
-	// 	}
-	// }
-	// if err = c.config.BindPFlags(cmd.Flags()); err != nil {
-	// 	return
-	// }
-	// if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
-	// 	return cmd.Help()
-	// }
-
-	// if c.config.GetBool(optionNameInsecureTLS) {
-	// 	insecureTLSAPI = true
-	// 	insecureTLSDebugAPI = true
-	// }
+	if err = c.config.BindPFlags(cmd.Flags()); err != nil {
+		return
+	}
 
 	return
 }
