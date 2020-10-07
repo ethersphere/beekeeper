@@ -16,6 +16,8 @@ func (c *command) initK8SCmd() (err error) {
 		},
 	}
 
+	cmd.AddCommand(c.initK8SCheck())
+
 	c.root.AddCommand(cmd)
 
 	return nil
