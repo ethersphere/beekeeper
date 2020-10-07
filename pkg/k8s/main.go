@@ -12,7 +12,7 @@ import (
 func Check(clientset *kubernetes.Clientset, namespace string) (err error) {
 	ctx := context.Background()
 
-	pod, err := clientset.CoreV1().Pods("svetomir").Get(ctx, "bee-0", metav1.GetOptions{})
+	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, "bee-0", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
