@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -12,11 +11,13 @@ import (
 func Check(clientset *kubernetes.Clientset, namespace string) (err error) {
 	ctx := context.Background()
 
-	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, "bee-0", metav1.GetOptions{})
-	if err != nil {
-		return err
+	if err := setNamespace(ctx, clientset, namespace); err != nil {
+		return fmt.Errorf("set namespace: %s", err)
 	}
-	fmt.Println(pod)
+
+	if err := setConfigMap(ctx, clientset, namespace, name, cmData); err != nil {
+		return fmt.Errorf("set configmap: %s", err)
+	}
 
 	return
 }

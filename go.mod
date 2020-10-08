@@ -13,6 +13,7 @@ require (
 	github.com/spf13/viper v1.6.3
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
 	helm.sh/helm/v3 v3.2.4
+	k8s.io/api v0.18.0
 	k8s.io/apimachinery v0.18.0
 	k8s.io/client-go v0.18.0
 	k8s.io/kube-openapi v0.0.0-20200410145947-bcb3869e6f29 // indirect
