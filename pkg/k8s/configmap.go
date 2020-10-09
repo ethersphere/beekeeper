@@ -24,7 +24,7 @@ func setConfigMap(ctx context.Context, clientset *kubernetes.Clientset, namespac
 	_, err = clientset.CoreV1().ConfigMaps(namespace).Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			fmt.Printf("configmap %s already exists, updating the map\n", name)
+			fmt.Printf("configmap %s already exists in the namespace %s, updating the map\n", name, namespace)
 			_, err = clientset.CoreV1().ConfigMaps(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 			if err != nil {
 				return err

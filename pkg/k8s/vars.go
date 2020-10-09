@@ -1,11 +1,23 @@
 package k8s
 
+import (
+	"github.com/ethersphere/beekeeper"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
 var (
 	name        = "bee"
 	annotations = map[string]string{
 		"createdBy": "beekeeper",
 	}
-	labels = map[string]string{}
+	labels = map[string]string{
+		"app.kubernetes.io/instance":   "bee",
+		"app.kubernetes.io/managed-by": "beekeeper",
+		"app.kubernetes.io/name":       "bee",
+		"app.kubernetes.io/version":    "latest",
+		"beekeeper/version":            beekeeper.Version,
+	}
 	cmData = map[string]string{
 		".bee.yaml": `api-addr: :8080
 bootnode: /dns4/bee-0-headless.svetomir.svc.cluster.local/tcp/7070/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL
@@ -37,5 +49,38 @@ tracing-endpoint: jaeger-operator-jaeger-agent.observability:6831
 tracing-service-name: bee
 verbosity: 5
 welcome-message: Welcome to the Swarm, you are Bee-ing connected!`,
+	}
+	svcSelector = map[string]string{
+		"app.kubernetes.io/instance":   "bee",
+		"app.kubernetes.io/name":       "bee",
+		"app.kubernetes.io/managed-by": "beekeeper",
+	}
+	svcPorts = []v1.ServicePort{
+		{
+			Name:       "api",
+			Protocol:   "TCP",
+			Port:       80,
+			TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "api"},
+		},
+	}
+	svcHeadlessPorts = []v1.ServicePort{
+		{
+			Name:       "api",
+			Protocol:   "TCP",
+			Port:       8080,
+			TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "api"},
+		},
+		{
+			Name:       "p2p",
+			Protocol:   "TCP",
+			Port:       7070,
+			TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "p2p"},
+		},
+		{
+			Name:       "debug",
+			Protocol:   "TCP",
+			Port:       6060,
+			TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "debug"},
+		},
 	}
 )

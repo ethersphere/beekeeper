@@ -23,8 +23,11 @@ func setNamespace(ctx context.Context, clientset *kubernetes.Clientset, namespac
 	_, err = clientset.CoreV1().Namespaces().Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			fmt.Printf("namespace %s already exists\n", namespace)
-			return nil
+			fmt.Printf("namespace %s already exists, updating the namespace\n", namespace)
+			_, err = clientset.CoreV1().Namespaces().Update(ctx, spec, metav1.UpdateOptions{})
+			if err != nil {
+				return nil
+			}
 		}
 		return err
 	}
