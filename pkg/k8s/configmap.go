@@ -32,7 +32,7 @@ p2p-addr: :7070
 p2p-quic-enable: false
 p2p-ws-enable: false
 resolver-options: 
-standalone: true
+standalone: false
 swap-enable: false
 swap-endpoint: http://localhost:8545
 swap-factory-address: 

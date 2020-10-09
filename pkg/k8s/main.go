@@ -62,5 +62,10 @@ func Check(clientset *kubernetes.Clientset, namespace string) (err error) {
 		return fmt.Errorf("set service %s", err)
 	}
 
+	// statefulset
+	if err := setStatefulSet(ctx, clientset, namespace, fmt.Sprintf("%s-0", name), statefulsetSpec); err != nil {
+		return fmt.Errorf("set statefulset %s", err)
+	}
+
 	return
 }
