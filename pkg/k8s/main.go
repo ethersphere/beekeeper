@@ -12,14 +12,21 @@ import (
 func Check(clientset *kubernetes.Clientset, namespace string) (err error) {
 	ctx := context.Background()
 
+	// namespace
 	if err := setNamespace(ctx, clientset, namespace); err != nil {
 		return fmt.Errorf("set namespace: %s", err)
 	}
 
+	// configuration
 	if err := setConfigMap(ctx, clientset, namespace, name, cmData); err != nil {
 		return fmt.Errorf("set configmap: %s", err)
 	}
 
+	// secrets
+	if err := setSecret(ctx, clientset, namespace, fmt.Sprintf("%s-libp2p", name), secretData); err != nil {
+		return fmt.Errorf("set secret: %s", err)
+	}
+	// services
 	if err := setServiceAccount(ctx, clientset, namespace, name); err != nil {
 		return fmt.Errorf("set serviceaccount %s", err)
 	}
