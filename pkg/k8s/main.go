@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -46,20 +45,17 @@ func Check(clientset *kubernetes.Clientset, namespace string) (err error) {
 		return fmt.Errorf("set serviceaccount %s", err)
 	}
 
-	if err := setService(ctx, clientset, namespace, name, v1.ServiceSpec{
-		Ports:    svcPorts,
-		Selector: svcSelector,
-		Type:     v1.ServiceTypeClusterIP,
-	}); err != nil {
+	if err := setService(ctx, clientset, namespace, name, svc); err != nil {
 		return fmt.Errorf("set service %s", err)
 	}
 
-	if err := setService(ctx, clientset, namespace, fmt.Sprintf("%s-headless", name), v1.ServiceSpec{
-		Ports:    svcHeadlessPorts,
-		Selector: svcSelector,
-		Type:     v1.ServiceTypeClusterIP,
-	}); err != nil {
+	if err := setService(ctx, clientset, namespace, fmt.Sprintf("%s-headless", name), svcHeadless); err != nil {
 		return fmt.Errorf("set service %s", err)
+	}
+
+	// ingress
+	if err := setIngress(ctx, clientset, namespace, name, ingressSpec); err != nil {
+		return fmt.Errorf("set ingress %s", err)
 	}
 
 	// statefulset

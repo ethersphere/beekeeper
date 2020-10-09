@@ -17,33 +17,41 @@ var (
 		"app.kubernetes.io/name":       "bee",
 		"app.kubernetes.io/managed-by": "beekeeper",
 	}
-	svcPorts = []v1.ServicePort{
-		{
-			Name:       "api",
-			Protocol:   "TCP",
-			Port:       80,
-			TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "api"},
+	svc = v1.ServiceSpec{
+		Ports: []v1.ServicePort{
+			{
+				Name:       "api",
+				Protocol:   "TCP",
+				Port:       80,
+				TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "api"},
+			},
 		},
+		Selector: svcSelector,
+		Type:     v1.ServiceTypeClusterIP,
 	}
-	svcHeadlessPorts = []v1.ServicePort{
-		{
-			Name:       "api",
-			Protocol:   "TCP",
-			Port:       8080,
-			TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "api"},
+	svcHeadless = v1.ServiceSpec{
+		Ports: []v1.ServicePort{
+			{
+				Name:       "api",
+				Protocol:   "TCP",
+				Port:       8080,
+				TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "api"},
+			},
+			{
+				Name:       "p2p",
+				Protocol:   "TCP",
+				Port:       7070,
+				TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "p2p"},
+			},
+			{
+				Name:       "debug",
+				Protocol:   "TCP",
+				Port:       6060,
+				TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "debug"},
+			},
 		},
-		{
-			Name:       "p2p",
-			Protocol:   "TCP",
-			Port:       7070,
-			TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "p2p"},
-		},
-		{
-			Name:       "debug",
-			Protocol:   "TCP",
-			Port:       6060,
-			TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: "debug"},
-		},
+		Selector: svcSelector,
+		Type:     v1.ServiceTypeClusterIP,
 	}
 )
 
