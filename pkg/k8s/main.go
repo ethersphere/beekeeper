@@ -4,8 +4,23 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ethersphere/beekeeper"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+)
+
+var (
+	name        = "bee"
+	annotations = map[string]string{
+		"createdBy": "beekeeper",
+	}
+	labels = map[string]string{
+		"app.kubernetes.io/instance":   "bee",
+		"app.kubernetes.io/managed-by": "beekeeper",
+		"app.kubernetes.io/name":       "bee",
+		"app.kubernetes.io/version":    "latest",
+		"beekeeper/version":            beekeeper.Version,
+	}
 )
 
 // Check ...
