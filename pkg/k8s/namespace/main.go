@@ -1,4 +1,4 @@
-package k8s
+package namespace
 
 import (
 	"context"
@@ -10,20 +10,27 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// setNamespace creates namespace, if namespace already exists does nothing
-func setNamespace(ctx context.Context, clientset *kubernetes.Clientset, namespace string) (err error) {
+// Options represents namespace's options
+type Options struct {
+	Name        string
+	Annotations map[string]string
+	Labels      map[string]string
+}
+
+// Set creates namespace, if namespace already exists does nothing
+func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err error) {
 	spec := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        namespace,
-			Annotations: annotations,
-			Labels:      labels,
+			Name:        o.Name,
+			Annotations: o.Annotations,
+			Labels:      o.Labels,
 		},
 	}
 
 	_, err = clientset.CoreV1().Namespaces().Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
 		if !k8sErrors.IsNotFound(err) {
-			fmt.Printf("namespace %s already exists, updating the namespace\n", namespace)
+			fmt.Printf("namespace %s already exists, updating the namespace\n", o.Name)
 			_, err = clientset.CoreV1().Namespaces().Update(ctx, spec, metav1.UpdateOptions{})
 			if err != nil {
 				return nil

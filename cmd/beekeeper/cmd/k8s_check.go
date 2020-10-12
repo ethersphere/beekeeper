@@ -29,7 +29,9 @@ func (c *command) initK8SCheck() *cobra.Command {
 				return fmt.Errorf("client cannot be set: %v", err)
 			}
 
-			return k8s.Check(clientset, c.config.GetString(optionNameK8SNamespace))
+			return k8s.Check(clientset, k8s.Options{
+				Namespace: c.config.GetString(optionNameK8SNamespace),
+			})
 		},
 		PreRunE: c.k8sPreRunE,
 	}

@@ -4,62 +4,65 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethersphere/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
+	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
+	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
+	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
+	"github.com/ethersphere/beekeeper/pkg/k8s/service"
+	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
+	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"k8s.io/client-go/kubernetes"
 )
 
-var (
-	name        = "bee"
-	annotations = map[string]string{
-		"createdBy": "beekeeper",
-	}
-	labels = map[string]string{
-		"app.kubernetes.io/instance":   "bee",
-		"app.kubernetes.io/managed-by": "beekeeper",
-		"app.kubernetes.io/name":       "bee",
-		"app.kubernetes.io/version":    "latest",
-		"beekeeper/version":            beekeeper.Version,
-	}
-)
+// Options ...
+type Options struct {
+	Namespace string
+}
 
 // Check ...
-func Check(clientset *kubernetes.Clientset, namespace string) (err error) {
+func Check(clientset *kubernetes.Clientset, o Options) (err error) {
 	ctx := context.Background()
 
 	// namespace
-	if err := setNamespace(ctx, clientset, namespace); err != nil {
+	if err := namespace.Set(ctx, clientset, nsOptions); err != nil {
 		return fmt.Errorf("set namespace: %s", err)
 	}
 
 	// configuration
-	if err := setConfigMap(ctx, clientset, namespace, name, cmData); err != nil {
+	cmOptions.Namespace = o.Namespace
+	if err := configmap.Set(ctx, clientset, cmOptions); err != nil {
 		return fmt.Errorf("set configmap: %s", err)
 	}
 
-	// secrets
-	if err := setSecret(ctx, clientset, namespace, fmt.Sprintf("%s-libp2p", name), secretData); err != nil {
+	secOptions.Namespace = o.Namespace
+	if err := secret.Set(ctx, clientset, secOptions); err != nil {
 		return fmt.Errorf("set secret: %s", err)
 	}
+
 	// services
-	if err := setServiceAccount(ctx, clientset, namespace, name); err != nil {
+	saOptions.Namespace = o.Namespace
+	if err := serviceaccount.Set(ctx, clientset, saOptions); err != nil {
 		return fmt.Errorf("set serviceaccount %s", err)
 	}
 
-	if err := setService(ctx, clientset, namespace, name, svc); err != nil {
+	svcOptions.Namespace = o.Namespace
+	if err := service.Set(ctx, clientset, svcOptions); err != nil {
 		return fmt.Errorf("set service %s", err)
 	}
 
-	if err := setService(ctx, clientset, namespace, fmt.Sprintf("%s-headless", name), svcHeadless); err != nil {
+	headlessSvcOptions.Namespace = o.Namespace
+	if err := service.Set(ctx, clientset, headlessSvcOptions); err != nil {
 		return fmt.Errorf("set service %s", err)
 	}
 
 	// ingress
-	if err := setIngress(ctx, clientset, namespace, name, ingressSpec); err != nil {
+	ingressOptions.Namespace = o.Namespace
+	if err := ingress.Set(ctx, clientset, ingressOptions); err != nil {
 		return fmt.Errorf("set ingress %s", err)
 	}
 
 	// statefulset
-	if err := setStatefulSet(ctx, clientset, namespace, fmt.Sprintf("%s-0", name), statefulsetSpec); err != nil {
+	if err := statefulset.Set(ctx, clientset, ssOptions); err != nil {
 		return fmt.Errorf("set statefulset %s", err)
 	}
 
