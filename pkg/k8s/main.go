@@ -62,6 +62,7 @@ func Check(clientset *kubernetes.Clientset, o Options) (err error) {
 	}
 
 	// statefulset
+	ssOptions.Namespace = o.Namespace
 	if err := statefulset.Set(ctx, clientset, ssOptions); err != nil {
 		return fmt.Errorf("set statefulset %s", err)
 	}

@@ -170,5 +170,44 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 		Name:        fmt.Sprintf("%s-0", name),
 		Annotations: annotations,
 		Labels:      labels,
+		Replicas:    1,
+		Selector: map[string]string{
+			"app.kubernetes.io/instance":   "bee",
+			"app.kubernetes.io/name":       "bee",
+			"app.kubernetes.io/managed-by": "beekeeper",
+		},
+		RestartPolicy:      "Always",
+		ServiceAccountName: name,
+		ServiceName:        fmt.Sprintf("%s-headless", name),
+		NodeSelector: map[string]string{
+			"node-group": "bee-staging",
+		},
+		PodManagementPolicy: "OrderedReady",
+		PodSecurityContext: statefulset.PodSecurityContext{
+			FSGroup: 999,
+		},
+		UpdateStrategy: statefulset.UpdateStrategy{
+			Type: "OnDelete",
+		},
+		ConfigVolume: statefulset.VolumeConfig{
+			Name:        "config",
+			ConfigMap:   name,
+			DefaultMode: 420,
+		},
+		ConfigFileVolume: statefulset.VolumeConfigFile{
+			Name: "config-file",
+		},
+		DataVolume: statefulset.VolumeData{
+			Name: "data",
+		},
+		LibP2PVolume: statefulset.VolumeLibP2P{
+			Name:        fmt.Sprintf("%s-libp2p", name),
+			Secret:      fmt.Sprintf("%s-libp2p", name),
+			DefaultMode: 420,
+			Items: []statefulset.Item{{
+				Key:   "libp2pKeys",
+				Value: "libp2p.map",
+			}},
+		},
 	}
 )
