@@ -36,10 +36,7 @@ type Options struct {
 	PodManagementPolicy string
 	PodSecurityContext  PodSecurityContext
 	UpdateStrategy      UpdateStrategy
-	ConfigVolume        VolumeConfig
-	ConfigFileVolume    VolumeConfigFile
-	DataVolume          VolumeData
-	LibP2PVolume        VolumeLibP2P
+	Volumes             []Volume
 }
 
 // PodSecurityContext ...
@@ -141,45 +138,7 @@ func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err e
 					SecurityContext: &v1.PodSecurityContext{
 						FSGroup: &o.PodSecurityContext.FSGroup,
 					},
-					Volumes: []v1.Volume{ // TODO: Improve volume handling
-						{
-							Name: o.LibP2PVolume.Name,
-							VolumeSource: v1.VolumeSource{
-								Secret: &v1.SecretVolumeSource{
-									SecretName:  o.LibP2PVolume.Secret,
-									DefaultMode: &o.LibP2PVolume.DefaultMode,
-									Items: []v1.KeyToPath{{
-										// TODO: Improve extraction
-										Key:  o.LibP2PVolume.Items[0].Key,
-										Path: o.LibP2PVolume.Items[0].Value,
-									}},
-								},
-							},
-						},
-						{
-							Name: o.ConfigVolume.Name,
-							VolumeSource: v1.VolumeSource{
-								ConfigMap: &v1.ConfigMapVolumeSource{
-									LocalObjectReference: v1.LocalObjectReference{
-										Name: o.ConfigVolume.ConfigMap,
-									},
-									DefaultMode: &o.ConfigVolume.DefaultMode,
-								},
-							},
-						},
-						{
-							Name: o.ConfigFileVolume.Name,
-							VolumeSource: v1.VolumeSource{
-								EmptyDir: &v1.EmptyDirVolumeSource{},
-							},
-						},
-						{ // TODO: enable persistence
-							Name: o.DataVolume.Name,
-							VolumeSource: v1.VolumeSource{
-								EmptyDir: &v1.EmptyDirVolumeSource{},
-							},
-						},
-					},
+					Volumes: volumesToK8S(o.Volumes),
 				},
 			},
 			ServiceName:         o.ServiceName,
@@ -205,5 +164,12 @@ func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err e
 		return err
 	}
 
+	return
+}
+
+func volumesToK8S(volumes []Volume) (vs []v1.Volume) {
+	for _, volume := range volumes {
+		vs = append(vs, volume.toK8S())
+	}
 	return
 }

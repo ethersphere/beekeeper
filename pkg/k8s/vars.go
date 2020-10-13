@@ -189,24 +189,23 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 		UpdateStrategy: statefulset.UpdateStrategy{
 			Type: "OnDelete",
 		},
-		ConfigVolume: statefulset.VolumeConfig{
-			Name:        "config",
-			ConfigMap:   name,
-			DefaultMode: 420,
-		},
-		ConfigFileVolume: statefulset.VolumeConfigFile{
-			Name: "config-file",
-		},
-		DataVolume: statefulset.VolumeData{
-			Name: "data",
-		},
-		LibP2PVolume: statefulset.VolumeLibP2P{
-			Name:        fmt.Sprintf("%s-libp2p", name),
-			Secret:      fmt.Sprintf("%s-libp2p", name),
-			DefaultMode: 420,
-			Items: []statefulset.Item{{
-				Key:   "libp2pKeys",
-				Value: "libp2p.map",
+		Volumes: []statefulset.Volume{
+			{ConfigMap: &statefulset.ConfigMapVolume{
+				Name:          "config",
+				ConfigMapName: name,
+				DefaultMode:   420,
+			}},
+			{EmptyDir: &statefulset.EmptyDirVolume{
+				Name: "data",
+			}},
+			{Secret: &statefulset.SecretVolume{
+				Name:        fmt.Sprintf("%s-libp2p", name),
+				SecretName:  fmt.Sprintf("%s-libp2p", name),
+				DefaultMode: 420,
+				Items: []statefulset.Item{{
+					Key:   "libp2pKeys",
+					Value: "libp2p.map",
+				}},
 			}},
 		},
 	}
