@@ -31,7 +31,6 @@ var (
 
 	// namespace
 	nsOptions = namespace.Options{
-		Name:        name,
 		Annotations: annotations,
 		Labels:      labels,
 	}
@@ -76,7 +75,7 @@ welcome-message: Welcome to the Swarm, you are Bee-ing connected!`,
 	}
 
 	secOptions = secret.Options{
-		Name:        name,
+		Name:        fmt.Sprintf("%s-libp2p", name),
 		Annotations: annotations,
 		Labels:      labels,
 		StringData: map[string]string{
@@ -208,5 +207,59 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 				}},
 			}},
 		},
+		InitContainers: []statefulset.InitContainer{{
+			Name:    "init-libp2p",
+			Image:   "busybox:1.28",
+			Command: []string{"sh", "-c", `export INDEX=$(echo $(hostname) | rev | cut -d'-' -f 1 | rev); mkdir -p /home/bee/.bee/keys; chown -R 999:999 /home/bee/.bee/keys; export KEY=$(cat /tmp/bee/libp2p.map | grep bee-${INDEX}: | cut -d' ' -f2); if [ -z "${KEY}" ]; then exit 0; fi; printf '%s' "${KEY}" > /home/bee/.bee/keys/libp2p.key; echo 'node initialization done';`},
+			VolumeMounts: []statefulset.VolumeMount{
+				{Name: "bee-libp2p", MountPath: "/tmp/bee"},
+				{Name: "data", MountPath: "home/bee/.bee"},
+			},
+		}},
+		Containers: []statefulset.Container{{
+			Name:            name,
+			Image:           "ethersphere/bee:latest",
+			ImagePullPolicy: "Always",
+			Command:         []string{"bee", "start", "--config=.bee.yaml"},
+			Ports: []statefulset.Port{
+				{
+					Name:          "api",
+					ContainerPort: 8080,
+					Protocol:      "TCP",
+				},
+				{
+					Name:          "p2p",
+					ContainerPort: 7070,
+					Protocol:      "TCP",
+				},
+				{
+					Name:          "debug",
+					ContainerPort: 6060,
+					Protocol:      "TCP",
+				},
+			},
+			LivenessProbe: statefulset.Probe{
+				Path: "/health",
+				Port: "debug",
+			},
+			ReadinessProbe: statefulset.Probe{
+				Path: "/readiness",
+				Port: "debug",
+			},
+			Resources: statefulset.Resources{
+				LimitCPU:      "1",
+				LimitMemory:   "2Gi",
+				RequestCPU:    "750m",
+				RequestMemory: "1Gi",
+			},
+			SecurityContext: statefulset.SecurityContext{
+				AllowPrivilegeEscalation: false,
+				RunAsUser:                999,
+			},
+			VolumeMounts: []statefulset.VolumeMount{
+				{Name: "config", MountPath: "/home/bee/.bee.yaml", SubPath: ".bee.yaml", ReadOnly: true},
+				{Name: "data", MountPath: "home/bee/.bee"},
+			},
+		}},
 	}
 )

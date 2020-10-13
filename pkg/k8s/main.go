@@ -24,6 +24,7 @@ func Check(clientset *kubernetes.Clientset, o Options) (err error) {
 	ctx := context.Background()
 
 	// namespace
+	nsOptions.Name = o.Namespace
 	if err := namespace.Set(ctx, clientset, nsOptions); err != nil {
 		return fmt.Errorf("set namespace: %s", err)
 	}

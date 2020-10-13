@@ -7,28 +7,20 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
-)
-
-var (
-	defaultMode              int32 = 0420
-	allowPrivilegeEscalation bool  = false
-	runAsUser                int64 = 0
 )
 
 // Options represents statefulset's options
 type Options struct {
-	Name        string
-	Namespace   string
-	Annotations map[string]string
-	Labels      map[string]string
-	Replicas    int32
-	Selector    map[string]string
-	// InitContainers string
-	// Containers     string
+	Name                string
+	Namespace           string
+	Annotations         map[string]string
+	Labels              map[string]string
+	Replicas            int32
+	Selector            map[string]string
+	InitContainers      []InitContainer
+	Containers          []Container
 	RestartPolicy       string
 	ServiceAccountName  string
 	ServiceName         string
@@ -37,17 +29,6 @@ type Options struct {
 	PodSecurityContext  PodSecurityContext
 	UpdateStrategy      UpdateStrategy
 	Volumes             []Volume
-}
-
-// PodSecurityContext ...
-type PodSecurityContext struct {
-	FSGroup int64
-}
-
-// UpdateStrategy ...
-type UpdateStrategy struct {
-	Type                   string
-	RollingUpdatePartition int32
 }
 
 // Set creates StatefulSet, if StatefulSet already exists updates in place
@@ -70,68 +51,8 @@ func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err e
 					Labels:      o.Labels,
 				},
 				Spec: v1.PodSpec{
-					InitContainers: []v1.Container{{
-						Name:    "init-libp2p",
-						Image:   "busybox:1.28",
-						Command: []string{"sh", "-c", `export INDEX=$(echo $(hostname) | rev | cut -d'-' -f 1 | rev); mkdir -p /home/bee/.bee/keys; chown -R 999:999 /home/bee/.bee/keys; export KEY=$(cat /tmp/bee/libp2p.map | grep bee-${INDEX}: | cut -d' ' -f2); if [ -z "${KEY}" ]; then exit 0; fi; printf '%s' "${KEY}" > /home/bee/.bee/keys/libp2p.key; echo 'node initialization done';`},
-						VolumeMounts: []v1.VolumeMount{
-							{Name: "bee-libp2p", MountPath: "/tmp/bee"},
-							{Name: "data", MountPath: "home/bee/.bee"},
-						},
-					}},
-					Containers: []v1.Container{{
-						Name:            o.Name,
-						Image:           "ethersphere/bee:latest",
-						ImagePullPolicy: v1.PullAlways, // v1.PullNever, v1.PullIfNotPresent
-						Command:         []string{"bee", "start", "--config=.bee.yaml"},
-						LivenessProbe: &v1.Probe{
-							Handler: v1.Handler{HTTPGet: &v1.HTTPGetAction{
-								Path: "/health",
-								Port: intstr.IntOrString{Type: intstr.String, StrVal: "debug"},
-							}},
-						},
-						Ports: []v1.ContainerPort{
-							{
-								Name:          "api",
-								ContainerPort: 8080,
-								Protocol:      "TCP",
-							},
-							{
-								Name:          "p2p",
-								ContainerPort: 7070,
-								Protocol:      "TCP",
-							},
-							{
-								Name:          "debug",
-								ContainerPort: 6060,
-								Protocol:      "TCP",
-							},
-						},
-						ReadinessProbe: &v1.Probe{
-							Handler: v1.Handler{HTTPGet: &v1.HTTPGetAction{
-								Path: "/readiness",
-								Port: intstr.IntOrString{Type: intstr.String, StrVal: "debug"},
-							}},
-						},
-						Resources: v1.ResourceRequirements{
-							Limits: v1.ResourceList{
-								v1.ResourceCPU:    resource.Quantity{Format: "1"},
-								v1.ResourceMemory: resource.Quantity{Format: "2Gi"},
-							},
-							Requests: v1.ResourceList{
-								v1.ResourceCPU:    resource.Quantity{Format: "750m"},
-								v1.ResourceMemory: resource.Quantity{Format: "1Gi"},
-							},
-						},
-						SecurityContext: &v1.SecurityContext{
-							AllowPrivilegeEscalation: &allowPrivilegeEscalation,
-							RunAsUser:                &runAsUser,
-						},
-						VolumeMounts: []v1.VolumeMount{
-							{Name: "config", MountPath: "/home/bee/.bee.yaml", SubPath: ".bee.yaml", ReadOnly: true},
-							{Name: "data", MountPath: "home/bee/.bee"},
-						},
-					}},
+					InitContainers:     initContainersToK8S(o.InitContainers),
+					Containers:         containersToK8S(o.Containers),
 					RestartPolicy:      v1.RestartPolicy(o.RestartPolicy),
 					NodeSelector:       o.NodeSelector,
 					ServiceAccountName: o.ServiceAccountName,
@@ -143,12 +64,7 @@ func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err e
 			},
 			ServiceName:         o.ServiceName,
 			PodManagementPolicy: appsv1.PodManagementPolicyType(o.PodManagementPolicy),
-			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-				Type: appsv1.StatefulSetUpdateStrategyType(o.UpdateStrategy.Type),
-				RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-					Partition: &o.UpdateStrategy.RollingUpdatePartition,
-				},
-			},
+			UpdateStrategy:      o.UpdateStrategy.toK8S(),
 		},
 	}
 
@@ -165,6 +81,32 @@ func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err e
 	}
 
 	return
+}
+
+// PodSecurityContext ...
+type PodSecurityContext struct {
+	FSGroup int64
+}
+
+// UpdateStrategy ...
+type UpdateStrategy struct {
+	Type                   string
+	RollingUpdatePartition int32
+}
+
+func (u UpdateStrategy) toK8S() appsv1.StatefulSetUpdateStrategy {
+	if u.Type == "OnDelete" {
+		return appsv1.StatefulSetUpdateStrategy{
+			Type: appsv1.OnDeleteStatefulSetStrategyType,
+		}
+	}
+
+	return appsv1.StatefulSetUpdateStrategy{
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+			Partition: &u.RollingUpdatePartition,
+		},
+	}
 }
 
 func volumesToK8S(volumes []Volume) (vs []v1.Volume) {
