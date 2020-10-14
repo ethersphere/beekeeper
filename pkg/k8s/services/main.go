@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"context"
@@ -10,6 +10,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 )
+
+// Service ...
+type Service struct {
+	clientset *kubernetes.Clientset
+}
+
+// NewService ...
+func NewService(clientset *kubernetes.Clientset) *Service {
+	return &Service{
+		clientset: clientset,
+	}
+}
 
 // Options represents service's options
 type Options struct {

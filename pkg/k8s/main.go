@@ -1,72 +1,69 @@
 package k8s
 
 import (
-	"context"
-	"fmt"
+	"flag"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
-	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
+	"github.com/ethersphere/beekeeper/pkg/k8s/services"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
-// Options ...
-type Options struct {
-	Namespace string
+// Client manages communication with the Kubernetes
+type Client struct {
+	clientset *kubernetes.Clientset
+
+	// Services that K8S provides
+	ConfigMap      *configmap.Service
+	Ingress        *ingress.Service
+	Namespace      *namespace.Service
+	Secret         *secret.Service
+	ServiceAccount *serviceaccount.Service
+	Services       *services.Service
+	Stateful       *statefulset.Service
 }
 
-// Check ...
-func Check(clientset *kubernetes.Clientset, o Options) (err error) {
-	ctx := context.Background()
+// ClientOptions holds optional parameters for the Client.
+type ClientOptions struct {
+	KubeconfigPath string
+}
 
-	// namespace
-	nsOptions.Name = o.Namespace
-	if err := namespace.Set(ctx, clientset, nsOptions); err != nil {
-		return fmt.Errorf("set namespace: %s", err)
+// NewClient returns Kubernetes clientset
+func NewClient(o *ClientOptions) (c *Client) {
+	if o == nil {
+		o = &ClientOptions{
+			KubeconfigPath: "~/.kube/config",
+		}
 	}
 
-	// configuration
-	cmOptions.Namespace = o.Namespace
-	if err := configmap.Set(ctx, clientset, cmOptions); err != nil {
-		return fmt.Errorf("set configmap: %s", err)
+	kubeconfig := flag.String("kubeconfig", o.KubeconfigPath, "kubeconfig file")
+	flag.Parse()
+
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		panic(err)
 	}
 
-	secOptions.Namespace = o.Namespace
-	if err := secret.Set(ctx, clientset, secOptions); err != nil {
-		return fmt.Errorf("set secret: %s", err)
-	}
+	return newClient(kubernetes.NewForConfigOrDie(config))
+}
 
-	// services
-	saOptions.Namespace = o.Namespace
-	if err := serviceaccount.Set(ctx, clientset, saOptions); err != nil {
-		return fmt.Errorf("set serviceaccount %s", err)
-	}
+// newClient constructs a new *Client with the provided http Client, which
+// should handle authentication implicitly, and sets all other services.
+func newClient(clientset *kubernetes.Clientset) (c *Client) {
+	c = &Client{clientset: clientset}
 
-	svcOptions.Namespace = o.Namespace
-	if err := service.Set(ctx, clientset, svcOptions); err != nil {
-		return fmt.Errorf("set service %s", err)
-	}
+	c.ConfigMap = configmap.NewService(clientset)
+	c.Ingress = ingress.NewService(clientset)
+	c.Namespace = namespace.NewService(clientset)
+	c.Secret = secret.NewService(clientset)
+	c.ServiceAccount = serviceaccount.NewService(clientset)
+	c.Services = services.NewService(clientset)
+	c.Stateful = statefulset.NewService(clientset)
 
-	headlessSvcOptions.Namespace = o.Namespace
-	if err := service.Set(ctx, clientset, headlessSvcOptions); err != nil {
-		return fmt.Errorf("set service %s", err)
-	}
-
-	// ingress
-	ingressOptions.Namespace = o.Namespace
-	if err := ingress.Set(ctx, clientset, ingressOptions); err != nil {
-		return fmt.Errorf("set ingress %s", err)
-	}
-
-	// statefulset
-	ssOptions.Namespace = o.Namespace
-	if err := statefulset.Set(ctx, clientset, ssOptions); err != nil {
-		return fmt.Errorf("set statefulset %s", err)
-	}
-
-	return
+	return c
 }

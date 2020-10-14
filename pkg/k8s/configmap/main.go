@@ -10,6 +10,18 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// Service ...
+type Service struct {
+	clientset *kubernetes.Clientset
+}
+
+// NewService ...
+func NewService(clientset *kubernetes.Clientset) *Service {
+	return &Service{
+		clientset: clientset,
+	}
+}
+
 // Options represents configmap's options
 type Options struct {
 	Name        string

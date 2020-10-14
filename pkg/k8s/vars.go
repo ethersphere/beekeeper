@@ -8,7 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
-	"github.com/ethersphere/beekeeper/pkg/k8s/service"
+	svc "github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 )
@@ -91,11 +91,11 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 		Labels:      labels,
 	}
 
-	svcOptions = service.Options{
+	svcOptions = svc.Options{
 		Name:        name,
 		Annotations: annotations,
 		Labels:      labels,
-		Ports: []service.Port{{
+		Ports: []svc.Port{{
 			Name:       "http",
 			Protocol:   "TCP",
 			Port:       80,
@@ -109,11 +109,11 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 		Type: "ClusterIP",
 	}
 
-	headlessSvcOptions = service.Options{
+	headlessSvcOptions = svc.Options{
 		Name:        fmt.Sprintf("%s-headless", name),
 		Annotations: annotations,
 		Labels:      labels,
-		Ports: []service.Port{
+		Ports: []svc.Port{
 			{
 				Name:       "api",
 				Protocol:   "TCP",
