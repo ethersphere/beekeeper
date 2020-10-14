@@ -35,16 +35,22 @@ type NodeOptions struct {
 }
 
 // NewNode returns new node
-func NewNode(opts NodeOptions) Node {
-	return Node{
-		api: api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
+func NewNode(opts NodeOptions) (n Node) {
+	if opts.APIURL != nil {
+		n.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
-		}}}),
-		debug: debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
-		}}}),
-		k8s: k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: opts.KubeconfigPath}),
+		}}})
 	}
+	if opts.DebugAPIURL != nil {
+		n.debug = debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
+		}}})
+	}
+	if len(opts.KubeconfigPath) > 0 {
+		n.k8s = k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: opts.KubeconfigPath})
+	}
+
+	return
 }
 
 // CreateOptions ...
