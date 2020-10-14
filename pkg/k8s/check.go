@@ -8,8 +8,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
-	svc "github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
+	"github.com/ethersphere/beekeeper/pkg/k8s/services"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"k8s.io/client-go/kubernetes"
 )
@@ -47,12 +47,12 @@ func Check(clientset *kubernetes.Clientset, o Options) (err error) {
 	}
 
 	svcOptions.Namespace = o.Namespace
-	if err := svc.Set(ctx, clientset, svcOptions); err != nil {
+	if err := services.Set(ctx, clientset, svcOptions); err != nil {
 		return fmt.Errorf("set service %s", err)
 	}
 
 	headlessSvcOptions.Namespace = o.Namespace
-	if err := svc.Set(ctx, clientset, headlessSvcOptions); err != nil {
+	if err := services.Set(ctx, clientset, headlessSvcOptions); err != nil {
 		return fmt.Errorf("set service %s", err)
 	}
 
