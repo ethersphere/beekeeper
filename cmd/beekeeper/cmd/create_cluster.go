@@ -13,8 +13,8 @@ import (
 func (c *command) initCreateCluster() *cobra.Command {
 	return &cobra.Command{
 		Use:   "cluster",
-		Short: "create cluster",
-		Long:  `create Bee cluster.`,
+		Short: "Create Bee cluster",
+		Long:  `Create Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			kubeconfig := flag.String("kubeconfig", c.config.GetString(optionNameK8SConfig), "kubeconfig file")
 			flag.Parse()
