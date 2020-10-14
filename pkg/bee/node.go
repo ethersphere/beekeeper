@@ -14,16 +14,15 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
-	bmtlegacy "github.com/ethersphere/bmt/legacy"
 )
 
-// Node represents Bee node
+// Node represents Bee node.
 type Node struct {
 	api   *api.Client
 	debug *debugapi.Client
 }
 
-// NodeOptions represents Bee node options
+// NodeOptions represents Bee node options.
 type NodeOptions struct {
 	APIURL              *url.URL
 	APIInsecureTLS      bool
@@ -31,7 +30,7 @@ type NodeOptions struct {
 	DebugAPIInsecureTLS bool
 }
 
-// NewNode returns new node
+// NewNode returns new node.
 func NewNode(opts NodeOptions) Node {
 	return Node{
 		api: api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
@@ -43,13 +42,13 @@ func NewNode(opts NodeOptions) Node {
 	}
 }
 
-// Addresses represents node's addresses
+// Addresses represents node's addresses.
 type Addresses struct {
 	Overlay  swarm.Address
 	Underlay []string
 }
 
-// Addresses returns node's addresses
+// Addresses returns node's addresses.
 func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
@@ -62,13 +61,13 @@ func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
 	}, nil
 }
 
-// Balance represents node's balance with peer
+// Balance represents node's balance with peer.
 type Balance struct {
 	Balance int
 	Peer    string
 }
 
-// Balance returns node's balance with a given peer
+// Balance returns node's balance with a given peer.
 func (n *Node) Balance(ctx context.Context, a swarm.Address) (resp Balance, err error) {
 	b, err := n.debug.Node.Balance(ctx, a)
 	if err != nil {
@@ -81,12 +80,12 @@ func (n *Node) Balance(ctx context.Context, a swarm.Address) (resp Balance, err 
 	}, nil
 }
 
-// Balances represents Balances's response
+// Balances represents Balances's response.
 type Balances struct {
 	Balances []Balance
 }
 
-// Balances returns node's balances
+// Balances returns node's balances.
 func (n *Node) Balances(ctx context.Context) (resp Balances, err error) {
 	r, err := n.debug.Node.Balances(ctx)
 	if err != nil {
@@ -103,7 +102,7 @@ func (n *Node) Balances(ctx context.Context) (resp Balances, err error) {
 	return
 }
 
-// DownloadBytes downloads chunk from the node
+// DownloadBytes downloads chunk from the node.
 func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte, err error) {
 	r, err := n.api.Bytes.Download(ctx, a)
 	if err != nil {
@@ -113,7 +112,7 @@ func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte,
 	return ioutil.ReadAll(r)
 }
 
-// DownloadChunk downloads chunk from the node
+// DownloadChunk downloads chunk from the node.
 func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address, targets string) (data []byte, err error) {
 	r, err := n.api.Chunks.Download(ctx, a, targets)
 	if err != nil {
@@ -123,7 +122,7 @@ func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address, targets strin
 	return ioutil.ReadAll(r)
 }
 
-// DownloadFile downloads chunk from the node and returns it's size and hash
+// DownloadFile downloads chunk from the node and returns it's size and hash.
 func (n *Node) DownloadFile(ctx context.Context, a swarm.Address) (size int64, hash []byte, err error) {
 	r, err := n.api.Files.Download(ctx, a)
 	if err != nil {
@@ -139,12 +138,12 @@ func (n *Node) DownloadFile(ctx context.Context, a swarm.Address) (size int64, h
 	return size, h.Sum(nil), nil
 }
 
-// HasChunk returns true/false if node has a chunk
+// HasChunk returns true/false if node has a chunk.
 func (n *Node) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return n.debug.Node.HasChunk(ctx, a)
 }
 
-// Overlay returns node's overlay address
+// Overlay returns node's overlay address.
 func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
@@ -154,7 +153,7 @@ func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 	return a.Overlay, nil
 }
 
-// Peers returns addresses of node's peers
+// Peers returns addresses of node's peers.
 func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 	ps, err := n.debug.Node.Peers(ctx)
 	if err != nil {
@@ -168,18 +167,18 @@ func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 	return
 }
 
-// PinChunk returns true/false if chunk pinning is successful
+// PinChunk returns true/false if chunk pinning is successful.
 func (n *Node) PinChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return n.api.Pinning.PinChunk(ctx, a)
 }
 
-// PinnedChunk represents pinned chunk
+// PinnedChunk represents pinned chunk.
 type PinnedChunk struct {
 	Address    swarm.Address
 	PinCounter int
 }
 
-// PinnedChunk returns pinned chunk
+// PinnedChunk returns pinned chunk.
 func (n *Node) PinnedChunk(ctx context.Context, a swarm.Address) (PinnedChunk, error) {
 	p, err := n.api.Pinning.PinnedChunk(ctx, a)
 	if err != nil {
@@ -192,12 +191,12 @@ func (n *Node) PinnedChunk(ctx context.Context, a swarm.Address) (PinnedChunk, e
 	}, nil
 }
 
-// PinnedChunks represents pinned chunks
+// PinnedChunks represents pinned chunks.
 type PinnedChunks struct {
 	Chunks []PinnedChunk
 }
 
-// PinnedChunks returns pinned chunks
+// PinnedChunks returns pinned chunks.
 func (n *Node) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
 	p, err := n.api.Pinning.PinnedChunks(ctx)
 	if err != nil {
@@ -215,7 +214,7 @@ func (n *Node) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
 	return r, nil
 }
 
-// Ping pings other node
+// Ping pings other node.
 func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
 	r, err := n.debug.PingPong.Ping(ctx, node)
 	if err != nil {
@@ -224,7 +223,7 @@ func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err er
 	return r.RTT, nil
 }
 
-// PingStreamMsg represents message sent over the PingStream channel
+// PingStreamMsg represents message sent over the PingStream channel.
 type PingStreamMsg struct {
 	Node  swarm.Address
 	RTT   string
@@ -232,7 +231,7 @@ type PingStreamMsg struct {
 	Error error
 }
 
-// PingStream returns stream of ping results for given nodes
+// PingStream returns stream of ping results for given nodes.
 func (n *Node) PingStream(ctx context.Context, nodes []swarm.Address) <-chan PingStreamMsg {
 	pingStream := make(chan PingStreamMsg)
 
@@ -260,14 +259,14 @@ func (n *Node) PingStream(ctx context.Context, nodes []swarm.Address) <-chan Pin
 	return pingStream
 }
 
-// Settlement represents node's settlement with peer
+// Settlement represents node's settlement with peer.
 type Settlement struct {
 	Peer     string
 	Received int
 	Sent     int
 }
 
-// Settlement returns node's settlement with a given peer
+// Settlement returns node's settlement with a given peer.
 func (n *Node) Settlement(ctx context.Context, a swarm.Address) (resp Settlement, err error) {
 	b, err := n.debug.Node.Settlement(ctx, a)
 	if err != nil {
@@ -281,14 +280,14 @@ func (n *Node) Settlement(ctx context.Context, a swarm.Address) (resp Settlement
 	}, nil
 }
 
-// Settlements represents Settlements's response
+// Settlements represents Settlements's response.
 type Settlements struct {
 	Settlements   []Settlement
 	TotalReceived int
 	TotalSent     int
 }
 
-// Settlements returns node's settlements
+// Settlements returns node's settlements.
 func (n *Node) Settlements(ctx context.Context) (resp Settlements, err error) {
 	r, err := n.debug.Node.Settlements(ctx)
 	if err != nil {
@@ -308,7 +307,7 @@ func (n *Node) Settlements(ctx context.Context) (resp Settlements, err error) {
 	return
 }
 
-// Topology represents Kademlia topology
+// Topology represents Kademlia topology.
 type Topology struct {
 	Overlay        swarm.Address
 	Connected      int
@@ -318,7 +317,7 @@ type Topology struct {
 	Bins           map[string]Bin
 }
 
-// Bin represents Kademlia bin
+// Bin represents Kademlia bin.
 type Bin struct {
 	Connected         int
 	ConnectedPeers    []swarm.Address
@@ -326,7 +325,7 @@ type Bin struct {
 	Population        int
 }
 
-// Topology returns Kademlia topology
+// Topology returns Kademlia topology.
 func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
 	t, err := n.debug.Node.Topology(ctx)
 	if err != nil {
@@ -356,7 +355,7 @@ func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
 	return
 }
 
-// Underlay returns node's underlay addresses
+// Underlay returns node's underlay addresses.
 func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 	a, err := n.debug.Node.Addresses(ctx)
 	if err != nil {
@@ -366,51 +365,37 @@ func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 	return a.Underlay, nil
 }
 
-// UnpinChunk returns true/false if chunk unpinning is successful
+// UnpinChunk returns true/false if chunk unpinning is successful.
 func (n *Node) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return n.api.Pinning.UnpinChunk(ctx, a)
 }
 
-// UploadBytes uploads chunk to the node
-func (n *Node) UploadBytes(ctx context.Context, c *Chunk) (err error) {
-	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(c.Data()))
+// UploadBytes uploads bytes to the node.
+func (n *Node) UploadBytes(ctx context.Context, b []byte, pin bool) (swarm.Address, error) {
+	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(b), pin)
 	if err != nil {
-		return fmt.Errorf("upload chunk: %w", err)
+		return swarm.ZeroAddress, fmt.Errorf("upload chunk: %w", err)
 	}
 
-	c.address = r.Reference
-
-	return
+	return r.Reference, nil
 }
 
-// UploadChunk uploads chunk to the node
-func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
-	p := bmtlegacy.NewTreePool(chunkHahser, swarm.Branches, bmtlegacy.PoolSize)
-	hasher := bmtlegacy.New(p)
-	err = hasher.SetSpan(int64(c.Span()))
-	if err != nil {
-		return fmt.Errorf("upload chunk: %w", err)
-	}
-	_, err = hasher.Write(c.Data()[8:])
-	if err != nil {
-		return fmt.Errorf("upload chunk: %w", err)
-	}
-	c.address = swarm.NewAddress(hasher.Sum(nil))
-
-	_, err = n.api.Chunks.Upload(ctx, c.address, bytes.NewReader(c.Data()))
+// UploadChunk uploads chunk to the node.
+func (n *Node) UploadChunk(ctx context.Context, c swarm.Chunk, pin bool) (err error) {
+	_, err = n.api.Chunks.Upload(ctx, c.Address(), bytes.NewReader(c.Data()), pin)
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
 
-	return
+	return nil
 }
 
 // RemoveChunk removes the given chunk from the node's local store
-func (n *Node) RemoveChunk(ctx context.Context, c *Chunk) (err error) {
+func (n *Node) RemoveChunk(ctx context.Context, c swarm.Chunk) (err error) {
 	return n.debug.Chunks.Remove(ctx, c.Address())
 }
 
-// UploadFile uploads file to the node
+// UploadFile uploads file to the node.
 func (n *Node) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
 	h := fileHahser()
 	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin)
@@ -424,7 +409,7 @@ func (n *Node) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
 	return
 }
 
-// UploadCollection uploads TAR collection bytes to the node
+// UploadCollection uploads TAR collection bytes to the node.
 func (n *Node) UploadCollection(ctx context.Context, f *File) (err error) {
 	h := fileHahser()
 	r, err := n.api.Dirs.Upload(ctx, io.TeeReader(f.DataReader(), h), f.Size())
@@ -438,7 +423,7 @@ func (n *Node) UploadCollection(ctx context.Context, f *File) (err error) {
 	return
 }
 
-// DownloadManifestFile downloads manifest file from the node and returns it's size and hash
+// DownloadManifestFile downloads manifest file from the node and returns it's size and hash.
 func (n *Node) DownloadManifestFile(ctx context.Context, a swarm.Address, path string) (size int64, hash []byte, err error) {
 	r, err := n.api.Dirs.Download(ctx, a, path)
 	if err != nil {

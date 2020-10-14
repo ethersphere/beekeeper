@@ -52,7 +52,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			}
 
 			t0 := time.Now()
-			if err := c.Nodes[i].UploadBytes(ctx, &chunk); err != nil {
+			if err := c.Nodes[i].UploadChunk(ctx, chunk, false); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 			d0 := time.Since(t0)
@@ -74,7 +74,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 			if !bytes.Equal(chunk.Data(), data) {
 				notRetrievedCounter.WithLabelValues(overlays[i].String()).Inc()
-				fmt.Printf("Node %d. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", i, j, chunk.Size(), len(data), overlays[i].String(), chunk.Address().String())
+				fmt.Printf("Node %d. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", i, j, len(chunk.Data()), len(data), overlays[i].String(), chunk.Address().String())
 				if bytes.Contains(chunk.Data(), data) {
 					fmt.Printf("Downloaded data is subset of the uploaded data\n")
 				}

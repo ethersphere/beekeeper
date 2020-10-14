@@ -55,7 +55,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 
 		// upload the chunk in nodeA
-		err = nodeA.UploadChunk(ctx, chunk)
+		err = nodeA.UploadChunk(ctx, chunk, false)
 		if err != nil {
 			return err
 		}
@@ -152,11 +152,11 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match
 // nodeB is the closest to the generated chunk in the cluster.
-func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee.Node, bee.Node, *bee.Chunk, error) {
+func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee.Node, bee.Node, swarm.Chunk, error) {
 	var overlayA swarm.Address
 	var overlayB swarm.Address
 	var overlayC swarm.Address
-	var chunk *bee.Chunk
+	var chunk swarm.Chunk
 
 	// get overlay addresses of the cluster
 	overlays, err := c.Overlays(ctx)
@@ -221,23 +221,16 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 }
 
 // uploadAndPinChunkToNode uploads a given chunk to a given node and pins it.
-func uploadAndPinChunkToNode(ctx context.Context, node *bee.Node, chunk *bee.Chunk) error {
-	err := node.UploadChunk(ctx, chunk)
+func uploadAndPinChunkToNode(ctx context.Context, node *bee.Node, chunk swarm.Chunk) error {
+	err := node.UploadChunk(ctx, chunk, true)
 	if err != nil {
 		return err
-	}
-	pinned, err := node.PinChunk(ctx, chunk.Address())
-	if err != nil {
-		return err
-	}
-	if !pinned {
-		return errors.New("could not pin chunk")
 	}
 	return nil
 }
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
-func deleteChunkFromAllNodes(ctx context.Context, c bee.Cluster, chunk *bee.Chunk) error {
+func deleteChunkFromAllNodes(ctx context.Context, c bee.Cluster, chunk swarm.Chunk) error {
 	for _, node := range c.Nodes {
 		err := node.RemoveChunk(ctx, chunk)
 		if err != nil {
@@ -249,20 +242,17 @@ func deleteChunkFromAllNodes(ctx context.Context, c bee.Cluster, chunk *bee.Chun
 
 // getRandomChunkAndClosestNode generates a random node and picks the closest node in the cluster, so that
 // when the chunk is uploaded anywhere in the cluster it lands in this node.
-func getRandomChunkAndClosestNode(overlays []swarm.Address, rnd *rand.Rand) (swarm.Address, *bee.Chunk, error) {
+func getRandomChunkAndClosestNode(overlays []swarm.Address, rnd *rand.Rand) (swarm.Address, swarm.Chunk, error) {
 	chunk, err := bee.NewRandomChunk(rnd)
 	if err != nil {
 		return swarm.ZeroAddress, nil, err
 	}
-	err = chunk.SetAddress()
+
+	closestAddress, err := bee.ClosestNode(chunk, overlays)
 	if err != nil {
 		return swarm.ZeroAddress, nil, err
 	}
-	closestAddress, err := chunk.ClosestNode(overlays)
-	if err != nil {
-		return swarm.ZeroAddress, nil, err
-	}
-	return closestAddress, &chunk, nil
+	return closestAddress, chunk, nil
 }
 
 // findFarthestNodes finds two farthest nodes in the cluster

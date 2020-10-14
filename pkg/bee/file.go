@@ -21,16 +21,17 @@ type File struct {
 }
 
 // NewRandomFile returns new pseudorandom file
-func NewRandomFile(r *rand.Rand, name string, size int64) File {
-	return File{
+func NewRandomFile(r *rand.Rand, name string, size int64) *File {
+	return &File{
 		name:       name,
 		dataReader: io.LimitReader(r, size),
-		size:       size}
+		size:       size,
+	}
 }
 
 // NewBufferFile returns new file with specified buffer
-func NewBufferFile(name string, buffer *bytes.Buffer) File {
-	return File{
+func NewBufferFile(name string, buffer *bytes.Buffer) *File {
+	return &File{
 		name:       name,
 		dataReader: buffer,
 		size:       int64(buffer.Len()),

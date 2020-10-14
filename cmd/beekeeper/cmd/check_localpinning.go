@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/localpinning"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -63,10 +64,10 @@ If everything goes well, it unpins the file.`,
 				seed = random.Int64()
 			}
 
-			smallFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * bee.MaxChunkSize * c.config.GetFloat64(optionNameSmallFileDiskRatio))
-			largeFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * bee.MaxChunkSize * c.config.GetFloat64(optionNameLargeFileDiskRatio))
+			smallFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * swarm.ChunkSize * c.config.GetFloat64(optionNameSmallFileDiskRatio))
+			largeFileSize := int64(c.config.GetFloat64(optionNameDBCapacity) * swarm.ChunkSize * c.config.GetFloat64(optionNameLargeFileDiskRatio))
 
-			return localpinning.Check(cluster, localpinning.Options{
+			return localpinning.CheckChunkFound(cluster, localpinning.Options{
 				FileName:       c.config.GetString(optionNameFileName),
 				LargeFileCount: c.config.GetInt(optionNameLargeFileCount),
 				LargeFileSize:  largeFileSize,

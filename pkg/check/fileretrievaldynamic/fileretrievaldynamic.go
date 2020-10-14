@@ -68,7 +68,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	uIndex := rnd.Intn(c.Size())
 	file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
 	t0 := time.Now()
-	if err := c.Nodes[uIndex].UploadFile(ctx, &file, false); err != nil {
+	if err := c.Nodes[uIndex].UploadFile(ctx, file, false); err != nil {
 		return fmt.Errorf("node %d: %w", uIndex, err)
 	}
 	d0 := time.Since(t0)
@@ -200,7 +200,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 }
 
 // downloadFile downloads file from given (indexes) nodes from the cluster
-func downloadFile(ctx context.Context, c bee.Cluster, file bee.File, indexes []int, overlays []swarm.Address, pusher *push.Pusher, pushMetrics bool) error {
+func downloadFile(ctx context.Context, c bee.Cluster, file *bee.File, indexes []int, overlays []swarm.Address, pusher *push.Pusher, pushMetrics bool) error {
 	for _, i := range indexes {
 		t1 := time.Now()
 		size, hash, err := c.Nodes[i].DownloadFile(ctx, file.Address())

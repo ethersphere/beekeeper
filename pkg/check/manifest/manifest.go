@@ -47,7 +47,7 @@ func Check(c bee.Cluster, o Options) error {
 
 	tarFile := bee.NewBufferFile("", tarReader)
 
-	if err := c.Nodes[0].UploadCollection(ctx, &tarFile); err != nil {
+	if err := c.Nodes[0].UploadCollection(ctx, tarFile); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
 	}
 
@@ -79,8 +79,8 @@ DOWNLOAD:
 	return nil
 }
 
-func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]bee.File, error) {
-	files := make([]bee.File, filesCount)
+func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]*bee.File, error) {
+	files := make([]*bee.File, filesCount)
 
 	for i := 0; i < filesCount; i++ {
 		pathnameLength := int64(r.Int31n(maxPathnameLength))
@@ -109,7 +109,7 @@ func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]bee
 
 // tarFiles receives an array of files and creates a new tar archive with those
 // files as a collection.
-func tarFiles(files []bee.File) (*bytes.Buffer, error) {
+func tarFiles(files []*bee.File) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 
