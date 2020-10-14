@@ -5,28 +5,26 @@ import (
 	"fmt"
 
 	ev1b1 "k8s.io/api/extensions/v1beta1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 )
 
-// Service ...
-type Service struct {
+// Client manages communication with the Kubernetes Ingress.
+type Client struct {
 	clientset *kubernetes.Clientset
 }
 
-// NewService ...
-func NewService(clientset *kubernetes.Clientset) *Service {
-	return &Service{
+// NewClient constructs a new Client.
+func NewClient(clientset *kubernetes.Clientset) *Client {
+	return &Client{
 		clientset: clientset,
 	}
 }
 
-// Options represents ingress' options
+// Options holds optional parameters for the Client.
 type Options struct {
-	Name        string
-	Namespace   string
 	Annotations map[string]string
 	Labels      map[string]string
 	Class       string
@@ -37,11 +35,11 @@ type Options struct {
 }
 
 // Set creates Ingress, if Ingress already exists does nothing
-func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err error) {
+func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &ev1b1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        o.Name,
-			Namespace:   o.Namespace,
+			Name:        name,
+			Namespace:   namespace,
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 		},
@@ -71,11 +69,11 @@ func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err e
 		},
 	}
 
-	_, err = clientset.ExtensionsV1beta1().Ingresses(o.Namespace).Create(ctx, spec, metav1.CreateOptions{})
+	_, err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			fmt.Printf("ingress %s already exists in the namespace %s, updating the ingress\n", o.Name, o.Namespace)
-			_, err = clientset.ExtensionsV1beta1().Ingresses(o.Namespace).Update(ctx, spec, metav1.UpdateOptions{})
+		if !errors.IsNotFound(err) {
+			fmt.Printf("ingress %s already exists in the namespace %s, updating the ingress\n", name, namespace)
+			_, err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 			if err != nil {
 				return err
 			}

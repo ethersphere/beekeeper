@@ -14,6 +14,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
 )
 
@@ -21,6 +22,7 @@ import (
 type Node struct {
 	api   *api.Client
 	debug *debugapi.Client
+	k8s   *k8s.Client
 }
 
 // NodeOptions represents Bee node options
@@ -29,6 +31,7 @@ type NodeOptions struct {
 	APIInsecureTLS      bool
 	DebugAPIURL         *url.URL
 	DebugAPIInsecureTLS bool
+	KubeconfigPath      string
 }
 
 // NewNode returns new node
@@ -40,7 +43,18 @@ func NewNode(opts NodeOptions) Node {
 		debug: debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
 		}}}),
+		k8s: k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: opts.KubeconfigPath}),
 	}
+}
+
+// CreateOptions ...
+type CreateOptions struct{}
+
+// Create ...
+func (n Node) Create(ctx context.Context, standalone bool) (err error) {
+	fmt.Println("Create node")
+
+	return
 }
 
 // Addresses represents node's addresses

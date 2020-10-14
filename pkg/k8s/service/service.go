@@ -1,32 +1,30 @@
-package services
+package service
 
 import (
 	"context"
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 )
 
-// Service ...
-type Service struct {
+// Client manages communication with the Kubernetes Service.
+type Client struct {
 	clientset *kubernetes.Clientset
 }
 
-// NewService ...
-func NewService(clientset *kubernetes.Clientset) *Service {
-	return &Service{
+// NewClient constructs a new Client.
+func NewClient(clientset *kubernetes.Clientset) *Client {
+	return &Client{
 		clientset: clientset,
 	}
 }
 
-// Options represents service's options
+// Options holds optional parameters for the Client.
 type Options struct {
-	Name        string
-	Namespace   string
 	Annotations map[string]string
 	Labels      map[string]string
 	Ports       []Port
@@ -43,6 +41,34 @@ type Port struct {
 	Nodeport   int32
 }
 
+// Set creates Service, if Service already exists does nothing
+func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+	spec := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Namespace:   namespace,
+			Annotations: o.Annotations,
+			Labels:      o.Labels,
+		},
+		Spec: v1.ServiceSpec{
+			Ports:    k8sPorts(o.Ports),
+			Selector: o.Selector,
+			Type:     v1.ServiceType(o.Type),
+		},
+	}
+	_, err = c.clientset.CoreV1().Services(namespace).Create(ctx, spec, metav1.CreateOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			fmt.Printf("service %s already exists in the namespace %s\n", name, namespace)
+			return nil
+		}
+
+		return err
+	}
+
+	return
+}
+
 func (p Port) toK8S() v1.ServicePort {
 	return v1.ServicePort{
 		Name:       p.Name,
@@ -53,35 +79,6 @@ func (p Port) toK8S() v1.ServicePort {
 	}
 
 }
-
-// Set creates Service, if Service already exists does nothing
-func Set(ctx context.Context, clientset *kubernetes.Clientset, o Options) (err error) {
-	spec := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        o.Name,
-			Namespace:   o.Namespace,
-			Annotations: o.Annotations,
-			Labels:      o.Labels,
-		},
-		Spec: v1.ServiceSpec{
-			Ports:    k8sPorts(o.Ports),
-			Selector: o.Selector,
-			Type:     v1.ServiceType(o.Type),
-		},
-	}
-	_, err = clientset.CoreV1().Services(o.Namespace).Create(ctx, spec, metav1.CreateOptions{})
-	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			fmt.Printf("service %s already exists in the namespace %s\n", o.Name, o.Namespace)
-			return nil
-		}
-
-		return err
-	}
-
-	return
-}
-
 func k8sPorts(ports []Port) (ks []v1.ServicePort) {
 	for _, port := range ports {
 		ks = append(ks, port.toK8S())

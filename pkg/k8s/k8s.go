@@ -7,8 +7,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
+	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
-	"github.com/ethersphere/beekeeper/pkg/k8s/services"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -16,16 +16,16 @@ import (
 
 // Client manages communication with the Kubernetes
 type Client struct {
-	clientset *kubernetes.Clientset
+	clientset *kubernetes.Clientset // Kubernetes client must handle authentication implicitly.
 
 	// Services that K8S provides
-	ConfigMap      *configmap.Service
-	Ingress        *ingress.Service
-	Namespace      *namespace.Service
-	Secret         *secret.Service
-	ServiceAccount *serviceaccount.Service
-	Services       *services.Service
-	Stateful       *statefulset.Service
+	ConfigMap      *configmap.Client
+	Ingress        *ingress.Client
+	Namespace      *namespace.Client
+	Secret         *secret.Client
+	ServiceAccount *serviceaccount.Client
+	Service        *service.Client
+	Statefulset    *statefulset.Client
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -57,13 +57,13 @@ func NewClient(o *ClientOptions) (c *Client) {
 func newClient(clientset *kubernetes.Clientset) (c *Client) {
 	c = &Client{clientset: clientset}
 
-	c.ConfigMap = configmap.NewService(clientset)
-	c.Ingress = ingress.NewService(clientset)
-	c.Namespace = namespace.NewService(clientset)
-	c.Secret = secret.NewService(clientset)
-	c.ServiceAccount = serviceaccount.NewService(clientset)
-	c.Services = services.NewService(clientset)
-	c.Stateful = statefulset.NewService(clientset)
+	c.ConfigMap = configmap.NewClient(clientset)
+	c.Ingress = ingress.NewClient(clientset)
+	c.Namespace = namespace.NewClient(clientset)
+	c.Secret = secret.NewClient(clientset)
+	c.ServiceAccount = serviceaccount.NewClient(clientset)
+	c.Service = service.NewClient(clientset)
+	c.Statefulset = statefulset.NewClient(clientset)
 
 	return c
 }
