@@ -47,6 +47,10 @@ func newCommand(opts ...option) (c *command, err error) {
 
 	c.initGlobalFlags()
 
+	if err := c.initCreateCmd(); err != nil {
+		return nil, err
+	}
+
 	if err := c.initCheckCmd(); err != nil {
 		return nil, err
 	}
@@ -64,10 +68,6 @@ func newCommand(opts ...option) (c *command, err error) {
 	}
 
 	if err := c.initHelmCmd(); err != nil {
-		return nil, err
-	}
-
-	if err := c.initK8SCmd(); err != nil {
 		return nil, err
 	}
 
