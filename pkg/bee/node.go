@@ -59,6 +59,9 @@ type CreateOptions struct{}
 // Create ...
 func (n Node) Create(ctx context.Context, standalone bool) (err error) {
 	fmt.Println("Create node")
+	ctx = context.Background()
+
+	err = n.k8s.ConfigMap.Set(ctx, name, namespace, cmOptions)
 
 	return
 }

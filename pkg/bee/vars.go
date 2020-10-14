@@ -6,7 +6,6 @@ import (
 	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
-	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
@@ -15,7 +14,8 @@ import (
 
 var (
 	// global
-	name = "bee"
+	name      = "bee"
+	namespace = "beekeeper"
 
 	annotations = map[string]string{
 		"createdBy": "beekeeper",
@@ -27,12 +27,6 @@ var (
 		"app.kubernetes.io/name":       "bee",
 		"app.kubernetes.io/version":    "latest",
 		"beekeeper/version":            beekeeper.Version,
-	}
-
-	// namespace
-	nsOptions = namespace.Options{
-		Annotations: annotations,
-		Labels:      labels,
 	}
 
 	// configuration

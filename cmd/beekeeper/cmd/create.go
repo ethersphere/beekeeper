@@ -24,6 +24,7 @@ func (c *command) initCreateCmd() (err error) {
 	cmd.PersistentFlags().String(optionNameK8SConfig, "~/.kube/config", "kubernetes config file")
 	cmd.PersistentFlags().StringP(optionNameK8SNamespace, "n", "beekeeper", "kubernetes namespace")
 
+	cmd.AddCommand(c.initCreateNamespace())
 	cmd.AddCommand(c.initCreateNode())
 	cmd.AddCommand(c.initCreateCluster())
 
