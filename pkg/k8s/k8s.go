@@ -25,7 +25,7 @@ type Client struct {
 	Secret         *secret.Client
 	ServiceAccount *serviceaccount.Client
 	Service        *service.Client
-	Statefulset    *statefulset.Client
+	StatefulSet    *statefulset.Client
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -63,7 +63,7 @@ func newClient(clientset *kubernetes.Clientset) (c *Client) {
 	c.Secret = secret.NewClient(clientset)
 	c.ServiceAccount = serviceaccount.NewClient(clientset)
 	c.Service = service.NewClient(clientset)
-	c.Statefulset = statefulset.NewClient(clientset)
+	c.StatefulSet = statefulset.NewClient(clientset)
 
 	return c
 }

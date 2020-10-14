@@ -61,7 +61,37 @@ func (n Node) Create(ctx context.Context, standalone bool) (err error) {
 	fmt.Println("Create node")
 	ctx = context.Background()
 
-	err = n.k8s.ConfigMap.Set(ctx, name, namespace, cmOptions)
+	// configuration
+	if err = n.k8s.ConfigMap.Set(ctx, name, namespace, cmOptions); err != nil {
+		return fmt.Errorf("set ConfigMap: %s", err)
+	}
+
+	if err := n.k8s.Secret.Set(ctx, fmt.Sprintf("%s-libp2p", name), namespace, secOptions); err != nil {
+		return fmt.Errorf("set Secret: %s", err)
+	}
+
+	// services
+	if err := n.k8s.ServiceAccount.Set(ctx, name, namespace, saOptions); err != nil {
+		return fmt.Errorf("set ServiceAccount %s", err)
+	}
+
+	if err := n.k8s.Service.Set(ctx, name, namespace, svcOptions); err != nil {
+		return fmt.Errorf("set Service %s", err)
+	}
+
+	if err := n.k8s.Service.Set(ctx, fmt.Sprintf("%s-headless", name), namespace, headlessSvcOptions); err != nil {
+		return fmt.Errorf("set Service %s", err)
+	}
+
+	// ingress
+	if err := n.k8s.Ingress.Set(ctx, name, namespace, ingressOptions); err != nil {
+		return fmt.Errorf("set Ingress %s", err)
+	}
+
+	// statefulset
+	if err := n.k8s.StatefulSet.Set(ctx, fmt.Sprintf("%s-0", name), namespace, ssOptions); err != nil {
+		return fmt.Errorf("set StatefulSet %s", err)
+	}
 
 	return
 }
