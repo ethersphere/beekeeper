@@ -70,7 +70,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 					pidx := findIndex(overlays, peer)
 					pivotTopology := topologies[pidx]
 					pivotDepth := pivotTopology.Depth
-					switch pivotPo := swarm.Proximity(chunk.Address().Bytes(), peer.Bytes()); {
+					switch pivotPo := int(swarm.Proximity(chunk.Address().Bytes(), peer.Bytes())); {
 					case pivotPo >= pivotDepth:
 						// chunk within replicating node depth
 						if findIndex(replicatingNodes, peer) == -1 {
@@ -108,7 +108,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 					pidx := findIndex(overlays, peer)
 					pivotTopology := topologies[pidx]
 					pivotDepth := pivotTopology.Depth
-					switch pivotPo := swarm.Proximity(chunk.Address().Bytes(), peer.Bytes()); {
+					switch pivotPo := int(swarm.Proximity(chunk.Address().Bytes(), peer.Bytes())); {
 					case pivotPo >= pivotDepth:
 						// chunk within replicating node depth
 						if findIndex(replicatingNodes, peer) == -1 {
