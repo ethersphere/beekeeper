@@ -162,13 +162,13 @@ type chunkStreamMsg struct {
 	Error error
 }
 
-func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) <-chan chunkStreamMsg {
+func chunkStream(ctx context.Context, node bee.Client, rnd *rand.Rand, count int) <-chan chunkStreamMsg {
 	chunkStream := make(chan chunkStreamMsg)
 
 	var wg sync.WaitGroup
 	for i := 0; i < count; i++ {
 		wg.Add(1)
-		go func(n bee.Node, i int) {
+		go func(n bee.Client, i int) {
 			defer wg.Done()
 			chunk, err := bee.NewRandomChunk(rnd)
 			if err != nil {

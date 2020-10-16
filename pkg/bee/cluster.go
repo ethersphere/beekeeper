@@ -12,7 +12,7 @@ import (
 
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
-	Nodes []Node
+	Nodes []Client
 	opts  ClusterOptions
 }
 
@@ -45,7 +45,7 @@ func NewCluster(o ClusterOptions) (c Cluster, err error) {
 			return Cluster{}, fmt.Errorf("create cluster: %w", err)
 		}
 
-		n := NewNode(NodeOptions{
+		n := NewClient(ClientOptions{
 			APIURL:              a,
 			APIInsecureTLS:      o.APIInsecureTLS,
 			DebugAPIURL:         d,
@@ -59,37 +59,37 @@ func NewCluster(o ClusterOptions) (c Cluster, err error) {
 }
 
 // AddNodes adds new nodes to the cluster
-func (c *Cluster) AddNodes(count int) (err error) {
-	start, stop := c.Size(), c.Size()+count
+func (cs *Cluster) AddNodes(count int) (err error) {
+	start, stop := cs.Size(), cs.Size()+count
 
 	for i := start; i < stop; i++ {
-		a, err := createURL(c.opts.APIScheme, c.opts.APIHostnamePattern, c.opts.Namespace, c.opts.APIDomain, c.opts.DisableNamespace, i)
+		a, err := createURL(cs.opts.APIScheme, cs.opts.APIHostnamePattern, cs.opts.Namespace, cs.opts.APIDomain, cs.opts.DisableNamespace, i)
 		if err != nil {
 			return fmt.Errorf("add nodes: %w", err)
 		}
 
-		d, err := createURL(c.opts.DebugAPIScheme, c.opts.DebugAPIHostnamePattern, c.opts.Namespace, c.opts.DebugAPIDomain, c.opts.DisableNamespace, i)
+		d, err := createURL(cs.opts.DebugAPIScheme, cs.opts.DebugAPIHostnamePattern, cs.opts.Namespace, cs.opts.DebugAPIDomain, cs.opts.DisableNamespace, i)
 		if err != nil {
 			return fmt.Errorf("add nodes: %w", err)
 		}
 
-		n := NewNode(NodeOptions{
+		n := NewClient(ClientOptions{
 			APIURL:              a,
-			APIInsecureTLS:      c.opts.APIInsecureTLS,
+			APIInsecureTLS:      cs.opts.APIInsecureTLS,
 			DebugAPIURL:         d,
-			DebugAPIInsecureTLS: c.opts.DebugAPIInsecureTLS,
+			DebugAPIInsecureTLS: cs.opts.DebugAPIInsecureTLS,
 		})
 
-		c.Nodes = append(c.Nodes, n)
+		cs.Nodes = append(cs.Nodes, n)
 	}
 
 	return
 }
 
 // Addresses returns ordered list of addresses of all nodes in the cluster
-func (c *Cluster) Addresses(ctx context.Context) (addrs []Addresses, err error) {
+func (cs *Cluster) Addresses(ctx context.Context) (addrs []Addresses, err error) {
 	var msgs []AddressesStreamMsg
-	for m := range c.AddressesStream(ctx) {
+	for m := range cs.AddressesStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
@@ -115,13 +115,13 @@ type AddressesStreamMsg struct {
 }
 
 // AddressesStream returns stream of addresses of all nodes in the cluster
-func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg {
+func (cs *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg {
 	addressStream := make(chan AddressesStreamMsg)
 
 	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
+	for i, node := range cs.Nodes {
 		wg.Add(1)
-		go func(i int, n Node) {
+		go func(i int, n Client) {
 			defer wg.Done()
 
 			a, err := n.Addresses(ctx)
@@ -142,14 +142,14 @@ func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg
 }
 
 // Balances returns balances of all nodes in the cluster
-func (c *Cluster) Balances(ctx context.Context) (balances map[string]map[string]int, err error) {
-	overlays, err := c.Overlays(ctx)
+func (cs *Cluster) Balances(ctx context.Context) (balances map[string]map[string]int, err error) {
+	overlays, err := cs.Overlays(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var msgs []BalancesStreamMsg
-	for m := range c.BalancesStream(ctx) {
+	for m := range cs.BalancesStream(ctx) {
 		msgs = append(msgs, m)
 	}
 	sort.SliceStable(msgs, func(i, j int) bool {
@@ -180,13 +180,13 @@ type BalancesStreamMsg struct {
 }
 
 // BalancesStream returns stream of balances of all nodes in the cluster
-func (c *Cluster) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg {
+func (cs *Cluster) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg {
 	balancesStream := make(chan BalancesStreamMsg)
 
 	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
+	for i, node := range cs.Nodes {
 		wg.Add(1)
-		go func(i int, n Node) {
+		go func(i int, n Client) {
 			defer wg.Done()
 
 			b, err := n.Balances(ctx)
@@ -207,9 +207,9 @@ func (c *Cluster) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg {
 }
 
 // GlobalReplicationFactor returns the total number of nodes that contain given chunk
-func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (int, error) {
+func (cs *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (int, error) {
 	var counter int
-	for m := range c.HasChunkStream(ctx, a) {
+	for m := range cs.HasChunkStream(ctx, a) {
 		if m.Error != nil {
 			return 0, fmt.Errorf("node %d: %w", m.Index, m.Error)
 		}
@@ -229,14 +229,14 @@ type HasChunkStreamMsg struct {
 }
 
 // HasChunkStream returns stream of HasChunk requests for all nodes in the cluster
-func (c *Cluster) HasChunkStream(ctx context.Context, a swarm.Address) <-chan HasChunkStreamMsg {
+func (cs *Cluster) HasChunkStream(ctx context.Context, a swarm.Address) <-chan HasChunkStreamMsg {
 	hasChunkStream := make(chan HasChunkStreamMsg)
 
 	go func() {
 		var wg sync.WaitGroup
-		for i, node := range c.Nodes {
+		for i, node := range cs.Nodes {
 			wg.Add(1)
-			go func(i int, n Node) {
+			go func(i int, n Client) {
 				defer wg.Done()
 
 				found, err := n.HasChunk(ctx, a)
@@ -256,9 +256,9 @@ func (c *Cluster) HasChunkStream(ctx context.Context, a swarm.Address) <-chan Ha
 }
 
 // Overlays returns ordered list of overlay addresses of all nodes in the cluster
-func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err error) {
+func (cs *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err error) {
 	var msgs []OverlaysStreamMsg
-	for m := range c.OverlaysStream(ctx) {
+	for m := range cs.OverlaysStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
@@ -285,13 +285,13 @@ type OverlaysStreamMsg struct {
 
 // OverlaysStream returns stream of overlay addresses of all nodes in the cluster
 // TODO: add semaphore
-func (c *Cluster) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
+func (cs *Cluster) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
 	overlaysStream := make(chan OverlaysStreamMsg)
 
 	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
+	for i, node := range cs.Nodes {
 		wg.Add(1)
-		go func(i int, n Node) {
+		go func(i int, n Client) {
 			defer wg.Done()
 
 			a, err := n.Overlay(ctx)
@@ -312,9 +312,9 @@ func (c *Cluster) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
 }
 
 // Peers returns ordered list of peers of all nodes in the cluster
-func (c *Cluster) Peers(ctx context.Context) (peers [][]swarm.Address, err error) {
+func (cs *Cluster) Peers(ctx context.Context) (peers [][]swarm.Address, err error) {
 	var msgs []PeersStreamMsg
-	for m := range c.PeersStream(ctx) {
+	for m := range cs.PeersStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
@@ -340,13 +340,13 @@ type PeersStreamMsg struct {
 }
 
 // PeersStream returns stream of peers of all nodes in the cluster
-func (c *Cluster) PeersStream(ctx context.Context) <-chan PeersStreamMsg {
+func (cs *Cluster) PeersStream(ctx context.Context) <-chan PeersStreamMsg {
 	peersStream := make(chan PeersStreamMsg)
 
 	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
+	for i, node := range cs.Nodes {
 		wg.Add(1)
-		go func(i int, n Node) {
+		go func(i int, n Client) {
 			defer wg.Done()
 
 			a, err := n.Peers(ctx)
@@ -367,8 +367,8 @@ func (c *Cluster) PeersStream(ctx context.Context) <-chan PeersStreamMsg {
 }
 
 // RemoveNodes removes nodes from the cluster
-func (c *Cluster) RemoveNodes(count int) (err error) {
-	c.Nodes = c.Nodes[:c.Size()-count]
+func (cs *Cluster) RemoveNodes(count int) (err error) {
+	cs.Nodes = cs.Nodes[:cs.Size()-count]
 
 	return
 }
@@ -380,14 +380,14 @@ type SentReceived struct {
 }
 
 // Settlements returns settlements of all nodes in the cluster
-func (c *Cluster) Settlements(ctx context.Context) (settlements map[string]map[string]SentReceived, err error) {
-	overlays, err := c.Overlays(ctx)
+func (cs *Cluster) Settlements(ctx context.Context) (settlements map[string]map[string]SentReceived, err error) {
+	overlays, err := cs.Overlays(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var msgs []SettlementsStreamMsg
-	for m := range c.SettlementsStream(ctx) {
+	for m := range cs.SettlementsStream(ctx) {
 		msgs = append(msgs, m)
 	}
 	sort.SliceStable(msgs, func(i, j int) bool {
@@ -421,13 +421,13 @@ type SettlementsStreamMsg struct {
 }
 
 // SettlementsStream returns stream of settlements of all nodes in the cluster
-func (c *Cluster) SettlementsStream(ctx context.Context) <-chan SettlementsStreamMsg {
+func (cs *Cluster) SettlementsStream(ctx context.Context) <-chan SettlementsStreamMsg {
 	SettlementsStream := make(chan SettlementsStreamMsg)
 
 	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
+	for i, node := range cs.Nodes {
 		wg.Add(1)
-		go func(i int, n Node) {
+		go func(i int, n Client) {
 			defer wg.Done()
 
 			s, err := n.Settlements(ctx)
@@ -448,14 +448,14 @@ func (c *Cluster) SettlementsStream(ctx context.Context) <-chan SettlementsStrea
 }
 
 // Size returns size of the cluster
-func (c *Cluster) Size() int {
-	return len(c.Nodes)
+func (cs *Cluster) Size() int {
+	return len(cs.Nodes)
 }
 
 // Topologies returns ordered list of Kademlia topology of all nodes in the cluster
-func (c *Cluster) Topologies(ctx context.Context) (topologies []Topology, err error) {
+func (cs *Cluster) Topologies(ctx context.Context) (topologies []Topology, err error) {
 	var msgs []TopologyStreamMsg
-	for m := range c.TopologyStream(ctx) {
+	for m := range cs.TopologyStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
@@ -481,13 +481,13 @@ type TopologyStreamMsg struct {
 }
 
 // TopologyStream returns stream of peers of all nodes in the cluster
-func (c *Cluster) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg {
+func (cs *Cluster) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg {
 	topologyStream := make(chan TopologyStreamMsg)
 
 	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
+	for i, node := range cs.Nodes {
 		wg.Add(1)
-		go func(i int, n Node) {
+		go func(i int, n Client) {
 			defer wg.Done()
 
 			t, err := n.Topology(ctx)

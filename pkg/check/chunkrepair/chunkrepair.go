@@ -152,7 +152,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match
 // nodeB is the closest to the generated chunk in the cluster.
-func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee.Node, bee.Node, *bee.Chunk, error) {
+func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Client, bee.Client, bee.Client, *bee.Chunk, error) {
 	var overlayA swarm.Address
 	var overlayB swarm.Address
 	var overlayC swarm.Address
@@ -161,17 +161,17 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 	// get overlay addresses of the cluster
 	overlays, err := c.Overlays(ctx)
 	if err != nil {
-		return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
+		return bee.Client{}, bee.Client{}, bee.Client{}, nil, err
 	}
 
 	if len(overlays) < minNodesRequired {
-		return bee.Node{}, bee.Node{}, bee.Node{}, nil, errLessNodesForTest
+		return bee.Client{}, bee.Client{}, bee.Client{}, nil, errLessNodesForTest
 	}
 
 	// find node A and C, such that they have the greatest distance between them in the cluster
 	overlayA, overlayC, err = findFarthestNodes(overlays)
 	if err != nil {
-		return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
+		return bee.Client{}, bee.Client{}, bee.Client{}, nil, err
 	}
 
 	// find node B
@@ -179,7 +179,7 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 	for {
 		closestOverlay, c, err := getRandomChunkAndClosestNode(overlays, rnd)
 		if err != nil {
-			return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
+			return bee.Client{}, bee.Client{}, bee.Client{}, nil, err
 		}
 		if bytes.Equal(closestOverlay.Bytes(), overlayA.Bytes()) {
 			continue
@@ -198,13 +198,13 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 	fmt.Printf("chunk Address: %s\n", chunk.Address().String())
 
 	// get the nodes for all the addresses
-	var nodeA bee.Node
-	var nodeB bee.Node
-	var nodeC bee.Node
+	var nodeA bee.Client
+	var nodeB bee.Client
+	var nodeC bee.Client
 	for _, node := range c.Nodes {
 		addresses, err := node.Addresses(ctx)
 		if err != nil {
-			return bee.Node{}, bee.Node{}, bee.Node{}, nil, err
+			return bee.Client{}, bee.Client{}, bee.Client{}, nil, err
 		}
 
 		if addresses.Overlay.Equal(overlayA) {
@@ -221,7 +221,7 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 }
 
 // uploadAndPinChunkToNode uploads a given chunk to a given node and pins it.
-func uploadAndPinChunkToNode(ctx context.Context, node *bee.Node, chunk *bee.Chunk) error {
+func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.Chunk) error {
 	err := node.UploadChunk(ctx, chunk)
 	if err != nil {
 		return err

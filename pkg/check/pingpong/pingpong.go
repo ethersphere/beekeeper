@@ -56,13 +56,13 @@ type nodeStreamMsg struct {
 	Error       error
 }
 
-func nodeStream(ctx context.Context, nodes []bee.Node) <-chan nodeStreamMsg {
+func nodeStream(ctx context.Context, nodes []bee.Client) <-chan nodeStreamMsg {
 	nodeStream := make(chan nodeStreamMsg)
 
 	var wg sync.WaitGroup
 	for i, node := range nodes {
 		wg.Add(1)
-		go func(i int, node bee.Node) {
+		go func(i int, node bee.Client) {
 			defer wg.Done()
 
 			address, err := node.Overlay(ctx)

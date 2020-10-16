@@ -18,15 +18,15 @@ import (
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
 )
 
-// Node represents Bee node
-type Node struct {
+// Client manages communication with the Bee node
+type Client struct {
 	api   *api.Client
 	debug *debugapi.Client
 	k8s   *k8s.Client
 }
 
-// NodeOptions represents Bee node options
-type NodeOptions struct {
+// ClientOptions holds optional parameters for the Client.
+type ClientOptions struct {
 	APIURL              *url.URL
 	APIInsecureTLS      bool
 	DebugAPIURL         *url.URL
@@ -34,20 +34,20 @@ type NodeOptions struct {
 	KubeconfigPath      string
 }
 
-// NewNode returns new node
-func NewNode(opts NodeOptions) (n Node) {
+// NewClient returns Bee client
+func NewClient(opts ClientOptions) (c Client) {
 	if opts.APIURL != nil {
-		n.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
+		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
 		}}})
 	}
 	if opts.DebugAPIURL != nil {
-		n.debug = debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
+		c.debug = debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
 		}}})
 	}
 	if len(opts.KubeconfigPath) > 0 {
-		n.k8s = k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: opts.KubeconfigPath})
+		c.k8s = k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: opts.KubeconfigPath})
 	}
 
 	return
@@ -57,39 +57,39 @@ func NewNode(opts NodeOptions) (n Node) {
 type CreateOptions struct{}
 
 // Create ...
-func (n Node) Create(ctx context.Context, standalone bool) (err error) {
+func (c Client) Create(ctx context.Context, standalone bool) (err error) {
 	fmt.Println("Create node")
 	ctx = context.Background()
 
 	// configuration
-	if err = n.k8s.ConfigMap.Set(ctx, name, namespace, cmOptions); err != nil {
+	if err = c.k8s.ConfigMap.Set(ctx, name, namespace, cmOptions); err != nil {
 		return fmt.Errorf("set ConfigMap: %s", err)
 	}
 
-	if err := n.k8s.Secret.Set(ctx, fmt.Sprintf("%s-libp2p", name), namespace, secOptions); err != nil {
+	if err := c.k8s.Secret.Set(ctx, fmt.Sprintf("%s-libp2p", name), namespace, secOptions); err != nil {
 		return fmt.Errorf("set Secret: %s", err)
 	}
 
 	// services
-	if err := n.k8s.ServiceAccount.Set(ctx, name, namespace, saOptions); err != nil {
+	if err := c.k8s.ServiceAccount.Set(ctx, name, namespace, saOptions); err != nil {
 		return fmt.Errorf("set ServiceAccount %s", err)
 	}
 
-	if err := n.k8s.Service.Set(ctx, name, namespace, svcOptions); err != nil {
+	if err := c.k8s.Service.Set(ctx, name, namespace, svcOptions); err != nil {
 		return fmt.Errorf("set Service %s", err)
 	}
 
-	if err := n.k8s.Service.Set(ctx, fmt.Sprintf("%s-headless", name), namespace, headlessSvcOptions); err != nil {
+	if err := c.k8s.Service.Set(ctx, fmt.Sprintf("%s-headless", name), namespace, headlessSvcOptions); err != nil {
 		return fmt.Errorf("set Service %s", err)
 	}
 
 	// ingress
-	if err := n.k8s.Ingress.Set(ctx, name, namespace, ingressOptions); err != nil {
+	if err := c.k8s.Ingress.Set(ctx, name, namespace, ingressOptions); err != nil {
 		return fmt.Errorf("set Ingress %s", err)
 	}
 
 	// statefulset
-	if err := n.k8s.StatefulSet.Set(ctx, fmt.Sprintf("%s-0", name), namespace, ssOptions); err != nil {
+	if err := c.k8s.StatefulSet.Set(ctx, fmt.Sprintf("%s-0", name), namespace, ssOptions); err != nil {
 		return fmt.Errorf("set StatefulSet %s", err)
 	}
 
@@ -103,8 +103,8 @@ type Addresses struct {
 }
 
 // Addresses returns node's addresses
-func (n *Node) Addresses(ctx context.Context) (resp Addresses, err error) {
-	a, err := n.debug.Node.Addresses(ctx)
+func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
+	a, err := c.debug.Node.Addresses(ctx)
 	if err != nil {
 		return Addresses{}, fmt.Errorf("get addresses: %w", err)
 	}
@@ -122,8 +122,8 @@ type Balance struct {
 }
 
 // Balance returns node's balance with a given peer
-func (n *Node) Balance(ctx context.Context, a swarm.Address) (resp Balance, err error) {
-	b, err := n.debug.Node.Balance(ctx, a)
+func (c *Client) Balance(ctx context.Context, a swarm.Address) (resp Balance, err error) {
+	b, err := c.debug.Node.Balance(ctx, a)
 	if err != nil {
 		return Balance{}, fmt.Errorf("get balance with node %s: %w", a.String(), err)
 	}
@@ -140,8 +140,8 @@ type Balances struct {
 }
 
 // Balances returns node's balances
-func (n *Node) Balances(ctx context.Context) (resp Balances, err error) {
-	r, err := n.debug.Node.Balances(ctx)
+func (c *Client) Balances(ctx context.Context) (resp Balances, err error) {
+	r, err := c.debug.Node.Balances(ctx)
 	if err != nil {
 		return Balances{}, fmt.Errorf("get balances: %w", err)
 	}
@@ -157,8 +157,8 @@ func (n *Node) Balances(ctx context.Context) (resp Balances, err error) {
 }
 
 // DownloadBytes downloads chunk from the node
-func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte, err error) {
-	r, err := n.api.Bytes.Download(ctx, a)
+func (c *Client) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte, err error) {
+	r, err := c.api.Bytes.Download(ctx, a)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
@@ -167,8 +167,8 @@ func (n *Node) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte,
 }
 
 // DownloadChunk downloads chunk from the node
-func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address, targets string) (data []byte, err error) {
-	r, err := n.api.Chunks.Download(ctx, a, targets)
+func (c *Client) DownloadChunk(ctx context.Context, a swarm.Address, targets string) (data []byte, err error) {
+	r, err := c.api.Chunks.Download(ctx, a, targets)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
@@ -177,8 +177,8 @@ func (n *Node) DownloadChunk(ctx context.Context, a swarm.Address, targets strin
 }
 
 // DownloadFile downloads chunk from the node and returns it's size and hash
-func (n *Node) DownloadFile(ctx context.Context, a swarm.Address) (size int64, hash []byte, err error) {
-	r, err := n.api.Files.Download(ctx, a)
+func (c *Client) DownloadFile(ctx context.Context, a swarm.Address) (size int64, hash []byte, err error) {
+	r, err := c.api.Files.Download(ctx, a)
 	if err != nil {
 		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
 	}
@@ -193,13 +193,13 @@ func (n *Node) DownloadFile(ctx context.Context, a swarm.Address) (size int64, h
 }
 
 // HasChunk returns true/false if node has a chunk
-func (n *Node) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
-	return n.debug.Node.HasChunk(ctx, a)
+func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	return c.debug.Node.HasChunk(ctx, a)
 }
 
 // Overlay returns node's overlay address
-func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
-	a, err := n.debug.Node.Addresses(ctx)
+func (c *Client) Overlay(ctx context.Context) (swarm.Address, error) {
+	a, err := c.debug.Node.Addresses(ctx)
 	if err != nil {
 		return swarm.Address{}, fmt.Errorf("get overlay: %w", err)
 	}
@@ -208,8 +208,8 @@ func (n *Node) Overlay(ctx context.Context) (swarm.Address, error) {
 }
 
 // Peers returns addresses of node's peers
-func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
-	ps, err := n.debug.Node.Peers(ctx)
+func (c *Client) Peers(ctx context.Context) (peers []swarm.Address, err error) {
+	ps, err := c.debug.Node.Peers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get peers: %w", err)
 	}
@@ -222,8 +222,8 @@ func (n *Node) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 }
 
 // PinChunk returns true/false if chunk pinning is successful
-func (n *Node) PinChunk(ctx context.Context, a swarm.Address) (bool, error) {
-	return n.api.Pinning.PinChunk(ctx, a)
+func (c *Client) PinChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	return c.api.Pinning.PinChunk(ctx, a)
 }
 
 // PinnedChunk represents pinned chunk
@@ -233,8 +233,8 @@ type PinnedChunk struct {
 }
 
 // PinnedChunk returns pinned chunk
-func (n *Node) PinnedChunk(ctx context.Context, a swarm.Address) (PinnedChunk, error) {
-	p, err := n.api.Pinning.PinnedChunk(ctx, a)
+func (c *Client) PinnedChunk(ctx context.Context, a swarm.Address) (PinnedChunk, error) {
+	p, err := c.api.Pinning.PinnedChunk(ctx, a)
 	if err != nil {
 		return PinnedChunk{}, fmt.Errorf("get pinned chunk: %w", err)
 	}
@@ -251,8 +251,8 @@ type PinnedChunks struct {
 }
 
 // PinnedChunks returns pinned chunks
-func (n *Node) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
-	p, err := n.api.Pinning.PinnedChunks(ctx)
+func (c *Client) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
+	p, err := c.api.Pinning.PinnedChunks(ctx)
 	if err != nil {
 		return PinnedChunks{}, fmt.Errorf("get pinned chunks: %w", err)
 	}
@@ -269,8 +269,8 @@ func (n *Node) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
 }
 
 // Ping pings other node
-func (n *Node) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
-	r, err := n.debug.PingPong.Ping(ctx, node)
+func (c *Client) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
+	r, err := c.debug.PingPong.Ping(ctx, node)
 	if err != nil {
 		return "", fmt.Errorf("ping node %s: %w", node, err)
 	}
@@ -286,7 +286,7 @@ type PingStreamMsg struct {
 }
 
 // PingStream returns stream of ping results for given nodes
-func (n *Node) PingStream(ctx context.Context, nodes []swarm.Address) <-chan PingStreamMsg {
+func (c *Client) PingStream(ctx context.Context, nodes []swarm.Address) <-chan PingStreamMsg {
 	pingStream := make(chan PingStreamMsg)
 
 	var wg sync.WaitGroup
@@ -295,7 +295,7 @@ func (n *Node) PingStream(ctx context.Context, nodes []swarm.Address) <-chan Pin
 		go func(i int, node swarm.Address) {
 			defer wg.Done()
 
-			rtt, err := n.Ping(ctx, node)
+			rtt, err := c.Ping(ctx, node)
 			pingStream <- PingStreamMsg{
 				Node:  node,
 				RTT:   rtt,
@@ -321,8 +321,8 @@ type Settlement struct {
 }
 
 // Settlement returns node's settlement with a given peer
-func (n *Node) Settlement(ctx context.Context, a swarm.Address) (resp Settlement, err error) {
-	b, err := n.debug.Node.Settlement(ctx, a)
+func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settlement, err error) {
+	b, err := c.debug.Node.Settlement(ctx, a)
 	if err != nil {
 		return Settlement{}, fmt.Errorf("get settlement with node %s: %w", a.String(), err)
 	}
@@ -342,8 +342,8 @@ type Settlements struct {
 }
 
 // Settlements returns node's settlements
-func (n *Node) Settlements(ctx context.Context) (resp Settlements, err error) {
-	r, err := n.debug.Node.Settlements(ctx)
+func (c *Client) Settlements(ctx context.Context) (resp Settlements, err error) {
+	r, err := c.debug.Node.Settlements(ctx)
 	if err != nil {
 		return Settlements{}, fmt.Errorf("get settlements: %w", err)
 	}
@@ -380,8 +380,8 @@ type Bin struct {
 }
 
 // Topology returns Kademlia topology
-func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
-	t, err := n.debug.Node.Topology(ctx)
+func (c *Client) Topology(ctx context.Context) (topology Topology, err error) {
+	t, err := c.debug.Node.Topology(ctx)
 	if err != nil {
 		return Topology{}, fmt.Errorf("get topology: %w", err)
 	}
@@ -410,8 +410,8 @@ func (n *Node) Topology(ctx context.Context) (topology Topology, err error) {
 }
 
 // Underlay returns node's underlay addresses
-func (n *Node) Underlay(ctx context.Context) ([]string, error) {
-	a, err := n.debug.Node.Addresses(ctx)
+func (c *Client) Underlay(ctx context.Context) ([]string, error) {
+	a, err := c.debug.Node.Addresses(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get underlay: %w", err)
 	}
@@ -420,37 +420,37 @@ func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 }
 
 // UnpinChunk returns true/false if chunk unpinning is successful
-func (n *Node) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
-	return n.api.Pinning.UnpinChunk(ctx, a)
+func (c *Client) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	return c.api.Pinning.UnpinChunk(ctx, a)
 }
 
 // UploadBytes uploads chunk to the node
-func (n *Node) UploadBytes(ctx context.Context, c *Chunk) (err error) {
-	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(c.Data()))
+func (c *Client) UploadBytes(ctx context.Context, chunk *Chunk) (err error) {
+	r, err := c.api.Bytes.Upload(ctx, bytes.NewReader(chunk.Data()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
 
-	c.address = r.Reference
+	chunk.address = r.Reference
 
 	return
 }
 
 // UploadChunk uploads chunk to the node
-func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
+func (c *Client) UploadChunk(ctx context.Context, chunk *Chunk) (err error) {
 	p := bmtlegacy.NewTreePool(chunkHahser, swarm.Branches, bmtlegacy.PoolSize)
 	hasher := bmtlegacy.New(p)
-	err = hasher.SetSpan(int64(c.Span()))
+	err = hasher.SetSpan(int64(chunk.Span()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
-	_, err = hasher.Write(c.Data()[8:])
+	_, err = hasher.Write(chunk.Data()[8:])
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
-	c.address = swarm.NewAddress(hasher.Sum(nil))
+	chunk.address = swarm.NewAddress(hasher.Sum(nil))
 
-	_, err = n.api.Chunks.Upload(ctx, c.address, bytes.NewReader(c.Data()))
+	_, err = c.api.Chunks.Upload(ctx, chunk.address, bytes.NewReader(chunk.Data()))
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
@@ -459,14 +459,14 @@ func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 }
 
 // RemoveChunk removes the given chunk from the node's local store
-func (n *Node) RemoveChunk(ctx context.Context, c *Chunk) (err error) {
-	return n.debug.Chunks.Remove(ctx, c.Address())
+func (c *Client) RemoveChunk(ctx context.Context, chunk *Chunk) (err error) {
+	return c.debug.Chunks.Remove(ctx, chunk.Address())
 }
 
 // UploadFile uploads file to the node
-func (n *Node) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
+func (c *Client) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
 	h := fileHahser()
-	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin)
+	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin)
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
@@ -478,9 +478,9 @@ func (n *Node) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
 }
 
 // UploadCollection uploads TAR collection bytes to the node
-func (n *Node) UploadCollection(ctx context.Context, f *File) (err error) {
+func (c *Client) UploadCollection(ctx context.Context, f *File) (err error) {
 	h := fileHahser()
-	r, err := n.api.Dirs.Upload(ctx, io.TeeReader(f.DataReader(), h), f.Size())
+	r, err := c.api.Dirs.Upload(ctx, io.TeeReader(f.DataReader(), h), f.Size())
 	if err != nil {
 		return fmt.Errorf("upload collection: %w", err)
 	}
@@ -492,8 +492,8 @@ func (n *Node) UploadCollection(ctx context.Context, f *File) (err error) {
 }
 
 // DownloadManifestFile downloads manifest file from the node and returns it's size and hash
-func (n *Node) DownloadManifestFile(ctx context.Context, a swarm.Address, path string) (size int64, hash []byte, err error) {
-	r, err := n.api.Dirs.Download(ctx, a, path)
+func (c *Client) DownloadManifestFile(ctx context.Context, a swarm.Address, path string) (size int64, hash []byte, err error) {
+	r, err := c.api.Dirs.Download(ctx, a, path)
 	if err != nil {
 		return 0, nil, fmt.Errorf("download manifest file %s: %w", path, err)
 	}

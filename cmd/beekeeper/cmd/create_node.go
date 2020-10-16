@@ -15,7 +15,7 @@ func (c *command) initCreateNode() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx := context.Background()
 			standalone := true
-			node := bee.NewNode(bee.NodeOptions{KubeconfigPath: c.config.GetString(optionNameK8SConfig)})
+			node := bee.NewClient(bee.ClientOptions{KubeconfigPath: c.config.GetString(optionNameK8SConfig)})
 			node.Create(ctx, standalone)
 
 			return
