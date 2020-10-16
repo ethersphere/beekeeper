@@ -25,9 +25,7 @@ func (c *command) initStartNode() *cobra.Command {
 
 			node := bee.NewClient(bee.ClientOptions{KubeconfigPath: c.config.GetString(optionNameStartConfig)})
 
-			node.Start(ctx, standalone)
-
-			return
+			return node.Start(ctx, standalone)
 		},
 		PreRunE: c.startPreRunE,
 	}
