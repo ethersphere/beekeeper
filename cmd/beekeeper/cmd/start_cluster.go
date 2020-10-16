@@ -6,15 +6,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initCreateCluster() *cobra.Command {
+func (c *command) initStartCluster() *cobra.Command {
 	return &cobra.Command{
 		Use:   "cluster",
-		Short: "Create Bee cluster",
-		Long:  `Create Bee cluster.`,
+		Short: "Start Bee cluster",
+		Long:  `Start Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			fmt.Println("create cluster")
+			fmt.Println("start cluster")
 			return
 		},
-		PreRunE: c.createPreRunE,
+		PreRunE: c.startPreRunE,
 	}
 }

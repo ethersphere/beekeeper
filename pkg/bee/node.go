@@ -53,11 +53,11 @@ func NewClient(opts ClientOptions) (c Client) {
 	return
 }
 
-// CreateOptions ...
-type CreateOptions struct{}
+// StartOptions ...
+type StartOptions struct{}
 
-// Create ...
-func (c Client) Create(ctx context.Context, standalone bool) (err error) {
+// Start ...
+func (c Client) Start(ctx context.Context, standalone bool) (err error) {
 	fmt.Println("Create node")
 	ctx = context.Background()
 

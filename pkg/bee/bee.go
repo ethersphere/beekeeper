@@ -42,7 +42,7 @@ var (
 type Config struct {
 	// data directory
 	DataDir string
-	// db capacity in chunks, multiply by 4000 (swarm.ChunkSize) to get approximate capacity in bytes
+	// db capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
 	DBCapacity uint64
 	// password for decrypting keys
 	Password string

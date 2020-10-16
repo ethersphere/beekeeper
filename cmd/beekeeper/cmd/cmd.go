@@ -59,6 +59,10 @@ func newCommand(opts ...option) (c *command, err error) {
 		return nil, err
 	}
 
+	if err := c.initStartCmd(); err != nil {
+		return nil, err
+	}
+
 	if err := c.initTurnOnCmd(); err != nil {
 		return nil, err
 	}

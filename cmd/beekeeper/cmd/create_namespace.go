@@ -16,8 +16,8 @@ func (c *command) initCreateNamespace() *cobra.Command {
 		Short: "Create Kubernetes namespace",
 		Long:  `Create Kubernetes namespace.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			kubeconfig := c.config.GetString(optionNameK8SConfig)
-			ns := c.config.GetString(optionNameK8SNamespace)
+			kubeconfig := c.config.GetString(optionNameCreateConfig)
+			ns := c.config.GetString(optionNameCreateNamespace)
 
 			k := k8s.NewClient(&k8s.ClientOptions{
 				KubeconfigPath: kubeconfig,

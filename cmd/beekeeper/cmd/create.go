@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	optionNameK8SConfig    = "kubeconfig"
-	optionNameK8SNamespace = "namespace"
+	optionNameCreateConfig    = "kubeconfig"
+	optionNameCreateNamespace = "namespace"
 )
 
 func (c *command) initCreateCmd() (err error) {
@@ -21,12 +21,10 @@ func (c *command) initCreateCmd() (err error) {
 		},
 	}
 
-	cmd.PersistentFlags().String(optionNameK8SConfig, "~/.kube/config", "kubernetes config file")
-	cmd.PersistentFlags().StringP(optionNameK8SNamespace, "n", "beekeeper", "kubernetes namespace")
+	cmd.PersistentFlags().String(optionNameCreateConfig, "~/.kube/config", "kubernetes config file")
+	cmd.PersistentFlags().StringP(optionNameCreateNamespace, "n", "beekeeper", "kubernetes namespace")
 
 	cmd.AddCommand(c.initCreateNamespace())
-	cmd.AddCommand(c.initCreateNode())
-	cmd.AddCommand(c.initCreateCluster())
 
 	c.root.AddCommand(cmd)
 
