@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +30,7 @@ func (c *command) initStartNode() *cobra.Command {
 			node := bee.NewClient(bee.ClientOptions{KubeconfigPath: c.config.GetString(optionNameStartConfig)})
 
 			config.Standalone = standalone
-			k8sOpts := bee.K8SOptions{
+			k8sOpts := k8s.NodeStartOptions{
 				Name:      nodeName,
 				Namespace: c.config.GetString(optionNameStartNamespace),
 				Annotations: map[string]string{

@@ -59,7 +59,7 @@ type StartOptions struct {
 	Name    string
 	Version string
 	Config  Config
-	K8S     *K8SOptions
+	K8S     *k8s.NodeStartOptions
 }
 
 // Start ...
@@ -71,7 +71,7 @@ func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
 		}
 		o.K8S.Config = cm.String()
 
-		return c.startK8S(ctx, *o.K8S)
+		return c.k8s.NodeStart(ctx, *o.K8S)
 	}
 
 	return fmt.Errorf("method not implemented")

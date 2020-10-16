@@ -1,4 +1,4 @@
-package bee
+package k8s
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 )
 
-// K8SOptions ...
-type K8SOptions struct {
+// NodeStartOptions ...
+type NodeStartOptions struct {
 	Name        string
 	Namespace   string
 	Annotations map[string]string
@@ -21,10 +21,10 @@ type K8SOptions struct {
 	Config      string
 }
 
-func (c Client) startK8S(ctx context.Context, o K8SOptions) (err error) {
+// NodeStart ...
+func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	// configuration
-
-	if err = c.k8s.ConfigMap.Set(ctx, o.Name, o.Namespace, configmap.Options{
+	if err = c.ConfigMap.Set(ctx, o.Name, o.Namespace, configmap.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Data: map[string]string{
@@ -34,7 +34,7 @@ func (c Client) startK8S(ctx context.Context, o K8SOptions) (err error) {
 		return fmt.Errorf("set ConfigMap: %s", err)
 	}
 
-	if err := c.k8s.Secret.Set(ctx, fmt.Sprintf("%s-libp2p", o.Name), o.Namespace, secret.Options{
+	if err := c.Secret.Set(ctx, fmt.Sprintf("%s-libp2p", o.Name), o.Namespace, secret.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		StringData: map[string]string{
@@ -46,14 +46,14 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 	}
 
 	// services
-	if err := c.k8s.ServiceAccount.Set(ctx, o.Name, o.Namespace, serviceaccount.Options{
+	if err := c.ServiceAccount.Set(ctx, o.Name, o.Namespace, serviceaccount.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 	}); err != nil {
 		return fmt.Errorf("set ServiceAccount %s", err)
 	}
 
-	if err := c.k8s.Service.Set(ctx, o.Name, o.Namespace, service.Options{
+	if err := c.Service.Set(ctx, o.Name, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Ports: []service.Port{{
@@ -72,7 +72,7 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 		return fmt.Errorf("set Service %s", err)
 	}
 
-	if err := c.k8s.Service.Set(ctx, fmt.Sprintf("%s-headless", o.Name), o.Namespace, service.Options{
+	if err := c.Service.Set(ctx, fmt.Sprintf("%s-headless", o.Name), o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Ports: []service.Port{
@@ -106,7 +106,7 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 	}
 
 	// ingress
-	if err := c.k8s.Ingress.Set(ctx, o.Name, o.Namespace, ingress.Options{
+	if err := c.Ingress.Set(ctx, o.Name, o.Namespace, ingress.Options{
 		Annotations: map[string]string{
 			"createdBy":                                          "beekeeper",
 			"kubernetes.io/ingress.class":                        "nginx-internal",
@@ -131,7 +131,7 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 	}
 
 	// statefulset
-	if err := c.k8s.StatefulSet.Set(ctx, fmt.Sprintf("%s-0", o.Name), o.Namespace, statefulset.Options{
+	if err := c.StatefulSet.Set(ctx, fmt.Sprintf("%s-0", o.Name), o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Replicas:    1,
@@ -230,5 +230,6 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 	}
 
 	fmt.Println("Node started")
+	return
 	return
 }
