@@ -231,5 +231,4 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 
 	fmt.Println("Node started")
 	return
-	return
 }
