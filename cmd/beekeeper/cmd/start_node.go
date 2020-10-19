@@ -78,10 +78,10 @@ func (c *command) initStartNode() *cobra.Command {
 			}
 
 			return node.Start(ctx, bee.StartOptions{
-				Name:           nodeName,
-				Version:        nodeVersion,
-				Config:         nodeConfig,
-				Implementation: k8sOptions,
+				Name:    nodeName,
+				Version: nodeVersion,
+				Config:  nodeConfig,
+				Options: k8sOptions,
 			})
 		},
 		PreRunE: c.startPreRunE,

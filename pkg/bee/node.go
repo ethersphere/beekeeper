@@ -57,19 +57,19 @@ func NewClient(opts ClientOptions) (c Client) {
 
 // StartOptions ...
 type StartOptions struct {
-	Name           string
-	Version        string
-	Config         Config
-	Implementation interface{}
+	Name    string
+	Version string
+	Config  Config
+	Options interface{}
 }
 
 // Start starts node with given config and with specified implementation
 func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
-	switch reflect.TypeOf(o.Implementation).String() {
+	switch reflect.TypeOf(o.Options).String() {
 	case "k8s.NodeStartOptions":
-		k8sOptions, ok := o.Implementation.(k8s.NodeStartOptions)
+		opts, ok := o.Options.(k8s.NodeStartOptions)
 		if !ok {
-			return fmt.Errorf("bad implementation options")
+			return fmt.Errorf("bad options")
 		}
 
 		var config bytes.Buffer
@@ -77,9 +77,9 @@ func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
 			return err
 		}
 
-		return c.k8s.NodeStart(ctx, k8sOptions, config.String())
+		return c.k8s.NodeStart(ctx, opts, config.String())
 	default:
-		return fmt.Errorf("unknown implementation")
+		return fmt.Errorf("unknown options")
 	}
 }
 
