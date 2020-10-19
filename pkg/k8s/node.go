@@ -12,48 +12,75 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 )
 
+const (
+	libp2pKeys = `bee-0: {"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}
+bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f688ddcdfe88acbebef2037c68030b1a0a367a561333e5c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","crypto":{"cipher":"aes-128-ctr","ciphertext":"0d0ff25e9b03292e622c5a09ec00c2acb7ff5882f02dd2f00a26ac6d3292a434","cipherparams":{"iv":"cd4082caf63320b306fe885796ba224f"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a4d63d56c539eb3eff2a235090127486722fa2c836cf735d50d673b730cebc3f"},"mac":"aad40da9c1e742e2b01bb8f76ba99ace97ccb0539cea40e31eb6b9bb64a3f36a"},"version":3}`
+	initCmd = `export INDEX=$(echo $(hostname) | rev | cut -d'-' -f 1 | rev); mkdir -p /home/bee/.bee/keys; chown -R 999:999 /home/bee/.bee/keys; export KEY=$(cat /tmp/bee/libp2p.map | grep bee-${INDEX}: | cut -d' ' -f2); if [ -z "${KEY}" ]; then exit 0; fi; printf '%s' "${KEY}" > /home/bee/.bee/keys/libp2p.key; echo 'node initialization done';`
+)
+
 // NodeStartOptions ...
 type NodeStartOptions struct {
-	Name        string
-	Namespace   string
-	Annotations map[string]string
-	Labels      map[string]string
-	Config      string
+	Name                string
+	Namespace           string
+	Annotations         map[string]string
+	Labels              map[string]string
+	LimitCPU            string
+	LimitMemory         string
+	Image               string
+	ImagePullPolicy     string
+	IngressAnnotations  map[string]string
+	IngressClass        string
+	IngressHost         string
+	NodeSelector        map[string]string
+	PodManagementPolicy string
+	RestartPolicy       string
+	RequestCPU          string
+	RequestMemory       string
+	Selector            map[string]string
+	UpdateStrategy      string
 }
 
 // NodeStart ...
-func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
-	// configuration
-	if err = c.ConfigMap.Set(ctx, o.Name, o.Namespace, configmap.Options{
+func (c Client) NodeStart(ctx context.Context, o NodeStartOptions, config string) (err error) {
+	// bee configuration
+	configCM := o.Name
+	if err = c.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Data: map[string]string{
-			".bee.yaml": o.Config,
+			".bee.yaml": config,
 		},
 	}); err != nil {
-		return fmt.Errorf("set ConfigMap: %s", err)
+		return fmt.Errorf("set configmap in namespace %s: %s", o.Namespace, err)
 	}
+	fmt.Printf("configmap %s is set in namespace %s\n", configCM, o.Namespace)
 
-	if err := c.Secret.Set(ctx, fmt.Sprintf("%s-libp2p", o.Name), o.Namespace, secret.Options{
+	// secret with libp2p keys
+	libp2pSecret := fmt.Sprintf("%s-libp2p", o.Name)
+	if err := c.Secret.Set(ctx, libp2pSecret, o.Namespace, secret.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		StringData: map[string]string{
-			"libp2pKeys": `bee-0: {"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}
-bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f688ddcdfe88acbebef2037c68030b1a0a367a561333e5c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","crypto":{"cipher":"aes-128-ctr","ciphertext":"0d0ff25e9b03292e622c5a09ec00c2acb7ff5882f02dd2f00a26ac6d3292a434","cipherparams":{"iv":"cd4082caf63320b306fe885796ba224f"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a4d63d56c539eb3eff2a235090127486722fa2c836cf735d50d673b730cebc3f"},"mac":"aad40da9c1e742e2b01bb8f76ba99ace97ccb0539cea40e31eb6b9bb64a3f36a"},"version":3}`,
+			"libp2pKeys": libp2pKeys,
 		},
 	}); err != nil {
-		return fmt.Errorf("set Secret: %s", err)
+		return fmt.Errorf("set secret in namespace %s: %s", o.Namespace, err)
 	}
+	fmt.Printf("secret %s is set in namespace %s\n", libp2pSecret, o.Namespace)
 
-	// services
-	if err := c.ServiceAccount.Set(ctx, o.Name, o.Namespace, serviceaccount.Options{
+	// service account
+	svcAccount := o.Name
+	if err := c.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 	}); err != nil {
-		return fmt.Errorf("set ServiceAccount %s", err)
+		return fmt.Errorf("set serviceaccount in namespace %s: %s", o.Namespace, err)
 	}
+	fmt.Printf("serviceaccount %s is set in namespace %s\n", svcAccount, o.Namespace)
 
-	if err := c.Service.Set(ctx, o.Name, o.Namespace, service.Options{
+	// http service
+	httpSvc := o.Name
+	if err := c.Service.Set(ctx, httpSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Ports: []service.Port{{
@@ -62,17 +89,31 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 			Port:       80,
 			TargetPort: "api",
 		}},
-		Selector: map[string]string{
-			"app.kubernetes.io/instance":   "bee",
-			"app.kubernetes.io/name":       "bee",
-			"app.kubernetes.io/managed-by": "beekeeper",
-		},
-		Type: "ClusterIP",
+		Selector: o.Selector,
+		Type:     "ClusterIP",
 	}); err != nil {
-		return fmt.Errorf("set Service %s", err)
+		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
+	fmt.Printf("service %s is set in namespace %s\n", httpSvc, o.Namespace)
 
-	if err := c.Service.Set(ctx, fmt.Sprintf("%s-headless", o.Name), o.Namespace, service.Options{
+	// http service's ingress
+	httpIn := o.Name
+	if err := c.Ingress.Set(ctx, httpIn, o.Namespace, ingress.Options{
+		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
+		Labels:      o.Labels,
+		Class:       o.IngressClass,
+		Host:        o.IngressHost,
+		ServiceName: httpSvc,
+		ServicePort: "http",
+		Path:        "/",
+	}); err != nil {
+		return fmt.Errorf("set ingress in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("ingress %s is set in namespace %s\n", httpIn, o.Namespace)
+
+	// headless service
+	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
+	if err := c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Ports: []service.Port{
@@ -95,95 +136,36 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 				TargetPort: "debug",
 			},
 		},
-		Selector: map[string]string{
-			"app.kubernetes.io/instance":   "bee",
-			"app.kubernetes.io/name":       "bee",
-			"app.kubernetes.io/managed-by": "beekeeper",
-		},
-		Type: "ClusterIP",
+		Selector: o.Selector,
+		Type:     "ClusterIP",
 	}); err != nil {
-		return fmt.Errorf("set Service %s", err)
+		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
-
-	// ingress
-	if err := c.Ingress.Set(ctx, o.Name, o.Namespace, ingress.Options{
-		Annotations: map[string]string{
-			"createdBy":                                          "beekeeper",
-			"kubernetes.io/ingress.class":                        "nginx-internal",
-			"nginx.ingress.kubernetes.io/affinity":               "cookie",
-			"nginx.ingress.kubernetes.io/affinity-mode":          "persistent",
-			"nginx.ingress.kubernetes.io/proxy-body-size":        "0",
-			"nginx.ingress.kubernetes.io/proxy-read-timeout":     "7200",
-			"nginx.ingress.kubernetes.io/proxy-send-timeout":     "7200",
-			"nginx.ingress.kubernetes.io/session-cookie-max-age": "86400",
-			"nginx.ingress.kubernetes.io/session-cookie-name":    "SWARMGATEWAY",
-			"nginx.ingress.kubernetes.io/session-cookie-path":    "default",
-			"nginx.ingress.kubernetes.io/ssl-redirect":           "true",
-		},
-		Labels:      o.Labels,
-		Class:       "nginx-internal",
-		Host:        "bee.beekeeper.staging.internal",
-		ServiceName: o.Name,
-		ServicePort: "http",
-		Path:        "/",
-	}); err != nil {
-		return fmt.Errorf("set Ingress %s", err)
-	}
+	fmt.Printf("service %s is set in namespace %s\n", headlessSvc, o.Namespace)
 
 	// statefulset
-	if err := c.StatefulSet.Set(ctx, fmt.Sprintf("%s-0", o.Name), o.Namespace, statefulset.Options{
+	sSet := o.Name
+	if err := c.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
-		Labels:      o.Labels,
-		Replicas:    1,
-		Selector: map[string]string{
-			"app.kubernetes.io/name":       "bee",
-			"app.kubernetes.io/managed-by": "beekeeper",
-		},
-		RestartPolicy:      "Always",
-		ServiceAccountName: o.Name,
-		ServiceName:        fmt.Sprintf("%s-headless", o.Name),
-		NodeSelector: map[string]string{
-			"node-group": "bee-staging",
-		},
-		PodManagementPolicy: "OrderedReady",
-		PodSecurityContext: statefulset.PodSecurityContext{
-			FSGroup: 999,
-		},
-		UpdateStrategy: statefulset.UpdateStrategy{
-			Type: "OnDelete",
-		},
-		Volumes: []statefulset.Volume{
-			{ConfigMap: &statefulset.ConfigMapVolume{
-				Name:          "config",
-				ConfigMapName: o.Name,
-				DefaultMode:   420,
-			}},
-			{EmptyDir: &statefulset.EmptyDirVolume{
-				Name: "data",
-			}},
-			{Secret: &statefulset.SecretVolume{
-				Name:        fmt.Sprintf("%s-libp2p", o.Name),
-				SecretName:  fmt.Sprintf("%s-libp2p", o.Name),
-				DefaultMode: 420,
-				Items: []statefulset.Item{{
-					Key:   "libp2pKeys",
-					Value: "libp2p.map",
-				}},
-			}},
-		},
 		InitContainers: []statefulset.InitContainer{{
 			Name:    "init-libp2p",
 			Image:   "busybox:1.28",
-			Command: []string{"sh", "-c", `export INDEX=$(echo $(hostname) | rev | cut -d'-' -f 1 | rev); mkdir -p /home/bee/.bee/keys; chown -R 999:999 /home/bee/.bee/keys; export KEY=$(cat /tmp/bee/libp2p.map | grep bee-${INDEX}: | cut -d' ' -f2); if [ -z "${KEY}" ]; then exit 0; fi; printf '%s' "${KEY}" > /home/bee/.bee/keys/libp2p.key; echo 'node initialization done';`},
+			Command: []string{"sh", "-c", initCmd},
 			VolumeMounts: []statefulset.VolumeMount{
-				{Name: "bee-libp2p", MountPath: "/tmp/bee"},
-				{Name: "data", MountPath: "home/bee/.bee"},
+				{
+					Name:      "bee-libp2p",
+					MountPath: "/tmp/bee",
+				},
+				{
+					Name:      "data",
+					MountPath: "home/bee/.bee",
+				},
 			},
 		}},
 		Containers: []statefulset.Container{{
-			Name:            o.Name,
-			Image:           "ethersphere/bee:latest",
-			ImagePullPolicy: "Always",
+			Name:            sSet,
+			Image:           o.Image,
+			ImagePullPolicy: o.ImagePullPolicy,
 			Command:         []string{"bee", "start", "--config=.bee.yaml"},
 			Ports: []statefulset.Port{
 				{
@@ -211,24 +193,76 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 				Port: "debug",
 			},
 			Resources: statefulset.Resources{
-				LimitCPU:      "1",
-				LimitMemory:   "2Gi",
-				RequestCPU:    "750m",
-				RequestMemory: "1Gi",
+				LimitCPU:      o.LimitCPU,
+				LimitMemory:   o.LimitMemory,
+				RequestCPU:    o.RequestCPU,
+				RequestMemory: o.RequestMemory,
 			},
 			SecurityContext: statefulset.SecurityContext{
 				AllowPrivilegeEscalation: false,
 				RunAsUser:                999,
 			},
 			VolumeMounts: []statefulset.VolumeMount{
-				{Name: "config", MountPath: "/home/bee/.bee.yaml", SubPath: ".bee.yaml", ReadOnly: true},
-				{Name: "data", MountPath: "home/bee/.bee"},
+				{
+					Name:      "config",
+					MountPath: "/home/bee/.bee.yaml",
+					SubPath:   ".bee.yaml",
+					ReadOnly:  true,
+				},
+				{
+					Name:      "data",
+					MountPath: "home/bee/.bee",
+				},
 			},
 		}},
+		Labels:              o.Labels,
+		NodeSelector:        o.NodeSelector,
+		PodManagementPolicy: o.PodManagementPolicy,
+		PodSecurityContext: statefulset.PodSecurityContext{
+			FSGroup: 999,
+		},
+		Replicas:           1,
+		RestartPolicy:      o.RestartPolicy,
+		Selector:           o.Selector,
+		ServiceAccountName: svcAccount,
+		ServiceName:        headlessSvc,
+		UpdateStrategy: statefulset.UpdateStrategy{
+			Type: o.UpdateStrategy,
+		},
+		Volumes: []statefulset.Volume{
+			{
+				ConfigMap: &statefulset.ConfigMapVolume{
+					Name:          "config",
+					ConfigMapName: configCM,
+					DefaultMode:   420,
+				},
+			},
+			{EmptyDir: &statefulset.EmptyDirVolume{
+				Name: "data",
+			}},
+			{Secret: &statefulset.SecretVolume{
+				Name:        libp2pSecret,
+				SecretName:  libp2pSecret,
+				DefaultMode: 420,
+				Items: []statefulset.Item{{
+					Key:   "libp2pKeys",
+					Value: "libp2p.map",
+				}},
+			}},
+		},
 	}); err != nil {
-		return fmt.Errorf("set StatefulSet %s", err)
+		return fmt.Errorf("set statefulset in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("statefulset %s is set in namespace %s\n", sSet, o.Namespace)
+
+	fmt.Printf("node %s started in namespace %s\n", o.Name, o.Namespace)
+	return
+}
+
+func mergeMaps(a, b map[string]string) map[string]string {
+	for k, v := range b {
+		a[k] = v
 	}
 
-	fmt.Println("Node started")
-	return
+	return a
 }

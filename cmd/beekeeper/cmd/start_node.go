@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -27,12 +28,14 @@ func (c *command) initStartNode() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx := context.Background()
 
-			node := bee.NewClient(bee.ClientOptions{KubeconfigPath: c.config.GetString(optionNameStartConfig)})
+			node := bee.NewClient(bee.ClientOptions{KubeconfigPath: c.config.GetString(optionNameStartKubeconfig)})
 
-			config.Standalone = standalone
-			k8sOpts := k8s.NodeStartOptions{
+			namespace := c.config.GetString(optionNameStartNamespace)
+			nodeConfig.Standalone = standalone
+
+			k8sOptions := k8s.NodeStartOptions{
 				Name:      nodeName,
-				Namespace: c.config.GetString(optionNameStartNamespace),
+				Namespace: namespace,
 				Annotations: map[string]string{
 					"createdBy": "beekeeper",
 				},
@@ -42,13 +45,43 @@ func (c *command) initStartNode() *cobra.Command {
 					"app.kubernetes.io/managed-by": "beekeeper",
 					"beekeeper/version":            beekeeper.Version,
 				},
+				Image:           fmt.Sprintf("ethersphere/bee:%s", nodeVersion),
+				ImagePullPolicy: "Always",
+				IngressAnnotations: map[string]string{
+					"kubernetes.io/ingress.class":                        "nginx-internal",
+					"nginx.ingress.kubernetes.io/affinity":               "cookie",
+					"nginx.ingress.kubernetes.io/affinity-mode":          "persistent",
+					"nginx.ingress.kubernetes.io/proxy-body-size":        "0",
+					"nginx.ingress.kubernetes.io/proxy-read-timeout":     "7200",
+					"nginx.ingress.kubernetes.io/proxy-send-timeout":     "7200",
+					"nginx.ingress.kubernetes.io/session-cookie-max-age": "86400",
+					"nginx.ingress.kubernetes.io/session-cookie-name":    "SWARMGATEWAY",
+					"nginx.ingress.kubernetes.io/session-cookie-path":    "default",
+					"nginx.ingress.kubernetes.io/ssl-redirect":           "true",
+				},
+				IngressClass: "nginx-internal",
+				IngressHost:  "bee.beekeeper.staging.internal",
+				LimitCPU:     "1",
+				LimitMemory:  "2Gi",
+				NodeSelector: map[string]string{
+					"node-group": "bee-staging",
+				},
+				PodManagementPolicy: "OrderedReady",
+				RestartPolicy:       "Always",
+				RequestCPU:          "750m",
+				RequestMemory:       "1Gi",
+				Selector: map[string]string{
+					"app.kubernetes.io/name":       "bee",
+					"app.kubernetes.io/managed-by": "beekeeper",
+				},
+				UpdateStrategy: "OnDelete",
 			}
 
 			return node.Start(ctx, bee.StartOptions{
 				Name:    nodeName,
 				Version: nodeVersion,
-				Config:  config,
-				K8S:     &k8sOpts,
+				Config:  nodeConfig,
+				K8S:     &k8sOptions,
 			})
 		},
 		PreRunE: c.startPreRunE,
@@ -60,7 +93,7 @@ func (c *command) initStartNode() *cobra.Command {
 }
 
 var (
-	config = bee.Config{
+	nodeConfig = bee.Config{
 		APIAddr:              ":8080",
 		Bootnodes:            "/dns4/bee-0-headless.beekeeper.svc.cluster.local/tcp/7070/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL",
 		ClefSignerEnable:     false,

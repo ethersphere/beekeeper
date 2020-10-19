@@ -59,22 +59,21 @@ type StartOptions struct {
 	Name    string
 	Version string
 	Config  Config
-	K8S     *k8s.NodeStartOptions
+	K8S     *k8s.NodeStartOptions // TODO: implement with interfaces
 }
 
 // Start ...
 func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
 	if o.K8S != nil {
-		var cm bytes.Buffer
-		if err := template.Must(template.New("").Parse(configTemplate)).Execute(&cm, o.Config); err != nil {
+		var config bytes.Buffer
+		if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
 			return err
 		}
-		o.K8S.Config = cm.String()
 
-		return c.k8s.NodeStart(ctx, *o.K8S)
+		return c.k8s.NodeStart(ctx, *o.K8S, config.String())
 	}
 
-	return fmt.Errorf("method not implemented")
+	return fmt.Errorf("start method not implemented")
 }
 
 // Addresses represents node's addresses

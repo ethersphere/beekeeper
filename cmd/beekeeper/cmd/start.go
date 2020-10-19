@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	optionNameStartConfig    = "kubeconfig"
-	optionNameStartNamespace = "namespace"
+	optionNameStartKubeconfig = "kubeconfig"
+	optionNameStartNamespace  = "namespace"
 )
 
 func (c *command) initStartCmd() (err error) {
@@ -21,7 +21,7 @@ func (c *command) initStartCmd() (err error) {
 		},
 	}
 
-	cmd.PersistentFlags().String(optionNameStartConfig, "~/.kube/config", "kubernetes config file")
+	cmd.PersistentFlags().String(optionNameStartKubeconfig, "~/.kube/config", "kubernetes config file")
 	cmd.PersistentFlags().StringP(optionNameStartNamespace, "n", "beekeeper", "kubernetes namespace")
 
 	cmd.AddCommand(c.initStartNode())
