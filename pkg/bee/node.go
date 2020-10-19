@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -59,11 +58,10 @@ func NewClient(opts ClientOptions) (c Client) {
 type StartOptions struct {
 	Name    string
 	Version string
-	Config  Config
 	Options interface{}
 }
 
-// Start starts node with given config and with specified implementation
+// Start starts node with given options
 func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
 	switch reflect.TypeOf(o.Options).String() {
 	case "k8s.NodeStartOptions":
@@ -72,12 +70,7 @@ func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
 			return fmt.Errorf("bad options")
 		}
 
-		var config bytes.Buffer
-		if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
-			return err
-		}
-
-		return c.k8s.NodeStart(ctx, opts, config.String())
+		return c.k8s.NodeStart(ctx, opts)
 	default:
 		return fmt.Errorf("unknown options")
 	}

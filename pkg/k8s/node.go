@@ -1,8 +1,12 @@
 package k8s
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+	"text/template"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
@@ -20,6 +24,9 @@ bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f68
 
 // NodeStartOptions ...
 type NodeStartOptions struct {
+	// Bee configuration
+	Config Config
+	// Kubernetes configuration
 	Name                string
 	Namespace           string
 	Annotations         map[string]string
@@ -41,14 +48,32 @@ type NodeStartOptions struct {
 }
 
 // NodeStart ...
-func (c Client) NodeStart(ctx context.Context, o NodeStartOptions, config string) (err error) {
+func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	// bee configuration
+	portAPI, err := parsePort(o.Config.APIAddr)
+	if err != nil {
+		return fmt.Errorf("parsing API port from config: %s", err)
+	}
+	portDebug, err := parsePort(o.Config.DebugAPIAddr)
+	if err != nil {
+		return fmt.Errorf("parsing Debug port from config: %s", err)
+	}
+	portP2P, err := parsePort(o.Config.P2PAddr)
+	if err != nil {
+		return fmt.Errorf("parsing P2P port from config: %s", err)
+	}
+
+	var config bytes.Buffer
+	if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
+		return err
+	}
+
 	configCM := o.Name
 	if err = c.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Data: map[string]string{
-			".bee.yaml": config,
+			".bee.yaml": config.String(),
 		},
 	}); err != nil {
 		return fmt.Errorf("set configmap in namespace %s: %s", o.Namespace, err)
@@ -120,19 +145,19 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions, config string
 			{
 				Name:       "api",
 				Protocol:   "TCP",
-				Port:       8080,
+				Port:       portAPI,
 				TargetPort: "api",
 			},
 			{
 				Name:       "p2p",
 				Protocol:   "TCP",
-				Port:       7070,
+				Port:       portP2P,
 				TargetPort: "p2p",
 			},
 			{
 				Name:       "debug",
 				Protocol:   "TCP",
-				Port:       6060,
+				Port:       portDebug,
 				TargetPort: "debug",
 			},
 		},
@@ -170,17 +195,17 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions, config string
 			Ports: []statefulset.Port{
 				{
 					Name:          "api",
-					ContainerPort: 8080,
+					ContainerPort: portAPI,
 					Protocol:      "TCP",
 				},
 				{
 					Name:          "p2p",
-					ContainerPort: 7070,
+					ContainerPort: portP2P,
 					Protocol:      "TCP",
 				},
 				{
 					Name:          "debug",
-					ContainerPort: 6060,
+					ContainerPort: portDebug,
 					Protocol:      "TCP",
 				},
 			},
@@ -265,4 +290,9 @@ func mergeMaps(a, b map[string]string) map[string]string {
 	}
 
 	return a
+}
+
+func parsePort(port string) (int32, error) {
+	p, err := strconv.ParseInt(strings.Split(port, ":")[1], 10, 32)
+	return int32(p), err
 }

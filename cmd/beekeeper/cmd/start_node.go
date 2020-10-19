@@ -34,6 +34,7 @@ func (c *command) initStartNode() *cobra.Command {
 			nodeConfig.Standalone = standalone
 
 			k8sOptions := k8s.NodeStartOptions{
+				Config:    nodeConfig,
 				Name:      nodeName,
 				Namespace: namespace,
 				Annotations: map[string]string{
@@ -80,7 +81,6 @@ func (c *command) initStartNode() *cobra.Command {
 			return node.Start(ctx, bee.StartOptions{
 				Name:    nodeName,
 				Version: nodeVersion,
-				Config:  nodeConfig,
 				Options: k8sOptions,
 			})
 		},
@@ -93,7 +93,7 @@ func (c *command) initStartNode() *cobra.Command {
 }
 
 var (
-	nodeConfig = bee.Config{
+	nodeConfig = k8s.Config{
 		APIAddr:              ":8080",
 		Bootnodes:            "/dns4/bee-0-headless.beekeeper.svc.cluster.local/tcp/7070/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL",
 		ClefSignerEnable:     false,

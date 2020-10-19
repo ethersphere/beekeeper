@@ -1,4 +1,4 @@
-package bee
+package k8s
 
 // Config ...
 type Config struct {
@@ -36,8 +36,7 @@ type Config struct {
 	WelcomeMessage       string // send a welcome message string during handshakes
 }
 
-var (
-	configTemplate = `api-addr: {{.APIAddr}}
+const configTemplate = `api-addr: {{.APIAddr}}
 bootnode: {{.Bootnodes}}
 clef-signer-enable: {{.ClefSignerEnable}}
 clef-signer-endpoint: {{.ClefSignerEndpoint}}
@@ -70,4 +69,3 @@ tracing-service-name: {{.TracingServiceName}}
 verbosity: {{.Verbosity}}
 welcome-message: {{.WelcomeMessage}}
 `
-)
