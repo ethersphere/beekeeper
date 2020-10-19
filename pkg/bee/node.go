@@ -5,12 +5,13 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sync"
-	"text/template"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
@@ -56,24 +57,30 @@ func NewClient(opts ClientOptions) (c Client) {
 
 // StartOptions ...
 type StartOptions struct {
-	Name    string
-	Version string
-	Config  Config
-	K8S     *k8s.NodeStartOptions // TODO: implement with interfaces
+	Name           string
+	Version        string
+	Config         Config
+	Implementation interface{}
 }
 
-// Start ...
+// Start starts node with given config and with specified implementation
 func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
-	if o.K8S != nil {
+	switch reflect.TypeOf(o.Implementation).String() {
+	case "k8s.NodeStartOptions":
+		k8sOptions, ok := o.Implementation.(k8s.NodeStartOptions)
+		if !ok {
+			return fmt.Errorf("bad implementation options")
+		}
+
 		var config bytes.Buffer
 		if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
 			return err
 		}
 
-		return c.k8s.NodeStart(ctx, *o.K8S, config.String())
+		return c.k8s.NodeStart(ctx, k8sOptions, config.String())
+	default:
+		return fmt.Errorf("unknown implementation")
 	}
-
-	return fmt.Errorf("start method not implemented")
 }
 
 // Addresses represents node's addresses
