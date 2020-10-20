@@ -25,11 +25,12 @@ func NewClient(clientset *kubernetes.Clientset) *Client {
 
 // Options holds optional parameters for the Client.
 type Options struct {
-	Annotations map[string]string
-	Labels      map[string]string
-	Ports       []Port
-	Selector    map[string]string
-	Type        string
+	Annotations           map[string]string
+	ExternalTrafficPolicy string
+	Labels                map[string]string
+	Ports                 []Port
+	Selector              map[string]string
+	Type                  string
 }
 
 // Port represents service's port
@@ -51,19 +52,20 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 			Labels:      o.Labels,
 		},
 		Spec: v1.ServiceSpec{
-			Ports:    k8sPorts(o.Ports),
-			Selector: o.Selector,
-			Type:     v1.ServiceType(o.Type),
+			ExternalTrafficPolicy: v1.ServiceExternalTrafficPolicyType(o.ExternalTrafficPolicy),
+			Ports:                 k8sPorts(o.Ports),
+			Selector:              o.Selector,
+			Type:                  v1.ServiceType(o.Type),
 		},
 	}
 	_, err = c.clientset.CoreV1().Services(namespace).Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
+		// TODO: fix condition, always true
 		if !errors.IsNotFound(err) {
 			fmt.Printf("service %s already exists in the namespace %s\n", name, namespace)
 			return nil
 		}
-
-		return err
+		return
 	}
 
 	return
