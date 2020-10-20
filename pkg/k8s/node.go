@@ -245,7 +245,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	sSet := o.Name
 	if err := c.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations:         o.Annotations,
-		InitContainers:      c.setInitContainers(),
+		InitContainers:      c.setInitContainers(true, false, false),
 		Containers:          c.setContainers(sSet, o.Image, o.ImagePullPolicy, o.LimitCPU, o.LimitMemory, o.RequestCPU, o.RequestMemory, portAPI, portDebug, portP2P),
 		Labels:              o.Labels,
 		NodeSelector:        o.NodeSelector,
@@ -271,9 +271,9 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	return
 }
 
-func (c Client) setInitContainers() []statefulset.InitContainer {
-	return []statefulset.InitContainer{
-		{
+func (c Client) setInitContainers(initLibP2P, initSwarm, initNATPort bool) (inits []statefulset.InitContainer) {
+	if initLibP2P {
+		inits = append(inits, statefulset.InitContainer{
 			Name:    "init-libp2p",
 			Image:   "busybox:1.28",
 			Command: []string{"sh", "-c", initCmd},
@@ -287,39 +287,45 @@ func (c Client) setInitContainers() []statefulset.InitContainer {
 					MountPath: "home/bee/.bee",
 				},
 			},
-		},
-		// {
-		// 	Name:    "init-swarm",
-		// 	Image:   "busybox:1.28",
-		// 	Command: []string{"sh", "-c", initSwarmCmd},
-		// 	VolumeMounts: []statefulset.VolumeMount{
-		// 		{
-		// 			Name:      "bee-swarm",
-		// 			MountPath: "/tmp/bee",
-		// 		},
-		// 		{
-		// 			Name:      "data",
-		// 			MountPath: "home/bee/.bee",
-		// 		},
-		// 	},
-		// },
-		// {
-		// 	Name:    "init-natport",
-		// 	Image:   "busybox:1.28",
-		// 	Command: []string{"sh", "-c", initP2PFixedPortsCmd},
-		// 	VolumeMounts: []statefulset.VolumeMount{
-		// 		{
-		// 			Name:      "config-file",
-		// 			MountPath: "/home/bee",
-		// 		},
-		// 		{
-		// 			Name:      "config",
-		// 			MountPath: "/tmp/.bee.yaml",
-		// 			SubPath:   ".bee.yaml",
-		// 		},
-		// 	},
-		// },
+		})
 	}
+	if initSwarm {
+		inits = append(inits, statefulset.InitContainer{
+			Name:    "init-swarm",
+			Image:   "busybox:1.28",
+			Command: []string{"sh", "-c", initSwarmCmd},
+			VolumeMounts: []statefulset.VolumeMount{
+				{
+					Name:      "bee-swarm",
+					MountPath: "/tmp/bee",
+				},
+				{
+					Name:      "data",
+					MountPath: "home/bee/.bee",
+				},
+			},
+		})
+	}
+	if initNATPort {
+		inits = append(inits, statefulset.InitContainer{
+			Name:    "init-natport",
+			Image:   "busybox:1.28",
+			Command: []string{"sh", "-c", initP2PFixedPortsCmd},
+			VolumeMounts: []statefulset.VolumeMount{
+				{
+					Name:      "config-file",
+					MountPath: "/home/bee",
+				},
+				{
+					Name:      "config",
+					MountPath: "/tmp/.bee.yaml",
+					SubPath:   ".bee.yaml",
+				},
+			},
+		})
+	}
+
+	return
 }
 
 func (c Client) setContainers(name, image, imagePullPolicy, limitCPU, limitMemory, requestCPU, requestMemory string, portAPI, portDebug, portP2P int32) []statefulset.Container {
@@ -378,19 +384,21 @@ func (c Client) setContainers(name, image, imagePullPolicy, limitCPU, limitMemor
 	}}
 }
 
-func (c Client) setVolumes(configCM, libp2pSecret string) []statefulset.Volume {
-	return []statefulset.Volume{
-		{
-			ConfigMap: &statefulset.ConfigMapVolume{
-				Name:          "config",
-				ConfigMapName: configCM,
-				DefaultMode:   420,
-			},
+func (c Client) setVolumes(configCM, libp2pSecret string) (volumes []statefulset.Volume) {
+	volumes = append(volumes, statefulset.Volume{
+		ConfigMap: &statefulset.ConfigMapVolume{
+			Name:          "config",
+			ConfigMapName: configCM,
+			DefaultMode:   420,
 		},
-		{EmptyDir: &statefulset.EmptyDirVolume{
+	})
+	volumes = append(volumes, statefulset.Volume{
+		EmptyDir: &statefulset.EmptyDirVolume{
 			Name: "data",
-		}},
-		{Secret: &statefulset.SecretVolume{
+		},
+	})
+	volumes = append(volumes, statefulset.Volume{
+		Secret: &statefulset.SecretVolume{
 			Name:        libp2pSecret,
 			SecretName:  libp2pSecret,
 			DefaultMode: 420,
@@ -398,8 +406,10 @@ func (c Client) setVolumes(configCM, libp2pSecret string) []statefulset.Volume {
 				Key:   "libp2pKeys",
 				Value: "libp2p.map",
 			}},
-		}},
-	}
+		},
+	})
+
+	return
 }
 
 func mergeMaps(a, b map[string]string) map[string]string {
