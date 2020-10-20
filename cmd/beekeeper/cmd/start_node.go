@@ -104,7 +104,7 @@ var (
 		DataDir:              "/home/bee/.bee",
 		DBCapacity:           5000000,
 		DebugAPIAddr:         ":6060",
-		DebugAPIEnable:       true,
+		DebugAPIEnable:       false,
 		GatewayMode:          false,
 		GlobalPinningEnabled: true,
 		NATAddr:              "",

@@ -54,24 +54,6 @@ type NodeStartOptions struct {
 // NodeStart ...
 func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	// bee configuration
-	portAPI, err := parsePort(o.Config.APIAddr)
-	if err != nil {
-		return fmt.Errorf("parsing API port from config: %s", err)
-	}
-
-	var portDebug int32
-	if o.Config.DebugAPIEnable {
-		portDebug, err = parsePort(o.Config.DebugAPIAddr)
-		if err != nil {
-			return fmt.Errorf("parsing Debug port from config: %s", err)
-		}
-	}
-
-	portP2P, err := parsePort(o.Config.P2PAddr)
-	if err != nil {
-		return fmt.Errorf("parsing P2P port from config: %s", err)
-	}
-
 	var config bytes.Buffer
 	if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
 		return err
@@ -113,6 +95,11 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	fmt.Printf("serviceaccount %s is set in namespace %s\n", svcAccount, o.Namespace)
 
 	// api service
+	portAPI, err := parsePort(o.Config.APIAddr)
+	if err != nil {
+		return fmt.Errorf("parsing API port from config: %s", err)
+	}
+
 	apiSvc := fmt.Sprintf("%s-api", o.Name)
 	if err := c.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
@@ -147,8 +134,40 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	}
 	fmt.Printf("ingress %s is set in namespace %s\n", apiIn, o.Namespace)
 
+	// p2p service
+	portP2P, err := parsePort(o.Config.P2PAddr)
+	if err != nil {
+		return fmt.Errorf("parsing P2P port from config: %s", err)
+	}
+
+	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
+	if err := c.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
+		Annotations:           o.Annotations,
+		Labels:                o.Labels,
+		ExternalTrafficPolicy: "Local",
+		Ports: []service.Port{
+			{
+				Name:       "p2p",
+				Protocol:   "TCP",
+				Port:       portP2P,
+				TargetPort: "p2p",
+			},
+		},
+		Selector: o.Selector,
+		Type:     "NodePort",
+	}); err != nil {
+		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("service %s is set in namespace %s\n", p2pSvc, o.Namespace)
+
 	// debug API
+	var portDebug int32
 	if o.Config.DebugAPIEnable {
+		portDebug, err := parsePort(o.Config.DebugAPIAddr)
+		if err != nil {
+			return fmt.Errorf("parsing Debug port from config: %s", err)
+		}
+
 		// debug service
 		debugSvc := fmt.Sprintf("%s-debug", o.Name)
 		if err := c.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
@@ -185,56 +204,60 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 		fmt.Printf("ingress %s is set in namespace %s\n", debugIn, o.Namespace)
 	}
 
-	// p2p service
-	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
-	if err := c.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
-		Annotations:           o.Annotations,
-		Labels:                o.Labels,
-		ExternalTrafficPolicy: "Local",
-		Ports: []service.Port{
-			{
-				Name:       "p2p",
-				Protocol:   "TCP",
-				Port:       portP2P,
-				TargetPort: "p2p",
-			},
-		},
-		Selector: o.Selector,
-		Type:     "NodePort",
-	}); err != nil {
-		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
-	}
-	fmt.Printf("service %s is set in namespace %s\n", p2pSvc, o.Namespace)
-
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
-	if err := c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
-		Annotations: o.Annotations,
-		Labels:      o.Labels,
-		Ports: []service.Port{
-			{
-				Name:       "api",
-				Protocol:   "TCP",
-				Port:       portAPI,
-				TargetPort: "api",
+	if o.Config.DebugAPIEnable {
+		if err := c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
+			Annotations: o.Annotations,
+			Labels:      o.Labels,
+			Ports: []service.Port{
+				{
+					Name:       "api",
+					Protocol:   "TCP",
+					Port:       portAPI,
+					TargetPort: "api",
+				},
+				{
+					Name:       "p2p",
+					Protocol:   "TCP",
+					Port:       portP2P,
+					TargetPort: "p2p",
+				},
+				{
+					Name:       "debug",
+					Protocol:   "TCP",
+					Port:       portDebug,
+					TargetPort: "debug",
+				},
 			},
-			{
-				Name:       "p2p",
-				Protocol:   "TCP",
-				Port:       portP2P,
-				TargetPort: "p2p",
+			Selector: o.Selector,
+			Type:     "ClusterIP",
+		}); err != nil {
+			return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
+		}
+	} else {
+		if err := c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
+			Annotations: o.Annotations,
+			Labels:      o.Labels,
+			Ports: []service.Port{
+				{
+					Name:       "api",
+					Protocol:   "TCP",
+					Port:       portAPI,
+					TargetPort: "api",
+				},
+				{
+					Name:       "p2p",
+					Protocol:   "TCP",
+					Port:       portP2P,
+					TargetPort: "p2p",
+				},
 			},
-			{
-				Name:       "debug",
-				Protocol:   "TCP",
-				Port:       portDebug,
-				TargetPort: "debug",
-			},
-		},
-		Selector: o.Selector,
-		Type:     "ClusterIP",
-	}); err != nil {
-		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
+			Selector: o.Selector,
+			Type:     "ClusterIP",
+		}); err != nil {
+			return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
+		}
 	}
 	fmt.Printf("service %s is set in namespace %s\n", headlessSvc, o.Namespace)
 
