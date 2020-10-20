@@ -207,7 +207,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
 	if o.Config.DebugAPIEnable {
-		if err := c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
+		err = c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 			Ports: []service.Port{
@@ -232,11 +232,9 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 			},
 			Selector: o.Selector,
 			Type:     "ClusterIP",
-		}); err != nil {
-			return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
-		}
+		})
 	} else {
-		if err := c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
+		err = c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 			Ports: []service.Port{
@@ -255,9 +253,10 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 			},
 			Selector: o.Selector,
 			Type:     "ClusterIP",
-		}); err != nil {
-			return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
-		}
+		})
+	}
+	if err != nil {
+		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
 	fmt.Printf("service %s is set in namespace %s\n", headlessSvc, o.Namespace)
 
