@@ -44,7 +44,6 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 			Labels:      o.Labels,
 		},
 		Spec: ev1b1.IngressSpec{
-			IngressClassName: &o.Class,
 			Backend: &ev1b1.IngressBackend{
 				ServiceName: o.ServiceName,
 				ServicePort: intstr.FromString(o.ServicePort),
