@@ -40,6 +40,7 @@ func (c *command) initStartNode() *cobra.Command {
 				Annotations: map[string]string{
 					"createdBy": "beekeeper",
 				},
+				ClefEnabled: false,
 				Labels: map[string]string{
 					"app.kubernetes.io/name":       nodeName,
 					"app.kubernetes.io/version":    nodeVersion,
@@ -65,12 +66,13 @@ func (c *command) initStartNode() *cobra.Command {
 					"kubernetes.io/ingress.class": "nginx-internal",
 				},
 				IngressDebugHost: "bee-0-debug.beekeeper.staging.internal",
+				LibP2PEnabled:    false,
 				LimitCPU:         "1",
 				LimitMemory:      "2Gi",
 				NodeSelector: map[string]string{
 					"node-group": "bee-staging",
 				},
-				PersistenceEnabled:        false,
+				PersistenceEnabled:        true,
 				PersistenceStorageClass:   "local-storage",
 				PersistanceStorageRequest: "34Gi",
 				PodManagementPolicy:       "OrderedReady",
@@ -81,6 +83,7 @@ func (c *command) initStartNode() *cobra.Command {
 					"app.kubernetes.io/name":       "bee",
 					"app.kubernetes.io/managed-by": "beekeeper",
 				},
+				SwarmEnabled:   false,
 				UpdateStrategy: "OnDelete",
 			}
 

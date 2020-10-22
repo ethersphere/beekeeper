@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"text/template"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
@@ -17,16 +15,12 @@ import (
 )
 
 const (
-	libp2pKeys = `bee-0: {"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}
-bee-1: {"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f688ddcdfe88acbebef2037c68030b1a0a367a561333e5c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","crypto":{"cipher":"aes-128-ctr","ciphertext":"0d0ff25e9b03292e622c5a09ec00c2acb7ff5882f02dd2f00a26ac6d3292a434","cipherparams":{"iv":"cd4082caf63320b306fe885796ba224f"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a4d63d56c539eb3eff2a235090127486722fa2c836cf735d50d673b730cebc3f"},"mac":"aad40da9c1e742e2b01bb8f76ba99ace97ccb0539cea40e31eb6b9bb64a3f36a"},"version":3}`
-	initCmd      = `export INDEX=$(echo $(hostname) | rev | cut -d'-' -f 1 | rev); mkdir -p /home/bee/.bee/keys; chown -R 999:999 /home/bee/.bee/keys; export KEY=$(cat /tmp/bee/libp2p.map | grep bee-${INDEX}: | cut -d' ' -f2); if [ -z "${KEY}" ]; then exit 0; fi; printf '%s' "${KEY}" > /home/bee/.bee/keys/libp2p.key; echo 'node initialization done';`
-	initSwarmCmd = `export INDEX=$(echo $(hostname) | rev | cut -d'-' -f 1 | rev);
-mkdir -p /home/bee/.bee/keys;
+	clefKey   = `{"address":"fd50ede4954655b993ed69238c55219da7e81acf","crypto":{"cipher":"aes-128-ctr","ciphertext":"1c0f603b0dffe53294c7ca02c1a2800d81d855970db0df1a84cc11bc1d6cf364","cipherparams":{"iv":"11c9ac512348d7ccfe5ee59d9c9388d3"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"f6d7a0947da105fa5ef70fa298f65409d12967108c0e6260f847dc2b10455b89"},"mac":"fc6585e300ad3cb21c5f648b16b8a59ca33bcf13c58197176ffee4786628eaeb"},"id":"4911f965-b425-4011-895d-a2008f859859","version":3}`
+	libp2pKey = `{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}`
+	swarmKey  = `{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}`
+	initKeys  = `mkdir -p /home/bee/.bee/keys;
 chown -R 999:999 /home/bee/.bee/keys;
-export KEY=$(cat /tmp/bee/swarm.map | grep bee-${INDEX}: | cut -d' ' -f2);
-if [ -z "${KEY}" ]; then exit 0; fi;
-printf '%s' "${KEY}" > /home/bee/.bee/keys/swarm.key;
-echo 'node initialization done';`
+echo 'node keys initialization done';`
 	initP2PFixedPortsCmd = `export INDEX=$(echo $(hostname) | rev | cut -d'-' -f 1 | rev);
 NAT_PORT=$(( {{ .Values.p2pFixedPort.nodePortStart }} + INDEX ));
 cp -p /tmp/.bee.yaml /home/bee/.bee.yaml;
@@ -43,6 +37,7 @@ type NodeStartOptions struct {
 	Name                      string
 	Namespace                 string
 	Annotations               map[string]string
+	ClefEnabled               bool
 	Labels                    map[string]string
 	LimitCPU                  string
 	LimitMemory               string
@@ -52,6 +47,7 @@ type NodeStartOptions struct {
 	IngressHost               string
 	IngressDebugAnnotations   map[string]string
 	IngressDebugHost          string
+	LibP2PEnabled             bool
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
 	PersistenceStorageClass   string
@@ -61,6 +57,7 @@ type NodeStartOptions struct {
 	RequestCPU                string
 	RequestMemory             string
 	Selector                  map[string]string
+	SwarmEnabled              bool
 	UpdateStrategy            string
 }
 
@@ -84,18 +81,27 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	}
 	fmt.Printf("configmap %s is set in namespace %s\n", configCM, o.Namespace)
 
-	// secret with libp2p keys
-	libp2pSecret := fmt.Sprintf("%s-libp2p", o.Name)
-	if err := c.k8s.Secret.Set(ctx, libp2pSecret, o.Namespace, secret.Options{
+	// secret with keys
+	keysSecret := fmt.Sprintf("%s-keys", o.Name)
+	keysSecretData := map[string]string{}
+	if o.ClefEnabled {
+		keysSecretData["clef"] = clefKey
+	}
+	if o.LibP2PEnabled {
+		keysSecretData["libp2p"] = libp2pKey
+	}
+	if o.SwarmEnabled {
+		keysSecretData["swarm"] = swarmKey
+	}
+
+	if err := c.k8s.Secret.Set(ctx, keysSecret, o.Namespace, secret.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
-		StringData: map[string]string{
-			"libp2pKeys": libp2pKeys,
-		},
+		StringData:  keysSecretData,
 	}); err != nil {
 		return fmt.Errorf("set secret in namespace %s: %s", o.Namespace, err)
 	}
-	fmt.Printf("secret %s is set in namespace %s\n", libp2pSecret, o.Namespace)
+	fmt.Printf("secret %s is set in namespace %s\n", keysSecret, o.Namespace)
 
 	// service account
 	svcAccount := o.Name
@@ -248,11 +254,11 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	sSet := o.Name
 	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations:            o.Annotations,
-		InitContainers:         c.setInitContainers(true, false, false),
-		Containers:             c.setContainers(sSet, o.Image, o.ImagePullPolicy, o.LimitCPU, o.LimitMemory, o.RequestCPU, o.RequestMemory, portAPI, portDebug, portP2P),
+		InitContainers:         setInitContainers(o.ClefEnabled, o.LibP2PEnabled, o.SwarmEnabled, false),
+		Containers:             setContainers(sSet, o.Image, o.ImagePullPolicy, o.LimitCPU, o.LimitMemory, o.RequestCPU, o.RequestMemory, portAPI, portDebug, portP2P, o.PersistenceEnabled, o.ClefEnabled, o.LibP2PEnabled, o.SwarmEnabled),
 		Labels:                 o.Labels,
 		NodeSelector:           o.NodeSelector,
-		PersistentVolumeClaims: c.setPersistentVolumeClaims(o.PersistenceEnabled, o.PersistenceStorageClass, o.PersistanceStorageRequest),
+		PersistentVolumeClaims: setPersistentVolumeClaims(o.PersistenceEnabled, o.PersistenceStorageClass, o.PersistanceStorageRequest),
 		PodManagementPolicy:    o.PodManagementPolicy,
 		PodSecurityContext: statefulset.PodSecurityContext{
 			FSGroup: 999,
@@ -265,7 +271,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 		UpdateStrategy: statefulset.UpdateStrategy{
 			Type: o.UpdateStrategy,
 		},
-		Volumes: c.setVolumes(configCM, libp2pSecret, o.PersistenceEnabled),
+		Volumes: setVolumes(configCM, keysSecret, o.PersistenceEnabled, o.ClefEnabled, o.LibP2PEnabled, o.SwarmEnabled),
 	}); err != nil {
 		return fmt.Errorf("set statefulset in namespace %s: %s", o.Namespace, err)
 	}
@@ -273,179 +279,4 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	fmt.Printf("node %s started in namespace %s\n", o.Name, o.Namespace)
 	return
-}
-
-func (c Client) setInitContainers(initLibP2P, initSwarm, initNATPort bool) (inits []statefulset.InitContainer) {
-	if initLibP2P {
-		inits = append(inits, statefulset.InitContainer{
-			Name:    "init-libp2p",
-			Image:   "busybox:1.28",
-			Command: []string{"sh", "-c", initCmd},
-			VolumeMounts: []statefulset.VolumeMount{
-				{
-					Name:      "bee-libp2p",
-					MountPath: "/tmp/bee",
-				},
-				{
-					Name:      "data",
-					MountPath: "home/bee/.bee",
-				},
-			},
-		})
-	}
-	if initSwarm {
-		inits = append(inits, statefulset.InitContainer{
-			Name:    "init-swarm",
-			Image:   "busybox:1.28",
-			Command: []string{"sh", "-c", initSwarmCmd},
-			VolumeMounts: []statefulset.VolumeMount{
-				{
-					Name:      "bee-swarm",
-					MountPath: "/tmp/bee",
-				},
-				{
-					Name:      "data",
-					MountPath: "home/bee/.bee",
-				},
-			},
-		})
-	}
-	if initNATPort {
-		inits = append(inits, statefulset.InitContainer{
-			Name:    "init-natport",
-			Image:   "busybox:1.28",
-			Command: []string{"sh", "-c", initP2PFixedPortsCmd},
-			VolumeMounts: []statefulset.VolumeMount{
-				{
-					Name:      "config-file",
-					MountPath: "/home/bee",
-				},
-				{
-					Name:      "config",
-					MountPath: "/tmp/.bee.yaml",
-					SubPath:   ".bee.yaml",
-				},
-			},
-		})
-	}
-
-	return
-}
-
-func (c Client) setContainers(name, image, imagePullPolicy, limitCPU, limitMemory, requestCPU, requestMemory string, portAPI, portDebug, portP2P int32) []statefulset.Container {
-	return []statefulset.Container{{
-		Name:            name,
-		Image:           image,
-		ImagePullPolicy: imagePullPolicy,
-		Command:         []string{"bee", "start", "--config=.bee.yaml"},
-		Ports: []statefulset.Port{
-			{
-				Name:          "api",
-				ContainerPort: portAPI,
-				Protocol:      "TCP",
-			},
-			{
-				Name:          "debug",
-				ContainerPort: portDebug,
-				Protocol:      "TCP",
-			},
-			{
-				Name:          "p2p",
-				ContainerPort: portP2P,
-				Protocol:      "TCP",
-			},
-		},
-		LivenessProbe: statefulset.Probe{
-			Path: "/health",
-			Port: "debug",
-		},
-		ReadinessProbe: statefulset.Probe{
-			Path: "/readiness",
-			Port: "debug",
-		},
-		Resources: statefulset.Resources{
-			LimitCPU:      limitCPU,
-			LimitMemory:   limitMemory,
-			RequestCPU:    requestCPU,
-			RequestMemory: requestMemory,
-		},
-		SecurityContext: statefulset.SecurityContext{
-			AllowPrivilegeEscalation: false,
-			RunAsUser:                999,
-		},
-		VolumeMounts: []statefulset.VolumeMount{
-			{
-				Name:      "config",
-				MountPath: "/home/bee/.bee.yaml",
-				SubPath:   ".bee.yaml",
-				ReadOnly:  true,
-			},
-			{
-				Name:      "data",
-				MountPath: "home/bee/.bee",
-			},
-		},
-	}}
-}
-
-func (c Client) setVolumes(configCM, libp2pSecret string, persistenceEnabled bool) (volumes []statefulset.Volume) {
-	volumes = append(volumes, statefulset.Volume{
-		ConfigMap: &statefulset.ConfigMapVolume{
-			Name:          "config",
-			ConfigMapName: configCM,
-			DefaultMode:   420,
-		},
-	})
-	if !persistenceEnabled {
-		volumes = append(volumes, statefulset.Volume{
-			EmptyDir: &statefulset.EmptyDirVolume{
-				Name: "data",
-			},
-		})
-	}
-	volumes = append(volumes, statefulset.Volume{
-		Secret: &statefulset.SecretVolume{
-			Name:        libp2pSecret,
-			SecretName:  libp2pSecret,
-			DefaultMode: 420,
-			Items: []statefulset.Item{{
-				Key:   "libp2pKeys",
-				Value: "libp2p.map",
-			}},
-		},
-	})
-
-	return
-}
-
-func (c Client) setPersistentVolumeClaims(enabled bool, storageClass, storageRequest string) (pvcs []statefulset.PersistentVolumeClaim) {
-	if enabled {
-		pvcs = append(pvcs, statefulset.PersistentVolumeClaim{
-			Name: "data",
-			AccessModes: []statefulset.AccessMode{
-				statefulset.AccessMode("ReadWriteOnce"),
-			},
-			RequestStorage: storageRequest,
-			StorageClass:   storageClass,
-		})
-	}
-
-	return
-}
-
-func mergeMaps(a, b map[string]string) map[string]string {
-	m := map[string]string{}
-	for k, v := range a {
-		m[k] = v
-	}
-	for k, v := range b {
-		m[k] = v
-	}
-
-	return m
-}
-
-func parsePort(port string) (int32, error) {
-	p, err := strconv.ParseInt(strings.Split(port, ":")[1], 10, 32)
-	return int32(p), err
 }
