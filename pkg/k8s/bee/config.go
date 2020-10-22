@@ -1,6 +1,6 @@
-package k8s
+package bee
 
-// Config ...
+// Config represents Bee configuration
 type Config struct {
 	APIAddr              string // HTTP API listen address
 	Bootnodes            string // initial nodes to connect to

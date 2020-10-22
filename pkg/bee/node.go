@@ -15,7 +15,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
+	k8s "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
 )
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
+	k8s "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 	"github.com/spf13/cobra"
 )
 
