@@ -40,25 +40,28 @@ type NodeStartOptions struct {
 	// Bee configuration
 	Config Config
 	// Kubernetes configuration
-	Name                    string
-	Namespace               string
-	Annotations             map[string]string
-	Labels                  map[string]string
-	LimitCPU                string
-	LimitMemory             string
-	Image                   string
-	ImagePullPolicy         string
-	IngressAnnotations      map[string]string
-	IngressHost             string
-	IngressDebugAnnotations map[string]string
-	IngressDebugHost        string
-	NodeSelector            map[string]string
-	PodManagementPolicy     string
-	RestartPolicy           string
-	RequestCPU              string
-	RequestMemory           string
-	Selector                map[string]string
-	UpdateStrategy          string
+	Name                      string
+	Namespace                 string
+	Annotations               map[string]string
+	Labels                    map[string]string
+	LimitCPU                  string
+	LimitMemory               string
+	Image                     string
+	ImagePullPolicy           string
+	IngressAnnotations        map[string]string
+	IngressHost               string
+	IngressDebugAnnotations   map[string]string
+	IngressDebugHost          string
+	NodeSelector              map[string]string
+	PersistenceEnabled        bool
+	PersistenceStorageClass   string
+	PersistanceStorageRequest string
+	PodManagementPolicy       string
+	RestartPolicy             string
+	RequestCPU                string
+	RequestMemory             string
+	Selector                  map[string]string
+	UpdateStrategy            string
 }
 
 // NodeStart ...
@@ -244,12 +247,13 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	// statefulset
 	sSet := o.Name
 	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
-		Annotations:         o.Annotations,
-		InitContainers:      c.setInitContainers(true, false, false),
-		Containers:          c.setContainers(sSet, o.Image, o.ImagePullPolicy, o.LimitCPU, o.LimitMemory, o.RequestCPU, o.RequestMemory, portAPI, portDebug, portP2P),
-		Labels:              o.Labels,
-		NodeSelector:        o.NodeSelector,
-		PodManagementPolicy: o.PodManagementPolicy,
+		Annotations:            o.Annotations,
+		InitContainers:         c.setInitContainers(true, false, false),
+		Containers:             c.setContainers(sSet, o.Image, o.ImagePullPolicy, o.LimitCPU, o.LimitMemory, o.RequestCPU, o.RequestMemory, portAPI, portDebug, portP2P),
+		Labels:                 o.Labels,
+		NodeSelector:           o.NodeSelector,
+		PersistentVolumeClaims: c.setPersistentVolumeClaims(o.PersistenceEnabled, o.PersistenceStorageClass, o.PersistanceStorageRequest),
+		PodManagementPolicy:    o.PodManagementPolicy,
 		PodSecurityContext: statefulset.PodSecurityContext{
 			FSGroup: 999,
 		},
@@ -261,7 +265,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 		UpdateStrategy: statefulset.UpdateStrategy{
 			Type: o.UpdateStrategy,
 		},
-		Volumes: c.setVolumes(configCM, libp2pSecret),
+		Volumes: c.setVolumes(configCM, libp2pSecret, o.PersistenceEnabled),
 	}); err != nil {
 		return fmt.Errorf("set statefulset in namespace %s: %s", o.Namespace, err)
 	}
@@ -384,7 +388,7 @@ func (c Client) setContainers(name, image, imagePullPolicy, limitCPU, limitMemor
 	}}
 }
 
-func (c Client) setVolumes(configCM, libp2pSecret string) (volumes []statefulset.Volume) {
+func (c Client) setVolumes(configCM, libp2pSecret string, persistenceEnabled bool) (volumes []statefulset.Volume) {
 	volumes = append(volumes, statefulset.Volume{
 		ConfigMap: &statefulset.ConfigMapVolume{
 			Name:          "config",
@@ -392,11 +396,13 @@ func (c Client) setVolumes(configCM, libp2pSecret string) (volumes []statefulset
 			DefaultMode:   420,
 		},
 	})
-	volumes = append(volumes, statefulset.Volume{
-		EmptyDir: &statefulset.EmptyDirVolume{
-			Name: "data",
-		},
-	})
+	if !persistenceEnabled {
+		volumes = append(volumes, statefulset.Volume{
+			EmptyDir: &statefulset.EmptyDirVolume{
+				Name: "data",
+			},
+		})
+	}
 	volumes = append(volumes, statefulset.Volume{
 		Secret: &statefulset.SecretVolume{
 			Name:        libp2pSecret,
@@ -408,6 +414,21 @@ func (c Client) setVolumes(configCM, libp2pSecret string) (volumes []statefulset
 			}},
 		},
 	})
+
+	return
+}
+
+func (c Client) setPersistentVolumeClaims(enabled bool, storageClass, storageRequest string) (pvcs []statefulset.PersistentVolumeClaim) {
+	if enabled {
+		pvcs = append(pvcs, statefulset.PersistentVolumeClaim{
+			Name: "data",
+			AccessModes: []statefulset.AccessMode{
+				statefulset.AccessMode("ReadWriteOnce"),
+			},
+			RequestStorage: storageRequest,
+			StorageClass:   storageClass,
+		})
+	}
 
 	return
 }

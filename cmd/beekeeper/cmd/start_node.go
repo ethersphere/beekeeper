@@ -70,10 +70,13 @@ func (c *command) initStartNode() *cobra.Command {
 				NodeSelector: map[string]string{
 					"node-group": "bee-staging",
 				},
-				PodManagementPolicy: "OrderedReady",
-				RestartPolicy:       "Always",
-				RequestCPU:          "750m",
-				RequestMemory:       "1Gi",
+				PersistenceEnabled:        false,
+				PersistenceStorageClass:   "local-storage",
+				PersistanceStorageRequest: "34Gi",
+				PodManagementPolicy:       "OrderedReady",
+				RestartPolicy:             "Always",
+				RequestCPU:                "750m",
+				RequestMemory:             "1Gi",
 				Selector: map[string]string{
 					"app.kubernetes.io/name":       "bee",
 					"app.kubernetes.io/managed-by": "beekeeper",

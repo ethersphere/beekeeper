@@ -25,20 +25,21 @@ func NewClient(clientset *kubernetes.Clientset) *Client {
 
 // Options holds optional parameters for the Client.
 type Options struct {
-	Annotations         map[string]string
-	Labels              map[string]string
-	Replicas            int32
-	Selector            map[string]string
-	InitContainers      []InitContainer
-	Containers          []Container
-	RestartPolicy       string
-	ServiceAccountName  string
-	ServiceName         string
-	NodeSelector        map[string]string
-	PodManagementPolicy string
-	PodSecurityContext  PodSecurityContext
-	UpdateStrategy      UpdateStrategy
-	Volumes             []Volume
+	Annotations            map[string]string
+	Labels                 map[string]string
+	Replicas               int32
+	Selector               map[string]string
+	InitContainers         []InitContainer
+	Containers             []Container
+	RestartPolicy          string
+	ServiceAccountName     string
+	ServiceName            string
+	NodeSelector           map[string]string
+	PersistentVolumeClaims []PersistentVolumeClaim
+	PodManagementPolicy    string
+	PodSecurityContext     PodSecurityContext
+	UpdateStrategy         UpdateStrategy
+	Volumes                []Volume
 }
 
 // Set creates StatefulSet, if StatefulSet already exists updates in place
@@ -72,9 +73,10 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 					Volumes: volumesToK8S(o.Volumes),
 				},
 			},
-			ServiceName:         o.ServiceName,
-			PodManagementPolicy: appsv1.PodManagementPolicyType(o.PodManagementPolicy),
-			UpdateStrategy:      o.UpdateStrategy.toK8S(),
+			ServiceName:          o.ServiceName,
+			PodManagementPolicy:  appsv1.PodManagementPolicyType(o.PodManagementPolicy),
+			UpdateStrategy:       o.UpdateStrategy.toK8S(),
+			VolumeClaimTemplates: persistentVolumeClaimsToK8S(o.PersistentVolumeClaims, namespace, o.Annotations, o.Labels),
 		},
 	}
 
@@ -117,11 +119,4 @@ func (u UpdateStrategy) toK8S() appsv1.StatefulSetUpdateStrategy {
 			Partition: &u.RollingUpdatePartition,
 		},
 	}
-}
-
-func volumesToK8S(volumes []Volume) (vs []v1.Volume) {
-	for _, volume := range volumes {
-		vs = append(vs, volume.toK8S())
-	}
-	return
 }

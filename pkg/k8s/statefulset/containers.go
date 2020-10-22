@@ -23,13 +23,6 @@ func (c InitContainer) toK8S() v1.Container {
 	}
 }
 
-func initContainersToK8S(containers []InitContainer) (cs []v1.Container) {
-	for _, container := range containers {
-		cs = append(cs, container.toK8S())
-	}
-	return
-}
-
 // Container ...
 type Container struct {
 	Name            string
@@ -61,12 +54,12 @@ func (c Container) toK8S() v1.Container {
 		}}},
 		Resources: v1.ResourceRequirements{
 			Limits: v1.ResourceList{
-				v1.ResourceCPU:    resource.Quantity{Format: resource.Format(c.Resources.LimitCPU)},
-				v1.ResourceMemory: resource.Quantity{Format: resource.Format(c.Resources.LimitMemory)},
+				v1.ResourceCPU:    resource.MustParse(c.Resources.LimitCPU),
+				v1.ResourceMemory: resource.MustParse(c.Resources.LimitMemory),
 			},
 			Requests: v1.ResourceList{
-				v1.ResourceCPU:    resource.Quantity{Format: resource.Format(c.Resources.RequestCPU)},
-				v1.ResourceMemory: resource.Quantity{Format: resource.Format(c.Resources.RequestMemory)},
+				v1.ResourceCPU:    resource.MustParse(c.Resources.RequestCPU),
+				v1.ResourceMemory: resource.MustParse(c.Resources.RequestMemory),
 			},
 		},
 		SecurityContext: &v1.SecurityContext{
@@ -75,13 +68,6 @@ func (c Container) toK8S() v1.Container {
 		},
 		VolumeMounts: volumeMountsToK8S(c.VolumeMounts),
 	}
-}
-
-func containersToK8S(containers []Container) (cs []v1.Container) {
-	for _, container := range containers {
-		cs = append(cs, container.toK8S())
-	}
-	return
 }
 
 // Port represents containers's port
@@ -98,13 +84,6 @@ func (p Port) toK8S() v1.ContainerPort {
 		ContainerPort: p.ContainerPort,
 	}
 
-}
-
-func portsToK8S(ports []Port) (ps []v1.ContainerPort) {
-	for _, port := range ports {
-		ps = append(ps, port.toK8S())
-	}
-	return
 }
 
 // Probe ...
@@ -142,11 +121,4 @@ func (v VolumeMount) toK8S() v1.VolumeMount {
 		SubPath:   v.SubPath,
 		ReadOnly:  v.ReadOnly,
 	}
-}
-
-func volumeMountsToK8S(volumeMounts []VolumeMount) (vms []v1.VolumeMount) {
-	for _, volumeMount := range volumeMounts {
-		vms = append(vms, volumeMount.toK8S())
-	}
-	return
 }
