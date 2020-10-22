@@ -63,8 +63,8 @@ type StartOptions struct {
 
 // Start starts node with given options
 func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
-	switch reflect.TypeOf(o.Options).String() {
-	case "k8s.NodeStartOptions":
+	switch reflect.TypeOf(o.Options) {
+	case reflect.TypeOf(k8s.NodeStartOptions{}):
 		opts, ok := o.Options.(k8s.NodeStartOptions)
 		if !ok {
 			return fmt.Errorf("bad options")
