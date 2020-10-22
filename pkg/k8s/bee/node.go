@@ -70,7 +70,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	}
 
 	configCM := o.Name
-	if err = c.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
+	if err = c.k8s.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Data: map[string]string{
@@ -83,7 +83,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	// secret with libp2p keys
 	libp2pSecret := fmt.Sprintf("%s-libp2p", o.Name)
-	if err := c.Secret.Set(ctx, libp2pSecret, o.Namespace, secret.Options{
+	if err := c.k8s.Secret.Set(ctx, libp2pSecret, o.Namespace, secret.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		StringData: map[string]string{
@@ -96,7 +96,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	// service account
 	svcAccount := o.Name
-	if err := c.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
+	if err := c.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 	}); err != nil {
@@ -111,7 +111,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	}
 
 	apiSvc := fmt.Sprintf("%s-api", o.Name)
-	if err := c.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
+	if err := c.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Ports: []service.Port{
@@ -131,7 +131,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	// api service's ingress
 	apiIn := fmt.Sprintf("%s-api", o.Name)
-	if err := c.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
+	if err := c.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 		Labels:      o.Labels,
 		Host:        o.IngressHost,
@@ -151,7 +151,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	// debug service
 	debugSvc := fmt.Sprintf("%s-debug", o.Name)
-	if err := c.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
+	if err := c.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Ports: []service.Port{
@@ -171,7 +171,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	// debug service's ingress
 	debugIn := fmt.Sprintf("%s-debug", o.Name)
-	if err := c.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
+	if err := c.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
 		Labels:      o.Labels,
 		Host:        o.IngressDebugHost,
@@ -190,7 +190,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	}
 
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
-	if err := c.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
+	if err := c.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
 		Annotations:           o.Annotations,
 		Labels:                o.Labels,
 		ExternalTrafficPolicy: "Local",
@@ -211,7 +211,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
-	if err := c.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
+	if err := c.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Ports: []service.Port{
@@ -243,7 +243,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	// statefulset
 	sSet := o.Name
-	if err := c.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
+	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations:         o.Annotations,
 		InitContainers:      c.setInitContainers(true, false, false),
 		Containers:          c.setContainers(sSet, o.Image, o.ImagePullPolicy, o.LimitCPU, o.LimitMemory, o.RequestCPU, o.RequestMemory, portAPI, portDebug, portP2P),
