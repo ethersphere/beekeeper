@@ -24,8 +24,11 @@ func NewClient(clientset *kubernetes.Clientset) *Client {
 
 // Options holds optional parameters for the Client.
 type Options struct {
-	Annotations map[string]string
-	Labels      map[string]string
+	Annotations                  map[string]string
+	Labels                       map[string]string
+	AutomountServiceAccountToken bool
+	ImagePullSecrets             []string
+	Secrets                      []string
 }
 
 // Set creates ServiceAccount, if ServiceAccount already exists updates in place
@@ -37,7 +40,25 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 		},
+		Secrets: func() (l []v1.ObjectReference) {
+			if len(o.Secrets) > 0 {
+				for _, s := range o.Secrets {
+					l = append(l, v1.ObjectReference{Name: s})
+				}
+			}
+			return
+		}(),
+		ImagePullSecrets: func() (l []v1.LocalObjectReference) {
+			if len(o.ImagePullSecrets) > 0 {
+				for _, s := range o.ImagePullSecrets {
+					l = append(l, v1.LocalObjectReference{Name: s})
+				}
+			}
+			return
+		}(),
+		AutomountServiceAccountToken: &o.AutomountServiceAccountToken,
 	}
+
 	_, err = c.clientset.CoreV1().ServiceAccounts(namespace).Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
