@@ -32,7 +32,7 @@ func setInitContainers(o setInitContainersOptions) (inits []statefulset.InitCont
 	}
 	if o.LibP2PEnabled || o.SwarmEnabled {
 		inits = append(inits, statefulset.InitContainer{
-			Name:  "init-keys",
+			Name:  "init-bee",
 			Image: "busybox:1.28",
 			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
 chown -R 999:999 /home/bee/.bee/keys;
