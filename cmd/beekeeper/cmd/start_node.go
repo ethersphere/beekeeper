@@ -120,7 +120,6 @@ var (
 		P2PQUICEnable:        false,
 		P2PWSEnable:          false,
 		Password:             "beekeeper",
-		PasswordFile:         "",
 		PaymentEarly:         10000,
 		PaymentThreshold:     100000,
 		PaymentTolerance:     10000,

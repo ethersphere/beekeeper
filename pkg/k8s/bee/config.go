@@ -19,7 +19,6 @@ type Config struct {
 	P2PQUICEnable        bool   // enable P2P QUIC transport
 	P2PWSEnable          bool   // enable P2P WebSocket transport
 	Password             string // password for decrypting keys
-	PasswordFile         string // path to a file that contains password for decrypting keys
 	PaymentEarly         uint64 // amount in BZZ below the peers payment threshold when we initiate settlement
 	PaymentThreshold     uint64 // threshold in BZZ where you expect to get paid from your peers
 	PaymentTolerance     uint64 // excess debt above payment threshold in BZZ where you disconnect from your peer
@@ -53,7 +52,6 @@ p2p-addr: {{.P2PAddr}}
 p2p-quic-enable: {{.P2PQUICEnable}}
 p2p-ws-enable: {{.P2PWSEnable}}
 password: {{.Password}}
-password-file: {{.PasswordFile}}
 payment-early: {{.PaymentEarly}}
 payment-threshold: {{.PaymentThreshold}}
 payment-tolerance: {{.PaymentTolerance}}
