@@ -64,7 +64,7 @@ DOWNLOAD:
 	for i, file := range files {
 		size, hash, err := c.Nodes[lastNodeIndex].DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
-			fmt.Printf("node %d: error retrieving file: %v", lastNodeIndex, err)
+			fmt.Printf("Node %d. Error retrieving file: %v\n", lastNodeIndex, err)
 			goto DOWNLOAD
 		}
 
@@ -74,6 +74,7 @@ DOWNLOAD:
 		}
 
 		fmt.Printf("Node %d. File %d retrieved successfully. Node: %s File: %s/%s\n", lastNodeIndex, i, overlays[lastNodeIndex].String(), tarFile.Address().String(), file.Name())
+		try = 0 // reset the retry counter for the next file
 	}
 
 	return nil
@@ -83,7 +84,7 @@ func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]bee
 	files := make([]bee.File, filesCount)
 
 	for i := 0; i < filesCount; i++ {
-		pathnameLength := int64(r.Int31n(maxPathnameLength))
+		pathnameLength := int64(r.Int31n(maxPathnameLength-1)) + 1 // ensure path with length of at least one
 
 		b := make([]byte, pathnameLength)
 
