@@ -149,10 +149,20 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	if err := c.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 		Labels:      o.Labels,
-		Host:        o.IngressHost,
-		ServiceName: apiSvc,
-		ServicePort: "api",
-		Path:        "/",
+		Backend: ingress.Backend{
+			ServiceName: apiSvc,
+			ServicePort: "api",
+		},
+		Rules: []ingress.Rule{{
+			Host: o.IngressHost,
+			Paths: []ingress.Path{{
+				Backend: ingress.Backend{
+					ServiceName: apiSvc,
+					ServicePort: "api",
+				},
+				Path: "/",
+			}},
+		}},
 	}); err != nil {
 		return fmt.Errorf("set ingress in namespace %s: %s", o.Namespace, err)
 	}
@@ -189,10 +199,20 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	if err := c.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
 		Labels:      o.Labels,
-		Host:        o.IngressDebugHost,
-		ServiceName: debugSvc,
-		ServicePort: "debug",
-		Path:        "/",
+		Backend: ingress.Backend{
+			ServiceName: debugSvc,
+			ServicePort: "debug",
+		},
+		Rules: []ingress.Rule{{
+			Host: o.IngressDebugHost,
+			Paths: []ingress.Path{{
+				Backend: ingress.Backend{
+					ServiceName: debugSvc,
+					ServicePort: "debug",
+				},
+				Path: "/",
+			}},
+		}},
 	}); err != nil {
 		return fmt.Errorf("set ingress in namespace %s: %s", o.Namespace, err)
 	}
