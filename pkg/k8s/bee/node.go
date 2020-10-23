@@ -272,10 +272,12 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
 		InitContainers: setInitContainers(setInitContainersOptions{
-			ClefEnabled:   clefEnabled,
-			ClefPassword:  o.ClefPassword,
-			LibP2PEnabled: libP2PEnabled,
-			SwarmEnabled:  swarmEnabled,
+			ClefEnabled:         clefEnabled,
+			ClefImage:           o.ClefImage,
+			ClefImagePullPolicy: o.ClefImagePullPolicy,
+			ClefPassword:        o.ClefPassword,
+			LibP2PEnabled:       libP2PEnabled,
+			SwarmEnabled:        swarmEnabled,
 		}),
 		Containers: setContainers(setContainersOptions{
 			Name:                sSet,

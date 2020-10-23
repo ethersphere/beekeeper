@@ -10,19 +10,21 @@ import (
 )
 
 type setInitContainersOptions struct {
-	ClefEnabled   bool
-	ClefPassword  string
-	LibP2PEnabled bool
-	SwarmEnabled  bool
+	ClefEnabled         bool
+	ClefImage           string
+	ClefImagePullPolicy string
+	ClefPassword        string
+	LibP2PEnabled       bool
+	SwarmEnabled        bool
 }
 
 func setInitContainers(o setInitContainersOptions) (inits []statefulset.InitContainer) {
 	if o.ClefEnabled {
 		inits = append(inits, statefulset.InitContainer{
-			Name:    "init-clef",
-			Image:   "busybox:1.28",
-			Command: []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh init %s;", o.ClefPassword)},
-			// Command:      []string{"sh", "-c", fmt.Sprintf("mkdir -p /root/.clef/keys; /entrypoint.sh init %s;", o.ClefPassword)},
+			Name:            "init-clef",
+			Image:           o.ClefImage,
+			ImagePullPolicy: o.ClefImagePullPolicy,
+			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh init %s;", o.ClefPassword)},
 			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
 				ClefEnabled: o.ClefEnabled,
 			}),

@@ -8,10 +8,11 @@ import (
 
 // InitContainer ...
 type InitContainer struct {
-	Name         string
-	Image        string
-	Command      []string
-	VolumeMounts []VolumeMount
+	Name            string
+	Image           string
+	ImagePullPolicy string
+	Command         []string
+	VolumeMounts    []VolumeMount
 }
 
 func (c InitContainer) toK8S() v1.Container {
@@ -43,29 +44,56 @@ func (c Container) toK8S() v1.Container {
 		Image:           c.Image,
 		ImagePullPolicy: v1.PullPolicy(c.ImagePullPolicy),
 		Command:         c.Command,
-		LivenessProbe: &v1.Probe{Handler: v1.Handler{HTTPGet: &v1.HTTPGetAction{
-			Path: c.LivenessProbe.Path,
-			Port: intstr.FromString(c.LivenessProbe.Port),
-		}}},
+		LivenessProbe: func() *v1.Probe {
+			if len(c.LivenessProbe.Path) > 0 && len(c.LivenessProbe.Port) > 0 {
+				return &v1.Probe{Handler: v1.Handler{HTTPGet: &v1.HTTPGetAction{
+					Path: c.LivenessProbe.Path,
+					Port: intstr.FromString(c.LivenessProbe.Port),
+				}}}
+			}
+			return nil
+		}(),
 		Ports: portsToK8S(c.Ports),
-		ReadinessProbe: &v1.Probe{Handler: v1.Handler{HTTPGet: &v1.HTTPGetAction{
-			Path: c.ReadinessProbe.Path,
-			Port: intstr.FromString(c.ReadinessProbe.Port),
-		}}},
+		ReadinessProbe: func() *v1.Probe {
+			if len(c.ReadinessProbe.Path) > 0 && len(c.ReadinessProbe.Port) > 0 {
+				return &v1.Probe{Handler: v1.Handler{HTTPGet: &v1.HTTPGetAction{
+					Path: c.ReadinessProbe.Path,
+					Port: intstr.FromString(c.ReadinessProbe.Port),
+				}}}
+			}
+			return nil
+		}(),
 		Resources: v1.ResourceRequirements{
-			Limits: v1.ResourceList{
-				v1.ResourceCPU:    resource.MustParse(c.Resources.LimitCPU),
-				v1.ResourceMemory: resource.MustParse(c.Resources.LimitMemory),
-			},
-			Requests: v1.ResourceList{
-				v1.ResourceCPU:    resource.MustParse(c.Resources.RequestCPU),
-				v1.ResourceMemory: resource.MustParse(c.Resources.RequestMemory),
-			},
+			Limits: func() v1.ResourceList {
+				m := map[v1.ResourceName]resource.Quantity{}
+				if len(c.Resources.RequestCPU) > 0 {
+					m[v1.ResourceCPU] = resource.MustParse(c.Resources.LimitCPU)
+				}
+				if len(c.Resources.RequestMemory) > 0 {
+					m[v1.ResourceMemory] = resource.MustParse(c.Resources.LimitMemory)
+				}
+				return m
+			}(),
+			Requests: func() v1.ResourceList {
+				m := map[v1.ResourceName]resource.Quantity{}
+				if len(c.Resources.RequestCPU) > 0 {
+					m[v1.ResourceCPU] = resource.MustParse(c.Resources.RequestCPU)
+				}
+				if len(c.Resources.RequestMemory) > 0 {
+					m[v1.ResourceMemory] = resource.MustParse(c.Resources.RequestMemory)
+				}
+				return m
+			}(),
 		},
-		SecurityContext: &v1.SecurityContext{
-			AllowPrivilegeEscalation: &c.SecurityContext.AllowPrivilegeEscalation,
-			RunAsUser:                &c.SecurityContext.RunAsUser,
-		},
+		SecurityContext: func() *v1.SecurityContext {
+			if &c.SecurityContext.AllowPrivilegeEscalation != nil && &c.SecurityContext.RunAsUser != nil {
+				return &v1.SecurityContext{
+					AllowPrivilegeEscalation: &c.SecurityContext.AllowPrivilegeEscalation,
+					RunAsUser:                &c.SecurityContext.RunAsUser,
+				}
+			}
+			return nil
+		}(),
 		VolumeMounts: volumeMountsToK8S(c.VolumeMounts),
 	}
 }
