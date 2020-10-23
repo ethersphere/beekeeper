@@ -1,6 +1,7 @@
 package bee
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -10,12 +11,24 @@ import (
 
 type setInitContainersOptions struct {
 	ClefEnabled   bool
+	ClefPassword  string
 	LibP2PEnabled bool
 	SwarmEnabled  bool
 }
 
 func setInitContainers(o setInitContainersOptions) (inits []statefulset.InitContainer) {
-	if o.ClefEnabled || o.LibP2PEnabled || o.SwarmEnabled {
+	if o.ClefEnabled {
+		inits = append(inits, statefulset.InitContainer{
+			Name:    "init-clef",
+			Image:   "busybox:1.28",
+			Command: []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh init %s;", o.ClefPassword)},
+			// Command:      []string{"sh", "-c", fmt.Sprintf("mkdir -p /root/.clef/keys; /entrypoint.sh init %s;", o.ClefPassword)},
+			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
+				ClefEnabled: o.ClefEnabled,
+			}),
+		})
+	}
+	if o.LibP2PEnabled || o.SwarmEnabled {
 		inits = append(inits, statefulset.InitContainer{
 			Name:  "init-keys",
 			Image: "busybox:1.28",
@@ -35,24 +48,27 @@ echo 'node keys initialization done';`},
 }
 
 type setContainersOptions struct {
-	Name               string
-	Image              string
-	ImagePullPolicy    string
-	LimitCPU           string
-	LimitMemory        string
-	RequestCPU         string
-	RequestMemory      string
-	PortAPI            int32
-	PortDebug          int32
-	PortP2P            int32
-	PersistenceEnabled bool
-	ClefEnabled        bool
-	LibP2PEnabled      bool
-	SwarmEnabled       bool
+	Name                string
+	Image               string
+	ImagePullPolicy     string
+	LimitCPU            string
+	LimitMemory         string
+	RequestCPU          string
+	RequestMemory       string
+	PortAPI             int32
+	PortDebug           int32
+	PortP2P             int32
+	PersistenceEnabled  bool
+	ClefEnabled         bool
+	ClefImage           string
+	ClefImagePullPolicy string
+	ClefPassword        string
+	LibP2PEnabled       bool
+	SwarmEnabled        bool
 }
 
-func setContainers(o setContainersOptions) []statefulset.Container {
-	return []statefulset.Container{{
+func setContainers(o setContainersOptions) (containers []statefulset.Container) {
+	containers = append(containers, statefulset.Container{
 		Name:            o.Name,
 		Image:           o.Image,
 		ImagePullPolicy: o.ImagePullPolicy,
@@ -93,15 +109,34 @@ func setContainers(o setContainersOptions) []statefulset.Container {
 			RunAsUser:                999,
 		},
 		VolumeMounts: setBeeVolumeMounts(setBeeVolumeMountsOptions{
-			ClefEnabled:   o.ClefEnabled,
 			LibP2PEnabled: o.LibP2PEnabled,
 			SwarmEnabled:  o.SwarmEnabled,
 		}),
-	}}
+	})
+
+	if o.ClefEnabled {
+		containers = append(containers, statefulset.Container{
+			Name:            "clef",
+			Image:           o.ClefImage,
+			ImagePullPolicy: o.ClefImagePullPolicy,
+			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh run %s;", o.ClefPassword)},
+			Ports: []statefulset.Port{
+				{
+					Name:          "api",
+					ContainerPort: int32(8550),
+					Protocol:      "TCP",
+				},
+			},
+			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
+				ClefEnabled: o.ClefEnabled,
+			}),
+		})
+	}
+
+	return
 }
 
 type setBeeVolumeMountsOptions struct {
-	ClefEnabled   bool
 	LibP2PEnabled bool
 	SwarmEnabled  bool
 }
@@ -117,14 +152,6 @@ func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts []statefulset
 		Name:      "data",
 		MountPath: "home/bee/.bee",
 	})
-	if o.ClefEnabled {
-		volumeMounts = append(volumeMounts, statefulset.VolumeMount{
-			Name:      "clef-key",
-			MountPath: "home/bee/.bee/keys/clef.key",
-			SubPath:   "clef.key",
-			ReadOnly:  true,
-		})
-	}
 	if o.LibP2PEnabled {
 		volumeMounts = append(volumeMounts, statefulset.VolumeMount{
 			Name:      "libp2p-key",
@@ -145,9 +172,27 @@ func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts []statefulset
 	return
 }
 
+type setClefVolumeMountsOptions struct {
+	ClefEnabled bool
+}
+
+func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts []statefulset.VolumeMount) {
+	if o.ClefEnabled {
+		volumeMounts = append(volumeMounts, statefulset.VolumeMount{
+			Name:      "clef-key",
+			MountPath: "/root/.clef/keys/clef.key",
+			SubPath:   "clef.key",
+			ReadOnly:  true,
+		})
+	}
+
+	return
+}
+
 type setVolumesOptions struct {
 	ConfigCM           string
 	KeysSecret         string
+	ClefKeySecret      string
 	PersistenceEnabled bool
 	ClefEnabled        bool
 	LibP2PEnabled      bool
@@ -172,7 +217,7 @@ func setVolumes(o setVolumesOptions) (volumes []statefulset.Volume) {
 		volumes = append(volumes, statefulset.Volume{
 			Secret: &statefulset.SecretVolume{
 				Name:       "clef-key",
-				SecretName: o.KeysSecret,
+				SecretName: o.ClefKeySecret,
 				Items: []statefulset.Item{{
 					Key:   "clef",
 					Value: "clef.key",

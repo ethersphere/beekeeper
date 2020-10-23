@@ -26,7 +26,10 @@ type NodeStartOptions struct {
 	Name                      string
 	Namespace                 string
 	Annotations               map[string]string
+	ClefImage                 string
+	ClefImagePullPolicy       string
 	ClefKey                   string
+	ClefPassword              string
 	Labels                    map[string]string
 	LimitCPU                  string
 	LimitMemory               string
@@ -73,9 +76,6 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	// secret with keys
 	keysSecret := fmt.Sprintf("%s-keys", o.Name)
 	keysSecretData := map[string]string{}
-	if len(o.ClefKey) > 0 {
-		keysSecretData["clef"] = o.ClefKey
-	}
 	if len(o.LibP2PKey) > 0 {
 		keysSecretData["libp2p"] = o.LibP2PKey
 	}
@@ -91,6 +91,23 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 		return fmt.Errorf("set secret in namespace %s: %s", o.Namespace, err)
 	}
 	fmt.Printf("secret %s is set in namespace %s\n", keysSecret, o.Namespace)
+
+	// secret with clef key
+	clefKeySecret := "clef-key"
+	if len(o.ClefKey) > 0 {
+		clefKeySecretData := map[string]string{
+			"clef": o.ClefKey,
+		}
+
+		if err := c.k8s.Secret.Set(ctx, clefKeySecret, o.Namespace, secret.Options{
+			Annotations: o.Annotations,
+			Labels:      o.Labels,
+			StringData:  clefKeySecretData,
+		}); err != nil {
+			return fmt.Errorf("set secret in namespace %s: %s", o.Namespace, err)
+		}
+		fmt.Printf("secret %s is set in namespace %s\n", clefKeySecret, o.Namespace)
+	}
 
 	// service account
 	svcAccount := o.Name
@@ -256,24 +273,28 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 		Annotations: o.Annotations,
 		InitContainers: setInitContainers(setInitContainersOptions{
 			ClefEnabled:   clefEnabled,
+			ClefPassword:  o.ClefPassword,
 			LibP2PEnabled: libP2PEnabled,
 			SwarmEnabled:  swarmEnabled,
 		}),
 		Containers: setContainers(setContainersOptions{
-			Name:               sSet,
-			Image:              o.Image,
-			ImagePullPolicy:    o.ImagePullPolicy,
-			LimitCPU:           o.LimitCPU,
-			LimitMemory:        o.LimitMemory,
-			RequestCPU:         o.RequestCPU,
-			RequestMemory:      o.RequestMemory,
-			PortAPI:            portAPI,
-			PortDebug:          portDebug,
-			PortP2P:            portP2P,
-			PersistenceEnabled: o.PersistenceEnabled,
-			ClefEnabled:        clefEnabled,
-			LibP2PEnabled:      libP2PEnabled,
-			SwarmEnabled:       swarmEnabled,
+			Name:                sSet,
+			Image:               o.Image,
+			ImagePullPolicy:     o.ImagePullPolicy,
+			LimitCPU:            o.LimitCPU,
+			LimitMemory:         o.LimitMemory,
+			RequestCPU:          o.RequestCPU,
+			RequestMemory:       o.RequestMemory,
+			PortAPI:             portAPI,
+			PortDebug:           portDebug,
+			PortP2P:             portP2P,
+			PersistenceEnabled:  o.PersistenceEnabled,
+			ClefEnabled:         clefEnabled,
+			ClefImage:           o.ClefImage,
+			ClefImagePullPolicy: o.ClefImagePullPolicy,
+			ClefPassword:        o.ClefPassword,
+			LibP2PEnabled:       libP2PEnabled,
+			SwarmEnabled:        swarmEnabled,
 		}),
 		Labels:       o.Labels,
 		NodeSelector: o.NodeSelector,
@@ -299,6 +320,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 			KeysSecret:         keysSecret,
 			PersistenceEnabled: o.PersistenceEnabled,
 			ClefEnabled:        clefEnabled,
+			ClefKeySecret:      clefKeySecret,
 			LibP2PEnabled:      libP2PEnabled,
 			SwarmEnabled:       swarmEnabled,
 		}),
