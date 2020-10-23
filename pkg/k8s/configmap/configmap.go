@@ -26,6 +26,7 @@ func NewClient(clientset *kubernetes.Clientset) *Client {
 type Options struct {
 	Annotations map[string]string
 	Labels      map[string]string
+	Immutable   bool
 	Data        map[string]string
 	BinaryData  map[string][]byte
 }
@@ -39,6 +40,7 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 		},
+		Immutable:  &o.Immutable,
 		BinaryData: o.BinaryData,
 		Data:       o.Data,
 	}
