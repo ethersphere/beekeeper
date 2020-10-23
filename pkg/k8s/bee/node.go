@@ -18,15 +18,7 @@ const (
 	clefKey   = `{"address":"fd50ede4954655b993ed69238c55219da7e81acf","crypto":{"cipher":"aes-128-ctr","ciphertext":"1c0f603b0dffe53294c7ca02c1a2800d81d855970db0df1a84cc11bc1d6cf364","cipherparams":{"iv":"11c9ac512348d7ccfe5ee59d9c9388d3"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"f6d7a0947da105fa5ef70fa298f65409d12967108c0e6260f847dc2b10455b89"},"mac":"fc6585e300ad3cb21c5f648b16b8a59ca33bcf13c58197176ffee4786628eaeb"},"id":"4911f965-b425-4011-895d-a2008f859859","version":3}`
 	libp2pKey = `{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}`
 	swarmKey  = `{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}`
-	initKeys  = `mkdir -p /home/bee/.bee/keys;
-chown -R 999:999 /home/bee/.bee/keys;
-echo 'node keys initialization done';`
-	initP2PFixedPortsCmd = `export INDEX=$(echo $(hostname) | rev | cut -d'-' -f 1 | rev);
-NAT_PORT=$(( {{ .Values.p2pFixedPort.nodePortStart }} + INDEX ));
-cp -p /tmp/.bee.yaml /home/bee/.bee.yaml;
-printf 'nat-addr: :%s\n' "${NAT_PORT}" >> /home/bee/.bee.yaml;
-echo 'node initialization done';`
-	portHTTP = 80
+	portHTTP  = 80
 )
 
 // NodeStartOptions ...
@@ -198,21 +190,22 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 		return fmt.Errorf("parsing P2P port from config: %s", err)
 	}
 
+	var nodePortP2P int32
+	if len(o.Config.NATAddr) > 0 {
+		nodePortP2P, err = parsePort(o.Config.NATAddr)
+		if err != nil {
+			return fmt.Errorf("parsing NAT address from config: %s", err)
+		}
+	}
+
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
 	if err := c.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
 		Annotations:           o.Annotations,
 		Labels:                o.Labels,
 		ExternalTrafficPolicy: "Local",
-		Ports: []service.Port{
-			{
-				Name:       "p2p",
-				Protocol:   "TCP",
-				Port:       portP2P,
-				TargetPort: "p2p",
-			},
-		},
-		Selector: o.Selector,
-		Type:     "NodePort",
+		Ports:                 setNodePort("p2p", "TCP", "p2p", portP2P, nodePortP2P),
+		Selector:              o.Selector,
+		Type:                  "NodePort",
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
@@ -254,7 +247,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	sSet := o.Name
 	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations:            o.Annotations,
-		InitContainers:         setInitContainers(o.ClefEnabled, o.LibP2PEnabled, o.SwarmEnabled, false),
+		InitContainers:         setInitContainers(o.ClefEnabled, o.LibP2PEnabled, o.SwarmEnabled),
 		Containers:             setContainers(sSet, o.Image, o.ImagePullPolicy, o.LimitCPU, o.LimitMemory, o.RequestCPU, o.RequestMemory, portAPI, portDebug, portP2P, o.PersistenceEnabled, o.ClefEnabled, o.LibP2PEnabled, o.SwarmEnabled),
 		Labels:                 o.Labels,
 		NodeSelector:           o.NodeSelector,

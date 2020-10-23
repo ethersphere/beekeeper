@@ -4,37 +4,22 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 )
 
-func setInitContainers(clefEnabled, libP2PEnabled, swarmEnabled, initNATPort bool) (inits []statefulset.InitContainer) {
+func setInitContainers(clefEnabled, libP2PEnabled, swarmEnabled bool) (inits []statefulset.InitContainer) {
 	if clefEnabled || libP2PEnabled || swarmEnabled {
 		inits = append(inits, statefulset.InitContainer{
-			Name:    "init-keys",
-			Image:   "busybox:1.28",
-			Command: []string{"sh", "-c", initKeys},
+			Name:  "init-keys",
+			Image: "busybox:1.28",
+			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
+chown -R 999:999 /home/bee/.bee/keys;
+echo 'node keys initialization done';`},
 			VolumeMounts: []statefulset.VolumeMount{
 				{
 					Name:      "data",
 					MountPath: "home/bee/.bee",
-				},
-			},
-		})
-	}
-	if initNATPort {
-		inits = append(inits, statefulset.InitContainer{
-			Name:    "init-natport",
-			Image:   "busybox:1.28",
-			Command: []string{"sh", "-c", initP2PFixedPortsCmd},
-			VolumeMounts: []statefulset.VolumeMount{
-				{
-					Name:      "config-file",
-					MountPath: "/home/bee",
-				},
-				{
-					Name:      "config",
-					MountPath: "/tmp/.bee.yaml",
-					SubPath:   ".bee.yaml",
 				},
 			},
 		})
@@ -194,6 +179,28 @@ func setPersistentVolumeClaims(enabled bool, storageClass, storageRequest string
 	}
 
 	return
+}
+
+func setNodePort(name, protocol, targetPort string, port, nodePort int32) (ports []service.Port) {
+	if nodePort > 0 {
+		return []service.Port{
+			{
+				Name:       "p2p",
+				Protocol:   "TCP",
+				Port:       port,
+				TargetPort: "p2p",
+				Nodeport:   nodePort,
+			},
+		}
+	}
+	return []service.Port{
+		{
+			Name:       "p2p",
+			Protocol:   "TCP",
+			Port:       port,
+			TargetPort: "p2p",
+		},
+	}
 }
 
 func mergeMaps(a, b map[string]string) map[string]string {
