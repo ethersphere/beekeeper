@@ -24,7 +24,7 @@ func setInitContainers(o setInitContainersOptions) (inits []statefulset.InitCont
 			Name:            "init-clef",
 			Image:           o.ClefImage,
 			ImagePullPolicy: o.ClefImagePullPolicy,
-			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh init %s;", o.ClefPassword)},
+			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh init %s; echo 'clef initialization done';", o.ClefPassword)},
 			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
 				ClefEnabled: o.ClefEnabled,
 			}),
@@ -36,7 +36,7 @@ func setInitContainers(o setInitContainersOptions) (inits []statefulset.InitCont
 			Image: "busybox:1.28",
 			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
 chown -R 999:999 /home/bee/.bee/keys;
-echo 'node keys initialization done';`},
+echo 'bee initialization done';`},
 			VolumeMounts: []statefulset.VolumeMount{
 				{
 					Name:      "data",
