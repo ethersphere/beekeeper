@@ -200,9 +200,15 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 		Annotations:           o.Annotations,
 		Labels:                o.Labels,
 		ExternalTrafficPolicy: "Local",
-		Ports:                 setNodePort("p2p", "TCP", "p2p", portP2P, nodePortP2P),
-		Selector:              o.Selector,
-		Type:                  "NodePort",
+		Ports: setBeeNodePort(setBeeNodePortOptions{
+			Name:       "p2p",
+			Protocol:   "TCP",
+			TargetPort: "p2p",
+			Port:       portP2P,
+			NodePort:   nodePortP2P,
+		}),
+		Selector: o.Selector,
+		Type:     "NodePort",
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
@@ -247,13 +253,36 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	swarmEnabled := len(o.SwarmKey) > 0
 
 	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
-		Annotations:            o.Annotations,
-		InitContainers:         setInitContainers(clefEnabled, libP2PEnabled, swarmEnabled),
-		Containers:             setContainers(sSet, o.Image, o.ImagePullPolicy, o.LimitCPU, o.LimitMemory, o.RequestCPU, o.RequestMemory, portAPI, portDebug, portP2P, o.PersistenceEnabled, clefEnabled, libP2PEnabled, swarmEnabled),
-		Labels:                 o.Labels,
-		NodeSelector:           o.NodeSelector,
-		PersistentVolumeClaims: setPersistentVolumeClaims(o.PersistenceEnabled, o.PersistenceStorageClass, o.PersistanceStorageRequest),
-		PodManagementPolicy:    o.PodManagementPolicy,
+		Annotations: o.Annotations,
+		InitContainers: setInitContainers(setInitContainersOptions{
+			ClefEnabled:   clefEnabled,
+			LibP2PEnabled: libP2PEnabled,
+			SwarmEnabled:  swarmEnabled,
+		}),
+		Containers: setContainers(setContainersOptions{
+			Name:               sSet,
+			Image:              o.Image,
+			ImagePullPolicy:    o.ImagePullPolicy,
+			LimitCPU:           o.LimitCPU,
+			LimitMemory:        o.LimitMemory,
+			RequestCPU:         o.RequestCPU,
+			RequestMemory:      o.RequestMemory,
+			PortAPI:            portAPI,
+			PortDebug:          portDebug,
+			PortP2P:            portP2P,
+			PersistenceEnabled: o.PersistenceEnabled,
+			ClefEnabled:        clefEnabled,
+			LibP2PEnabled:      libP2PEnabled,
+			SwarmEnabled:       swarmEnabled,
+		}),
+		Labels:       o.Labels,
+		NodeSelector: o.NodeSelector,
+		PersistentVolumeClaims: setPersistentVolumeClaims(setPersistentVolumeClaimsOptions{
+			Enabled:        o.PersistenceEnabled,
+			StorageClass:   o.PersistenceStorageClass,
+			StorageRequest: o.PersistanceStorageRequest,
+		}),
+		PodManagementPolicy: o.PodManagementPolicy,
 		PodSecurityContext: statefulset.PodSecurityContext{
 			FSGroup: 999,
 		},
@@ -265,7 +294,14 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 		UpdateStrategy: statefulset.UpdateStrategy{
 			Type: o.UpdateStrategy,
 		},
-		Volumes: setVolumes(configCM, keysSecret, o.PersistenceEnabled, clefEnabled, libP2PEnabled, swarmEnabled),
+		Volumes: setVolumes(setVolumesOptions{
+			ConfigCM:           configCM,
+			KeysSecret:         keysSecret,
+			PersistenceEnabled: o.PersistenceEnabled,
+			ClefEnabled:        clefEnabled,
+			LibP2PEnabled:      libP2PEnabled,
+			SwarmEnabled:       swarmEnabled,
+		}),
 	}); err != nil {
 		return fmt.Errorf("set statefulset in namespace %s: %s", o.Namespace, err)
 	}
