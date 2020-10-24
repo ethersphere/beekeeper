@@ -47,14 +47,9 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 				b := o.Backend.toK8S()
 				return &b
 			}(),
-			IngressClassName: func() *string {
-				if len(o.Class) > 0 {
-					return &o.Class
-				}
-				return nil
-			}(),
-			Rules: rulesToK8S(o.Rules),
-			TLS:   tlsToK8S(o.TLS),
+			IngressClassName: &o.Class,
+			Rules:            rulesToK8S(o.Rules),
+			TLS:              tlsToK8S(o.TLS),
 		},
 	}
 
@@ -79,14 +74,11 @@ type Backend struct {
 	ServicePort string
 }
 
-func (b Backend) toK8S() (backend ev1b1.IngressBackend) {
-	if len(b.ServiceName) > 0 {
-		backend.ServiceName = b.ServiceName
+func (b Backend) toK8S() ev1b1.IngressBackend {
+	return ev1b1.IngressBackend{
+		ServiceName: b.ServiceName,
+		ServicePort: intstr.FromString(b.ServicePort),
 	}
-	if len(b.ServicePort) > 0 {
-		backend.ServicePort = intstr.FromString(b.ServicePort)
-	}
-	return
 }
 
 // Rule ...
@@ -96,15 +88,14 @@ type Rule struct {
 }
 
 func (r Rule) toK8S() (rule ev1b1.IngressRule) {
-	if len(r.Host) > 0 {
-		rule.Host = r.Host
-	}
-	rule.IngressRuleValue = ev1b1.IngressRuleValue{
-		HTTP: &ev1b1.HTTPIngressRuleValue{
-			Paths: pathsToK8S(r.Paths),
+	return ev1b1.IngressRule{
+		Host: r.Host,
+		IngressRuleValue: ev1b1.IngressRuleValue{
+			HTTP: &ev1b1.HTTPIngressRuleValue{
+				Paths: pathsToK8S(r.Paths),
+			},
 		},
 	}
-	return
 }
 
 func rulesToK8S(list []Rule) (rules []ev1b1.IngressRule) {
@@ -123,11 +114,10 @@ type Path struct {
 }
 
 func (p Path) toK8S() (h ev1b1.HTTPIngressPath) {
-	h.Backend = p.Backend.toK8S()
-	if len(p.Path) > 0 {
-		h.Path = p.Path
+	return ev1b1.HTTPIngressPath{
+		Backend: p.Backend.toK8S(),
+		Path:    p.Path,
 	}
-	return
 }
 
 func pathsToK8S(list []Path) (paths []ev1b1.HTTPIngressPath) {
@@ -146,15 +136,15 @@ type TLS struct {
 }
 
 func (t TLS) toK8S() (tls ev1b1.IngressTLS) {
-	if len(t.Hosts) > 0 {
-		for _, h := range t.Hosts {
-			tls.Hosts = append(tls.Hosts, h)
-		}
+	return ev1b1.IngressTLS{
+		Hosts: func() (hosts []string) {
+			for _, h := range t.Hosts {
+				hosts = append(hosts, h)
+			}
+			return
+		}(),
+		SecretName: t.SecretName,
 	}
-	if len(t.SecretName) > 0 {
-		tls.SecretName = t.SecretName
-	}
-	return
 }
 
 func tlsToK8S(list []TLS) (tls []ev1b1.IngressTLS) {
