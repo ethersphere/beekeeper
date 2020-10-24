@@ -62,16 +62,11 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 			PublishNotReadyAddresses: o.PublishNotReadyAddresses,
 			Selector:                 o.Selector,
 			SessionAffinity:          v1.ServiceAffinity(o.SessionAffinity),
-			SessionAffinityConfig: func() *v1.SessionAffinityConfig {
-				if o.SessionAffinityTimeoutSeconds > 0 {
-					return &v1.SessionAffinityConfig{
-						ClientIP: &v1.ClientIPConfig{
-							TimeoutSeconds: &o.SessionAffinityTimeoutSeconds,
-						},
-					}
-				}
-				return nil
-			}(),
+			SessionAffinityConfig: &v1.SessionAffinityConfig{
+				ClientIP: &v1.ClientIPConfig{
+					TimeoutSeconds: &o.SessionAffinityTimeoutSeconds,
+				},
+			},
 			TopologyKeys: o.TopologyKeys,
 			Type:         v1.ServiceType(o.Type),
 		},
@@ -94,29 +89,19 @@ type Port struct {
 	Name        string
 	AppProtocol string
 	Nodeport    int32
-	Protocol    string
 	Port        int32
+	Protocol    string
 	TargetPort  string
 }
 
 func (p Port) toK8S() v1.ServicePort {
 	return v1.ServicePort{
-		Name:     p.Name,
-		Protocol: v1.Protocol(p.Protocol),
-		AppProtocol: func() *string {
-			if len(p.AppProtocol) > 0 {
-				return &p.AppProtocol
-			}
-			return nil
-		}(),
-		Port: p.Port,
-		TargetPort: func() intstr.IntOrString {
-			if len(p.TargetPort) > 0 {
-				return intstr.FromString(p.TargetPort)
-			}
-			return intstr.IntOrString{}
-		}(),
-		NodePort: p.Nodeport,
+		Name:        p.Name,
+		AppProtocol: &p.AppProtocol,
+		NodePort:    p.Nodeport,
+		Port:        p.Port,
+		Protocol:    v1.Protocol(p.Protocol),
+		TargetPort:  intstr.FromString(p.TargetPort),
 	}
 
 }
