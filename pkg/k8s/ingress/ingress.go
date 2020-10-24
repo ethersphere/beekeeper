@@ -99,10 +99,8 @@ func (r Rule) toK8S() (rule ev1b1.IngressRule) {
 }
 
 func rulesToK8S(list []Rule) (rules []ev1b1.IngressRule) {
-	if len(list) > 0 {
-		for _, r := range list {
-			rules = append(rules, r.toK8S())
-		}
+	for _, r := range list {
+		rules = append(rules, r.toK8S())
 	}
 	return
 }
@@ -121,10 +119,8 @@ func (p Path) toK8S() (h ev1b1.HTTPIngressPath) {
 }
 
 func pathsToK8S(list []Path) (paths []ev1b1.HTTPIngressPath) {
-	if len(list) > 0 {
-		for _, p := range list {
-			paths = append(paths, p.toK8S())
-		}
+	for _, p := range list {
+		paths = append(paths, p.toK8S())
 	}
 	return
 }
@@ -148,10 +144,8 @@ func (t TLS) toK8S() (tls ev1b1.IngressTLS) {
 }
 
 func tlsToK8S(list []TLS) (tls []ev1b1.IngressTLS) {
-	if len(list) > 0 {
-		for _, t := range list {
-			tls = append(tls, t.toK8S())
-		}
+	for _, t := range list {
+		tls = append(tls, t.toK8S())
 	}
 	return
 }
