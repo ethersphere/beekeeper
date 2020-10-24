@@ -40,23 +40,19 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 		},
-		Secrets: func() (l []v1.ObjectReference) {
-			if len(o.Secrets) > 0 {
-				for _, s := range o.Secrets {
-					l = append(l, v1.ObjectReference{Name: s})
-				}
-			}
-			return
-		}(),
-		ImagePullSecrets: func() (l []v1.LocalObjectReference) {
-			if len(o.ImagePullSecrets) > 0 {
-				for _, s := range o.ImagePullSecrets {
-					l = append(l, v1.LocalObjectReference{Name: s})
-				}
-			}
-			return
-		}(),
 		AutomountServiceAccountToken: &o.AutomountServiceAccountToken,
+		ImagePullSecrets: func() (l []v1.LocalObjectReference) {
+			for _, s := range o.ImagePullSecrets {
+				l = append(l, v1.LocalObjectReference{Name: s})
+			}
+			return
+		}(),
+		Secrets: func() (l []v1.ObjectReference) {
+			for _, s := range o.Secrets {
+				l = append(l, v1.ObjectReference{Name: s})
+			}
+			return
+		}(),
 	}
 
 	_, err = c.clientset.CoreV1().ServiceAccounts(namespace).Create(ctx, spec, metav1.CreateOptions{})
