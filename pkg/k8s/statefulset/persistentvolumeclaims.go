@@ -10,8 +10,12 @@ import (
 type PersistentVolumeClaim struct {
 	Name           string
 	AccessModes    []AccessMode
+	DataSource     DataSource
 	RequestStorage string
+	Selector       Selector
 	StorageClass   string
+	VolumeMode     string
+	VolumeName     string
 }
 
 func (p PersistentVolumeClaim) toK8S(namespace string, annotations, labels map[string]string) v1.PersistentVolumeClaim {
@@ -24,12 +28,19 @@ func (p PersistentVolumeClaim) toK8S(namespace string, annotations, labels map[s
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
 			AccessModes: accessModesToK8S(p.AccessModes),
+			DataSource:  p.DataSource.toK8S(),
 			Resources: v1.ResourceRequirements{
 				Requests: v1.ResourceList{
 					v1.ResourceStorage: resource.MustParse(p.RequestStorage),
 				},
 			},
+			Selector:         p.Selector.toK8S(),
 			StorageClassName: &p.StorageClass,
+			VolumeName:       p.VolumeName,
+			VolumeMode: func() *v1.PersistentVolumeMode {
+				pvm := v1.PersistentVolumeMode(p.VolumeMode)
+				return &pvm
+			}(),
 		},
 	}
 }
@@ -44,6 +55,56 @@ func (a AccessMode) toK8S() v1.PersistentVolumeAccessMode {
 func accessModesToK8S(accessModes []AccessMode) (ams []v1.PersistentVolumeAccessMode) {
 	for _, am := range accessModes {
 		ams = append(ams, am.toK8S())
+	}
+	return
+}
+
+// DataSource ...
+type DataSource struct {
+	APIGroup string
+	Kind     string
+	Name     string
+}
+
+func (d DataSource) toK8S() *v1.TypedLocalObjectReference {
+	return &v1.TypedLocalObjectReference{
+		APIGroup: &d.APIGroup,
+		Kind:     d.Kind,
+		Name:     d.Name,
+	}
+}
+
+// Selector ...
+type Selector struct {
+	MatchLabels      map[string]string
+	MatchExpressions []LabelSelectorRequirement
+}
+
+func (s Selector) toK8S() *metav1.LabelSelector {
+	return &metav1.LabelSelector{
+		MatchLabels:      s.MatchLabels,
+		MatchExpressions: labelSelectorRequirementsToK8S(s.MatchExpressions),
+	}
+}
+
+// LabelSelectorRequirement ...
+type LabelSelectorRequirement struct {
+	Key      string
+	Operator string
+	Values   []string
+}
+
+func (l LabelSelectorRequirement) toK8S() metav1.LabelSelectorRequirement {
+	return metav1.LabelSelectorRequirement{
+		Key:      l.Key,
+		Operator: metav1.LabelSelectorOperator(l.Operator),
+		Values:   l.Values,
+	}
+}
+
+func labelSelectorRequirementsToK8S(labelSelectorRequirements []LabelSelectorRequirement) (l []metav1.LabelSelectorRequirement) {
+	for _, lsr := range labelSelectorRequirements {
+		l = append(l, lsr.toK8S())
 	}
 	return
 }
