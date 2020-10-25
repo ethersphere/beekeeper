@@ -27,11 +27,26 @@ func (c InitContainer) toK8S() v1.Container {
 // Container ...
 type Container struct {
 	Name            string
+	Args            []string
+	Command         []string
+	Env             []EnvVar
+	EnvFrom         []EnvFrom
 	Image           string
 	ImagePullPolicy string
-	Command         []string
-	Ports           []Port
-	LivenessProbe   Probe
+	// Lifecycle       Lifecycle
+	LivenessProbe Probe
+	// WorkingDir string
+
+	// VolumeDevices []VolumeDevice
+	// StartupProbe *Probe
+
+	// TerminationMessagePath string
+	// TerminationMessagePolicy TerminationMessagePolicy
+	// Stdin bool
+	// StdinOnce bool
+	// TTY bool
+	Ports []Port
+
 	ReadinessProbe  Probe
 	Resources       Resources
 	SecurityContext SecurityContext
@@ -41,9 +56,12 @@ type Container struct {
 func (c Container) toK8S() v1.Container {
 	return v1.Container{
 		Name:            c.Name,
+		Args:            c.Args,
+		Command:         c.Command,
+		Env:             envVarsToK8S(c.Env),
+		EnvFrom:         envFromToK8S(c.EnvFrom),
 		Image:           c.Image,
 		ImagePullPolicy: v1.PullPolicy(c.ImagePullPolicy),
-		Command:         c.Command,
 		LivenessProbe: func() *v1.Probe {
 			if len(c.LivenessProbe.Path) > 0 && len(c.LivenessProbe.Port) > 0 {
 				return &v1.Probe{Handler: v1.Handler{HTTPGet: &v1.HTTPGetAction{
