@@ -45,6 +45,13 @@ func (p PersistentVolumeClaim) toK8S(namespace string, annotations, labels map[s
 	}
 }
 
+func persistentVolumeClaimsToK8S(persistentVolumeClaims []PersistentVolumeClaim, namespace string, annotations, labels map[string]string) (pvcs []v1.PersistentVolumeClaim) {
+	for _, pvc := range persistentVolumeClaims {
+		pvcs = append(pvcs, pvc.toK8S(namespace, annotations, labels))
+	}
+	return
+}
+
 // AccessMode ...
 type AccessMode string
 

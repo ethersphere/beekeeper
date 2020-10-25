@@ -16,13 +16,6 @@ func containersToK8S(containers []Container) (cs []v1.Container) {
 	return
 }
 
-func persistentVolumeClaimsToK8S(persistentVolumeClaims []PersistentVolumeClaim, namespace string, annotations, labels map[string]string) (pvcs []v1.PersistentVolumeClaim) {
-	for _, pvc := range persistentVolumeClaims {
-		pvcs = append(pvcs, pvc.toK8S(namespace, annotations, labels))
-	}
-	return
-}
-
 func portsToK8S(ports []Port) (ps []v1.ContainerPort) {
 	for _, port := range ports {
 		ps = append(ps, port.toK8S())
