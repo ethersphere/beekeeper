@@ -29,10 +29,3 @@ func volumeMountsToK8S(volumeMounts []VolumeMount) (vms []v1.VolumeMount) {
 	}
 	return
 }
-
-func volumesToK8S(volumes []Volume) (vs []v1.Volume) {
-	for _, volume := range volumes {
-		vs = append(vs, volume.toK8S())
-	}
-	return
-}
