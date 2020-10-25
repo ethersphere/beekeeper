@@ -45,8 +45,11 @@ func (v Volume) toK8S() v1.Volume {
 				EmptyDir: &v1.EmptyDirVolumeSource{
 					Medium: v1.StorageMedium(v.EmptyDir.Medium),
 					SizeLimit: func() *resource.Quantity {
-						r := resource.MustParse(v.EmptyDir.SizeLimit)
-						return &r
+						if len(v.EmptyDir.SizeLimit) > 0 {
+							r := resource.MustParse(v.EmptyDir.SizeLimit)
+							return &r
+						}
+						return nil
 					}(),
 				},
 			},
@@ -71,7 +74,7 @@ func (v Volume) toK8S() v1.Volume {
 					SecretName:  v.Secret.SecretName,
 					DefaultMode: &v.Secret.DefaultMode,
 					Items:       itemsToK8S(v.Secret.Items),
-					Optional:    &v.ConfigMap.Optional,
+					Optional:    &v.Secret.Optional,
 				},
 			},
 		}
