@@ -5,12 +5,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-// Resources ...
+// Resources represents Kubernetes ResourceRequirements
 type Resources struct {
 	Limit   Limit
 	Request Request
 }
 
+// toK8S converts Resources to Kuberntes client object
 func (r Resources) toK8S() v1.ResourceRequirements {
 	return v1.ResourceRequirements{
 		Limits:   r.Limit.toK8S(),
@@ -18,7 +19,7 @@ func (r Resources) toK8S() v1.ResourceRequirements {
 	}
 }
 
-// Limit ...
+// Limit represents Kubernetes ResourceList with Limits
 type Limit struct {
 	CPU              string
 	Memory           string
@@ -26,6 +27,7 @@ type Limit struct {
 	EphemeralStorage string
 }
 
+// toK8S converts Limit to Kuberntes client object
 func (l Limit) toK8S() v1.ResourceList {
 	m := map[v1.ResourceName]resource.Quantity{}
 	if len(l.CPU) > 0 {
@@ -43,7 +45,7 @@ func (l Limit) toK8S() v1.ResourceList {
 	return m
 }
 
-// Request ...
+// Request represents Kubernetes ResourceList with Requests
 type Request struct {
 	CPU              string
 	Memory           string
@@ -51,6 +53,7 @@ type Request struct {
 	EphemeralStorage string
 }
 
+// toK8S converts Request to Kuberntes client object
 func (r Request) toK8S() v1.ResourceList {
 	m := map[v1.ResourceName]resource.Quantity{}
 	if len(r.CPU) > 0 {

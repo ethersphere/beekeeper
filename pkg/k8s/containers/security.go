@@ -2,7 +2,7 @@ package containers
 
 import v1 "k8s.io/api/core/v1"
 
-// SecurityContext ...
+// SecurityContext represents Kubernetes SecurityContext
 type SecurityContext struct {
 	AllowPrivilegeEscalation bool
 	Capabilities             Capabilities
@@ -16,6 +16,7 @@ type SecurityContext struct {
 	WindowsOptions           WindowsOptions
 }
 
+// toK8S converts SecurityContext to Kuberntes client object
 func (sc SecurityContext) toK8S() *v1.SecurityContext {
 	return &v1.SecurityContext{
 		AllowPrivilegeEscalation: &sc.AllowPrivilegeEscalation,
@@ -34,12 +35,13 @@ func (sc SecurityContext) toK8S() *v1.SecurityContext {
 	}
 }
 
-// Capabilities ...
+// Capabilities represents Kubernetes Capabilities
 type Capabilities struct {
 	Add  []string
 	Drop []string
 }
 
+// toK8S converts Capabilities to Kuberntes client object
 func (cap Capabilities) toK8S() *v1.Capabilities {
 	caps := v1.Capabilities{}
 	for _, a := range cap.Add {
@@ -51,7 +53,7 @@ func (cap Capabilities) toK8S() *v1.Capabilities {
 	return &caps
 }
 
-// SELinuxOptions ...
+// SELinuxOptions represents Kubernetes SELinuxOptions
 type SELinuxOptions struct {
 	User  string
 	Role  string
@@ -59,6 +61,7 @@ type SELinuxOptions struct {
 	Level string
 }
 
+// toK8S converts SELinuxOptions to Kuberntes client object
 func (se SELinuxOptions) toK8S() *v1.SELinuxOptions {
 	return &v1.SELinuxOptions{
 		User:  se.User,
@@ -68,13 +71,14 @@ func (se SELinuxOptions) toK8S() *v1.SELinuxOptions {
 	}
 }
 
-// WindowsOptions ...
+// WindowsOptions represents Kubernetes WindowsSecurityContextOptions
 type WindowsOptions struct {
 	GMSACredentialSpecName string
 	GMSACredentialSpec     string
 	RunAsUserName          string
 }
 
+// toK8S converts WindowsOptions to Kuberntes client object
 func (ws WindowsOptions) toK8S() *v1.WindowsSecurityContextOptions {
 	return &v1.WindowsSecurityContextOptions{
 		GMSACredentialSpecName: &ws.GMSACredentialSpecName,

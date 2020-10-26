@@ -19,7 +19,7 @@ type setInitContainersOptions struct {
 	SwarmEnabled        bool
 }
 
-func setInitContainers(o setInitContainersOptions) (inits []containers.Container) {
+func setInitContainers(o setInitContainersOptions) (inits containers.Containers) {
 	if o.ClefEnabled {
 		inits = append(inits, containers.Container{
 			Name:            "init-clef",
@@ -38,7 +38,7 @@ func setInitContainers(o setInitContainersOptions) (inits []containers.Container
 			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
 chown -R 999:999 /home/bee/.bee/keys;
 echo 'bee initialization done';`},
-			VolumeMounts: []containers.VolumeMount{
+			VolumeMounts: containers.VolumeMounts{
 				{
 					Name:      "data",
 					MountPath: "home/bee/.bee",
@@ -70,13 +70,13 @@ type setContainersOptions struct {
 	SwarmEnabled        bool
 }
 
-func setContainers(o setContainersOptions) (c []containers.Container) {
+func setContainers(o setContainersOptions) (c containers.Containers) {
 	c = append(c, containers.Container{
 		Name:            o.Name,
 		Image:           o.Image,
 		ImagePullPolicy: o.ImagePullPolicy,
 		Command:         []string{"bee", "start", "--config=.bee.yaml"},
-		Ports: []containers.Port{
+		Ports: containers.Ports{
 			{
 				Name:          "api",
 				ContainerPort: o.PortAPI,
@@ -127,7 +127,7 @@ func setContainers(o setContainersOptions) (c []containers.Container) {
 			Image:           o.ClefImage,
 			ImagePullPolicy: o.ClefImagePullPolicy,
 			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh run %s;", o.ClefPassword)},
-			Ports: []containers.Port{
+			Ports: containers.Ports{
 				{
 					Name:          "api",
 					ContainerPort: int32(8550),
@@ -148,7 +148,7 @@ type setBeeVolumeMountsOptions struct {
 	SwarmEnabled  bool
 }
 
-func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts []containers.VolumeMount) {
+func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts containers.VolumeMounts) {
 	volumeMounts = append(volumeMounts, containers.VolumeMount{
 		Name:      "config",
 		MountPath: "/home/bee/.bee.yaml",
@@ -183,7 +183,7 @@ type setClefVolumeMountsOptions struct {
 	ClefEnabled bool
 }
 
-func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts []containers.VolumeMount) {
+func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts containers.VolumeMounts) {
 	if o.ClefEnabled {
 		volumeMounts = append(volumeMounts, containers.VolumeMount{
 			Name:      "clef-key",

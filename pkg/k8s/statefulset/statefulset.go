@@ -30,8 +30,8 @@ type Options struct {
 	Labels                 map[string]string
 	Replicas               int32
 	Selector               map[string]string
-	InitContainers         []containers.Container
-	Containers             []containers.Container
+	InitContainers         containers.Containers
+	Containers             containers.Containers
 	RestartPolicy          string
 	ServiceAccountName     string
 	ServiceName            string
@@ -63,8 +63,8 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 					Labels:      o.Labels,
 				},
 				Spec: v1.PodSpec{
-					InitContainers:     containers.ToK8S(o.InitContainers),
-					Containers:         containers.ToK8S(o.Containers),
+					InitContainers:     o.InitContainers.ToK8S(),
+					Containers:         o.Containers.ToK8S(),
 					RestartPolicy:      v1.RestartPolicy(o.RestartPolicy),
 					NodeSelector:       o.NodeSelector,
 					ServiceAccountName: o.ServiceAccountName,

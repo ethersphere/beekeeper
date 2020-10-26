@@ -4,13 +4,14 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// Probe ...
+// Probe represents Kubernetes Probe
 type Probe struct {
 	Exec      *ExecProbe
 	HTTPGet   *HTTPGetProbe
 	TCPSocket *TCPSocketProbe
 }
 
+// toK8S converts Containers to Kuberntes client object
 func (p Probe) toK8S() *v1.Probe {
 	if p.Exec != nil {
 		return p.Exec.toK8S()
@@ -23,7 +24,7 @@ func (p Probe) toK8S() *v1.Probe {
 	}
 }
 
-// ExecProbe ...
+// ExecProbe represents Kubernetes ExecHandler Probe
 type ExecProbe struct {
 	FailureThreshold    int32
 	Handler             ExecHandler
@@ -33,6 +34,7 @@ type ExecProbe struct {
 	TimeoutSeconds      int32
 }
 
+// toK8S converts ExecProbe to Kuberntes client object
 func (ep ExecProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
 		FailureThreshold:    ep.FailureThreshold,
@@ -44,7 +46,7 @@ func (ep ExecProbe) toK8S() *v1.Probe {
 	}
 }
 
-// HTTPGetProbe ...
+// HTTPGetProbe represents Kubernetes HTTPGetHandler Probe
 type HTTPGetProbe struct {
 	FailureThreshold    int32
 	Handler             HTTPGetHandler
@@ -54,6 +56,7 @@ type HTTPGetProbe struct {
 	TimeoutSeconds      int32
 }
 
+// toK8S converts HTTPGetProbe to Kuberntes client object
 func (hgp HTTPGetProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
 		FailureThreshold:    hgp.FailureThreshold,
@@ -65,7 +68,7 @@ func (hgp HTTPGetProbe) toK8S() *v1.Probe {
 	}
 }
 
-// TCPSocketProbe ...
+// TCPSocketProbe represents Kubernetes TCPSocketHandler Probe
 type TCPSocketProbe struct {
 	FailureThreshold    int32
 	Handler             TCPSocketHandler
@@ -75,6 +78,7 @@ type TCPSocketProbe struct {
 	TimeoutSeconds      int32
 }
 
+// toK8S converts TCPSocketProbe to Kuberntes client object
 func (tsp TCPSocketProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
 		FailureThreshold:    tsp.FailureThreshold,

@@ -2,12 +2,27 @@ package containers
 
 import v1 "k8s.io/api/core/v1"
 
-// VolumeDevice ...
+// VolumeDevices represents Kubernetes VolumeDevices
+type VolumeDevices []VolumeDevice
+
+// toK8S converts VolumeDevices to Kuberntes client objects
+func (vds VolumeDevices) toK8S() (l []v1.VolumeDevice) {
+	l = make([]v1.VolumeDevice, 0, len(vds))
+
+	for _, vd := range vds {
+		l = append(l, vd.toK8S())
+	}
+
+	return
+}
+
+// VolumeDevice represents Kubernetes VolumeDevice
 type VolumeDevice struct {
 	Name       string
 	DevicePath string
 }
 
+// toK8S converts VolumeDevice to Kuberntes client object
 func (vd VolumeDevice) toK8S() v1.VolumeDevice {
 	return v1.VolumeDevice{
 		Name:       vd.Name,
@@ -15,14 +30,21 @@ func (vd VolumeDevice) toK8S() v1.VolumeDevice {
 	}
 }
 
-func volumeDevicesToK8S(volumeDevices []VolumeDevice) (l []v1.VolumeDevice) {
-	for _, volumeDevice := range volumeDevices {
-		l = append(l, volumeDevice.toK8S())
+// VolumeMounts represents Kubernetes VolumeMounts
+type VolumeMounts []VolumeMount
+
+// toK8S converts VolumeMounts to Kuberntes client objects
+func (vms VolumeMounts) toK8S() (l []v1.VolumeMount) {
+	l = make([]v1.VolumeMount, 0, len(vms))
+
+	for _, vm := range vms {
+		l = append(l, vm.toK8S())
 	}
+
 	return
 }
 
-// VolumeMount ...
+// VolumeMount represents Kubernetes VolumeMount
 type VolumeMount struct {
 	Name      string
 	MountPath string
@@ -30,6 +52,7 @@ type VolumeMount struct {
 	ReadOnly  bool
 }
 
+// toK8S converts VolumeMount to Kuberntes client object
 func (v VolumeMount) toK8S() v1.VolumeMount {
 	return v1.VolumeMount{
 		Name:      v.Name,
@@ -37,11 +60,4 @@ func (v VolumeMount) toK8S() v1.VolumeMount {
 		SubPath:   v.SubPath,
 		ReadOnly:  v.ReadOnly,
 	}
-}
-
-func volumeMountsToK8S(volumeMounts []VolumeMount) (vms []v1.VolumeMount) {
-	for _, volumeMount := range volumeMounts {
-		vms = append(vms, volumeMount.toK8S())
-	}
-	return
 }

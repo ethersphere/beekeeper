@@ -2,7 +2,20 @@ package containers
 
 import v1 "k8s.io/api/core/v1"
 
-// Port represents containers's port
+// Ports represents Kubernetes ContainerPorts
+type Ports []Port
+
+// toK8S converts Ports to Kuberntes client object
+func (ps Ports) toK8S() (l []v1.ContainerPort) {
+	l = make([]v1.ContainerPort, 0, len(ps))
+
+	for _, p := range ps {
+		l = append(l, p.toK8S())
+	}
+	return
+}
+
+// Port represents Kubernetes ContainerPort
 type Port struct {
 	Name          string
 	ContainerPort int32
@@ -11,6 +24,7 @@ type Port struct {
 	Protocol      string
 }
 
+// toK8S converts Port to Kuberntes client object
 func (p Port) toK8S() v1.ContainerPort {
 	return v1.ContainerPort{
 		Name:          p.Name,
@@ -19,11 +33,4 @@ func (p Port) toK8S() v1.ContainerPort {
 		HostPort:      p.HostPort,
 		Protocol:      v1.Protocol(p.Protocol),
 	}
-}
-
-func portsToK8S(ports []Port) (ps []v1.ContainerPort) {
-	for _, port := range ports {
-		ps = append(ps, port.toK8S())
-	}
-	return
 }
