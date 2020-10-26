@@ -1,4 +1,4 @@
-package statefulset
+package container
 
 import (
 	v1 "k8s.io/api/core/v1"
@@ -30,6 +30,14 @@ type Container struct {
 	WorkingDir               string
 }
 
+// ContainersToK8S ...
+func ContainersToK8S(containers []Container) (cs []v1.Container) {
+	for _, container := range containers {
+		cs = append(cs, container.toK8S())
+	}
+	return
+}
+
 func (c Container) toK8S() v1.Container {
 	return v1.Container{
 		Name:                     c.Name,
@@ -55,13 +63,6 @@ func (c Container) toK8S() v1.Container {
 		VolumeMounts:             volumeMountsToK8S(c.VolumeMounts),
 		WorkingDir:               c.WorkingDir,
 	}
-}
-
-func containersToK8S(containers []Container) (cs []v1.Container) {
-	for _, container := range containers {
-		cs = append(cs, container.toK8S())
-	}
-	return
 }
 
 // Lifecycle ...

@@ -2,6 +2,7 @@ package statefulset
 
 import (
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -10,7 +11,7 @@ type PersistentVolumeClaim struct {
 	Name           string
 	AccessModes    []AccessMode
 	DataSource     DataSource
-	RequestStorage Request
+	RequestStorage string
 	Selector       Selector
 	StorageClass   string
 	VolumeMode     string
@@ -29,14 +30,24 @@ func (p PersistentVolumeClaim) toK8S(namespace string, annotations, labels map[s
 			AccessModes: accessModesToK8S(p.AccessModes),
 			DataSource:  p.DataSource.toK8S(),
 			Resources: v1.ResourceRequirements{
-				Requests: p.RequestStorage.toK8S(),
+				Requests: func() v1.ResourceList {
+					m := map[v1.ResourceName]resource.Quantity{}
+					if len(p.RequestStorage) > 0 {
+						m[v1.ResourceStorage] = resource.MustParse(p.RequestStorage)
+					}
+					return m
+				}(),
 			},
 			Selector:         p.Selector.toK8S(),
 			StorageClassName: &p.StorageClass,
 			VolumeName:       p.VolumeName,
 			VolumeMode: func() *v1.PersistentVolumeMode {
-				pvm := v1.PersistentVolumeMode(p.VolumeMode)
-				return &pvm
+				if p.VolumeMode == "Block" || p.VolumeMode == "block" {
+					m := v1.PersistentVolumeMode(v1.PersistentVolumeBlock)
+					return &m
+				}
+				m := v1.PersistentVolumeMode(v1.PersistentVolumeFilesystem)
+				return &m
 			}(),
 		},
 	}
