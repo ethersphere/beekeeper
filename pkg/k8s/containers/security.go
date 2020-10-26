@@ -31,7 +31,6 @@ func (sc SecurityContext) toK8S() *v1.SecurityContext {
 		RunAsNonRoot:           &sc.RunAsNonRoot,
 		RunAsUser:              &sc.RunAsUser,
 		SELinuxOptions:         sc.SELinuxOptions.toK8S(),
-		// WindowsOptions:         sc.WindowsOptions.toK8S(),
 	}
 }
 

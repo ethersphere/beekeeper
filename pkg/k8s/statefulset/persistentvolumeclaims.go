@@ -6,10 +6,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PersistentVolumeClaim ...
+// PersistentVolumeClaims represents Kubernetes PersistentVolumeClaims
+type PersistentVolumeClaims []PersistentVolumeClaim
+
+// toK8S converts PersistentVolumeClaims to Kuberntes client objects
+func (pvcs PersistentVolumeClaims) toK8S(namespace string, annotations, labels map[string]string) (l []v1.PersistentVolumeClaim) {
+	l = make([]v1.PersistentVolumeClaim, 0, len(pvcs))
+
+	for _, p := range pvcs {
+		l = append(l, p.toK8S(namespace, annotations, labels))
+	}
+
+	return
+}
+
+// PersistentVolumeClaim represents Kubernetes PersistentVolumeClaim
 type PersistentVolumeClaim struct {
 	Name           string
-	AccessModes    []AccessMode
+	AccessModes    AccessModes
 	DataSource     DataSource
 	RequestStorage string
 	Selector       Selector
@@ -18,31 +32,32 @@ type PersistentVolumeClaim struct {
 	VolumeName     string
 }
 
-func (p PersistentVolumeClaim) toK8S(namespace string, annotations, labels map[string]string) v1.PersistentVolumeClaim {
+// toK8S converts PersistentVolumeClaim to Kuberntes client objects
+func (pvc PersistentVolumeClaim) toK8S(namespace string, annotations, labels map[string]string) v1.PersistentVolumeClaim {
 	return v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        p.Name,
+			Name:        pvc.Name,
 			Namespace:   namespace,
 			Annotations: annotations,
 			Labels:      labels,
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes: accessModesToK8S(p.AccessModes),
-			DataSource:  p.DataSource.toK8S(),
+			AccessModes: pvc.AccessModes.toK8S(),
+			DataSource:  pvc.DataSource.toK8S(),
 			Resources: v1.ResourceRequirements{
 				Requests: func() v1.ResourceList {
 					m := map[v1.ResourceName]resource.Quantity{}
-					if len(p.RequestStorage) > 0 {
-						m[v1.ResourceStorage] = resource.MustParse(p.RequestStorage)
+					if len(pvc.RequestStorage) > 0 {
+						m[v1.ResourceStorage] = resource.MustParse(pvc.RequestStorage)
 					}
 					return m
 				}(),
 			},
-			Selector:         p.Selector.toK8S(),
-			StorageClassName: &p.StorageClass,
-			VolumeName:       p.VolumeName,
+			Selector:         pvc.Selector.toK8S(),
+			StorageClassName: &pvc.StorageClass,
+			VolumeName:       pvc.VolumeName,
 			VolumeMode: func() *v1.PersistentVolumeMode {
-				if p.VolumeMode == "Block" || p.VolumeMode == "block" {
+				if pvc.VolumeMode == "Block" || pvc.VolumeMode == "block" {
 					m := v1.PersistentVolumeMode(v1.PersistentVolumeBlock)
 					return &m
 				}
@@ -53,34 +68,36 @@ func (p PersistentVolumeClaim) toK8S(namespace string, annotations, labels map[s
 	}
 }
 
-func persistentVolumeClaimsToK8S(persistentVolumeClaims []PersistentVolumeClaim, namespace string, annotations, labels map[string]string) (pvcs []v1.PersistentVolumeClaim) {
-	for _, pvc := range persistentVolumeClaims {
-		pvcs = append(pvcs, pvc.toK8S(namespace, annotations, labels))
+// AccessModes represents Kubernetes AccessModes
+type AccessModes []AccessMode
+
+// toK8S converts AccessModes to Kuberntes client objects
+func (ams AccessModes) toK8S() (l []v1.PersistentVolumeAccessMode) {
+	l = make([]v1.PersistentVolumeAccessMode, 0, len(ams))
+
+	for _, am := range ams {
+		l = append(l, am.toK8S())
 	}
+
 	return
 }
 
-// AccessMode ...
+// AccessMode represents Kubernetes AccessMode
 type AccessMode string
 
+// toK8S converts AccessMode to Kuberntes client object
 func (a AccessMode) toK8S() v1.PersistentVolumeAccessMode {
 	return v1.PersistentVolumeAccessMode(a)
 }
 
-func accessModesToK8S(accessModes []AccessMode) (ams []v1.PersistentVolumeAccessMode) {
-	for _, am := range accessModes {
-		ams = append(ams, am.toK8S())
-	}
-	return
-}
-
-// DataSource ...
+// DataSource represents Kubernetes DataSource
 type DataSource struct {
 	APIGroup string
 	Kind     string
 	Name     string
 }
 
+// toK8S converts DataSource to Kuberntes client object
 func (d DataSource) toK8S() *v1.TypedLocalObjectReference {
 	return &v1.TypedLocalObjectReference{
 		APIGroup: &d.APIGroup,
@@ -89,37 +106,46 @@ func (d DataSource) toK8S() *v1.TypedLocalObjectReference {
 	}
 }
 
-// Selector ...
+// Selector represents Kubernetes LabelSelector
 type Selector struct {
 	MatchLabels      map[string]string
-	MatchExpressions []LabelSelectorRequirement
+	MatchExpressions LabelSelectorRequirements
 }
 
+// toK8S converts Selector to Kuberntes client object
 func (s Selector) toK8S() *metav1.LabelSelector {
 	return &metav1.LabelSelector{
 		MatchLabels:      s.MatchLabels,
-		MatchExpressions: labelSelectorRequirementsToK8S(s.MatchExpressions),
+		MatchExpressions: s.MatchExpressions.toK8S(),
 	}
 }
 
-// LabelSelectorRequirement ...
+// LabelSelectorRequirements represents Kubernetes LabelSelectorRequirements
+type LabelSelectorRequirements []LabelSelectorRequirement
+
+// toK8S converts LabelSelectorRequirements to Kuberntes client object
+func (lsrs LabelSelectorRequirements) toK8S() (l []metav1.LabelSelectorRequirement) {
+	l = make([]metav1.LabelSelectorRequirement, 0, len(lsrs))
+
+	for _, lsr := range lsrs {
+		l = append(l, lsr.toK8S())
+	}
+
+	return
+}
+
+// LabelSelectorRequirement represents Kubernetes LabelSelectorRequirement
 type LabelSelectorRequirement struct {
 	Key      string
 	Operator string
 	Values   []string
 }
 
+// toK8S converts LabelSelectorRequirement to Kuberntes client object
 func (l LabelSelectorRequirement) toK8S() metav1.LabelSelectorRequirement {
 	return metav1.LabelSelectorRequirement{
 		Key:      l.Key,
 		Operator: metav1.LabelSelectorOperator(l.Operator),
 		Values:   l.Values,
 	}
-}
-
-func labelSelectorRequirementsToK8S(labelSelectorRequirements []LabelSelectorRequirement) (l []metav1.LabelSelectorRequirement) {
-	for _, lsr := range labelSelectorRequirements {
-		l = append(l, lsr.toK8S())
-	}
-	return
 }
