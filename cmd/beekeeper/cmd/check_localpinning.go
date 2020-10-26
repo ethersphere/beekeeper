@@ -53,7 +53,7 @@ func (c *command) initCheckLocalPinning() *cobra.Command {
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmd.Flags().Float64(optionNameDBCapacity, 500, "DB capacity in chunks")
+	cmd.Flags().Int(optionNameDBCapacity, 1000, "DB capacity in chunks")
 	cmd.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 
