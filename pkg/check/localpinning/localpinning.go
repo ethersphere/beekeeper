@@ -15,13 +15,9 @@ import (
 
 // Options represents localpinning check options
 type Options struct {
-	NodeStoreSize    int // size of the node's localstore in chunks
+	StoreSize        int // size of the node's localstore in chunks
 	StoreSizeDivisor int // divide store size by how much when uploading bytes
-	FileName         string
-	LargeFileCount   int
-	LargeFileSize    int64
 	Seed             int64
-	SmallFileSize    int64
 }
 
 func nodeHasChunk(ctx context.Context, n *bee.Node, addr swarm.Address) (bool, error) {

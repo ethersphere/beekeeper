@@ -9,11 +9,10 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // CheckBytesFound uploads some bytes to a node, pins them, then uploads a lot of other chunks to see they are still there
-func CheckBytesFound(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func CheckBytesFound(c bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -24,8 +23,7 @@ func CheckBytesFound(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics 
 	}
 
 	pivot := rnd.Intn(c.Size())
-
-	size := (o.NodeStoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
+	size := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
 	buf := make([]byte, size)
 	_, err = rand.Read(buf)
 	if err != nil {

@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // CheckChunkFound uploads a single chunk to a node, pins it, then uploads a lot of other chunks to see that it still there
-func CheckChunkFound(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func CheckChunkFound(c bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -32,12 +32,16 @@ func CheckChunkFound(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics 
 	}
 	fmt.Printf("uploaded pinned chunk %s to node %d: %s\n", chunk.Address().String(), pivot, overlays[pivot].String())
 
-	for i := 0; i < o.LargeFileCount; i++ {
-		f := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, pivot), o.LargeFileSize)
-		if err := c.Nodes[pivot].UploadFile(ctx, f, false); err != nil {
+	for i := 0; i <= o.StoreSizeDivisor+1; i++ {
+		b := make([]byte, o.StoreSize/o.StoreSizeDivisor)
+		_, err := rand.Read(b)
+		if err != nil {
+			return fmt.Errorf("rand read: %w", err)
+		}
+		if _, err := c.Nodes[pivot].UploadBytes(ctx, b, false); err != nil {
 			return fmt.Errorf("node %d: %w", pivot, err)
 		}
-		fmt.Printf("node %d: uploaded %d bytes (%d/%d), hash %s\n", pivot, o.LargeFileSize, i+1, o.LargeFileCount, f.Address().String())
+		fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
 	}
 
 	has, err := nodeHasChunk(ctx, &c.Nodes[pivot], chunk.Address())
