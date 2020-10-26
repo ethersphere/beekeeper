@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
@@ -141,6 +143,26 @@ func (n *Node) DownloadFile(ctx context.Context, a swarm.Address) (size int64, h
 // HasChunk returns true/false if node has a chunk.
 func (n *Node) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return n.debug.Node.HasChunk(ctx, a)
+}
+
+// HasChunkRetry checks if a node has a chunk and retries if not.
+func (n *Node) HasChunkRetry(ctx context.Context, a swarm.Address, retries int) (bool, error) {
+	for i := 0; i <= retries; i++ {
+		time.Sleep(1 * time.Second)
+		has, err := n.HasChunk(ctx, a)
+		if err != nil {
+			if i == retries {
+				return false, err
+			}
+			if errors.Is(err, api.ErrServiceUnavailable) {
+				continue
+			}
+		}
+		if has {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // Overlay returns node's overlay address.

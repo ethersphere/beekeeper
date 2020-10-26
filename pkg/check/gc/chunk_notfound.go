@@ -1,4 +1,4 @@
-package localpinning
+package gc
 
 import (
 	"context"
@@ -9,6 +9,13 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
+
+// Options represents localpinning check options
+type Options struct {
+	StoreSize        int // size of the node's localstore in chunks
+	StoreSizeDivisor int // divide store size by how much when uploading bytes
+	Seed             int64
+}
 
 // CheckChunkNotFound uploads a single chunk to a node, then uploads a lot of other chunks to see that it has been purged with gc
 func CheckChunkNotFound(c bee.Cluster, o Options) error {
@@ -43,7 +50,7 @@ func CheckChunkNotFound(c bee.Cluster, o Options) error {
 		fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
 	}
 
-	has, err := nodeHasChunk(ctx, &c.Nodes[pivot], chunk.Address())
+	has, err := c.Nodes[pivot].HasChunkRetry(ctx, chunk.Address(), 1)
 	if err != nil {
 		return fmt.Errorf("node has chunk: %w", err)
 	}

@@ -60,6 +60,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.AddCommand(c.initCheckFileRetrievalDynamic())
 	cmd.AddCommand(c.initCheckFullConnectivity())
 	cmd.AddCommand(c.initCheckKademlia())
+	cmd.AddCommand(c.initCheckGc())
 	cmd.AddCommand(c.initCheckLocalPinning())
 	cmd.AddCommand(c.initCheckPeerCount())
 	cmd.AddCommand(c.initCheckPingPong())

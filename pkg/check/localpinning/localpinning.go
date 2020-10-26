@@ -3,14 +3,10 @@ package localpinning
 import (
 	"bytes"
 	"context"
-	"errors"
-	"time"
 
 	"github.com/ethersphere/bee/pkg/file/pipeline/builder"
 	"github.com/ethersphere/bee/pkg/storage"
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 )
 
 // Options represents localpinning check options
@@ -18,27 +14,6 @@ type Options struct {
 	StoreSize        int // size of the node's localstore in chunks
 	StoreSizeDivisor int // divide store size by how much when uploading bytes
 	Seed             int64
-}
-
-func nodeHasChunk(ctx context.Context, n *bee.Node, addr swarm.Address) (bool, error) {
-	var counter = 0
-	const retries = 5
-	for i := 0; i < retries; i++ {
-		time.Sleep(1 * time.Second)
-		has, err := n.HasChunk(ctx, addr)
-		if err != nil {
-			if counter > 5 {
-				return false, err
-			}
-			if errors.Is(err, api.ErrServiceUnavailable) {
-				continue
-			}
-		}
-		if has {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func addresses(buf []byte) ([]swarm.Address, error) {

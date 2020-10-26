@@ -2,24 +2,23 @@ package cmd
 
 import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check/localpinning"
+	"github.com/ethersphere/beekeeper/pkg/check/gc"
 	"github.com/ethersphere/beekeeper/pkg/random"
 
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initCheckLocalPinning() *cobra.Command {
+func (c *command) initCheckGc() *cobra.Command {
 	const (
 		optionNameDBCapacity = "db-capacity"
-		optionNameFileName   = "file-name"
 		optionNameDivisor    = "capacity-divisor"
 		optionNameSeed       = "seed"
 	)
 
 	cmd := &cobra.Command{
-		Use:   "pin-chunk",
-		Short: "Checks that a node on the cluster pins one chunk correctly.",
-		Long:  "Checks that a node on the cluster pins one chunk correctly.",
+		Use:   "gc",
+		Short: "Checks that a node on the cluster flushes one chunk correctly.",
+		Long:  "Checks that a node on the cluster flushes one chunk correctly.",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 
 			cluster, err := bee.NewCluster(bee.ClusterOptions{
@@ -46,7 +45,7 @@ func (c *command) initCheckLocalPinning() *cobra.Command {
 				seed = random.Int64()
 			}
 
-			return localpinning.CheckChunkFound(cluster, localpinning.Options{
+			return gc.CheckChunkNotFound(cluster, gc.Options{
 				Seed: seed,
 			})
 		},

@@ -56,7 +56,7 @@ func CheckBytesFound(c bee.Cluster, o Options) error {
 	}
 
 	for _, a := range addrs {
-		has, err := nodeHasChunk(ctx, &c.Nodes[pivot], a)
+		has, err := c.Nodes[pivot].HasChunkRetry(ctx, a, 5)
 		if err != nil {
 			return fmt.Errorf("node has chunk: %w", err)
 		}

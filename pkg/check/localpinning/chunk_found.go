@@ -44,7 +44,7 @@ func CheckChunkFound(c bee.Cluster, o Options) error {
 		fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
 	}
 
-	has, err := nodeHasChunk(ctx, &c.Nodes[pivot], chunk.Address())
+	has, err := c.Nodes[pivot].HasChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("node has chunk: %w", err)
 	}
