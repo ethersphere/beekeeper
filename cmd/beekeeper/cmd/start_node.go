@@ -75,7 +75,7 @@ func (c *command) initStartNode() *cobra.Command {
 				NodeSelector: map[string]string{
 					"node-group": "bee-staging",
 				},
-				PersistenceEnabled:        true,
+				PersistenceEnabled:        false,
 				PersistenceStorageClass:   "local-storage",
 				PersistanceStorageRequest: "34Gi",
 				PodManagementPolicy:       "OrderedReady",
