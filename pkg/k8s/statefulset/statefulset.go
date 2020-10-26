@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/container"
+	"github.com/ethersphere/beekeeper/pkg/k8s/containers"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,8 +30,8 @@ type Options struct {
 	Labels                 map[string]string
 	Replicas               int32
 	Selector               map[string]string
-	InitContainers         []container.Container
-	Containers             []container.Container
+	InitContainers         []containers.Container
+	Containers             []containers.Container
 	RestartPolicy          string
 	ServiceAccountName     string
 	ServiceName            string
@@ -63,8 +63,8 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 					Labels:      o.Labels,
 				},
 				Spec: v1.PodSpec{
-					InitContainers:     container.ToK8S(o.InitContainers),
-					Containers:         container.ToK8S(o.Containers),
+					InitContainers:     containers.ToK8S(o.InitContainers),
+					Containers:         containers.ToK8S(o.Containers),
 					RestartPolicy:      v1.RestartPolicy(o.RestartPolicy),
 					NodeSelector:       o.NodeSelector,
 					ServiceAccountName: o.ServiceAccountName,
