@@ -29,7 +29,7 @@ type Options struct {
 	Labels                 map[string]string
 	Replicas               int32
 	Selector               map[string]string
-	InitContainers         []InitContainer
+	InitContainers         []Container
 	Containers             []Container
 	RestartPolicy          string
 	ServiceAccountName     string
@@ -62,7 +62,7 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 					Labels:      o.Labels,
 				},
 				Spec: v1.PodSpec{
-					InitContainers:     initContainersToK8S(o.InitContainers),
+					InitContainers:     containersToK8S(o.InitContainers),
 					Containers:         containersToK8S(o.Containers),
 					RestartPolicy:      v1.RestartPolicy(o.RestartPolicy),
 					NodeSelector:       o.NodeSelector,

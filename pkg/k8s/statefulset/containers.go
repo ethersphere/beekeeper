@@ -4,24 +4,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// InitContainer ...
-type InitContainer struct {
-	Name            string
-	Image           string
-	ImagePullPolicy string
-	Command         []string
-	VolumeMounts    []VolumeMount
-}
-
-func (c InitContainer) toK8S() v1.Container {
-	return v1.Container{
-		Name:         c.Name,
-		Image:        c.Image,
-		Command:      c.Command,
-		VolumeMounts: volumeMountsToK8S(c.VolumeMounts),
-	}
-}
-
 // Container ...
 type Container struct {
 	Name                     string

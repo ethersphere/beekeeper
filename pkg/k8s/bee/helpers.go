@@ -18,9 +18,9 @@ type setInitContainersOptions struct {
 	SwarmEnabled        bool
 }
 
-func setInitContainers(o setInitContainersOptions) (inits []statefulset.InitContainer) {
+func setInitContainers(o setInitContainersOptions) (inits []statefulset.Container) {
 	if o.ClefEnabled {
-		inits = append(inits, statefulset.InitContainer{
+		inits = append(inits, statefulset.Container{
 			Name:            "init-clef",
 			Image:           o.ClefImage,
 			ImagePullPolicy: o.ClefImagePullPolicy,
@@ -31,7 +31,7 @@ func setInitContainers(o setInitContainersOptions) (inits []statefulset.InitCont
 		})
 	}
 	if o.LibP2PEnabled || o.SwarmEnabled {
-		inits = append(inits, statefulset.InitContainer{
+		inits = append(inits, statefulset.Container{
 			Name:  "init-bee",
 			Image: "busybox:1.28",
 			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
