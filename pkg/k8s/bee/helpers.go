@@ -92,19 +92,23 @@ func setContainers(o setContainersOptions) (containers []statefulset.Container) 
 				Protocol:      "TCP",
 			},
 		},
-		LivenessProbe: statefulset.Probe{
+		LivenessProbe: statefulset.Probe{HTTPGet: &statefulset.HTTPGetProbe{Handler: statefulset.HTTPGetHandler{
 			Path: "/health",
 			Port: "debug",
-		},
-		ReadinessProbe: statefulset.Probe{
+		}}},
+		ReadinessProbe: statefulset.Probe{HTTPGet: &statefulset.HTTPGetProbe{Handler: statefulset.HTTPGetHandler{
 			Path: "/readiness",
 			Port: "debug",
-		},
+		}}},
 		Resources: statefulset.Resources{
-			LimitCPU:      o.LimitCPU,
-			LimitMemory:   o.LimitMemory,
-			RequestCPU:    o.RequestCPU,
-			RequestMemory: o.RequestMemory,
+			Limit: statefulset.Limit{
+				CPU:    o.LimitCPU,
+				Memory: o.LimitMemory,
+			},
+			Request: statefulset.Request{
+				CPU:    o.RequestCPU,
+				Memory: o.RequestMemory,
+			},
 		},
 		SecurityContext: statefulset.SecurityContext{
 			AllowPrivilegeEscalation: false,
@@ -268,7 +272,7 @@ func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs []state
 			AccessModes: []statefulset.AccessMode{
 				statefulset.AccessMode("ReadWriteOnce"),
 			},
-			RequestStorage: o.StorageRequest,
+			RequestStorage: statefulset.Request{Storage: o.StorageRequest},
 			StorageClass:   o.StorageClass,
 		})
 	}

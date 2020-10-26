@@ -19,8 +19,8 @@ func (ev EnvVar) toK8S() v1.EnvVar {
 		ValueFrom: &v1.EnvVarSource{
 			FieldRef:         ev.ValueFrom.Field.toK8S(),
 			ResourceFieldRef: ev.ValueFrom.ResourceField.toK8S(),
-			ConfigMapKeyRef:  ev.ValueFrom.ConfigMapKey.toK8S(),
-			SecretKeyRef:     ev.ValueFrom.SecretKey.toK8S(),
+			ConfigMapKeyRef:  ev.ValueFrom.ConfigMap.toK8S(),
+			SecretKeyRef:     ev.ValueFrom.Secret.toK8S(),
 		},
 	}
 }
@@ -36,8 +36,8 @@ func envVarsToK8S(envVars []EnvVar) (l []v1.EnvVar) {
 type ValueFrom struct {
 	Field         Field
 	ResourceField ResourceField
-	ConfigMapKey  ConfigMapKey
-	SecretKey     SecretKey
+	ConfigMap     ConfigMapKey
+	Secret        SecretKey
 }
 
 // Field ...
@@ -101,8 +101,8 @@ func (sk SecretKey) toK8S() *v1.SecretKeySelector {
 // EnvFrom ...
 type EnvFrom struct {
 	Prefix    string
-	ConfigMap ConfigMap
-	Secret    Secret
+	ConfigMap ConfigMapRef
+	Secret    SecretRef
 }
 
 func (ef EnvFrom) toK8S() v1.EnvFromSource {
@@ -120,26 +120,26 @@ func envFromToK8S(envFroms []EnvFrom) (l []v1.EnvFromSource) {
 	return
 }
 
-// ConfigMap ...
-type ConfigMap struct {
+// ConfigMapRef ...
+type ConfigMapRef struct {
 	Name     string
 	Optional bool
 }
 
-func (cm ConfigMap) toK8S() *v1.ConfigMapEnvSource {
+func (cm ConfigMapRef) toK8S() *v1.ConfigMapEnvSource {
 	return &v1.ConfigMapEnvSource{
 		LocalObjectReference: v1.LocalObjectReference{Name: cm.Name},
 		Optional:             &cm.Optional,
 	}
 }
 
-// Secret ...
-type Secret struct {
+// SecretRef ...
+type SecretRef struct {
 	Name     string
 	Optional bool
 }
 
-func (s Secret) toK8S() *v1.SecretEnvSource {
+func (s SecretRef) toK8S() *v1.SecretEnvSource {
 	return &v1.SecretEnvSource{
 		LocalObjectReference: v1.LocalObjectReference{Name: s.Name},
 		Optional:             &s.Optional,

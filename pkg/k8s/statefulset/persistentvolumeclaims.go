@@ -2,7 +2,6 @@ package statefulset
 
 import (
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -11,7 +10,7 @@ type PersistentVolumeClaim struct {
 	Name           string
 	AccessModes    []AccessMode
 	DataSource     DataSource
-	RequestStorage string
+	RequestStorage Request
 	Selector       Selector
 	StorageClass   string
 	VolumeMode     string
@@ -30,9 +29,7 @@ func (p PersistentVolumeClaim) toK8S(namespace string, annotations, labels map[s
 			AccessModes: accessModesToK8S(p.AccessModes),
 			DataSource:  p.DataSource.toK8S(),
 			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					v1.ResourceStorage: resource.MustParse(p.RequestStorage),
-				},
+				Requests: p.RequestStorage.toK8S(),
 			},
 			Selector:         p.Selector.toK8S(),
 			StorageClassName: &p.StorageClass,

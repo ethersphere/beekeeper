@@ -12,11 +12,48 @@ type Volume struct {
 	Secret    *SecretVolume
 }
 
+func (v Volume) toK8S() v1.Volume {
+	if v.EmptyDir != nil {
+		return v.EmptyDir.toK8S()
+	} else if v.ConfigMap != nil {
+		return v.ConfigMap.toK8S()
+	} else if v.Secret != nil {
+		return v.Secret.toK8S()
+	} else {
+		return v1.Volume{}
+	}
+}
+
+func volumesToK8S(volumes []Volume) (vs []v1.Volume) {
+	for _, volume := range volumes {
+		vs = append(vs, volume.toK8S())
+	}
+	return
+}
+
 // EmptyDirVolume ...
 type EmptyDirVolume struct {
 	Name      string
 	Medium    string
 	SizeLimit string
+}
+
+func (ed EmptyDirVolume) toK8S() v1.Volume {
+	return v1.Volume{
+		Name: ed.Name,
+		VolumeSource: v1.VolumeSource{
+			EmptyDir: &v1.EmptyDirVolumeSource{
+				Medium: v1.StorageMedium(ed.Medium),
+				SizeLimit: func() *resource.Quantity {
+					if len(ed.SizeLimit) > 0 {
+						r := resource.MustParse(ed.SizeLimit)
+						return &r
+					}
+					return nil
+				}(),
+			},
+		},
+	}
 }
 
 // ConfigMapVolume ...
@@ -28,6 +65,20 @@ type ConfigMapVolume struct {
 	Optional      bool
 }
 
+func (cm ConfigMapVolume) toK8S() v1.Volume {
+	return v1.Volume{
+		Name: cm.Name,
+		VolumeSource: v1.VolumeSource{
+			ConfigMap: &v1.ConfigMapVolumeSource{
+				LocalObjectReference: v1.LocalObjectReference{Name: cm.ConfigMapName},
+				DefaultMode:          &cm.DefaultMode,
+				Items:                itemsToK8S(cm.Items),
+				Optional:             &cm.Optional,
+			},
+		},
+	}
+}
+
 // SecretVolume ...
 type SecretVolume struct {
 	Name        string
@@ -37,57 +88,18 @@ type SecretVolume struct {
 	Optional    bool
 }
 
-func (v Volume) toK8S() v1.Volume {
-	if v.EmptyDir != nil {
-		return v1.Volume{
-			Name: v.EmptyDir.Name,
-			VolumeSource: v1.VolumeSource{
-				EmptyDir: &v1.EmptyDirVolumeSource{
-					Medium: v1.StorageMedium(v.EmptyDir.Medium),
-					SizeLimit: func() *resource.Quantity {
-						if len(v.EmptyDir.SizeLimit) > 0 {
-							r := resource.MustParse(v.EmptyDir.SizeLimit)
-							return &r
-						}
-						return nil
-					}(),
-				},
+func (s SecretVolume) toK8S() v1.Volume {
+	return v1.Volume{
+		Name: s.Name,
+		VolumeSource: v1.VolumeSource{
+			Secret: &v1.SecretVolumeSource{
+				SecretName:  s.SecretName,
+				DefaultMode: &s.DefaultMode,
+				Items:       itemsToK8S(s.Items),
+				Optional:    &s.Optional,
 			},
-		}
-	} else if v.ConfigMap != nil {
-		return v1.Volume{
-			Name: v.ConfigMap.Name,
-			VolumeSource: v1.VolumeSource{
-				ConfigMap: &v1.ConfigMapVolumeSource{
-					LocalObjectReference: v1.LocalObjectReference{Name: v.ConfigMap.ConfigMapName},
-					DefaultMode:          &v.ConfigMap.DefaultMode,
-					Items:                itemsToK8S(v.ConfigMap.Items),
-					Optional:             &v.ConfigMap.Optional,
-				},
-			},
-		}
-	} else if v.Secret != nil {
-		return v1.Volume{
-			Name: v.Secret.Name,
-			VolumeSource: v1.VolumeSource{
-				Secret: &v1.SecretVolumeSource{
-					SecretName:  v.Secret.SecretName,
-					DefaultMode: &v.Secret.DefaultMode,
-					Items:       itemsToK8S(v.Secret.Items),
-					Optional:    &v.Secret.Optional,
-				},
-			},
-		}
-	} else {
-		return v1.Volume{}
+		},
 	}
-}
-
-func volumesToK8S(volumes []Volume) (vs []v1.Volume) {
-	for _, volume := range volumes {
-		vs = append(vs, volume.toK8S())
-	}
-	return
 }
 
 // Item ...
