@@ -30,8 +30,8 @@ type Container struct {
 	WorkingDir               string
 }
 
-// ContainersToK8S ...
-func ContainersToK8S(containers []Container) (cs []v1.Container) {
+// ToK8S ...
+func ToK8S(containers []Container) (cs []v1.Container) {
 	for _, container := range containers {
 		cs = append(cs, container.toK8S())
 	}
@@ -63,92 +63,4 @@ func (c Container) toK8S() v1.Container {
 		VolumeMounts:             volumeMountsToK8S(c.VolumeMounts),
 		WorkingDir:               c.WorkingDir,
 	}
-}
-
-// Lifecycle ...
-type Lifecycle struct {
-	PostStart *Handler
-	PreStop   *Handler
-}
-
-func (l Lifecycle) toK8S() *v1.Lifecycle {
-	if l.PostStart != nil {
-		postStart := l.PostStart.toK8S()
-		return &v1.Lifecycle{PostStart: &postStart}
-	} else if l.PreStop != nil {
-		preStop := l.PreStop.toK8S()
-		return &v1.Lifecycle{PreStop: &preStop}
-	} else {
-		return nil
-	}
-}
-
-// Port represents containers's port
-type Port struct {
-	Name          string
-	ContainerPort int32
-	HostIP        string
-	HostPort      int32
-	Protocol      string
-}
-
-func (p Port) toK8S() v1.ContainerPort {
-	return v1.ContainerPort{
-		Name:          p.Name,
-		ContainerPort: p.ContainerPort,
-		HostIP:        p.HostIP,
-		HostPort:      p.HostPort,
-		Protocol:      v1.Protocol(p.Protocol),
-	}
-}
-
-func portsToK8S(ports []Port) (ps []v1.ContainerPort) {
-	for _, port := range ports {
-		ps = append(ps, port.toK8S())
-	}
-	return
-}
-
-// VolumeDevice ...
-type VolumeDevice struct {
-	Name       string
-	DevicePath string
-}
-
-func (vd VolumeDevice) toK8S() v1.VolumeDevice {
-	return v1.VolumeDevice{
-		Name:       vd.Name,
-		DevicePath: vd.DevicePath,
-	}
-}
-
-func volumeDevicesToK8S(volumeDevices []VolumeDevice) (l []v1.VolumeDevice) {
-	for _, volumeDevice := range volumeDevices {
-		l = append(l, volumeDevice.toK8S())
-	}
-	return
-}
-
-// VolumeMount ...
-type VolumeMount struct {
-	Name      string
-	MountPath string
-	SubPath   string
-	ReadOnly  bool
-}
-
-func (v VolumeMount) toK8S() v1.VolumeMount {
-	return v1.VolumeMount{
-		Name:      v.Name,
-		MountPath: v.MountPath,
-		SubPath:   v.SubPath,
-		ReadOnly:  v.ReadOnly,
-	}
-}
-
-func volumeMountsToK8S(volumeMounts []VolumeMount) (vms []v1.VolumeMount) {
-	for _, volumeMount := range volumeMounts {
-		vms = append(vms, volumeMount.toK8S())
-	}
-	return
 }

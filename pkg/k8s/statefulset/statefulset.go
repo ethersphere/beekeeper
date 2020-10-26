@@ -63,8 +63,8 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 					Labels:      o.Labels,
 				},
 				Spec: v1.PodSpec{
-					InitContainers:     container.ContainersToK8S(o.InitContainers),
-					Containers:         container.ContainersToK8S(o.Containers),
+					InitContainers:     container.ToK8S(o.InitContainers),
+					Containers:         container.ToK8S(o.Containers),
 					RestartPolicy:      v1.RestartPolicy(o.RestartPolicy),
 					NodeSelector:       o.NodeSelector,
 					ServiceAccountName: o.ServiceAccountName,
