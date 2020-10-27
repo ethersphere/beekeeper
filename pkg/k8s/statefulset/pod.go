@@ -12,6 +12,7 @@ type PodSpec struct {
 	Containers                    containers.Containers
 	DNSConfig                     PodDNSConfig
 	DNSPolicy                     string
+	EphemeralContainers           containers.EphemeralContainers
 	EnableServiceLinks            bool
 	HostAliases                   HostAliases
 	Hostname                      string
@@ -33,6 +34,8 @@ type PodSpec struct {
 	ShareProcessNamespace         bool
 	Subdomain                     string
 	TerminationGracePeriodSeconds int64
+	Tolerations                   Tolerations
+	TopologySpreadConstraints     TopologySpreadConstraints
 	Volumes                       Volumes
 }
 
@@ -44,12 +47,12 @@ func (ps PodSpec) toK8S() v1.PodSpec {
 		DNSConfig:                    ps.DNSConfig.toK8S(),
 		DNSPolicy:                    v1.DNSPolicy(ps.DNSPolicy),
 		EnableServiceLinks:           &ps.EnableServiceLinks,
-		// TODO: EphemeralContainers: ps.EphemeralContainers.ToK8S(),
-		HostAliases: ps.HostAliases.toK8S(),
-		Hostname:    ps.Hostname,
-		HostNetwork: ps.HostNetwork,
-		HostPID:     ps.HostPID,
-		HostIPC:     ps.HostIPC,
+		EphemeralContainers:          ps.EphemeralContainers.ToK8S(),
+		HostAliases:                  ps.HostAliases.toK8S(),
+		Hostname:                     ps.Hostname,
+		HostNetwork:                  ps.HostNetwork,
+		HostPID:                      ps.HostPID,
+		HostIPC:                      ps.HostIPC,
 		ImagePullSecrets: func() (l []v1.LocalObjectReference) {
 			l = make([]v1.LocalObjectReference, 0, len(ps.ImagePullSecrets))
 			for _, i := range ps.ImagePullSecrets {
@@ -74,9 +77,9 @@ func (ps PodSpec) toK8S() v1.PodSpec {
 		ShareProcessNamespace:         &ps.ShareProcessNamespace,
 		Subdomain:                     ps.Subdomain,
 		TerminationGracePeriodSeconds: &ps.TerminationGracePeriodSeconds,
-		// TODO: Tolerations:                   []v1.Toleration{},
-		// TODO: TopologySpreadConstraints: []v1.TopologySpreadConstraint{},
-		Volumes: ps.Volumes.toK8S(),
+		Tolerations:                   ps.Tolerations.toK8S(),
+		TopologySpreadConstraints:     ps.TopologySpreadConstraints.toK8S(),
+		Volumes:                       ps.Volumes.toK8S(),
 	}
 }
 
