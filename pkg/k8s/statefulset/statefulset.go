@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s/pods"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,7 +30,7 @@ type Options struct {
 	Labels                 map[string]string
 	PersistentVolumeClaims PersistentVolumeClaims
 	PodManagementPolicy    string
-	PodSpec                PodSpec
+	PodSpec                pods.Pod
 	Replicas               int32
 	RevisionHistoryLimit   int32
 	Selector               map[string]string
@@ -59,7 +60,7 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 					Annotations: o.Annotations,
 					Labels:      o.Labels,
 				},
-				Spec: o.PodSpec.toK8S(),
+				Spec: o.PodSpec.ToK8S(),
 			},
 			UpdateStrategy:       o.UpdateStrategy.toK8S(),
 			VolumeClaimTemplates: o.PersistentVolumeClaims.toK8S(namespace, o.Annotations, o.Labels),

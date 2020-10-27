@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
+	"github.com/ethersphere/beekeeper/pkg/k8s/pods"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
@@ -291,7 +292,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
-		PodSpec: statefulset.PodSpec{
+		PodSpec: pods.Pod{
 			InitContainers: setInitContainers(setInitContainersOptions{
 				ClefEnabled:         clefEnabled,
 				ClefImage:           o.ClefImage,
@@ -320,7 +321,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 				SwarmEnabled:        swarmEnabled,
 			}),
 			NodeSelector: o.NodeSelector,
-			PodSecurityContext: statefulset.PodSecurityContext{
+			PodSecurityContext: pods.PodSecurityContext{
 				FSGroup: 999,
 			},
 			RestartPolicy:      o.RestartPolicy,
