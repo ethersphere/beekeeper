@@ -52,7 +52,7 @@ func CheckChunkFound(c bee.Cluster, o Options) error {
 		return errors.New("pinning node: chunk not found")
 	}
 
-	err := c.Nodes[pivot].UnpinChunk(ctx, chunk.Address())
+	err = c.Nodes[pivot].UnpinChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("unpin chunk: %w", err)
 	}
