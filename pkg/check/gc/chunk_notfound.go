@@ -42,7 +42,7 @@ func CheckChunkNotFound(c bee.Cluster, o Options) error {
 	fmt.Printf("uploaded chunk %s (%d bytes) to node %d: %s\n", chunk.Address().String(), len(chunk.Data()), pivot, overlays[pivot].String())
 	size := (o.StoreSize) * swarm.ChunkSize // / o.StoreSizeDivisor) * swarm.ChunkSize
 	b := make([]byte, size)
-	for i := 0; i <= o.StoreSizeDivisor; i++ {
+	for i := 0; i < o.StoreSizeDivisor; i++ {
 		_, err := rand.Read(b)
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
