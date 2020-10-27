@@ -1,39 +1,19 @@
 package service
 
 import (
-	"context"
-	"fmt"
-
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes"
 )
 
-// Client manages communication with the Kubernetes Service.
-type Client struct {
-	clientset *kubernetes.Clientset
-}
-
-// NewClient constructs a new Client.
-func NewClient(clientset *kubernetes.Clientset) *Client {
-	return &Client{
-		clientset: clientset,
-	}
-}
-
-// Options holds optional parameters for the Client.
-type Options struct {
-	Annotations                   map[string]string
-	Labels                        map[string]string
+// Spec represents Kubernetes ServiceSpec
+type Spec struct {
 	ClusterIP                     string
 	ExternalIPs                   []string
 	ExternalName                  string
 	ExternalTrafficPolicy         string
 	LoadBalancerIP                string
 	LoadBalancerSourceRanges      []string
-	Ports                         []Port
+	Ports                         Ports
 	PublishNotReadyAddresses      bool
 	Selector                      map[string]string
 	SessionAffinity               string
@@ -42,43 +22,38 @@ type Options struct {
 	Type                          string
 }
 
-// Set creates Service, if Service already exists does nothing
-func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
-	spec := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        name,
-			Namespace:   namespace,
-			Annotations: o.Annotations,
-			Labels:      o.Labels,
-		},
-		Spec: v1.ServiceSpec{
-			ClusterIP:                o.ClusterIP,
-			ExternalIPs:              o.ExternalIPs,
-			ExternalName:             o.ExternalName,
-			ExternalTrafficPolicy:    v1.ServiceExternalTrafficPolicyType(o.ExternalTrafficPolicy),
-			LoadBalancerIP:           o.LoadBalancerIP,
-			LoadBalancerSourceRanges: o.LoadBalancerSourceRanges,
-			Ports:                    k8sPorts(o.Ports),
-			PublishNotReadyAddresses: o.PublishNotReadyAddresses,
-			Selector:                 o.Selector,
-			SessionAffinity:          v1.ServiceAffinity(o.SessionAffinity),
-			SessionAffinityConfig: &v1.SessionAffinityConfig{
-				ClientIP: &v1.ClientIPConfig{
-					TimeoutSeconds: &o.SessionAffinityTimeoutSeconds,
-				},
+// ToK8S converts ServiceSpec to Kuberntes client object
+func (s Spec) ToK8S() v1.ServiceSpec {
+	return v1.ServiceSpec{
+		ClusterIP:                s.ClusterIP,
+		ExternalIPs:              s.ExternalIPs,
+		ExternalName:             s.ExternalName,
+		ExternalTrafficPolicy:    v1.ServiceExternalTrafficPolicyType(s.ExternalTrafficPolicy),
+		LoadBalancerIP:           s.LoadBalancerIP,
+		LoadBalancerSourceRanges: s.LoadBalancerSourceRanges,
+		Ports:                    s.Ports.toK8S(),
+		PublishNotReadyAddresses: s.PublishNotReadyAddresses,
+		Selector:                 s.Selector,
+		SessionAffinity:          v1.ServiceAffinity(s.SessionAffinity),
+		SessionAffinityConfig: &v1.SessionAffinityConfig{
+			ClientIP: &v1.ClientIPConfig{
+				TimeoutSeconds: &s.SessionAffinityTimeoutSeconds,
 			},
-			TopologyKeys: o.TopologyKeys,
-			Type:         v1.ServiceType(o.Type),
 		},
+		TopologyKeys: s.TopologyKeys,
+		Type:         v1.ServiceType(s.Type),
 	}
-	_, err = c.clientset.CoreV1().Services(namespace).Create(ctx, spec, metav1.CreateOptions{})
-	if err != nil {
-		// TODO: fix condition, always true
-		if !errors.IsNotFound(err) {
-			fmt.Printf("service %s already exists in the namespace %s\n", name, namespace)
-			return nil
-		}
-		return
+}
+
+// Ports represents service's ports
+type Ports []Port
+
+// toK8S converts Ports to Kuberntes client objects
+func (ps Ports) toK8S() (l []v1.ServicePort) {
+	l = make([]v1.ServicePort, 0, len(ps))
+
+	for _, p := range ps {
+		l = append(l, p.toK8S())
 	}
 
 	return
@@ -94,6 +69,7 @@ type Port struct {
 	TargetPort  string
 }
 
+// toK8S converts Port to Kuberntes client object
 func (p Port) toK8S() v1.ServicePort {
 	return v1.ServicePort{
 		Name:        p.Name,
@@ -104,11 +80,4 @@ func (p Port) toK8S() v1.ServicePort {
 		TargetPort:  intstr.FromString(p.TargetPort),
 	}
 
-}
-
-func k8sPorts(ports []Port) (ks []v1.ServicePort) {
-	for _, port := range ports {
-		ks = append(ks, port.toK8S())
-	}
-	return
 }

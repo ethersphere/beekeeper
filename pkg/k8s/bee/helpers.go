@@ -207,7 +207,7 @@ type setVolumesOptions struct {
 	SwarmEnabled       bool
 }
 
-func setVolumes(o setVolumesOptions) (volumes []pods.Volume) {
+func setVolumes(o setVolumesOptions) (volumes pods.Volumes) {
 	volumes = append(volumes, pods.Volume{
 		ConfigMap: &pods.ConfigMapVolume{
 			Name:          "config",
@@ -226,7 +226,7 @@ func setVolumes(o setVolumesOptions) (volumes []pods.Volume) {
 			Secret: &pods.SecretVolume{
 				Name:       "clef-key",
 				SecretName: o.ClefKeySecret,
-				Items: []pods.Item{{
+				Items: pods.Items{{
 					Key:   "clef",
 					Value: "clef.key",
 				}},
@@ -238,7 +238,7 @@ func setVolumes(o setVolumesOptions) (volumes []pods.Volume) {
 			Secret: &pods.SecretVolume{
 				Name:       "libp2p-key",
 				SecretName: o.KeysSecret,
-				Items: []pods.Item{{
+				Items: pods.Items{{
 					Key:   "libp2p",
 					Value: "libp2p.key",
 				}},
@@ -250,7 +250,7 @@ func setVolumes(o setVolumesOptions) (volumes []pods.Volume) {
 			Secret: &pods.SecretVolume{
 				Name:       "swarm-key",
 				SecretName: o.KeysSecret,
-				Items: []pods.Item{{
+				Items: pods.Items{{
 					Key:   "swarm",
 					Value: "swarm.key",
 				}},
@@ -267,12 +267,12 @@ type setPersistentVolumeClaimsOptions struct {
 	StorageRequest string
 }
 
-func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs []pvc.PersistentVolumeClaim) {
+func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.PersistentVolumeClaims) {
 	if o.Enabled {
 		pvcs = append(pvcs, pvc.PersistentVolumeClaim{
 			Name: "data",
 			Spec: pvc.PersistentVolumeClaimSpec{
-				AccessModes: []pvc.AccessMode{
+				AccessModes: pvc.AccessModes{
 					pvc.AccessMode("ReadWriteOnce"),
 				},
 				RequestStorage: o.StorageRequest,
@@ -292,26 +292,22 @@ type setBeeNodePortOptions struct {
 	NodePort   int32
 }
 
-func setBeeNodePort(o setBeeNodePortOptions) (ports []service.Port) {
+func setBeeNodePort(o setBeeNodePortOptions) (ports service.Ports) {
 	if o.NodePort > 0 {
-		return []service.Port{
-			{
-				Name:       "p2p",
-				Protocol:   "TCP",
-				Port:       o.Port,
-				TargetPort: "p2p",
-				Nodeport:   o.NodePort,
-			},
-		}
-	}
-	return []service.Port{
-		{
+		return service.Ports{{
 			Name:       "p2p",
 			Protocol:   "TCP",
 			Port:       o.Port,
 			TargetPort: "p2p",
-		},
+			Nodeport:   o.NodePort,
+		}}
 	}
+	return service.Ports{{
+		Name:       "p2p",
+		Protocol:   "TCP",
+		Port:       o.Port,
+		TargetPort: "p2p",
+	}}
 }
 
 func mergeMaps(a, b map[string]string) map[string]string {

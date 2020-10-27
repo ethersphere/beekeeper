@@ -3,24 +3,47 @@ package pods
 import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/containers"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Pods represents Kubernetes PodSpecs
-type Pods []Pod
+// PodTemplateSpec represents Kubernetes PodTemplateSpec
+type PodTemplateSpec struct {
+	Name        string
+	Namespace   string
+	Annotations map[string]string
+	Labels      map[string]string
+	Spec        PodSpec
+}
+
+// ToK8S converts PodTemplateSpec to Kuberntes client objects
+func (pts PodTemplateSpec) ToK8S() v1.PodTemplateSpec {
+	return v1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        pts.Name,
+			Namespace:   pts.Namespace,
+			Annotations: pts.Annotations,
+			Labels:      pts.Labels,
+		},
+		Spec: pts.Spec.ToK8S(),
+	}
+}
+
+// PodSpecs represents Kubernetes PodSpecs
+type PodSpecs []PodSpec
 
 // ToK8S converts Pods to Kuberntes client objects
-func (ps Pods) ToK8S() (l []v1.PodSpec) {
-	l = make([]v1.PodSpec, 0, len(ps))
+func (pss PodSpecs) ToK8S() (l []v1.PodSpec) {
+	l = make([]v1.PodSpec, 0, len(pss))
 
-	for _, p := range ps {
-		l = append(l, p.ToK8S())
+	for _, ps := range pss {
+		l = append(l, ps.ToK8S())
 	}
 
 	return
 }
 
-// Pod represents Kubernetes PodSpec
-type Pod struct {
+// PodSpec represents Kubernetes PodSpec
+type PodSpec struct {
 	Affinity                      Affinity
 	AutomountServiceAccountToken  bool
 	Containers                    containers.Containers
@@ -53,8 +76,8 @@ type Pod struct {
 	Volumes                       Volumes
 }
 
-// ToK8S converts Pod to Kuberntes client object
-func (p Pod) ToK8S() v1.PodSpec {
+// ToK8S converts PodSpec to Kuberntes client object
+func (p PodSpec) ToK8S() v1.PodSpec {
 	return v1.PodSpec{
 		Affinity:                     p.Affinity.toK8S(),
 		AutomountServiceAccountToken: &p.AutomountServiceAccountToken,

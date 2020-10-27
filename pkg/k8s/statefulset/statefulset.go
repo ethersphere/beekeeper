@@ -1,87 +1,56 @@
 package statefulset
 
 import (
-	"context"
-	"fmt"
-
 	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaims"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pods"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
-// Client manages communication with the Kubernetes StatefulSet.
-type Client struct {
-	clientset *kubernetes.Clientset
+// StatefulSetSpec represents Kubernetes StatefulSetSpec
+type StatefulSetSpec struct {
+	PodManagementPolicy  string
+	Replicas             int32
+	RevisionHistoryLimit int32
+	Selector             map[string]string
+	ServiceName          string
+	Template             pods.PodTemplateSpec
+	UpdateStrategy       UpdateStrategy
+	VolumeClaimTemplates pvc.PersistentVolumeClaims
 }
 
-// NewClient constructs a new Client.
-func NewClient(clientset *kubernetes.Clientset) *Client {
-	return &Client{
-		clientset: clientset,
+// ToK8S converts StatefulSetSpec to Kuberntes client object
+func (s StatefulSetSpec) ToK8S() appsv1.StatefulSetSpec {
+	return appsv1.StatefulSetSpec{
+		PodManagementPolicy:  appsv1.PodManagementPolicyType(s.PodManagementPolicy),
+		Replicas:             &s.Replicas,
+		RevisionHistoryLimit: &s.RevisionHistoryLimit,
+		Selector:             &metav1.LabelSelector{MatchLabels: s.Selector},
+		ServiceName:          s.ServiceName,
+		Template:             s.Template.ToK8S(),
+		UpdateStrategy:       s.UpdateStrategy.toK8S(),
+		VolumeClaimTemplates: s.VolumeClaimTemplates.ToK8S(),
 	}
 }
 
-// Options holds optional parameters for the Client.
-type Options struct {
-	Annotations            map[string]string
-	Labels                 map[string]string
-	PersistentVolumeClaims pvc.PersistentVolumeClaims
-	PodManagementPolicy    string
-	PodSpec                pods.Pod
-	Replicas               int32
-	RevisionHistoryLimit   int32
-	Selector               map[string]string
-	ServiceName            string
-	UpdateStrategy         UpdateStrategy
+// UpdateStrategy represents Kubernetes StatefulSetUpdateStrategy
+type UpdateStrategy struct {
+	Type                   string
+	RollingUpdatePartition int32
 }
 
-// Set creates StatefulSet, if StatefulSet already exists updates in place
-func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
-	spec := &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        name,
-			Namespace:   namespace,
-			Annotations: o.Annotations,
-			Labels:      o.Labels,
-		},
-		Spec: appsv1.StatefulSetSpec{
-			PodManagementPolicy:  appsv1.PodManagementPolicyType(o.PodManagementPolicy),
-			Replicas:             &o.Replicas,
-			RevisionHistoryLimit: &o.RevisionHistoryLimit,
-			Selector:             &metav1.LabelSelector{MatchLabels: o.Selector},
-			ServiceName:          o.ServiceName,
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        name,
-					Namespace:   namespace,
-					Annotations: o.Annotations,
-					Labels:      o.Labels,
-				},
-				Spec: o.PodSpec.ToK8S(),
-			},
-			UpdateStrategy:       o.UpdateStrategy.toK8S(),
-			VolumeClaimTemplates: o.PersistentVolumeClaims.ToK8S(),
-		},
-	}
-
-	_, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx, spec, metav1.CreateOptions{})
-	if err != nil {
-		fmt.Println(111, err)
-		if !errors.IsNotFound(err) {
-			fmt.Printf("statefulset %s already exists in the namespace %s, updating the statefulset\n", name, namespace)
-			_, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
-			fmt.Println(222, err)
-			if err != nil {
-				return err
-			}
+// toK8S converts UpdateStrategy to Kuberntes client object
+func (u UpdateStrategy) toK8S() appsv1.StatefulSetUpdateStrategy {
+	if u.Type == "OnDelete" {
+		return appsv1.StatefulSetUpdateStrategy{
+			Type: appsv1.OnDeleteStatefulSetStrategyType,
 		}
-		fmt.Println(333, err)
-		return err
 	}
 
-	return
+	return appsv1.StatefulSetUpdateStrategy{
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+			Partition: &u.RollingUpdatePartition,
+		},
+	}
 }

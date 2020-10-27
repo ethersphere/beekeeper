@@ -1,16 +1,16 @@
-package pods
+package statefulset
 
 import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-// Client manages communication with the Kubernetes Pods.
+// Client manages communication with the Kubernetes StatefulSet.
 type Client struct {
 	clientset *kubernetes.Clientset
 }
@@ -26,30 +26,33 @@ func NewClient(clientset *kubernetes.Clientset) *Client {
 type Options struct {
 	Annotations map[string]string
 	Labels      map[string]string
-	PodSpec     PodSpec
+	Spec        StatefulSetSpec
 }
 
-// Set creates Pod, if Pod already exists updates in place
+// Set creates StatefulSet, if StatefulSet already exists updates in place
 func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
-	spec := &v1.Pod{
+	spec := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   namespace,
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 		},
-		Spec: o.PodSpec.ToK8S(),
+		Spec: o.Spec.ToK8S(),
 	}
 
-	_, err = c.clientset.CoreV1().Pods(namespace).Create(ctx, spec, metav1.CreateOptions{})
+	_, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
+		fmt.Println(111, err)
 		if !errors.IsNotFound(err) {
-			fmt.Printf("pod %s already exists in the namespace %s, updating the pod\n", name, namespace)
-			_, err = c.clientset.CoreV1().Pods(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+			fmt.Printf("statefulset %s already exists in the namespace %s, updating the statefulset\n", name, namespace)
+			_, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+			fmt.Println(222, err)
 			if err != nil {
 				return err
 			}
 		}
+		fmt.Println(333, err)
 		return err
 	}
 

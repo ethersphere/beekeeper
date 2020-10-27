@@ -130,16 +130,18 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	if err := c.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
-		Ports: []service.Port{
-			{
-				Name:       "api",
-				Protocol:   "TCP",
-				Port:       portHTTP,
-				TargetPort: "api",
+		ServiceSpec: service.Spec{
+			Ports: service.Ports{
+				{
+					Name:       "api",
+					Protocol:   "TCP",
+					Port:       portHTTP,
+					TargetPort: "api",
+				},
 			},
+			Selector: o.Selector,
+			Type:     "ClusterIP",
 		},
-		Selector: o.Selector,
-		Type:     "ClusterIP",
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
@@ -150,20 +152,22 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	if err := c.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 		Labels:      o.Labels,
-		Backend: ingress.Backend{
-			ServiceName: apiSvc,
-			ServicePort: "api",
-		},
-		Rules: []ingress.Rule{{
-			Host: o.IngressHost,
-			Paths: []ingress.Path{{
-				Backend: ingress.Backend{
-					ServiceName: apiSvc,
-					ServicePort: "api",
-				},
-				Path: "/",
+		Spec: ingress.Spec{
+			Backend: ingress.Backend{
+				ServiceName: apiSvc,
+				ServicePort: "api",
+			},
+			Rules: ingress.Rules{{
+				Host: o.IngressHost,
+				Paths: ingress.Paths{{
+					Backend: ingress.Backend{
+						ServiceName: apiSvc,
+						ServicePort: "api",
+					},
+					Path: "/",
+				}},
 			}},
-		}},
+		},
 	}); err != nil {
 		return fmt.Errorf("set ingress in namespace %s: %s", o.Namespace, err)
 	}
@@ -180,16 +184,16 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	if err := c.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
-		Ports: []service.Port{
-			{
+		ServiceSpec: service.Spec{
+			Ports: service.Ports{{
 				Name:       "debug",
 				Protocol:   "TCP",
 				Port:       portDebug,
 				TargetPort: "debug",
-			},
+			}},
+			Selector: o.Selector,
+			Type:     "ClusterIP",
 		},
-		Selector: o.Selector,
-		Type:     "ClusterIP",
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
@@ -200,20 +204,22 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	if err := c.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
 		Labels:      o.Labels,
-		Backend: ingress.Backend{
-			ServiceName: debugSvc,
-			ServicePort: "debug",
-		},
-		Rules: []ingress.Rule{{
-			Host: o.IngressDebugHost,
-			Paths: []ingress.Path{{
-				Backend: ingress.Backend{
-					ServiceName: debugSvc,
-					ServicePort: "debug",
-				},
-				Path: "/",
+		Spec: ingress.Spec{
+			Backend: ingress.Backend{
+				ServiceName: debugSvc,
+				ServicePort: "debug",
+			},
+			Rules: ingress.Rules{{
+				Host: o.IngressDebugHost,
+				Paths: ingress.Paths{{
+					Backend: ingress.Backend{
+						ServiceName: debugSvc,
+						ServicePort: "debug",
+					},
+					Path: "/",
+				}},
 			}},
-		}},
+		},
 	}); err != nil {
 		return fmt.Errorf("set ingress in namespace %s: %s", o.Namespace, err)
 	}
@@ -235,18 +241,20 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
 	if err := c.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
-		Annotations:           o.Annotations,
-		Labels:                o.Labels,
-		ExternalTrafficPolicy: "Local",
-		Ports: setBeeNodePort(setBeeNodePortOptions{
-			Name:       "p2p",
-			Protocol:   "TCP",
-			TargetPort: "p2p",
-			Port:       portP2P,
-			NodePort:   nodePortP2P,
-		}),
-		Selector: o.Selector,
-		Type:     "NodePort",
+		Annotations: o.Annotations,
+		Labels:      o.Labels,
+		ServiceSpec: service.Spec{
+			ExternalTrafficPolicy: "Local",
+			Ports: setBeeNodePort(setBeeNodePortOptions{
+				Name:       "p2p",
+				Protocol:   "TCP",
+				TargetPort: "p2p",
+				Port:       portP2P,
+				NodePort:   nodePortP2P,
+			}),
+			Selector: o.Selector,
+			Type:     "NodePort",
+		},
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
@@ -257,28 +265,30 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	if err := c.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
-		Ports: []service.Port{
-			{
-				Name:       "api",
-				Protocol:   "TCP",
-				Port:       portAPI,
-				TargetPort: "api",
+		ServiceSpec: service.Spec{
+			Ports: service.Ports{
+				{
+					Name:       "api",
+					Protocol:   "TCP",
+					Port:       portAPI,
+					TargetPort: "api",
+				},
+				{
+					Name:       "debug",
+					Protocol:   "TCP",
+					Port:       portDebug,
+					TargetPort: "debug",
+				},
+				{
+					Name:       "p2p",
+					Protocol:   "TCP",
+					Port:       portP2P,
+					TargetPort: "p2p",
+				},
 			},
-			{
-				Name:       "debug",
-				Protocol:   "TCP",
-				Port:       portDebug,
-				TargetPort: "debug",
-			},
-			{
-				Name:       "p2p",
-				Protocol:   "TCP",
-				Port:       portP2P,
-				TargetPort: "p2p",
-			},
+			Selector: o.Selector,
+			Type:     "ClusterIP",
 		},
-		Selector: o.Selector,
-		Type:     "ClusterIP",
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
 	}
@@ -292,62 +302,70 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 
 	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
-		PodSpec: pods.Pod{
-			InitContainers: setInitContainers(setInitContainersOptions{
-				ClefEnabled:         clefEnabled,
-				ClefImage:           o.ClefImage,
-				ClefImagePullPolicy: o.ClefImagePullPolicy,
-				ClefPassword:        o.ClefPassword,
-				LibP2PEnabled:       libP2PEnabled,
-				SwarmEnabled:        swarmEnabled,
-			}),
-			Containers: setContainers(setContainersOptions{
-				Name:                sSet,
-				Image:               o.Image,
-				ImagePullPolicy:     o.ImagePullPolicy,
-				LimitCPU:            o.LimitCPU,
-				LimitMemory:         o.LimitMemory,
-				RequestCPU:          o.RequestCPU,
-				RequestMemory:       o.RequestMemory,
-				PortAPI:             portAPI,
-				PortDebug:           portDebug,
-				PortP2P:             portP2P,
-				PersistenceEnabled:  o.PersistenceEnabled,
-				ClefEnabled:         clefEnabled,
-				ClefImage:           o.ClefImage,
-				ClefImagePullPolicy: o.ClefImagePullPolicy,
-				ClefPassword:        o.ClefPassword,
-				LibP2PEnabled:       libP2PEnabled,
-				SwarmEnabled:        swarmEnabled,
-			}),
-			NodeSelector: o.NodeSelector,
-			PodSecurityContext: pods.PodSecurityContext{
-				FSGroup: 999,
+		Labels:      o.Labels,
+		Spec: statefulset.StatefulSetSpec{
+			PodManagementPolicy: o.PodManagementPolicy,
+			Replicas:            1,
+			Selector:            o.Selector,
+			ServiceName:         headlessSvc,
+			Template: pods.PodTemplateSpec{
+				Name:        sSet,
+				Namespace:   o.Namespace,
+				Annotations: o.Annotations,
+				Labels:      o.Labels,
+				Spec: pods.PodSpec{
+					InitContainers: setInitContainers(setInitContainersOptions{
+						ClefEnabled:         clefEnabled,
+						ClefImage:           o.ClefImage,
+						ClefImagePullPolicy: o.ClefImagePullPolicy,
+						ClefPassword:        o.ClefPassword,
+						LibP2PEnabled:       libP2PEnabled,
+						SwarmEnabled:        swarmEnabled,
+					}),
+					Containers: setContainers(setContainersOptions{
+						Name:                sSet,
+						Image:               o.Image,
+						ImagePullPolicy:     o.ImagePullPolicy,
+						LimitCPU:            o.LimitCPU,
+						LimitMemory:         o.LimitMemory,
+						RequestCPU:          o.RequestCPU,
+						RequestMemory:       o.RequestMemory,
+						PortAPI:             portAPI,
+						PortDebug:           portDebug,
+						PortP2P:             portP2P,
+						PersistenceEnabled:  o.PersistenceEnabled,
+						ClefEnabled:         clefEnabled,
+						ClefImage:           o.ClefImage,
+						ClefImagePullPolicy: o.ClefImagePullPolicy,
+						ClefPassword:        o.ClefPassword,
+						LibP2PEnabled:       libP2PEnabled,
+						SwarmEnabled:        swarmEnabled,
+					}),
+					NodeSelector: o.NodeSelector,
+					PodSecurityContext: pods.PodSecurityContext{
+						FSGroup: 999,
+					},
+					RestartPolicy:      o.RestartPolicy,
+					ServiceAccountName: svcAccount,
+					Volumes: setVolumes(setVolumesOptions{
+						ConfigCM:           configCM,
+						KeysSecret:         keysSecret,
+						PersistenceEnabled: o.PersistenceEnabled,
+						ClefEnabled:        clefEnabled,
+						ClefKeySecret:      clefKeySecret,
+						LibP2PEnabled:      libP2PEnabled,
+						SwarmEnabled:       swarmEnabled,
+					}),
+				},
 			},
-			RestartPolicy:      o.RestartPolicy,
-			ServiceAccountName: svcAccount,
-			Volumes: setVolumes(setVolumesOptions{
-				ConfigCM:           configCM,
-				KeysSecret:         keysSecret,
-				PersistenceEnabled: o.PersistenceEnabled,
-				ClefEnabled:        clefEnabled,
-				ClefKeySecret:      clefKeySecret,
-				LibP2PEnabled:      libP2PEnabled,
-				SwarmEnabled:       swarmEnabled,
+			UpdateStrategy: statefulset.UpdateStrategy{
+				Type: o.UpdateStrategy,
+			},
+			VolumeClaimTemplates: setPersistentVolumeClaims(setPersistentVolumeClaimsOptions{
+				Enabled:        o.PersistenceEnabled,
+				StorageClass:   o.PersistenceStorageClass,
+				StorageRequest: o.PersistanceStorageRequest,
 			}),
-		},
-		Labels: o.Labels,
-		PersistentVolumeClaims: setPersistentVolumeClaims(setPersistentVolumeClaimsOptions{
-			Enabled:        o.PersistenceEnabled,
-			StorageClass:   o.PersistenceStorageClass,
-			StorageRequest: o.PersistanceStorageRequest,
-		}),
-		PodManagementPolicy: o.PodManagementPolicy,
-		Replicas:            1,
-		Selector:            o.Selector,
-		ServiceName:         headlessSvc,
-		UpdateStrategy: statefulset.UpdateStrategy{
-			Type: o.UpdateStrategy,
 		},
 	}); err != nil {
 		return fmt.Errorf("set statefulset in namespace %s: %s", o.Namespace, err)
