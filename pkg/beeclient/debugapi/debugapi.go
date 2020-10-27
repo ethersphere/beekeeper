@@ -95,7 +95,6 @@ func (c *Client) requestJSON(ctx context.Context, method, path string, body, v i
 			return err
 		}
 	}
-
 	return c.request(ctx, method, path, bodyBuffer, v)
 }
 

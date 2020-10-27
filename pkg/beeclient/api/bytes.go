@@ -27,7 +27,6 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, pin bool) (re
 	if pin {
 		h.Add("Swarm-Pin", "true")
 	}
-
 	err = b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
 	return
 }

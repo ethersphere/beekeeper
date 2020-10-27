@@ -10,7 +10,7 @@ import (
 
 func (c *command) initCheckGc() *cobra.Command {
 	const (
-		optionNameDBCapacity = "db-capacity"
+		optionNameDbCapacity = "db-capacity"
 		optionNameDivisor    = "capacity-divisor"
 		optionNameSeed       = "seed"
 	)
@@ -46,13 +46,15 @@ func (c *command) initCheckGc() *cobra.Command {
 			}
 
 			return gc.CheckChunkNotFound(cluster, gc.Options{
-				Seed: seed,
+				StoreSize:        c.config.GetInt(optionNameDbCapacity),
+				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
+				Seed:             seed,
 			})
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmd.Flags().Float64(optionNameDBCapacity, 500, "DB capacity in chunks")
+	cmd.Flags().Int(optionNameDbCapacity, 1000, "DB capacity in chunks")
 	cmd.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 

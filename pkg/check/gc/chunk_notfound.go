@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"time"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -37,9 +39,10 @@ func CheckChunkNotFound(c bee.Cluster, o Options) error {
 	if err := c.Nodes[pivot].UploadChunk(ctx, chunk, false); err != nil {
 		return fmt.Errorf("node %d: %w", pivot, err)
 	}
-	fmt.Printf("uploaded chunk %s to node %d: %s\n", chunk.Address().String(), pivot, overlays[pivot].String())
-	for i := 0; i <= o.StoreSizeDivisor+1; i++ {
-		b := make([]byte, o.StoreSize/o.StoreSizeDivisor)
+	fmt.Printf("uploaded chunk %s (%d bytes) to node %d: %s\n", chunk.Address().String(), len(chunk.Data()), pivot, overlays[pivot].String())
+	size := (o.StoreSize) * swarm.ChunkSize // / o.StoreSizeDivisor) * swarm.ChunkSize
+	b := make([]byte, size)
+	for i := 0; i <= o.StoreSizeDivisor; i++ {
 		_, err := rand.Read(b)
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
@@ -49,6 +52,8 @@ func CheckChunkNotFound(c bee.Cluster, o Options) error {
 		}
 		fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
 	}
+
+	time.Sleep(1 * time.Second)
 
 	has, err := c.Nodes[pivot].HasChunkRetry(ctx, chunk.Address(), 1)
 	if err != nil {
