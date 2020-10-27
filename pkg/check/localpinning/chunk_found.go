@@ -32,17 +32,17 @@ func CheckChunkFound(c bee.Cluster, o Options) error {
 	}
 	fmt.Printf("uploaded pinned chunk %s to node %d: %s\n", chunk.Address().String(), pivot, overlays[pivot].String())
 
-	//for i := 0; i <= o.StoreSizeDivisor+1; i++ {
 	b := make([]byte, o.StoreSize/o.StoreSizeDivisor)
-	_, err = rand.Read(b)
-	if err != nil {
-		return fmt.Errorf("rand read: %w", err)
+	for i := 0; i < o.StoreSizeDivisor; i++ {
+		_, err = rand.Read(b)
+		if err != nil {
+			return fmt.Errorf("rand read: %w", err)
+		}
+		if _, err := c.Nodes[pivot].UploadBytes(ctx, b, false); err != nil {
+			return fmt.Errorf("node %d: %w", pivot, err)
+		}
+		fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
 	}
-	if _, err := c.Nodes[pivot].UploadBytes(ctx, b, false); err != nil {
-		return fmt.Errorf("node %d: %w", pivot, err)
-	}
-	fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
-	//}
 
 	has, err := c.Nodes[pivot].HasChunk(ctx, chunk.Address())
 	if err != nil {
@@ -50,6 +50,11 @@ func CheckChunkFound(c bee.Cluster, o Options) error {
 	}
 	if !has {
 		return errors.New("pinning node: chunk not found")
+	}
+
+	err := c.Nodes[pivot].UnpinChunk(ctx, chunk.Address())
+	if err != nil {
+		return fmt.Errorf("unpin chunk: %w", err)
 	}
 	return nil
 }

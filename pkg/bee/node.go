@@ -387,8 +387,8 @@ func (n *Node) Underlay(ctx context.Context) ([]string, error) {
 	return a.Underlay, nil
 }
 
-// UnpinChunk returns true/false if chunk unpinning is successful.
-func (n *Node) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
+// UnpinChunk unpins a chunk.
+func (n *Node) UnpinChunk(ctx context.Context, a swarm.Address) error {
 	return n.api.Pinning.UnpinChunk(ctx, a)
 }
 

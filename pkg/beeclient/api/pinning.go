@@ -51,18 +51,11 @@ func (p *PinningService) PinnedChunks(ctx context.Context) (resp PinnedChunks, e
 }
 
 // UnpinChunk unpins chunk
-func (p *PinningService) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
+func (p *PinningService) UnpinChunk(ctx context.Context, a swarm.Address) error {
 	resp := struct {
 		Message string `json:"message,omitempty"`
 		Code    int    `json:"code,omitempty"`
 	}{}
 
-	err := p.client.requestJSON(ctx, http.MethodDelete, "/pinning/chunks/"+a.String(), nil, &resp)
-	if err == ErrNotFound {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return p.client.requestJSON(ctx, http.MethodDelete, "/pinning/chunks/"+a.String(), nil, &resp)
 }

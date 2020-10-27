@@ -34,6 +34,18 @@ func CheckBytesFound(c bee.Cluster, o Options) error {
 	if err != nil {
 		return err
 	}
+	errc := make(chan error)
+	defer func() {
+		for _, a := range addrs {
+			err := c.Nodes[pivot].UnpinChunk(ctx, a)
+			if err != nil {
+				select {
+				case errc <- err:
+				default:
+				}
+			}
+		}
+	}()
 
 	ref, err := c.Nodes[pivot].UploadBytes(ctx, buf, true)
 	if err != nil {
@@ -42,7 +54,7 @@ func CheckBytesFound(c bee.Cluster, o Options) error {
 
 	fmt.Printf("uploaded and pinned %d bytes with hash %s to node %d: %s\n", size, ref.String(), pivot, overlays[pivot].String())
 
-	for i := 0; i <= o.StoreSizeDivisor+1; i++ {
+	for i := 0; i < o.StoreSizeDivisor; i++ {
 		_, err := rand.Read(buf)
 		if err != nil {
 			return fmt.Errorf("rand buffer: %w", err)
