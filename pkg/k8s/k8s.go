@@ -6,6 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
+	"github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaims"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pods"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
@@ -24,6 +25,7 @@ type Client struct {
 	Ingress        *ingress.Client
 	Namespace      *namespace.Client
 	Pods           *pods.Client
+	PVC            *persistentvolumeclaims.Client
 	Secret         *secret.Client
 	ServiceAccount *serviceaccount.Client
 	Service        *service.Client
@@ -63,6 +65,7 @@ func newClient(clientset *kubernetes.Clientset) (c *Client) {
 	c.Ingress = ingress.NewClient(clientset)
 	c.Namespace = namespace.NewClient(clientset)
 	c.Pods = pods.NewClient(clientset)
+	c.PVC = persistentvolumeclaims.NewClient(clientset)
 	c.Secret = secret.NewClient(clientset)
 	c.ServiceAccount = serviceaccount.NewClient(clientset)
 	c.Service = service.NewClient(clientset)

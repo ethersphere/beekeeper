@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/containers"
+	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaims"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pods"
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
-	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 )
 
 type setInitContainersOptions struct {
@@ -267,15 +267,17 @@ type setPersistentVolumeClaimsOptions struct {
 	StorageRequest string
 }
 
-func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs []statefulset.PersistentVolumeClaim) {
+func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs []pvc.PersistentVolumeClaim) {
 	if o.Enabled {
-		pvcs = append(pvcs, statefulset.PersistentVolumeClaim{
+		pvcs = append(pvcs, pvc.PersistentVolumeClaim{
 			Name: "data",
-			AccessModes: []statefulset.AccessMode{
-				statefulset.AccessMode("ReadWriteOnce"),
+			Spec: pvc.PersistentVolumeClaimSpec{
+				AccessModes: []pvc.AccessMode{
+					pvc.AccessMode("ReadWriteOnce"),
+				},
+				RequestStorage: o.StorageRequest,
+				StorageClass:   o.StorageClass,
 			},
-			RequestStorage: o.StorageRequest,
-			StorageClass:   o.StorageClass,
 		})
 	}
 

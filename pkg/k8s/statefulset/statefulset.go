@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaims"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pods"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -28,7 +29,7 @@ func NewClient(clientset *kubernetes.Clientset) *Client {
 type Options struct {
 	Annotations            map[string]string
 	Labels                 map[string]string
-	PersistentVolumeClaims PersistentVolumeClaims
+	PersistentVolumeClaims pvc.PersistentVolumeClaims
 	PodManagementPolicy    string
 	PodSpec                pods.Pod
 	Replicas               int32
@@ -63,7 +64,7 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 				Spec: o.PodSpec.ToK8S(),
 			},
 			UpdateStrategy:       o.UpdateStrategy.toK8S(),
-			VolumeClaimTemplates: o.PersistentVolumeClaims.toK8S(namespace, o.Annotations, o.Labels),
+			VolumeClaimTemplates: o.PersistentVolumeClaims.ToK8S(),
 		},
 	}
 
