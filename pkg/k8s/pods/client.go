@@ -29,7 +29,7 @@ type Options struct {
 	PodSpec     Pod
 }
 
-// Set creates Secret, if Secret already exists updates in place
+// Set creates Pod, if Pod already exists updates in place
 func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
