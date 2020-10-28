@@ -1,6 +1,6 @@
 module github.com/ethersphere/beekeeper
 
-go 1.14
+go 1.15
 
 require (
 	github.com/ethersphere/bee v0.0.0-20200506182550-8e958f02081d
