@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -40,10 +39,11 @@ func CheckChunkNotFound(c bee.Cluster, o Options) error {
 		return fmt.Errorf("node %d: %w", pivot, err)
 	}
 	fmt.Printf("uploaded chunk %s (%d bytes) to node %d: %s\n", chunk.Address().String(), len(chunk.Data()), pivot, overlays[pivot].String())
-	size := (o.StoreSize) * swarm.ChunkSize // / o.StoreSizeDivisor) * swarm.ChunkSize
-	b := make([]byte, size)
+
+	b := make([]byte, (o.StoreSize/o.StoreSizeDivisor)*swarm.ChunkSize)
+
 	for i := 0; i < o.StoreSizeDivisor; i++ {
-		_, err := rand.Read(b)
+		_, err := rnd.Read(b)
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
 		}
@@ -53,9 +53,10 @@ func CheckChunkNotFound(c bee.Cluster, o Options) error {
 		fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
 	}
 
-	time.Sleep(1 * time.Second)
+	// allow time for syncing and GC
+	time.Sleep(5 * time.Second)
 
-	has, err := c.Nodes[pivot].HasChunkRetry(ctx, chunk.Address(), 1)
+	has, err := c.Nodes[pivot].HasChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("node has chunk: %w", err)
 	}

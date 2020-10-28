@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -32,11 +31,13 @@ func CheckChunkFound(c bee.Cluster, o Options) error {
 	if err := c.Nodes[pivot].UploadChunk(ctx, chunk, true); err != nil {
 		return fmt.Errorf("node %d: %w", pivot, err)
 	}
+
 	fmt.Printf("uploaded pinned chunk %s to node %d: %s\n", chunk.Address().String(), pivot, overlays[pivot].String())
 
-	b := make([]byte, o.StoreSize/o.StoreSizeDivisor*swarm.ChunkSize)
+	b := make([]byte, (o.StoreSize/o.StoreSizeDivisor)*swarm.ChunkSize)
+
 	for i := 0; i < o.StoreSizeDivisor; i++ {
-		_, err = rand.Read(b)
+		_, err = rnd.Read(b)
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
 		}
@@ -57,9 +58,11 @@ func CheckChunkFound(c bee.Cluster, o Options) error {
 		return errors.New("pinning node: chunk not found")
 	}
 
+	// cleanup
 	err = c.Nodes[pivot].UnpinChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("unpin chunk: %w", err)
 	}
+
 	return nil
 }

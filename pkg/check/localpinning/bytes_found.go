@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -26,7 +25,7 @@ func CheckBytesFound(c bee.Cluster, o Options) error {
 	pivot := rnd.Intn(c.Size())
 	size := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
 	buf := make([]byte, size)
-	_, err = rand.Read(buf)
+	_, err = rnd.Read(buf)
 	if err != nil {
 		return fmt.Errorf("rand buffer: %w", err)
 	}
@@ -35,18 +34,6 @@ func CheckBytesFound(c bee.Cluster, o Options) error {
 	if err != nil {
 		return err
 	}
-	errc := make(chan error)
-	defer func() {
-		for _, a := range addrs {
-			err := c.Nodes[pivot].UnpinChunk(ctx, a)
-			if err != nil {
-				select {
-				case errc <- err:
-				default:
-				}
-			}
-		}
-	}()
 
 	ref, err := c.Nodes[pivot].UploadBytes(ctx, buf, true)
 	if err != nil {
@@ -56,29 +43,38 @@ func CheckBytesFound(c bee.Cluster, o Options) error {
 	fmt.Printf("uploaded and pinned %d bytes with hash %s to node %d: %s\n", size, ref.String(), pivot, overlays[pivot].String())
 
 	for i := 0; i < o.StoreSizeDivisor; i++ {
-		_, err := rand.Read(buf)
+		_, err := rnd.Read(buf)
 		if err != nil {
 			return fmt.Errorf("rand buffer: %w", err)
 		}
 
 		// upload without pinning
-		_, err = c.Nodes[pivot].UploadBytes(ctx, buf, false)
+		a, err := c.Nodes[pivot].UploadBytes(ctx, buf, false)
 		if err != nil {
 			return fmt.Errorf("node %d: upload bytes: %w", pivot, err)
 		}
-		fmt.Printf("uploaded %d unpinned bytes successfully\n", size)
+
+		fmt.Printf("uploaded %d unpinned bytes successfully, hash %s\n", size, a.String())
 	}
 
 	// allow the nodes to sync and do some GC
 	time.Sleep(5 * time.Second)
 
 	for _, a := range addrs {
-		has, err := c.Nodes[pivot].HasChunkRetry(ctx, a, 1)
+		has, err := c.Nodes[pivot].HasChunk(ctx, a)
 		if err != nil {
 			return fmt.Errorf("node has chunk: %w", err)
 		}
 		if !has {
 			return errors.New("pinning node: chunk not found")
+		}
+	}
+
+	// cleanup
+	for _, a := range addrs {
+		err := c.Nodes[pivot].UnpinChunk(ctx, a)
+		if err != nil {
+			fmt.Errorf("cannot unpin chunk: %w", err)
 		}
 	}
 
