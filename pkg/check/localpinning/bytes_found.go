@@ -74,7 +74,7 @@ func CheckBytesFound(c bee.Cluster, o Options) error {
 	for _, a := range addrs {
 		err := c.Nodes[pivot].UnpinChunk(ctx, a)
 		if err != nil {
-			fmt.Errorf("cannot unpin chunk: %w", err)
+			return fmt.Errorf("cannot unpin chunk: %w", err)
 		}
 	}
 
