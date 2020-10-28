@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -65,10 +66,14 @@ func CheckBytesFound(c bee.Cluster, o Options) error {
 		if err != nil {
 			return fmt.Errorf("node %d: upload bytes: %w", pivot, err)
 		}
+		fmt.Printf("uploaded %d unpinned bytes successfully\n", size)
 	}
 
+	// allow the nodes to sync and do some GC
+	time.Sleep(5 * time.Second)
+
 	for _, a := range addrs {
-		has, err := c.Nodes[pivot].HasChunkRetry(ctx, a, 5)
+		has, err := c.Nodes[pivot].HasChunkRetry(ctx, a, 1)
 		if err != nil {
 			return fmt.Errorf("node has chunk: %w", err)
 		}

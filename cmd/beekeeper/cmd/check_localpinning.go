@@ -10,8 +10,7 @@ import (
 
 func (c *command) initCheckLocalPinning() []*cobra.Command {
 	const (
-		optionNameDBCapacity = "db-capacity"
-		optionNameFileName   = "file-name"
+		optionNameDbCapacity = "db-capacity"
 		optionNameDivisor    = "capacity-divisor"
 		optionNameSeed       = "seed"
 	)
@@ -47,13 +46,15 @@ func (c *command) initCheckLocalPinning() []*cobra.Command {
 			}
 
 			return localpinning.CheckChunkFound(cluster, localpinning.Options{
-				Seed: seed,
+				StoreSize:        c.config.GetInt(optionNameDbCapacity),
+				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
+				Seed:             seed,
 			})
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmdChunk.Flags().Int(optionNameDBCapacity, 1000, "DB capacity in chunks")
+	cmdChunk.Flags().Int(optionNameDbCapacity, 1000, "DB capacity in chunks")
 	cmdChunk.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmdChunk.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 
@@ -87,14 +88,16 @@ func (c *command) initCheckLocalPinning() []*cobra.Command {
 				seed = random.Int64()
 			}
 
-			return localpinning.CheckChunkFound(cluster, localpinning.Options{
-				Seed: seed,
+			return localpinning.CheckBytesFound(cluster, localpinning.Options{
+				StoreSize:        c.config.GetInt(optionNameDbCapacity),
+				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
+				Seed:             seed,
 			})
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmdBytes.Flags().Int(optionNameDBCapacity, 1000, "DB capacity in chunks")
+	cmdBytes.Flags().Int(optionNameDbCapacity, 1000, "DB capacity in chunks")
 	cmdBytes.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmdBytes.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 

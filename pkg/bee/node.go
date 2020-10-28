@@ -148,19 +148,20 @@ func (n *Node) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 // HasChunkRetry checks if a node has a chunk and retries if not.
 func (n *Node) HasChunkRetry(ctx context.Context, a swarm.Address, retries int) (bool, error) {
 	for i := 0; i <= retries; i++ {
-		time.Sleep(1 * time.Second)
 		has, err := n.HasChunk(ctx, a)
 		if err != nil {
 			if i == retries {
 				return false, err
 			}
 			if errors.Is(err, api.ErrServiceUnavailable) {
+				time.Sleep(1 * time.Second)
 				continue
 			}
 		}
 		if has {
 			return true, nil
 		}
+		time.Sleep(1 * time.Second)
 	}
 	return false, nil
 }

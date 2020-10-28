@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -32,7 +33,7 @@ func CheckChunkFound(c bee.Cluster, o Options) error {
 	}
 	fmt.Printf("uploaded pinned chunk %s to node %d: %s\n", chunk.Address().String(), pivot, overlays[pivot].String())
 
-	b := make([]byte, o.StoreSize/o.StoreSizeDivisor)
+	b := make([]byte, o.StoreSize/o.StoreSizeDivisor*swarm.ChunkSize)
 	for i := 0; i < o.StoreSizeDivisor; i++ {
 		_, err = rand.Read(b)
 		if err != nil {
