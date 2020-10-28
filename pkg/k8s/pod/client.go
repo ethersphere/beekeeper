@@ -1,4 +1,4 @@
-package persistentvolumeclaims
+package pod
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Client manages communication with the Kubernetes PersistentVolumeClaims.
+// Client manages communication with the Kubernetes Pods.
 type Client struct {
 	clientset *kubernetes.Clientset
 }
@@ -26,26 +26,26 @@ func NewClient(clientset *kubernetes.Clientset) *Client {
 type Options struct {
 	Annotations map[string]string
 	Labels      map[string]string
-	Spec        PersistentVolumeClaimSpec
+	PodSpec     PodSpec
 }
 
-// Set creates PersistentVolumeClaim, if PersistentVolumeClaim already exists updates in place
+// Set creates Pod, if Pod already exists updates in place
 func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
-	spec := &v1.PersistentVolumeClaim{
+	spec := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   namespace,
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 		},
-		Spec: o.Spec.toK8S(),
+		Spec: o.PodSpec.ToK8S(),
 	}
 
-	_, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, spec, metav1.CreateOptions{})
+	_, err = c.clientset.CoreV1().Pods(namespace).Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			fmt.Printf("pvc %s already exists in the namespace %s, updating the pvc\n", name, namespace)
-			_, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+			fmt.Printf("pod %s already exists in the namespace %s, updating the pod\n", name, namespace)
+			_, err = c.clientset.CoreV1().Pods(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 			if err != nil {
 				return err
 			}

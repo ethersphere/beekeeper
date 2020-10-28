@@ -1,4 +1,4 @@
-package pods
+package pod
 
 import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/containers"

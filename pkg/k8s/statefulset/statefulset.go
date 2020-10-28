@@ -1,8 +1,8 @@
 package statefulset
 
 import (
-	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaims"
-	"github.com/ethersphere/beekeeper/pkg/k8s/pods"
+	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaim"
+	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,7 +14,7 @@ type StatefulSetSpec struct {
 	RevisionHistoryLimit int32
 	Selector             map[string]string
 	ServiceName          string
-	Template             pods.PodTemplateSpec
+	Template             pod.PodTemplateSpec
 	UpdateStrategy       UpdateStrategy
 	VolumeClaimTemplates pvc.PersistentVolumeClaims
 }

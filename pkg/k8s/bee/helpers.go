@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/containers"
-	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaims"
-	"github.com/ethersphere/beekeeper/pkg/k8s/pods"
+	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaim"
+	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 )
 
@@ -207,26 +207,26 @@ type setVolumesOptions struct {
 	SwarmEnabled       bool
 }
 
-func setVolumes(o setVolumesOptions) (volumes pods.Volumes) {
-	volumes = append(volumes, pods.Volume{
-		ConfigMap: &pods.ConfigMapVolume{
+func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
+	volumes = append(volumes, pod.Volume{
+		ConfigMap: &pod.ConfigMapVolume{
 			Name:          "config",
 			ConfigMapName: o.ConfigCM,
 		},
 	})
 	if !o.PersistenceEnabled {
-		volumes = append(volumes, pods.Volume{
-			EmptyDir: &pods.EmptyDirVolume{
+		volumes = append(volumes, pod.Volume{
+			EmptyDir: &pod.EmptyDirVolume{
 				Name: "data",
 			},
 		})
 	}
 	if o.ClefEnabled {
-		volumes = append(volumes, pods.Volume{
-			Secret: &pods.SecretVolume{
+		volumes = append(volumes, pod.Volume{
+			Secret: &pod.SecretVolume{
 				Name:       "clef-key",
 				SecretName: o.ClefKeySecret,
-				Items: pods.Items{{
+				Items: pod.Items{{
 					Key:   "clef",
 					Value: "clef.key",
 				}},
@@ -234,11 +234,11 @@ func setVolumes(o setVolumesOptions) (volumes pods.Volumes) {
 		})
 	}
 	if o.LibP2PEnabled {
-		volumes = append(volumes, pods.Volume{
-			Secret: &pods.SecretVolume{
+		volumes = append(volumes, pod.Volume{
+			Secret: &pod.SecretVolume{
 				Name:       "libp2p-key",
 				SecretName: o.KeysSecret,
-				Items: pods.Items{{
+				Items: pod.Items{{
 					Key:   "libp2p",
 					Value: "libp2p.key",
 				}},
@@ -246,11 +246,11 @@ func setVolumes(o setVolumesOptions) (volumes pods.Volumes) {
 		})
 	}
 	if o.SwarmEnabled {
-		volumes = append(volumes, pods.Volume{
-			Secret: &pods.SecretVolume{
+		volumes = append(volumes, pod.Volume{
+			Secret: &pod.SecretVolume{
 				Name:       "swarm-key",
 				SecretName: o.KeysSecret,
-				Items: pods.Items{{
+				Items: pod.Items{{
 					Key:   "swarm",
 					Value: "swarm.key",
 				}},
