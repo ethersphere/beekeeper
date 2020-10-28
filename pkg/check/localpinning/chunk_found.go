@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -44,6 +45,9 @@ func CheckChunkFound(c bee.Cluster, o Options) error {
 		}
 		fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
 	}
+
+	// allow nodes to sync and do some GC
+	time.Sleep(5 * time.Second)
 
 	has, err := c.Nodes[pivot].HasChunk(ctx, chunk.Address())
 	if err != nil {
