@@ -24,19 +24,19 @@ func (pts PodTemplateSpec) ToK8S() v1.PodTemplateSpec {
 			Annotations: pts.Annotations,
 			Labels:      pts.Labels,
 		},
-		Spec: pts.Spec.ToK8S(),
+		Spec: pts.Spec.toK8S(),
 	}
 }
 
 // PodSpecs represents Kubernetes PodSpecs
 type PodSpecs []PodSpec
 
-// ToK8S converts Pods to Kuberntes client objects
-func (pss PodSpecs) ToK8S() (l []v1.PodSpec) {
+// toK8S converts Pods to Kuberntes client objects
+func (pss PodSpecs) toK8S() (l []v1.PodSpec) {
 	l = make([]v1.PodSpec, 0, len(pss))
 
 	for _, ps := range pss {
-		l = append(l, ps.ToK8S())
+		l = append(l, ps.toK8S())
 	}
 
 	return
@@ -76,8 +76,8 @@ type PodSpec struct {
 	Volumes                       Volumes
 }
 
-// ToK8S converts PodSpec to Kuberntes client object
-func (p PodSpec) ToK8S() v1.PodSpec {
+// toK8S converts PodSpec to Kuberntes client object
+func (p PodSpec) toK8S() v1.PodSpec {
 	return v1.PodSpec{
 		Affinity:                     p.Affinity.toK8S(),
 		AutomountServiceAccountToken: &p.AutomountServiceAccountToken,

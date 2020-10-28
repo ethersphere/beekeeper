@@ -38,7 +38,7 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 		},
-		Spec: o.PodSpec.ToK8S(),
+		Spec: o.PodSpec.toK8S(),
 	}
 
 	_, err = c.clientset.CoreV1().Pods(namespace).Create(ctx, spec, metav1.CreateOptions{})
