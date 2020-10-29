@@ -27,7 +27,12 @@ type ChunksUploadResponse struct {
 }
 
 // Upload uploads chunks to the node
-func (c *ChunksService) Upload(ctx context.Context, a swarm.Address, data io.Reader) (resp ChunksUploadResponse, err error) {
-	err = c.client.request(ctx, http.MethodPost, "/"+apiVersion+"/chunks/"+a.String(), data, &resp)
-	return
+func (c *ChunksService) Upload(ctx context.Context, a swarm.Address, data io.Reader, o UploadOptions) (ChunksUploadResponse, error) {
+	var resp ChunksUploadResponse
+	h := http.Header{}
+	if o.Pin {
+		h.Add("Swarm-Pin", "true")
+	}
+	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks/"+a.String(), h, data, &resp)
+	return resp, err
 }

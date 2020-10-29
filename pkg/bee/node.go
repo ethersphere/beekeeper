@@ -371,20 +371,22 @@ func (n *Node) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return n.api.Pinning.UnpinChunk(ctx, a)
 }
 
-// UploadBytes uploads chunk to the node
-func (n *Node) UploadBytes(ctx context.Context, c *Chunk) (err error) {
-	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(c.Data()))
+type Options struct {
+	Pin bool
+}
+
+// UploadBytes uploads bytes to the node
+func (n *Node) UploadBytes(ctx context.Context, b []byte, o api.UploadOptions) (swarm.Address, error) {
+	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(b), o)
 	if err != nil {
-		return fmt.Errorf("upload chunk: %w", err)
+		return swarm.ZeroAddress, fmt.Errorf("upload chunk: %w", err)
 	}
 
-	c.address = r.Reference
-
-	return
+	return r.Reference, nil
 }
 
 // UploadChunk uploads chunk to the node
-func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
+func (n *Node) UploadChunk(ctx context.Context, c *Chunk, o api.UploadOptions) (err error) {
 	p := bmtlegacy.NewTreePool(chunkHahser, swarm.Branches, bmtlegacy.PoolSize)
 	hasher := bmtlegacy.New(p)
 	err = hasher.SetSpan(int64(c.Span()))
@@ -397,7 +399,7 @@ func (n *Node) UploadChunk(ctx context.Context, c *Chunk) (err error) {
 	}
 	c.address = swarm.NewAddress(hasher.Sum(nil))
 
-	_, err = n.api.Chunks.Upload(ctx, c.address, bytes.NewReader(c.Data()))
+	_, err = n.api.Chunks.Upload(ctx, c.address, bytes.NewReader(c.Data()), o)
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}

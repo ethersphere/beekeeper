@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -52,13 +53,14 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			}
 
 			t0 := time.Now()
-			if err := c.Nodes[i].UploadBytes(ctx, &chunk); err != nil {
+			addr, err := c.Nodes[i].UploadBytes(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 			d0 := time.Since(t0)
 
 			uploadedCounter.WithLabelValues(overlays[i].String()).Inc()
-			uploadTimeGauge.WithLabelValues(overlays[i].String(), chunk.Address().String()).Set(d0.Seconds())
+			uploadTimeGauge.WithLabelValues(overlays[i].String(), addr.String()).Set(d0.Seconds())
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			closest, err := chunk.ClosestNode(overlays)
@@ -68,18 +70,18 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			index := findIndex(overlays, closest)
 
 			time.Sleep(1 * time.Second)
-			synced, err := c.Nodes[index].HasChunk(ctx, chunk.Address())
+			synced, err := c.Nodes[index].HasChunk(ctx, addr)
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
 			}
 			if !synced {
 				notSyncedCounter.WithLabelValues(overlays[i].String()).Inc()
-				fmt.Printf("Node %d. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+				fmt.Printf("Node %d. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), addr.String(), closest.String())
 				return errPushSync
 			}
 
 			syncedCounter.WithLabelValues(overlays[i].String()).Inc()
-			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), addr.String(), closest.String())
 
 			if pushMetrics {
 				if err := pusher.Push(); err != nil {
@@ -129,7 +131,7 @@ func CheckChunks(c bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
-			if err := c.Nodes[i].UploadChunk(ctx, &chunk); err != nil {
+			if err := c.Nodes[i].UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false}); err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
 
@@ -176,7 +178,7 @@ func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) 
 				return
 			}
 
-			if err := n.UploadBytes(ctx, &chunk); err != nil {
+			if _, err := n.UploadBytes(ctx, chunk.Data(), api.UploadOptions{Pin: false}); err != nil {
 				chunkStream <- chunkStreamMsg{Index: i, Error: err}
 				return
 			}
