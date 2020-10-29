@@ -17,11 +17,11 @@ func init() {
 
 // Get a bmt Hasher instance.
 // Instances are reset before being returned to the caller.
-func GetBmt() *bmtlegacy.Hasher {
+func Get() *bmtlegacy.Hasher {
 	return instance.Get()
 }
 
 // Put a bmt Hasher back into the pool
-func PutBmt(h *bmtlegacy.Hasher) {
+func Put(h *bmtlegacy.Hasher) {
 	instance.Put(h)
 }

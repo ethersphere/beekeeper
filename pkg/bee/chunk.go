@@ -19,8 +19,8 @@ func NewRandomChunk(r *rand.Rand) (c swarm.Chunk, err error) {
 	b := make([]byte, swarm.SpanSize)
 	binary.LittleEndian.PutUint64(b, uint64(span))
 
-	hasher := GetBmt()
-	defer PutBmt(hasher)
+	hasher := Get()
+	defer Put(hasher)
 
 	err = hasher.SetSpanBytes(b)
 	if err != nil {
