@@ -43,16 +43,13 @@ func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err
 
 	_, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx, spec, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Println(111, err)
 		if !errors.IsNotFound(err) {
 			fmt.Printf("statefulset %s already exists in the namespace %s, updating the statefulset\n", name, namespace)
 			_, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
-			fmt.Println(222, err)
 			if err != nil {
 				return err
 			}
 		}
-		fmt.Println(333, err)
 		return err
 	}
 

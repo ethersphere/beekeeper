@@ -2,23 +2,36 @@ package bee
 
 import (
 	"context"
+	"strings"
 
+	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
+)
+
+const (
+	labelBy        = "beekeeper"
+	labelComponent = "bee"
+	labelName      = "bee"
 )
 
 // DynamicCluster ...
 type DynamicCluster struct {
 	Name string
 
-	beeK8S     *k8sBee.Client
-	k8s        *k8s.Client
-	nodeGroups map[string]NodeGroup
+	namespace   string
+	annotations map[string]string
+	labels      map[string]string
+	nodeGroups  map[string]NodeGroup
+
+	beeK8S *k8sBee.Client
+	k8s    *k8s.Client
 }
 
 // DynamicClusterOptions ...
 type DynamicClusterOptions struct {
 	Name           string
+	Namespace      string
 	KubeconfigPath string
 }
 
@@ -27,10 +40,21 @@ func NewDynamicCluster(o DynamicClusterOptions) *DynamicCluster {
 	k8s := k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: o.KubeconfigPath})
 
 	return &DynamicCluster{
-		Name:       o.Name,
-		k8s:        k8s,
-		beeK8S:     k8sBee.NewClient(k8s),
+		Name: o.Name,
+
+		namespace: o.Namespace,
+		annotations: map[string]string{
+			"created-by":        labelBy,
+			"beekeeper/version": beekeeper.Version,
+		},
+		labels: map[string]string{
+			"app.kubernetes.io/managed-by": labelBy,
+			"app.kubernetes.io/name":       labelName,
+		},
 		nodeGroups: make(map[string]NodeGroup),
+
+		k8s:    k8s,
+		beeK8S: k8sBee.NewClient(k8s),
 	}
 }
 
@@ -41,29 +65,26 @@ func (dc *DynamicCluster) Start(ctx context.Context) (err error) {
 
 // NodeGroup ...
 type NodeGroup struct {
-	nodes   map[string]Client
+	Name    string
 	Options NodeGroupOptions
+
+	namespace   string
+	annotations map[string]string
+	labels      map[string]string
+	nodes       map[string]Client
+	version     string
 }
 
 // NodeGroupOptions ...
 type NodeGroupOptions struct {
-	Name                      string
-	Namespace                 string
-	Annotations               map[string]string
 	ClefImage                 string
 	ClefImagePullPolicy       string
-	ClefKey                   string
-	ClefPassword              string
-	Labels                    map[string]string
-	LimitCPU                  string
-	LimitMemory               string
 	Image                     string
 	ImagePullPolicy           string
 	IngressAnnotations        map[string]string
-	IngressHost               string
 	IngressDebugAnnotations   map[string]string
-	IngressDebugHost          string
-	LibP2PKey                 string
+	LimitCPU                  string
+	LimitMemory               string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
 	PersistenceStorageClass   string
@@ -72,60 +93,100 @@ type NodeGroupOptions struct {
 	RestartPolicy             string
 	RequestCPU                string
 	RequestMemory             string
-	Selector                  map[string]string
-	SwarmKey                  string
 	UpdateStrategy            string
 }
 
 // NewNodeGroup ...
-func (dc *DynamicCluster) NewNodeGroup(o NodeGroupOptions) {
-	dc.nodeGroups[o.Name] = NodeGroup{
-		nodes:   make(map[string]Client),
+func (dc *DynamicCluster) NewNodeGroup(name string, o NodeGroupOptions) {
+	version := strings.Split(o.Image, ":")[1]
+	dc.nodeGroups[name] = NodeGroup{
+		Name:    name,
 		Options: o,
+
+		namespace:   dc.namespace,
+		annotations: dc.annotations,
+		labels: mergeMaps(dc.labels, map[string]string{
+			"app.kubernetes.io/component": labelComponent,
+			"app.kubernetes.io/part-of":   name,
+			"app.kubernetes.io/version":   version,
+		}),
+		nodes:   make(map[string]Client),
+		version: version,
 	}
 }
 
 // NodeStartOptions ...
 type NodeStartOptions struct {
-	Name         string
-	Config       k8sBee.Config
-	GroupName    string
-	GroupOptions NodeGroupOptions
+	Name             string
+	Config           k8sBee.Config
+	Annotations      map[string]string
+	ClefKey          string
+	ClefPassword     string
+	IngressHost      string
+	IngressDebugHost string
+	Labels           map[string]string
+	LibP2PKey        string
+	SwarmKey         string
 }
 
 // NodeStart ...
-func (dc *DynamicCluster) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
+func (dc *DynamicCluster) NodeStart(ctx context.Context, groupName string, o NodeStartOptions) (err error) {
+	g := dc.nodeGroups[groupName]
+
+	labels := mergeMaps(g.labels, map[string]string{
+		"app.kubernetes.io/instance": o.Name,
+	})
+
 	return dc.beeK8S.NodeStart(ctx, k8sBee.NodeStartOptions{
 		// Bee configuration
 		Config: o.Config,
 		// Kubernetes configuration
 		Name:                      o.Name,
-		Namespace:                 o.GroupOptions.Namespace,
-		Annotations:               o.GroupOptions.Annotations,
-		ClefImage:                 o.GroupOptions.ClefImage,
-		ClefImagePullPolicy:       o.GroupOptions.ClefImagePullPolicy,
-		ClefKey:                   o.GroupOptions.ClefKey,
-		ClefPassword:              o.GroupOptions.ClefKey,
-		Labels:                    o.GroupOptions.Labels,
-		LimitCPU:                  o.GroupOptions.LimitCPU,
-		LimitMemory:               o.GroupOptions.LimitMemory,
-		Image:                     o.GroupOptions.Image,
-		ImagePullPolicy:           o.GroupOptions.ImagePullPolicy,
-		IngressAnnotations:        o.GroupOptions.IngressAnnotations,
-		IngressHost:               o.GroupOptions.IngressHost,
-		IngressDebugAnnotations:   o.GroupOptions.IngressDebugAnnotations,
-		IngressDebugHost:          o.GroupOptions.IngressDebugHost,
-		LibP2PKey:                 o.GroupOptions.LibP2PKey,
-		NodeSelector:              o.GroupOptions.NodeSelector,
-		PersistenceEnabled:        o.GroupOptions.PersistenceEnabled,
-		PersistenceStorageClass:   o.GroupOptions.PersistenceStorageClass,
-		PersistanceStorageRequest: o.GroupOptions.PersistanceStorageRequest,
-		PodManagementPolicy:       o.GroupOptions.PodManagementPolicy,
-		RestartPolicy:             o.GroupOptions.RestartPolicy,
-		RequestCPU:                o.GroupOptions.RequestCPU,
-		RequestMemory:             o.GroupOptions.RequestMemory,
-		Selector:                  o.GroupOptions.Selector,
-		SwarmKey:                  o.GroupOptions.SwarmKey,
-		UpdateStrategy:            o.GroupOptions.UpdateStrategy,
+		Namespace:                 g.namespace,
+		Annotations:               mergeMaps(g.annotations, o.Annotations),
+		ClefImage:                 g.Options.ClefImage,
+		ClefImagePullPolicy:       g.Options.ClefImagePullPolicy,
+		ClefKey:                   o.ClefKey,
+		ClefPassword:              o.ClefPassword,
+		Image:                     g.Options.Image,
+		ImagePullPolicy:           g.Options.ImagePullPolicy,
+		IngressAnnotations:        g.Options.IngressAnnotations,
+		IngressHost:               o.IngressHost,
+		IngressDebugAnnotations:   g.Options.IngressDebugAnnotations,
+		IngressDebugHost:          o.IngressDebugHost,
+		Labels:                    mergeMaps(labels, o.Labels),
+		LibP2PKey:                 o.LibP2PKey,
+		LimitCPU:                  g.Options.LimitCPU,
+		LimitMemory:               g.Options.LimitMemory,
+		NodeSelector:              g.Options.NodeSelector,
+		PersistenceEnabled:        g.Options.PersistenceEnabled,
+		PersistenceStorageClass:   g.Options.PersistenceStorageClass,
+		PersistanceStorageRequest: g.Options.PersistanceStorageRequest,
+		PodManagementPolicy:       g.Options.PodManagementPolicy,
+		RestartPolicy:             g.Options.RestartPolicy,
+		RequestCPU:                g.Options.RequestCPU,
+		RequestMemory:             g.Options.RequestMemory,
+		Selector: map[string]string{
+			"app.kubernetes.io/component":  labelComponent,
+			"app.kubernetes.io/instance":   o.Name,
+			"app.kubernetes.io/managed-by": labelBy,
+			"app.kubernetes.io/name":       labelName,
+			"app.kubernetes.io/part-of":    g.Name,
+			"app.kubernetes.io/version":    g.version,
+		},
+		SwarmKey:       o.SwarmKey,
+		UpdateStrategy: g.Options.UpdateStrategy,
 	})
+}
+
+func mergeMaps(a, b map[string]string) map[string]string {
+	m := map[string]string{}
+	for k, v := range a {
+		m[k] = v
+	}
+	for k, v := range b {
+		m[k] = v
+	}
+
+	return m
 }
