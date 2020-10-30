@@ -9,13 +9,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"reflect"
 	"sync"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
-	k8s "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
 )
 
@@ -23,7 +21,6 @@ import (
 type Client struct {
 	api   *api.Client
 	debug *debugapi.Client
-	k8s   *k8s.Client
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -47,33 +44,8 @@ func NewClient(opts ClientOptions) (c Client) {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
 		}}})
 	}
-	if len(opts.KubeconfigPath) > 0 {
-		c.k8s = k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: opts.KubeconfigPath})
-	}
 
 	return
-}
-
-// StartOptions ...
-type StartOptions struct {
-	Name    string
-	Version string
-	Options interface{}
-}
-
-// Start starts node with given options
-func (c Client) Start(ctx context.Context, o StartOptions) (err error) {
-	switch reflect.TypeOf(o.Options) {
-	case reflect.TypeOf(k8s.NodeStartOptions{}):
-		opts, ok := o.Options.(k8s.NodeStartOptions)
-		if !ok {
-			return fmt.Errorf("bad options")
-		}
-
-		return c.k8s.NodeStart(ctx, opts)
-	default:
-		return fmt.Errorf("unknown options")
-	}
 }
 
 // Addresses represents node's addresses
