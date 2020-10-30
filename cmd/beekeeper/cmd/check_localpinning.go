@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initCheckLocalPinning() *cobra.Command {
+func (c *command) initCheckLocalPinningChunk() *cobra.Command {
 	const (
 		optionNameDbCapacity = "db-capacity"
 		optionNameDivisor    = "capacity-divisor"

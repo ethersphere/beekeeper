@@ -371,10 +371,6 @@ func (n *Node) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return n.api.Pinning.UnpinChunk(ctx, a)
 }
 
-type Options struct {
-	Pin bool
-}
-
 // UploadBytes uploads bytes to the node
 func (n *Node) UploadBytes(ctx context.Context, b []byte, o api.UploadOptions) (swarm.Address, error) {
 	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(b), o)
