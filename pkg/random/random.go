@@ -13,7 +13,9 @@ func PseudoGenerator(seed int64) (g *rand.Rand) {
 	return rand.New(rand.NewSource(rnd.Int63()))
 }
 
-// PseudoGenerators returns list of n *rand.Rand
+// PseudoGenerators returns list of n *rand.Rand.
+// This is needed in cases where random number generators are used in different
+// goroutines, so that predictability of the generators can be maintained.
 func PseudoGenerators(seed int64, n int) (g []*rand.Rand) {
 	rnd := rand.New(rand.NewSource(seed))
 	for i := 0; i < n; i++ {

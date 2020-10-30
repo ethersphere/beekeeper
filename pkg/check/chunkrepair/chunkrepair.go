@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -55,7 +56,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		}
 
 		// upload the chunk in nodeA
-		err = nodeA.UploadChunk(ctx, chunk)
+		err = nodeA.UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
 		if err != nil {
 			return err
 		}
@@ -222,7 +223,7 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Node, bee
 
 // uploadAndPinChunkToNode uploads a given chunk to a given node and pins it.
 func uploadAndPinChunkToNode(ctx context.Context, node *bee.Node, chunk *bee.Chunk) error {
-	err := node.UploadChunk(ctx, chunk)
+	err := node.UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
 	if err != nil {
 		return err
 	}

@@ -22,7 +22,12 @@ type BytesUploadResponse struct {
 }
 
 // Upload uploads bytes to the node
-func (b *BytesService) Upload(ctx context.Context, data io.Reader) (resp BytesUploadResponse, err error) {
-	err = b.client.request(ctx, http.MethodPost, "/"+apiVersion+"/bytes", data, &resp)
-	return
+func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptions) (BytesUploadResponse, error) {
+	var resp BytesUploadResponse
+	h := http.Header{}
+	if o.Pin {
+		h.Add("Swarm-Pin", "true")
+	}
+	err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
+	return resp, err
 }
