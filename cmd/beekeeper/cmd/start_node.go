@@ -38,7 +38,7 @@ func (c *command) initStartNode() *cobra.Command {
 				KubeconfigPath: c.config.GetString(optionNameStartKubeconfig),
 			})
 
-			nodeGroup := bee.NodeGroupOptions{
+			cluster.NewNodeGroup(nodeGroupName, bee.NodeGroupOptions{
 				ClefImage:           "ethersphere/clef:latest",
 				ClefImagePullPolicy: "Always",
 				Image:               fmt.Sprintf("ethersphere/bee:%s", nodeGroupVersion),
@@ -71,8 +71,7 @@ func (c *command) initStartNode() *cobra.Command {
 				RequestCPU:                "750m",
 				RequestMemory:             "1Gi",
 				UpdateStrategy:            "OnDelete",
-			}
-			cluster.NewNodeGroup(nodeGroupName, nodeGroup)
+			})
 
 			return cluster.NodeStart(ctx, nodeGroupName, bee.NodeStartOptions{
 				Name:             nodeName,

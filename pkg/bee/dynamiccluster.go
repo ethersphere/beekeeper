@@ -58,8 +58,25 @@ func NewDynamicCluster(o DynamicClusterOptions) *DynamicCluster {
 	}
 }
 
+// NodeGroupList returns list of node groups in the cluster
+func (dc *DynamicCluster) NodeGroupList() (l []string) {
+	l = make([]string, len(dc.nodeGroups))
+
+	for k := range dc.nodeGroups {
+		l = append(l, k)
+	}
+
+	return
+}
+
+// NodeGroups returns map of node groups in the cluster
+func (dc *DynamicCluster) NodeGroups() (l map[string]NodeGroup) {
+	return dc.nodeGroups
+}
+
 // Start starts cluster with given options
 func (dc *DynamicCluster) Start(ctx context.Context) (err error) {
+	// check if namespace exists, and create one if doesn't
 	return
 }
 
