@@ -28,13 +28,14 @@ func (c *command) initStartNode() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx := context.Background()
 
-			node := bee.NewClient(bee.ClientOptions{KubeconfigPath: c.config.GetString(optionNameStartKubeconfig)})
-
 			namespace := c.config.GetString(optionNameStartNamespace)
 			nodeConfig.Standalone = standalone
+			node := bee.NewDynamicCluster(bee.DynamicClusterOptions{
+				Name:           "bee",
+				KubeconfigPath: c.config.GetString(optionNameStartKubeconfig),
+			})
 
-			k8sOptions := k8s.NodeStartOptions{
-				Config:    nodeConfig,
+			ngo := bee.NodeGroupOptions{
 				Name:      nodeName,
 				Namespace: namespace,
 				Annotations: map[string]string{
@@ -89,11 +90,13 @@ func (c *command) initStartNode() *cobra.Command {
 				SwarmKey:       `{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}`,
 				UpdateStrategy: "OnDelete",
 			}
+			node.NewNodeGroup(ngo)
 
-			return node.Start(ctx, bee.StartOptions{
-				Name:    nodeName,
-				Version: nodeVersion,
-				Options: k8sOptions,
+			return node.NodeStart(ctx, bee.NodeStartOptions{
+				Name:         "bee",
+				Config:       nodeConfig,
+				GroupName:    "bee",
+				GroupOptions: ngo,
 			})
 		},
 		PreRunE: c.startPreRunE,

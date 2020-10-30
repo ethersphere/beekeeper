@@ -15,8 +15,8 @@ type ClientOptions struct {
 }
 
 // NewClient returns Kubernetes clientset
-func NewClient(o *ClientOptions) (c *Client) {
-	return &Client{k8s: k8s.NewClient(&k8s.ClientOptions{
-		KubeconfigPath: o.KubeconfigPath,
-	})}
+func NewClient(k8s *k8s.Client) (c *Client) {
+	return &Client{
+		k8s: k8s,
+	}
 }
