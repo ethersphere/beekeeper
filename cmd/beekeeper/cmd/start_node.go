@@ -73,7 +73,7 @@ func (c *command) initStartNode() *cobra.Command {
 				UpdateStrategy:            "OnDelete",
 			})
 
-			err = cluster.NodeStart(ctx, nodeGroupName, bee.NodeStartOptions{
+			return cluster.NodeStart(ctx, nodeGroupName, bee.NodeStartOptions{
 				Name:                nodeName,
 				Config:              nodeConfig,
 				APIURL:              "http://bee-0.beekeeper.staging.internal",
@@ -87,18 +87,6 @@ func (c *command) initStartNode() *cobra.Command {
 				LibP2PKey:           `{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}`,
 				SwarmKey:            `{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}`,
 			})
-			if err != nil {
-				return err
-			}
-
-			node := cluster.NodeGroup(nodeGroupName).Node(nodeName)
-			r, err := node.Addresses(ctx)
-			if err != nil {
-				return err
-			}
-			fmt.Println(r)
-
-			return
 		},
 		PreRunE: c.startPreRunE,
 	}
