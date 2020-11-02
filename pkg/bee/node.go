@@ -29,7 +29,6 @@ type ClientOptions struct {
 	APIInsecureTLS      bool
 	DebugAPIURL         *url.URL
 	DebugAPIInsecureTLS bool
-	KubeconfigPath      string
 }
 
 // NewClient returns Bee client
@@ -50,8 +49,10 @@ func NewClient(opts ClientOptions) (c Client) {
 
 // Addresses represents node's addresses
 type Addresses struct {
-	Overlay  swarm.Address
-	Underlay []string
+	Overlay   swarm.Address
+	Underlay  []string
+	Ethereum  string
+	PublicKey string
 }
 
 // Addresses returns node's addresses
@@ -62,8 +63,10 @@ func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
 	}
 
 	return Addresses{
-		Overlay:  a.Overlay,
-		Underlay: a.Underlay,
+		Ethereum:  a.Ethereum,
+		Overlay:   a.Overlay,
+		PublicKey: a.PublicKey,
+		Underlay:  a.Underlay,
 	}, nil
 }
 
