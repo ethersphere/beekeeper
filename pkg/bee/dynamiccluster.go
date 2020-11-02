@@ -2,6 +2,8 @@ package bee
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
@@ -58,27 +60,21 @@ func NewDynamicCluster(o DynamicClusterOptions) *DynamicCluster {
 	}
 }
 
-// NodeGroupList returns list of node groups in the cluster
-func (dc *DynamicCluster) NodeGroupList() (l []string) {
-	l = make([]string, len(dc.nodeGroups))
-
-	for k := range dc.nodeGroups {
-		l = append(l, k)
-	}
-
-	return
-}
-
 // NodeGroups returns map of node groups in the cluster
 func (dc *DynamicCluster) NodeGroups() (l map[string]NodeGroup) {
 	return dc.nodeGroups
 }
 
-// Start starts cluster with given options
-func (dc *DynamicCluster) Start(ctx context.Context) (err error) {
-	// check if namespace exists, and create one if doesn't
-	return
+// NodeGroup returns node group
+func (dc *DynamicCluster) NodeGroup(name string) NodeGroup {
+	return dc.nodeGroups[name]
 }
+
+// Start starts cluster with given options
+// func (dc *DynamicCluster) Start(ctx context.Context) (err error) {
+// check if namespace exists, and create one if doesn't
+// return
+// }
 
 // NodeGroup ...
 type NodeGroup struct {
@@ -132,23 +128,52 @@ func (dc *DynamicCluster) NewNodeGroup(name string, o NodeGroupOptions) {
 	}
 }
 
+// Nodes returns map of node groups in the cluster
+func (ng NodeGroup) Nodes() (l map[string]Client) {
+	return ng.nodes
+}
+
+// Node returns node's client
+func (ng NodeGroup) Node(name string) Client {
+	return ng.nodes[name]
+}
+
 // NodeStartOptions ...
 type NodeStartOptions struct {
-	Name             string
-	Config           k8sBee.Config
-	Annotations      map[string]string
-	ClefKey          string
-	ClefPassword     string
-	IngressHost      string
-	IngressDebugHost string
-	Labels           map[string]string
-	LibP2PKey        string
-	SwarmKey         string
+	Name                string
+	Config              k8sBee.Config
+	Annotations         map[string]string
+	APIURL              string
+	APIInsecureTLS      bool
+	ClefKey             string
+	ClefPassword        string
+	DebugAPIURL         string
+	DebugAPIInsecureTLS bool
+	IngressHost         string
+	IngressDebugHost    string
+	Labels              map[string]string
+	LibP2PKey           string
+	SwarmKey            string
 }
 
 // NodeStart ...
 func (dc *DynamicCluster) NodeStart(ctx context.Context, groupName string, o NodeStartOptions) (err error) {
+	apiURL, err := url.Parse(o.APIURL)
+	if err != nil {
+		return fmt.Errorf("bad API url (group: %s, node: %s): %s", groupName, o.Name, err)
+	}
+	debugAPIURL, err := url.Parse(o.DebugAPIURL)
+	if err != nil {
+		return fmt.Errorf("bad debug API url (group: %s, node: %s): %s", groupName, o.Name, err)
+	}
+
 	g := dc.nodeGroups[groupName]
+	g.nodes[o.Name] = NewClient(ClientOptions{
+		APIURL:              apiURL,
+		APIInsecureTLS:      o.APIInsecureTLS,
+		DebugAPIURL:         debugAPIURL,
+		DebugAPIInsecureTLS: o.DebugAPIInsecureTLS,
+	})
 
 	labels := mergeMaps(g.labels, map[string]string{
 		"app.kubernetes.io/instance": o.Name,
