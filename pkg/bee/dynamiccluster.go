@@ -96,6 +96,7 @@ type NodeGroupOptions struct {
 	ImagePullPolicy           string
 	IngressAnnotations        map[string]string
 	IngressDebugAnnotations   map[string]string
+	InsecureTLS               bool
 	LimitCPU                  string
 	LimitMemory               string
 	NodeSelector              map[string]string
@@ -140,20 +141,18 @@ func (ng NodeGroup) Node(name string) Client {
 
 // NodeStartOptions ...
 type NodeStartOptions struct {
-	Name                string
-	Config              k8sBee.Config
-	Annotations         map[string]string
-	APIURL              string
-	APIInsecureTLS      bool
-	ClefKey             string
-	ClefPassword        string
-	DebugAPIURL         string
-	DebugAPIInsecureTLS bool
-	IngressHost         string
-	IngressDebugHost    string
-	Labels              map[string]string
-	LibP2PKey           string
-	SwarmKey            string
+	Name             string
+	Config           k8sBee.Config
+	Annotations      map[string]string
+	APIURL           string
+	ClefKey          string
+	ClefPassword     string
+	DebugAPIURL      string
+	IngressHost      string
+	IngressDebugHost string
+	Labels           map[string]string
+	LibP2PKey        string
+	SwarmKey         string
 }
 
 // NodeStart ...
@@ -170,9 +169,9 @@ func (dc *DynamicCluster) NodeStart(ctx context.Context, groupName string, o Nod
 	g := dc.nodeGroups[groupName]
 	g.nodes[o.Name] = NewClient(ClientOptions{
 		APIURL:              apiURL,
-		APIInsecureTLS:      o.APIInsecureTLS,
+		APIInsecureTLS:      g.Options.InsecureTLS,
 		DebugAPIURL:         debugAPIURL,
-		DebugAPIInsecureTLS: o.DebugAPIInsecureTLS,
+		DebugAPIInsecureTLS: g.Options.InsecureTLS,
 	})
 
 	labels := mergeMaps(g.labels, map[string]string{
