@@ -411,7 +411,21 @@ func (n *Node) RemoveChunk(ctx context.Context, c *Chunk) (err error) {
 // UploadFile uploads file to the node
 func (n *Node) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
 	h := fileHahser()
-	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin)
+	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, 0)
+	if err != nil {
+		return fmt.Errorf("upload file: %w", err)
+	}
+
+	f.address = r.Reference
+	f.hash = h.Sum(nil)
+
+	return
+}
+
+// UploadFileWithTag uploads file with tag to the node
+func (n *Node) UploadFileWithTag(ctx context.Context, f *File, pin bool, tagUID uint32) (err error) {
+	h := fileHahser()
+	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, tagUID)
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
@@ -450,4 +464,26 @@ func (n *Node) DownloadManifestFile(ctx context.Context, a swarm.Address, path s
 	}
 
 	return size, h.Sum(nil), nil
+}
+
+// CreateTag creates tag on the node
+func (n *Node) CreateTag(ctx context.Context) (resp api.TagResponse, err error) {
+
+	resp, err = n.api.Tags.CreateTag(ctx)
+	if err != nil {
+		return resp, fmt.Errorf("create tag: %w", err)
+	}
+
+	return
+}
+
+// GetTag retrieves tag from node
+func (n *Node) GetTag(ctx context.Context, tagUID uint32) (resp api.TagResponse, err error) {
+
+	resp, err = n.api.Tags.GetTag(ctx, tagUID)
+	if err != nil {
+		return resp, fmt.Errorf("get tag: %w", err)
+	}
+
+	return
 }
