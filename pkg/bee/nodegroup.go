@@ -71,10 +71,20 @@ type NodeStartOptions struct {
 
 // NodeStart ...
 func (g *NodeGroup) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
+	aURL, err := g.cluster.apiURL(o.Name)
+	if err != nil {
+		return err
+	}
+
+	dURL, err := g.cluster.debugAPIURL(o.Name)
+	if err != nil {
+		return err
+	}
+
 	c := NewClient(ClientOptions{
-		APIURL:              g.cluster.apiURL(o.Name),
+		APIURL:              aURL,
 		APIInsecureTLS:      g.cluster.apiInsecureTLS,
-		DebugAPIURL:         g.cluster.debugAPIURL(o.Name),
+		DebugAPIURL:         dURL,
 		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
 	})
 	g.nodes[o.Name] = &c
