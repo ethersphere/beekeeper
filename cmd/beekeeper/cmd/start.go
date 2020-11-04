@@ -21,6 +21,12 @@ func (c *command) initStartCmd() (err error) {
 		},
 	}
 
+	cmd.PersistentFlags().String(optionNameAPIDomain, "staging.internal", "API DNS domain")
+	cmd.PersistentFlags().BoolVar(&insecureTLSAPI, optionNameAPIInsecureTLS, false, "skips TLS verification for API")
+	cmd.PersistentFlags().String(optionNameAPIScheme, "https", "API scheme")
+	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "staging.internal", "debug API DNS domain")
+	cmd.PersistentFlags().BoolVar(&insecureTLSDebugAPI, optionNameDebugAPIInsecureTLS, false, "skips TLS verification for debug API")
+	cmd.PersistentFlags().String(optionNameDebugAPIScheme, "https", "debug API scheme")
 	cmd.PersistentFlags().String(optionNameStartKubeconfig, "~/.kube/config", "kubernetes config file")
 	cmd.PersistentFlags().StringP(optionNameStartNamespace, "n", "beekeeper", "kubernetes namespace")
 
