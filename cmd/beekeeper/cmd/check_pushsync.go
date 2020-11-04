@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
@@ -15,14 +16,20 @@ func (c *command) initCheckPushSync() *cobra.Command {
 	const (
 		optionNameUploadNodeCount = "upload-node-count"
 		optionNameChunksPerNode   = "chunks-per-node"
+		optionNameFilesPerNode    = "files-per-node"
 		optionNameSeed            = "seed"
 		optionNameConcurrent      = "concurrent"
 		optionNameUploadChunks    = "upload-chunks"
+		optionNameUploadFiles     = "upload-files"
+		optionNameFileSize        = "file-size"
+		optionNameRetries         = "retries"
+		optionNameRetryDelay      = "retry-delay"
 	)
 
 	var (
 		concurrent   bool
 		uploadChunks bool
+		uploadFiles  bool
 	)
 
 	cmd := &cobra.Command{
@@ -78,6 +85,21 @@ and checks if chunks are synced to their closest nodes.`,
 				})
 			}
 
+			if uploadFiles {
+				fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
+				retryDelayDuration := c.config.GetDuration(optionNameRetryDelay)
+
+				return pushsync.CheckFiles(cluster, pushsync.Options{
+					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
+					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
+					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
+					FileSize:        fileSize,
+					Retries:         c.config.GetInt(optionNameRetries),
+					RetryDelay:      retryDelayDuration,
+					Seed:            seed,
+				})
+			}
+
 			return pushsync.Check(cluster, pushsync.Options{
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
@@ -89,9 +111,14 @@ and checks if chunks are synced to their closest nodes.`,
 
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload to")
 	cmd.Flags().IntP(optionNameChunksPerNode, "p", 1, "number of data to upload per node")
+	cmd.Flags().IntP(optionNameFilesPerNode, "f", 1, "number of files to upload per node")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 	cmd.Flags().BoolVar(&concurrent, optionNameConcurrent, false, "upload concurrently")
 	cmd.Flags().BoolVar(&uploadChunks, optionNameUploadChunks, false, "upload chunks")
+	cmd.Flags().BoolVar(&uploadFiles, optionNameUploadFiles, false, "upload files")
+	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
+	cmd.Flags().Int(optionNameRetries, 5, "number of reties on problems")
+	cmd.Flags().Duration(optionNameRetryDelay, time.Second, "retry delay duration")
 
 	return cmd
 }

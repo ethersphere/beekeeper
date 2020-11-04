@@ -8,19 +8,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
-	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 
-	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // Options represents pushsync check options
 type Options struct {
 	UploadNodeCount int
 	ChunksPerNode   int
+	FilesPerNode    int
+	FileSize        int64
+	Retries         int
+	RetryDelay      time.Duration
 	Seed            int64
 }
 
@@ -152,6 +156,74 @@ func CheckChunks(c bee.Cluster, o Options) (err error) {
 			}
 
 			fmt.Printf("Node %d. Chunk %d found on the closest node. Node: %s Chunk: %s Closest: %s\n", i, j, overlays[i].String(), chunk.Address().String(), closest.String())
+		}
+	}
+
+	return
+}
+
+// CheckFiles uploads given files on cluster and verifies expected tag state
+func CheckFiles(c bee.Cluster, o Options) (err error) {
+	ctx := context.Background()
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	fmt.Printf("Seed: %d\n", o.Seed)
+
+	overlays, err := c.Overlays(ctx)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < o.UploadNodeCount; i++ {
+		for j := 0; j < o.FilesPerNode; j++ {
+			rnd := rnds[i]
+			fileSize := o.FileSize + int64(j)
+			file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d-%d", "file", i, j), fileSize)
+
+			tagResponse, err := c.Nodes[i].CreateTag(ctx)
+			if err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+
+			tagUID := tagResponse.Uid
+
+			if err := c.Nodes[i].UploadFileWithTag(ctx, &file, false, tagUID); err != nil {
+				return fmt.Errorf("node %d: %w", i, err)
+			}
+
+			fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[i].String())
+
+			checkRetryCount := 0
+
+			for {
+				checkRetryCount++
+				if checkRetryCount > o.Retries {
+					return fmt.Errorf("exceeded number of retires: %w", errPushSync)
+				}
+
+				time.Sleep(o.RetryDelay)
+
+				afterUploadTagResponse, err := c.Nodes[i].GetTag(ctx, tagUID)
+				if err != nil {
+					return fmt.Errorf("node %d: %w", i, err)
+				}
+
+				tagSplitCount := afterUploadTagResponse.Split
+				tagSentCount := afterUploadTagResponse.Sent
+				tagSeenCount := afterUploadTagResponse.Seen
+
+				diff := tagSplitCount - (tagSentCount + tagSeenCount)
+
+				if diff != 0 {
+					fmt.Printf("File %s tag counters do not match (diff: %d): %+v\n", file.Address().String(), diff, afterUploadTagResponse)
+					continue
+				}
+
+				fmt.Printf("File %s tag counters: %+v\n", file.Address().String(), afterUploadTagResponse)
+
+				// check succeeded
+				break
+			}
+
 		}
 	}
 
