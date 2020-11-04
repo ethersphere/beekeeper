@@ -46,7 +46,8 @@ func NewRandomChunk(r *rand.Rand) (c Chunk, err error) {
 	data = append(b, data...)
 
 	c = Chunk{data: data, span: span}
-	return
+	err = c.SetAddress()
+	return c, err
 }
 
 // Address returns chunk's address
