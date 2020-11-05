@@ -85,7 +85,7 @@ func (dc *DynamicCluster) NodeGroup(name string) *NodeGroup {
 
 // apiURL generates URL for node's API
 func (dc *DynamicCluster) apiURL(name string) (u *url.URL, err error) {
-	u, err = url.Parse(fmt.Sprintf("%s://%s-0.%s.%s", dc.apiScheme, name, dc.namespace, dc.apiDomain))
+	u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", dc.apiScheme, name, dc.namespace, dc.apiDomain))
 	if err != nil {
 		return nil, fmt.Errorf("bad API url for node %s: %s", name, err)
 	}
@@ -94,12 +94,12 @@ func (dc *DynamicCluster) apiURL(name string) (u *url.URL, err error) {
 
 // ingressHost generates host for node's API ingress
 func (dc *DynamicCluster) ingressHost(name string) string {
-	return fmt.Sprintf("%s-0.%s.%s", name, dc.namespace, dc.apiDomain)
+	return fmt.Sprintf("%s.%s.%s", name, dc.namespace, dc.apiDomain)
 }
 
 // debugAPIURL generates URL for node's DebugAPI
 func (dc *DynamicCluster) debugAPIURL(name string) (u *url.URL, err error) {
-	u, err = url.Parse(fmt.Sprintf("%s://%s-0-debug.%s.%s", dc.debugAPIScheme, name, dc.namespace, dc.debugAPIDomain))
+	u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s.%s", dc.debugAPIScheme, name, dc.namespace, dc.debugAPIDomain))
 	if err != nil {
 		return nil, fmt.Errorf("bad debug API url for node %s: %s", name, err)
 	}
@@ -108,7 +108,7 @@ func (dc *DynamicCluster) debugAPIURL(name string) (u *url.URL, err error) {
 
 // ingressHost generates host for node's DebugAPI ingress
 func (dc *DynamicCluster) ingressDebugHost(name string) string {
-	return fmt.Sprintf("%s-0-debug.%s.%s", name, dc.namespace, dc.debugAPIDomain)
+	return fmt.Sprintf("%s-debug.%s.%s", name, dc.namespace, dc.debugAPIDomain)
 }
 
 // mergeMaps joins two maps
