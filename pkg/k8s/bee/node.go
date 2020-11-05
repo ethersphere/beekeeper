@@ -94,7 +94,7 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	fmt.Printf("secret %s is set in namespace %s\n", keysSecret, o.Namespace)
 
 	// secret with clef key
-	clefKeySecret := "clef-key"
+	clefKeySecret := fmt.Sprintf("%s-clef-key", o.Name)
 	if len(o.ClefKey) > 0 {
 		clefKeySecretData := map[string]string{
 			"clef": o.ClefKey,

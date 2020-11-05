@@ -58,7 +58,7 @@ func (c *command) initStartNode() *cobra.Command {
 			})
 
 			// node group
-			ngOptions := defaultNodeGroupOptions
+			ngOptions := newDefaultNodeGroupOptions()
 			ngOptions.Image = fmt.Sprintf("ethersphere/bee:%s", nodeGroupVersion)
 			ngOptions.Labels = map[string]string{
 				"app.kubernetes.io/component": nodeGroupName,
@@ -68,7 +68,7 @@ func (c *command) initStartNode() *cobra.Command {
 			cluster.AddNodeGroup(nodeGroupName, ngOptions)
 			ng := cluster.NodeGroup(nodeGroupName)
 
-			nodeConfig := beeDefaultConfig
+			nodeConfig := newBeeDefaultConfig()
 			nodeConfig.Bootnodes = bootnodes
 			nodeConfig.Standalone = standalone
 

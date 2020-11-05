@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -11,22 +12,20 @@ import (
 
 func (c *command) initStartCluster() *cobra.Command {
 	const (
-		createdBy                   = "beekeeper"
-		labelName                   = "bee"
-		managedBy                   = "beekeeper"
-		optionNameClusterName       = "cluster-name"
-		optionNameNodeGroupName     = "node-group-name"
-		optionNameNodeGroup2Name    = "node-group2-name"
-		optionNameNodeGroupVersion  = "node-group-version"
-		optionNameNodeGroup2Version = "node-group2-version"
+		createdBy               = "beekeeper"
+		labelName               = "bee"
+		managedBy               = "beekeeper"
+		optionNameClusterName   = "cluster-name"
+		optionNameImage         = "bee-image"
+		optionNameBootnodeCount = "bootnode-count"
+		optionNameNodeCount     = "node-count"
 	)
 
 	var (
-		clusterName       string
-		nodeGroupName     string
-		nodeGroupVersion  string
-		nodeGroup2Name    string
-		nodeGroup2Version string
+		clusterName   string
+		image         string
+		bootnodeCount int
+		nodeCount     int
 	)
 
 	cmd := &cobra.Command{
@@ -55,79 +54,55 @@ func (c *command) initStartCluster() *cobra.Command {
 				Namespace: c.config.GetString(optionNameStartNamespace),
 			})
 
-			// node group
-			ngOptions := defaultNodeGroupOptions
-			ngOptions.Image = fmt.Sprintf("ethersphere/bee:%s", nodeGroupVersion)
+			// bootnodes group
+			bgName := "bootnodes"
+			bgOptions := newDefaultNodeGroupOptions()
+			bgOptions.Image = image
+			bgOptions.Labels = map[string]string{
+				"app.kubernetes.io/component": "bootnode",
+				"app.kubernetes.io/part-of":   bgName,
+				"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+			}
+			cluster.AddNodeGroup(bgName, bgOptions)
+			bg := cluster.NodeGroup(bgName)
+
+			bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameStartNamespace))
+			for i := 0; i < bootnodeCount; i++ {
+				bConfig := newBeeDefaultConfig()
+				bConfig.Bootnodes = bSetup[i].Bootnodes
+				if err := bg.NodeStart(ctx, bee.NodeStartOptions{
+					Name:         fmt.Sprintf("bootnode-%d", i),
+					Config:       bConfig,
+					ClefKey:      bSetup[i].ClefKey,
+					ClefPassword: bSetup[i].ClefPassword,
+					LibP2PKey:    bSetup[i].LibP2PKey,
+					SwarmKey:     bSetup[i].SwarmKey,
+				}); err != nil {
+					return fmt.Errorf("starting bootnode-%d: %s", i, err)
+				}
+			}
+
+			// nodes group
+			ngName := "nodes"
+			ngOptions := newDefaultNodeGroupOptions()
+			ngOptions.Image = image
 			ngOptions.Labels = map[string]string{
-				"app.kubernetes.io/component": nodeGroupName,
-				"app.kubernetes.io/part-of":   nodeGroupName,
-				"app.kubernetes.io/version":   nodeGroupVersion,
+				"app.kubernetes.io/component": "node",
+				"app.kubernetes.io/part-of":   ngName,
+				"app.kubernetes.io/version":   strings.Split(image, ":")[1],
 			}
-			cluster.AddNodeGroup(nodeGroupName, ngOptions)
-			ng := cluster.NodeGroup(nodeGroupName)
+			cluster.AddNodeGroup(ngName, ngOptions)
+			ng := cluster.NodeGroup(ngName)
 
-			// node group 2
-			ng2Options := defaultNodeGroupOptions
-			ng2Options.Image = fmt.Sprintf("ethersphere/bee:%s", nodeGroup2Version)
-			ng2Options.Labels = map[string]string{
-				"app.kubernetes.io/component": nodeGroup2Name,
-				"app.kubernetes.io/part-of":   nodeGroup2Name,
-				"app.kubernetes.io/version":   nodeGroup2Version,
-			}
-			cluster.AddNodeGroup(nodeGroup2Name, ng2Options)
-			ng2 := cluster.NodeGroup(nodeGroup2Name)
-
-			bn1Config := beeDefaultConfig
-			bn1Config.Bootnodes = fmt.Sprintf(setup1.Bootnode, "bootnode-1", "beekeeper")
-			if err := ng.NodeStart(ctx, bee.NodeStartOptions{
-				Name:         "bootnode-0",
-				Config:       bn1Config,
-				ClefKey:      setup0.ClefKey,
-				ClefPassword: setup0.ClefPassword,
-				LibP2PKey:    setup0.LibP2PKey,
-				SwarmKey:     setup0.SwarmKey,
-			}); err != nil {
-				return err
-			}
-
-			bn2Config := beeDefaultConfig
-			bn2Config.Bootnodes = fmt.Sprintf(setup0.Bootnode, "bootnode-0", "beekeeper")
-			if err := ng.NodeStart(ctx, bee.NodeStartOptions{
-				Name:         "bootnode-1",
-				Config:       bn2Config,
-				ClefKey:      setup1.ClefKey,
-				ClefPassword: setup1.ClefPassword,
-				LibP2PKey:    setup1.LibP2PKey,
-				SwarmKey:     setup1.SwarmKey,
-			}); err != nil {
-				return err
-			}
-
-			b1Config := beeDefaultConfig
-			b1Config.Bootnodes = fmt.Sprintf(setup0.Bootnode, "bootnode-0", "beekeeper") + " " + fmt.Sprintf(setup1.Bootnode, "bootnode-1", "beekeeper")
-			if err := ng2.NodeStart(ctx, bee.NodeStartOptions{
-				Name:   "bee-0",
-				Config: b1Config,
-			}); err != nil {
-				return err
-			}
-
-			b2Config := beeDefaultConfig
-			b2Config.Bootnodes = fmt.Sprintf(setup0.Bootnode, "bootnode-0", "beekeeper") + " " + fmt.Sprintf(setup1.Bootnode, "bootnode-1", "beekeeper")
-			if err := ng2.NodeStart(ctx, bee.NodeStartOptions{
-				Name:   "bee-1",
-				Config: b2Config,
-			}); err != nil {
-				return err
-			}
-
-			b3Config := beeDefaultConfig
-			b3Config.Bootnodes = fmt.Sprintf(setup0.Bootnode, "bootnode-0", "beekeeper") + " " + fmt.Sprintf(setup1.Bootnode, "bootnode-1", "beekeeper")
-			if err := ng2.NodeStart(ctx, bee.NodeStartOptions{
-				Name:   "bee-2",
-				Config: b3Config,
-			}); err != nil {
-				return err
+			nConfig := newBeeDefaultConfig()
+			nConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameStartNamespace))
+			for i := 0; i < nodeCount; i++ {
+				if err := ng.NodeStart(ctx, bee.NodeStartOptions{
+					Name:   fmt.Sprintf("bee-%d", i),
+					Config: nConfig,
+				}); err != nil {
+					return fmt.Errorf("starting bee-%d: %s", i, err)
+				}
 			}
 
 			return
@@ -135,11 +110,10 @@ func (c *command) initStartCluster() *cobra.Command {
 		PreRunE: c.startPreRunE,
 	}
 
-	cmd.PersistentFlags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
-	cmd.PersistentFlags().StringVar(&nodeGroupName, optionNameNodeGroupName, "bootnode", "node group name")
-	cmd.PersistentFlags().StringVar(&nodeGroupVersion, optionNameNodeGroupVersion, "latest", "node group version")
-	cmd.PersistentFlags().StringVar(&nodeGroup2Name, optionNameNodeGroup2Name, "bee", "node group name")
-	cmd.PersistentFlags().StringVar(&nodeGroup2Version, optionNameNodeGroup2Version, "latest", "node group version")
+	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
+	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
+	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 1, "number of bootnodes")
+	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
 
 	return cmd
 }
