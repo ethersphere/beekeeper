@@ -373,12 +373,6 @@ func (cs *Cluster) RemoveNodes(count int) (err error) {
 	return
 }
 
-// SentReceived object
-type SentReceived struct {
-	Received int
-	Sent     int
-}
-
 // Settlements returns settlements of all nodes in the cluster
 func (cs *Cluster) Settlements(ctx context.Context) (settlements map[string]map[string]SentReceived, err error) {
 	overlays, err := cs.Overlays(ctx)

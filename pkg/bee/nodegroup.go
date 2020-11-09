@@ -2,22 +2,24 @@ package bee
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 )
 
-// NodeGroup ...
+// NodeGroup represents group of Bee nodes
 type NodeGroup struct {
-	Name string
-
+	name  string
 	nodes map[string]*Client
 	opts  NodeGroupOptions
-	// set when added to cluster
+	// set when added to the cluster
 	cluster *DynamicCluster
 	k8s     *k8sBee.Client
 }
 
-// NodeGroupOptions ...
+// NodeGroupOptions represents node group options
 type NodeGroupOptions struct {
 	Annotations               map[string]string
 	ClefImage                 string
@@ -40,16 +42,202 @@ type NodeGroupOptions struct {
 	UpdateStrategy            string
 }
 
-// NewNodeGroup ...
+// NewNodeGroup returns new node group
 func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 	return &NodeGroup{
-		Name:  name,
+		name:  name,
 		nodes: make(map[string]*Client),
 		opts:  o,
 	}
 }
 
-// Nodes returns map of node groups in the cluster
+// AddNode adss new node to the node group
+func (g *NodeGroup) AddNode(ctx context.Context, name string) (err error) {
+	aURL, err := g.cluster.apiURL(name)
+	if err != nil {
+		return fmt.Errorf("adding node %s: %s", name, err)
+	}
+
+	dURL, err := g.cluster.debugAPIURL(name)
+	if err != nil {
+		return fmt.Errorf("adding node %s: %s", name, err)
+	}
+
+	c := NewClient(ClientOptions{
+		APIURL:              aURL,
+		APIInsecureTLS:      g.cluster.apiInsecureTLS,
+		DebugAPIURL:         dURL,
+		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
+	})
+	g.nodes[name] = &c
+
+	return
+}
+
+// Addresses returns addresses of all nodes in the node group
+func (g *NodeGroup) Addresses(ctx context.Context) (addrs map[string]Addresses, err error) {
+	var msgs []AddressesStreamMsg2
+	for m := range g.AddressesStream(ctx) {
+		msgs = append(msgs, m)
+	}
+
+	addrs = make(map[string]Addresses)
+	for _, m := range msgs {
+		if m.Error != nil {
+			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+		}
+		addrs[m.Name] = m.Addresses
+	}
+
+	return
+}
+
+// AddressesStreamMsg2 represents message sent over the AddressStream channel
+type AddressesStreamMsg2 struct {
+	Name      string
+	Addresses Addresses
+	Error     error
+}
+
+// AddressesStream returns stream of addresses of all nodes in the node group
+func (g *NodeGroup) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg2 {
+	addressStream := make(chan AddressesStreamMsg2)
+
+	var wg sync.WaitGroup
+	for k, v := range g.nodes {
+		wg.Add(1)
+		go func(n string, c *Client) {
+			defer wg.Done()
+
+			a, err := c.Addresses(ctx)
+			addressStream <- AddressesStreamMsg2{
+				Name:      n,
+				Addresses: a,
+				Error:     err,
+			}
+		}(k, v)
+	}
+
+	go func() {
+		wg.Wait()
+		close(addressStream)
+	}()
+
+	return addressStream
+}
+
+// Balances returns balances of all nodes in the cluster
+func (g *NodeGroup) Balances(ctx context.Context) (balances map[string]Balances, err error) {
+	var msgs []BalancesStreamMsg2
+	for m := range g.BalancesStream(ctx) {
+		msgs = append(msgs, m)
+	}
+
+	balances = make(map[string]Balances)
+	for _, m := range msgs {
+		if m.Error != nil {
+			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+		}
+
+		balances[m.Name] = m.Balances
+	}
+
+	return
+}
+
+// BalancesStreamMsg2 represents message sent over the BalancesStream channel
+type BalancesStreamMsg2 struct {
+	Name     string
+	Balances Balances
+	Error    error
+}
+
+// BalancesStream returns stream of balances of all nodes in the cluster
+func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg2 {
+	balancesStream := make(chan BalancesStreamMsg2)
+
+	var wg sync.WaitGroup
+	for k, v := range g.nodes {
+		wg.Add(1)
+		go func(n string, c *Client) {
+			defer wg.Done()
+
+			b, err := c.Balances(ctx)
+			balancesStream <- BalancesStreamMsg2{
+				Name:     n,
+				Balances: b,
+				Error:    err,
+			}
+		}(k, v)
+	}
+
+	go func() {
+		wg.Wait()
+		close(balancesStream)
+	}()
+
+	return balancesStream
+}
+
+// GlobalReplicationFactor returns the total number of nodes in the node group that contain given chunk
+func (g *NodeGroup) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (counter int, err error) {
+	var msgs []HasChunkStreamMsg2
+	for m := range g.HasChunkStream(ctx, a) {
+		msgs = append(msgs, m)
+	}
+
+	for _, m := range msgs {
+		if m.Error != nil {
+			return 0, fmt.Errorf("%s: %w", m.Name, m.Error)
+		}
+		if m.Found {
+			counter++
+		}
+	}
+
+	return
+}
+
+// HasChunkStreamMsg2 represents message sent over the HasChunkStream channel
+type HasChunkStreamMsg2 struct {
+	Name  string
+	Found bool
+	Error error
+}
+
+// HasChunkStream returns stream of HasChunk requests for all nodes in the node group
+func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) <-chan HasChunkStreamMsg2 {
+	hasChunkStream := make(chan HasChunkStreamMsg2)
+
+	go func() {
+		var wg sync.WaitGroup
+		for k, v := range g.nodes {
+			wg.Add(1)
+			go func(n string, c *Client) {
+				defer wg.Done()
+
+				found, err := c.HasChunk(ctx, a)
+				hasChunkStream <- HasChunkStreamMsg2{
+					Name:  n,
+					Found: found,
+					Error: err,
+				}
+			}(k, v)
+		}
+
+		wg.Wait()
+		close(hasChunkStream)
+	}()
+
+	return hasChunkStream
+}
+
+// Name returns name of the node group
+func (g *NodeGroup) Name() string {
+	return g.name
+}
+
+// Nodes returns map of node groups in the node group
 func (g *NodeGroup) Nodes() (l map[string]*Client) {
 	return g.nodes
 }
@@ -59,8 +247,189 @@ func (g *NodeGroup) Node(name string) *Client {
 	return g.nodes[name]
 }
 
-// NodeStartOptions ...
-type NodeStartOptions struct {
+// Overlays returns overlay addresses of all nodes in the node group
+func (g *NodeGroup) Overlays(ctx context.Context) (overlays map[string]swarm.Address, err error) {
+	var msgs []OverlaysStreamMsg2
+	for m := range g.OverlaysStream(ctx) {
+		msgs = append(msgs, m)
+	}
+
+	overlays = make(map[string]swarm.Address)
+	for _, m := range msgs {
+		if m.Error != nil {
+			return nil, m.Error
+		}
+		overlays[m.Name] = m.Address
+	}
+
+	return
+}
+
+// OverlaysStreamMsg2 represents message sent over the OverlaysStream channel
+type OverlaysStreamMsg2 struct {
+	Name    string
+	Address swarm.Address
+	Error   error
+}
+
+// OverlaysStream returns stream of overlay addresses of all nodes in the node group
+// TODO: add semaphore
+func (g *NodeGroup) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg2 {
+	overlaysStream := make(chan OverlaysStreamMsg2)
+
+	var wg sync.WaitGroup
+	for k, v := range g.nodes {
+		wg.Add(1)
+		go func(n string, c *Client) {
+			defer wg.Done()
+
+			a, err := c.Overlay(ctx)
+			overlaysStream <- OverlaysStreamMsg2{
+				Name:    n,
+				Address: a,
+				Error:   err,
+			}
+		}(k, v)
+	}
+
+	go func() {
+		wg.Wait()
+		close(overlaysStream)
+	}()
+
+	return overlaysStream
+}
+
+// Peers returns peers of all nodes in the node group
+func (g *NodeGroup) Peers(ctx context.Context) (peers map[string][]swarm.Address, err error) {
+	var msgs []PeersStreamMsg2
+	for m := range g.PeersStream(ctx) {
+		msgs = append(msgs, m)
+	}
+
+	peers = make(map[string][]swarm.Address)
+	for _, m := range msgs {
+		if m.Error != nil {
+			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+		}
+		peers[m.Name] = m.Peers
+	}
+
+	return
+}
+
+// PeersStreamMsg2 represents message sent over the PeersStream channel
+type PeersStreamMsg2 struct {
+	Name  string
+	Peers []swarm.Address
+	Error error
+}
+
+// PeersStream returns stream of peers of all nodes in the node group
+func (g *NodeGroup) PeersStream(ctx context.Context) <-chan PeersStreamMsg2 {
+	peersStream := make(chan PeersStreamMsg2)
+
+	var wg sync.WaitGroup
+	for k, v := range g.nodes {
+		wg.Add(1)
+		go func(n string, c *Client) {
+			defer wg.Done()
+
+			a, err := c.Peers(ctx)
+			peersStream <- PeersStreamMsg2{
+				Name:  n,
+				Peers: a,
+				Error: err,
+			}
+		}(k, v)
+	}
+
+	go func() {
+		wg.Wait()
+		close(peersStream)
+	}()
+
+	return peersStream
+}
+
+// RemoveNode removes node from the node group
+func (g *NodeGroup) RemoveNode(name string) {
+	delete(g.nodes, name)
+}
+
+// SentReceived object
+type SentReceived struct {
+	Received int
+	Sent     int
+}
+
+// Settlements returns settlements of all nodes in the node group
+func (g *NodeGroup) Settlements(ctx context.Context) (settlements map[string]map[string]SentReceived, err error) {
+	var msgs []SettlementsStreamMsg2
+	for m := range g.SettlementsStream(ctx) {
+		msgs = append(msgs, m)
+	}
+
+	settlements = make(map[string]map[string]SentReceived)
+	for _, m := range msgs {
+		if m.Error != nil {
+			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+		}
+
+		tmp := make(map[string]SentReceived)
+		for _, s := range m.Settlements.Settlements {
+			tmp[s.Peer] = SentReceived{
+				Received: s.Received,
+				Sent:     s.Sent,
+			}
+		}
+		settlements[m.Name] = tmp
+	}
+
+	return
+}
+
+// SettlementsStreamMsg2 represents message sent over the SettlementsStream channel
+type SettlementsStreamMsg2 struct {
+	Name        string
+	Settlements Settlements
+	Error       error
+}
+
+// SettlementsStream returns stream of settlements of all nodes in the cluster
+func (g *NodeGroup) SettlementsStream(ctx context.Context) <-chan SettlementsStreamMsg2 {
+	SettlementsStream := make(chan SettlementsStreamMsg2)
+
+	var wg sync.WaitGroup
+	for k, v := range g.nodes {
+		wg.Add(1)
+		go func(n string, c *Client) {
+			defer wg.Done()
+
+			s, err := c.Settlements(ctx)
+			SettlementsStream <- SettlementsStreamMsg2{
+				Name:        n,
+				Settlements: s,
+				Error:       err,
+			}
+		}(k, v)
+	}
+
+	go func() {
+		wg.Wait()
+		close(SettlementsStream)
+	}()
+
+	return SettlementsStream
+}
+
+// Size returns size of the node group
+func (g *NodeGroup) Size() int {
+	return len(g.nodes)
+}
+
+// StartNodeOptions represents node start options
+type StartNodeOptions struct {
 	Name         string
 	Config       k8sBee.Config
 	ClefKey      string
@@ -69,31 +438,17 @@ type NodeStartOptions struct {
 	SwarmKey     string
 }
 
-// NodeStart ...
-func (g *NodeGroup) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
-	aURL, err := g.cluster.apiURL(o.Name)
-	if err != nil {
-		return err
+// StartNode starts new node in the node group
+func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (err error) {
+	if err := g.AddNode(ctx, o.Name); err != nil {
+		return fmt.Errorf("starting node %s: %s", o.Name, err)
 	}
-
-	dURL, err := g.cluster.debugAPIURL(o.Name)
-	if err != nil {
-		return err
-	}
-
-	c := NewClient(ClientOptions{
-		APIURL:              aURL,
-		APIInsecureTLS:      g.cluster.apiInsecureTLS,
-		DebugAPIURL:         dURL,
-		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
-	})
-	g.nodes[o.Name] = &c
 
 	labels := mergeMaps(g.opts.Labels, map[string]string{
 		"app.kubernetes.io/instance": o.Name,
 	})
 
-	return g.k8s.NodeStart(ctx, k8sBee.NodeStartOptions{
+	if err := g.k8s.NodeStart(ctx, k8sBee.NodeStartOptions{
 		// Bee configuration
 		Config: o.Config,
 		// Kubernetes configuration
@@ -125,5 +480,61 @@ func (g *NodeGroup) NodeStart(ctx context.Context, o NodeStartOptions) (err erro
 		Selector:                  labels,
 		SwarmKey:                  o.SwarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
-	})
+	}); err != nil {
+		return fmt.Errorf("starting node %s: %s", o.Name, err)
+	}
+
+	return
+}
+
+// Topologies returns Kademlia topology of all nodes in the node group
+func (g *NodeGroup) Topologies(ctx context.Context) (topologies map[string]Topology, err error) {
+	var msgs []TopologyStreamMsg2
+	for m := range g.TopologyStream(ctx) {
+		msgs = append(msgs, m)
+	}
+
+	topologies = make(map[string]Topology)
+	for _, m := range msgs {
+		if m.Error != nil {
+			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+		}
+		topologies[m.Name] = m.Topology
+	}
+
+	return
+}
+
+// TopologyStreamMsg2 represents message sent over the TopologyStream channel
+type TopologyStreamMsg2 struct {
+	Name     string
+	Topology Topology
+	Error    error
+}
+
+// TopologyStream returns stream of peers of all nodes in the node group
+func (g *NodeGroup) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg2 {
+	topologyStream := make(chan TopologyStreamMsg2)
+
+	var wg sync.WaitGroup
+	for k, v := range g.nodes {
+		wg.Add(1)
+		go func(n string, c *Client) {
+			defer wg.Done()
+
+			t, err := c.Topology(ctx)
+			topologyStream <- TopologyStreamMsg2{
+				Name:     n,
+				Topology: t,
+				Error:    err,
+			}
+		}(k, v)
+	}
+
+	go func() {
+		wg.Wait()
+		close(topologyStream)
+	}()
+
+	return topologyStream
 }

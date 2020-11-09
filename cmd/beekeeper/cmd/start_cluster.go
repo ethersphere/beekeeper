@@ -66,21 +66,21 @@ func (c *command) initStartCluster() *cobra.Command {
 			cluster.AddNodeGroup(bgName, bgOptions)
 			bg := cluster.NodeGroup(bgName)
 
-			bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameStartNamespace))
-			for i := 0; i < bootnodeCount; i++ {
-				bConfig := newBeeDefaultConfig()
-				bConfig.Bootnodes = bSetup[i].Bootnodes
-				if err := bg.NodeStart(ctx, bee.NodeStartOptions{
-					Name:         fmt.Sprintf("bootnode-%d", i),
-					Config:       bConfig,
-					ClefKey:      bSetup[i].ClefKey,
-					ClefPassword: bSetup[i].ClefPassword,
-					LibP2PKey:    bSetup[i].LibP2PKey,
-					SwarmKey:     bSetup[i].SwarmKey,
-				}); err != nil {
-					return fmt.Errorf("starting bootnode-%d: %s", i, err)
-				}
-			}
+			// bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameStartNamespace))
+			// for i := 0; i < bootnodeCount; i++ {
+			// 	bConfig := newBeeDefaultConfig()
+			// 	bConfig.Bootnodes = bSetup[i].Bootnodes
+			// 	if err := bg.StartNode(ctx, bee.StartNodeOptions{
+			// 		Name:         fmt.Sprintf("bootnode-%d", i),
+			// 		Config:       bConfig,
+			// 		ClefKey:      bSetup[i].ClefKey,
+			// 		ClefPassword: bSetup[i].ClefPassword,
+			// 		LibP2PKey:    bSetup[i].LibP2PKey,
+			// 		SwarmKey:     bSetup[i].SwarmKey,
+			// 	}); err != nil {
+			// 		return fmt.Errorf("starting bootnode-%d: %s", i, err)
+			// 	}
+			// }
 
 			// nodes group
 			ngName := "nodes"
@@ -94,16 +94,38 @@ func (c *command) initStartCluster() *cobra.Command {
 			cluster.AddNodeGroup(ngName, ngOptions)
 			ng := cluster.NodeGroup(ngName)
 
-			nConfig := newBeeDefaultConfig()
-			nConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameStartNamespace))
-			for i := 0; i < nodeCount; i++ {
-				if err := ng.NodeStart(ctx, bee.NodeStartOptions{
-					Name:   fmt.Sprintf("bee-%d", i),
-					Config: nConfig,
-				}); err != nil {
-					return fmt.Errorf("starting bee-%d: %s", i, err)
+			// TEMP CHECK
+			for i := 0; i < bootnodeCount; i++ {
+				if err := bg.AddNode(ctx, fmt.Sprintf("bootnode-%d", i)); err != nil {
+					return fmt.Errorf("adding bootnode-%d: %s", i, err)
 				}
 			}
+			for i := 0; i < nodeCount; i++ {
+				if err := ng.AddNode(ctx, fmt.Sprintf("bee-%d", i)); err != nil {
+					return fmt.Errorf("adding node-%d: %s", i, err)
+				}
+			}
+
+			x, err := cluster.Settlements(ctx)
+			if err != nil {
+				return err
+			}
+			for k, v := range x {
+				for a, b := range v {
+					fmt.Println(k, a, b)
+				}
+			}
+
+			// nConfig := newBeeDefaultConfig()
+			// nConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameStartNamespace))
+			// for i := 0; i < nodeCount; i++ {
+			// 	if err := ng.StartNode(ctx, bee.StartNodeOptions{
+			// 		Name:   fmt.Sprintf("bee-%d", i),
+			// 		Config: nConfig,
+			// 	}); err != nil {
+			// 		return fmt.Errorf("starting bee-%d: %s", i, err)
+			// 	}
+			// }
 
 			return
 		},
