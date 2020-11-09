@@ -56,7 +56,7 @@ beekeeper check fileretrieval --namespace bee --node-count 3 --upload-node-count
 
 ### fileretrievaldynamic
 
-**fileretrievaldynamic** checks file retrieval ability of the dynamic cluster. It uploads file to a random node, than it downloads that file from given number of random nodes. Than it stops given number of other random nodes, and tries to download file again from other random nodes. It starts stopped nodes and downloads file from them.
+**fileretrievaldynamic** checks file retrieval ability of the dynamic cluster. It uploads file to a random node, then it downloads that file from given number of random nodes. Then, it stops given number of other random nodes, and tries to download file again from other random nodes. It starts stopped nodes and downloads file from them.
 It has an option to add new nodes to the cluster and repeat previous steps with the updated cluster.
 
 Example:
@@ -75,7 +75,7 @@ beekeeper check fullconnectivity --namespace bee --node-count 3
 
 ### kademlia
 
-**kademlia** checks Kademlia topology in the cluster
+**kademlia** checks Kademlia topology in the cluster.
 
 Example:
 ```bash

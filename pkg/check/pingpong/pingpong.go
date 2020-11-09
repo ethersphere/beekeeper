@@ -22,25 +22,36 @@ func Check(cluster bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err erro
 	pusher.Format(expfmt.FmtText)
 
 	for n := range nodeStream(ctx, cluster.Nodes) {
-		if n.Error != nil {
-			fmt.Printf("node %d: %s\n", n.Index, n.Error)
-			continue
-		}
-		fmt.Printf("Node: %s Peer: %s RTT: %s\n", n.Address, n.PeerAddress, n.RTT)
+		for t := 0; t < 5; t++ {
+			time.Sleep(2 * time.Duration(t) * time.Second)
 
-		rtt, err := time.ParseDuration(n.RTT)
-		if err != nil {
-			fmt.Printf("node %d: %s\n", n.Index, err)
-			continue
-		}
-
-		rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
-		rttHistogram.Observe(rtt.Seconds())
-
-		if pushMetrics {
-			if err := pusher.Push(); err != nil {
-				fmt.Printf("node %d: %s\n", n.Index, err)
+			if n.Error != nil {
+				if t == 4 {
+					return fmt.Errorf("node %d: %s\n", n.Index, n.Error)
+				}
+				fmt.Printf("node %d: %s\n", n.Index, n.Error)
+				continue
 			}
+			fmt.Printf("Node: %s Peer: %s RTT: %s\n", n.Address, n.PeerAddress, n.RTT)
+
+			rtt, err := time.ParseDuration(n.RTT)
+			if err != nil {
+				if t == 4 {
+					return fmt.Errorf("node %d: %s\n", n.Index, err)
+				}
+				fmt.Printf("node %d: %s\n", n.Index, err)
+				continue
+			}
+
+			rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
+			rttHistogram.Observe(rtt.Seconds())
+
+			if pushMetrics {
+				if err := pusher.Push(); err != nil {
+					fmt.Printf("node %d: %s\n", n.Index, err)
+				}
+			}
+			break
 		}
 	}
 
