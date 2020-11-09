@@ -43,7 +43,7 @@ func CheckChunkNotFound(c bee.Cluster, o Options) error {
 
 	b := make([]byte, (o.StoreSize/o.StoreSizeDivisor)*swarm.ChunkSize)
 
-	for i := 0; i < o.StoreSizeDivisor; i++ {
+	for i := 0; i <= o.StoreSizeDivisor; i++ {
 		_, err := rnd.Read(b)
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
