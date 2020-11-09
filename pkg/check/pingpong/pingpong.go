@@ -13,45 +13,47 @@ import (
 )
 
 // Check executes ping from all nodes to all other nodes in the cluster
-func Check(cluster bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(cluster *bee.DynamicCluster, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 
 	pusher.Collector(rttGauge)
 	pusher.Collector(rttHistogram)
 
 	pusher.Format(expfmt.FmtText)
+	nodeGroups := cluster.NodeGroups()
+	for _, ng := range nodeGroups {
+		for n := range nodeStream(ctx, ng.Nodes()) {
+			for t := 0; t < 5; t++ {
+				time.Sleep(2 * time.Duration(t) * time.Second)
 
-	for n := range nodeStream(ctx, cluster.Nodes) {
-		for t := 0; t < 5; t++ {
-			time.Sleep(2 * time.Duration(t) * time.Second)
-
-			if n.Error != nil {
-				if t == 4 {
-					return fmt.Errorf("node %d: %s\n", n.Index, n.Error)
+				if n.Error != nil {
+					if t == 4 {
+						return fmt.Errorf("node %s: %s", n.Name, n.Error)
+					}
+					fmt.Printf("node %s: %s\n", n.Name, n.Error)
+					continue
 				}
-				fmt.Printf("node %d: %s\n", n.Index, n.Error)
-				continue
-			}
-			fmt.Printf("Node: %s Peer: %s RTT: %s\n", n.Address, n.PeerAddress, n.RTT)
+				fmt.Printf("Node %s: %s Peer: %s RTT: %s\n", n.Name, n.Address, n.PeerAddress, n.RTT)
 
-			rtt, err := time.ParseDuration(n.RTT)
-			if err != nil {
-				if t == 4 {
-					return fmt.Errorf("node %d: %s\n", n.Index, err)
+				rtt, err := time.ParseDuration(n.RTT)
+				if err != nil {
+					if t == 4 {
+						return fmt.Errorf("node %s: %s", n.Name, err)
+					}
+					fmt.Printf("node %s: %s\n", n.Name, err)
+					continue
 				}
-				fmt.Printf("node %d: %s\n", n.Index, err)
-				continue
-			}
 
-			rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
-			rttHistogram.Observe(rtt.Seconds())
+				rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
+				rttHistogram.Observe(rtt.Seconds())
 
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
-					fmt.Printf("node %d: %s\n", n.Index, err)
+				if pushMetrics {
+					if err := pusher.Push(); err != nil {
+						fmt.Printf("node %s: %s\n", n.Name, err)
+					}
 				}
+				break
 			}
-			break
 		}
 	}
 
@@ -59,48 +61,46 @@ func Check(cluster bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err erro
 }
 
 type nodeStreamMsg struct {
-	Index       int
+	Name        string
 	Address     swarm.Address
-	PeerIndex   int
 	PeerAddress swarm.Address
 	RTT         string
 	Error       error
 }
 
-func nodeStream(ctx context.Context, nodes []bee.Client) <-chan nodeStreamMsg {
+func nodeStream(ctx context.Context, nodes map[string]*bee.Client) <-chan nodeStreamMsg {
 	nodeStream := make(chan nodeStreamMsg)
 
 	var wg sync.WaitGroup
-	for i, node := range nodes {
+	for k, v := range nodes {
 		wg.Add(1)
-		go func(i int, node bee.Client) {
+		go func(name string, node *bee.Client) {
 			defer wg.Done()
 
 			address, err := node.Overlay(ctx)
 			if err != nil {
-				nodeStream <- nodeStreamMsg{Index: i, Error: err}
+				nodeStream <- nodeStreamMsg{Name: name, Error: err}
 				return
 			}
 
 			peers, err := node.Peers(ctx)
 			if err != nil {
-				nodeStream <- nodeStreamMsg{Index: i, Error: err}
+				nodeStream <- nodeStreamMsg{Name: name, Error: err}
 				return
 			}
 
 			for m := range node.PingStream(ctx, peers) {
 				if m.Error != nil {
-					nodeStream <- nodeStreamMsg{Index: i, Error: m.Error}
+					nodeStream <- nodeStreamMsg{Name: name, Error: m.Error}
 				}
 				nodeStream <- nodeStreamMsg{
-					Index:       i,
+					Name:        name,
 					Address:     address,
-					PeerIndex:   m.Index,
 					PeerAddress: m.Node,
 					RTT:         m.RTT,
 				}
 			}
-		}(i, node)
+		}(k, v)
 	}
 
 	go func() {
