@@ -199,6 +199,14 @@ func (dc *DynamicCluster) Settlements(ctx context.Context) (settlements ClusterS
 	return
 }
 
+// Size returns size of the cluster
+func (dc *DynamicCluster) Size() (size int) {
+	for _, ng := range dc.nodeGroups {
+		size += len(ng.nodes)
+	}
+	return
+}
+
 // ClusterTopologies represents Kademlia topology of all nodes in the cluster
 type ClusterTopologies map[string]NodeGroupTopologies
 

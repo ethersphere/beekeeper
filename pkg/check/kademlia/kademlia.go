@@ -7,9 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
-
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 )
 
 // Check executes Kademlia topology check on cluster
-func Check(cluster bee.Cluster) (err error) {
+func Check(cluster *bee.DynamicCluster) (err error) {
 	ctx := context.Background()
 
 	fmt.Printf("Checking for full connectivity:\n")
@@ -34,25 +33,27 @@ func Check(cluster bee.Cluster) (err error) {
 		return err
 	}
 
-	for i, t := range topologies {
-		if t.Depth == 0 {
-			fmt.Printf("Node %d. Kademlia not healthy. Depth %d. Node: %s\n", i, t.Depth, t.Overlay)
-			return errKadmeliaNotHealthy
-		}
-
-		fmt.Printf("Node %d. Population: %d. Connected: %d. Depth: %d. Node: %s\n", i, t.Population, t.Connected, t.Depth, t.Overlay)
-		for k, b := range t.Bins {
-			binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
-			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
-			}
-			fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
-			if binDepth < t.Depth && b.Connected < 1 {
-				return errKadmeliaBinConnected
+	for _, v := range topologies {
+		for n, t := range v {
+			if t.Depth == 0 {
+				fmt.Printf("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
+				return errKadmeliaNotHealthy
 			}
 
-			if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
-				return fmt.Errorf(errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
+			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
+			for k, b := range t.Bins {
+				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
+				if err != nil {
+					return fmt.Errorf("node %s: %w", n, err)
+				}
+				fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
+				if binDepth < t.Depth && b.Connected < 1 {
+					return errKadmeliaBinConnected
+				}
+
+				if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
+					return fmt.Errorf(errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
+				}
 			}
 		}
 	}

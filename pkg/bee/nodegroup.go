@@ -52,7 +52,7 @@ func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(ctx context.Context, name string) (err error) {
+func (g *NodeGroup) AddNode(name string) (err error) {
 	aURL, err := g.cluster.apiURL(name)
 	if err != nil {
 		return fmt.Errorf("adding node %s: %s", name, err)
@@ -460,7 +460,7 @@ type StartNodeOptions struct {
 
 // StartNode starts new node in the node group
 func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (err error) {
-	if err := g.AddNode(ctx, o.Name); err != nil {
+	if err := g.AddNode(o.Name); err != nil {
 		return fmt.Errorf("starting node %s: %s", o.Name, err)
 	}
 

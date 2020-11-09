@@ -12,7 +12,7 @@ import (
 var errFullConnectivity = errors.New("full connectivity")
 
 // Check executes full connectivity check if cluster is fully connected
-func Check(cluster bee.Cluster) (err error) {
+func Check(cluster *bee.DynamicCluster) (err error) {
 	ctx := context.Background()
 
 	overlays, err := cluster.Overlays(ctx)
@@ -28,31 +28,36 @@ func Check(cluster bee.Cluster) (err error) {
 	clusterSize := cluster.Size()
 	expectedPeerCount := clusterSize - 1
 
-	for i := 0; i < clusterSize; i++ {
-		if len(peers[i]) != expectedPeerCount {
-			fmt.Printf("Node %d. Failed. Peers %d/%d. Node: %s\n", i, len(peers[i]), expectedPeerCount, overlays[i])
-			return errFullConnectivity
-		}
-
-		for _, p := range peers[i] {
-			if !contains(overlays, p) {
-				fmt.Printf("Node %d. Failed. Invalid peer: %s. Node: %s\n", i, p.String(), overlays[i])
+	for group, v := range overlays {
+		for node, overlay := range v {
+			if len(peers[group][node]) != expectedPeerCount {
+				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(peers[group][node]), expectedPeerCount, overlay)
 				return errFullConnectivity
 			}
-		}
 
-		fmt.Printf("Node %d. Passed. Peers %d/%d. All peers are valid. Node: %s\n", i, len(peers[i]), expectedPeerCount, overlays[i])
+			for _, p := range peers[group][node] {
+				if !contains(overlays, p) {
+					fmt.Printf("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
+					return errFullConnectivity
+				}
+			}
+
+			fmt.Printf("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(peers[group][node]), expectedPeerCount, overlay)
+		}
 	}
 
 	return
 }
 
 // contains checks if a given set of swarm.Address contains given swarm.Address
-func contains(s []swarm.Address, v swarm.Address) bool {
-	for _, a := range s {
-		if a.Equal(v) {
-			return true
+func contains(s bee.ClusterOverlays, a swarm.Address) bool {
+	for _, v := range s {
+		for _, o := range v {
+			if o.Equal(a) {
+				return true
+			}
 		}
 	}
+
 	return false
 }
