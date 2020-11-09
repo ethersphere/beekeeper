@@ -73,9 +73,13 @@ func (dc *DynamicCluster) AddNodeGroup(name string, o NodeGroupOptions) {
 	dc.nodeGroups[name] = g
 }
 
-// Addresses returns addresses of all nodes in the cluster
-func (dc *DynamicCluster) Addresses(ctx context.Context) (addrs map[string]map[string]Addresses, err error) {
-	addrs = make(map[string]map[string]Addresses)
+// ClusterAddresses represents addresses of all nodes in the cluster
+type ClusterAddresses map[string]NodeGroupAddresses
+
+// Addresses returns ClusterAddresses
+func (dc *DynamicCluster) Addresses(ctx context.Context) (addrs map[string]NodeGroupAddresses, err error) {
+	addrs = make(ClusterAddresses)
+
 	for k, v := range dc.nodeGroups {
 		a, err := v.Addresses(ctx)
 		if err != nil {
@@ -88,9 +92,13 @@ func (dc *DynamicCluster) Addresses(ctx context.Context) (addrs map[string]map[s
 	return
 }
 
-// Balances returns balances of all nodes in the cluster
-func (dc *DynamicCluster) Balances(ctx context.Context) (balances map[string]map[string]Balances, err error) {
-	balances = make(map[string]map[string]Balances)
+// ClusterBalances represents balances of all nodes in the cluster
+type ClusterBalances map[string]NodeGroupBalances
+
+// Balances returns ClusterBalances
+func (dc *DynamicCluster) Balances(ctx context.Context) (balances ClusterBalances, err error) {
+	balances = make(ClusterBalances)
+
 	for k, v := range dc.nodeGroups {
 		b, err := v.Balances(ctx)
 		if err != nil {
@@ -104,14 +112,14 @@ func (dc *DynamicCluster) Balances(ctx context.Context) (balances map[string]map
 }
 
 // GlobalReplicationFactor returns the total number of nodes in the cluster that contain given chunk
-func (dc *DynamicCluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (counter int, err error) {
+func (dc *DynamicCluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
 	for k, v := range dc.nodeGroups {
-		grf, err := v.GlobalReplicationFactor(ctx, a)
+		ngrf, err := v.GroupReplicationFactor(ctx, a)
 		if err != nil {
 			return 0, fmt.Errorf("%s: %w", k, err)
 		}
 
-		counter += grf
+		grf += ngrf
 	}
 
 	return
@@ -132,9 +140,13 @@ func (dc *DynamicCluster) NodeGroup(name string) *NodeGroup {
 	return dc.nodeGroups[name]
 }
 
-// Overlays returns overlay addresses of all nodes in the cluster
-func (dc *DynamicCluster) Overlays(ctx context.Context) (overlays map[string]map[string]swarm.Address, err error) {
-	overlays = make(map[string]map[string]swarm.Address)
+// ClusterOverlays represents overlay addresses of all nodes in the cluster
+type ClusterOverlays map[string]NodeGroupOverlays
+
+// Overlays returns ClusterOverlays
+func (dc *DynamicCluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err error) {
+	overlays = make(ClusterOverlays)
+
 	for k, v := range dc.nodeGroups {
 		o, err := v.Overlays(ctx)
 		if err != nil {
@@ -147,9 +159,13 @@ func (dc *DynamicCluster) Overlays(ctx context.Context) (overlays map[string]map
 	return
 }
 
+// ClusterPeers represents peers of all nodes in the cluster
+type ClusterPeers map[string]NodeGroupPeers
+
 // Peers returns peers of all nodes in the cluster
-func (dc *DynamicCluster) Peers(ctx context.Context) (peers map[string]map[string][]swarm.Address, err error) {
-	peers = make(map[string]map[string][]swarm.Address)
+func (dc *DynamicCluster) Peers(ctx context.Context) (peers ClusterPeers, err error) {
+	peers = make(ClusterPeers)
+
 	for k, v := range dc.nodeGroups {
 		p, err := v.Peers(ctx)
 		if err != nil {
@@ -162,9 +178,13 @@ func (dc *DynamicCluster) Peers(ctx context.Context) (peers map[string]map[strin
 	return
 }
 
-// Settlements returns settlements of all nodes in the cluster
-func (dc *DynamicCluster) Settlements(ctx context.Context) (settlements map[string]map[string]map[string]SentReceived, err error) {
-	settlements = make(map[string]map[string]map[string]SentReceived)
+// ClusterSettlements represents settlements of all nodes in the cluster
+type ClusterSettlements map[string]NodeGroupSettlements
+
+// Settlements returns
+func (dc *DynamicCluster) Settlements(ctx context.Context) (settlements ClusterSettlements, err error) {
+	settlements = make(ClusterSettlements)
+
 	for k, v := range dc.nodeGroups {
 		s, err := v.Settlements(ctx)
 		if err != nil {
@@ -177,9 +197,13 @@ func (dc *DynamicCluster) Settlements(ctx context.Context) (settlements map[stri
 	return
 }
 
-// Topologies returns Kademlia topology of all nodes in the cluster
-func (dc *DynamicCluster) Topologies(ctx context.Context) (topologies map[string]map[string]Topology, err error) {
-	topologies = make(map[string]map[string]Topology)
+// ClusterTopologies represents Kademlia topology of all nodes in the cluster
+type ClusterTopologies map[string]NodeGroupTopologies
+
+// Topologies returns ClusterTopologies
+func (dc *DynamicCluster) Topologies(ctx context.Context) (topologies ClusterTopologies, err error) {
+	topologies = make(ClusterTopologies)
+
 	for k, v := range dc.nodeGroups {
 		t, err := v.Topologies(ctx)
 		if err != nil {

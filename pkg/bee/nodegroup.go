@@ -74,14 +74,18 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string) (err error) {
 	return
 }
 
-// Addresses returns addresses of all nodes in the node group
-func (g *NodeGroup) Addresses(ctx context.Context) (addrs map[string]Addresses, err error) {
+// NodeGroupAddresses represents addresses of all nodes in the node group
+type NodeGroupAddresses map[string]Addresses
+
+// Addresses returns NodeGroupAddresses
+func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error) {
+	addrs = make(NodeGroupAddresses)
+
 	var msgs []AddressesStreamMsg2
 	for m := range g.AddressesStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
-	addrs = make(map[string]Addresses)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
@@ -126,14 +130,18 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) <-chan AddressesStreamM
 	return addressStream
 }
 
-// Balances returns balances of all nodes in the cluster
-func (g *NodeGroup) Balances(ctx context.Context) (balances map[string]Balances, err error) {
+// NodeGroupBalances represents balances of all nodes in the node group
+type NodeGroupBalances map[string]Balances
+
+// Balances returns NodeGroupBalances
+func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, err error) {
+	balances = make(NodeGroupBalances)
+
 	var msgs []BalancesStreamMsg2
 	for m := range g.BalancesStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
-	balances = make(map[string]Balances)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
@@ -179,8 +187,8 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg
 	return balancesStream
 }
 
-// GlobalReplicationFactor returns the total number of nodes in the node group that contain given chunk
-func (g *NodeGroup) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (counter int, err error) {
+// GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
+func (g *NodeGroup) GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
 	var msgs []HasChunkStreamMsg2
 	for m := range g.HasChunkStream(ctx, a) {
 		msgs = append(msgs, m)
@@ -191,7 +199,7 @@ func (g *NodeGroup) GlobalReplicationFactor(ctx context.Context, a swarm.Address
 			return 0, fmt.Errorf("%s: %w", m.Name, m.Error)
 		}
 		if m.Found {
-			counter++
+			grf++
 		}
 	}
 
@@ -247,14 +255,18 @@ func (g *NodeGroup) Node(name string) *Client {
 	return g.nodes[name]
 }
 
-// Overlays returns overlay addresses of all nodes in the node group
-func (g *NodeGroup) Overlays(ctx context.Context) (overlays map[string]swarm.Address, err error) {
+// NodeGroupOverlays represents overlay addresses of all nodes in the node group
+type NodeGroupOverlays map[string]swarm.Address
+
+// Overlays returns NodeGroupOverlays
+func (g *NodeGroup) Overlays(ctx context.Context) (overlays NodeGroupOverlays, err error) {
+	overlays = make(NodeGroupOverlays)
+
 	var msgs []OverlaysStreamMsg2
 	for m := range g.OverlaysStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
-	overlays = make(map[string]swarm.Address)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, m.Error
@@ -300,14 +312,18 @@ func (g *NodeGroup) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg
 	return overlaysStream
 }
 
-// Peers returns peers of all nodes in the node group
-func (g *NodeGroup) Peers(ctx context.Context) (peers map[string][]swarm.Address, err error) {
+// NodeGroupPeers represents peers of all nodes in the node group
+type NodeGroupPeers map[string][]swarm.Address
+
+// Peers returns NodeGroupPeers
+func (g *NodeGroup) Peers(ctx context.Context) (peers NodeGroupPeers, err error) {
+	peers = make(NodeGroupPeers)
+
 	var msgs []PeersStreamMsg2
 	for m := range g.PeersStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
-	peers = make(map[string][]swarm.Address)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
@@ -357,20 +373,24 @@ func (g *NodeGroup) RemoveNode(name string) {
 	delete(g.nodes, name)
 }
 
+// NodeGroupSettlements represents settlements of all nodes in the node group
+type NodeGroupSettlements map[string]map[string]SentReceived
+
 // SentReceived object
 type SentReceived struct {
 	Received int
 	Sent     int
 }
 
-// Settlements returns settlements of all nodes in the node group
-func (g *NodeGroup) Settlements(ctx context.Context) (settlements map[string]map[string]SentReceived, err error) {
+// Settlements returns NodeGroupSettlements
+func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error) {
+	settlements = make(NodeGroupSettlements)
+
 	var msgs []SettlementsStreamMsg2
 	for m := range g.SettlementsStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
-	settlements = make(map[string]map[string]SentReceived)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
@@ -487,14 +507,18 @@ func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (err erro
 	return
 }
 
-// Topologies returns Kademlia topology of all nodes in the node group
-func (g *NodeGroup) Topologies(ctx context.Context) (topologies map[string]Topology, err error) {
+// NodeGroupTopologies represents Kademlia topology of all nodes in the node group
+type NodeGroupTopologies map[string]Topology
+
+// Topologies returns NodeGroupTopologies
+func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopologies, err error) {
+	topologies = make(NodeGroupTopologies)
+
 	var msgs []TopologyStreamMsg2
 	for m := range g.TopologyStream(ctx) {
 		msgs = append(msgs, m)
 	}
 
-	topologies = make(map[string]Topology)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)

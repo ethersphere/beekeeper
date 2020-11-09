@@ -106,7 +106,7 @@ func (c *command) initStartCluster() *cobra.Command {
 				}
 			}
 
-			x, err := cluster.Settlements(ctx)
+			x, err := cluster.Topologies(ctx)
 			if err != nil {
 				return err
 			}
