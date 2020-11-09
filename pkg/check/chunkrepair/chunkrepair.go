@@ -222,13 +222,8 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Client, b
 }
 
 // uploadAndPinChunkToNode uploads a given chunk to a given node and pins it.
-<<<<<<< HEAD
 func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.Chunk) error {
-	err := node.UploadChunk(ctx, chunk)
-=======
-func uploadAndPinChunkToNode(ctx context.Context, node *bee.Node, chunk *bee.Chunk) error {
 	err := node.UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
->>>>>>> master
 	if err != nil {
 		return err
 	}

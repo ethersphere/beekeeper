@@ -380,8 +380,8 @@ func (c *Client) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) 
 }
 
 // UploadBytes uploads bytes to the node
-func (n *Node) UploadBytes(ctx context.Context, b []byte, o api.UploadOptions) (swarm.Address, error) {
-	r, err := n.api.Bytes.Upload(ctx, bytes.NewReader(b), o)
+func (c *Client) UploadBytes(ctx context.Context, b []byte, o api.UploadOptions) (swarm.Address, error) {
+	r, err := c.api.Bytes.Upload(ctx, bytes.NewReader(b), o)
 	if err != nil {
 		return swarm.ZeroAddress, fmt.Errorf("upload chunk: %w", err)
 	}
@@ -390,7 +390,7 @@ func (n *Node) UploadBytes(ctx context.Context, b []byte, o api.UploadOptions) (
 }
 
 // UploadChunk uploads chunk to the node
-func (n *Node) UploadChunk(ctx context.Context, c *Chunk, o api.UploadOptions) (err error) {
+func (c *Client) UploadChunk(ctx context.Context, chunk *Chunk, o api.UploadOptions) (err error) {
 	p := bmtlegacy.NewTreePool(chunkHahser, swarm.Branches, bmtlegacy.PoolSize)
 	hasher := bmtlegacy.New(p)
 	err = hasher.SetSpan(int64(chunk.Span()))
@@ -403,7 +403,7 @@ func (n *Node) UploadChunk(ctx context.Context, c *Chunk, o api.UploadOptions) (
 	}
 	chunk.address = swarm.NewAddress(hasher.Sum(nil))
 
-	_, err = n.api.Chunks.Upload(ctx, c.address, bytes.NewReader(c.Data()), o)
+	_, err = c.api.Chunks.Upload(ctx, chunk.address, bytes.NewReader(chunk.Data()), o)
 	if err != nil {
 		return fmt.Errorf("upload chunk: %w", err)
 	}
@@ -419,7 +419,7 @@ func (c *Client) RemoveChunk(ctx context.Context, chunk *Chunk) (err error) {
 // UploadFile uploads file to the node
 func (c *Client) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
 	h := fileHahser()
-	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, 0)
+	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, 0)
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
@@ -431,9 +431,9 @@ func (c *Client) UploadFile(ctx context.Context, f *File, pin bool) (err error) 
 }
 
 // UploadFileWithTag uploads file with tag to the node
-func (n *Node) UploadFileWithTag(ctx context.Context, f *File, pin bool, tagUID uint32) (err error) {
+func (c *Client) UploadFileWithTag(ctx context.Context, f *File, pin bool, tagUID uint32) (err error) {
 	h := fileHahser()
-	r, err := n.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, tagUID)
+	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, tagUID)
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
@@ -475,9 +475,9 @@ func (c *Client) DownloadManifestFile(ctx context.Context, a swarm.Address, path
 }
 
 // CreateTag creates tag on the node
-func (n *Node) CreateTag(ctx context.Context) (resp api.TagResponse, err error) {
+func (c *Client) CreateTag(ctx context.Context) (resp api.TagResponse, err error) {
 
-	resp, err = n.api.Tags.CreateTag(ctx)
+	resp, err = c.api.Tags.CreateTag(ctx)
 	if err != nil {
 		return resp, fmt.Errorf("create tag: %w", err)
 	}
@@ -486,9 +486,9 @@ func (n *Node) CreateTag(ctx context.Context) (resp api.TagResponse, err error) 
 }
 
 // GetTag retrieves tag from node
-func (n *Node) GetTag(ctx context.Context, tagUID uint32) (resp api.TagResponse, err error) {
+func (c *Client) GetTag(ctx context.Context, tagUID uint32) (resp api.TagResponse, err error) {
 
-	resp, err = n.api.Tags.GetTag(ctx, tagUID)
+	resp, err = c.api.Tags.GetTag(ctx, tagUID)
 	if err != nil {
 		return resp, fmt.Errorf("get tag: %w", err)
 	}
