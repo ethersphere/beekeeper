@@ -148,6 +148,7 @@ func (dc *DynamicCluster) NodeGroupsSorted() (l []string) {
 		i++
 	}
 	sort.Strings(l)
+
 	return
 }
 
