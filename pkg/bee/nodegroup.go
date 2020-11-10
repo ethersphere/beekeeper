@@ -253,9 +253,9 @@ func (g *NodeGroup) Nodes() (l map[string]*Client) {
 
 // NodesSorted returns sorted list of node names in the node group
 func (g *NodeGroup) NodesSorted() (l []string) {
-	l = make([]string, len(g.nodes))
 	for k := range g.nodes {
 		l = append(l, k)
+
 	}
 	sort.Strings(l)
 	return
