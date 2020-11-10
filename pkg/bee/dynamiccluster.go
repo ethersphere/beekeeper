@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
@@ -135,6 +136,16 @@ func (dc *DynamicCluster) Name() string {
 // NodeGroups returns map of node groups in the cluster
 func (dc *DynamicCluster) NodeGroups() (l map[string]*NodeGroup) {
 	return dc.nodeGroups
+}
+
+// NodeGroupsSorted returns sorted list of node names in the node group
+func (dc *DynamicCluster) NodeGroupsSorted() (l []string) {
+	l = make([]string, len(dc.nodeGroups))
+	for k := range dc.nodeGroups {
+		l = append(l, k)
+	}
+	sort.Strings(l)
+	return
 }
 
 // NodeGroup returns node group
