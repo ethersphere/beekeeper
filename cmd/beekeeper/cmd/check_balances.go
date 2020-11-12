@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -28,27 +30,34 @@ func (c *command) initCheckBalances() *cobra.Command {
 		Short: "Executes balances check",
 		Long:  `Executes balances check.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster, err := bee.NewCluster(bee.ClusterOptions{
-				APIScheme:               c.config.GetString(optionNameAPIScheme),
-				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
-				APIDomain:               c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:          insecureTLSAPI,
-				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
-				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
-				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
-				DisableNamespace:        disableNamespace,
-				Namespace:               c.config.GetString(optionNameNamespace),
-				Size:                    c.config.GetInt(optionNameNodeCount),
+			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+				APIDomain:           c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:      insecureTLSAPI,
+				APIScheme:           c.config.GetString(optionNameAPIScheme),
+				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS: insecureTLSDebugAPI,
+				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
+				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				Namespace:           c.config.GetString(optionNameNamespace),
+				DisableNamespace:    disableNamespace,
 			})
-			if err != nil {
-				return err
+
+			ngOptions := newDefaultNodeGroupOptions()
+			cluster.AddNodeGroup("nodes", ngOptions)
+			ng := cluster.NodeGroup("nodes")
+
+			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
+				if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+					return fmt.Errorf("adding node bee-%d: %s", i, err)
+				}
 			}
 
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			if dryRun {
-				return balances.DryRunCheck(cluster)
+				return balances.DryRunCheck(cluster, balances.Options{
+					NodeGroup: "nodes",
+				})
 			}
 
 			var seed int64
@@ -61,6 +70,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 			fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
 
 			return balances.Check(cluster, balances.Options{
+				NodeGroup:          "nodes",
 				UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
 				FileName:           c.config.GetString(optionNameFileName),
 				FileSize:           fileSize,
