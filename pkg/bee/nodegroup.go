@@ -410,6 +410,11 @@ type SentReceived struct {
 func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error) {
 	settlements = make(NodeGroupSettlements)
 
+	overlays, err := g.Overlays(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("checking settlements: %w", err)
+	}
+
 	var msgs []SettlementsStreamMsg2
 	for m := range g.SettlementsStream(ctx) {
 		msgs = append(msgs, m)
@@ -427,7 +432,7 @@ func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettl
 				Sent:     s.Sent,
 			}
 		}
-		settlements[m.Name] = tmp
+		settlements[overlays[m.Name].String()] = tmp
 	}
 
 	return
