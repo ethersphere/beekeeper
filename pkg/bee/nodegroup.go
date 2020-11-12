@@ -138,6 +138,11 @@ type NodeGroupBalances map[string]map[string]int
 func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, err error) {
 	balances = make(NodeGroupBalances)
 
+	overlays, err := g.Overlays(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("checking balances: %w", err)
+	}
+
 	var msgs []BalancesStreamMsg2
 	for m := range g.BalancesStream(ctx) {
 		msgs = append(msgs, m)
@@ -152,7 +157,7 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, e
 		for _, b := range m.Balances.Balances {
 			tmp[b.Peer] = b.Balance
 		}
-		balances[m.Name] = tmp
+		balances[overlays[m.Name].String()] = tmp
 	}
 
 	return
