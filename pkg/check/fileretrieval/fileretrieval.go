@@ -137,13 +137,13 @@ func CheckFull(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetric
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			time.Sleep(1 * time.Second)
-			for n, c := range ng.Nodes() {
+			for n, nc := range ng.Nodes() {
 				if n == nodeName {
 					continue
 				}
 
 				t1 := time.Now()
-				size, hash, err := c.DownloadFile(ctx, file.Address())
+				size, hash, err := nc.DownloadFile(ctx, file.Address())
 				if err != nil {
 					return fmt.Errorf("node %s: %w", n, err)
 				}
