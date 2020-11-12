@@ -111,6 +111,9 @@ func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err e
 
 // ClosestNodeFromMap returns chunk's closest node of a given map of nodes
 func (c *Chunk) ClosestNodeFromMap(nodes map[string]swarm.Address) (closestName string, closestAddress swarm.Address, err error) {
+	for k, v := range nodes {
+		fmt.Println(k, v)
+	}
 	names := make([]string, 0, len(nodes))
 	addresses := make([]swarm.Address, 0, len(nodes))
 	for k, v := range nodes {
@@ -130,7 +133,7 @@ func (c *Chunk) ClosestNodeFromMap(nodes map[string]swarm.Address) (closestName 
 			// do nothing
 		case -1:
 			// current node is closer
-			closestName = names[i]
+			closestName = names[i+1]
 			closestAddress = a
 		case 1:
 			// closest is already closer to chunk
