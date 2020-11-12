@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pullsync"
@@ -27,21 +28,26 @@ func (c *command) initCheckPullSync() *cobra.Command {
 				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
 			}
 
-			cluster, err := bee.NewCluster(bee.ClusterOptions{
-				APIScheme:               c.config.GetString(optionNameAPIScheme),
-				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
-				APIDomain:               c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:          insecureTLSAPI,
-				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
-				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
-				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
-				DisableNamespace:        disableNamespace,
-				Namespace:               c.config.GetString(optionNameNamespace),
-				Size:                    c.config.GetInt(optionNameNodeCount),
+			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+				APIDomain:           c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:      insecureTLSAPI,
+				APIScheme:           c.config.GetString(optionNameAPIScheme),
+				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS: insecureTLSDebugAPI,
+				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
+				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				Namespace:           c.config.GetString(optionNameNamespace),
+				DisableNamespace:    disableNamespace,
 			})
-			if err != nil {
-				return err
+
+			ngOptions := newDefaultNodeGroupOptions()
+			cluster.AddNodeGroup("nodes", ngOptions)
+			ng := cluster.NodeGroup("nodes")
+
+			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
+				if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+					return fmt.Errorf("adding node bee-%d: %s", i, err)
+				}
 			}
 
 			var seed int64
@@ -52,6 +58,7 @@ func (c *command) initCheckPullSync() *cobra.Command {
 			}
 
 			return pullsync.Check(cluster, pullsync.Options{
+				NodeGroup:                  "nodes",
 				UploadNodeCount:            c.config.GetInt(optionNameUploadNodeCount),
 				ReplicationFactorThreshold: c.config.GetInt(optionNameReplicationFactor),
 				ChunksPerNode:              c.config.GetInt(optionNameChunksPerNode),
