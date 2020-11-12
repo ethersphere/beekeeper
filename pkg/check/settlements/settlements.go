@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -15,6 +14,7 @@ import (
 
 // Options represents settlements check options
 type Options struct {
+	NodeGroup          string
 	UploadNodeCount    int
 	FileName           string
 	FileSize           int64
@@ -24,22 +24,23 @@ type Options struct {
 }
 
 // Check executes settlements check
-func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	overlays, err := c.Overlays(ctx)
+	ng := c.NodeGroup(o.NodeGroup)
+	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Initial settlement validation
-	balances, err := c.Balances(ctx)
+	balances, err := ng.Balances(ctx)
 	if err != nil {
 		return err
 	}
-	settlements, err := c.Settlements(ctx)
+	settlements, err := ng.Settlements(ctx)
 	if err != nil {
 		return err
 	}
@@ -49,26 +50,28 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 	fmt.Println("Settlements are valid")
 
 	var previousSettlements map[string]map[string]bee.SentReceived
+	sortedNodes := ng.NodesSorted()
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
+		uNode := sortedNodes[uIndex]
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
-		if err := c.Nodes[uIndex].UploadFile(ctx, &file, false); err != nil {
-			return fmt.Errorf("node %d: %w", uIndex, err)
+		if err := ng.Node(uNode).UploadFile(ctx, &file, false); err != nil {
+			return fmt.Errorf("node %s: %w", uNode, err)
 		}
-		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uIndex].String())
+		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())
 
 		// validate settlements after uploading a file
 		previousSettlements = settlements
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = c.Balances(ctx)
+			balances, err = ng.Balances(ctx)
 			if err != nil {
 				return err
 			}
 
-			settlements, err = c.Settlements(ctx)
+			settlements, err = ng.Settlements(ctx)
 			if err != nil {
 				return err
 			}
@@ -88,26 +91,27 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
-		size, hash, err := c.Nodes[dIndex].DownloadFile(ctx, file.Address())
+		dNode := sortedNodes[dIndex]
+		size, hash, err := ng.Node(dNode).DownloadFile(ctx, file.Address())
 		if err != nil {
-			return fmt.Errorf("node %d: %w", dIndex, err)
+			return fmt.Errorf("node %s: %w", dNode, err)
 		}
 		if !bytes.Equal(file.Hash(), hash) {
-			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dIndex].String(), file.Size(), size)
+			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dNode].String(), file.Size(), size)
 		}
-		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dIndex].String())
+		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dNode].String())
 
 		// validate settlements after downloading a file
 		previousSettlements = settlements
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = c.Balances(ctx)
+			balances, err = ng.Balances(ctx)
 			if err != nil {
 				return err
 			}
 
-			settlements, err = c.Settlements(ctx)
+			settlements, err = ng.Settlements(ctx)
 			if err != nil {
 				return err
 			}
@@ -129,20 +133,21 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 }
 
 // DryRunCheck executes settlements validation check without files uploading/downloading
-func DryRunCheck(c bee.Cluster, o Options) (err error) {
+func DryRunCheck(c *bee.DynamicCluster, o Options) (err error) {
 	ctx := context.Background()
 
-	overlays, err := c.Overlays(ctx)
+	ng := c.NodeGroup(o.NodeGroup)
+	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	balances, err := c.Balances(ctx)
+	balances, err := ng.Balances(ctx)
 	if err != nil {
 		return err
 	}
 
-	settlements, err := c.Settlements(ctx)
+	settlements, err := ng.Settlements(ctx)
 	if err != nil {
 		return err
 	}
@@ -156,7 +161,7 @@ func DryRunCheck(c bee.Cluster, o Options) (err error) {
 }
 
 // validateSettlements checks if settlements are valid
-func validateSettlements(threshold int, overlays []swarm.Address, balances map[string]map[string]int, settlements map[string]map[string]bee.SentReceived) (err error) {
+func validateSettlements(threshold int, overlays bee.NodeGroupOverlays, balances bee.NodeGroupBalances, settlements bee.NodeGroupSettlements) (err error) {
 	// threshold validation
 	for node, v := range balances {
 		for _, balance := range v {
