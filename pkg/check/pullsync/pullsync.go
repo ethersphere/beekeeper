@@ -46,10 +46,10 @@ func Check(c bee.Cluster, o Options) (err error) {
 	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (
-				chunk               bee.Chunk
-				err                 error
-				replicatingNodes    []swarm.Address
-				nnRep, peerPoBinRep int
+				chunk            bee.Chunk
+				err              error
+				replicatingNodes []swarm.Address
+				nnRep            int
 			)
 
 			chunk, err = bee.NewRandomChunk(rnds[i])
@@ -60,35 +60,8 @@ func Check(c bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
-			uploaderToChunkPo := swarm.Proximity(overlays[i].Bytes(), addr.Bytes())
-			fmt.Printf("Uploaded chunk %s\n", addr.String())
 
-			// check uploader and non-NN replication
-			uploaderTopology := topologies[i]
-			for _, bin := range uploaderTopology.Bins {
-				for _, peer := range bin.ConnectedPeers {
-					peer := peer
-					pivotToUploaderPo := swarm.Proximity(peer.Bytes(), overlays[i].Bytes())
-					pidx := findIndex(overlays, peer)
-					pivotTopology := topologies[pidx]
-					pivotDepth := pivotTopology.Depth
-					switch pivotPo := int(swarm.Proximity(addr.Bytes(), peer.Bytes())); {
-					case pivotPo >= pivotDepth:
-						// chunk within replicating node depth
-						if findIndex(replicatingNodes, peer) == -1 {
-							replicatingNodes = append(replicatingNodes, peer)
-							nnRep++
-						}
-					case pivotPo != 0 && uploaderToChunkPo != 0 && pivotPo < pivotDepth && uploaderToChunkPo == pivotToUploaderPo:
-						// if the po of the chunk with the uploader == to our po with the uploader, then we need to sync it
-						// chunk outside our depth
-						if findIndex(replicatingNodes, peer) == -1 {
-							replicatingNodes = append(replicatingNodes, peer)
-							peerPoBinRep++
-						}
-					}
-				}
-			}
+			fmt.Printf("Uploaded chunk %s\n", addr.String())
 
 			// check closest and NN replication (non-nn replication is not realistic)
 			closest, err := chunk.ClosestNode(overlays)
@@ -102,28 +75,17 @@ func Check(c bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
 			}
-			po := swarm.Proximity(addr.Bytes(), closest.Bytes())
 			for _, v := range topology.Bins {
 				for _, peer := range v.ConnectedPeers {
 					peer := peer
-					pivotToClosestPo := swarm.Proximity(peer.Bytes(), closest.Bytes())
 					pidx := findIndex(overlays, peer)
 					pivotTopology := topologies[pidx]
 					pivotDepth := pivotTopology.Depth
-					switch pivotPo := int(swarm.Proximity(addr.Bytes(), peer.Bytes())); {
-					case pivotPo >= pivotDepth:
+					if pivotPo := int(swarm.Proximity(addr.Bytes(), peer.Bytes())); pivotPo >= pivotDepth {
 						// chunk within replicating node depth
 						if findIndex(replicatingNodes, peer) == -1 {
 							replicatingNodes = append(replicatingNodes, peer)
 							nnRep++
-						}
-					case pivotPo != 0 && pivotPo < pivotDepth && po == pivotToClosestPo:
-						// if the po of the chunk with the closest == to our po with the closest, then we need to sync it
-						// chunk outside our depth
-						// po with chunk must equal po with closest
-						if findIndex(replicatingNodes, peer) == -1 {
-							replicatingNodes = append(replicatingNodes, peer)
-							peerPoBinRep++
 						}
 					}
 				}
@@ -134,7 +96,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 				return errPullSync
 			}
 
-			fmt.Printf("Chunk should be on %d nodes. %d within depth, %d outside\n", len(replicatingNodes), nnRep, peerPoBinRep)
+			fmt.Printf("Chunk should be on %d nodes. %d within depth\n", len(replicatingNodes), nnRep)
 			for _, n := range replicatingNodes {
 				ni := findIndex(overlays, n)
 				var (
