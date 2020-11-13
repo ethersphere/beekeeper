@@ -147,25 +147,3 @@ func findIndex(overlays []swarm.Address, addr swarm.Address) int {
 	}
 	return -1
 }
-
-func closestNode(chunk swarm.Address, nodes []swarm.Address) (closest swarm.Address, err error) {
-	closest = nodes[0]
-	for _, a := range nodes[1:] {
-		dcmp, err := swarm.DistanceCmp(chunk.Bytes(), closest.Bytes(), a.Bytes())
-		if err != nil {
-			return swarm.Address{}, fmt.Errorf("find closest node: %w", err)
-		}
-		switch dcmp {
-		case 0:
-			// do nothing
-		case -1:
-			// current node is closer
-			closest = a
-		case 1:
-			// closest is already closer to chunk
-			// do nothing
-		}
-	}
-
-	return
-}
