@@ -56,7 +56,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
-			addr, err := c.Nodes[i].UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
+			addr, err := chunk.Address(), c.Nodes[i].UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
