@@ -43,7 +43,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 		return err
 	}
 
-	for i := 1; i < o.UploadNodeCount; i++ {
+	for i := 0; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (
 				chunk            bee.Chunk
@@ -70,7 +70,6 @@ func Check(c bee.Cluster, o Options) (err error) {
 			}
 			index := findIndex(overlays, closest)
 			fmt.Printf("Upload node %d. Chunk: %d. Closest: %d %s\n", i, j, index, closest.String())
-			fmt.Printf("%d overlays: \n%v", len(overlays), overlays)
 			topology, err := c.Nodes[index].Topology(ctx)
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
@@ -93,12 +92,6 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 			if len(replicatingNodes) == 0 {
 				fmt.Printf("Upload node %d. Chunk: %d. Chunk does not have any designated replicators.\n", i, j)
-				topology, err := c.Nodes[index].Topology(ctx)
-				if err != nil {
-					panic(err)
-				}
-				fmt.Println(topology.Depth, topology.Bins)
-
 				return errPullSync
 			}
 
