@@ -19,6 +19,7 @@ import (
 
 // Options represents chunk repair check options
 type Options struct {
+	NodeGroup              string
 	NumberOfChunksToRepair int
 	Seed                   int64
 }
@@ -33,7 +34,7 @@ var (
 )
 
 // Check ...
-func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -44,9 +45,10 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 	pusher.Format(expfmt.FmtText)
 
+	ng := c.NodeGroup(o.NodeGroup)
 	for i := 0; i < o.NumberOfChunksToRepair; i++ {
 		// Pick node A, B, C and a chunk which is closest to B
-		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, c, rnds[i])
+		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, ng, rnds[i])
 		if err != nil {
 			return err
 		}
@@ -95,7 +97,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 		// delete the chunk from all nodes. If the chunk from nodeA is not deleted,
 		// it is hard to simulate the chunk failure in small clusters. We would need a
 		// fairly large cluster then.
-		err = deleteChunkFromAllNodes(ctx, c, chunk)
+		err = deleteChunkFromAllNodes(ctx, ng, chunk)
 		if err != nil {
 			return err
 		}
@@ -109,7 +111,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 		// by the time the NodeC creates a trojan chunk and asks NodeA to repair, upload the
 		// original chunk in nodeA and pin it
-		err = uploadAndPinChunkToNode(ctx, &nodeA, chunk)
+		err = uploadAndPinChunkToNode(ctx, nodeA, chunk)
 		if err != nil {
 			return err
 		}
@@ -143,7 +145,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 
 		if pushMetrics {
 			if err := pusher.Push(); err != nil {
-				fmt.Printf("node %d: %s\n", i, err)
+				fmt.Printf("chunk %d: %s\n", i, err)
 			}
 		}
 	}
@@ -153,26 +155,26 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match
 // nodeB is the closest to the generated chunk in the cluster.
-func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Client, bee.Client, bee.Client, *bee.Chunk, error) {
+func getNodes(ctx context.Context, ng *bee.NodeGroup, rnd *rand.Rand) (*bee.Client, *bee.Client, *bee.Client, *bee.Chunk, error) {
 	var overlayA swarm.Address
 	var overlayB swarm.Address
 	var overlayC swarm.Address
 	var chunk *bee.Chunk
 
 	// get overlay addresses of the cluster
-	overlays, err := c.Overlays(ctx)
+	overlays, err := ng.Overlays(ctx)
 	if err != nil {
-		return bee.Client{}, bee.Client{}, bee.Client{}, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	if len(overlays) < minNodesRequired {
-		return bee.Client{}, bee.Client{}, bee.Client{}, nil, errLessNodesForTest
+	if ng.Size() < minNodesRequired {
+		return nil, nil, nil, nil, errLessNodesForTest
 	}
 
 	// find node A and C, such that they have the greatest distance between them in the cluster
 	overlayA, overlayC, err = findFarthestNodes(overlays)
 	if err != nil {
-		return bee.Client{}, bee.Client{}, bee.Client{}, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	// find node B
@@ -180,7 +182,7 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Client, b
 	for {
 		closestOverlay, c, err := getRandomChunkAndClosestNode(overlays, rnd)
 		if err != nil {
-			return bee.Client{}, bee.Client{}, bee.Client{}, nil, err
+			return nil, nil, nil, nil, err
 		}
 		if bytes.Equal(closestOverlay.Bytes(), overlayA.Bytes()) {
 			continue
@@ -199,13 +201,13 @@ func getNodes(ctx context.Context, c bee.Cluster, rnd *rand.Rand) (bee.Client, b
 	fmt.Printf("chunk Address: %s\n", chunk.Address().String())
 
 	// get the nodes for all the addresses
-	var nodeA bee.Client
-	var nodeB bee.Client
-	var nodeC bee.Client
-	for _, node := range c.Nodes {
+	var nodeA *bee.Client
+	var nodeB *bee.Client
+	var nodeC *bee.Client
+	for _, node := range ng.Nodes() {
 		addresses, err := node.Addresses(ctx)
 		if err != nil {
-			return bee.Client{}, bee.Client{}, bee.Client{}, nil, err
+			return nil, nil, nil, nil, err
 		}
 
 		if addresses.Overlay.Equal(overlayA) {
@@ -238,8 +240,8 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.C
 }
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
-func deleteChunkFromAllNodes(ctx context.Context, c bee.Cluster, chunk *bee.Chunk) error {
-	for _, node := range c.Nodes {
+func deleteChunkFromAllNodes(ctx context.Context, ng *bee.NodeGroup, chunk *bee.Chunk) error {
+	for _, node := range ng.Nodes() {
 		err := node.RemoveChunk(ctx, chunk)
 		if err != nil {
 			return err
@@ -250,7 +252,7 @@ func deleteChunkFromAllNodes(ctx context.Context, c bee.Cluster, chunk *bee.Chun
 
 // getRandomChunkAndClosestNode generates a random node and picks the closest node in the cluster, so that
 // when the chunk is uploaded anywhere in the cluster it lands in this node.
-func getRandomChunkAndClosestNode(overlays []swarm.Address, rnd *rand.Rand) (swarm.Address, *bee.Chunk, error) {
+func getRandomChunkAndClosestNode(overlays bee.NodeGroupOverlays, rnd *rand.Rand) (swarm.Address, *bee.Chunk, error) {
 	chunk, err := bee.NewRandomChunk(rnd)
 	if err != nil {
 		return swarm.ZeroAddress, nil, err
@@ -259,7 +261,7 @@ func getRandomChunkAndClosestNode(overlays []swarm.Address, rnd *rand.Rand) (swa
 	if err != nil {
 		return swarm.ZeroAddress, nil, err
 	}
-	closestAddress, err := chunk.ClosestNode(overlays)
+	_, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 	if err != nil {
 		return swarm.ZeroAddress, nil, err
 	}
@@ -267,7 +269,7 @@ func getRandomChunkAndClosestNode(overlays []swarm.Address, rnd *rand.Rand) (swa
 }
 
 // findFarthestNodes finds two farthest nodes in the cluster
-func findFarthestNodes(overlays []swarm.Address) (swarm.Address, swarm.Address, error) {
+func findFarthestNodes(overlays bee.NodeGroupOverlays) (swarm.Address, swarm.Address, error) {
 	var overlayA swarm.Address
 	var overlayC swarm.Address
 	dist := big.NewInt(0)
