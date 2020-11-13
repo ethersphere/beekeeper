@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/gc"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -21,21 +23,26 @@ func (c *command) initCheckGc() *cobra.Command {
 		Long:  "Checks that a node on the cluster flushes one chunk correctly.",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 
-			cluster, err := bee.NewCluster(bee.ClusterOptions{
-				APIScheme:               c.config.GetString(optionNameAPIScheme),
-				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
-				APIDomain:               c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:          insecureTLSAPI,
-				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
-				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
-				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
-				DisableNamespace:        disableNamespace,
-				Namespace:               c.config.GetString(optionNameNamespace),
-				Size:                    c.config.GetInt(optionNameNodeCount),
+			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+				APIDomain:           c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:      insecureTLSAPI,
+				APIScheme:           c.config.GetString(optionNameAPIScheme),
+				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS: insecureTLSDebugAPI,
+				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
+				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				Namespace:           c.config.GetString(optionNameNamespace),
+				DisableNamespace:    disableNamespace,
 			})
-			if err != nil {
-				return err
+
+			ngOptions := newDefaultNodeGroupOptions()
+			cluster.AddNodeGroup("nodes", ngOptions)
+			ng := cluster.NodeGroup("nodes")
+
+			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
+				if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+					return fmt.Errorf("adding node bee-%d: %s", i, err)
+				}
 			}
 
 			var seed int64
@@ -46,6 +53,7 @@ func (c *command) initCheckGc() *cobra.Command {
 			}
 
 			return gc.CheckChunkNotFound(cluster, gc.Options{
+				NodeGroup:        "nodes",
 				StoreSize:        c.config.GetInt(optionNameDbCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
 				Seed:             seed,

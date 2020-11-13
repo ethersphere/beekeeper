@@ -14,32 +14,36 @@ import (
 
 // Options represents localpinning check options
 type Options struct {
+	NodeGroup        string
 	StoreSize        int // size of the node's localstore in chunks
 	StoreSizeDivisor int // divide store size by how much when uploading bytes
 	Seed             int64
 }
 
 // CheckChunkNotFound uploads a single chunk to a node, then uploads a lot of other chunks to see that it has been purged with gc
-func CheckChunkNotFound(c bee.Cluster, o Options) error {
+func CheckChunkNotFound(c *bee.DynamicCluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	overlays, err := c.Overlays(ctx)
+	ng := c.NodeGroup(o.NodeGroup)
+	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	pivot := rnd.Intn(c.Size())
+	sortedNodes := ng.NodesSorted()
+	pivot := rnd.Intn(ng.Size())
+	pivotNode := sortedNodes[pivot]
 	chunk, err := bee.NewRandomChunk(rnd)
 	if err != nil {
 		return err
 	}
 
-	if err := c.Nodes[pivot].UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false}); err != nil {
-		return fmt.Errorf("node %d: %w", pivot, err)
+	if err := ng.Node(pivotNode).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false}); err != nil {
+		return fmt.Errorf("node %s: %w", pivotNode, err)
 	}
-	fmt.Printf("uploaded chunk %s (%d bytes) to node %d: %s\n", chunk.Address().String(), len(chunk.Data()), pivot, overlays[pivot].String())
+	fmt.Printf("uploaded chunk %s (%d bytes) to node %s: %s\n", chunk.Address().String(), len(chunk.Data()), pivotNode, overlays[pivotNode].String())
 
 	b := make([]byte, (o.StoreSize/o.StoreSizeDivisor)*swarm.ChunkSize)
 
@@ -48,16 +52,16 @@ func CheckChunkNotFound(c bee.Cluster, o Options) error {
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
 		}
-		if _, err := c.Nodes[pivot].UploadBytes(ctx, b, api.UploadOptions{Pin: false}); err != nil {
-			return fmt.Errorf("node %d: %w", pivot, err)
+		if _, err := ng.Node(pivotNode).UploadBytes(ctx, b, api.UploadOptions{Pin: false}); err != nil {
+			return fmt.Errorf("node %s: %w", pivotNode, err)
 		}
-		fmt.Printf("node %d: uploaded %d bytes.\n", pivot, len(b))
+		fmt.Printf("node %s: uploaded %d bytes.\n", pivotNode, len(b))
 	}
 
 	// allow time for syncing and GC
 	time.Sleep(5 * time.Second)
 
-	has, err := c.Nodes[pivot].HasChunk(ctx, chunk.Address())
+	has, err := ng.Node(pivotNode).HasChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("node has chunk: %w", err)
 	}
