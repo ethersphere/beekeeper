@@ -17,6 +17,7 @@ import (
 
 // Options represents manifest options
 type Options struct {
+	NodeGroup         string
 	FilesInCollection int
 	MaxPathnameLength int32
 	Seed              int64
@@ -24,13 +25,15 @@ type Options struct {
 
 var errManifest = errors.New("manifest data mismatch")
 
-func Check(c bee.Cluster, o Options) error {
+// Check executes manifest check
+func Check(c *bee.DynamicCluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	overlays, err := c.Overlays(ctx)
+	ng := c.NodeGroup(o.NodeGroup)
+	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
 	}
@@ -47,11 +50,12 @@ func Check(c bee.Cluster, o Options) error {
 
 	tarFile := bee.NewBufferFile("", tarReader)
 
-	if err := c.Nodes[0].UploadCollection(ctx, &tarFile); err != nil {
+	sortedNodes := ng.NodesSorted()
+	if err := ng.Node(sortedNodes[0]).UploadCollection(ctx, &tarFile); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
 	}
 
-	lastNodeIndex := c.Size() - 1
+	lastNode := sortedNodes[len(sortedNodes)-1]
 	try := 0
 
 DOWNLOAD:
@@ -62,18 +66,18 @@ DOWNLOAD:
 	}
 
 	for i, file := range files {
-		size, hash, err := c.Nodes[lastNodeIndex].DownloadManifestFile(ctx, tarFile.Address(), file.Name())
+		size, hash, err := ng.Node(lastNode).DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
-			fmt.Printf("Node %d. Error retrieving file: %v\n", lastNodeIndex, err)
+			fmt.Printf("Node %s. Error retrieving file: %v\n", lastNode, err)
 			goto DOWNLOAD
 		}
 
 		if !bytes.Equal(file.Hash(), hash) {
-			fmt.Printf("Node %d. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s/%s\n", lastNodeIndex, i, file.Size(), size, overlays[lastNodeIndex].String(), tarFile.Address().String(), file.Name())
+			fmt.Printf("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s/%s\n", lastNode, i, file.Size(), size, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
 			return errManifest
 		}
 
-		fmt.Printf("Node %d. File %d retrieved successfully. Node: %s File: %s/%s\n", lastNodeIndex, i, overlays[lastNodeIndex].String(), tarFile.Address().String(), file.Name())
+		fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s/%s\n", lastNode, i, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
 		try = 0 // reset the retry counter for the next file
 	}
 
