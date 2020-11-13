@@ -43,7 +43,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 		return err
 	}
 
-	for i := 0; i < o.UploadNodeCount; i++ {
+	for i := 1; i < o.UploadNodeCount; i++ {
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (
 				chunk            bee.Chunk
@@ -56,7 +56,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
-			addr, err := c.Nodes[i].UploadBytes(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			addr, err := c.Nodes[i].UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
@@ -70,7 +70,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 			}
 			index := findIndex(overlays, closest)
 			fmt.Printf("Upload node %d. Chunk: %d. Closest: %d %s\n", i, j, index, closest.String())
-
+			fmt.Printf("%d overlays: \n%v", len(overlays), overlays)
 			topology, err := c.Nodes[index].Topology(ctx)
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
@@ -93,6 +93,12 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 			if len(replicatingNodes) == 0 {
 				fmt.Printf("Upload node %d. Chunk: %d. Chunk does not have any designated replicators.\n", i, j)
+				topology, err := c.Nodes[index].Topology(ctx)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println(topology.Depth, topology.Bins)
+
 				return errPullSync
 			}
 
@@ -147,4 +153,26 @@ func findIndex(overlays []swarm.Address, addr swarm.Address) int {
 		}
 	}
 	return -1
+}
+
+func closestNode(chunk swarm.Address, nodes []swarm.Address) (closest swarm.Address, err error) {
+	closest = nodes[0]
+	for _, a := range nodes[1:] {
+		dcmp, err := swarm.DistanceCmp(chunk.Bytes(), closest.Bytes(), a.Bytes())
+		if err != nil {
+			return swarm.Address{}, fmt.Errorf("find closest node: %w", err)
+		}
+		switch dcmp {
+		case 0:
+			// do nothing
+		case -1:
+			// current node is closer
+			closest = a
+		case 1:
+			// closest is already closer to chunk
+			// do nothing
+		}
+	}
+
+	return
 }

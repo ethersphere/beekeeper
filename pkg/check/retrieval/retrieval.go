@@ -53,7 +53,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			}
 
 			t0 := time.Now()
-			addr, err := c.Nodes[i].UploadBytes(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			addr, err := c.Nodes[i].UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
