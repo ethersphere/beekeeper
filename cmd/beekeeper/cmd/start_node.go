@@ -38,7 +38,7 @@ func (c *command) initStartNode() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx := context.Background()
 
-			cluster := bee.NewDynamicCluster(clusterName, bee.DynamicClusterOptions{
+			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
 				Annotations: map[string]string{
 					"created-by":        createdBy,
 					"beekeeper/version": beekeeper.Version,

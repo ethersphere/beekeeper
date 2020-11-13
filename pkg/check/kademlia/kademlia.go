@@ -19,7 +19,7 @@ var (
 )
 
 // Check executes Kademlia topology check on cluster
-func Check(cluster *bee.DynamicCluster) (err error) {
+func Check(cluster *bee.Cluster) (err error) {
 	ctx := context.Background()
 
 	fmt.Printf("Checking for full connectivity:\n")

@@ -25,7 +25,7 @@ type Options struct {
 var errRetrieval = errors.New("retrieval")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)

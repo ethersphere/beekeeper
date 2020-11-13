@@ -21,7 +21,7 @@ type Options struct {
 }
 
 // CheckChunkNotFound uploads a single chunk to a node, then uploads a lot of other chunks to see that it has been purged with gc
-func CheckChunkNotFound(c *bee.DynamicCluster, o Options) error {
+func CheckChunkNotFound(c *bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)

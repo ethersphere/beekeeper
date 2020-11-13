@@ -23,7 +23,7 @@ func (c *command) initCheckGc() *cobra.Command {
 		Long:  "Checks that a node on the cluster flushes one chunk correctly.",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),

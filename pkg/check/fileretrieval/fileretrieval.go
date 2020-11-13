@@ -26,7 +26,7 @@ type Options struct {
 var errFileRetrieval = errors.New("file retrieval")
 
 // Check uploads files on cluster and downloads them from the last node in the cluster
-func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -98,7 +98,7 @@ func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bo
 }
 
 // CheckFull uploads files on cluster and downloads them from the all nodes in the cluster
-func CheckFull(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)

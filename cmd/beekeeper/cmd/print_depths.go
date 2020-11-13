@@ -14,7 +14,7 @@ func (c *command) initPrintDepths() *cobra.Command {
 		Short: "Print kademlia depths",
 		Long:  `Print list of Kademlia depths for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),

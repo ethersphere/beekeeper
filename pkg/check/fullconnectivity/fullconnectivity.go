@@ -12,7 +12,7 @@ import (
 var errFullConnectivity = errors.New("full connectivity")
 
 // Check executes full connectivity check if cluster is fully connected
-func Check(cluster *bee.DynamicCluster) (err error) {
+func Check(cluster *bee.Cluster) (err error) {
 	ctx := context.Background()
 
 	overlays, err := cluster.Overlays(ctx)

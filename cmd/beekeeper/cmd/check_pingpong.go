@@ -17,7 +17,7 @@ func (c *command) initCheckPingPong() *cobra.Command {
 		Long: `Executes ping from all nodes to all other nodes in the cluster,
 and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),

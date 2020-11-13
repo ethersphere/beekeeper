@@ -16,7 +16,7 @@ type NodeGroup struct {
 	nodes map[string]*Client
 	opts  NodeGroupOptions
 	// set when added to the cluster
-	cluster *DynamicCluster
+	cluster *Cluster
 	k8s     *k8sBee.Client
 }
 

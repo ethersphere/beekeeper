@@ -31,7 +31,7 @@ type Options struct {
 var errPushSync = errors.New("push sync")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -114,7 +114,7 @@ func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bo
 }
 
 // CheckConcurrent uploads given chunks concurrently on cluster and checks pushsync ability of the cluster
-func CheckConcurrent(c *bee.DynamicCluster, o Options) (err error) {
+func CheckConcurrent(c *bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -137,7 +137,7 @@ func CheckConcurrent(c *bee.DynamicCluster, o Options) (err error) {
 }
 
 // CheckChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func CheckChunks(c *bee.DynamicCluster, o Options) (err error) {
+func CheckChunks(c *bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -184,7 +184,7 @@ func CheckChunks(c *bee.DynamicCluster, o Options) (err error) {
 }
 
 // CheckFiles uploads given files on cluster and verifies expected tag state
-func CheckFiles(c *bee.DynamicCluster, o Options) (err error) {
+func CheckFiles(c *bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)

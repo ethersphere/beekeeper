@@ -25,7 +25,7 @@ type Options struct {
 var errPullSync = errors.New("pull sync")
 
 // Check uploads given chunks on cluster and checks pullsync ability of the cluster
-func Check(c *bee.DynamicCluster, o Options) (err error) {
+func Check(c *bee.Cluster, o Options) (err error) {
 	var (
 		ctx                    = context.Background()
 		rnds                   = random.PseudoGenerators(o.Seed, o.UploadNodeCount)

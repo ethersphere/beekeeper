@@ -23,7 +23,7 @@ func (c *command) initCheckManifest() *cobra.Command {
 It uploads given number of files archived in a collection to the first node in the cluster, 
 and attempts retrieval of those files from the last node in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),

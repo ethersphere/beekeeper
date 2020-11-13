@@ -34,7 +34,7 @@ var (
 )
 
 // Check ...
-func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
 	fmt.Printf("Seed: %d\n", o.Seed)

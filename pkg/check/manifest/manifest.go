@@ -26,7 +26,7 @@ type Options struct {
 var errManifest = errors.New("manifest data mismatch")
 
 // Check executes manifest check
-func Check(c *bee.DynamicCluster, o Options) error {
+func Check(c *bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 

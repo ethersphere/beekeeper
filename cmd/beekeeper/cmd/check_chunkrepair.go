@@ -23,7 +23,7 @@ func (c *command) initCheckChunkRepair() *cobra.Command {
 It uploads given number of chunks to given number of nodes, 
 and attempts repairing of those chunks for the other nodes in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),

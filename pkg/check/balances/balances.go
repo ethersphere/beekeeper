@@ -24,7 +24,7 @@ type Options struct {
 }
 
 // Check executes balances check
-func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -119,7 +119,7 @@ func Check(c *bee.DynamicCluster, o Options, pusher *push.Pusher, pushMetrics bo
 }
 
 // DryRunCheck executes balances validation check without files uploading/downloading
-func DryRunCheck(c *bee.DynamicCluster, o Options) (err error) {
+func DryRunCheck(c *bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 
 	ng := c.NodeGroup(o.NodeGroup)

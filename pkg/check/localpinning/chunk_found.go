@@ -13,7 +13,7 @@ import (
 )
 
 // CheckChunkFound uploads a single chunk to a node, pins it, then uploads a lot of other chunks to see that it still there
-func CheckChunkFound(c *bee.DynamicCluster, o Options) error {
+func CheckChunkFound(c *bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)

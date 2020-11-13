@@ -28,7 +28,7 @@ func (c *command) initCheckPullSync() *cobra.Command {
 				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
 			}
 
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),

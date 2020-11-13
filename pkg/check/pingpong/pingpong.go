@@ -13,7 +13,7 @@ import (
 )
 
 // Check executes ping from all nodes to all other nodes in the cluster
-func Check(cluster *bee.DynamicCluster, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(cluster *bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err error) {
 	ctx := context.Background()
 
 	pusher.Collector(rttGauge)

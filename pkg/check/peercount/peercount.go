@@ -8,7 +8,7 @@ import (
 )
 
 // Check executes peer count check on cluster
-func Check(cluster *bee.DynamicCluster) (err error) {
+func Check(cluster *bee.Cluster) (err error) {
 	ctx := context.Background()
 
 	overlays, err := cluster.Overlays(ctx)

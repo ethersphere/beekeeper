@@ -14,7 +14,7 @@ func (c *command) initCheckPeerCount() *cobra.Command {
 		Short: "Counts peers for all nodes in the cluster",
 		Long:  `Counts peers for all nodes in the cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),

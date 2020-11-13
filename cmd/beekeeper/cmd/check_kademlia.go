@@ -15,7 +15,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 		Short: "Checks Kademlia topology in the cluster",
 		Long:  `Checks Kademlia topology in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),

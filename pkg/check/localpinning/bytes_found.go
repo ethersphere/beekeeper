@@ -13,7 +13,7 @@ import (
 )
 
 // CheckBytesFound uploads some bytes to a node, pins them, then uploads a lot of other chunks to see they are still there
-func CheckBytesFound(c *bee.DynamicCluster, o Options) error {
+func CheckBytesFound(c *bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)

@@ -15,7 +15,7 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 		Short: "Checks full connectivity in the cluster",
 		Long:  `Checks if every node has connectivity to all other nodes in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewDynamicCluster("bee", bee.DynamicClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),
