@@ -33,15 +33,6 @@ func NewChunk(data []byte) (Chunk, error) {
 	return Chunk{data: data}, nil
 }
 
-// NewChunk returns new chunk
-func NewChunkA(data []byte, a swarm.Address) (Chunk, error) {
-	if len(data) > MaxChunkSize {
-		return Chunk{}, fmt.Errorf("create chunk: requested size too big (max %d bytes)", MaxChunkSize)
-	}
-
-	return Chunk{data: data, address: a}, nil
-}
-
 // NewRandomChunk returns new pseudorandom chunk
 func NewRandomChunk(r *rand.Rand) (Chunk, error) {
 	data := make([]byte, r.Intn(MaxChunkSize))
