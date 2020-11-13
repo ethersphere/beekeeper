@@ -57,7 +57,6 @@ func (c *command) initCheckCmd() (err error) {
 
 	cmd.AddCommand(c.initCheckBalances())
 	cmd.AddCommand(c.initCheckFileRetrieval())
-	cmd.AddCommand(c.initCheckFileRetrievalDynamic())
 	cmd.AddCommand(c.initCheckFullConnectivity())
 	cmd.AddCommand(c.initCheckKademlia())
 	cmd.AddCommand(c.initCheckGc())
