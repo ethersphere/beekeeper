@@ -43,10 +43,13 @@ func (c *command) initPrintAddresses() *cobra.Command {
 			}
 
 			for n, a := range addresses {
+				fmt.Printf("Node %s. ethereum: %s\n", n, a.Ethereum)
+				fmt.Printf("Node %s. public key: %s\n", n, a.PublicKey)
 				fmt.Printf("Node %s. overlay: %s\n", n, a.Overlay)
 				for _, u := range a.Underlay {
 					fmt.Printf("Node %s. underlay: %s\n", n, u)
 				}
+
 			}
 
 			return
