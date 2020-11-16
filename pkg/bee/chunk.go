@@ -34,8 +34,8 @@ func NewChunk(data []byte) (Chunk, error) {
 }
 
 // NewRandomChunk returns new pseudorandom chunk
-func NewRandomChunk(r *rand.Rand) (c Chunk, err error) {
-	data := make([]byte, r.Intn(MaxChunkSize-spanInfoSize))
+func NewRandomChunk(r *rand.Rand) (Chunk, error) {
+	data := make([]byte, r.Intn(MaxChunkSize))
 	if _, err := r.Read(data); err != nil {
 		return Chunk{}, fmt.Errorf("create random chunk: %w", err)
 	}
@@ -45,8 +45,8 @@ func NewRandomChunk(r *rand.Rand) (c Chunk, err error) {
 	binary.LittleEndian.PutUint64(b, uint64(span))
 	data = append(b, data...)
 
-	c = Chunk{data: data, span: span}
-	err = c.SetAddress()
+	c := Chunk{data: data, span: span}
+	err := c.SetAddress()
 	return c, err
 }
 
@@ -74,7 +74,7 @@ func (c *Chunk) Span() int {
 func (c *Chunk) SetAddress() error {
 	p := bmtlegacy.NewTreePool(chunkHahser, swarm.Branches, bmtlegacy.PoolSize)
 	hasher := bmtlegacy.New(p)
-	err := hasher.SetSpan(int64(c.Span()))
+	err := hasher.SetSpanBytes(c.Data()[:8])
 	if err != nil {
 		return err
 	}

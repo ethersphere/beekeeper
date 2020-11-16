@@ -57,7 +57,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			}
 
 			t0 := time.Now()
-			addr, err := c.Nodes[i].UploadBytes(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			addr, err := chunk.Address(), c.Nodes[i].UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
@@ -250,7 +250,7 @@ func chunkStream(ctx context.Context, node bee.Node, rnd *rand.Rand, count int) 
 				return
 			}
 
-			if _, err := n.UploadBytes(ctx, chunk.Data(), api.UploadOptions{Pin: false}); err != nil {
+			if err := n.UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false}); err != nil {
 				chunkStream <- chunkStreamMsg{Index: i, Error: err}
 				return
 			}

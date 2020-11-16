@@ -56,12 +56,12 @@ func Check(c bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
-			addr, err := c.Nodes[i].UploadBytes(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			err = c.Nodes[i].UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %d: %w", i, err)
 			}
-			uploaderToChunkPo := swarm.Proximity(overlays[i].Bytes(), addr.Bytes())
-			fmt.Printf("Uploaded chunk %s\n", addr.String())
+			uploaderToChunkPo := swarm.Proximity(overlays[i].Bytes(), chunk.Address().Bytes())
+			fmt.Printf("Uploaded chunk %s\n", chunk.Address().String())
 
 			// check uploader and non-NN replication
 			uploaderTopology := topologies[i]
@@ -72,7 +72,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 					pidx := findIndex(overlays, peer)
 					pivotTopology := topologies[pidx]
 					pivotDepth := pivotTopology.Depth
-					switch pivotPo := int(swarm.Proximity(addr.Bytes(), peer.Bytes())); {
+					switch pivotPo := int(swarm.Proximity(chunk.Address().Bytes(), peer.Bytes())); {
 					case pivotPo >= pivotDepth:
 						// chunk within replicating node depth
 						if findIndex(replicatingNodes, peer) == -1 {
@@ -102,7 +102,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %d: %w", index, err)
 			}
-			po := swarm.Proximity(addr.Bytes(), closest.Bytes())
+			po := swarm.Proximity(chunk.Address().Bytes(), closest.Bytes())
 			for _, v := range topology.Bins {
 				for _, peer := range v.ConnectedPeers {
 					peer := peer
@@ -110,7 +110,7 @@ func Check(c bee.Cluster, o Options) (err error) {
 					pidx := findIndex(overlays, peer)
 					pivotTopology := topologies[pidx]
 					pivotDepth := pivotTopology.Depth
-					switch pivotPo := int(swarm.Proximity(addr.Bytes(), peer.Bytes())); {
+					switch pivotPo := int(swarm.Proximity(chunk.Address().Bytes(), peer.Bytes())); {
 					case pivotPo >= pivotDepth:
 						// chunk within replicating node depth
 						if findIndex(replicatingNodes, peer) == -1 {
@@ -144,27 +144,27 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 				for t := 1; t < 5; t++ {
 					time.Sleep(2 * time.Duration(t) * time.Second)
-					synced, err = c.Nodes[ni].HasChunk(ctx, addr)
+					synced, err = c.Nodes[ni].HasChunk(ctx, chunk.Address())
 					if err != nil {
 						return fmt.Errorf("node %d: %w", ni, err)
 					}
 					if synced {
 						break
 					}
-					fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s. Retrying...\n", i, j, overlays[i].String(), addr.String(), n)
+					fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s. Retrying...\n", i, j, overlays[i].String(), chunk.Address().String(), n)
 				}
 				if !synced {
-					return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), addr.String(), n)
+					return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), chunk.Address().String(), n)
 				}
 			}
 
-			rf, err := c.GlobalReplicationFactor(ctx, addr)
+			rf, err := c.GlobalReplicationFactor(ctx, chunk.Address())
 			if err != nil {
 				return fmt.Errorf("replication factor: %w", err)
 			}
 
 			if rf < o.ReplicationFactorThreshold {
-				return fmt.Errorf("chunk %s has low replication factor. got %d want %d", addr.String(), rf, o.ReplicationFactorThreshold)
+				return fmt.Errorf("chunk %s has low replication factor. got %d want %d", chunk.Address().String(), rf, o.ReplicationFactorThreshold)
 			}
 			totalReplicationFactor += float64(rf)
 			fmt.Printf("Chunk replication factor %d\n", rf)
