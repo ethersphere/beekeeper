@@ -81,7 +81,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 			if !bytes.Equal(chunk.Data(), data) {
 				notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("Node %d. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", nodeName, j, chunk.Size(), len(data), overlays[nodeName].String(), chunk.Address().String())
+				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", nodeName, j, chunk.Size(), len(data), overlays[nodeName].String(), chunk.Address().String())
 				if bytes.Contains(chunk.Data(), data) {
 					fmt.Printf("Downloaded data is subset of the uploaded data\n")
 				}
@@ -89,7 +89,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			}
 
 			retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			fmt.Printf("Node %d. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String())
+			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String())
 
 			if pushMetrics {
 				if err := pusher.Push(); err != nil {
