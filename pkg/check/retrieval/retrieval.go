@@ -64,7 +64,7 @@ func Check(c bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			t1 := time.Now()
-			data, err := c.Nodes[c.Size()-1].DownloadBytes(ctx, chunk.Address())
+			data, err := c.Nodes[c.Size()-1].DownloadChunk(ctx, chunk.Address(), "")
 			if err != nil {
 				return fmt.Errorf("node %d: %w", c.Size()-1, err)
 			}
