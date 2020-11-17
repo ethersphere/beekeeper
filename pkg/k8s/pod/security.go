@@ -85,12 +85,3 @@ type WindowsOptions struct {
 	GMSACredentialSpec     string
 	RunAsUserName          string
 }
-
-// toK8S converts WindowsOptions to Kuberntes client object
-func (ws WindowsOptions) toK8S() *v1.WindowsSecurityContextOptions {
-	return &v1.WindowsSecurityContextOptions{
-		GMSACredentialSpecName: &ws.GMSACredentialSpecName,
-		GMSACredentialSpec:     &ws.GMSACredentialSpec,
-		RunAsUserName:          &ws.RunAsUserName,
-	}
-}

@@ -73,10 +73,10 @@ func (pvcs PersistentVolumeClaimSpec) toK8S() v1.PersistentVolumeClaimSpec {
 		VolumeName:       pvcs.VolumeName,
 		VolumeMode: func() *v1.PersistentVolumeMode {
 			if pvcs.VolumeMode == "Block" || pvcs.VolumeMode == "block" {
-				m := v1.PersistentVolumeMode(v1.PersistentVolumeBlock)
+				m := v1.PersistentVolumeBlock
 				return &m
 			}
-			m := v1.PersistentVolumeMode(v1.PersistentVolumeFilesystem)
+			m := v1.PersistentVolumeFilesystem
 			return &m
 		}(),
 	}

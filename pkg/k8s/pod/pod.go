@@ -31,17 +31,6 @@ func (pts PodTemplateSpec) ToK8S() v1.PodTemplateSpec {
 // PodSpecs represents Kubernetes PodSpecs
 type PodSpecs []PodSpec
 
-// toK8S converts Pods to Kuberntes client objects
-func (pss PodSpecs) toK8S() (l []v1.PodSpec) {
-	l = make([]v1.PodSpec, 0, len(pss))
-
-	for _, ps := range pss {
-		l = append(l, ps.toK8S())
-	}
-
-	return
-}
-
 // PodSpec represents Kubernetes PodSpec
 type PodSpec struct {
 	Affinity                      Affinity

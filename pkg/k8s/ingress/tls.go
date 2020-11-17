@@ -26,9 +26,7 @@ type TLS struct {
 func (t TLS) toK8S() (tls ev1b1.IngressTLS) {
 	return ev1b1.IngressTLS{
 		Hosts: func() (hosts []string) {
-			for _, h := range t.Hosts {
-				hosts = append(hosts, h)
-			}
+			hosts = append(hosts, t.Hosts...)
 			return
 		}(),
 		SecretName: t.SecretName,
