@@ -33,6 +33,8 @@ type ClientOptions struct {
 
 // NewClient returns Bee client
 func NewClient(opts ClientOptions) (c *Client) {
+	c = &Client{}
+
 	if opts.APIURL != nil {
 		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
