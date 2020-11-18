@@ -70,7 +70,7 @@ func (g *NodeGroup) AddNode(name string) (err error) {
 		DebugAPIURL:         dURL,
 		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
 	})
-	g.nodes[name] = &c
+	g.nodes[name] = c
 
 	return
 }
