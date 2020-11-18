@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=build /src/dist/beekeeper /usr/local/bin/beekeeper
 
-EXPOSE 6060 7070 8080
 USER beekeeper
 WORKDIR /home/beekeeper
 

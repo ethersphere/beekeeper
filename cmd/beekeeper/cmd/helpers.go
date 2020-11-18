@@ -10,20 +10,20 @@ import (
 // newBeeDefaultConfig returns default Bee node configuration
 func newBeeDefaultConfig() *k8sBee.Config {
 	return &k8sBee.Config{
-		APIAddr:              ":8080",
+		APIAddr:              ":1633",
 		Bootnodes:            "",
 		ClefSignerEnable:     false,
 		ClefSignerEndpoint:   "",
 		CORSAllowedOrigins:   "",
 		DataDir:              "/home/bee/.bee",
 		DBCapacity:           5000000,
-		DebugAPIAddr:         ":6060",
+		DebugAPIAddr:         ":1635",
 		DebugAPIEnable:       true,
 		GatewayMode:          false,
 		GlobalPinningEnabled: true,
 		NATAddr:              "",
 		NetworkID:            1987,
-		P2PAddr:              ":7070",
+		P2PAddr:              ":1634",
 		P2PQUICEnable:        false,
 		P2PWSEnable:          false,
 		Password:             "beekeeper",
