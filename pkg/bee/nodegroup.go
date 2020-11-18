@@ -82,7 +82,7 @@ type NodeGroupAddresses map[string]Addresses
 func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error) {
 	addrs = make(NodeGroupAddresses)
 
-	var msgs []AddressesStreamMsg2
+	var msgs []AddressesStreamMsg
 	for m := range g.AddressesStream(ctx) {
 		msgs = append(msgs, m)
 	}
@@ -97,16 +97,16 @@ func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, er
 	return
 }
 
-// AddressesStreamMsg2 represents message sent over the AddressStream channel
-type AddressesStreamMsg2 struct {
+// AddressesStreamMsg represents message sent over the AddressStream channel
+type AddressesStreamMsg struct {
 	Name      string
 	Addresses Addresses
 	Error     error
 }
 
 // AddressesStream returns stream of addresses of all nodes in the node group
-func (g *NodeGroup) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg2 {
-	addressStream := make(chan AddressesStreamMsg2)
+func (g *NodeGroup) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg {
+	addressStream := make(chan AddressesStreamMsg)
 
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
@@ -115,7 +115,7 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) <-chan AddressesStreamM
 			defer wg.Done()
 
 			a, err := c.Addresses(ctx)
-			addressStream <- AddressesStreamMsg2{
+			addressStream <- AddressesStreamMsg{
 				Name:      n,
 				Addresses: a,
 				Error:     err,
@@ -143,7 +143,7 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, e
 		return nil, fmt.Errorf("checking balances: %w", err)
 	}
 
-	var msgs []BalancesStreamMsg2
+	var msgs []BalancesStreamMsg
 	for m := range g.BalancesStream(ctx) {
 		msgs = append(msgs, m)
 	}
@@ -163,16 +163,16 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, e
 	return
 }
 
-// BalancesStreamMsg2 represents message sent over the BalancesStream channel
-type BalancesStreamMsg2 struct {
+// BalancesStreamMsg represents message sent over the BalancesStream channel
+type BalancesStreamMsg struct {
 	Name     string
 	Balances Balances
 	Error    error
 }
 
 // BalancesStream returns stream of balances of all nodes in the cluster
-func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg2 {
-	balancesStream := make(chan BalancesStreamMsg2)
+func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg {
+	balancesStream := make(chan BalancesStreamMsg)
 
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
@@ -181,7 +181,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg
 			defer wg.Done()
 
 			b, err := c.Balances(ctx)
-			balancesStream <- BalancesStreamMsg2{
+			balancesStream <- BalancesStreamMsg{
 				Name:     n,
 				Balances: b,
 				Error:    err,
@@ -199,7 +199,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg
 
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
 func (g *NodeGroup) GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
-	var msgs []HasChunkStreamMsg2
+	var msgs []HasChunkStreamMsg
 	for m := range g.HasChunkStream(ctx, a) {
 		msgs = append(msgs, m)
 	}
@@ -216,16 +216,16 @@ func (g *NodeGroup) GroupReplicationFactor(ctx context.Context, a swarm.Address)
 	return
 }
 
-// HasChunkStreamMsg2 represents message sent over the HasChunkStream channel
-type HasChunkStreamMsg2 struct {
+// HasChunkStreamMsg represents message sent over the HasChunkStream channel
+type HasChunkStreamMsg struct {
 	Name  string
 	Found bool
 	Error error
 }
 
 // HasChunkStream returns stream of HasChunk requests for all nodes in the node group
-func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) <-chan HasChunkStreamMsg2 {
-	hasChunkStream := make(chan HasChunkStreamMsg2)
+func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) <-chan HasChunkStreamMsg {
+	hasChunkStream := make(chan HasChunkStreamMsg)
 
 	go func() {
 		var wg sync.WaitGroup
@@ -235,7 +235,7 @@ func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) <-chan 
 				defer wg.Done()
 
 				found, err := c.HasChunk(ctx, a)
-				hasChunkStream <- HasChunkStreamMsg2{
+				hasChunkStream <- HasChunkStreamMsg{
 					Name:  n,
 					Found: found,
 					Error: err,
@@ -286,7 +286,7 @@ type NodeGroupOverlays map[string]swarm.Address
 func (g *NodeGroup) Overlays(ctx context.Context) (overlays NodeGroupOverlays, err error) {
 	overlays = make(NodeGroupOverlays)
 
-	var msgs []OverlaysStreamMsg2
+	var msgs []OverlaysStreamMsg
 	for m := range g.OverlaysStream(ctx) {
 		msgs = append(msgs, m)
 	}
@@ -301,8 +301,8 @@ func (g *NodeGroup) Overlays(ctx context.Context) (overlays NodeGroupOverlays, e
 	return
 }
 
-// OverlaysStreamMsg2 represents message sent over the OverlaysStream channel
-type OverlaysStreamMsg2 struct {
+// OverlaysStreamMsg represents message sent over the OverlaysStream channel
+type OverlaysStreamMsg struct {
 	Name    string
 	Address swarm.Address
 	Error   error
@@ -310,8 +310,8 @@ type OverlaysStreamMsg2 struct {
 
 // OverlaysStream returns stream of overlay addresses of all nodes in the node group
 // TODO: add semaphore
-func (g *NodeGroup) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg2 {
-	overlaysStream := make(chan OverlaysStreamMsg2)
+func (g *NodeGroup) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
+	overlaysStream := make(chan OverlaysStreamMsg)
 
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
@@ -320,7 +320,7 @@ func (g *NodeGroup) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg
 			defer wg.Done()
 
 			a, err := c.Overlay(ctx)
-			overlaysStream <- OverlaysStreamMsg2{
+			overlaysStream <- OverlaysStreamMsg{
 				Name:    n,
 				Address: a,
 				Error:   err,
@@ -343,7 +343,7 @@ type NodeGroupPeers map[string][]swarm.Address
 func (g *NodeGroup) Peers(ctx context.Context) (peers NodeGroupPeers, err error) {
 	peers = make(NodeGroupPeers)
 
-	var msgs []PeersStreamMsg2
+	var msgs []PeersStreamMsg
 	for m := range g.PeersStream(ctx) {
 		msgs = append(msgs, m)
 	}
@@ -358,16 +358,16 @@ func (g *NodeGroup) Peers(ctx context.Context) (peers NodeGroupPeers, err error)
 	return
 }
 
-// PeersStreamMsg2 represents message sent over the PeersStream channel
-type PeersStreamMsg2 struct {
+// PeersStreamMsg represents message sent over the PeersStream channel
+type PeersStreamMsg struct {
 	Name  string
 	Peers []swarm.Address
 	Error error
 }
 
 // PeersStream returns stream of peers of all nodes in the node group
-func (g *NodeGroup) PeersStream(ctx context.Context) <-chan PeersStreamMsg2 {
-	peersStream := make(chan PeersStreamMsg2)
+func (g *NodeGroup) PeersStream(ctx context.Context) <-chan PeersStreamMsg {
+	peersStream := make(chan PeersStreamMsg)
 
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
@@ -376,7 +376,7 @@ func (g *NodeGroup) PeersStream(ctx context.Context) <-chan PeersStreamMsg2 {
 			defer wg.Done()
 
 			a, err := c.Peers(ctx)
-			peersStream <- PeersStreamMsg2{
+			peersStream <- PeersStreamMsg{
 				Name:  n,
 				Peers: a,
 				Error: err,
@@ -415,7 +415,7 @@ func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettl
 		return nil, fmt.Errorf("checking settlements: %w", err)
 	}
 
-	var msgs []SettlementsStreamMsg2
+	var msgs []SettlementsStreamMsg
 	for m := range g.SettlementsStream(ctx) {
 		msgs = append(msgs, m)
 	}
@@ -438,16 +438,16 @@ func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettl
 	return
 }
 
-// SettlementsStreamMsg2 represents message sent over the SettlementsStream channel
-type SettlementsStreamMsg2 struct {
+// SettlementsStreamMsg represents message sent over the SettlementsStream channel
+type SettlementsStreamMsg struct {
 	Name        string
 	Settlements Settlements
 	Error       error
 }
 
 // SettlementsStream returns stream of settlements of all nodes in the cluster
-func (g *NodeGroup) SettlementsStream(ctx context.Context) <-chan SettlementsStreamMsg2 {
-	SettlementsStream := make(chan SettlementsStreamMsg2)
+func (g *NodeGroup) SettlementsStream(ctx context.Context) <-chan SettlementsStreamMsg {
+	SettlementsStream := make(chan SettlementsStreamMsg)
 
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
@@ -456,7 +456,7 @@ func (g *NodeGroup) SettlementsStream(ctx context.Context) <-chan SettlementsStr
 			defer wg.Done()
 
 			s, err := c.Settlements(ctx)
-			SettlementsStream <- SettlementsStreamMsg2{
+			SettlementsStream <- SettlementsStreamMsg{
 				Name:        n,
 				Settlements: s,
 				Error:       err,
@@ -543,7 +543,7 @@ type NodeGroupTopologies map[string]Topology
 func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopologies, err error) {
 	topologies = make(NodeGroupTopologies)
 
-	var msgs []TopologyStreamMsg2
+	var msgs []TopologyStreamMsg
 	for m := range g.TopologyStream(ctx) {
 		msgs = append(msgs, m)
 	}
@@ -558,16 +558,16 @@ func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopolog
 	return
 }
 
-// TopologyStreamMsg2 represents message sent over the TopologyStream channel
-type TopologyStreamMsg2 struct {
+// TopologyStreamMsg represents message sent over the TopologyStream channel
+type TopologyStreamMsg struct {
 	Name     string
 	Topology Topology
 	Error    error
 }
 
 // TopologyStream returns stream of peers of all nodes in the node group
-func (g *NodeGroup) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg2 {
-	topologyStream := make(chan TopologyStreamMsg2)
+func (g *NodeGroup) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg {
+	topologyStream := make(chan TopologyStreamMsg)
 
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
@@ -576,7 +576,7 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg
 			defer wg.Done()
 
 			t, err := c.Topology(ctx)
-			topologyStream <- TopologyStreamMsg2{
+			topologyStream <- TopologyStreamMsg{
 				Name:     n,
 				Topology: t,
 				Error:    err,
