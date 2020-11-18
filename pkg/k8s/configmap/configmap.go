@@ -32,7 +32,7 @@ type Options struct {
 }
 
 // Set creates ConfigMap, if ConfigMap already exists updates in place
-func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,

@@ -9,7 +9,7 @@ type Lifecycle struct {
 }
 
 // toK8S converts Lifecycle to Kuberntes client object
-func (l Lifecycle) toK8S() *v1.Lifecycle {
+func (l *Lifecycle) toK8S() *v1.Lifecycle {
 	if l.PostStart != nil {
 		postStart := l.PostStart.toK8S()
 		return &v1.Lifecycle{PostStart: &postStart}

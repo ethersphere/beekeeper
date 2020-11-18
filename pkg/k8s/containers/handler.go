@@ -13,7 +13,7 @@ type Handler struct {
 }
 
 // toK8S converts Handler to Kuberntes client object
-func (h Handler) toK8S() v1.Handler {
+func (h *Handler) toK8S() v1.Handler {
 	if h.Exec != nil {
 		return h.Exec.toK8S()
 	} else if h.HTTPGet != nil {
@@ -31,7 +31,7 @@ type ExecHandler struct {
 }
 
 // toK8S converts ExecHandler to Kuberntes client object
-func (eh ExecHandler) toK8S() v1.Handler {
+func (eh *ExecHandler) toK8S() v1.Handler {
 	return v1.Handler{
 		Exec: &v1.ExecAction{
 			Command: eh.Command,
@@ -49,7 +49,7 @@ type HTTPGetHandler struct {
 }
 
 // toK8S converts HTTPGetHandler to Kuberntes client object
-func (hg HTTPGetHandler) toK8S() v1.Handler {
+func (hg *HTTPGetHandler) toK8S() v1.Handler {
 	return v1.Handler{
 		HTTPGet: &v1.HTTPGetAction{
 			Host:        hg.Host,
@@ -65,10 +65,10 @@ func (hg HTTPGetHandler) toK8S() v1.Handler {
 type HTTPHeaders []HTTPHeader
 
 // toK8S converts HTTPHeaders to Kuberntes client objects
-func (hhs HTTPHeaders) toK8S() (l []v1.HTTPHeader) {
-	l = make([]v1.HTTPHeader, 0, len(hhs))
+func (hhs *HTTPHeaders) toK8S() (l []v1.HTTPHeader) {
+	l = make([]v1.HTTPHeader, 0, len(*hhs))
 
-	for _, h := range hhs {
+	for _, h := range *hhs {
 		l = append(l, h.toK8S())
 	}
 
@@ -82,7 +82,7 @@ type HTTPHeader struct {
 }
 
 // toK8S converts HTTPHeader to Kuberntes client object
-func (hh HTTPHeader) toK8S() v1.HTTPHeader {
+func (hh *HTTPHeader) toK8S() v1.HTTPHeader {
 	return v1.HTTPHeader{
 		Name:  hh.Name,
 		Value: hh.Value,
@@ -96,7 +96,7 @@ type TCPSocketHandler struct {
 }
 
 // toK8S converts TCPSocketHandler to Kuberntes client object
-func (tcps TCPSocketHandler) toK8S() v1.Handler {
+func (tcps *TCPSocketHandler) toK8S() v1.Handler {
 	return v1.Handler{
 		TCPSocket: &v1.TCPSocketAction{
 			Host: tcps.Host,

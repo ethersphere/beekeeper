@@ -6,10 +6,10 @@ import v1 "k8s.io/api/core/v1"
 type EphemeralContainers []EphemeralContainer
 
 // ToK8S converts EphemeralContainers to Kuberntes client objects
-func (ecs EphemeralContainers) ToK8S() (l []v1.EphemeralContainer) {
-	l = make([]v1.EphemeralContainer, 0, len(ecs))
+func (ecs *EphemeralContainers) ToK8S() (l []v1.EphemeralContainer) {
+	l = make([]v1.EphemeralContainer, 0, len(*ecs))
 
-	for _, e := range ecs {
+	for _, e := range *ecs {
 		l = append(l, e.ToK8S())
 	}
 
@@ -23,7 +23,7 @@ type EphemeralContainer struct {
 }
 
 // ToK8S converts EphemeralContainer to Kuberntes client object
-func (ec EphemeralContainer) ToK8S() v1.EphemeralContainer {
+func (ec *EphemeralContainer) ToK8S() v1.EphemeralContainer {
 	return v1.EphemeralContainer{
 		EphemeralContainerCommon: ec.EphemeralContainerCommon.toK8S(),
 		TargetContainerName:      ec.TargetContainerName,
@@ -57,7 +57,7 @@ type EphemeralContainerCommon struct {
 }
 
 // ToK8S converts EphemeralContainerCommon to Kuberntes client object
-func (ecc EphemeralContainerCommon) toK8S() v1.EphemeralContainerCommon {
+func (ecc *EphemeralContainerCommon) toK8S() v1.EphemeralContainerCommon {
 	return v1.EphemeralContainerCommon{
 		Name:                     ecc.Name,
 		Args:                     ecc.Args,

@@ -13,7 +13,7 @@ type Spec struct {
 }
 
 // toK8S converts IngressSpec to Kuberntes client object
-func (s Spec) toK8S() ev1b1.IngressSpec {
+func (s *Spec) toK8S() ev1b1.IngressSpec {
 	return ev1b1.IngressSpec{
 		Backend: func() *ev1b1.IngressBackend {
 			b := s.Backend.toK8S()

@@ -12,7 +12,7 @@ type Affinity struct {
 	PodAntiAffinity *PodAntiAffinity
 }
 
-func (a Affinity) toK8S() *v1.Affinity {
+func (a *Affinity) toK8S() *v1.Affinity {
 	r := v1.Affinity{}
 	if a.NodeAffinity != nil {
 		r.NodeAffinity = a.NodeAffinity.toK8S()
@@ -33,7 +33,7 @@ type NodeAffinity struct {
 }
 
 // toK8S converts NodeAffinity to Kuberntes client object
-func (na NodeAffinity) toK8S() *v1.NodeAffinity {
+func (na *NodeAffinity) toK8S() *v1.NodeAffinity {
 	return &v1.NodeAffinity{
 		PreferredDuringSchedulingIgnoredDuringExecution: na.PreferredDuringSchedulingIgnoredDuringExecution.toK8S(),
 		RequiredDuringSchedulingIgnoredDuringExecution:  na.RequiredDuringSchedulingIgnoredDuringExecution.toK8S(),
@@ -43,10 +43,10 @@ func (na NodeAffinity) toK8S() *v1.NodeAffinity {
 // PreferredSchedulingTerms represents Kubernetes PreferredSchedulingTerms
 type PreferredSchedulingTerms []PreferredSchedulingTerm
 
-func (psts PreferredSchedulingTerms) toK8S() (l []v1.PreferredSchedulingTerm) {
-	l = make([]v1.PreferredSchedulingTerm, 0, len(psts))
+func (psts *PreferredSchedulingTerms) toK8S() (l []v1.PreferredSchedulingTerm) {
+	l = make([]v1.PreferredSchedulingTerm, 0, len(*psts))
 
-	for _, p := range psts {
+	for _, p := range *psts {
 		l = append(l, p.toK8S())
 	}
 
@@ -60,7 +60,7 @@ type PreferredSchedulingTerm struct {
 }
 
 // toK8S converts PreferredSchedulingTerm to Kuberntes client object
-func (pst PreferredSchedulingTerm) toK8S() v1.PreferredSchedulingTerm {
+func (pst *PreferredSchedulingTerm) toK8S() v1.PreferredSchedulingTerm {
 	return v1.PreferredSchedulingTerm{
 		Preference: pst.Preference.toK8S(),
 		Weight:     pst.Weight,
@@ -73,7 +73,7 @@ type NodeSelector struct {
 }
 
 // toK8S converts NodeSelector to Kuberntes client object
-func (ns NodeSelector) toK8S() *v1.NodeSelector {
+func (ns *NodeSelector) toK8S() *v1.NodeSelector {
 	return &v1.NodeSelector{
 		NodeSelectorTerms: ns.NodeSelectorTerms.toK8S(),
 	}
@@ -83,10 +83,10 @@ func (ns NodeSelector) toK8S() *v1.NodeSelector {
 type NodeSelectorTerms []NodeSelectorTerm
 
 // toK8S converts NodeSelectorTerms to Kuberntes client objects
-func (nsts NodeSelectorTerms) toK8S() (l []v1.NodeSelectorTerm) {
-	l = make([]v1.NodeSelectorTerm, 0, len(nsts))
+func (nsts *NodeSelectorTerms) toK8S() (l []v1.NodeSelectorTerm) {
+	l = make([]v1.NodeSelectorTerm, 0, len(*nsts))
 
-	for _, n := range nsts {
+	for _, n := range *nsts {
 		l = append(l, n.toK8S())
 	}
 
@@ -100,7 +100,7 @@ type NodeSelectorTerm struct {
 }
 
 // toK8S converts NodeSelectorTerm to Kuberntes client object
-func (nst NodeSelectorTerm) toK8S() v1.NodeSelectorTerm {
+func (nst *NodeSelectorTerm) toK8S() v1.NodeSelectorTerm {
 	return v1.NodeSelectorTerm{
 		MatchExpressions: nst.MatchExpressions.toK8S(),
 		MatchFields:      nst.MatchFields.toK8S(),
@@ -111,10 +111,10 @@ func (nst NodeSelectorTerm) toK8S() v1.NodeSelectorTerm {
 type NodeSelectorRequirements []NodeSelectorRequirement
 
 // toK8S converts Items to Kuberntes client object
-func (nsrs NodeSelectorRequirements) toK8S() (l []v1.NodeSelectorRequirement) {
-	l = make([]v1.NodeSelectorRequirement, 0, len(nsrs))
+func (nsrs *NodeSelectorRequirements) toK8S() (l []v1.NodeSelectorRequirement) {
+	l = make([]v1.NodeSelectorRequirement, 0, len(*nsrs))
 
-	for _, n := range nsrs {
+	for _, n := range *nsrs {
 		l = append(l, n.toK8S())
 	}
 
@@ -129,7 +129,7 @@ type NodeSelectorRequirement struct {
 }
 
 // toK8S converts NodeSelectorRequirement to Kuberntes client object
-func (nsr NodeSelectorRequirement) toK8S() v1.NodeSelectorRequirement {
+func (nsr *NodeSelectorRequirement) toK8S() v1.NodeSelectorRequirement {
 	return v1.NodeSelectorRequirement{
 		Key:      nsr.Key,
 		Operator: v1.NodeSelectorOperator(nsr.Operator),
@@ -144,7 +144,7 @@ type PodAffinity struct {
 }
 
 // toK8S converts PodAffinity to Kuberntes client object
-func (pa PodAffinity) toK8S() *v1.PodAffinity {
+func (pa *PodAffinity) toK8S() *v1.PodAffinity {
 	return &v1.PodAffinity{
 		PreferredDuringSchedulingIgnoredDuringExecution: pa.PreferredDuringSchedulingIgnoredDuringExecution.toK8S(),
 		RequiredDuringSchedulingIgnoredDuringExecution:  pa.RequiredDuringSchedulingIgnoredDuringExecution.toK8S(),
@@ -155,10 +155,10 @@ func (pa PodAffinity) toK8S() *v1.PodAffinity {
 type PodAffinityTerms []PodAffinityTerm
 
 // toK8S converts PodAffinityTerms to Kuberntes client object
-func (pats PodAffinityTerms) toK8S() (l []v1.PodAffinityTerm) {
-	l = make([]v1.PodAffinityTerm, 0, len(pats))
+func (pats *PodAffinityTerms) toK8S() (l []v1.PodAffinityTerm) {
+	l = make([]v1.PodAffinityTerm, 0, len(*pats))
 
-	for _, p := range pats {
+	for _, p := range *pats {
 		l = append(l, p.toK8S())
 	}
 
@@ -173,7 +173,7 @@ type PodAffinityTerm struct {
 }
 
 // toK8S converts PodAffinityTerm to Kuberntes client object
-func (pat PodAffinityTerm) toK8S() v1.PodAffinityTerm {
+func (pat *PodAffinityTerm) toK8S() v1.PodAffinityTerm {
 	return v1.PodAffinityTerm{
 		LabelSelector: &metav1.LabelSelector{MatchLabels: pat.LabelSelector},
 		Namespaces:    pat.Namespaces,
@@ -185,10 +185,10 @@ func (pat PodAffinityTerm) toK8S() v1.PodAffinityTerm {
 type WeightedPodAffinityTerms []WeightedPodAffinityTerm
 
 // toK8S converts WeightedPodAffinityTerms to Kuberntes client object
-func (wpats WeightedPodAffinityTerms) toK8S() (l []v1.WeightedPodAffinityTerm) {
-	l = make([]v1.WeightedPodAffinityTerm, 0, len(wpats))
+func (wpats *WeightedPodAffinityTerms) toK8S() (l []v1.WeightedPodAffinityTerm) {
+	l = make([]v1.WeightedPodAffinityTerm, 0, len(*wpats))
 
-	for _, w := range wpats {
+	for _, w := range *wpats {
 		l = append(l, w.toK8S())
 	}
 
@@ -202,7 +202,7 @@ type WeightedPodAffinityTerm struct {
 }
 
 // toK8S converts WeightedPodAffinityTerm to Kuberntes client object
-func (wpat WeightedPodAffinityTerm) toK8S() v1.WeightedPodAffinityTerm {
+func (wpat *WeightedPodAffinityTerm) toK8S() v1.WeightedPodAffinityTerm {
 	return v1.WeightedPodAffinityTerm{
 		PodAffinityTerm: wpat.PodAffinityTerm.toK8S(),
 		Weight:          wpat.Weight,
@@ -216,7 +216,7 @@ type PodAntiAffinity struct {
 }
 
 // toK8S converts PodAntiAffinity to Kuberntes client object
-func (paa PodAntiAffinity) toK8S() *v1.PodAntiAffinity {
+func (paa *PodAntiAffinity) toK8S() *v1.PodAntiAffinity {
 	return &v1.PodAntiAffinity{
 		PreferredDuringSchedulingIgnoredDuringExecution: paa.PreferredDuringSchedulingIgnoredDuringExecution.toK8S(),
 		RequiredDuringSchedulingIgnoredDuringExecution:  paa.RequiredDuringSchedulingIgnoredDuringExecution.toK8S(),

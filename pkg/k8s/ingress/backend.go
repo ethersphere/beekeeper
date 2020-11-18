@@ -12,7 +12,7 @@ type Backend struct {
 }
 
 // toK8S converts Backend to Kuberntes client object
-func (b Backend) toK8S() ev1b1.IngressBackend {
+func (b *Backend) toK8S() ev1b1.IngressBackend {
 	return ev1b1.IngressBackend{
 		ServiceName: b.ServiceName,
 		ServicePort: intstr.FromString(b.ServicePort),

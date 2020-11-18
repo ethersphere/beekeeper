@@ -9,10 +9,10 @@ import (
 type EnvVars []EnvVar
 
 // toK8S converts EnvVars to Kuberntes client objects
-func (evs EnvVars) toK8S() (l []v1.EnvVar) {
-	l = make([]v1.EnvVar, 0, len(evs))
+func (evs *EnvVars) toK8S() (l []v1.EnvVar) {
+	l = make([]v1.EnvVar, 0, len(*evs))
 
-	for _, e := range evs {
+	for _, e := range *evs {
 		l = append(l, e.toK8S())
 	}
 
@@ -27,7 +27,7 @@ type EnvVar struct {
 }
 
 // toK8S converts EnvVar to Kuberntes client object
-func (ev EnvVar) toK8S() v1.EnvVar {
+func (ev *EnvVar) toK8S() v1.EnvVar {
 	return v1.EnvVar{
 		Name:  ev.Name,
 		Value: ev.Value,
@@ -55,7 +55,7 @@ type Field struct {
 }
 
 // toK8S converts Field to Kuberntes client object
-func (f Field) toK8S() *v1.ObjectFieldSelector {
+func (f *Field) toK8S() *v1.ObjectFieldSelector {
 	return &v1.ObjectFieldSelector{
 		APIVersion: f.APIVersion,
 		FieldPath:  f.Path,
@@ -70,7 +70,7 @@ type ResourceField struct {
 }
 
 // toK8S converts ResourceField to Kuberntes client object
-func (rf ResourceField) toK8S() *v1.ResourceFieldSelector {
+func (rf *ResourceField) toK8S() *v1.ResourceFieldSelector {
 	return &v1.ResourceFieldSelector{
 		ContainerName: rf.ContainerName,
 		Resource:      rf.ContainerName,
@@ -86,7 +86,7 @@ type ConfigMapKey struct {
 }
 
 // toK8S converts ConfigMapKey to Kuberntes client object
-func (cmk ConfigMapKey) toK8S() *v1.ConfigMapKeySelector {
+func (cmk *ConfigMapKey) toK8S() *v1.ConfigMapKeySelector {
 	return &v1.ConfigMapKeySelector{
 		LocalObjectReference: v1.LocalObjectReference{Name: cmk.ConfigMapName},
 		Key:                  cmk.Key,
@@ -102,7 +102,7 @@ type SecretKey struct {
 }
 
 // toK8S converts SecretKey to Kuberntes client object
-func (sk SecretKey) toK8S() *v1.SecretKeySelector {
+func (sk *SecretKey) toK8S() *v1.SecretKeySelector {
 	return &v1.SecretKeySelector{
 		LocalObjectReference: v1.LocalObjectReference{Name: sk.SecretName},
 		Key:                  sk.Key,
@@ -113,10 +113,10 @@ func (sk SecretKey) toK8S() *v1.SecretKeySelector {
 // EnvFroms represents Kubernetes EnvFromSources
 type EnvFroms []EnvFrom
 
-func (efs EnvFroms) toK8S() (l []v1.EnvFromSource) {
-	l = make([]v1.EnvFromSource, 0, len(efs))
+func (efs *EnvFroms) toK8S() (l []v1.EnvFromSource) {
+	l = make([]v1.EnvFromSource, 0, len(*efs))
 
-	for _, ef := range efs {
+	for _, ef := range *efs {
 		l = append(l, ef.toK8S())
 	}
 
@@ -131,7 +131,7 @@ type EnvFrom struct {
 }
 
 // toK8S converts EnvFrom to Kuberntes client object
-func (ef EnvFrom) toK8S() v1.EnvFromSource {
+func (ef *EnvFrom) toK8S() v1.EnvFromSource {
 	return v1.EnvFromSource{
 		Prefix:       ef.Prefix,
 		ConfigMapRef: ef.ConfigMap.toK8S(),
@@ -146,7 +146,7 @@ type ConfigMapRef struct {
 }
 
 // toK8S converts ConfigMapRef to Kuberntes client object
-func (cm ConfigMapRef) toK8S() *v1.ConfigMapEnvSource {
+func (cm *ConfigMapRef) toK8S() *v1.ConfigMapEnvSource {
 	return &v1.ConfigMapEnvSource{
 		LocalObjectReference: v1.LocalObjectReference{Name: cm.Name},
 		Optional:             &cm.Optional,
@@ -160,7 +160,7 @@ type SecretRef struct {
 }
 
 // toK8S converts SecretRef to Kuberntes client object
-func (s SecretRef) toK8S() *v1.SecretEnvSource {
+func (s *SecretRef) toK8S() *v1.SecretEnvSource {
 	return &v1.SecretEnvSource{
 		LocalObjectReference: v1.LocalObjectReference{Name: s.Name},
 		Optional:             &s.Optional,

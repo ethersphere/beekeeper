@@ -12,7 +12,7 @@ type Probe struct {
 }
 
 // toK8S converts Containers to Kuberntes client object
-func (p Probe) toK8S() *v1.Probe {
+func (p *Probe) toK8S() *v1.Probe {
 	if p.Exec != nil {
 		return p.Exec.toK8S()
 	} else if p.HTTPGet != nil {
@@ -35,7 +35,7 @@ type ExecProbe struct {
 }
 
 // toK8S converts ExecProbe to Kuberntes client object
-func (ep ExecProbe) toK8S() *v1.Probe {
+func (ep *ExecProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
 		FailureThreshold:    ep.FailureThreshold,
 		Handler:             ep.Handler.toK8S(),
@@ -57,7 +57,7 @@ type HTTPGetProbe struct {
 }
 
 // toK8S converts HTTPGetProbe to Kuberntes client object
-func (hgp HTTPGetProbe) toK8S() *v1.Probe {
+func (hgp *HTTPGetProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
 		FailureThreshold:    hgp.FailureThreshold,
 		Handler:             hgp.Handler.toK8S(),
@@ -79,7 +79,7 @@ type TCPSocketProbe struct {
 }
 
 // toK8S converts TCPSocketProbe to Kuberntes client object
-func (tsp TCPSocketProbe) toK8S() *v1.Probe {
+func (tsp *TCPSocketProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
 		FailureThreshold:    tsp.FailureThreshold,
 		Handler:             tsp.Handler.toK8S(),

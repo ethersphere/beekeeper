@@ -6,10 +6,10 @@ import v1 "k8s.io/api/core/v1"
 type Ports []Port
 
 // toK8S converts Ports to Kuberntes client object
-func (ps Ports) toK8S() (l []v1.ContainerPort) {
-	l = make([]v1.ContainerPort, 0, len(ps))
+func (ps *Ports) toK8S() (l []v1.ContainerPort) {
+	l = make([]v1.ContainerPort, 0, len(*ps))
 
-	for _, p := range ps {
+	for _, p := range *ps {
 		l = append(l, p.toK8S())
 	}
 	return
@@ -25,7 +25,7 @@ type Port struct {
 }
 
 // toK8S converts Port to Kuberntes client object
-func (p Port) toK8S() v1.ContainerPort {
+func (p *Port) toK8S() v1.ContainerPort {
 	return v1.ContainerPort{
 		Name:          p.Name,
 		ContainerPort: p.ContainerPort,

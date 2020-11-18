@@ -18,7 +18,7 @@ type PodSecurityContext struct {
 }
 
 // toK8S converts PodSecurityContext to Kuberntes client object
-func (psc PodSecurityContext) toK8S() *v1.PodSecurityContext {
+func (psc *PodSecurityContext) toK8S() *v1.PodSecurityContext {
 	return &v1.PodSecurityContext{
 		FSGroup: &psc.FSGroup,
 		FSGroupChangePolicy: func() *v1.PodFSGroupChangePolicy {
@@ -43,7 +43,7 @@ type SELinuxOptions struct {
 }
 
 // toK8S converts SELinuxOptions to Kuberntes client object
-func (se SELinuxOptions) toK8S() *v1.SELinuxOptions {
+func (se *SELinuxOptions) toK8S() *v1.SELinuxOptions {
 	return &v1.SELinuxOptions{
 		User:  se.User,
 		Role:  se.Role,
@@ -56,10 +56,10 @@ func (se SELinuxOptions) toK8S() *v1.SELinuxOptions {
 type Sysctls []Sysctl
 
 // toK8S converts Sysctls to Kuberntes client objects
-func (scs Sysctls) toK8S() (l []v1.Sysctl) {
-	l = make([]v1.Sysctl, 0, len(scs))
+func (scs *Sysctls) toK8S() (l []v1.Sysctl) {
+	l = make([]v1.Sysctl, 0, len(*scs))
 
-	for _, s := range scs {
+	for _, s := range *scs {
 		l = append(l, s.toK8S())
 	}
 
@@ -72,7 +72,7 @@ type Sysctl struct {
 	Value string
 }
 
-func (sc Sysctl) toK8S() v1.Sysctl {
+func (sc *Sysctl) toK8S() v1.Sysctl {
 	return v1.Sysctl{
 		Name:  sc.Name,
 		Value: sc.Value,

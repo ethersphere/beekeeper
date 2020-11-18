@@ -10,7 +10,7 @@ type DataSource struct {
 }
 
 // toK8S converts DataSource to Kuberntes client object
-func (d DataSource) toK8S() *v1.TypedLocalObjectReference {
+func (d *DataSource) toK8S() *v1.TypedLocalObjectReference {
 	return &v1.TypedLocalObjectReference{
 		APIGroup: &d.APIGroup,
 		Kind:     d.Kind,

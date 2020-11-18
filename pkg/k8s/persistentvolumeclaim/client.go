@@ -30,7 +30,7 @@ type Options struct {
 }
 
 // Set creates PersistentVolumeClaim, if PersistentVolumeClaim already exists updates in place
-func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,

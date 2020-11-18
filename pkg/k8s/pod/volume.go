@@ -9,10 +9,10 @@ import (
 type Volumes []Volume
 
 // toK8S converts Volumes to Kuberntes client objects
-func (vs Volumes) toK8S() (l []v1.Volume) {
-	l = make([]v1.Volume, 0, len(vs))
+func (vs *Volumes) toK8S() (l []v1.Volume) {
+	l = make([]v1.Volume, 0, len(*vs))
 
-	for _, v := range vs {
+	for _, v := range *vs {
 		l = append(l, v.toK8S())
 	}
 
@@ -27,7 +27,7 @@ type Volume struct {
 }
 
 // toK8S converts Volume to Kuberntes client object
-func (v Volume) toK8S() v1.Volume {
+func (v *Volume) toK8S() v1.Volume {
 	if v.EmptyDir != nil {
 		return v.EmptyDir.toK8S()
 	} else if v.ConfigMap != nil {
@@ -47,7 +47,7 @@ type EmptyDirVolume struct {
 }
 
 // toK8S converts EmptyDirVolume to Kuberntes client object
-func (ed EmptyDirVolume) toK8S() v1.Volume {
+func (ed *EmptyDirVolume) toK8S() v1.Volume {
 	return v1.Volume{
 		Name: ed.Name,
 		VolumeSource: v1.VolumeSource{
@@ -75,7 +75,7 @@ type ConfigMapVolume struct {
 }
 
 // toK8S converts ConfigMapVolume to Kuberntes client object
-func (cm ConfigMapVolume) toK8S() v1.Volume {
+func (cm *ConfigMapVolume) toK8S() v1.Volume {
 	return v1.Volume{
 		Name: cm.Name,
 		VolumeSource: v1.VolumeSource{
@@ -99,7 +99,7 @@ type SecretVolume struct {
 }
 
 // toK8S converts SecretVolume to Kuberntes client object
-func (s SecretVolume) toK8S() v1.Volume {
+func (s *SecretVolume) toK8S() v1.Volume {
 	return v1.Volume{
 		Name: s.Name,
 		VolumeSource: v1.VolumeSource{
@@ -117,10 +117,10 @@ func (s SecretVolume) toK8S() v1.Volume {
 type Items []Item
 
 // toK8S converts Items to Kuberntes client object
-func (is Items) toK8S() (l []v1.KeyToPath) {
-	l = make([]v1.KeyToPath, 0, len(is))
+func (is *Items) toK8S() (l []v1.KeyToPath) {
+	l = make([]v1.KeyToPath, 0, len(*is))
 
-	for _, i := range is {
+	for _, i := range *is {
 		l = append(l, i.toK8S())
 	}
 
@@ -134,7 +134,7 @@ type Item struct {
 }
 
 // toK8S converts Item to Kuberntes client object
-func (i Item) toK8S() v1.KeyToPath {
+func (i *Item) toK8S() v1.KeyToPath {
 	return v1.KeyToPath{
 		Key:  i.Key,
 		Path: i.Value,

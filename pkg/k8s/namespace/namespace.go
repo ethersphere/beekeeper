@@ -27,7 +27,7 @@ type Options struct {
 }
 
 // Create creates namespace
-func (c Client) Create(ctx context.Context, name string, o Options) (err error) {
+func (c *Client) Create(ctx context.Context, name string, o Options) (err error) {
 	spec := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,

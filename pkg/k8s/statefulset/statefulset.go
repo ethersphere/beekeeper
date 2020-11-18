@@ -20,7 +20,7 @@ type StatefulSetSpec struct {
 }
 
 // ToK8S converts StatefulSetSpec to Kuberntes client object
-func (s StatefulSetSpec) ToK8S() appsv1.StatefulSetSpec {
+func (s *StatefulSetSpec) ToK8S() appsv1.StatefulSetSpec {
 	return appsv1.StatefulSetSpec{
 		PodManagementPolicy:  appsv1.PodManagementPolicyType(s.PodManagementPolicy),
 		Replicas:             &s.Replicas,
@@ -40,7 +40,7 @@ type UpdateStrategy struct {
 }
 
 // toK8S converts UpdateStrategy to Kuberntes client object
-func (u UpdateStrategy) toK8S() appsv1.StatefulSetUpdateStrategy {
+func (u *UpdateStrategy) toK8S() appsv1.StatefulSetUpdateStrategy {
 	if u.Type == "OnDelete" {
 		return appsv1.StatefulSetUpdateStrategy{
 			Type: appsv1.OnDeleteStatefulSetStrategyType,

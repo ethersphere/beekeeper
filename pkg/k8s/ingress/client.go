@@ -30,7 +30,7 @@ type Options struct {
 }
 
 // Set creates Ingress, if Ingress already exists does nothing
-func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &ev1b1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,

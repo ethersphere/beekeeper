@@ -23,7 +23,7 @@ type Spec struct {
 }
 
 // ToK8S converts ServiceSpec to Kuberntes client object
-func (s Spec) ToK8S() v1.ServiceSpec {
+func (s *Spec) ToK8S() v1.ServiceSpec {
 	return v1.ServiceSpec{
 		ClusterIP:                s.ClusterIP,
 		ExternalIPs:              s.ExternalIPs,
@@ -49,10 +49,10 @@ func (s Spec) ToK8S() v1.ServiceSpec {
 type Ports []Port
 
 // toK8S converts Ports to Kuberntes client objects
-func (ps Ports) toK8S() (l []v1.ServicePort) {
-	l = make([]v1.ServicePort, 0, len(ps))
+func (ps *Ports) toK8S() (l []v1.ServicePort) {
+	l = make([]v1.ServicePort, 0, len(*ps))
 
-	for _, p := range ps {
+	for _, p := range *ps {
 		l = append(l, p.toK8S())
 	}
 
@@ -70,7 +70,7 @@ type Port struct {
 }
 
 // toK8S converts Port to Kuberntes client object
-func (p Port) toK8S() v1.ServicePort {
+func (p *Port) toK8S() v1.ServicePort {
 	return v1.ServicePort{
 		Name:        p.Name,
 		AppProtocol: &p.AppProtocol,

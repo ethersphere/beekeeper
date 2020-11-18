@@ -17,7 +17,7 @@ type SecurityContext struct {
 }
 
 // toK8S converts SecurityContext to Kuberntes client object
-func (sc SecurityContext) toK8S() *v1.SecurityContext {
+func (sc *SecurityContext) toK8S() *v1.SecurityContext {
 	return &v1.SecurityContext{
 		AllowPrivilegeEscalation: &sc.AllowPrivilegeEscalation,
 		Capabilities:             sc.Capabilities.toK8S(),
@@ -41,7 +41,7 @@ type Capabilities struct {
 }
 
 // toK8S converts Capabilities to Kuberntes client object
-func (cap Capabilities) toK8S() *v1.Capabilities {
+func (cap *Capabilities) toK8S() *v1.Capabilities {
 	caps := v1.Capabilities{}
 	for _, a := range cap.Add {
 		caps.Add = append(caps.Add, v1.Capability(a))
@@ -61,7 +61,7 @@ type SELinuxOptions struct {
 }
 
 // toK8S converts SELinuxOptions to Kuberntes client object
-func (se SELinuxOptions) toK8S() *v1.SELinuxOptions {
+func (se *SELinuxOptions) toK8S() *v1.SELinuxOptions {
 	return &v1.SELinuxOptions{
 		User:  se.User,
 		Role:  se.Role,

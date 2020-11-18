@@ -30,7 +30,7 @@ type Options struct {
 }
 
 // Set creates Service, if Service already exists does nothing
-func (c Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,

@@ -16,7 +16,7 @@ type PodTemplateSpec struct {
 }
 
 // ToK8S converts PodTemplateSpec to Kuberntes client objects
-func (pts PodTemplateSpec) ToK8S() v1.PodTemplateSpec {
+func (pts *PodTemplateSpec) ToK8S() v1.PodTemplateSpec {
 	return v1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        pts.Name,
@@ -66,7 +66,7 @@ type PodSpec struct {
 }
 
 // toK8S converts PodSpec to Kuberntes client object
-func (p PodSpec) toK8S() v1.PodSpec {
+func (p *PodSpec) toK8S() v1.PodSpec {
 	return v1.PodSpec{
 		Affinity:                     p.Affinity.toK8S(),
 		AutomountServiceAccountToken: &p.AutomountServiceAccountToken,
