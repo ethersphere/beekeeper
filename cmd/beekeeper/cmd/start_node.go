@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper"
@@ -36,8 +35,6 @@ func (c *command) initStartNode() *cobra.Command {
 		Short: "Start Bee node",
 		Long:  `Start Bee node.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			ctx := context.Background()
-
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
 				Annotations: map[string]string{
 					"created-by":        createdBy,
@@ -72,7 +69,7 @@ func (c *command) initStartNode() *cobra.Command {
 			nodeConfig.Bootnodes = bootnodes
 			nodeConfig.Standalone = standalone
 
-			return ng.StartNode(ctx, bee.StartNodeOptions{
+			return ng.StartNode(cmd.Context(), bee.StartNodeOptions{
 				Name:   nodeName,
 				Config: nodeConfig,
 			})

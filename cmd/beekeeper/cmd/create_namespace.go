@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper"
@@ -23,8 +22,7 @@ func (c *command) initCreateNamespace() *cobra.Command {
 				KubeconfigPath: kubeconfig,
 			})
 
-			ctx := context.Background()
-			if err = k.Namespace.Create(ctx, ns, namespace.Options{
+			if err = k.Namespace.Create(cmd.Context(), ns, namespace.Options{
 				Annotations: map[string]string{
 					"createdBy": "beekeeper",
 				},

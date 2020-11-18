@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -33,8 +32,6 @@ func (c *command) initStartCluster() *cobra.Command {
 		Short: "Start Bee cluster",
 		Long:  `Start Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			ctx := context.Background()
-
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
 				Annotations: map[string]string{
 					"created-by":        createdBy,
@@ -70,7 +67,7 @@ func (c *command) initStartCluster() *cobra.Command {
 			for i := 0; i < bootnodeCount; i++ {
 				bConfig := newBeeDefaultConfig()
 				bConfig.Bootnodes = bSetup[i].Bootnodes
-				if err := bg.StartNode(ctx, bee.StartNodeOptions{
+				if err := bg.StartNode(cmd.Context(), bee.StartNodeOptions{
 					Name:         fmt.Sprintf("bootnode-%d", i),
 					Config:       bConfig,
 					ClefKey:      bSetup[i].ClefKey,
@@ -97,7 +94,7 @@ func (c *command) initStartCluster() *cobra.Command {
 			nConfig := newBeeDefaultConfig()
 			nConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameStartNamespace))
 			for i := 0; i < nodeCount; i++ {
-				if err := ng.StartNode(ctx, bee.StartNodeOptions{
+				if err := ng.StartNode(cmd.Context(), bee.StartNodeOptions{
 					Name:   fmt.Sprintf("bee-%d", i),
 					Config: nConfig,
 				}); err != nil {
