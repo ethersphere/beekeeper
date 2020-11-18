@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -36,8 +35,7 @@ func (c *command) initPrintAddresses() *cobra.Command {
 				}
 			}
 
-			ctx := context.Background()
-			addresses, err := ng.Addresses(ctx)
+			addresses, err := ng.Addresses(cmd.Context())
 			if err != nil {
 				return err
 			}

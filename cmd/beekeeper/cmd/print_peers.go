@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -36,8 +35,7 @@ func (c *command) initPrintPeers() *cobra.Command {
 				}
 			}
 
-			ctx := context.Background()
-			peers, err := ng.Peers(ctx)
+			peers, err := ng.Peers(cmd.Context())
 			if err != nil {
 				return err
 			}

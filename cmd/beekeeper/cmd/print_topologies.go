@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -36,8 +35,7 @@ func (c *command) initPrintTopologies() *cobra.Command {
 				}
 			}
 
-			ctx := context.Background()
-			topologies, err := ng.Topologies(ctx)
+			topologies, err := ng.Topologies(cmd.Context())
 			if err != nil {
 				return err
 			}

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -36,8 +35,7 @@ func (c *command) initPrintOverlay() *cobra.Command {
 				}
 			}
 
-			ctx := context.Background()
-			overlays, err := ng.Overlays(ctx)
+			overlays, err := ng.Overlays(cmd.Context())
 			if err != nil {
 				return err
 			}
