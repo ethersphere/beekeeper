@@ -9,10 +9,10 @@ import (
 type EnvVars []EnvVar
 
 // toK8S converts EnvVars to Kuberntes client objects
-func (evs *EnvVars) toK8S() (l []v1.EnvVar) {
-	l = make([]v1.EnvVar, 0, len(*evs))
+func (evs EnvVars) toK8S() (l []v1.EnvVar) {
+	l = make([]v1.EnvVar, 0, len(evs))
 
-	for _, e := range *evs {
+	for _, e := range evs {
 		l = append(l, e.toK8S())
 	}
 
@@ -113,10 +113,10 @@ func (sk *SecretKey) toK8S() *v1.SecretKeySelector {
 // EnvFroms represents Kubernetes EnvFromSources
 type EnvFroms []EnvFrom
 
-func (efs *EnvFroms) toK8S() (l []v1.EnvFromSource) {
-	l = make([]v1.EnvFromSource, 0, len(*efs))
+func (efs EnvFroms) toK8S() (l []v1.EnvFromSource) {
+	l = make([]v1.EnvFromSource, 0, len(efs))
 
-	for _, ef := range *efs {
+	for _, ef := range efs {
 		l = append(l, ef.toK8S())
 	}
 

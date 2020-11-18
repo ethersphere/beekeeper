@@ -8,10 +8,10 @@ import (
 type Containers []Container
 
 // ToK8S converts Containers to Kuberntes client objects
-func (cs *Containers) ToK8S() (l []v1.Container) {
-	l = make([]v1.Container, 0, len(*cs))
+func (cs Containers) ToK8S() (l []v1.Container) {
+	l = make([]v1.Container, 0, len(cs))
 
-	for _, c := range *cs {
+	for _, c := range cs {
 		l = append(l, c.ToK8S())
 	}
 

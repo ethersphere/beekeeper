@@ -22,10 +22,10 @@ func (s *Selector) toK8S() *metav1.LabelSelector {
 type LabelSelectorRequirements []LabelSelectorRequirement
 
 // toK8S converts LabelSelectorRequirements to Kuberntes client object
-func (lsrs *LabelSelectorRequirements) toK8S() (l []metav1.LabelSelectorRequirement) {
-	l = make([]metav1.LabelSelectorRequirement, 0, len(*lsrs))
+func (lsrs LabelSelectorRequirements) toK8S() (l []metav1.LabelSelectorRequirement) {
+	l = make([]metav1.LabelSelectorRequirement, 0, len(lsrs))
 
-	for _, lsr := range *lsrs {
+	for _, lsr := range lsrs {
 		l = append(l, lsr.toK8S())
 	}
 

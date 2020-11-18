@@ -9,10 +9,10 @@ import (
 type Volumes []Volume
 
 // toK8S converts Volumes to Kuberntes client objects
-func (vs *Volumes) toK8S() (l []v1.Volume) {
-	l = make([]v1.Volume, 0, len(*vs))
+func (vs Volumes) toK8S() (l []v1.Volume) {
+	l = make([]v1.Volume, 0, len(vs))
 
-	for _, v := range *vs {
+	for _, v := range vs {
 		l = append(l, v.toK8S())
 	}
 
@@ -117,10 +117,10 @@ func (s *SecretVolume) toK8S() v1.Volume {
 type Items []Item
 
 // toK8S converts Items to Kuberntes client object
-func (is *Items) toK8S() (l []v1.KeyToPath) {
-	l = make([]v1.KeyToPath, 0, len(*is))
+func (is Items) toK8S() (l []v1.KeyToPath) {
+	l = make([]v1.KeyToPath, 0, len(is))
 
-	for _, i := range *is {
+	for _, i := range is {
 		l = append(l, i.toK8S())
 	}
 

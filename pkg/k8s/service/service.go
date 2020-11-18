@@ -49,10 +49,10 @@ func (s *Spec) ToK8S() v1.ServiceSpec {
 type Ports []Port
 
 // toK8S converts Ports to Kuberntes client objects
-func (ps *Ports) toK8S() (l []v1.ServicePort) {
-	l = make([]v1.ServicePort, 0, len(*ps))
+func (ps Ports) toK8S() (l []v1.ServicePort) {
+	l = make([]v1.ServicePort, 0, len(ps))
 
-	for _, p := range *ps {
+	for _, p := range ps {
 		l = append(l, p.toK8S())
 	}
 

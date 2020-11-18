@@ -8,10 +8,10 @@ import (
 type Rules []Rule
 
 // toK8S converts Rules to Kuberntes client objects
-func (rs *Rules) toK8S() (l []ev1b1.IngressRule) {
-	l = make([]ev1b1.IngressRule, 0, len(*rs))
+func (rs Rules) toK8S() (l []ev1b1.IngressRule) {
+	l = make([]ev1b1.IngressRule, 0, len(rs))
 
-	for _, r := range *rs {
+	for _, r := range rs {
 		l = append(l, r.toK8S())
 	}
 
@@ -40,10 +40,10 @@ func (r *Rule) toK8S() (rule ev1b1.IngressRule) {
 type Paths []Path
 
 // toK8S converts Paths to Kuberntes client objects
-func (ps *Paths) toK8S() (l []ev1b1.HTTPIngressPath) {
-	l = make([]ev1b1.HTTPIngressPath, 0, len(*ps))
+func (ps Paths) toK8S() (l []ev1b1.HTTPIngressPath) {
+	l = make([]ev1b1.HTTPIngressPath, 0, len(ps))
 
-	for _, p := range *ps {
+	for _, p := range ps {
 		l = append(l, p.toK8S())
 	}
 

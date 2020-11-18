@@ -6,10 +6,10 @@ import v1 "k8s.io/api/core/v1"
 type Ports []Port
 
 // toK8S converts Ports to Kuberntes client object
-func (ps *Ports) toK8S() (l []v1.ContainerPort) {
-	l = make([]v1.ContainerPort, 0, len(*ps))
+func (ps Ports) toK8S() (l []v1.ContainerPort) {
+	l = make([]v1.ContainerPort, 0, len(ps))
 
-	for _, p := range *ps {
+	for _, p := range ps {
 		l = append(l, p.toK8S())
 	}
 	return

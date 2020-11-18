@@ -6,10 +6,10 @@ import ev1b1 "k8s.io/api/extensions/v1beta1"
 type TLSs []TLS
 
 // toK8S converts TLSs to Kuberntes client objects
-func (ts *TLSs) toK8S() (l []ev1b1.IngressTLS) {
-	l = make([]ev1b1.IngressTLS, 0, len(*ts))
+func (ts TLSs) toK8S() (l []ev1b1.IngressTLS) {
+	l = make([]ev1b1.IngressTLS, 0, len(ts))
 
-	for _, t := range *ts {
+	for _, t := range ts {
 		l = append(l, t.toK8S())
 	}
 

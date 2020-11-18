@@ -6,10 +6,10 @@ import v1 "k8s.io/api/core/v1"
 type VolumeDevices []VolumeDevice
 
 // toK8S converts VolumeDevices to Kuberntes client objects
-func (vds *VolumeDevices) toK8S() (l []v1.VolumeDevice) {
-	l = make([]v1.VolumeDevice, 0, len(*vds))
+func (vds VolumeDevices) toK8S() (l []v1.VolumeDevice) {
+	l = make([]v1.VolumeDevice, 0, len(vds))
 
-	for _, vd := range *vds {
+	for _, vd := range vds {
 		l = append(l, vd.toK8S())
 	}
 
@@ -34,10 +34,10 @@ func (vd *VolumeDevice) toK8S() v1.VolumeDevice {
 type VolumeMounts []VolumeMount
 
 // toK8S converts VolumeMounts to Kuberntes client objects
-func (vms *VolumeMounts) toK8S() (l []v1.VolumeMount) {
-	l = make([]v1.VolumeMount, 0, len(*vms))
+func (vms VolumeMounts) toK8S() (l []v1.VolumeMount) {
+	l = make([]v1.VolumeMount, 0, len(vms))
 
-	for _, vm := range *vms {
+	for _, vm := range vms {
 		l = append(l, vm.toK8S())
 	}
 

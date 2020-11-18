@@ -65,10 +65,10 @@ func (hg *HTTPGetHandler) toK8S() v1.Handler {
 type HTTPHeaders []HTTPHeader
 
 // toK8S converts HTTPHeaders to Kuberntes client objects
-func (hhs *HTTPHeaders) toK8S() (l []v1.HTTPHeader) {
-	l = make([]v1.HTTPHeader, 0, len(*hhs))
+func (hhs HTTPHeaders) toK8S() (l []v1.HTTPHeader) {
+	l = make([]v1.HTTPHeader, 0, len(hhs))
 
-	for _, h := range *hhs {
+	for _, h := range hhs {
 		l = append(l, h.toK8S())
 	}
 

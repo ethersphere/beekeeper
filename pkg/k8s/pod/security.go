@@ -56,10 +56,10 @@ func (se *SELinuxOptions) toK8S() *v1.SELinuxOptions {
 type Sysctls []Sysctl
 
 // toK8S converts Sysctls to Kuberntes client objects
-func (scs *Sysctls) toK8S() (l []v1.Sysctl) {
-	l = make([]v1.Sysctl, 0, len(*scs))
+func (scs Sysctls) toK8S() (l []v1.Sysctl) {
+	l = make([]v1.Sysctl, 0, len(scs))
 
-	for _, s := range *scs {
+	for _, s := range scs {
 		l = append(l, s.toK8S())
 	}
 

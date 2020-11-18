@@ -6,10 +6,10 @@ import v1 "k8s.io/api/core/v1"
 type PodReadinessGates []PodReadinessGate
 
 // toK8S converts PodReadinessGates to Kuberntes client objects
-func (prgs *PodReadinessGates) toK8S() (l []v1.PodReadinessGate) {
-	l = make([]v1.PodReadinessGate, 0, len(*prgs))
+func (prgs PodReadinessGates) toK8S() (l []v1.PodReadinessGate) {
+	l = make([]v1.PodReadinessGate, 0, len(prgs))
 
-	for _, g := range *prgs {
+	for _, g := range prgs {
 		l = append(l, g.toK8S())
 	}
 

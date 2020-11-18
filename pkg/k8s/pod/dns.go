@@ -22,10 +22,10 @@ func (pdc *PodDNSConfig) toK8S() *v1.PodDNSConfig {
 type PodDNSConfigOptions []PodDNSConfigOption
 
 // toK8S converts Items to Kuberntes client object
-func (pdcos *PodDNSConfigOptions) toK8S() (l []v1.PodDNSConfigOption) {
-	l = make([]v1.PodDNSConfigOption, 0, len(*pdcos))
+func (pdcos PodDNSConfigOptions) toK8S() (l []v1.PodDNSConfigOption) {
+	l = make([]v1.PodDNSConfigOption, 0, len(pdcos))
 
-	for _, p := range *pdcos {
+	for _, p := range pdcos {
 		l = append(l, p.toK8S())
 	}
 
