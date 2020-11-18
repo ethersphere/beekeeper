@@ -19,7 +19,7 @@ const (
 	portHTTP = 80
 )
 
-// NodeStartOptions ...
+// NodeStartOptions represents available options for starting node
 type NodeStartOptions struct {
 	// Bee configuration
 	Config Config
