@@ -36,7 +36,7 @@ func (c *command) initCheckGc() *cobra.Command {
 			})
 
 			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup("nodes", ngOptions)
+			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
 
 			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {

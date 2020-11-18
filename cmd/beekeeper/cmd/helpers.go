@@ -8,8 +8,8 @@ import (
 )
 
 // newBeeDefaultConfig returns default Bee node configuration
-func newBeeDefaultConfig() k8sBee.Config {
-	return k8sBee.Config{
+func newBeeDefaultConfig() *k8sBee.Config {
+	return &k8sBee.Config{
 		APIAddr:              ":8080",
 		Bootnodes:            "",
 		ClefSignerEnable:     false,
@@ -45,8 +45,8 @@ func newBeeDefaultConfig() k8sBee.Config {
 }
 
 // newDefaultNodeGroupOptions returns default node group options
-func newDefaultNodeGroupOptions() bee.NodeGroupOptions {
-	return bee.NodeGroupOptions{
+func newDefaultNodeGroupOptions() *bee.NodeGroupOptions {
+	return &bee.NodeGroupOptions{
 		ClefImage:           "ethersphere/clef:latest",
 		ClefImagePullPolicy: "Always",
 		Image:               "ethersphere/bee:latest",
@@ -76,7 +76,7 @@ func newDefaultNodeGroupOptions() bee.NodeGroupOptions {
 		NodeSelector: map[string]string{
 			"node-group": "bee-staging",
 		},
-		PersistenceEnabled:        false,
+		PersistenceEnabled:        true,
 		PersistenceStorageClass:   "local-storage",
 		PersistanceStorageRequest: "34Gi",
 		PodManagementPolicy:       "OrderedReady",

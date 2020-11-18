@@ -60,7 +60,7 @@ func (c *command) initStartCluster() *cobra.Command {
 				"app.kubernetes.io/part-of":   bgName,
 				"app.kubernetes.io/version":   strings.Split(image, ":")[1],
 			}
-			cluster.AddNodeGroup(bgName, bgOptions)
+			cluster.AddNodeGroup(bgName, *bgOptions)
 			bg := cluster.NodeGroup(bgName)
 
 			bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameStartNamespace))
@@ -69,7 +69,7 @@ func (c *command) initStartCluster() *cobra.Command {
 				bConfig.Bootnodes = bSetup[i].Bootnodes
 				if err := bg.StartNode(cmd.Context(), bee.StartNodeOptions{
 					Name:         fmt.Sprintf("bootnode-%d", i),
-					Config:       bConfig,
+					Config:       *bConfig,
 					ClefKey:      bSetup[i].ClefKey,
 					ClefPassword: bSetup[i].ClefPassword,
 					LibP2PKey:    bSetup[i].LibP2PKey,
@@ -88,7 +88,7 @@ func (c *command) initStartCluster() *cobra.Command {
 				"app.kubernetes.io/part-of":   ngName,
 				"app.kubernetes.io/version":   strings.Split(image, ":")[1],
 			}
-			cluster.AddNodeGroup(ngName, ngOptions)
+			cluster.AddNodeGroup(ngName, *ngOptions)
 			ng := cluster.NodeGroup(ngName)
 
 			nConfig := newBeeDefaultConfig()
@@ -96,7 +96,7 @@ func (c *command) initStartCluster() *cobra.Command {
 			for i := 0; i < nodeCount; i++ {
 				if err := ng.StartNode(cmd.Context(), bee.StartNodeOptions{
 					Name:   fmt.Sprintf("bee-%d", i),
-					Config: nConfig,
+					Config: *nConfig,
 				}); err != nil {
 					return fmt.Errorf("starting bee-%d: %s", i, err)
 				}

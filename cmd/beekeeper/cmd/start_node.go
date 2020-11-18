@@ -62,7 +62,7 @@ func (c *command) initStartNode() *cobra.Command {
 				"app.kubernetes.io/part-of":   nodeGroupName,
 				"app.kubernetes.io/version":   nodeGroupVersion,
 			}
-			cluster.AddNodeGroup(nodeGroupName, ngOptions)
+			cluster.AddNodeGroup(nodeGroupName, *ngOptions)
 			ng := cluster.NodeGroup(nodeGroupName)
 
 			nodeConfig := newBeeDefaultConfig()
@@ -71,7 +71,7 @@ func (c *command) initStartNode() *cobra.Command {
 
 			return ng.StartNode(cmd.Context(), bee.StartNodeOptions{
 				Name:   nodeName,
-				Config: nodeConfig,
+				Config: *nodeConfig,
 			})
 		},
 		PreRunE: c.startPreRunE,
