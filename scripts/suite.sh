@@ -194,7 +194,7 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
     if [[ $ACTION == "pullsync" ]] || [[ $ACTION == "all" ]]; then
         _pullsync
     fi
-    if [[ $ACTION == "chunkrepair" ]] || [[ $ACTION == "all" ]]; then
+    if [[ $ACTION == "chunkrepair" ]]; then
         _chunkrepair
     fi
     if [[ $ACTION == "manifest" ]] || [[ $ACTION == "all" ]]; then
