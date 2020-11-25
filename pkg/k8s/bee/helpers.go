@@ -1,0 +1,328 @@
+package bee
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/ethersphere/beekeeper/pkg/k8s/containers"
+	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaim"
+	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
+	"github.com/ethersphere/beekeeper/pkg/k8s/service"
+)
+
+type setInitContainersOptions struct {
+	ClefEnabled         bool
+	ClefImage           string
+	ClefImagePullPolicy string
+	ClefPassword        string
+	LibP2PEnabled       bool
+	SwarmEnabled        bool
+}
+
+func setInitContainers(o setInitContainersOptions) (inits containers.Containers) {
+	if o.ClefEnabled {
+		inits = append(inits, containers.Container{
+			Name:            "init-clef",
+			Image:           o.ClefImage,
+			ImagePullPolicy: o.ClefImagePullPolicy,
+			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh init %s; echo 'clef initialization done';", o.ClefPassword)},
+			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
+				ClefEnabled: o.ClefEnabled,
+			}),
+		})
+	}
+	if o.LibP2PEnabled || o.SwarmEnabled {
+		inits = append(inits, containers.Container{
+			Name:  "init-bee",
+			Image: "busybox:1.28",
+			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
+chown -R 999:999 /home/bee/.bee/keys;
+echo 'bee initialization done';`},
+			VolumeMounts: containers.VolumeMounts{
+				{
+					Name:      "data",
+					MountPath: "home/bee/.bee",
+				},
+			},
+		})
+	}
+
+	return
+}
+
+type setContainersOptions struct {
+	Name                string
+	Image               string
+	ImagePullPolicy     string
+	LimitCPU            string
+	LimitMemory         string
+	RequestCPU          string
+	RequestMemory       string
+	PortAPI             int32
+	PortDebug           int32
+	PortP2P             int32
+	PersistenceEnabled  bool
+	ClefEnabled         bool
+	ClefImage           string
+	ClefImagePullPolicy string
+	ClefPassword        string
+	LibP2PEnabled       bool
+	SwarmEnabled        bool
+}
+
+func setContainers(o setContainersOptions) (c containers.Containers) {
+	c = append(c, containers.Container{
+		Name:            o.Name,
+		Image:           o.Image,
+		ImagePullPolicy: o.ImagePullPolicy,
+		Command:         []string{"bee", "start", "--config=.bee.yaml"},
+		Ports: containers.Ports{
+			{
+				Name:          "api",
+				ContainerPort: o.PortAPI,
+				Protocol:      "TCP",
+			},
+			{
+				Name:          "debug",
+				ContainerPort: o.PortDebug,
+				Protocol:      "TCP",
+			},
+			{
+				Name:          "p2p",
+				ContainerPort: o.PortP2P,
+				Protocol:      "TCP",
+			},
+		},
+		LivenessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{Handler: containers.HTTPGetHandler{
+			Path: "/health",
+			Port: "debug",
+		}}},
+		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{Handler: containers.HTTPGetHandler{
+			Path: "/readiness",
+			Port: "debug",
+		}}},
+		Resources: containers.Resources{
+			Limit: containers.Limit{
+				CPU:    o.LimitCPU,
+				Memory: o.LimitMemory,
+			},
+			Request: containers.Request{
+				CPU:    o.RequestCPU,
+				Memory: o.RequestMemory,
+			},
+		},
+		SecurityContext: containers.SecurityContext{
+			AllowPrivilegeEscalation: false,
+			RunAsUser:                999,
+		},
+		VolumeMounts: setBeeVolumeMounts(setBeeVolumeMountsOptions{
+			LibP2PEnabled: o.LibP2PEnabled,
+			SwarmEnabled:  o.SwarmEnabled,
+		}),
+	})
+
+	if o.ClefEnabled {
+		c = append(c, containers.Container{
+			Name:            "clef",
+			Image:           o.ClefImage,
+			ImagePullPolicy: o.ClefImagePullPolicy,
+			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh run %s;", o.ClefPassword)},
+			Ports: containers.Ports{
+				{
+					Name:          "api",
+					ContainerPort: int32(8550),
+					Protocol:      "TCP",
+				},
+			},
+			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
+				ClefEnabled: o.ClefEnabled,
+			}),
+		})
+	}
+
+	return
+}
+
+type setBeeVolumeMountsOptions struct {
+	LibP2PEnabled bool
+	SwarmEnabled  bool
+}
+
+func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts containers.VolumeMounts) {
+	volumeMounts = append(volumeMounts, containers.VolumeMount{
+		Name:      "config",
+		MountPath: "/home/bee/.bee.yaml",
+		SubPath:   ".bee.yaml",
+		ReadOnly:  true,
+	})
+	volumeMounts = append(volumeMounts, containers.VolumeMount{
+		Name:      "data",
+		MountPath: "home/bee/.bee",
+	})
+	if o.LibP2PEnabled {
+		volumeMounts = append(volumeMounts, containers.VolumeMount{
+			Name:      "libp2p-key",
+			MountPath: "home/bee/.bee/keys/libp2p.key",
+			SubPath:   "libp2p.key",
+			ReadOnly:  true,
+		})
+	}
+	if o.SwarmEnabled {
+		volumeMounts = append(volumeMounts, containers.VolumeMount{
+			Name:      "swarm-key",
+			MountPath: "home/bee/.bee/keys/swarm.key",
+			SubPath:   "swarm.key",
+			ReadOnly:  true,
+		})
+	}
+
+	return
+}
+
+type setClefVolumeMountsOptions struct {
+	ClefEnabled bool
+}
+
+func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts containers.VolumeMounts) {
+	if o.ClefEnabled {
+		volumeMounts = append(volumeMounts, containers.VolumeMount{
+			Name:      "clef-key",
+			MountPath: "/root/.clef/keys/clef.key",
+			SubPath:   "clef.key",
+			ReadOnly:  true,
+		})
+	}
+
+	return
+}
+
+type setVolumesOptions struct {
+	ConfigCM           string
+	KeysSecret         string
+	ClefKeySecret      string
+	PersistenceEnabled bool
+	ClefEnabled        bool
+	LibP2PEnabled      bool
+	SwarmEnabled       bool
+}
+
+func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
+	volumes = append(volumes, pod.Volume{
+		ConfigMap: &pod.ConfigMapVolume{
+			Name:          "config",
+			ConfigMapName: o.ConfigCM,
+		},
+	})
+	if !o.PersistenceEnabled {
+		volumes = append(volumes, pod.Volume{
+			EmptyDir: &pod.EmptyDirVolume{
+				Name: "data",
+			},
+		})
+	}
+	if o.ClefEnabled {
+		volumes = append(volumes, pod.Volume{
+			Secret: &pod.SecretVolume{
+				Name:       "clef-key",
+				SecretName: o.ClefKeySecret,
+				Items: pod.Items{{
+					Key:   "clef",
+					Value: "clef.key",
+				}},
+			},
+		})
+	}
+	if o.LibP2PEnabled {
+		volumes = append(volumes, pod.Volume{
+			Secret: &pod.SecretVolume{
+				Name:       "libp2p-key",
+				SecretName: o.KeysSecret,
+				Items: pod.Items{{
+					Key:   "libp2p",
+					Value: "libp2p.key",
+				}},
+			},
+		})
+	}
+	if o.SwarmEnabled {
+		volumes = append(volumes, pod.Volume{
+			Secret: &pod.SecretVolume{
+				Name:       "swarm-key",
+				SecretName: o.KeysSecret,
+				Items: pod.Items{{
+					Key:   "swarm",
+					Value: "swarm.key",
+				}},
+			},
+		})
+	}
+
+	return
+}
+
+type setPersistentVolumeClaimsOptions struct {
+	Enabled        bool
+	StorageClass   string
+	StorageRequest string
+}
+
+func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.PersistentVolumeClaims) {
+	if o.Enabled {
+		pvcs = append(pvcs, pvc.PersistentVolumeClaim{
+			Name: "data",
+			Spec: pvc.PersistentVolumeClaimSpec{
+				AccessModes: pvc.AccessModes{
+					pvc.AccessMode("ReadWriteOnce"),
+				},
+				RequestStorage: o.StorageRequest,
+				StorageClass:   o.StorageClass,
+			},
+		})
+	}
+
+	return
+}
+
+type setBeeNodePortOptions struct {
+	Name       string
+	Protocol   string
+	TargetPort string
+	Port       int32
+	NodePort   int32
+}
+
+func setBeeNodePort(o setBeeNodePortOptions) (ports service.Ports) {
+	if o.NodePort > 0 {
+		return service.Ports{{
+			Name:       "p2p",
+			Protocol:   "TCP",
+			Port:       o.Port,
+			TargetPort: "p2p",
+			Nodeport:   o.NodePort,
+		}}
+	}
+	return service.Ports{{
+		Name:       "p2p",
+		Protocol:   "TCP",
+		Port:       o.Port,
+		TargetPort: "p2p",
+	}}
+}
+
+func mergeMaps(a, b map[string]string) map[string]string {
+	m := map[string]string{}
+	for k, v := range a {
+		m[k] = v
+	}
+	for k, v := range b {
+		m[k] = v
+	}
+
+	return m
+}
+
+func parsePort(port string) (int32, error) {
+	p, err := strconv.ParseInt(strings.Split(port, ":")[1], 10, 32)
+	return int32(p), err
+}

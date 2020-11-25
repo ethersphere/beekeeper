@@ -47,11 +47,19 @@ func newCommand(opts ...option) (c *command, err error) {
 
 	c.initGlobalFlags()
 
+	if err := c.initCreateCmd(); err != nil {
+		return nil, err
+	}
+
 	if err := c.initCheckCmd(); err != nil {
 		return nil, err
 	}
 
 	if err := c.initPrintCmd(); err != nil {
+		return nil, err
+	}
+
+	if err := c.initStartCmd(); err != nil {
 		return nil, err
 	}
 

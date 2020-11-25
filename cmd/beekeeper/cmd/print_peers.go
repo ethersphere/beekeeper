@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -14,31 +13,36 @@ func (c *command) initPrintPeers() *cobra.Command {
 		Short: "Print peers",
 		Long:  `Print list of peers for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster, err := bee.NewCluster(bee.ClusterOptions{
-				APIScheme:               c.config.GetString(optionNameAPIScheme),
-				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
-				APIDomain:               c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:          insecureTLSAPI,
-				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
-				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
-				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
-				Namespace:               c.config.GetString(optionNameNamespace),
-				Size:                    c.config.GetInt(optionNameNodeCount),
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
+				APIDomain:           c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:      insecureTLSAPI,
+				APIScheme:           c.config.GetString(optionNameAPIScheme),
+				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS: insecureTLSDebugAPI,
+				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
+				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				Namespace:           c.config.GetString(optionNameNamespace),
+				DisableNamespace:    disableNamespace,
 			})
+
+			ngOptions := newDefaultNodeGroupOptions()
+			cluster.AddNodeGroup("nodes", *ngOptions)
+			ng := cluster.NodeGroup("nodes")
+
+			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
+				if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+					return fmt.Errorf("adding node bee-%d: %s", i, err)
+				}
+			}
+
+			peers, err := ng.Peers(cmd.Context())
 			if err != nil {
 				return err
 			}
 
-			ctx := context.Background()
-			peers, err := cluster.Peers(ctx)
-			if err != nil {
-				return err
-			}
-
-			for i, a := range peers {
+			for n, a := range peers {
 				for _, p := range a {
-					fmt.Printf("Node %d. %s\n", i, p)
+					fmt.Printf("Node %s. %s\n", n, p)
 				}
 			}
 

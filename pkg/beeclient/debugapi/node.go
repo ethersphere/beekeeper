@@ -13,8 +13,10 @@ type NodeService service
 
 // Addresses represents node's addresses
 type Addresses struct {
-	Overlay  swarm.Address `json:"overlay"`
-	Underlay []string      `json:"underlay"`
+	Ethereum  string        `json:"ethereum"`
+	Overlay   swarm.Address `json:"overlay"`
+	PublicKey string        `json:"public_key"`
+	Underlay  []string      `json:"underlay"`
 }
 
 // Addresses returns node's addresses

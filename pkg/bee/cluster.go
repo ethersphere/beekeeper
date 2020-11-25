@@ -5,515 +5,293 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
-	"sync"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
+	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 )
 
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
-	Nodes []Node
-	opts  ClusterOptions
+	name                string
+	annotations         map[string]string
+	apiDomain           string
+	apiInsecureTLS      bool
+	apiScheme           string
+	debugAPIDomain      string
+	debugAPIInsecureTLS bool
+	debugAPIScheme      string
+	k8s                 *k8s.Client
+	labels              map[string]string
+	namespace           string
+	disableNamespace    bool                  // do not use namespace for node hostnames
+	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
 }
 
 // ClusterOptions represents Bee cluster options
 type ClusterOptions struct {
-	APIScheme               string
-	APIHostnamePattern      string
-	APIDomain               string
-	APIInsecureTLS          bool
-	DebugAPIScheme          string
-	DebugAPIHostnamePattern string
-	DebugAPIDomain          string
-	DisableNamespace        bool
-	DebugAPIInsecureTLS     bool
-	Namespace               string
-	Size                    int
+	Annotations         map[string]string
+	APIDomain           string
+	APIInsecureTLS      bool
+	APIScheme           string
+	DebugAPIDomain      string
+	DebugAPIInsecureTLS bool
+	DebugAPIScheme      string
+	KubeconfigPath      string
+	Labels              map[string]string
+	Namespace           string
+	DisableNamespace    bool
 }
 
 // NewCluster returns new cluster
-func NewCluster(o ClusterOptions) (c Cluster, err error) {
-	c.opts = o
-	for i := 0; i < o.Size; i++ {
-		a, err := createURL(o.APIScheme, o.APIHostnamePattern, o.Namespace, o.APIDomain, o.DisableNamespace, i)
+func NewCluster(name string, o ClusterOptions) *Cluster {
+	k8s := k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: o.KubeconfigPath})
+
+	return &Cluster{
+		name:                name,
+		annotations:         o.Annotations,
+		apiDomain:           o.APIDomain,
+		apiInsecureTLS:      o.APIInsecureTLS,
+		apiScheme:           o.APIScheme,
+		debugAPIDomain:      o.DebugAPIDomain,
+		debugAPIInsecureTLS: o.DebugAPIInsecureTLS,
+		debugAPIScheme:      o.DebugAPIScheme,
+		k8s:                 k8s,
+		labels:              o.Labels,
+		namespace:           o.Namespace,
+		disableNamespace:    o.DisableNamespace,
+
+		nodeGroups: make(map[string]*NodeGroup),
+	}
+}
+
+// AddNodeGroup adds new node group to the cluster
+func (c *Cluster) AddNodeGroup(name string, o NodeGroupOptions) {
+	g := NewNodeGroup(name, o)
+	g.cluster = c
+	g.k8s = k8sBee.NewClient(g.cluster.k8s)
+	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)
+	g.opts.Labels = mergeMaps(g.cluster.labels, o.Labels)
+
+	c.nodeGroups[name] = g
+}
+
+// ClusterAddresses represents addresses of all nodes in the cluster
+type ClusterAddresses map[string]NodeGroupAddresses
+
+// Addresses returns ClusterAddresses
+func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]NodeGroupAddresses, err error) {
+	addrs = make(ClusterAddresses)
+
+	for k, v := range c.nodeGroups {
+		a, err := v.Addresses(ctx)
 		if err != nil {
-			return Cluster{}, fmt.Errorf("create cluster: %w", err)
+			return nil, fmt.Errorf("%s: %w", k, err)
 		}
 
-		d, err := createURL(o.DebugAPIScheme, o.DebugAPIHostnamePattern, o.Namespace, o.DebugAPIDomain, o.DisableNamespace, i)
+		addrs[k] = a
+	}
+
+	return
+}
+
+// ClusterBalances represents balances of all nodes in the cluster
+type ClusterBalances map[string]NodeGroupBalances
+
+// Balances returns ClusterBalances
+func (c *Cluster) Balances(ctx context.Context) (balances ClusterBalances, err error) {
+	balances = make(ClusterBalances)
+
+	for k, v := range c.nodeGroups {
+		b, err := v.Balances(ctx)
 		if err != nil {
-			return Cluster{}, fmt.Errorf("create cluster: %w", err)
+			return nil, fmt.Errorf("%s: %w", k, err)
 		}
 
-		n := NewNode(NodeOptions{
-			APIURL:              a,
-			APIInsecureTLS:      o.APIInsecureTLS,
-			DebugAPIURL:         d,
-			DebugAPIInsecureTLS: o.DebugAPIInsecureTLS,
-		})
-
-		c.Nodes = append(c.Nodes, n)
+		balances[k] = b
 	}
 
 	return
 }
 
-// AddNodes adds new nodes to the cluster
-func (c *Cluster) AddNodes(count int) (err error) {
-	start, stop := c.Size(), c.Size()+count
-
-	for i := start; i < stop; i++ {
-		a, err := createURL(c.opts.APIScheme, c.opts.APIHostnamePattern, c.opts.Namespace, c.opts.APIDomain, c.opts.DisableNamespace, i)
+// GlobalReplicationFactor returns the total number of nodes in the cluster that contain given chunk
+func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
+	for k, v := range c.nodeGroups {
+		ngrf, err := v.GroupReplicationFactor(ctx, a)
 		if err != nil {
-			return fmt.Errorf("add nodes: %w", err)
+			return 0, fmt.Errorf("%s: %w", k, err)
 		}
 
-		d, err := createURL(c.opts.DebugAPIScheme, c.opts.DebugAPIHostnamePattern, c.opts.Namespace, c.opts.DebugAPIDomain, c.opts.DisableNamespace, i)
+		grf += ngrf
+	}
+
+	return
+}
+
+// Name returns name of the cluster
+func (c *Cluster) Name() string {
+	return c.name
+}
+
+// NodeGroups returns map of node groups in the cluster
+func (c *Cluster) NodeGroups() (l map[string]*NodeGroup) {
+	return c.nodeGroups
+}
+
+// NodeGroupsSorted returns sorted list of node names in the node group
+func (c *Cluster) NodeGroupsSorted() (l []string) {
+	l = make([]string, len(c.nodeGroups))
+
+	i := 0
+	for k := range c.nodeGroups {
+		l[i] = k
+		i++
+	}
+	sort.Strings(l)
+
+	return
+}
+
+// NodeGroup returns node group
+func (c *Cluster) NodeGroup(name string) *NodeGroup {
+	return c.nodeGroups[name]
+}
+
+// ClusterOverlays represents overlay addresses of all nodes in the cluster
+type ClusterOverlays map[string]NodeGroupOverlays
+
+// Overlays returns ClusterOverlays
+func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err error) {
+	overlays = make(ClusterOverlays)
+
+	for k, v := range c.nodeGroups {
+		o, err := v.Overlays(ctx)
 		if err != nil {
-			return fmt.Errorf("add nodes: %w", err)
+			return nil, fmt.Errorf("%s: %w", k, err)
 		}
 
-		n := NewNode(NodeOptions{
-			APIURL:              a,
-			APIInsecureTLS:      c.opts.APIInsecureTLS,
-			DebugAPIURL:         d,
-			DebugAPIInsecureTLS: c.opts.DebugAPIInsecureTLS,
-		})
-
-		c.Nodes = append(c.Nodes, n)
+		overlays[k] = o
 	}
 
 	return
 }
 
-// Addresses returns ordered list of addresses of all nodes in the cluster
-func (c *Cluster) Addresses(ctx context.Context) (addrs []Addresses, err error) {
-	var msgs []AddressesStreamMsg
-	for m := range c.AddressesStream(ctx) {
-		msgs = append(msgs, m)
-	}
+// ClusterPeers represents peers of all nodes in the cluster
+type ClusterPeers map[string]NodeGroupPeers
 
-	sort.SliceStable(msgs, func(i, j int) bool {
-		return msgs[i].Index < msgs[j].Index
-	})
+// Peers returns peers of all nodes in the cluster
+func (c *Cluster) Peers(ctx context.Context) (peers ClusterPeers, err error) {
+	peers = make(ClusterPeers)
 
-	for i, m := range msgs {
-		if m.Error != nil {
-			return nil, fmt.Errorf("node %d: %w", i, m.Error)
+	for k, v := range c.nodeGroups {
+		p, err := v.Peers(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", k, err)
 		}
-		addrs = append(addrs, m.Addresses)
+
+		peers[k] = p
 	}
 
 	return
 }
 
-// AddressesStreamMsg represents message sent over the AddressStream channel
-type AddressesStreamMsg struct {
-	Addresses Addresses
-	Index     int
-	Error     error
-}
+// ClusterSettlements represents settlements of all nodes in the cluster
+type ClusterSettlements map[string]NodeGroupSettlements
 
-// AddressesStream returns stream of addresses of all nodes in the cluster
-func (c *Cluster) AddressesStream(ctx context.Context) <-chan AddressesStreamMsg {
-	addressStream := make(chan AddressesStreamMsg)
+// Settlements returns
+func (c *Cluster) Settlements(ctx context.Context) (settlements ClusterSettlements, err error) {
+	settlements = make(ClusterSettlements)
 
-	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
-		wg.Add(1)
-		go func(i int, n Node) {
-			defer wg.Done()
-
-			a, err := n.Addresses(ctx)
-			addressStream <- AddressesStreamMsg{
-				Addresses: a,
-				Index:     i,
-				Error:     err,
-			}
-		}(i, node)
-	}
-
-	go func() {
-		wg.Wait()
-		close(addressStream)
-	}()
-
-	return addressStream
-}
-
-// Balances returns balances of all nodes in the cluster
-func (c *Cluster) Balances(ctx context.Context) (balances map[string]map[string]int, err error) {
-	overlays, err := c.Overlays(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var msgs []BalancesStreamMsg
-	for m := range c.BalancesStream(ctx) {
-		msgs = append(msgs, m)
-	}
-	sort.SliceStable(msgs, func(i, j int) bool {
-		return msgs[i].Index < msgs[j].Index
-	})
-
-	balances = make(map[string]map[string]int)
-	for i, m := range msgs {
-		if m.Error != nil {
-			return nil, fmt.Errorf("node %d: %w", i, m.Error)
+	for k, v := range c.nodeGroups {
+		s, err := v.Settlements(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", k, err)
 		}
 
-		tmp := make(map[string]int)
-		for _, b := range m.Balances.Balances {
-			tmp[b.Peer] = b.Balance
-		}
-		balances[overlays[i].String()] = tmp
+		settlements[k] = s
 	}
 
 	return
-}
-
-// BalancesStreamMsg represents message sent over the BalancesStream channel
-type BalancesStreamMsg struct {
-	Balances Balances
-	Index    int
-	Error    error
-}
-
-// BalancesStream returns stream of balances of all nodes in the cluster
-func (c *Cluster) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg {
-	balancesStream := make(chan BalancesStreamMsg)
-
-	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
-		wg.Add(1)
-		go func(i int, n Node) {
-			defer wg.Done()
-
-			b, err := n.Balances(ctx)
-			balancesStream <- BalancesStreamMsg{
-				Balances: b,
-				Index:    i,
-				Error:    err,
-			}
-		}(i, node)
-	}
-
-	go func() {
-		wg.Wait()
-		close(balancesStream)
-	}()
-
-	return balancesStream
-}
-
-// GlobalReplicationFactor returns the total number of nodes that contain given chunk
-func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (int, error) {
-	var counter int
-	for m := range c.HasChunkStream(ctx, a) {
-		if m.Error != nil {
-			return 0, fmt.Errorf("node %d: %w", m.Index, m.Error)
-		}
-		if m.Found {
-			counter++
-		}
-	}
-
-	return counter, nil
-}
-
-// HasChunkStreamMsg represents message sent over the HasChunkStream channel
-type HasChunkStreamMsg struct {
-	Found bool
-	Index int
-	Error error
-}
-
-// HasChunkStream returns stream of HasChunk requests for all nodes in the cluster
-func (c *Cluster) HasChunkStream(ctx context.Context, a swarm.Address) <-chan HasChunkStreamMsg {
-	hasChunkStream := make(chan HasChunkStreamMsg)
-
-	go func() {
-		var wg sync.WaitGroup
-		for i, node := range c.Nodes {
-			wg.Add(1)
-			go func(i int, n Node) {
-				defer wg.Done()
-
-				found, err := n.HasChunk(ctx, a)
-				hasChunkStream <- HasChunkStreamMsg{
-					Found: found,
-					Index: i,
-					Error: err,
-				}
-			}(i, node)
-		}
-
-		wg.Wait()
-		close(hasChunkStream)
-	}()
-
-	return hasChunkStream
-}
-
-// Overlays returns ordered list of overlay addresses of all nodes in the cluster
-func (c *Cluster) Overlays(ctx context.Context) (overlays []swarm.Address, err error) {
-	var msgs []OverlaysStreamMsg
-	for m := range c.OverlaysStream(ctx) {
-		msgs = append(msgs, m)
-	}
-
-	sort.SliceStable(msgs, func(i, j int) bool {
-		return msgs[i].Index < msgs[j].Index
-	})
-
-	for i, m := range msgs {
-		if m.Error != nil {
-			return nil, fmt.Errorf("node %d: %w", i, m.Error)
-		}
-		overlays = append(overlays, m.Address)
-	}
-
-	return
-}
-
-// OverlaysStreamMsg represents message sent over the OverlaysStream channel
-type OverlaysStreamMsg struct {
-	Address swarm.Address
-	Index   int
-	Error   error
-}
-
-// OverlaysStream returns stream of overlay addresses of all nodes in the cluster
-// TODO: add semaphore
-func (c *Cluster) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg {
-	overlaysStream := make(chan OverlaysStreamMsg)
-
-	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
-		wg.Add(1)
-		go func(i int, n Node) {
-			defer wg.Done()
-
-			a, err := n.Overlay(ctx)
-			overlaysStream <- OverlaysStreamMsg{
-				Address: a,
-				Index:   i,
-				Error:   err,
-			}
-		}(i, node)
-	}
-
-	go func() {
-		wg.Wait()
-		close(overlaysStream)
-	}()
-
-	return overlaysStream
-}
-
-// Peers returns ordered list of peers of all nodes in the cluster
-func (c *Cluster) Peers(ctx context.Context) (peers [][]swarm.Address, err error) {
-	var msgs []PeersStreamMsg
-	for m := range c.PeersStream(ctx) {
-		msgs = append(msgs, m)
-	}
-
-	sort.SliceStable(msgs, func(i, j int) bool {
-		return msgs[i].Index < msgs[j].Index
-	})
-
-	for i, m := range msgs {
-		if m.Error != nil {
-			return nil, fmt.Errorf("node %d: %w", i, m.Error)
-		}
-		peers = append(peers, m.Peers)
-	}
-
-	return
-}
-
-// PeersStreamMsg represents message sent over the PeersStream channel
-type PeersStreamMsg struct {
-	Peers []swarm.Address
-	Index int
-	Error error
-}
-
-// PeersStream returns stream of peers of all nodes in the cluster
-func (c *Cluster) PeersStream(ctx context.Context) <-chan PeersStreamMsg {
-	peersStream := make(chan PeersStreamMsg)
-
-	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
-		wg.Add(1)
-		go func(i int, n Node) {
-			defer wg.Done()
-
-			a, err := n.Peers(ctx)
-			peersStream <- PeersStreamMsg{
-				Peers: a,
-				Index: i,
-				Error: err,
-			}
-		}(i, node)
-	}
-
-	go func() {
-		wg.Wait()
-		close(peersStream)
-	}()
-
-	return peersStream
-}
-
-// RemoveNodes removes nodes from the cluster
-func (c *Cluster) RemoveNodes(count int) (err error) {
-	c.Nodes = c.Nodes[:c.Size()-count]
-
-	return
-}
-
-// SentReceived object
-type SentReceived struct {
-	Received int
-	Sent     int
-}
-
-// Settlements returns settlements of all nodes in the cluster
-func (c *Cluster) Settlements(ctx context.Context) (settlements map[string]map[string]SentReceived, err error) {
-	overlays, err := c.Overlays(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var msgs []SettlementsStreamMsg
-	for m := range c.SettlementsStream(ctx) {
-		msgs = append(msgs, m)
-	}
-	sort.SliceStable(msgs, func(i, j int) bool {
-		return msgs[i].Index < msgs[j].Index
-	})
-
-	settlements = make(map[string]map[string]SentReceived)
-	for i, m := range msgs {
-		if m.Error != nil {
-			return nil, fmt.Errorf("node %d: %w", i, m.Error)
-		}
-
-		tmp := make(map[string]SentReceived)
-		for _, s := range m.Settlements.Settlements {
-			tmp[s.Peer] = SentReceived{
-				Received: s.Received,
-				Sent:     s.Sent,
-			}
-		}
-		settlements[overlays[i].String()] = tmp
-	}
-
-	return
-}
-
-// SettlementsStreamMsg represents message sent over the SettlementsStream channel
-type SettlementsStreamMsg struct {
-	Settlements Settlements
-	Index       int
-	Error       error
-}
-
-// SettlementsStream returns stream of settlements of all nodes in the cluster
-func (c *Cluster) SettlementsStream(ctx context.Context) <-chan SettlementsStreamMsg {
-	SettlementsStream := make(chan SettlementsStreamMsg)
-
-	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
-		wg.Add(1)
-		go func(i int, n Node) {
-			defer wg.Done()
-
-			s, err := n.Settlements(ctx)
-			SettlementsStream <- SettlementsStreamMsg{
-				Settlements: s,
-				Index:       i,
-				Error:       err,
-			}
-		}(i, node)
-	}
-
-	go func() {
-		wg.Wait()
-		close(SettlementsStream)
-	}()
-
-	return SettlementsStream
 }
 
 // Size returns size of the cluster
-func (c *Cluster) Size() int {
-	return len(c.Nodes)
+func (c *Cluster) Size() (size int) {
+	for _, ng := range c.nodeGroups {
+		size += len(ng.nodes)
+	}
+	return
 }
 
-// Topologies returns ordered list of Kademlia topology of all nodes in the cluster
-func (c *Cluster) Topologies(ctx context.Context) (topologies []Topology, err error) {
-	var msgs []TopologyStreamMsg
-	for m := range c.TopologyStream(ctx) {
-		msgs = append(msgs, m)
-	}
+// ClusterTopologies represents Kademlia topology of all nodes in the cluster
+type ClusterTopologies map[string]NodeGroupTopologies
 
-	sort.SliceStable(msgs, func(i, j int) bool {
-		return msgs[i].Index < msgs[j].Index
-	})
+// Topologies returns ClusterTopologies
+func (c *Cluster) Topologies(ctx context.Context) (topologies ClusterTopologies, err error) {
+	topologies = make(ClusterTopologies)
 
-	for i, m := range msgs {
-		if m.Error != nil {
-			return nil, fmt.Errorf("node %d: %w", i, m.Error)
+	for k, v := range c.nodeGroups {
+		t, err := v.Topologies(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", k, err)
 		}
-		topologies = append(topologies, m.Topology)
+
+		topologies[k] = t
 	}
 
 	return
 }
 
-// TopologyStreamMsg represents message sent over the TopologyStream channel
-type TopologyStreamMsg struct {
-	Topology Topology
-	Index    int
-	Error    error
-}
-
-// TopologyStream returns stream of peers of all nodes in the cluster
-func (c *Cluster) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg {
-	topologyStream := make(chan TopologyStreamMsg)
-
-	var wg sync.WaitGroup
-	for i, node := range c.Nodes {
-		wg.Add(1)
-		go func(i int, n Node) {
-			defer wg.Done()
-
-			t, err := n.Topology(ctx)
-			topologyStream <- TopologyStreamMsg{
-				Topology: t,
-				Index:    i,
-				Error:    err,
-			}
-		}(i, node)
-	}
-
-	go func() {
-		wg.Wait()
-		close(topologyStream)
-	}()
-
-	return topologyStream
-}
-
-// createURL creates API or debug API URL
-func createURL(scheme, hostnamePattern, namespace, domain string, disableNamespace bool, index int) (nodeURL *url.URL, err error) {
-	hostname := fmt.Sprintf(hostnamePattern, index)
-	if disableNamespace {
-		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s", scheme, hostname, domain))
+// apiURL generates URL for node's API
+func (c *Cluster) apiURL(name string) (u *url.URL, err error) {
+	if c.disableNamespace {
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", c.apiScheme, name, c.apiDomain))
 	} else {
-		nodeURL, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", scheme, hostname, namespace, domain))
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", c.apiScheme, name, c.namespace, c.apiDomain))
+	}
+	if err != nil {
+		return nil, fmt.Errorf("bad API url for node %s: %s", name, err)
 	}
 	return
+}
+
+// ingressHost generates host for node's API ingress
+func (c *Cluster) ingressHost(name string) string {
+	if c.disableNamespace {
+		return fmt.Sprintf("%s.%s", name, c.apiDomain)
+	}
+	return fmt.Sprintf("%s.%s.%s", name, c.namespace, c.apiDomain)
+}
+
+// debugAPIURL generates URL for node's DebugAPI
+func (c *Cluster) debugAPIURL(name string) (u *url.URL, err error) {
+	if c.disableNamespace {
+		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s", c.debugAPIScheme, name, c.debugAPIDomain))
+	} else {
+		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s.%s", c.debugAPIScheme, name, c.namespace, c.debugAPIDomain))
+	}
+	if err != nil {
+		return nil, fmt.Errorf("bad debug API url for node %s: %s", name, err)
+	}
+	return
+}
+
+// ingressHost generates host for node's DebugAPI ingress
+func (c *Cluster) ingressDebugHost(name string) string {
+	if c.disableNamespace {
+		return fmt.Sprintf("%s-debug.%s", name, c.debugAPIDomain)
+	}
+	return fmt.Sprintf("%s-debug.%s.%s", name, c.namespace, c.debugAPIDomain)
+}
+
+// mergeMaps joins two maps
+func mergeMaps(a, b map[string]string) map[string]string {
+	m := map[string]string{}
+	for k, v := range a {
+		m[k] = v
+	}
+	for k, v := range b {
+		m[k] = v
+	}
+
+	return m
 }

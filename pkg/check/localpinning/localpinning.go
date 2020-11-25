@@ -11,6 +11,7 @@ import (
 
 // Options represents localpinning check options
 type Options struct {
+	NodeGroup        string
 	StoreSize        int // size of the node's localstore in chunks
 	StoreSizeDivisor int // divide store size by how much when uploading bytes
 	Seed             int64

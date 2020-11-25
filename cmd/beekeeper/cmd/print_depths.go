@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -14,30 +13,36 @@ func (c *command) initPrintDepths() *cobra.Command {
 		Short: "Print kademlia depths",
 		Long:  `Print list of Kademlia depths for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster, err := bee.NewCluster(bee.ClusterOptions{
-				APIScheme:               c.config.GetString(optionNameAPIScheme),
-				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
-				APIDomain:               c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:          insecureTLSAPI,
-				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
-				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
-				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
-				Namespace:               c.config.GetString(optionNameNamespace),
-				Size:                    c.config.GetInt(optionNameNodeCount),
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
+				APIDomain:           c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:      insecureTLSAPI,
+				APIScheme:           c.config.GetString(optionNameAPIScheme),
+				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS: insecureTLSDebugAPI,
+				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
+				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				Namespace:           c.config.GetString(optionNameNamespace),
+				DisableNamespace:    disableNamespace,
 			})
+
+			ngOptions := newDefaultNodeGroupOptions()
+			cluster.AddNodeGroup("nodes", *ngOptions)
+			ng := cluster.NodeGroup("nodes")
+
+			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
+				if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+					return fmt.Errorf("adding node bee-%d: %s", i, err)
+				}
+			}
+
+			topologies, err := ng.Topologies(cmd.Context())
 			if err != nil {
 				return err
 			}
+			fmt.Println(topologies)
 
-			ctx := context.Background()
-			topologies, err := cluster.Topologies(ctx)
-			if err != nil {
-				return err
-			}
-
-			for i, t := range topologies {
-				fmt.Printf("Node %d. overlay: %s depth: %d\n", i, t.Overlay, t.Depth)
+			for n, t := range topologies {
+				fmt.Printf("Node %s. overlay: %s depth: %d\n", n, t.Overlay, t.Depth)
 			}
 
 			return

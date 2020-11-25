@@ -8,7 +8,7 @@ import (
 )
 
 // Check executes peer count check on cluster
-func Check(cluster bee.Cluster) (err error) {
+func Check(cluster *bee.Cluster) (err error) {
 	ctx := context.Background()
 
 	overlays, err := cluster.Overlays(ctx)
@@ -22,8 +22,10 @@ func Check(cluster bee.Cluster) (err error) {
 	}
 
 	clusterSize := cluster.Size()
-	for i := 0; i < clusterSize; i++ {
-		fmt.Printf("Node %d. Peers %d/%d. Node: %s\n", i, len(peers[i]), clusterSize-1, overlays[i])
+	for g, v := range peers {
+		for n, p := range v {
+			fmt.Printf("Node %s. Peers %d/%d. Address: %s\n", n, len(p), clusterSize-1, overlays[g][n])
+		}
 	}
 
 	return

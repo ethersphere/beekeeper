@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -14,33 +13,41 @@ func (c *command) initPrintAddresses() *cobra.Command {
 		Short: "Print addresses",
 		Long:  `Print address for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster, err := bee.NewCluster(bee.ClusterOptions{
-				APIScheme:               c.config.GetString(optionNameAPIScheme),
-				APIHostnamePattern:      c.config.GetString(optionNameAPIHostnamePattern),
-				APIDomain:               c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:          insecureTLSAPI,
-				DebugAPIScheme:          c.config.GetString(optionNameDebugAPIScheme),
-				DebugAPIHostnamePattern: c.config.GetString(optionNameDebugAPIHostnamePattern),
-				DebugAPIDomain:          c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS:     insecureTLSDebugAPI,
-				Namespace:               c.config.GetString(optionNameNamespace),
-				Size:                    c.config.GetInt(optionNameNodeCount),
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
+				APIDomain:           c.config.GetString(optionNameAPIDomain),
+				APIInsecureTLS:      insecureTLSAPI,
+				APIScheme:           c.config.GetString(optionNameAPIScheme),
+				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
+				DebugAPIInsecureTLS: insecureTLSDebugAPI,
+				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
+				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				Namespace:           c.config.GetString(optionNameNamespace),
+				DisableNamespace:    disableNamespace,
 			})
-			if err != nil {
-				return err
-			}
 
-			ctx := context.Background()
-			addresses, err := cluster.Addresses(ctx)
-			if err != nil {
-				return err
-			}
+			ngOptions := newDefaultNodeGroupOptions()
+			cluster.AddNodeGroup("nodes", *ngOptions)
+			ng := cluster.NodeGroup("nodes")
 
-			for i, a := range addresses {
-				fmt.Printf("Node %d. overlay: %s\n", i, a.Overlay)
-				for _, u := range a.Underlay {
-					fmt.Printf("Node %d. underlay: %s\n", i, u)
+			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
+				if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+					return fmt.Errorf("adding node bee-%d: %s", i, err)
 				}
+			}
+
+			addresses, err := ng.Addresses(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			for n, a := range addresses {
+				fmt.Printf("Node %s. ethereum: %s\n", n, a.Ethereum)
+				fmt.Printf("Node %s. public key: %s\n", n, a.PublicKey)
+				fmt.Printf("Node %s. overlay: %s\n", n, a.Overlay)
+				for _, u := range a.Underlay {
+					fmt.Printf("Node %s. underlay: %s\n", n, u)
+				}
+
 			}
 
 			return

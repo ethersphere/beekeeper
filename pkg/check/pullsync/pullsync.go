@@ -15,6 +15,7 @@ import (
 
 // Options represents pullsync check options
 type Options struct {
+	NodeGroup                  string
 	UploadNodeCount            int
 	ChunksPerNode              int
 	ReplicationFactorThreshold int
@@ -24,7 +25,7 @@ type Options struct {
 var errPullSync = errors.New("pull sync")
 
 // Check uploads given chunks on cluster and checks pullsync ability of the cluster
-func Check(c bee.Cluster, o Options) (err error) {
+func Check(c *bee.Cluster, o Options) (err error) {
 	var (
 		ctx                    = context.Background()
 		rnds                   = random.PseudoGenerators(o.Seed, o.UploadNodeCount)
@@ -33,57 +34,59 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	overlays, err := c.Overlays(ctx)
+	ng := c.NodeGroup(o.NodeGroup)
+	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	topologies, err := c.Topologies(ctx)
+	topologies, err := ng.Topologies(ctx)
 	if err != nil {
 		return err
 	}
 
+	sortedNodes := ng.NodesSorted()
 	for i := 0; i < o.UploadNodeCount; i++ {
+		nodeName := sortedNodes[i]
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (
-				chunk            bee.Chunk
-				err              error
-				replicatingNodes []swarm.Address
-				nnRep            int
+				chunk bee.Chunk
+				err   error
+				nnRep int
 			)
+			replicatingNodes := make(map[string]swarm.Address)
 
 			chunk, err = bee.NewRandomChunk(rnds[i])
 			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
+				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			addr, err := chunk.Address(), c.Nodes[i].UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			addr, err := chunk.Address(), ng.Node(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
+				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-
 			fmt.Printf("Uploaded chunk %s\n", addr.String())
 
 			// check closest and NN replication (non-nn replication is not realistic)
-			closest, err := chunk.ClosestNode(overlays)
+			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
-				return fmt.Errorf("node %d: %w", i, err)
+				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			index := findIndex(overlays, closest)
-			fmt.Printf("Upload node %d. Chunk: %d. Closest: %d %s\n", i, j, index, closest.String())
-			topology, err := c.Nodes[index].Topology(ctx)
+			fmt.Printf("Upload node %s. Chunk: %d. Closest: %s %s\n", nodeName, j, closestName, closestAddress.String())
+
+			topology, err := ng.Node(closestName).Topology(ctx)
 			if err != nil {
-				return fmt.Errorf("node %d: %w", index, err)
+				return fmt.Errorf("node %s: %w", closestName, err)
 			}
 			for _, v := range topology.Bins {
 				for _, peer := range v.ConnectedPeers {
 					peer := peer
-					pidx := findIndex(overlays, peer)
+					pidx := findName(overlays, peer)
 					pivotTopology := topologies[pidx]
 					pivotDepth := pivotTopology.Depth
 					if pivotPo := int(swarm.Proximity(addr.Bytes(), peer.Bytes())); pivotPo >= pivotDepth {
 						// chunk within replicating node depth
-						if findIndex(replicatingNodes, peer) == -1 {
-							replicatingNodes = append(replicatingNodes, peer)
+						if len(findName(replicatingNodes, peer)) == 0 {
+							replicatingNodes[findName(overlays, peer)] = peer
 							nnRep++
 						}
 					}
@@ -91,13 +94,13 @@ func Check(c bee.Cluster, o Options) (err error) {
 			}
 
 			if len(replicatingNodes) == 0 {
-				fmt.Printf("Upload node %d. Chunk: %d. Chunk does not have any designated replicators.\n", i, j)
+				fmt.Printf("Upload node %s. Chunk: %d. Chunk does not have any designated replicators.\n", nodeName, j)
 				return errPullSync
 			}
 
 			fmt.Printf("Chunk should be on %d nodes. %d within depth\n", len(replicatingNodes), nnRep)
 			for _, n := range replicatingNodes {
-				ni := findIndex(overlays, n)
+				ni := findName(overlays, n)
 				var (
 					synced bool
 					err    error
@@ -105,17 +108,17 @@ func Check(c bee.Cluster, o Options) (err error) {
 
 				for t := 1; t < 5; t++ {
 					time.Sleep(2 * time.Duration(t) * time.Second)
-					synced, err = c.Nodes[ni].HasChunk(ctx, chunk.Address())
+					synced, err = ng.Node(ni).HasChunk(ctx, chunk.Address())
 					if err != nil {
-						return fmt.Errorf("node %d: %w", ni, err)
+						return fmt.Errorf("node %s: %w", ni, err)
 					}
 					if synced {
 						break
 					}
-					fmt.Printf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s. Retrying...\n", i, j, overlays[i].String(), chunk.Address().String(), n)
+					fmt.Printf("Upload node %s. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s. Retrying...\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String(), n)
 				}
 				if !synced {
-					return fmt.Errorf("Upload node %d. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", i, j, overlays[i].String(), chunk.Address().String(), n)
+					return fmt.Errorf("Upload node %s. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", nodeName, j, overlays[nodeName].String(), chunk.Address().String(), n)
 				}
 			}
 
@@ -138,12 +141,13 @@ func Check(c bee.Cluster, o Options) (err error) {
 	return
 }
 
-// findIndex returns index of a given swarm.Address in a given set of swarm.Addresses, or -1 if not found
-func findIndex(overlays []swarm.Address, addr swarm.Address) int {
-	for i, a := range overlays {
+// findName returns node name of a given swarm.Address in a given set of swarm.Addresses, or "" if not found
+func findName(nodes map[string]swarm.Address, addr swarm.Address) string {
+	for n, a := range nodes {
 		if addr.Equal(a) {
-			return i
+			return n
 		}
 	}
-	return -1
+
+	return ""
 }

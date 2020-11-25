@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/chaos"
@@ -15,7 +14,6 @@ func (c *command) initTurnPodkill(action string) *cobra.Command {
 		Short: "podkill scenario",
 		Long:  `podkill scenario.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			ctx := context.Background()
 			kubeconfig := c.config.GetString(optionNameKubeConfig)
 			mode := c.config.GetString(optionNameMode)
 			value := c.config.GetString(optionNameValue)
@@ -23,6 +21,7 @@ func (c *command) initTurnPodkill(action string) *cobra.Command {
 			podname := c.config.GetString(optionNamePodname)
 			cron := c.config.GetString(optionNameCron)
 
+			ctx := cmd.Context()
 			err = chaos.CheckChaosMesh(ctx, kubeconfig, namespace)
 			if err != nil {
 				return err
