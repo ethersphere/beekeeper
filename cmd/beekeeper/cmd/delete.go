@@ -31,6 +31,7 @@ func (c *command) initDeleteCmd() (err error) {
 	cmd.PersistentFlags().StringP(optionNameStartNamespace, "n", "beekeeper", "kubernetes namespace")
 
 	cmd.AddCommand(c.initDeleteNode())
+	cmd.AddCommand(c.initDeleteCluster())
 
 	c.root.AddCommand(cmd)
 
