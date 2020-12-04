@@ -45,7 +45,12 @@ type ClusterOptions struct {
 
 // NewCluster returns new cluster
 func NewCluster(name string, o ClusterOptions) *Cluster {
-	k8s := k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: o.KubeconfigPath})
+	var k8sClient *k8s.Client
+	if len(o.KubeconfigPath) > 0 {
+		k8sClient = k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: o.KubeconfigPath})
+	} else {
+		k8sClient = nil
+	}
 
 	return &Cluster{
 		name:                name,
@@ -56,7 +61,7 @@ func NewCluster(name string, o ClusterOptions) *Cluster {
 		debugAPIDomain:      o.DebugAPIDomain,
 		debugAPIInsecureTLS: o.DebugAPIInsecureTLS,
 		debugAPIScheme:      o.DebugAPIScheme,
-		k8s:                 k8s,
+		k8s:                 k8sClient,
 		labels:              o.Labels,
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,
