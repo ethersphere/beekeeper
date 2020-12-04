@@ -197,6 +197,19 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg
 	return balancesStream
 }
 
+// DeleteNode deletes node from the k8s cluster and removes it from the node group
+func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
+	if err := g.k8s.NodeDelete(ctx, k8sBee.NodeDeleteOptions{
+		Name:      name,
+		Namespace: g.cluster.namespace,
+	}); err != nil {
+		return fmt.Errorf("deleting node %s: %s", name, err)
+	}
+	g.RemoveNode(name)
+
+	return
+}
+
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
 func (g *NodeGroup) GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
 	var msgs []HasChunkStreamMsg

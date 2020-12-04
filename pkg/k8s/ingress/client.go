@@ -29,7 +29,7 @@ type Options struct {
 	Spec        Spec
 }
 
-// Set creates Ingress, if Ingress already exists does nothing
+// Set updates Ingress or creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &ev1b1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,16 +41,29 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.Spec.toK8S(),
 	}
 
-	_, err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Create(ctx, spec, metav1.CreateOptions{})
+	_, err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			fmt.Printf("ingress %s already exists in the namespace %s, updating the ingress\n", name, namespace)
-			_, err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+		if errors.IsNotFound(err) {
+			_, err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("creating ingress %s in namespace %s: %v", name, namespace, err)
 			}
+		} else {
+			return fmt.Errorf("updating ingress %s in namespace %s: %v", name, namespace, err)
 		}
-		return err
+	}
+
+	return
+}
+
+// Delete deletes Ingress
+func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+	err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("deleting ingress %s in namespace %s: %v", name, namespace, err)
 	}
 
 	return

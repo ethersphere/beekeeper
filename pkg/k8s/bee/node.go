@@ -375,3 +375,92 @@ func (c Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
 	fmt.Printf("node %s started in namespace %s\n", o.Name, o.Namespace)
 	return
 }
+
+// NodeDeleteOptions represents available options for starting node
+type NodeDeleteOptions struct {
+	Name      string
+	Namespace string
+}
+
+// NodeDelete ...
+func (c Client) NodeDelete(ctx context.Context, o NodeDeleteOptions) (err error) {
+	// statefulset
+	sSet := o.Name
+	if err := c.k8s.StatefulSet.Delete(ctx, sSet, o.Namespace); err != nil {
+		return fmt.Errorf("deleting statefulset in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("statefulset %s is deleted in namespace %s\n", sSet, o.Namespace)
+
+	// headless service
+	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
+	if err := c.k8s.Service.Delete(ctx, headlessSvc, o.Namespace); err != nil {
+		return fmt.Errorf("deleting service in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("service %s is deleted in namespace %s\n", headlessSvc, o.Namespace)
+
+	// p2p service
+	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
+	if err := c.k8s.Service.Delete(ctx, p2pSvc, o.Namespace); err != nil {
+		return fmt.Errorf("deleting service in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("service %s is deleted in namespace %s\n", p2pSvc, o.Namespace)
+
+	// debug service's ingress
+	debugIn := fmt.Sprintf("%s-debug", o.Name)
+	if err := c.k8s.Ingress.Delete(ctx, debugIn, o.Namespace); err != nil {
+		return fmt.Errorf("deleting ingress in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("ingress %s is deleted in namespace %s\n", debugIn, o.Namespace)
+
+	// debug service
+	debugSvc := fmt.Sprintf("%s-debug", o.Name)
+	if err := c.k8s.Service.Delete(ctx, debugSvc, o.Namespace); err != nil {
+		return fmt.Errorf("deleting service in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("service %s is deleted in namespace %s\n", debugSvc, o.Namespace)
+
+	// api service's ingress
+	apiIn := fmt.Sprintf("%s-api", o.Name)
+	if err := c.k8s.Ingress.Delete(ctx, apiIn, o.Namespace); err != nil {
+		return fmt.Errorf("deleting ingress in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("ingress %s is deleted in namespace %s\n", apiIn, o.Namespace)
+
+	// api service
+	apiSvc := fmt.Sprintf("%s-api", o.Name)
+	if err := c.k8s.Service.Delete(ctx, apiSvc, o.Namespace); err != nil {
+		return fmt.Errorf("deleting service in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("service %s is deleted in namespace %s\n", apiSvc, o.Namespace)
+
+	// service account
+	svcAccount := o.Name
+	if err := c.k8s.ServiceAccount.Delete(ctx, svcAccount, o.Namespace); err != nil {
+		return fmt.Errorf("deleting serviceaccount in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("serviceaccount %s is deleted in namespace %s\n", svcAccount, o.Namespace)
+
+	// secret with clef key
+	clefKeySecret := fmt.Sprintf("%s-clef-key", o.Name)
+	if err := c.k8s.Secret.Delete(ctx, clefKeySecret, o.Namespace); err != nil {
+		return fmt.Errorf("deleting secret in namespace %s: %s", o.Namespace, err)
+	}
+	fmt.Printf("secret %s is deleted in namespace %s\n", clefKeySecret, o.Namespace)
+
+	// secret with keys
+	keysSecret := fmt.Sprintf("%s-keys", o.Name)
+	if err = c.k8s.Secret.Delete(ctx, keysSecret, o.Namespace); err != nil {
+		return fmt.Errorf("deleting secret %s in namespace %s: %v", keysSecret, o.Namespace, err)
+	}
+	fmt.Printf("secret %s is deleted in namespace %s\n", keysSecret, o.Namespace)
+
+	// bee configuration
+	configCM := o.Name
+	if err = c.k8s.ConfigMap.Delete(ctx, configCM, o.Namespace); err != nil {
+		return fmt.Errorf("deleting configmap %s in namespace %s: %v", configCM, o.Namespace, err)
+	}
+	fmt.Printf("configmap %s is deleted in namespace %s\n", configCM, o.Namespace)
+
+	fmt.Printf("node %s is deleted in namespace %s\n", o.Name, o.Namespace)
+	return
+}

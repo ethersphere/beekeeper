@@ -29,7 +29,7 @@ type Options struct {
 	Spec        StatefulSetSpec
 }
 
-// Set creates StatefulSet, if StatefulSet already exists updates in place
+// Set updates StatefulSet or creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,16 +41,29 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.Spec.ToK8S(),
 	}
 
-	_, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx, spec, metav1.CreateOptions{})
+	_, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			fmt.Printf("statefulset %s already exists in the namespace %s, updating the statefulset\n", name, namespace)
-			_, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+		if errors.IsNotFound(err) {
+			_, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("creating statefulset %s in namespace %s: %v", name, namespace, err)
 			}
+		} else {
+			return fmt.Errorf("updating statefulset %s in namespace %s: %v", name, namespace, err)
 		}
-		return err
+	}
+
+	return
+}
+
+// Delete deletes StatefulSet
+func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+	err = c.clientset.AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("deleting statefulset %s in namespace %s: %v", name, namespace, err)
 	}
 
 	return

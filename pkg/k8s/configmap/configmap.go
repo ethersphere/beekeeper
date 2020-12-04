@@ -31,7 +31,7 @@ type Options struct {
 	BinaryData  map[string][]byte
 }
 
-// Set creates ConfigMap, if ConfigMap already exists updates in place
+// Set updates ConfigMap or creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -45,16 +45,29 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Data:       o.Data,
 	}
 
-	_, err = c.clientset.CoreV1().ConfigMaps(namespace).Create(ctx, spec, metav1.CreateOptions{})
+	_, err = c.clientset.CoreV1().ConfigMaps(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			fmt.Printf("configmap %s already exists in the namespace %s, updating the map\n", name, namespace)
-			_, err = c.clientset.CoreV1().ConfigMaps(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+		if errors.IsNotFound(err) {
+			_, err = c.clientset.CoreV1().ConfigMaps(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("creating configmap %s in namespace %s: %v", name, namespace, err)
 			}
+		} else {
+			return fmt.Errorf("updating configmap %s in namespace %s: %v", name, namespace, err)
 		}
-		return err
+	}
+
+	return
+}
+
+// Delete deletes ConfigMap
+func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+	err = c.clientset.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("deleting configmap %s in namespace %s: %v", name, namespace, err)
 	}
 
 	return

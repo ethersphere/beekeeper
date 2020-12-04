@@ -29,7 +29,7 @@ type Options struct {
 	Spec        PersistentVolumeClaimSpec
 }
 
-// Set creates PersistentVolumeClaim, if PersistentVolumeClaim already exists updates in place
+// Set updates PersistentVolumeClaim or it creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,16 +41,30 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.Spec.toK8S(),
 	}
 
-	_, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, spec, metav1.CreateOptions{})
+	_, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			fmt.Printf("pvc %s already exists in the namespace %s, updating the pvc\n", name, namespace)
-			_, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+		if errors.IsNotFound(err) {
+			_, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("creating pvc %s in namespace %s: %v", name, namespace, err)
 			}
+		} else {
+			return fmt.Errorf("updating pvc %s in namespace %s: %v", name, namespace, err)
 		}
-		return err
+
+	}
+
+	return
+}
+
+// Delete deletes PersistentVolumeClaim
+func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+	err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("deleting pvc %s in namespace %s: %v", name, namespace, err)
 	}
 
 	return

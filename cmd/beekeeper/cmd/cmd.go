@@ -55,6 +55,10 @@ func newCommand(opts ...option) (c *command, err error) {
 		return nil, err
 	}
 
+	if err := c.initDeleteCmd(); err != nil {
+		return nil, err
+	}
+
 	if err := c.initPrintCmd(); err != nil {
 		return nil, err
 	}

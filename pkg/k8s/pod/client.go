@@ -29,7 +29,7 @@ type Options struct {
 	PodSpec     PodSpec
 }
 
-// Set creates Pod, if Pod already exists updates in place
+// Set updates Pod or creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,16 +41,29 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.PodSpec.toK8S(),
 	}
 
-	_, err = c.clientset.CoreV1().Pods(namespace).Create(ctx, spec, metav1.CreateOptions{})
+	_, err = c.clientset.CoreV1().Pods(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			fmt.Printf("pod %s already exists in the namespace %s, updating the pod\n", name, namespace)
-			_, err = c.clientset.CoreV1().Pods(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+		if errors.IsNotFound(err) {
+			_, err = c.clientset.CoreV1().Pods(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("creating pod %s in namespace %s: %v", name, namespace, err)
 			}
+		} else {
+			return fmt.Errorf("updating pod %s in namespace %s: %v", name, namespace, err)
 		}
-		return err
+	}
+
+	return
+}
+
+// Delete deletes Pod
+func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+	err = c.clientset.CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("deleting pod %s in namespace %s: %v", name, namespace, err)
 	}
 
 	return
