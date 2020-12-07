@@ -41,7 +41,7 @@ func (c *command) initDeleteNode() *cobra.Command {
 
 			return ng.DeleteNode(cmd.Context(), nodeName)
 		},
-		PreRunE: c.startPreRunE,
+		PreRunE: c.deletePreRunE,
 	}
 
 	cmd.PersistentFlags().StringVar(&clusterName, optionNameClusterName, "bee", "cluster name")

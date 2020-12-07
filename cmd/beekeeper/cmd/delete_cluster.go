@@ -61,7 +61,7 @@ func (c *command) initDeleteCluster() *cobra.Command {
 
 			return
 		},
-		PreRunE: c.startPreRunE,
+		PreRunE: c.deletePreRunE,
 	}
 
 	cmd.PersistentFlags().StringVar(&clusterName, optionNameClusterName, "bee", "cluster name")
