@@ -29,7 +29,7 @@ type Options struct {
 	ServiceSpec Spec
 }
 
-// Set creates Service, if Service already exists does nothing
+// Set updates Service or creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
 	spec := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -40,14 +40,37 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		},
 		Spec: o.ServiceSpec.ToK8S(),
 	}
-	_, err = c.clientset.CoreV1().Services(namespace).Create(ctx, spec, metav1.CreateOptions{})
+
+	svc, err := c.clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		// TODO: fix condition, always true
-		if !errors.IsNotFound(err) {
-			fmt.Printf("service %s already exists in the namespace %s\n", name, namespace)
+		if errors.IsNotFound(err) {
+			_, err = c.clientset.CoreV1().Services(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			if err != nil {
+				return fmt.Errorf("creating service %s in namespace %s: %v", name, namespace, err)
+			}
+			return
+		}
+		return fmt.Errorf("getting service %s in namespace %s: %v", name, namespace, err)
+	}
+
+	spec.ResourceVersion = svc.ResourceVersion
+	spec.Spec.ClusterIP = svc.Spec.ClusterIP
+	_, err = c.clientset.CoreV1().Services(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("updating service %s in namespacee %s: %v", name, namespace, err)
+	}
+
+	return
+}
+
+// Delete deletes Service
+func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+	err = c.clientset.CoreV1().Services(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
 			return nil
 		}
-		return
+		return fmt.Errorf("deleting service %s in namespace %s: %v", name, namespace, err)
 	}
 
 	return
