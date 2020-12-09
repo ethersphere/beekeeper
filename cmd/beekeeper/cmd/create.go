@@ -17,7 +17,7 @@ func (c *command) initCreateCmd() (err error) {
 	}
 
 	cmd.PersistentFlags().Bool(optionNameInCluster, false, "run Beekeeper in cluster")
-	cmd.PersistentFlags().String(optionNameKubeconfig, "~/.kube/config", "kubernetes config file")
+	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "beekeeper", "kubernetes namespace")
 
 	cmd.AddCommand(c.initCreateNamespace())

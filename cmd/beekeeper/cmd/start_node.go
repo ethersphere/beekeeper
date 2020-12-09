@@ -35,7 +35,12 @@ func (c *command) initStartNode() *cobra.Command {
 		Short: "Start Bee node",
 		Long:  `Start Bee node.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster, err := bee.NewCluster(clusterName, bee.ClusterOptions{
+			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
+			if err != nil {
+				return fmt.Errorf("creating Kubernetes client: %v", err)
+			}
+
+			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
 				Annotations: map[string]string{
 					"created-by":        createdBy,
 					"beekeeper/version": beekeeper.Version,
@@ -46,17 +51,13 @@ func (c *command) initStartNode() *cobra.Command {
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				InCluster:           c.config.GetBool(optionNameInCluster),
-				KubeconfigPath:      c.config.GetString(optionNameKubeconfig),
+				K8SClient:           k8sClient,
 				Labels: map[string]string{
 					"app.kubernetes.io/managed-by": managedBy,
 					"app.kubernetes.io/name":       labelName,
 				},
 				Namespace: c.config.GetString(optionNameNamespace),
 			})
-			if err != nil {
-				return fmt.Errorf("creating new Bee cluster: %v", err)
-			}
 
 			// node group
 			ngOptions := newDefaultNodeGroupOptions()

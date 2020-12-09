@@ -37,23 +37,14 @@ type ClusterOptions struct {
 	DebugAPIDomain      string
 	DebugAPIInsecureTLS bool
 	DebugAPIScheme      string
-	InCluster           bool
-	KubeconfigPath      string
+	K8SClient           *k8s.Client
 	Labels              map[string]string
 	Namespace           string
 	DisableNamespace    bool
 }
 
 // NewCluster returns new cluster
-func NewCluster(name string, o ClusterOptions) (c *Cluster, err error) {
-	k8s, err := k8s.NewClient(&k8s.ClientOptions{
-		InCluster:      o.InCluster,
-		KubeconfigPath: o.KubeconfigPath,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating new Kubernetes cluster: %v", err)
-	}
-
+func NewCluster(name string, o ClusterOptions) *Cluster {
 	return &Cluster{
 		name:                name,
 		annotations:         o.Annotations,
@@ -63,13 +54,13 @@ func NewCluster(name string, o ClusterOptions) (c *Cluster, err error) {
 		debugAPIDomain:      o.DebugAPIDomain,
 		debugAPIInsecureTLS: o.DebugAPIInsecureTLS,
 		debugAPIScheme:      o.DebugAPIScheme,
-		k8s:                 k8s,
+		k8s:                 o.K8SClient,
 		labels:              o.Labels,
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,
 
 		nodeGroups: make(map[string]*NodeGroup),
-	}, nil
+	}
 }
 
 // AddNodeGroup adds new node group to the cluster

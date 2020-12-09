@@ -15,21 +15,16 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 		Short: "Checks full connectivity in the cluster",
 		Long:  `Checks if every node has connectivity to all other nodes in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster, err := bee.NewCluster("bee", bee.ClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				InCluster:           c.config.GetBool(optionNameInCluster),
-				KubeconfigPath:      c.config.GetString(optionNameKubeconfig),
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})
-			if err != nil {
-				return fmt.Errorf("creating new Bee cluster: %v", err)
-			}
 
 			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)

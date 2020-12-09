@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 )
 
@@ -132,4 +133,15 @@ func setupBootnodesDNS(n int, ns string) string {
 	default:
 		return fmt.Sprintf("/dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL", ns)
 	}
+}
+
+func setK8SClient(kubeconfig string, inCluster bool) (c *k8s.Client, err error) {
+	if c, err = k8s.NewClient(&k8s.ClientOptions{
+		InCluster:      inCluster,
+		KubeconfigPath: kubeconfig,
+	}); err != nil {
+		return nil, fmt.Errorf("creating Kubernetes client: %v", err)
+	}
+
+	return
 }

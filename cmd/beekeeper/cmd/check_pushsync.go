@@ -44,21 +44,16 @@ and checks if chunks are synced to their closest nodes.`,
 				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
 			}
 
-			cluster, err := bee.NewCluster("bee", bee.ClusterOptions{
+			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				InCluster:           c.config.GetBool(optionNameInCluster),
-				KubeconfigPath:      c.config.GetString(optionNameKubeconfig),
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})
-			if err != nil {
-				return fmt.Errorf("creating new Bee cluster: %v", err)
-			}
 
 			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)

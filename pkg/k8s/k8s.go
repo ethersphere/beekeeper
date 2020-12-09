@@ -43,18 +43,15 @@ type ClientOptions struct {
 
 // NewClient returns Kubernetes clientset
 func NewClient(o *ClientOptions) (c *Client, err error) {
+	// set default options in case they are not provided
 	if o == nil {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("obtaining user's home dir: %v", err)
-		}
-
 		o = &ClientOptions{
 			InCluster:      false,
-			KubeconfigPath: home + "/.kube/config",
+			KubeconfigPath: "~/.kube/config",
 		}
 	}
 
+	// set in-cluster client
 	if o.InCluster {
 		config, err := rest.InClusterConfig()
 		if err != nil {
@@ -69,13 +66,16 @@ func NewClient(o *ClientOptions) (c *Client, err error) {
 		return newClient(clientset), nil
 	}
 
-	configPath := o.KubeconfigPath
-	if o.KubeconfigPath == "~/.kube/config" {
+	// set client
+	configPath := ""
+	if len(o.KubeconfigPath) == 0 || o.KubeconfigPath == "~/.kube/config" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return nil, fmt.Errorf("obtaining user's home dir: %v", err)
 		}
 		configPath = home + "/.kube/config"
+	} else {
+		configPath = o.KubeconfigPath
 	}
 
 	kubeconfig := flag.String("kubeconfig", configPath, "kubeconfig file")
