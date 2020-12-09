@@ -15,6 +15,8 @@ const (
 	optionNameDebugAPIInsecureTLS     = "debug-api-insecure-tls"
 	optionNameDisableNamespace        = "disable-namespace"
 	optionNameInsecureTLS             = "insecure-tls"
+	optionNameInCluster               = "in-cluster"
+	optionNameKubeconfig              = "kubeconfig"
 	optionNameNamespace               = "namespace"
 	optionNameNodeCount               = "node-count"
 	optionNamePushGateway             = "push-gateway"
@@ -23,6 +25,7 @@ const (
 
 var (
 	disableNamespace    bool
+	inCluster           bool
 	insecureTLSAPI      bool
 	insecureTLSDebugAPI bool
 	pushMetrics         bool

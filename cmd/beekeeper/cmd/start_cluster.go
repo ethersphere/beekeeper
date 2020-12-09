@@ -32,6 +32,11 @@ func (c *command) initStartCluster() *cobra.Command {
 		Short: "Start Bee cluster",
 		Long:  `Start Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
+			if err != nil {
+				return fmt.Errorf("creating Kubernetes client: %v", err)
+			}
+
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
 				Annotations: map[string]string{
 					"created-by":        createdBy,
@@ -43,12 +48,12 @@ func (c *command) initStartCluster() *cobra.Command {
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				K8SClient:           k8sClient,
 				Labels: map[string]string{
 					"app.kubernetes.io/managed-by": managedBy,
 					"app.kubernetes.io/name":       labelName,
 				},
-				Namespace: c.config.GetString(optionNameStartNamespace),
+				Namespace: c.config.GetString(optionNameNamespace),
 			})
 
 			// bootnodes group
@@ -63,7 +68,7 @@ func (c *command) initStartCluster() *cobra.Command {
 			cluster.AddNodeGroup(bgName, *bgOptions)
 			bg := cluster.NodeGroup(bgName)
 
-			bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameStartNamespace))
+			bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameNamespace))
 			for i := 0; i < bootnodeCount; i++ {
 				bConfig := newBeeDefaultConfig()
 				bConfig.Bootnodes = bSetup[i].Bootnodes
@@ -92,7 +97,7 @@ func (c *command) initStartCluster() *cobra.Command {
 			ng := cluster.NodeGroup(ngName)
 
 			nConfig := newBeeDefaultConfig()
-			nConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameStartNamespace))
+			nConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 			for i := 0; i < nodeCount; i++ {
 				if err := ng.StartNode(cmd.Context(), bee.StartNodeOptions{
 					Name:   fmt.Sprintf("bee-%d", i),

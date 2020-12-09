@@ -37,7 +37,7 @@ type ClusterOptions struct {
 	DebugAPIDomain      string
 	DebugAPIInsecureTLS bool
 	DebugAPIScheme      string
-	KubeconfigPath      string
+	K8SClient           *k8s.Client
 	Labels              map[string]string
 	Namespace           string
 	DisableNamespace    bool
@@ -45,8 +45,6 @@ type ClusterOptions struct {
 
 // NewCluster returns new cluster
 func NewCluster(name string, o ClusterOptions) *Cluster {
-	k8s := k8s.NewClient(&k8s.ClientOptions{KubeconfigPath: o.KubeconfigPath})
-
 	return &Cluster{
 		name:                name,
 		annotations:         o.Annotations,
@@ -56,7 +54,7 @@ func NewCluster(name string, o ClusterOptions) *Cluster {
 		debugAPIDomain:      o.DebugAPIDomain,
 		debugAPIInsecureTLS: o.DebugAPIInsecureTLS,
 		debugAPIScheme:      o.DebugAPIScheme,
-		k8s:                 k8s,
+		k8s:                 o.K8SClient,
 		labels:              o.Labels,
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,

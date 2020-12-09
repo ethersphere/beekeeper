@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
 )
@@ -23,6 +25,11 @@ func (c *command) initDeleteNode() *cobra.Command {
 		Short: "Delete Bee node",
 		Long:  `Delete Bee node.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
+			if err != nil {
+				return fmt.Errorf("creating Kubernetes client: %v", err)
+			}
+
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
@@ -30,8 +37,8 @@ func (c *command) initDeleteNode() *cobra.Command {
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
-				Namespace:           c.config.GetString(optionNameStartNamespace),
+				K8SClient:           k8sClient,
+				Namespace:           c.config.GetString(optionNameNamespace),
 			})
 
 			// node group

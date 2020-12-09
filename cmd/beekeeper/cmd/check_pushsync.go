@@ -51,7 +51,6 @@ and checks if chunks are synced to their closest nodes.`,
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})

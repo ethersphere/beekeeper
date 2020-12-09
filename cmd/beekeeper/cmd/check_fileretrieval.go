@@ -43,7 +43,6 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})

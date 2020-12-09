@@ -30,7 +30,6 @@ func (c *command) initCheckLocalPinningChunk() *cobra.Command {
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})

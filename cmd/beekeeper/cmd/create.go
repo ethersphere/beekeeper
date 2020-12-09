@@ -4,11 +4,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	optionNameCreateConfig    = "kubeconfig"
-	optionNameCreateNamespace = "namespace"
-)
-
 func (c *command) initCreateCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -21,8 +16,9 @@ func (c *command) initCreateCmd() (err error) {
 		},
 	}
 
-	cmd.PersistentFlags().String(optionNameCreateConfig, "~/.kube/config", "kubernetes config file")
-	cmd.PersistentFlags().StringP(optionNameCreateNamespace, "n", "beekeeper", "kubernetes namespace")
+	cmd.PersistentFlags().Bool(optionNameInCluster, false, "run Beekeeper in cluster")
+	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
+	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "beekeeper", "kubernetes namespace")
 
 	cmd.AddCommand(c.initCreateNamespace())
 

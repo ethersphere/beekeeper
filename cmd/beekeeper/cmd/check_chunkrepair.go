@@ -30,7 +30,6 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})

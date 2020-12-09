@@ -2,6 +2,8 @@ package k8s
 
 import (
 	"flag"
+	"fmt"
+	"os"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
@@ -13,6 +15,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -34,26 +37,61 @@ type Client struct {
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
+	InCluster      bool
 	KubeconfigPath string
 }
 
 // NewClient returns Kubernetes clientset
-func NewClient(o *ClientOptions) (c *Client) {
+func NewClient(o *ClientOptions) (c *Client, err error) {
+	// set default options in case they are not provided
 	if o == nil {
 		o = &ClientOptions{
+			InCluster:      false,
 			KubeconfigPath: "~/.kube/config",
 		}
 	}
 
-	kubeconfig := flag.String("kubeconfig", o.KubeconfigPath, "kubeconfig file")
+	// set in-cluster client
+	if o.InCluster {
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %v", err)
+		}
+
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %v", err)
+		}
+
+		return newClient(clientset), nil
+	}
+
+	// set client
+	configPath := ""
+	if len(o.KubeconfigPath) == 0 || o.KubeconfigPath == "~/.kube/config" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("obtaining user's home dir: %v", err)
+		}
+		configPath = home + "/.kube/config"
+	} else {
+		configPath = o.KubeconfigPath
+	}
+
+	kubeconfig := flag.String("kubeconfig", configPath, "kubeconfig file")
 	flag.Parse()
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("creating Kubernetes client config: %v", err)
 	}
 
-	return newClient(kubernetes.NewForConfigOrDie(config))
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("creating Kubernetes clientset: %v", err)
+	}
+
+	return newClient(clientset), nil
 }
 
 // newClient constructs a new *Client with the provided http Client, which
