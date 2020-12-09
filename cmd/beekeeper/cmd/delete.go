@@ -4,11 +4,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	optionNameDeleteKubeconfig = "kubeconfig"
-	optionNameDeleteNamespace  = "namespace"
-)
-
 func (c *command) initDeleteCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "delete",
@@ -27,8 +22,8 @@ func (c *command) initDeleteCmd() (err error) {
 	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "staging.internal", "debug API DNS domain")
 	cmd.PersistentFlags().BoolVar(&insecureTLSDebugAPI, optionNameDebugAPIInsecureTLS, false, "skips TLS verification for debug API")
 	cmd.PersistentFlags().String(optionNameDebugAPIScheme, "https", "debug API scheme")
-	cmd.PersistentFlags().String(optionNameDeleteKubeconfig, "~/.kube/config", "kubernetes config file")
-	cmd.PersistentFlags().StringP(optionNameDeleteNamespace, "n", "beekeeper", "kubernetes namespace")
+	cmd.PersistentFlags().String(optionNameKubeconfig, "~/.kube/config", "kubernetes config file")
+	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "beekeeper", "kubernetes namespace")
 
 	cmd.AddCommand(c.initDeleteNode())
 	cmd.AddCommand(c.initDeleteCluster())

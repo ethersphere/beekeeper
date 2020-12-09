@@ -4,11 +4,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	optionNameStartKubeconfig = "kubeconfig"
-	optionNameStartNamespace  = "namespace"
-)
-
 func (c *command) initStartCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -25,10 +20,11 @@ func (c *command) initStartCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&insecureTLSAPI, optionNameAPIInsecureTLS, false, "skips TLS verification for API")
 	cmd.PersistentFlags().String(optionNameAPIScheme, "https", "API scheme")
 	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "staging.internal", "debug API DNS domain")
+	cmd.PersistentFlags().BoolVar(&inCluster, optionNameInCluster, false, "run Beekeeper in cluster")
 	cmd.PersistentFlags().BoolVar(&insecureTLSDebugAPI, optionNameDebugAPIInsecureTLS, false, "skips TLS verification for debug API")
 	cmd.PersistentFlags().String(optionNameDebugAPIScheme, "https", "debug API scheme")
-	cmd.PersistentFlags().String(optionNameStartKubeconfig, "~/.kube/config", "kubernetes config file")
-	cmd.PersistentFlags().StringP(optionNameStartNamespace, "n", "beekeeper", "kubernetes namespace")
+	cmd.PersistentFlags().String(optionNameKubeconfig, "~/.kube/config", "kubernetes config file")
+	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "beekeeper", "kubernetes namespace")
 
 	cmd.AddCommand(c.initStartNode())
 	cmd.AddCommand(c.initStartCluster())

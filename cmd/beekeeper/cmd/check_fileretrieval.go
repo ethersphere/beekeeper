@@ -36,17 +36,21 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
 			}
 
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
+			cluster, err := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				InCluster:           c.config.GetBool(optionNameInCluster),
+				KubeconfigPath:      c.config.GetString(optionNameKubeconfig),
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})
+			if err != nil {
+				return fmt.Errorf("creating new Bee cluster: %v", err)
+			}
 
 			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)

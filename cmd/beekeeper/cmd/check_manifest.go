@@ -23,17 +23,21 @@ func (c *command) initCheckManifest() *cobra.Command {
 It uploads given number of files archived in a collection to the first node in the cluster, 
 and attempts retrieval of those files from the last node in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
+			cluster, err := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
+				InCluster:           c.config.GetBool(optionNameInCluster),
+				KubeconfigPath:      c.config.GetString(optionNameKubeconfig),
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})
+			if err != nil {
+				return fmt.Errorf("creating new Bee cluster: %v", err)
+			}
 
 			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)

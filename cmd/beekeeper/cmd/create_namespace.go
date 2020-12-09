@@ -15,12 +15,15 @@ func (c *command) initCreateNamespace() *cobra.Command {
 		Short: "Create Kubernetes namespace",
 		Long:  `Create Kubernetes namespace.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			kubeconfig := c.config.GetString(optionNameCreateConfig)
-			ns := c.config.GetString(optionNameCreateNamespace)
+			kubeconfig := c.config.GetString(optionNameKubeconfig)
+			ns := c.config.GetString(optionNameNamespace)
 
-			k := k8s.NewClient(&k8s.ClientOptions{
+			k, err := k8s.NewClient(&k8s.ClientOptions{
 				KubeconfigPath: kubeconfig,
 			})
+			if err != nil {
+				return fmt.Errorf("creating new Kubernetes client: %v", err)
+			}
 
 			if err = k.Namespace.Create(cmd.Context(), ns, namespace.Options{
 				Annotations: map[string]string{

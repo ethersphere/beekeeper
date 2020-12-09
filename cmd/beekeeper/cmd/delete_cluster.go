@@ -25,16 +25,20 @@ func (c *command) initDeleteCluster() *cobra.Command {
 		Short: "Delete Bee cluster",
 		Long:  `Delete Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
+			cluster, err := bee.NewCluster(clusterName, bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				KubeconfigPath:      c.config.GetString(optionNameStartKubeconfig),
-				Namespace:           c.config.GetString(optionNameStartNamespace),
+				InCluster:           c.config.GetBool(optionNameInCluster),
+				KubeconfigPath:      c.config.GetString(optionNameKubeconfig),
+				Namespace:           c.config.GetString(optionNameNamespace),
 			})
+			if err != nil {
+				return fmt.Errorf("creating new Bee cluster: %v", err)
+			}
 
 			// nodes group
 			ngName := "nodes"

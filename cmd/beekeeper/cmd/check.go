@@ -15,6 +15,8 @@ const (
 	optionNameDebugAPIInsecureTLS     = "debug-api-insecure-tls"
 	optionNameDisableNamespace        = "disable-namespace"
 	optionNameInsecureTLS             = "insecure-tls"
+	optionNameInCluster               = "in-cluster"
+	optionNameKubeconfig              = "kubeconfig"
 	optionNameNamespace               = "namespace"
 	optionNameNodeCount               = "node-count"
 	optionNamePushGateway             = "push-gateway"
@@ -23,6 +25,7 @@ const (
 
 var (
 	disableNamespace    bool
+	inCluster           bool
 	insecureTLSAPI      bool
 	insecureTLSDebugAPI bool
 	pushMetrics         bool
@@ -49,7 +52,9 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "staging.internal", "debug API DNS domain")
 	cmd.PersistentFlags().BoolVar(&insecureTLSDebugAPI, optionNameDebugAPIInsecureTLS, false, "skips TLS verification for debug API")
 	cmd.PersistentFlags().BoolVar(&disableNamespace, optionNameDisableNamespace, false, "disable Kubernetes namespace")
+	cmd.PersistentFlags().Bool(optionNameInCluster, false, "run Beekeeper in cluster")
 	cmd.PersistentFlags().Bool(optionNameInsecureTLS, false, "skips TLS verification for both API and debug API")
+	cmd.PersistentFlags().String(optionNameKubeconfig, "~/.kube/config", "kubernetes config file")
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
 	cmd.PersistentFlags().String(optionNamePushGateway, "http://localhost:9091/", "Prometheus PushGateway")
