@@ -56,12 +56,12 @@ func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 func (g *NodeGroup) AddNode(name string) (err error) {
 	aURL, err := g.cluster.apiURL(name)
 	if err != nil {
-		return fmt.Errorf("adding node %s: %s", name, err)
+		return fmt.Errorf("adding node %s: %v", name, err)
 	}
 
 	dURL, err := g.cluster.debugAPIURL(name)
 	if err != nil {
-		return fmt.Errorf("adding node %s: %s", name, err)
+		return fmt.Errorf("adding node %s: %v", name, err)
 	}
 
 	c := NewClient(ClientOptions{
@@ -89,7 +89,7 @@ func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, er
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+			return nil, fmt.Errorf("%s: %v", m.Name, m.Error)
 		}
 		addrs[m.Name] = m.Addresses
 	}
@@ -140,7 +140,7 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, e
 
 	overlays, err := g.Overlays(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("checking balances: %w", err)
+		return nil, fmt.Errorf("checking balances: %v", err)
 	}
 
 	var msgs []BalancesStreamMsg
@@ -150,7 +150,7 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, e
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+			return nil, fmt.Errorf("%s: %v", m.Name, m.Error)
 		}
 
 		tmp := make(map[string]int)
@@ -203,7 +203,7 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 		Name:      name,
 		Namespace: g.cluster.namespace,
 	}); err != nil {
-		return fmt.Errorf("deleting node %s: %s", name, err)
+		return fmt.Errorf("deleting node %s: %v", name, err)
 	}
 	g.RemoveNode(name)
 
@@ -219,7 +219,7 @@ func (g *NodeGroup) GroupReplicationFactor(ctx context.Context, a swarm.Address)
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return 0, fmt.Errorf("%s: %w", m.Name, m.Error)
+			return 0, fmt.Errorf("%s: %v", m.Name, m.Error)
 		}
 		if m.Found {
 			grf++
@@ -363,7 +363,7 @@ func (g *NodeGroup) Peers(ctx context.Context) (peers NodeGroupPeers, err error)
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+			return nil, fmt.Errorf("%s: %v", m.Name, m.Error)
 		}
 		peers[m.Name] = m.Peers
 	}
@@ -425,7 +425,7 @@ func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettl
 
 	overlays, err := g.Overlays(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("checking settlements: %w", err)
+		return nil, fmt.Errorf("checking settlements: %v", err)
 	}
 
 	var msgs []SettlementsStreamMsg
@@ -435,7 +435,7 @@ func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettl
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+			return nil, fmt.Errorf("%s: %v", m.Name, m.Error)
 		}
 
 		tmp := make(map[string]SentReceived)
@@ -503,7 +503,7 @@ type StartNodeOptions struct {
 // StartNode starts new node in the node group
 func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (err error) {
 	if err := g.AddNode(o.Name); err != nil {
-		return fmt.Errorf("starting node %s: %s", o.Name, err)
+		return fmt.Errorf("starting node %s: %v", o.Name, err)
 	}
 
 	labels := mergeMaps(g.opts.Labels, map[string]string{
@@ -543,7 +543,19 @@ func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (err erro
 		SwarmKey:                  o.SwarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
 	}); err != nil {
-		return fmt.Errorf("starting node %s: %s", o.Name, err)
+		return fmt.Errorf("starting node %s: %v", o.Name, err)
+	}
+
+	return
+}
+
+// StopNode stops node by scaling down its statefulset to 0
+func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
+	if err := g.k8s.NodeStop(ctx, k8sBee.NodeStopOptions{
+		Name:      name,
+		Namespace: g.cluster.namespace,
+	}); err != nil {
+		return fmt.Errorf("stopping node %s: %v", name, err)
 	}
 
 	return
@@ -563,7 +575,7 @@ func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopolog
 
 	for _, m := range msgs {
 		if m.Error != nil {
-			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+			return nil, fmt.Errorf("%s: %v", m.Name, m.Error)
 		}
 		topologies[m.Name] = m.Topology
 	}
