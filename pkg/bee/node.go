@@ -154,6 +154,11 @@ func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return c.debug.Node.HasChunk(ctx, a)
 }
 
+// RemoveChunkWithAddress removes chunk from the node
+func (c *Client) RemoveChunkWithAddress(ctx context.Context, a swarm.Address) error {
+	return c.debug.Node.RemoveChunk(ctx, a)
+}
+
 // Overlay returns node's overlay address
 func (c *Client) Overlay(ctx context.Context) (swarm.Address, error) {
 	a, err := c.debug.Node.Addresses(ctx)
@@ -223,6 +228,11 @@ func (c *Client) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
 	}
 
 	return r, nil
+}
+
+// PinBytes returns true/false if bytes pinning is successful
+func (c *Client) PinBytes(ctx context.Context, a swarm.Address) (bool, error) {
+	return c.api.Pinning.PinBytes(ctx, a)
 }
 
 // Ping pings other node
