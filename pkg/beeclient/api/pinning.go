@@ -17,7 +17,7 @@ func (p *PinningService) PinChunk(ctx context.Context, a swarm.Address) (bool, e
 		Code    int    `json:"code,omitempty"`
 	}{}
 
-	err := p.client.requestJSON(ctx, http.MethodPost, "/pinning/chunks/"+a.String(), nil, &resp)
+	err := p.client.requestJSON(ctx, http.MethodPost, "/pin/chunks/"+a.String(), nil, &resp)
 	if err == ErrNotFound {
 		return false, nil
 	} else if err != nil {
@@ -35,7 +35,7 @@ type PinnedChunk struct {
 
 // PinnedChunk gets pinned chunk
 func (p *PinningService) PinnedChunk(ctx context.Context, a swarm.Address) (resp PinnedChunk, err error) {
-	err = p.client.requestJSON(ctx, http.MethodGet, "/pinning/chunks/"+a.String(), nil, &resp)
+	err = p.client.requestJSON(ctx, http.MethodGet, "/pin/chunks/"+a.String(), nil, &resp)
 	return
 }
 
@@ -46,7 +46,7 @@ type PinnedChunks struct {
 
 // PinnedChunks gets pinned chunks
 func (p *PinningService) PinnedChunks(ctx context.Context) (resp PinnedChunks, err error) {
-	err = p.client.requestJSON(ctx, http.MethodGet, "/pinning/chunks", nil, &resp)
+	err = p.client.requestJSON(ctx, http.MethodGet, "/pin/chunks", nil, &resp)
 	return
 }
 
@@ -57,7 +57,7 @@ func (p *PinningService) UnpinChunk(ctx context.Context, a swarm.Address) (bool,
 		Code    int    `json:"code,omitempty"`
 	}{}
 
-	err := p.client.requestJSON(ctx, http.MethodDelete, "/pinning/chunks/"+a.String(), nil, &resp)
+	err := p.client.requestJSON(ctx, http.MethodDelete, "/pin/chunks/"+a.String(), nil, &resp)
 	if err == ErrNotFound {
 		return false, nil
 	} else if err != nil {
