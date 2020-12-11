@@ -19,9 +19,48 @@ var (
 )
 
 // Check executes Kademlia topology check on cluster
-func Check(cluster *bee.Cluster) (err error) {
-	ctx := context.Background()
+func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
+	fmt.Printf("Checking for full connectivity:\n")
+	if err := fullconnectivity.Check(cluster); err == nil {
+		return errKademliaFullConnectivity
+	}
+	fmt.Printf("Full connectivity not present, continuing with kademlia topology check\n")
 
+	topologies, err := cluster.Topologies(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range topologies {
+		for n, t := range v {
+			if t.Depth == 0 {
+				fmt.Printf("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
+				return errKadmeliaNotHealthy
+			}
+
+			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
+			for k, b := range t.Bins {
+				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
+				if err != nil {
+					return fmt.Errorf("node %s: %w", n, err)
+				}
+				fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
+				if binDepth < t.Depth && b.Connected < 1 {
+					return errKadmeliaBinConnected
+				}
+
+				if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
+					return fmt.Errorf(errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
+				}
+			}
+		}
+	}
+
+	return
+}
+
+// CheckDynamic executes Kademlia topology check on dynamic cluster
+func CheckDynamic(ctx context.Context, cluster *bee.Cluster) (err error) {
 	fmt.Printf("Checking for full connectivity:\n")
 	if err := fullconnectivity.Check(cluster); err == nil {
 		return errKademliaFullConnectivity

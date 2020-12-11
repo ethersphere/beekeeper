@@ -10,7 +10,15 @@ import (
 )
 
 func (c *command) initCheckKademlia() *cobra.Command {
-	return &cobra.Command{
+	const (
+		optionNameDynamic = "dynamic"
+	)
+
+	var (
+		dynamic bool
+	)
+
+	cmd := &cobra.Command{
 		Use:   "kademlia",
 		Short: "Checks Kademlia topology in the cluster",
 		Long:  `Checks Kademlia topology in the cluster.`,
@@ -36,8 +44,16 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				}
 			}
 
-			return kademlia.Check(cluster)
+			if dynamic {
+				return kademlia.CheckDynamic(cmd.Context(), cluster)
+			}
+
+			return kademlia.Check(cmd.Context(), cluster)
 		},
 		PreRunE: c.checkPreRunE,
 	}
+
+	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "check on dynamic cluster")
+
+	return cmd
 }
