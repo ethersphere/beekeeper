@@ -65,6 +65,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.AddCommand(c.initCheckGc())
 	cmd.AddCommand(c.initCheckLocalPinningChunk())
 	cmd.AddCommand(c.initCheckLocalPinningBytes())
+	cmd.AddCommand(c.initCheckLocalPinningRemote())
 	cmd.AddCommand(c.initCheckPeerCount())
 	cmd.AddCommand(c.initCheckPingPong())
 	cmd.AddCommand(c.initCheckPullSync())

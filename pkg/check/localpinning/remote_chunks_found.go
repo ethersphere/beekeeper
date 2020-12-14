@@ -1,0 +1,148 @@
+package localpinning
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/random"
+)
+
+// CheckRemoteChunksFound uploads some chunks to one node, pins them on another
+// node (which does not have them locally), and then check that they are now
+// available locally pinned on that node.
+func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
+	ctx := context.Background()
+	rnd := random.PseudoGenerator(o.Seed)
+	fmt.Printf("Seed: %d\n", o.Seed)
+
+	ng := c.NodeGroup(o.NodeGroup)
+	overlays, err := ng.Overlays(ctx)
+	if err != nil {
+		return err
+	}
+
+	size := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
+	buf := make([]byte, size)
+	_, err = rnd.Read(buf)
+	if err != nil {
+		return fmt.Errorf("rand buffer: %w", err)
+	}
+
+	addrs, err := addresses(buf)
+	if err != nil {
+		return err
+	}
+
+	sortedNodes := ng.NodesSorted()
+	pivot := rnd.Intn(c.Size())
+	pivotNode := sortedNodes[pivot]
+	ref, err := ng.Node(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
+	if err != nil {
+		return fmt.Errorf("node %s: upload bytes: %w", pivotNode, err)
+	}
+
+	fmt.Printf("uploaded and pinned %d bytes (%d chunks) with hash %s to node %s: %s\n", size, len(addrs), ref.String(), pivotNode, overlays[pivotNode].String())
+
+	// allow the nodes to sync and do some GC
+	time.Sleep(15 * time.Second)
+
+	chunksPerNode := make(map[string]int)
+
+	for name, o := range overlays {
+		fmt.Printf("Node %s (%s): checking for chunks\n", name, o.String())
+
+		count := 0
+
+		for _, a := range addrs {
+			has, err := ng.Node(name).HasChunk(ctx, a)
+			if err != nil {
+				return fmt.Errorf("node has chunk: %w", err)
+			}
+			if has {
+				count++
+			}
+		}
+
+		fmt.Printf("Node %s: has %d chunks\n", name, count)
+
+		chunksPerNode[name] = count
+	}
+
+	nodesWithLessChunks := make([]string, 0)
+
+	for k, v := range chunksPerNode {
+		if k == pivotNode {
+			continue
+		}
+
+		if v != len(addrs) {
+			nodesWithLessChunks = append(nodesWithLessChunks, k)
+		}
+	}
+
+	if len(nodesWithLessChunks) == 0 {
+		// NOTE: not failing this test if we do not have useful chunk distribution
+		fmt.Printf("all nodes have all chunks (%d)\n", len(addrs))
+	} else {
+		for _, name := range nodesWithLessChunks {
+			fmt.Printf("Node %s: pinning chunks\n", name)
+
+			nodeClient := ng.Node(name)
+
+			completed, err := nodeClient.PinBytes(ctx, ref)
+			if err != nil {
+				return fmt.Errorf("node %s: pin bytes: %w", name, err)
+			}
+
+			if !completed {
+				return fmt.Errorf("node %s: failed to pin bytes", name)
+			}
+
+			fmt.Printf("Node %s: checking for chunks\n", name)
+
+			count := 0
+
+			for _, a := range addrs {
+				has, err := ng.Node(name).HasChunk(ctx, a)
+				if err != nil {
+					return fmt.Errorf("node has chunk: %w", err)
+				}
+				if has {
+					count++
+				}
+			}
+
+			fmt.Printf("Node %s: has %d (expected %d)\n", name, count, len(addrs))
+		}
+
+		// cleanup
+		for name, o := range overlays {
+			fmt.Printf("Node %s: unpinning chunks\n", o.String())
+
+			for _, a := range addrs {
+				_, err := ng.Node(name).UnpinChunk(ctx, a)
+				if err != nil {
+					return fmt.Errorf("cannot unpin chunk: %w", err)
+				}
+				// ng.Node(name).UnpinChunk(ctx, a)
+			}
+		}
+	}
+
+	for name, o := range overlays {
+		fmt.Printf("Node %s: removing chunks\n", o.String())
+
+		for _, a := range addrs {
+			err := ng.Node(name).RemoveChunkWithAddress(ctx, a)
+			if err != nil {
+				return fmt.Errorf("cannot delete chunk: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
