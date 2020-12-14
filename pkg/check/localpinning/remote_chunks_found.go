@@ -128,7 +128,6 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 				if err != nil {
 					return fmt.Errorf("cannot unpin chunk: %w", err)
 				}
-				// ng.Node(name).UnpinChunk(ctx, a)
 			}
 		}
 	}
