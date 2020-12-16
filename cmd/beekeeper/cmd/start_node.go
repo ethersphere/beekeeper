@@ -19,6 +19,9 @@ func (c *command) initStartNode() *cobra.Command {
 		optionNameNodeGroupVersion = "node-group-version"
 		optionNameNodeName         = "node-name"
 		optionNameStartStandalone  = "standalone"
+		optionNamePersistence      = "persistence"
+		optionNameStorageClass     = "storage-class"
+		optionNameStorageRequest   = "storage-request"
 	)
 
 	var (
@@ -28,6 +31,9 @@ func (c *command) initStartNode() *cobra.Command {
 		nodeGroupVersion string
 		nodeName         string
 		standalone       bool
+		persistence      bool
+		storageClass     string
+		storageRequest   string
 	)
 
 	cmd := &cobra.Command{
@@ -67,6 +73,9 @@ func (c *command) initStartNode() *cobra.Command {
 				"app.kubernetes.io/part-of":   nodeGroupName,
 				"app.kubernetes.io/version":   nodeGroupVersion,
 			}
+			ngOptions.PersistenceEnabled = persistence
+			ngOptions.PersistenceStorageClass = storageClass
+			ngOptions.PersistanceStorageRequest = storageRequest
 			cluster.AddNodeGroup(nodeGroupName, *ngOptions)
 			ng := cluster.NodeGroup(nodeGroupName)
 
@@ -88,6 +97,9 @@ func (c *command) initStartNode() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&nodeGroupVersion, optionNameNodeGroupVersion, "latest", "node group version")
 	cmd.PersistentFlags().StringVar(&nodeName, optionNameNodeName, "bee", "node name")
 	cmd.PersistentFlags().BoolVarP(&standalone, optionNameStartStandalone, "s", false, "start a standalone node")
+	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
+	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
+	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
 
 	return cmd
 }

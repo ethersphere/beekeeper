@@ -11,20 +11,26 @@ import (
 
 func (c *command) initStartCluster() *cobra.Command {
 	const (
-		createdBy               = "beekeeper"
-		labelName               = "bee"
-		managedBy               = "beekeeper"
-		optionNameClusterName   = "cluster-name"
-		optionNameImage         = "bee-image"
-		optionNameBootnodeCount = "bootnode-count"
-		optionNameNodeCount     = "node-count"
+		createdBy                = "beekeeper"
+		labelName                = "bee"
+		managedBy                = "beekeeper"
+		optionNameClusterName    = "cluster-name"
+		optionNameImage          = "bee-image"
+		optionNameBootnodeCount  = "bootnode-count"
+		optionNameNodeCount      = "node-count"
+		optionNamePersistence    = "persistence"
+		optionNameStorageClass   = "storage-class"
+		optionNameStorageRequest = "storage-request"
 	)
 
 	var (
-		clusterName   string
-		image         string
-		bootnodeCount int
-		nodeCount     int
+		clusterName    string
+		image          string
+		bootnodeCount  int
+		nodeCount      int
+		persistence    bool
+		storageClass   string
+		storageRequest string
 	)
 
 	cmd := &cobra.Command{
@@ -65,6 +71,9 @@ func (c *command) initStartCluster() *cobra.Command {
 				"app.kubernetes.io/part-of":   bgName,
 				"app.kubernetes.io/version":   strings.Split(image, ":")[1],
 			}
+			bgOptions.PersistenceEnabled = persistence
+			bgOptions.PersistenceStorageClass = storageClass
+			bgOptions.PersistanceStorageRequest = storageRequest
 			cluster.AddNodeGroup(bgName, *bgOptions)
 			bg := cluster.NodeGroup(bgName)
 
@@ -93,6 +102,9 @@ func (c *command) initStartCluster() *cobra.Command {
 				"app.kubernetes.io/part-of":   ngName,
 				"app.kubernetes.io/version":   strings.Split(image, ":")[1],
 			}
+			ngOptions.PersistenceEnabled = persistence
+			ngOptions.PersistenceStorageClass = storageClass
+			ngOptions.PersistanceStorageRequest = storageRequest
 			cluster.AddNodeGroup(ngName, *ngOptions)
 			ng := cluster.NodeGroup(ngName)
 
@@ -116,6 +128,9 @@ func (c *command) initStartCluster() *cobra.Command {
 	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 1, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
+	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
+	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
+	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
 
 	return cmd
 }
