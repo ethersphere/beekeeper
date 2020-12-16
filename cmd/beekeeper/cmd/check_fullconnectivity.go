@@ -36,7 +36,7 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 				}
 			}
 
-			return fullconnectivity.Check(cluster)
+			return fullconnectivity.Check(cmd.Context(), cluster)
 		},
 		PreRunE: c.checkPreRunE,
 	}
