@@ -43,6 +43,20 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	return
 }
 
+// ReadyReplicas returns number of Pods created by the StatefulSet controller that have a Ready Condition
+func (c *Client) ReadyReplicas(ctx context.Context, name, namespace string) (ready int32, err error) {
+	s, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("getting ReadyReplicas from statefulset %s in namespace %s: %v", name, namespace, err)
+	}
+	ready = s.Status.ReadyReplicas
+
+	return
+}
+
 // Scale scales StatefulSet
 func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int32) (err error) {
 	scale := &v1.Scale{

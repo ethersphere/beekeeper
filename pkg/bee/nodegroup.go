@@ -549,6 +549,19 @@ func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (err erro
 	return
 }
 
+// NodeStatus returns node's status
+func (g *NodeGroup) NodeStatus(ctx context.Context, name string) (ok bool, err error) {
+	ok, err = g.k8s.NodeStatus(ctx, k8sBee.NodeStatusOptions{
+		Namespace: g.cluster.namespace,
+		Name:      name,
+	})
+	if err != nil {
+		return false, fmt.Errorf("getting status from node %s: %v", name, err)
+	}
+
+	return
+}
+
 // StopNode stops node by scaling down its statefulset to 0
 func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 	if err := g.k8s.NodeStop(ctx, k8sBee.NodeStopOptions{

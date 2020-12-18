@@ -465,6 +465,28 @@ func (c *Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) 
 	return
 }
 
+// NodeStatusOptions represents available options for getting node's status
+type NodeStatusOptions struct {
+	Name      string
+	Namespace string
+}
+
+// NodeStatus gets Bee node's status
+func (c *Client) NodeStatus(ctx context.Context, o NodeStatusOptions) (ok bool, err error) {
+	r, err := c.k8s.StatefulSet.ReadyReplicas(ctx, o.Name, o.Namespace)
+	if err != nil {
+		return false, fmt.Errorf("getting status from node %s in namespace %s: %v", o.Name, o.Namespace, err)
+	}
+
+	if r != 1 {
+		return false, fmt.Errorf("node %s in namespace %s has %d ready pods (must be 1): %v", o.Name, o.Namespace, r, err)
+	}
+
+	ok = true
+
+	return
+}
+
 // NodeStopOptions represents available options for stopping node
 type NodeStopOptions struct {
 	Name      string
