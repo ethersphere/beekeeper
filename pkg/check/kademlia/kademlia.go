@@ -61,11 +61,20 @@ func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
 
 // CheckDynamic executes Kademlia topology check on dynamic cluster
 func CheckDynamic(ctx context.Context, cluster *bee.Cluster) (err error) {
-	fmt.Printf("Checking for full connectivity:\n")
-	if err := fullconnectivity.Check(ctx, cluster); err == nil {
-		return errKademliaFullConnectivity
+	for ngName, ng := range cluster.NodeGroups() {
+		for _, nName := range ng.NodesSorted() {
+			ok, err := ng.NodeStatus(ctx, nName)
+			if err != nil {
+				return fmt.Errorf("check dynamic: %v", err)
+			}
+			fmt.Println(ngName, nName, ok)
+		}
 	}
-	fmt.Printf("Full connectivity not present, continuing with kademlia topology check\n")
+	// fmt.Printf("Checking for full connectivity:\n")
+	// if err := fullconnectivity.Check(ctx, cluster); err == nil {
+	// 	return errKademliaFullConnectivity
+	// }
+	// fmt.Printf("Full connectivity not present, continuing with kademlia topology check\n")
 
 	return
 }

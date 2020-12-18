@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
@@ -501,9 +502,9 @@ type StartNodeOptions struct {
 }
 
 // StartNode starts new node in the node group
-func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (err error) {
+func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (wait func(context.Context) error, err error) {
 	if err := g.AddNode(o.Name); err != nil {
-		return fmt.Errorf("starting node %s: %v", o.Name, err)
+		return nil, fmt.Errorf("starting node %s: %v", o.Name, err)
 	}
 
 	labels := mergeMaps(g.opts.Labels, map[string]string{
@@ -543,7 +544,25 @@ func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (err erro
 		SwarmKey:                  o.SwarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
 	}); err != nil {
-		return fmt.Errorf("starting node %s: %v", o.Name, err)
+		return nil, fmt.Errorf("starting node %s: %v", o.Name, err)
+	}
+
+	wait = func(ctx context.Context) error {
+		fmt.Printf("wait for %s to become ready\n", o.Name)
+		for {
+			ok, err := g.NodeStatus(ctx, o.Name)
+			if err != nil {
+				return fmt.Errorf("waiting for %s status: %v", o.Name, err)
+			}
+
+			if ok {
+				fmt.Printf("%s is ready\n", o.Name)
+				return nil
+			}
+
+			fmt.Printf("%s is not ready yet\n", o.Name)
+			time.Sleep(1 * time.Second)
+		}
 	}
 
 	return

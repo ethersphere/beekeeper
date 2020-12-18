@@ -479,12 +479,10 @@ func (c *Client) NodeStatus(ctx context.Context, o NodeStatusOptions) (ok bool, 
 	}
 
 	if r != 1 {
-		return false, fmt.Errorf("node %s in namespace %s has %d ready pods (must be 1): %v", o.Name, o.Namespace, r, err)
+		return false, nil
 	}
 
-	ok = true
-
-	return
+	return true, nil
 }
 
 // NodeStopOptions represents available options for stopping node

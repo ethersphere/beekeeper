@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 )
 
 func (c *command) initStartCluster() *cobra.Command {
@@ -76,21 +79,33 @@ func (c *command) initStartCluster() *cobra.Command {
 			bgOptions.PersistanceStorageRequest = storageRequest
 			cluster.AddNodeGroup(bgName, *bgOptions)
 			bg := cluster.NodeGroup(bgName)
-
 			bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameNamespace))
+
+			ctxBN, cancelBN := context.WithTimeout(cmd.Context(), 10*time.Minute)
+			defer cancelBN()
+			errGroupBN := new(errgroup.Group)
 			for i := 0; i < bootnodeCount; i++ {
 				bConfig := newBeeDefaultConfig()
 				bConfig.Bootnodes = bSetup[i].Bootnodes
-				if err := bg.StartNode(cmd.Context(), bee.StartNodeOptions{
+				wbn, err := bg.StartNode(cmd.Context(), bee.StartNodeOptions{
 					Name:         fmt.Sprintf("bootnode-%d", i),
 					Config:       *bConfig,
 					ClefKey:      bSetup[i].ClefKey,
 					ClefPassword: bSetup[i].ClefPassword,
 					LibP2PKey:    bSetup[i].LibP2PKey,
 					SwarmKey:     bSetup[i].SwarmKey,
-				}); err != nil {
+				})
+				if err != nil {
 					return fmt.Errorf("starting bootnode-%d: %s", i, err)
 				}
+
+				errGroupBN.Go(func() error {
+					return wbn(ctxBN)
+				})
+			}
+
+			if err := errGroupBN.Wait(); err == nil {
+				fmt.Println("bootnodes started")
 			}
 
 			// nodes group
@@ -107,16 +122,28 @@ func (c *command) initStartCluster() *cobra.Command {
 			ngOptions.PersistanceStorageRequest = storageRequest
 			cluster.AddNodeGroup(ngName, *ngOptions)
 			ng := cluster.NodeGroup(ngName)
-
 			nConfig := newBeeDefaultConfig()
 			nConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
+
+			ctxN, cancelN := context.WithTimeout(cmd.Context(), 10*time.Minute)
+			defer cancelN()
+			errGroupN := new(errgroup.Group)
 			for i := 0; i < nodeCount; i++ {
-				if err := ng.StartNode(cmd.Context(), bee.StartNodeOptions{
+				wn, err := ng.StartNode(cmd.Context(), bee.StartNodeOptions{
 					Name:   fmt.Sprintf("bee-%d", i),
 					Config: *nConfig,
-				}); err != nil {
+				})
+				if err != nil {
 					return fmt.Errorf("starting bee-%d: %s", i, err)
 				}
+
+				errGroupN.Go(func() error {
+					return wn(ctxN)
+				})
+			}
+
+			if err := errGroupN.Wait(); err == nil {
+				fmt.Println("nodes started")
 			}
 
 			return
