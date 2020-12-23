@@ -12,25 +12,58 @@ import (
 )
 
 var (
-	errKademliaFullConnectivity = errors.New("full connectivity present")
-	errKadmeliaNotHealthy       = errors.New("kademlia not healthy")
-	errKadmeliaBinConnected     = errors.New("at least 1 connected peer is required in a bin which is shallower than depth")
-	errKadmeliaBinDisconnected  = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
+	errKadmeliaNotHealthy      = errors.New("kademlia not healthy")
+	errKadmeliaBinConnected    = errors.New("at least 1 connected peer is required in a bin which is shallower than depth")
+	errKadmeliaBinDisconnected = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
 )
 
 // Check executes Kademlia topology check on cluster
 func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
-	fmt.Printf("Checking for full connectivity:\n")
-	if err := fullconnectivity.Check(ctx, cluster); err == nil {
-		return errKademliaFullConnectivity
+	fmt.Println("Checking connectivity")
+	err = fullconnectivity.Check(ctx, cluster)
+	if err != nil {
+		fmt.Printf("Full connectivity not present\n")
+	} else {
+		fmt.Printf("Full connectivity present\n")
 	}
-	fmt.Printf("Full connectivity not present, continuing with kademlia topology check\n")
 
 	topologies, err := cluster.Topologies(ctx)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("Checking Kademlia")
+	if err := checkKademlia(topologies); err != nil {
+		return fmt.Errorf("Kademlia check: %v", err)
+	}
+
+	return
+}
+
+// CheckDynamic executes Kademlia topology check on dynamic cluster
+func CheckDynamic(ctx context.Context, cluster *bee.Cluster) (err error) {
+	fmt.Println("Checking connectivity")
+	err = fullconnectivity.Check(ctx, cluster)
+	if err != nil {
+		fmt.Printf("Full connectivity not present\n")
+	} else {
+		fmt.Printf("Full connectivity present\n")
+	}
+
+	topologies, err := cluster.Topologies(ctx)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Checking Kademlia")
+	if err := checkKademlia(topologies); err != nil {
+		return fmt.Errorf("Kademlia check: %v", err)
+	}
+
+	return
+}
+
+func checkKademlia(topologies bee.ClusterTopologies) (err error) {
 	for _, v := range topologies {
 		for n, t := range v {
 			if t.Depth == 0 {
@@ -55,26 +88,6 @@ func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
 			}
 		}
 	}
-
-	return
-}
-
-// CheckDynamic executes Kademlia topology check on dynamic cluster
-func CheckDynamic(ctx context.Context, cluster *bee.Cluster) (err error) {
-	for ngName, ng := range cluster.NodeGroups() {
-		for _, nName := range ng.NodesSorted() {
-			ok, err := ng.NodeStatus(ctx, nName)
-			if err != nil {
-				return fmt.Errorf("check dynamic: %v", err)
-			}
-			fmt.Println(ngName, nName, ok)
-		}
-	}
-	// fmt.Printf("Checking for full connectivity:\n")
-	// if err := fullconnectivity.Check(ctx, cluster); err == nil {
-	// 	return errKademliaFullConnectivity
-	// }
-	// fmt.Printf("Full connectivity not present, continuing with kademlia topology check\n")
 
 	return
 }
