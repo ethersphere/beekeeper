@@ -102,7 +102,11 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 			}
 		}
 
-		fmt.Printf("Node %s: has %d (expected %d)\n", name, chunksCountAfterPin, len(addrs))
+		if len(addrs) != chunksCountAfterPin {
+			return fmt.Errorf("Node %s: has %d chunks (expected %d)", name, chunksCountAfterPin, len(addrs))
+		}
+
+		fmt.Printf("Node %s: has %d chunks (expected %d)\n", name, chunksCountAfterPin, len(addrs))
 	}
 
 	// cleanup
