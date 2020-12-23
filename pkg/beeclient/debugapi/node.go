@@ -72,14 +72,7 @@ func (n *NodeService) RemoveChunk(ctx context.Context, a swarm.Address) error {
 		Code    int    `json:"code,omitempty"`
 	}{}
 
-	err := n.client.requestJSON(ctx, http.MethodDelete, "/chunks/"+a.String(), nil, &resp)
-	if err == ErrNotFound {
-		return nil
-	} else if err != nil {
-		return err
-	}
-
-	return nil
+	return n.client.requestJSON(ctx, http.MethodDelete, "/chunks/"+a.String(), nil, &resp)
 }
 
 // Health represents node's health
