@@ -83,13 +83,9 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 
 		fmt.Printf("Node %s: pinning chunks\n", name)
 
-		completed, err := nodeClient.PinBytes(ctx, ref)
+		err := nodeClient.PinBytes(ctx, ref)
 		if err != nil {
 			return fmt.Errorf("node %s: pin bytes: %w", name, err)
-		}
-
-		if !completed {
-			return fmt.Errorf("node %s: failed to pin bytes", name)
 		}
 
 		fmt.Printf("Node %s: checking for chunks\n", name)
@@ -116,7 +112,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		nodeClient := ng.Node(name)
 
 		for _, a := range addrs {
-			_, err := nodeClient.UnpinChunk(ctx, a)
+			err := nodeClient.UnpinChunk(ctx, a)
 			if err != nil {
 				return fmt.Errorf("cannot unpin chunk: %w", err)
 			}

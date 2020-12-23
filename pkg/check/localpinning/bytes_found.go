@@ -76,7 +76,7 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 
 	// cleanup
 	for _, a := range addrs {
-		_, err := ng.Node(pivotNode).UnpinChunk(ctx, a)
+		err := ng.Node(pivotNode).UnpinChunk(ctx, a)
 		if err != nil {
 			return fmt.Errorf("cannot unpin chunk: %w", err)
 		}

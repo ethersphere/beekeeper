@@ -229,13 +229,16 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.C
 	if err != nil {
 		return err
 	}
-	pinned, err := node.PinChunk(ctx, chunk.Address())
+
+	err = node.PinChunk(ctx, chunk.Address())
 	if err != nil {
+		if errors.Is(err, api.ErrNotFound) {
+			return errors.New("could not pin chunk")
+		}
+
 		return err
 	}
-	if !pinned {
-		return errors.New("could not pin chunk")
-	}
+
 	return nil
 }
 

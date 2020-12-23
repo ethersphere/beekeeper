@@ -63,7 +63,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 	}
 
 	// cleanup
-	_, err = ng.Node(pivotNode).UnpinChunk(ctx, chunk.Address())
+	err = ng.Node(pivotNode).UnpinChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("unpin chunk: %w", err)
 	}

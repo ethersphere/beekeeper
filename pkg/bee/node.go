@@ -184,7 +184,7 @@ func (c *Client) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 }
 
 // PinChunk returns true/false if chunk pinning is successful
-func (c *Client) PinChunk(ctx context.Context, a swarm.Address) (bool, error) {
+func (c *Client) PinChunk(ctx context.Context, a swarm.Address) error {
 	return c.api.Pinning.PinChunk(ctx, a)
 }
 
@@ -231,7 +231,7 @@ func (c *Client) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
 }
 
 // PinBytes returns true/false if bytes pinning is successful
-func (c *Client) PinBytes(ctx context.Context, a swarm.Address) (bool, error) {
+func (c *Client) PinBytes(ctx context.Context, a swarm.Address) error {
 	return c.api.Pinning.PinBytes(ctx, a)
 }
 
@@ -387,7 +387,7 @@ func (c *Client) Underlay(ctx context.Context) ([]string, error) {
 }
 
 // UnpinChunk returns true/false if chunk unpinning is successful
-func (c *Client) UnpinChunk(ctx context.Context, a swarm.Address) (bool, error) {
+func (c *Client) UnpinChunk(ctx context.Context, a swarm.Address) error {
 	return c.api.Pinning.UnpinChunk(ctx, a)
 }
 
