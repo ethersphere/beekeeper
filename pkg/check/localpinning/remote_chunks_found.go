@@ -50,84 +50,75 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	// allow the nodes to sync and do some GC
 	time.Sleep(15 * time.Second)
 
-	chunksPerNode := make(map[string]int)
+	for name := range overlays {
+		if name == pivotNode {
+			fmt.Printf("Node %s: pivot node, skipping it\n", name)
+			continue
+		}
 
-	for name, o := range overlays {
-		fmt.Printf("Node %s (%s): checking for chunks\n", name, o.String())
+		nodeClient := ng.Node(name)
 
-		count := 0
+		fmt.Printf("Node %s: removing expected chunks\n", name)
 
 		for _, a := range addrs {
-			has, err := ng.Node(name).HasChunk(ctx, a)
+			err := nodeClient.RemoveChunkWithAddress(ctx, a)
+			if err != nil {
+				return fmt.Errorf("node has chunk: %w", err)
+			}
+		}
+
+		chunksCountAfterRemove := 0
+
+		for _, a := range addrs {
+			has, err := nodeClient.HasChunk(ctx, a)
 			if err != nil {
 				return fmt.Errorf("node has chunk: %w", err)
 			}
 			if has {
-				count++
+				chunksCountAfterRemove++
 			}
 		}
 
-		fmt.Printf("Node %s: has %d chunks\n", name, count)
+		fmt.Printf("Node %s: has %d chunks after removal\n", name, chunksCountAfterRemove)
 
-		chunksPerNode[name] = count
-	}
+		fmt.Printf("Node %s: pinning chunks\n", name)
 
-	nodesWithLessChunks := make([]string, 0)
-
-	for k, v := range chunksPerNode {
-		if k == pivotNode {
-			continue
+		completed, err := nodeClient.PinBytes(ctx, ref)
+		if err != nil {
+			return fmt.Errorf("node %s: pin bytes: %w", name, err)
 		}
 
-		if v != len(addrs) {
-			nodesWithLessChunks = append(nodesWithLessChunks, k)
+		if !completed {
+			return fmt.Errorf("node %s: failed to pin bytes", name)
 		}
-	}
 
-	if len(nodesWithLessChunks) == 0 {
-		// NOTE: not failing this test if we do not have useful chunk distribution
-		fmt.Printf("all nodes have all chunks (%d)\n", len(addrs))
-	} else {
-		for _, name := range nodesWithLessChunks {
-			fmt.Printf("Node %s: pinning chunks\n", name)
+		fmt.Printf("Node %s: checking for chunks\n", name)
 
-			nodeClient := ng.Node(name)
+		chunksCountAfterPin := 0
 
-			completed, err := nodeClient.PinBytes(ctx, ref)
+		for _, a := range addrs {
+			has, err := nodeClient.HasChunk(ctx, a)
 			if err != nil {
-				return fmt.Errorf("node %s: pin bytes: %w", name, err)
+				return fmt.Errorf("node has chunk: %w", err)
 			}
-
-			if !completed {
-				return fmt.Errorf("node %s: failed to pin bytes", name)
+			if has {
+				chunksCountAfterPin++
 			}
-
-			fmt.Printf("Node %s: checking for chunks\n", name)
-
-			count := 0
-
-			for _, a := range addrs {
-				has, err := ng.Node(name).HasChunk(ctx, a)
-				if err != nil {
-					return fmt.Errorf("node has chunk: %w", err)
-				}
-				if has {
-					count++
-				}
-			}
-
-			fmt.Printf("Node %s: has %d (expected %d)\n", name, count, len(addrs))
 		}
 
-		// cleanup
-		for name, o := range overlays {
-			fmt.Printf("Node %s: unpinning chunks\n", o.String())
+		fmt.Printf("Node %s: has %d (expected %d)\n", name, chunksCountAfterPin, len(addrs))
+	}
 
-			for _, a := range addrs {
-				_, err := ng.Node(name).UnpinChunk(ctx, a)
-				if err != nil {
-					return fmt.Errorf("cannot unpin chunk: %w", err)
-				}
+	// cleanup
+	for name, o := range overlays {
+		fmt.Printf("Node %s: unpinning chunks\n", o.String())
+
+		nodeClient := ng.Node(name)
+
+		for _, a := range addrs {
+			_, err := nodeClient.UnpinChunk(ctx, a)
+			if err != nil {
+				return fmt.Errorf("cannot unpin chunk: %w", err)
 			}
 		}
 	}
@@ -135,8 +126,10 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	for name, o := range overlays {
 		fmt.Printf("Node %s: removing chunks\n", o.String())
 
+		nodeClient := ng.Node(name)
+
 		for _, a := range addrs {
-			err := ng.Node(name).RemoveChunkWithAddress(ctx, a)
+			err := nodeClient.RemoveChunkWithAddress(ctx, a)
 			if err != nil {
 				return fmt.Errorf("cannot delete chunk: %w", err)
 			}

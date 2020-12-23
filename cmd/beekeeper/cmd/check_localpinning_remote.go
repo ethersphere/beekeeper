@@ -61,7 +61,7 @@ func (c *command) initCheckLocalPinningRemote() *cobra.Command {
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmdBytes.Flags().Int(optionNameDbCapacity, 8000, "DB capacity in chunks")
+	cmdBytes.Flags().Int(optionNameDbCapacity, 1000, "DB capacity in chunks")
 	cmdBytes.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmdBytes.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	return cmdBytes
