@@ -229,14 +229,8 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.C
 	if err != nil {
 		return err
 	}
-	pinned, err := node.PinChunk(ctx, chunk.Address())
-	if err != nil {
-		return err
-	}
-	if !pinned {
-		return errors.New("could not pin chunk")
-	}
-	return nil
+
+	return node.PinChunk(ctx, chunk.Address())
 }
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
