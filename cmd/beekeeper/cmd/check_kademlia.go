@@ -82,8 +82,8 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				for i := 0; i < bootnodeCount; i++ {
 					bConfig := newBeeDefaultConfig()
 					bConfig.Bootnodes = bSetup[i].Bootnodes
-					wbn, err := bg.AddStartNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i), bee.StartNodeOptions{
-						Config:       *bConfig,
+					wbn, err := bg.AddStartNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i), bee.NodeOptions{
+						Config:       bConfig,
 						ClefKey:      bSetup[i].ClefKey,
 						ClefPassword: bSetup[i].ClefPassword,
 						LibP2PKey:    bSetup[i].LibP2PKey,
@@ -123,8 +123,8 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				defer cancelN()
 				errGroupN := new(errgroup.Group)
 				for i := 0; i < nodeCount; i++ {
-					wn, err := ng.AddStartNode(cmd.Context(), fmt.Sprintf("bee-%d", i), bee.StartNodeOptions{
-						Config: *nConfig,
+					wn, err := ng.AddStartNode(cmd.Context(), fmt.Sprintf("bee-%d", i), bee.NodeOptions{
+						Config: nConfig,
 					})
 					if err != nil {
 						return fmt.Errorf("starting bee-%d: %s", i, err)
@@ -148,7 +148,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 					bg := cluster.NodeGroup(bgName)
 
 					for i := 0; i < bootnodeCount; i++ {
-						if err := bg.AddNode(fmt.Sprintf("bootnode-%d", i)); err != nil {
+						if err := bg.AddNode(fmt.Sprintf("bootnode-%d", i), bee.NodeOptions{}); err != nil {
 							return fmt.Errorf("adding bootnode-%d: %v", i, err)
 						}
 					}
@@ -161,7 +161,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				ng := cluster.NodeGroup(ngName)
 
 				for i := 0; i < nodeCount; i++ {
-					if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+					if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
 						return fmt.Errorf("adding bee-%d: %v", i, err)
 					}
 				}

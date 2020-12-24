@@ -87,8 +87,8 @@ func (c *command) initStartCluster() *cobra.Command {
 			for i := 0; i < bootnodeCount; i++ {
 				bConfig := newBeeDefaultConfig()
 				bConfig.Bootnodes = bSetup[i].Bootnodes
-				wbn, err := bg.AddStartNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i), bee.StartNodeOptions{
-					Config:       *bConfig,
+				wbn, err := bg.AddStartNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i), bee.NodeOptions{
+					Config:       bConfig,
 					ClefKey:      bSetup[i].ClefKey,
 					ClefPassword: bSetup[i].ClefPassword,
 					LibP2PKey:    bSetup[i].LibP2PKey,
@@ -128,8 +128,8 @@ func (c *command) initStartCluster() *cobra.Command {
 			defer cancelN()
 			errGroupN := new(errgroup.Group)
 			for i := 0; i < nodeCount; i++ {
-				wn, err := ng.AddStartNode(cmd.Context(), fmt.Sprintf("bee-%d", i), bee.StartNodeOptions{
-					Config: *nConfig,
+				wn, err := ng.AddStartNode(cmd.Context(), fmt.Sprintf("bee-%d", i), bee.NodeOptions{
+					Config: nConfig,
 				})
 				if err != nil {
 					return fmt.Errorf("starting bee-%d: %s", i, err)

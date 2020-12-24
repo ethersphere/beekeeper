@@ -83,8 +83,8 @@ func (c *command) initAddStartNode() *cobra.Command {
 			nodeConfig.Bootnodes = bootnodes
 			nodeConfig.Standalone = standalone
 
-			w, err := ng.AddStartNode(cmd.Context(), nodeName, bee.StartNodeOptions{
-				Config: *nodeConfig,
+			w, err := ng.AddStartNode(cmd.Context(), nodeName, bee.NodeOptions{
+				Config: nodeConfig,
 			})
 
 			return w(cmd.Context())

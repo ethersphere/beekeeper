@@ -13,11 +13,13 @@ import (
 
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
-	name    string
-	nodes   map[string]*Client
+	name  string
+	nodes map[string]*Node
+	// TODO: trust k8s on this do not keep internal track
 	started map[string]struct{}
 	stopped map[string]struct{}
-	opts    NodeGroupOptions
+	// TODO: add default bee config
+	opts NodeGroupOptions
 	// set when added to the cluster
 	cluster *Cluster
 	k8s     *k8sBee.Client
@@ -50,7 +52,7 @@ type NodeGroupOptions struct {
 func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 	return &NodeGroup{
 		name:    name,
-		nodes:   make(map[string]*Client),
+		nodes:   make(map[string]*Node),
 		started: make(map[string]struct{}),
 		stopped: make(map[string]struct{}),
 		opts:    o,
@@ -58,7 +60,9 @@ func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(name string) (err error) {
+func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
+	n := NewNode(name, o)
+
 	aURL, err := g.cluster.apiURL(name)
 	if err != nil {
 		return fmt.Errorf("adding node %s: %v", name, err)
@@ -75,20 +79,21 @@ func (g *NodeGroup) AddNode(name string) (err error) {
 		DebugAPIURL:         dURL,
 		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
 	})
-	g.nodes[name] = c
+	n.client = c
 
+	g.nodes[name] = n
 	g.stopped[name] = struct{}{}
 
 	return
 }
 
 // AddStartNode adds new node in the node group and starts it
-func (g *NodeGroup) AddStartNode(ctx context.Context, name string, o StartNodeOptions) (wait func(context.Context) error, err error) {
-	if err := g.AddNode(name); err != nil {
+func (g *NodeGroup) AddStartNode(ctx context.Context, name string, o NodeOptions) (wait func(context.Context) error, err error) {
+	if err := g.AddNode(name, o); err != nil {
 		return nil, fmt.Errorf("adding node %s: %v", name, err)
 	}
 
-	wait, err = g.StartNode(ctx, name, o)
+	wait, err = g.StartNode(ctx, name)
 	if err != nil {
 		return nil, fmt.Errorf("starting node %s: %v", name, err)
 	}
@@ -141,7 +146,7 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) <-chan AddressesStreamM
 				Addresses: a,
 				Error:     err,
 			}
-		}(k, v)
+		}(k, v.client)
 	}
 
 	go func() {
@@ -207,7 +212,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg
 				Balances: b,
 				Error:    err,
 			}
-		}(k, v)
+		}(k, v.client)
 	}
 
 	go func() {
@@ -274,7 +279,7 @@ func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) <-chan 
 					Found: found,
 					Error: err,
 				}
-			}(k, v)
+			}(k, v.client)
 		}
 
 		wg.Wait()
@@ -289,9 +294,13 @@ func (g *NodeGroup) Name() string {
 	return g.name
 }
 
-// Nodes returns map of nodes in the node group
+// Nodes returns map of node's clients in the node group
+// TODO: rewrite this accross code base
 func (g *NodeGroup) Nodes() (l map[string]*Client) {
-	return g.nodes
+	for k, v := range g.nodes {
+		l[k] = v.client
+	}
+	return
 }
 
 // NodesSorted returns sorted list of node names in the node group
@@ -310,7 +319,7 @@ func (g *NodeGroup) NodesSorted() (l []string) {
 
 // Node returns node's client
 func (g *NodeGroup) Node(name string) *Client {
-	return g.nodes[name]
+	return g.nodes[name].client
 }
 
 // NodeGroupOverlays represents overlay addresses of all nodes in the node group
@@ -359,7 +368,7 @@ func (g *NodeGroup) OverlaysStream(ctx context.Context) <-chan OverlaysStreamMsg
 				Address: a,
 				Error:   err,
 			}
-		}(k, v)
+		}(k, v.client)
 	}
 
 	go func() {
@@ -415,7 +424,7 @@ func (g *NodeGroup) PeersStream(ctx context.Context) <-chan PeersStreamMsg {
 				Peers: a,
 				Error: err,
 			}
-		}(k, v)
+		}(k, v.client)
 	}
 
 	go func() {
@@ -510,7 +519,7 @@ func (g *NodeGroup) SettlementsStream(ctx context.Context) <-chan SettlementsStr
 				Settlements: s,
 				Error:       err,
 			}
-		}(k, v)
+		}(k, v.client)
 	}
 
 	go func() {
@@ -526,32 +535,23 @@ func (g *NodeGroup) Size() int {
 	return len(g.nodes)
 }
 
-// StartNodeOptions represents node start options
-type StartNodeOptions struct {
-	Config       k8sBee.Config
-	ClefKey      string
-	ClefPassword string
-	LibP2PKey    string
-	SwarmKey     string
-}
-
 // StartNode starts new node in the node group
-func (g *NodeGroup) StartNode(ctx context.Context, name string, o StartNodeOptions) (wait func(context.Context) error, err error) {
+func (g *NodeGroup) StartNode(ctx context.Context, name string) (wait func(context.Context) error, err error) {
 	labels := mergeMaps(g.opts.Labels, map[string]string{
 		"app.kubernetes.io/instance": name,
 	})
 
 	if err := g.k8s.Start(ctx, k8sBee.StartOptions{
 		// Bee configuration
-		Config: o.Config,
+		Config: *g.nodes[name].config,
 		// Kubernetes configuration
 		Name:                      name,
 		Namespace:                 g.cluster.namespace,
 		Annotations:               g.opts.Annotations,
 		ClefImage:                 g.opts.ClefImage,
 		ClefImagePullPolicy:       g.opts.ClefImagePullPolicy,
-		ClefKey:                   o.ClefKey,
-		ClefPassword:              o.ClefPassword,
+		ClefKey:                   g.nodes[name].clefKey,
+		ClefPassword:              g.nodes[name].clefPassword,
 		Image:                     g.opts.Image,
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
 		IngressAnnotations:        g.opts.IngressAnnotations,
@@ -559,7 +559,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string, o StartNodeOptio
 		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
 		IngressDebugHost:          g.cluster.ingressDebugHost(name),
 		Labels:                    labels,
-		LibP2PKey:                 o.LibP2PKey,
+		LibP2PKey:                 g.nodes[name].libP2PKey,
 		LimitCPU:                  g.opts.LimitCPU,
 		LimitMemory:               g.opts.LimitMemory,
 		NodeSelector:              g.opts.NodeSelector,
@@ -571,7 +571,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string, o StartNodeOptio
 		RequestCPU:                g.opts.RequestCPU,
 		RequestMemory:             g.opts.RequestMemory,
 		Selector:                  labels,
-		SwarmKey:                  o.SwarmKey,
+		SwarmKey:                  g.nodes[name].swarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
 	}); err != nil {
 		return nil, fmt.Errorf("starting node %s: %v", name, err)
@@ -671,7 +671,7 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg
 				Topology: t,
 				Error:    err,
 			}
-		}(k, v)
+		}(k, v.client)
 	}
 
 	go func() {

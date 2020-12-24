@@ -52,7 +52,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 			ng := cluster.NodeGroup("nodes")
 
 			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
-				if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+				if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
 					return fmt.Errorf("adding node bee-%d: %s", i, err)
 				}
 			}
