@@ -13,9 +13,11 @@ import (
 
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
-	name  string
-	nodes map[string]*Client
-	opts  NodeGroupOptions
+	name    string
+	nodes   map[string]*Client
+	started map[string]struct{}
+	stopped map[string]struct{}
+	opts    NodeGroupOptions
 	// set when added to the cluster
 	cluster *Cluster
 	k8s     *k8sBee.Client
@@ -47,9 +49,11 @@ type NodeGroupOptions struct {
 // NewNodeGroup returns new node group
 func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 	return &NodeGroup{
-		name:  name,
-		nodes: make(map[string]*Client),
-		opts:  o,
+		name:    name,
+		nodes:   make(map[string]*Client),
+		started: make(map[string]struct{}),
+		stopped: make(map[string]struct{}),
+		opts:    o,
 	}
 }
 
@@ -72,6 +76,22 @@ func (g *NodeGroup) AddNode(name string) (err error) {
 		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
 	})
 	g.nodes[name] = c
+
+	g.stopped[name] = struct{}{}
+
+	return
+}
+
+// AddStartNode adds new node in the node group and starts it
+func (g *NodeGroup) AddStartNode(ctx context.Context, name string, o StartNodeOptions) (wait func(context.Context) error, err error) {
+	if err := g.AddNode(name); err != nil {
+		return nil, fmt.Errorf("adding node %s: %v", name, err)
+	}
+
+	wait, err = g.StartNode(ctx, name, o)
+	if err != nil {
+		return nil, fmt.Errorf("starting node %s: %v", name, err)
+	}
 
 	return
 }
@@ -200,7 +220,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) <-chan BalancesStreamMsg
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	if err := g.k8s.NodeDelete(ctx, k8sBee.NodeDeleteOptions{
+	if err := g.k8s.Delete(ctx, k8sBee.DeleteOptions{
 		Name:      name,
 		Namespace: g.cluster.namespace,
 	}); err != nil {
@@ -269,7 +289,7 @@ func (g *NodeGroup) Name() string {
 	return g.name
 }
 
-// Nodes returns map of node groups in the node group
+// Nodes returns map of nodes in the node group
 func (g *NodeGroup) Nodes() (l map[string]*Client) {
 	return g.nodes
 }
@@ -406,9 +426,24 @@ func (g *NodeGroup) PeersStream(ctx context.Context) <-chan PeersStreamMsg {
 	return peersStream
 }
 
+// NodeReady returns node's readiness
+func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err error) {
+	ok, err = g.k8s.Ready(ctx, k8sBee.ReadyOptions{
+		Namespace: g.cluster.namespace,
+		Name:      name,
+	})
+	if err != nil {
+		return false, fmt.Errorf("getting readiness from node %s: %v", name, err)
+	}
+
+	return
+}
+
 // RemoveNode removes node from the node group
 func (g *NodeGroup) RemoveNode(name string) {
 	delete(g.nodes, name)
+	delete(g.started, name)
+	delete(g.stopped, name)
 }
 
 // NodeGroupSettlements represents settlements of all nodes in the node group
@@ -493,7 +528,6 @@ func (g *NodeGroup) Size() int {
 
 // StartNodeOptions represents node start options
 type StartNodeOptions struct {
-	Name         string
 	Config       k8sBee.Config
 	ClefKey      string
 	ClefPassword string
@@ -502,20 +536,16 @@ type StartNodeOptions struct {
 }
 
 // StartNode starts new node in the node group
-func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (wait func(context.Context) error, err error) {
-	if err := g.AddNode(o.Name); err != nil {
-		return nil, fmt.Errorf("starting node %s: %v", o.Name, err)
-	}
-
+func (g *NodeGroup) StartNode(ctx context.Context, name string, o StartNodeOptions) (wait func(context.Context) error, err error) {
 	labels := mergeMaps(g.opts.Labels, map[string]string{
-		"app.kubernetes.io/instance": o.Name,
+		"app.kubernetes.io/instance": name,
 	})
 
-	if err := g.k8s.NodeStart(ctx, k8sBee.NodeStartOptions{
+	if err := g.k8s.Start(ctx, k8sBee.StartOptions{
 		// Bee configuration
 		Config: o.Config,
 		// Kubernetes configuration
-		Name:                      o.Name,
+		Name:                      name,
 		Namespace:                 g.cluster.namespace,
 		Annotations:               g.opts.Annotations,
 		ClefImage:                 g.opts.ClefImage,
@@ -525,9 +555,9 @@ func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (wait fun
 		Image:                     g.opts.Image,
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
 		IngressAnnotations:        g.opts.IngressAnnotations,
-		IngressHost:               g.cluster.ingressHost(o.Name),
+		IngressHost:               g.cluster.ingressHost(name),
 		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
-		IngressDebugHost:          g.cluster.ingressDebugHost(o.Name),
+		IngressDebugHost:          g.cluster.ingressDebugHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 o.LibP2PKey,
 		LimitCPU:                  g.opts.LimitCPU,
@@ -544,23 +574,26 @@ func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (wait fun
 		SwarmKey:                  o.SwarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
 	}); err != nil {
-		return nil, fmt.Errorf("starting node %s: %v", o.Name, err)
+		return nil, fmt.Errorf("starting node %s: %v", name, err)
 	}
 
+	delete(g.stopped, name)
+	g.started[name] = struct{}{}
+
 	wait = func(ctx context.Context) error {
-		fmt.Printf("wait for %s to become ready\n", o.Name)
+		fmt.Printf("wait for %s to become ready\n", name)
 		for {
-			ok, err := g.NodeStatus(ctx, o.Name)
+			ok, err := g.NodeReady(ctx, name)
 			if err != nil {
-				return fmt.Errorf("waiting for %s status: %v", o.Name, err)
+				return fmt.Errorf("waiting for %s readiness: %v", name, err)
 			}
 
 			if ok {
-				fmt.Printf("%s is ready\n", o.Name)
+				fmt.Printf("%s is ready\n", name)
 				return nil
 			}
 
-			fmt.Printf("%s is not ready yet\n", o.Name)
+			fmt.Printf("%s is not ready yet\n", name)
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -568,29 +601,29 @@ func (g *NodeGroup) StartNode(ctx context.Context, o StartNodeOptions) (wait fun
 	return
 }
 
-// NodeStatus returns node's status
-func (g *NodeGroup) NodeStatus(ctx context.Context, name string) (ok bool, err error) {
-	ok, err = g.k8s.NodeStatus(ctx, k8sBee.NodeStatusOptions{
-		Namespace: g.cluster.namespace,
-		Name:      name,
-	})
-	if err != nil {
-		return false, fmt.Errorf("getting status from node %s: %v", name, err)
-	}
-
-	return
+// StartedNodes returns set of started nodes
+func (g *NodeGroup) StartedNodes() map[string]struct{} {
+	return g.started
 }
 
 // StopNode stops node by scaling down its statefulset to 0
 func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
-	if err := g.k8s.NodeStop(ctx, k8sBee.NodeStopOptions{
+	if err := g.k8s.Stop(ctx, k8sBee.StopOptions{
 		Name:      name,
 		Namespace: g.cluster.namespace,
 	}); err != nil {
 		return fmt.Errorf("stopping node %s: %v", name, err)
 	}
 
+	delete(g.started, name)
+	g.stopped[name] = struct{}{}
+
 	return
+}
+
+// StoppedNodes returns set of stopped nodes
+func (g *NodeGroup) StoppedNodes() map[string]struct{} {
+	return g.stopped
 }
 
 // NodeGroupTopologies represents Kademlia topology of all nodes in the node group

@@ -82,8 +82,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				for i := 0; i < bootnodeCount; i++ {
 					bConfig := newBeeDefaultConfig()
 					bConfig.Bootnodes = bSetup[i].Bootnodes
-					wbn, err := bg.StartNode(cmd.Context(), bee.StartNodeOptions{
-						Name:         fmt.Sprintf("bootnode-%d", i),
+					wbn, err := bg.AddStartNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i), bee.StartNodeOptions{
 						Config:       *bConfig,
 						ClefKey:      bSetup[i].ClefKey,
 						ClefPassword: bSetup[i].ClefPassword,
@@ -124,8 +123,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				defer cancelN()
 				errGroupN := new(errgroup.Group)
 				for i := 0; i < nodeCount; i++ {
-					wn, err := ng.StartNode(cmd.Context(), bee.StartNodeOptions{
-						Name:   fmt.Sprintf("bee-%d", i),
+					wn, err := ng.AddStartNode(cmd.Context(), fmt.Sprintf("bee-%d", i), bee.StartNodeOptions{
 						Config: *nConfig,
 					})
 					if err != nil {
@@ -170,7 +168,29 @@ func (c *command) initCheckKademlia() *cobra.Command {
 			}
 
 			if dynamic {
-				return kademlia.CheckDynamic(cmd.Context(), cluster)
+				return kademlia.CheckDynamic(cmd.Context(), cluster, []kademlia.DynamicActions{
+					{
+						NodeGroup:   "nodes",
+						AddCount:    1,
+						StartCount:  1,
+						StopCount:   1,
+						DeleteCount: 1,
+					},
+					{
+						NodeGroup:   "nodes",
+						AddCount:    2,
+						StartCount:  2,
+						StopCount:   2,
+						DeleteCount: 2,
+					},
+					{
+						NodeGroup:   "nodes",
+						AddCount:    3,
+						StartCount:  3,
+						StopCount:   3,
+						DeleteCount: 3,
+					},
+				})
 			}
 
 			return kademlia.Check(cmd.Context(), cluster)

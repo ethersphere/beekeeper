@@ -40,8 +40,17 @@ func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
 	return
 }
 
+// DynamicActions ...
+type DynamicActions struct {
+	NodeGroup   string
+	AddCount    int
+	StartCount  int
+	StopCount   int
+	DeleteCount int
+}
+
 // CheckDynamic executes Kademlia topology check on dynamic cluster
-func CheckDynamic(ctx context.Context, cluster *bee.Cluster) (err error) {
+func CheckDynamic(ctx context.Context, cluster *bee.Cluster, actions []DynamicActions) (err error) {
 	fmt.Println("Checking connectivity")
 	err = fullconnectivity.Check(ctx, cluster)
 	if err != nil {
@@ -58,6 +67,16 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster) (err error) {
 	fmt.Println("Checking Kademlia")
 	if err := checkKademlia(topologies); err != nil {
 		return fmt.Errorf("Kademlia check: %v", err)
+	}
+
+	for _, a := range actions {
+		fmt.Println(cluster.NodeGroup(a.NodeGroup).Name(), a.AddCount, a.StartCount, a.StopCount, a.DeleteCount)
+
+		// delete nodes
+		// stop nodes
+		// start nodes
+		// add nodes
+
 	}
 
 	return

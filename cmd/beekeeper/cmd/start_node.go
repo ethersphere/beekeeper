@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initStartNode() *cobra.Command {
+func (c *command) initAddStartNode() *cobra.Command {
 	const (
 		createdBy                  = "beekeeper"
 		labelName                  = "bee"
@@ -83,8 +83,7 @@ func (c *command) initStartNode() *cobra.Command {
 			nodeConfig.Bootnodes = bootnodes
 			nodeConfig.Standalone = standalone
 
-			w, err := ng.StartNode(cmd.Context(), bee.StartNodeOptions{
-				Name:   nodeName,
+			w, err := ng.AddStartNode(cmd.Context(), nodeName, bee.StartNodeOptions{
 				Config: *nodeConfig,
 			})
 

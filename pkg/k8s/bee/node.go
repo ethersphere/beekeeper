@@ -19,14 +19,14 @@ const (
 	portHTTP = 80
 )
 
-// NodeDeleteOptions represents available options for starting node
-type NodeDeleteOptions struct {
+// DeleteOptions represents available options for starting node
+type DeleteOptions struct {
 	Name      string
 	Namespace string
 }
 
-// NodeDelete deletes Bee node from the cluster
-func (c *Client) NodeDelete(ctx context.Context, o NodeDeleteOptions) (err error) {
+// Delete deletes Bee node from the cluster
+func (c *Client) Delete(ctx context.Context, o DeleteOptions) (err error) {
 	// statefulset
 	sSet := o.Name
 	if err := c.k8s.StatefulSet.Delete(ctx, sSet, o.Namespace); err != nil {
@@ -108,8 +108,28 @@ func (c *Client) NodeDelete(ctx context.Context, o NodeDeleteOptions) (err error
 	return
 }
 
-// NodeStartOptions represents available options for starting node
-type NodeStartOptions struct {
+// ReadyOptions represents available options for getting node's readiness
+type ReadyOptions struct {
+	Name      string
+	Namespace string
+}
+
+// Ready gets Bee node's readiness
+func (c *Client) Ready(ctx context.Context, o ReadyOptions) (ready bool, err error) {
+	r, err := c.k8s.StatefulSet.ReadyReplicas(ctx, o.Name, o.Namespace)
+	if err != nil {
+		return false, fmt.Errorf("getting readiness from node %s in namespace %s: %v", o.Name, o.Namespace, err)
+	}
+
+	if r != 1 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// StartOptions represents available options for starting node
+type StartOptions struct {
 	// Bee configuration
 	Config Config
 	// Kubernetes configuration
@@ -143,8 +163,8 @@ type NodeStartOptions struct {
 	UpdateStrategy            string
 }
 
-// NodeStart starts Bee node in the cluster
-func (c *Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) {
+// Start starts Bee node in the cluster
+func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 	// bee configuration
 	var config bytes.Buffer
 	if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
@@ -465,34 +485,14 @@ func (c *Client) NodeStart(ctx context.Context, o NodeStartOptions) (err error) 
 	return
 }
 
-// NodeStatusOptions represents available options for getting node's status
-type NodeStatusOptions struct {
+// StopOptions represents available options for stopping node
+type StopOptions struct {
 	Name      string
 	Namespace string
 }
 
-// NodeStatus gets Bee node's status
-func (c *Client) NodeStatus(ctx context.Context, o NodeStatusOptions) (ok bool, err error) {
-	r, err := c.k8s.StatefulSet.ReadyReplicas(ctx, o.Name, o.Namespace)
-	if err != nil {
-		return false, fmt.Errorf("getting status from node %s in namespace %s: %v", o.Name, o.Namespace, err)
-	}
-
-	if r != 1 {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-// NodeStopOptions represents available options for stopping node
-type NodeStopOptions struct {
-	Name      string
-	Namespace string
-}
-
-// NodeStop stops Bee node in the cluster
-func (c *Client) NodeStop(ctx context.Context, o NodeStopOptions) (err error) {
+// Stop stops Bee node in the cluster
+func (c *Client) Stop(ctx context.Context, o StopOptions) (err error) {
 	err = c.k8s.StatefulSet.Scale(ctx, o.Name, o.Namespace, 0)
 	if err != nil {
 		return fmt.Errorf("stopping node %s in namespace %s: %v", o.Name, o.Namespace, err)
