@@ -22,7 +22,7 @@ func Check(cluster *bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err err
 	pusher.Format(expfmt.FmtText)
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
-		for n := range nodeStream(ctx, ng.Nodes()) {
+		for n := range nodeStream(ctx, ng.NodesClients()) {
 			for t := 0; t < 5; t++ {
 				time.Sleep(2 * time.Duration(t) * time.Second)
 

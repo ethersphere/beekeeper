@@ -32,7 +32,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	if err := ng.Node(pivotNode).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: true}); err != nil {
+	if err := ng.NodeClient(pivotNode).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: true}); err != nil {
 		return fmt.Errorf("node %s: %w", pivotNode, err)
 	}
 
@@ -45,7 +45,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
 		}
-		if _, err := ng.Node(pivotNode).UploadBytes(ctx, b, api.UploadOptions{Pin: false}); err != nil {
+		if _, err := ng.NodeClient(pivotNode).UploadBytes(ctx, b, api.UploadOptions{Pin: false}); err != nil {
 			return fmt.Errorf("node %s: %w", pivotNode, err)
 		}
 		fmt.Printf("node %s: uploaded %d bytes.\n", pivotNode, len(b))
@@ -54,7 +54,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 	// allow nodes to sync and do some GC
 	time.Sleep(5 * time.Second)
 
-	has, err := ng.Node(pivotNode).HasChunk(ctx, chunk.Address())
+	has, err := ng.NodeClient(pivotNode).HasChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("node has chunk: %w", err)
 	}
@@ -63,7 +63,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 	}
 
 	// cleanup
-	_, err = ng.Node(pivotNode).UnpinChunk(ctx, chunk.Address())
+	_, err = ng.NodeClient(pivotNode).UnpinChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("unpin chunk: %w", err)
 	}

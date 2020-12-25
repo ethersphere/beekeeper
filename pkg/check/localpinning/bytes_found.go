@@ -39,7 +39,7 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 	sortedNodes := ng.NodesSorted()
 	pivot := rnd.Intn(c.Size())
 	pivotNode := sortedNodes[pivot]
-	ref, err := ng.Node(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
+	ref, err := ng.NodeClient(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
 	if err != nil {
 		return fmt.Errorf("node %s: upload bytes: %w", pivotNode, err)
 	}
@@ -53,7 +53,7 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 		}
 
 		// upload without pinning
-		a, err := ng.Node(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: false})
+		a, err := ng.NodeClient(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: false})
 		if err != nil {
 			return fmt.Errorf("node %s: upload bytes: %w", pivotNode, err)
 		}
@@ -65,7 +65,7 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 	time.Sleep(5 * time.Second)
 
 	for _, a := range addrs {
-		has, err := ng.Node(pivotNode).HasChunk(ctx, a)
+		has, err := ng.NodeClient(pivotNode).HasChunk(ctx, a)
 		if err != nil {
 			return fmt.Errorf("node has chunk: %w", err)
 		}
@@ -76,7 +76,7 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 
 	// cleanup
 	for _, a := range addrs {
-		_, err := ng.Node(pivotNode).UnpinChunk(ctx, a)
+		_, err := ng.NodeClient(pivotNode).UnpinChunk(ctx, a)
 		if err != nil {
 			return fmt.Errorf("cannot unpin chunk: %w", err)
 		}

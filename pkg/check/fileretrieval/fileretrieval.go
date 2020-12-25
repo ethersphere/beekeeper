@@ -56,7 +56,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			t0 := time.Now()
-			if err := ng.Node(nodeName).UploadFile(ctx, &file, false); err != nil {
+			if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
@@ -67,7 +67,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 			time.Sleep(1 * time.Second)
 			t1 := time.Now()
-			size, hash, err := ng.Node(lastNodeName).DownloadFile(ctx, file.Address())
+			size, hash, err := ng.NodeClient(lastNodeName).DownloadFile(ctx, file.Address())
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastNodeName, err)
 			}
@@ -127,7 +127,7 @@ func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool)
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			t0 := time.Now()
-			if err := ng.Node(nodeName).UploadFile(ctx, &file, false); err != nil {
+			if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
@@ -137,7 +137,7 @@ func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool)
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			time.Sleep(1 * time.Second)
-			for n, nc := range ng.Nodes() {
+			for n, nc := range ng.NodesClients() {
 				if n == nodeName {
 					continue
 				}

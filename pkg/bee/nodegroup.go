@@ -307,9 +307,13 @@ func (g *NodeGroup) Name() string {
 	return g.name
 }
 
-// Nodes returns map of node's clients in the node group
-// TODO: rewrite this accross code base
-func (g *NodeGroup) Nodes() (l map[string]*Client) {
+// Nodes returns map of nodes in the node group
+func (g *NodeGroup) Nodes() (l map[string]*Node) {
+	return
+}
+
+// NodesClients returns map of node's clients in the node group
+func (g *NodeGroup) NodesClients() (l map[string]*Client) {
 	for k, v := range g.nodes {
 		l[k] = v.client
 	}
@@ -330,8 +334,13 @@ func (g *NodeGroup) NodesSorted() (l []string) {
 	return
 }
 
-// Node returns node's client
-func (g *NodeGroup) Node(name string) *Client {
+// Node returns node
+func (g *NodeGroup) Node(name string) *Node {
+	return g.nodes[name]
+}
+
+// NodeClient returns node's client
+func (g *NodeGroup) NodeClient(name string) *Client {
 	return g.nodes[name].client
 }
 

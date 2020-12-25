@@ -51,7 +51,7 @@ func Check(c *bee.Cluster, o Options) error {
 	tarFile := bee.NewBufferFile("", tarReader)
 
 	sortedNodes := ng.NodesSorted()
-	if err := ng.Node(sortedNodes[0]).UploadCollection(ctx, &tarFile); err != nil {
+	if err := ng.NodeClient(sortedNodes[0]).UploadCollection(ctx, &tarFile); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
 	}
 
@@ -66,7 +66,7 @@ DOWNLOAD:
 	}
 
 	for i, file := range files {
-		size, hash, err := ng.Node(lastNode).DownloadManifestFile(ctx, tarFile.Address(), file.Name())
+		size, hash, err := ng.NodeClient(lastNode).DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
 			fmt.Printf("Node %s. Error retrieving file: %v\n", lastNode, err)
 			goto DOWNLOAD
