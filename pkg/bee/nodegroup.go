@@ -102,14 +102,13 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 }
 
 // AddStartNode adds new node in the node group and starts it
-func (g *NodeGroup) AddStartNode(ctx context.Context, name string, o NodeOptions) (wait func(context.Context) error, err error) {
+func (g *NodeGroup) AddStartNode(ctx context.Context, name string, o NodeOptions) (err error) {
 	if err := g.AddNode(name, o); err != nil {
-		return nil, fmt.Errorf("adding node %s: %v", name, err)
+		return fmt.Errorf("adding node %s: %v", name, err)
 	}
 
-	wait, err = g.StartNode(ctx, name)
-	if err != nil {
-		return nil, fmt.Errorf("starting node %s: %v", name, err)
+	if err := g.StartNode(ctx, name); err != nil {
+		return fmt.Errorf("starting node %s: %v", name, err)
 	}
 
 	return
@@ -550,7 +549,7 @@ func (g *NodeGroup) Size() int {
 }
 
 // StartNode starts new node in the node group
-func (g *NodeGroup) StartNode(ctx context.Context, name string) (wait func(context.Context) error, err error) {
+func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 	labels := mergeMaps(g.opts.Labels, map[string]string{
 		"app.kubernetes.io/instance": name,
 	})
@@ -588,31 +587,27 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (wait func(conte
 		SwarmKey:                  g.nodes[name].swarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
 	}); err != nil {
-		return nil, fmt.Errorf("starting node %s: %v", name, err)
+		return fmt.Errorf("starting node %s: %v", name, err)
 	}
 
 	delete(g.stopped, name)
 	g.started[name] = struct{}{}
 
-	wait = func(ctx context.Context) error {
-		fmt.Printf("wait for %s to become ready\n", name)
-		for {
-			ok, err := g.NodeReady(ctx, name)
-			if err != nil {
-				return fmt.Errorf("waiting for %s readiness: %v", name, err)
-			}
-
-			if ok {
-				fmt.Printf("%s is ready\n", name)
-				return nil
-			}
-
-			fmt.Printf("%s is not ready yet\n", name)
-			time.Sleep(1 * time.Second)
+	fmt.Printf("wait for %s to become ready\n", name)
+	for {
+		ok, err := g.NodeReady(ctx, name)
+		if err != nil {
+			return fmt.Errorf("waiting for %s readiness: %v", name, err)
 		}
-	}
 
-	return
+		if ok {
+			fmt.Printf("%s is ready\n", name)
+			return nil
+		}
+
+		fmt.Printf("%s is not ready yet\n", name)
+		time.Sleep(1 * time.Second)
+	}
 }
 
 // StartedNodes returns set of started nodes

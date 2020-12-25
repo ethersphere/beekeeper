@@ -81,31 +81,30 @@ func (c *command) initStartCluster() *cobra.Command {
 			bg := cluster.NodeGroup(bgName)
 			bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameNamespace))
 
-			ctxBN, cancelBN := context.WithTimeout(cmd.Context(), 10*time.Minute)
-			defer cancelBN()
-			errGroupBN := new(errgroup.Group)
+			bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
+			defer bCancel()
+			bnGroup := new(errgroup.Group)
 			for i := 0; i < bootnodeCount; i++ {
 				bConfig := defaultBeeConfig()
 				bConfig.Bootnodes = bSetup[i].Bootnodes
-				wbn, err := bg.AddStartNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i), bee.NodeOptions{
+				bName := fmt.Sprintf("bootnode-%d", i)
+				bOptions := bee.NodeOptions{
 					Config:       bConfig,
 					ClefKey:      bSetup[i].ClefKey,
 					ClefPassword: bSetup[i].ClefPassword,
 					LibP2PKey:    bSetup[i].LibP2PKey,
 					SwarmKey:     bSetup[i].SwarmKey,
-				})
-				if err != nil {
-					return fmt.Errorf("starting bootnode-%d: %s", i, err)
 				}
 
-				errGroupBN.Go(func() error {
-					return wbn(ctxBN)
+				bnGroup.Go(func() error {
+					return bg.AddStartNode(bCtx, bName, bOptions)
 				})
 			}
 
-			if err := errGroupBN.Wait(); err == nil {
-				fmt.Println("bootnodes started")
+			if err := bnGroup.Wait(); err != nil {
+				return fmt.Errorf("starting bootnodes: %v", err)
 			}
+			fmt.Println("bootnodes started")
 
 			// nodes group
 			ngName := "nodes"
@@ -124,23 +123,21 @@ func (c *command) initStartCluster() *cobra.Command {
 			cluster.AddNodeGroup(ngName, *ngOptions)
 			ng := cluster.NodeGroup(ngName)
 
-			ctxN, cancelN := context.WithTimeout(cmd.Context(), 10*time.Minute)
-			defer cancelN()
-			errGroupN := new(errgroup.Group)
+			nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
+			defer nCancel()
+			nGroup := new(errgroup.Group)
 			for i := 0; i < nodeCount; i++ {
-				wn, err := ng.AddStartNode(cmd.Context(), fmt.Sprintf("bee-%d", i), bee.NodeOptions{})
-				if err != nil {
-					return fmt.Errorf("starting bee-%d: %s", i, err)
-				}
+				nName := fmt.Sprintf("bee-%d", i)
 
-				errGroupN.Go(func() error {
-					return wn(ctxN)
+				nGroup.Go(func() error {
+					return ng.AddStartNode(nCtx, nName, bee.NodeOptions{})
 				})
 			}
 
-			if err := errGroupN.Wait(); err == nil {
-				fmt.Println("nodes started")
+			if err := nGroup.Wait(); err != nil {
+				return fmt.Errorf("starting nodes: %v", err)
 			}
+			fmt.Println("nodes started")
 
 			return
 		},
