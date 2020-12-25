@@ -47,7 +47,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				DisableNamespace:    disableNamespace,
 			})
 
-			ngOptions := newDefaultNodeGroupOptions()
+			ngOptions := defaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
 

@@ -28,7 +28,7 @@ and prints round-trip time (RTT) of each ping.`,
 				DisableNamespace:    disableNamespace,
 			})
 
-			ngOptions := newDefaultNodeGroupOptions()
+			ngOptions := defaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
 

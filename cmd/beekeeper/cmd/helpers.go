@@ -8,8 +8,8 @@ import (
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 )
 
-// newBeeDefaultConfig returns default Bee node configuration
-func newBeeDefaultConfig() *k8sBee.Config {
+// defaultBeeConfig returns default Bee node configuration
+func defaultBeeConfig() *k8sBee.Config {
 	return &k8sBee.Config{
 		APIAddr:              ":1633",
 		Bootnodes:            "",
@@ -45,8 +45,8 @@ func newBeeDefaultConfig() *k8sBee.Config {
 	}
 }
 
-// newDefaultNodeGroupOptions returns default node group options
-func newDefaultNodeGroupOptions() *bee.NodeGroupOptions {
+// defaultNodeGroupOptions returns default node group options
+func defaultNodeGroupOptions() *bee.NodeGroupOptions {
 	return &bee.NodeGroupOptions{
 		ClefImage:           "ethersphere/clef:latest",
 		ClefImagePullPolicy: "Always",

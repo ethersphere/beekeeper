@@ -62,7 +62,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 			if startCluster {
 				// bootnodes group
 				bgName := "bootnodes"
-				bgOptions := newDefaultNodeGroupOptions()
+				bgOptions := defaultNodeGroupOptions()
 				bgOptions.Image = image
 				bgOptions.Labels = map[string]string{
 					"app.kubernetes.io/component": "bootnode",
@@ -80,7 +80,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				defer cancelBN()
 				errGroupBN := new(errgroup.Group)
 				for i := 0; i < bootnodeCount; i++ {
-					bConfig := newBeeDefaultConfig()
+					bConfig := defaultBeeConfig()
 					bConfig.Bootnodes = bSetup[i].Bootnodes
 					wbn, err := bg.AddStartNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i), bee.NodeOptions{
 						Config:       bConfig,
@@ -104,7 +104,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 
 				// nodes group
 				ngName := "nodes"
-				ngOptions := newDefaultNodeGroupOptions()
+				ngOptions := defaultNodeGroupOptions()
 				ngOptions.Image = image
 				ngOptions.Labels = map[string]string{
 					"app.kubernetes.io/component": "node",
@@ -114,18 +114,16 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				ngOptions.PersistenceEnabled = persistence
 				ngOptions.PersistenceStorageClass = storageClass
 				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.BeeConfig = defaultBeeConfig()
+				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 				cluster.AddNodeGroup(ngName, *ngOptions)
 				ng := cluster.NodeGroup(ngName)
-				nConfig := newBeeDefaultConfig()
-				nConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 
 				ctxN, cancelN := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer cancelN()
 				errGroupN := new(errgroup.Group)
 				for i := 0; i < nodeCount; i++ {
-					wn, err := ng.AddStartNode(cmd.Context(), fmt.Sprintf("bee-%d", i), bee.NodeOptions{
-						Config: nConfig,
-					})
+					wn, err := ng.AddStartNode(cmd.Context(), fmt.Sprintf("bee-%d", i), bee.NodeOptions{})
 					if err != nil {
 						return fmt.Errorf("starting bee-%d: %s", i, err)
 					}
@@ -143,7 +141,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				if bootnodeCount > 0 {
 					// bootnodes group
 					bgName := "bootnodes"
-					bgOptions := newDefaultNodeGroupOptions()
+					bgOptions := defaultNodeGroupOptions()
 					cluster.AddNodeGroup(bgName, *bgOptions)
 					bg := cluster.NodeGroup(bgName)
 
@@ -156,7 +154,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 
 				// nodes group
 				ngName := "nodes"
-				ngOptions := newDefaultNodeGroupOptions()
+				ngOptions := defaultNodeGroupOptions()
 				cluster.AddNodeGroup(ngName, *ngOptions)
 				ng := cluster.NodeGroup(ngName)
 

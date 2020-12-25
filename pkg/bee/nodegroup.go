@@ -15,11 +15,10 @@ import (
 type NodeGroup struct {
 	name  string
 	nodes map[string]*Node
+	opts  NodeGroupOptions
 	// TODO: trust k8s on this do not keep internal track
 	started map[string]struct{}
 	stopped map[string]struct{}
-	// TODO: add default bee config
-	opts NodeGroupOptions
 	// set when added to the cluster
 	cluster *Cluster
 	k8s     *k8sBee.Client
@@ -30,6 +29,7 @@ type NodeGroupOptions struct {
 	Annotations               map[string]string
 	ClefImage                 string
 	ClefImagePullPolicy       string
+	BeeConfig                 *k8sBee.Config
 	Image                     string
 	ImagePullPolicy           string
 	IngressAnnotations        map[string]string
@@ -61,8 +61,6 @@ func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 
 // AddNode adss new node to the node group
 func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
-	n := NewNode(name, o)
-
 	aURL, err := g.cluster.apiURL(name)
 	if err != nil {
 		return fmt.Errorf("adding node %s: %v", name, err)
@@ -73,13 +71,29 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		return fmt.Errorf("adding node %s: %v", name, err)
 	}
 
-	c := NewClient(ClientOptions{
+	client := NewClient(ClientOptions{
 		APIURL:              aURL,
 		APIInsecureTLS:      g.cluster.apiInsecureTLS,
 		DebugAPIURL:         dURL,
 		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
 	})
-	n.client = c
+
+	// TODO: make more granular, check every sub-option
+	var config *k8sBee.Config
+	if o.Config != nil {
+		config = o.Config
+	} else {
+		config = g.opts.BeeConfig
+	}
+
+	n := NewNode(name, NodeOptions{
+		ClefKey:      o.ClefKey,
+		ClefPassword: o.ClefPassword,
+		Client:       client,
+		Config:       config,
+		LibP2PKey:    o.LibP2PKey,
+		SwarmKey:     o.SwarmKey,
+	})
 
 	g.nodes[name] = n
 	g.stopped[name] = struct{}{}

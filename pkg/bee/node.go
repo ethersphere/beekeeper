@@ -7,20 +7,20 @@ import (
 // Node represents Bee node
 type Node struct {
 	name         string
-	client       *Client
-	config       *k8sBee.Config
 	clefKey      string
 	clefPassword string
+	client       *Client
+	config       *k8sBee.Config
 	libP2PKey    string
 	swarmKey     string
 }
 
 // NodeOptions holds optional parameters for the Node.
 type NodeOptions struct {
-	Client       *Client
-	Config       *k8sBee.Config
 	ClefKey      string
 	ClefPassword string
+	Client       *Client
+	Config       *k8sBee.Config
 	LibP2PKey    string
 	SwarmKey     string
 }

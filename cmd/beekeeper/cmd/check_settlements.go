@@ -42,7 +42,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 				DisableNamespace:    disableNamespace,
 			})
 
-			ngOptions := newDefaultNodeGroupOptions()
+			ngOptions := defaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
 
