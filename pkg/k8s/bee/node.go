@@ -485,6 +485,15 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 	return
 }
 
+// StartedNodes returns list of started nodes
+func (c *Client) StartedNodes(ctx context.Context, namespace string) (started []string, err error) {
+	started, err = c.k8s.StatefulSet.StartedStatefulSets(ctx, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("started nodes in namespace %s: %v", namespace, err)
+	}
+	return
+}
+
 // StopOptions represents available options for stopping node
 type StopOptions struct {
 	Name      string
@@ -499,5 +508,14 @@ func (c *Client) Stop(ctx context.Context, o StopOptions) (err error) {
 	}
 
 	fmt.Printf("node %s is stopped in namespace %s\n", o.Name, o.Namespace)
+	return
+}
+
+// StoppedNodes returns list of stopped nodes
+func (c *Client) StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error) {
+	stopped, err = c.k8s.StatefulSet.StoppedStatefulSets(ctx, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("stopped nodes in namespace %s: %v", namespace, err)
+	}
 	return
 }

@@ -103,3 +103,41 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 
 	return
 }
+
+// StartedStatefulSets returns names of started StatefulSets
+func (c *Client) StartedStatefulSets(ctx context.Context, namespace string) (started []string, err error) {
+	statefulSets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("list statefulsets in namespace %s: %v", namespace, err)
+	}
+
+	for _, s := range statefulSets.Items {
+		if s.Status.Replicas == 1 {
+			started = append(started, s.Name)
+		}
+	}
+
+	return
+}
+
+// StoppedStatefulSets returns names of stopped StatefulSets
+func (c *Client) StoppedStatefulSets(ctx context.Context, namespace string) (stopped []string, err error) {
+	statefulSets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("list statefulsets in namespace %s: %v", namespace, err)
+	}
+
+	for _, s := range statefulSets.Items {
+		if s.Status.Replicas == 0 {
+			stopped = append(stopped, s.Name)
+		}
+	}
+
+	return
+}

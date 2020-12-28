@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/kademlia"
+	"github.com/ethersphere/beekeeper/pkg/random"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/spf13/cobra"
@@ -21,6 +22,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 		optionNameBootnodeCount  = "bootnode-count"
 		optionNameNodeCount      = "node-count"
 		optionNameImage          = "bee-image"
+		optionNameSeed           = "seed"
 		optionNamePersistence    = "persistence"
 		optionNameStorageClass   = "storage-class"
 		optionNameStorageRequest = "storage-request"
@@ -162,28 +164,38 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				}
 			}
 
+			var seed int64
+			if cmd.Flags().Changed("seed") {
+				seed = c.config.GetInt64(optionNameSeed)
+			} else {
+				seed = random.Int64()
+			}
+
 			if dynamic {
-				return kademlia.CheckDynamic(cmd.Context(), cluster, []kademlia.DynamicActions{
-					{
-						NodeGroup:   "nodes",
-						AddCount:    1,
-						StartCount:  1,
-						StopCount:   1,
-						DeleteCount: 1,
-					},
-					{
-						NodeGroup:   "nodes",
-						AddCount:    2,
-						StartCount:  2,
-						StopCount:   2,
-						DeleteCount: 2,
-					},
-					{
-						NodeGroup:   "nodes",
-						AddCount:    3,
-						StartCount:  3,
-						StopCount:   3,
-						DeleteCount: 3,
+				return kademlia.CheckDynamic(cmd.Context(), cluster, kademlia.Options{
+					Seed: seed,
+					DynamicActions: []kademlia.Actions{
+						{
+							NodeGroup:   "nodes",
+							AddCount:    1,
+							StartCount:  0,
+							StopCount:   1,
+							DeleteCount: 1,
+						},
+						{
+							NodeGroup:   "nodes",
+							AddCount:    2,
+							StartCount:  2,
+							StopCount:   2,
+							DeleteCount: 2,
+						},
+						{
+							NodeGroup:   "nodes",
+							AddCount:    3,
+							StartCount:  3,
+							StopCount:   3,
+							DeleteCount: 3,
+						},
 					},
 				})
 			}
@@ -193,6 +205,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 		PreRunE: c.checkPreRunE,
 	}
 
+	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
 	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "check on dynamic cluster")
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")

@@ -16,9 +16,7 @@ type NodeGroup struct {
 	name  string
 	nodes map[string]*Node
 	opts  NodeGroupOptions
-	// TODO: trust k8s on this do not keep internal track
-	started map[string]struct{}
-	stopped map[string]struct{}
+
 	// set when added to the cluster
 	cluster *Cluster
 	k8s     *k8sBee.Client
@@ -53,11 +51,9 @@ type NodeGroupOptions struct {
 // NewNodeGroup returns new node group
 func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 	return &NodeGroup{
-		name:    name,
-		nodes:   make(map[string]*Node),
-		started: make(map[string]struct{}),
-		stopped: make(map[string]struct{}),
-		opts:    o,
+		name:  name,
+		nodes: make(map[string]*Node),
+		opts:  o,
 	}
 }
 
@@ -595,8 +591,6 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		return fmt.Errorf("starting node %s: %v", name, err)
 	}
 
-	g.startNode(name)
-
 	fmt.Printf("wait for %s to become ready\n", name)
 	for {
 		ok, err := g.NodeReady(ctx, name)
@@ -614,9 +608,20 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 	}
 }
 
-// StartedNodes returns set of started nodes
-func (g *NodeGroup) StartedNodes() map[string]struct{} {
-	return g.started
+// StartedNodes returns list of started nodes
+func (g *NodeGroup) StartedNodes(ctx context.Context) (started []string, err error) {
+	allStarted, err := g.k8s.StartedNodes(ctx, g.cluster.namespace)
+	if err != nil {
+		return nil, fmt.Errorf("started nodes: %v", err)
+	}
+
+	for _, v := range allStarted {
+		if contains(g.NodesSorted(), v) {
+			started = append(started, v)
+		}
+	}
+
+	return
 }
 
 // StopNode stops node by scaling down its statefulset to 0
@@ -628,14 +633,23 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		return fmt.Errorf("stopping node %s: %v", name, err)
 	}
 
-	g.stopNode(name)
-
 	return
 }
 
-// StoppedNodes returns set of stopped nodes
-func (g *NodeGroup) StoppedNodes() map[string]struct{} {
-	return g.stopped
+// StoppedNodes returns list of stopped nodes
+func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
+	allStopped, err := g.k8s.StoppedNodes(ctx, g.cluster.namespace)
+	if err != nil {
+		return nil, fmt.Errorf("stopped nodes: %v", err)
+	}
+
+	for _, v := range allStopped {
+		if contains(g.NodesSorted(), v) {
+			stopped = append(stopped, v)
+		}
+	}
+
+	return
 }
 
 // NodeGroupTopologies represents Kademlia topology of all nodes in the node group
@@ -643,6 +657,11 @@ type NodeGroupTopologies map[string]Topology
 
 // Topologies returns NodeGroupTopologies
 func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopologies, err error) {
+	stopped, err := g.StoppedNodes(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("stopped nodes: %v", err)
+	}
+
 	topologies = make(NodeGroupTopologies)
 
 	var msgs []TopologyStreamMsg
@@ -651,7 +670,7 @@ func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopolog
 	}
 
 	for _, m := range msgs {
-		if m.Error != nil {
+		if m.Error != nil && !contains(stopped, m.Name) {
 			return nil, fmt.Errorf("%s: %v", m.Name, m.Error)
 		}
 		topologies[m.Name] = m.Topology
@@ -697,15 +716,12 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg
 func (g *NodeGroup) addNode(n *Node) {
 	g.lock.Lock()
 	g.nodes[n.Name()] = n
-	g.stopped[n.Name()] = struct{}{}
 	g.lock.Unlock()
 }
 
 func (g *NodeGroup) deleteNode(name string) {
 	g.lock.Lock()
 	delete(g.nodes, name)
-	delete(g.started, name)
-	delete(g.stopped, name)
 	g.lock.Unlock()
 }
 
@@ -739,16 +755,12 @@ func (g *NodeGroup) getNodes() map[string]*Node {
 	return nodes
 }
 
-func (g *NodeGroup) startNode(name string) {
-	g.lock.Lock()
-	delete(g.stopped, name)
-	g.started[name] = struct{}{}
-	g.lock.Unlock()
-}
+func contains(list []string, find string) bool {
+	for _, v := range list {
+		if v == find {
+			return true
+		}
+	}
 
-func (g *NodeGroup) stopNode(name string) {
-	g.lock.Lock()
-	delete(g.started, name)
-	g.stopped[name] = struct{}{}
-	g.lock.Unlock()
+	return false
 }
