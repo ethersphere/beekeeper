@@ -22,6 +22,8 @@ type NodeGroup struct {
 	// set when added to the cluster
 	cluster *Cluster
 	k8s     *k8sBee.Client
+
+	lock sync.RWMutex
 }
 
 // NodeGroupOptions represents node group options
@@ -95,8 +97,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		SwarmKey:     o.SwarmKey,
 	})
 
-	g.nodes[name] = n
-	g.stopped[name] = struct{}{}
+	g.addNode(n)
 
 	return
 }
@@ -244,7 +245,8 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	}); err != nil {
 		return fmt.Errorf("deleting node %s: %v", name, err)
 	}
-	g.RemoveNode(name)
+
+	g.deleteNode(name)
 
 	return
 }
@@ -308,27 +310,26 @@ func (g *NodeGroup) Name() string {
 }
 
 // Nodes returns map of nodes in the node group
-func (g *NodeGroup) Nodes() (l map[string]*Node) {
-	return
+func (g *NodeGroup) Nodes() map[string]*Node {
+	return g.getNodes()
 }
 
 // NodesClients returns map of node's clients in the node group
-func (g *NodeGroup) NodesClients() (l map[string]*Client) {
-	for k, v := range g.nodes {
-		l[k] = v.client
-	}
-	return
+func (g *NodeGroup) NodesClients() map[string]*Client {
+	return g.getClients()
 }
 
 // NodesSorted returns sorted list of node names in the node group
 func (g *NodeGroup) NodesSorted() (l []string) {
-	l = make([]string, len(g.nodes))
+	nodes := g.getNodes()
+	l = make([]string, len(nodes))
 
 	i := 0
 	for k := range g.nodes {
 		l[i] = k
 		i++
 	}
+
 	sort.Strings(l)
 
 	return
@@ -336,12 +337,12 @@ func (g *NodeGroup) NodesSorted() (l []string) {
 
 // Node returns node
 func (g *NodeGroup) Node(name string) *Node {
-	return g.nodes[name]
+	return g.getNode(name)
 }
 
 // NodeClient returns node's client
 func (g *NodeGroup) NodeClient(name string) *Client {
-	return g.nodes[name].client
+	return g.getClient(name)
 }
 
 // NodeGroupOverlays represents overlay addresses of all nodes in the node group
@@ -470,13 +471,6 @@ func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err er
 	return
 }
 
-// RemoveNode removes node from the node group
-func (g *NodeGroup) RemoveNode(name string) {
-	delete(g.nodes, name)
-	delete(g.started, name)
-	delete(g.stopped, name)
-}
-
 // NodeGroupSettlements represents settlements of all nodes in the node group
 type NodeGroupSettlements map[string]map[string]SentReceived
 
@@ -563,17 +557,19 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		"app.kubernetes.io/instance": name,
 	})
 
+	n := g.getNode(name)
+
 	if err := g.k8s.Start(ctx, k8sBee.StartOptions{
 		// Bee configuration
-		Config: *g.nodes[name].config,
+		Config: *n.config,
 		// Kubernetes configuration
 		Name:                      name,
 		Namespace:                 g.cluster.namespace,
 		Annotations:               g.opts.Annotations,
 		ClefImage:                 g.opts.ClefImage,
 		ClefImagePullPolicy:       g.opts.ClefImagePullPolicy,
-		ClefKey:                   g.nodes[name].clefKey,
-		ClefPassword:              g.nodes[name].clefPassword,
+		ClefKey:                   n.clefKey,
+		ClefPassword:              n.clefPassword,
 		Image:                     g.opts.Image,
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
 		IngressAnnotations:        g.opts.IngressAnnotations,
@@ -581,7 +577,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
 		IngressDebugHost:          g.cluster.ingressDebugHost(name),
 		Labels:                    labels,
-		LibP2PKey:                 g.nodes[name].libP2PKey,
+		LibP2PKey:                 n.libP2PKey,
 		LimitCPU:                  g.opts.LimitCPU,
 		LimitMemory:               g.opts.LimitMemory,
 		NodeSelector:              g.opts.NodeSelector,
@@ -593,14 +589,13 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		RequestCPU:                g.opts.RequestCPU,
 		RequestMemory:             g.opts.RequestMemory,
 		Selector:                  labels,
-		SwarmKey:                  g.nodes[name].swarmKey,
+		SwarmKey:                  n.swarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
 	}); err != nil {
 		return fmt.Errorf("starting node %s: %v", name, err)
 	}
 
-	delete(g.stopped, name)
-	g.started[name] = struct{}{}
+	g.startNode(name)
 
 	fmt.Printf("wait for %s to become ready\n", name)
 	for {
@@ -633,8 +628,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		return fmt.Errorf("stopping node %s: %v", name, err)
 	}
 
-	delete(g.started, name)
-	g.stopped[name] = struct{}{}
+	g.stopNode(name)
 
 	return
 }
@@ -698,4 +692,63 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) <-chan TopologyStreamMsg
 	}()
 
 	return topologyStream
+}
+
+func (g *NodeGroup) addNode(n *Node) {
+	g.lock.Lock()
+	g.nodes[n.Name()] = n
+	g.stopped[n.Name()] = struct{}{}
+	g.lock.Unlock()
+}
+
+func (g *NodeGroup) deleteNode(name string) {
+	g.lock.Lock()
+	delete(g.nodes, name)
+	delete(g.started, name)
+	delete(g.stopped, name)
+	g.lock.Unlock()
+}
+
+func (g *NodeGroup) getClient(name string) *Client {
+	g.lock.RLock()
+	c := g.nodes[name].client
+	g.lock.RUnlock()
+	return c
+}
+
+func (g *NodeGroup) getClients() (c map[string]*Client) {
+	g.lock.RLock()
+	for k, v := range g.nodes {
+		c[k] = v.client
+	}
+	g.lock.RUnlock()
+	return
+}
+
+func (g *NodeGroup) getNode(name string) *Node {
+	g.lock.RLock()
+	n := g.nodes[name]
+	g.lock.RUnlock()
+	return n
+}
+
+func (g *NodeGroup) getNodes() map[string]*Node {
+	g.lock.RLock()
+	nodes := g.nodes
+	g.lock.RUnlock()
+	return nodes
+}
+
+func (g *NodeGroup) startNode(name string) {
+	g.lock.Lock()
+	delete(g.stopped, name)
+	g.started[name] = struct{}{}
+	g.lock.Unlock()
+}
+
+func (g *NodeGroup) stopNode(name string) {
+	g.lock.Lock()
+	delete(g.started, name)
+	g.stopped[name] = struct{}{}
+	g.lock.Unlock()
 }
