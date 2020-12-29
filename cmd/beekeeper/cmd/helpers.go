@@ -48,10 +48,10 @@ func defaultBeeConfig() *k8sBee.Config {
 // defaultNodeGroupOptions returns default node group options
 func defaultNodeGroupOptions() *bee.NodeGroupOptions {
 	return &bee.NodeGroupOptions{
-		ClefImage:           "ethersphere/clef:latest",
-		ClefImagePullPolicy: "Always",
-		Image:               "ethersphere/bee:latest",
-		ImagePullPolicy:     "Always",
+		ClefImage:           "ethersphere/clef:0.4.4",
+		ClefImagePullPolicy: "IfNotPresent",
+		Image:               "ethersphere/bee:0.4.1",
+		ImagePullPolicy:     "IfNotPresent",
 		IngressAnnotations: map[string]string{
 			"kubernetes.io/ingress.class":                        "nginx-internal",
 			"nginx.ingress.kubernetes.io/affinity":               "cookie",

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
@@ -41,7 +42,7 @@ func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
 
 	fmt.Println("Checking Kademlia")
 	if err := checkKademlia(topologies); err != nil {
-		return fmt.Errorf("Kademlia check: %v", err)
+		return fmt.Errorf("check Kademlia: %w", err)
 	}
 
 	return
@@ -76,7 +77,7 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 
 	fmt.Println("Checking Kademlia")
 	if err := checkKademlia(topologies); err != nil {
-		return fmt.Errorf("Kademlia check: %v", err)
+		return fmt.Errorf("check Kademlia: %w", err)
 	}
 
 	for i, a := range o.DynamicActions {
@@ -87,7 +88,7 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		for j := 0; j < a.DeleteCount; j++ {
 			nName := ng.NodesSorted()[rnd.Intn(ng.Size())]
 			if err := ng.DeleteNode(ctx, nName); err != nil {
-				return fmt.Errorf("dynamic kademlia iteration %d round %d: %v", i, j, err)
+				return fmt.Errorf("delete node %s: %w", nName, err)
 			}
 			fmt.Printf("node %s is deleted\n", nName)
 		}
@@ -96,12 +97,12 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		for j := 0; j < a.StartCount; j++ {
 			stopped, err := ng.StoppedNodes(ctx)
 			if err != nil {
-				return fmt.Errorf("dynamic kademlia iteration %d round %d: %v", i, j, err)
+				return fmt.Errorf("stoped nodes: %w", err)
 			}
 			if len(stopped) > 0 {
 				nName := stopped[rnd.Intn(len(stopped))]
 				if err := ng.StartNode(ctx, nName); err != nil {
-					return fmt.Errorf("dynamic kademlia iteration %d round %d: %v", i, j, err)
+					return fmt.Errorf("start node %s: %w", nName, err)
 				}
 				fmt.Printf("node %s is started\n", nName)
 			}
@@ -111,12 +112,12 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		for j := 0; j < a.StopCount; j++ {
 			started, err := ng.StartedNodes(ctx)
 			if err != nil {
-				return fmt.Errorf("dynamic kademlia iteration %d round %d: %v", i, j, err)
+				return fmt.Errorf("started nodes: %w", err)
 			}
 			if len(started) > 0 {
 				nName := started[rnd.Intn(len(started))]
 				if err := ng.StopNode(ctx, nName); err != nil {
-					return fmt.Errorf("dynamic kademlia iteration %d round %d: %v", i, j, err)
+					return fmt.Errorf("stop node %s: %w", nName, err)
 				}
 				fmt.Printf("node %s is stopped\n", nName)
 			}
@@ -126,10 +127,12 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		for j := 0; j < a.AddCount; j++ {
 			nName := fmt.Sprintf("bee-i%dn%d", i, j)
 			if err := ng.AddStartNode(ctx, nName, bee.NodeOptions{}); err != nil {
-				return fmt.Errorf("dynamic kademlia iteration %d round %d: %v", i, j, err)
+				return fmt.Errorf("add start node %s: %w", nName, err)
 			}
 			fmt.Printf("node %s is added\n", nName)
 		}
+
+		time.Sleep(5 * time.Second)
 
 		fmt.Println("Checking connectivity")
 		err = fullconnectivity.Check(ctx, cluster)
@@ -145,9 +148,7 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		}
 
 		fmt.Println("Checking Kademlia")
-		if err := checkKademlia(topologies); err != nil {
-			return fmt.Errorf("Kademlia check: %v", err)
-		}
+		checkKademliaD(topologies)
 	}
 
 	return
@@ -174,6 +175,35 @@ func checkKademlia(topologies bee.ClusterTopologies) (err error) {
 
 				if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
 					return fmt.Errorf(errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
+				}
+			}
+		}
+	}
+
+	return
+}
+
+func checkKademliaD(topologies bee.ClusterTopologies) {
+	for _, v := range topologies {
+		for n, t := range v {
+			if t.Depth == 0 {
+				fmt.Printf("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
+				fmt.Printf("error: %v\n", errKadmeliaNotHealthy.Error())
+			}
+
+			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
+			for k, b := range t.Bins {
+				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
+				if err != nil {
+					fmt.Printf("error: node %s: %v\n", n, err)
+				}
+				fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
+				if binDepth < t.Depth && b.Connected < 1 {
+					fmt.Printf("error: %v\n", errKadmeliaBinConnected.Error())
+				}
+
+				if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
+					fmt.Printf("error: %v, %s\n", errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
 				}
 			}
 		}

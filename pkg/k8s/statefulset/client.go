@@ -130,7 +130,7 @@ func (c *Client) StoppedStatefulSets(ctx context.Context, namespace string) (sto
 		if errors.IsNotFound(err) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("list statefulsets in namespace %s: %v", namespace, err)
+		return nil, fmt.Errorf("list statefulsets in namespace %s: %w", namespace, err)
 	}
 
 	for _, s := range statefulSets.Items {

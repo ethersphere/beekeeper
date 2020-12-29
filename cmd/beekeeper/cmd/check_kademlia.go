@@ -185,9 +185,9 @@ func (c *command) initCheckKademlia() *cobra.Command {
 						{
 							NodeGroup:   "nodes",
 							AddCount:    2,
-							StartCount:  2,
+							StartCount:  1,
 							StopCount:   2,
-							DeleteCount: 2,
+							DeleteCount: 1,
 						},
 						{
 							NodeGroup:   "nodes",
@@ -211,7 +211,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
-	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
+	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:0.4.1", "Bee Docker image")
 	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")

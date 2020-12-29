@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
@@ -21,6 +22,9 @@ import (
 type Client struct {
 	api   *api.Client
 	debug *debugapi.Client
+
+	// number of times to retry call
+	retry int
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -29,11 +33,14 @@ type ClientOptions struct {
 	APIInsecureTLS      bool
 	DebugAPIURL         *url.URL
 	DebugAPIInsecureTLS bool
+	Retry               int
 }
 
 // NewClient returns Bee client
 func NewClient(opts ClientOptions) (c *Client) {
-	c = &Client{}
+	c = &Client{
+		retry: 5,
+	}
 
 	if opts.APIURL != nil {
 		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
@@ -44,6 +51,9 @@ func NewClient(opts ClientOptions) (c *Client) {
 		c.debug = debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
 		}}})
+	}
+	if opts.Retry > 0 {
+		c.retry = opts.Retry
 	}
 
 	return
@@ -155,13 +165,23 @@ func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 }
 
 // Overlay returns node's overlay address
-func (c *Client) Overlay(ctx context.Context) (swarm.Address, error) {
-	a, err := c.debug.Node.Addresses(ctx)
-	if err != nil {
-		return swarm.Address{}, fmt.Errorf("get overlay: %w", err)
-	}
+func (c *Client) Overlay(ctx context.Context) (o swarm.Address, err error) {
+	var a debugapi.Addresses
+	for r := 0; r < c.retry; r++ {
+		time.Sleep(2 * time.Duration(r) * time.Second)
 
-	return a.Overlay, nil
+		a, err = c.debug.Node.Addresses(ctx)
+		if err != nil {
+			continue
+		}
+		break
+	}
+	if err != nil {
+		return swarm.Address{}, fmt.Errorf("get addresses: %w", err)
+	}
+	o = a.Overlay
+
+	return
 }
 
 // Peers returns addresses of node's peers
@@ -338,7 +358,16 @@ type Bin struct {
 
 // Topology returns Kademlia topology
 func (c *Client) Topology(ctx context.Context) (topology Topology, err error) {
-	t, err := c.debug.Node.Topology(ctx)
+	var t debugapi.Topology
+	for r := 0; r < c.retry; r++ {
+		time.Sleep(2 * time.Duration(r) * time.Second)
+
+		t, err = c.debug.Node.Topology(ctx)
+		if err != nil {
+			continue
+		}
+		break
+	}
 	if err != nil {
 		return Topology{}, fmt.Errorf("get topology: %w", err)
 	}

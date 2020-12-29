@@ -93,14 +93,14 @@ func (c *Client) Delete(ctx context.Context, o DeleteOptions) (err error) {
 	// secret with keys
 	keysSecret := fmt.Sprintf("%s-keys", o.Name)
 	if err = c.k8s.Secret.Delete(ctx, keysSecret, o.Namespace); err != nil {
-		return fmt.Errorf("deleting secret %s in namespace %s: %v", keysSecret, o.Namespace, err)
+		return fmt.Errorf("deleting secret %s in namespace %s: %w", keysSecret, o.Namespace, err)
 	}
 	fmt.Printf("secret %s is deleted in namespace %s\n", keysSecret, o.Namespace)
 
 	// bee configuration
 	configCM := o.Name
 	if err = c.k8s.ConfigMap.Delete(ctx, configCM, o.Namespace); err != nil {
-		return fmt.Errorf("deleting configmap %s in namespace %s: %v", configCM, o.Namespace, err)
+		return fmt.Errorf("deleting configmap %s in namespace %s: %w", configCM, o.Namespace, err)
 	}
 	fmt.Printf("configmap %s is deleted in namespace %s\n", configCM, o.Namespace)
 
@@ -118,7 +118,7 @@ type ReadyOptions struct {
 func (c *Client) Ready(ctx context.Context, o ReadyOptions) (ready bool, err error) {
 	r, err := c.k8s.StatefulSet.ReadyReplicas(ctx, o.Name, o.Namespace)
 	if err != nil {
-		return false, fmt.Errorf("getting readiness from node %s in namespace %s: %v", o.Name, o.Namespace, err)
+		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", o.Name, o.Namespace, err)
 	}
 
 	if r != 1 {
@@ -486,10 +486,11 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 }
 
 // StartedNodes returns list of started nodes
+// TODO: filter by labels
 func (c *Client) StartedNodes(ctx context.Context, namespace string) (started []string, err error) {
 	started, err = c.k8s.StatefulSet.StartedStatefulSets(ctx, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("started nodes in namespace %s: %v", namespace, err)
+		return nil, fmt.Errorf("started statefulsets in namespace %s: %w", namespace, err)
 	}
 	return
 }
@@ -504,7 +505,7 @@ type StopOptions struct {
 func (c *Client) Stop(ctx context.Context, o StopOptions) (err error) {
 	err = c.k8s.StatefulSet.Scale(ctx, o.Name, o.Namespace, 0)
 	if err != nil {
-		return fmt.Errorf("stopping node %s in namespace %s: %v", o.Name, o.Namespace, err)
+		return fmt.Errorf("scale statefulset %s in namespace %s: %w", o.Name, o.Namespace, err)
 	}
 
 	fmt.Printf("node %s is stopped in namespace %s\n", o.Name, o.Namespace)
@@ -512,10 +513,11 @@ func (c *Client) Stop(ctx context.Context, o StopOptions) (err error) {
 }
 
 // StoppedNodes returns list of stopped nodes
+// TODO: filter by labels
 func (c *Client) StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error) {
 	stopped, err = c.k8s.StatefulSet.StoppedStatefulSets(ctx, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("stopped nodes in namespace %s: %v", namespace, err)
+		return nil, fmt.Errorf("stopped statefulsets in namespace %s: %w", namespace, err)
 	}
 	return
 }
