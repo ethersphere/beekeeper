@@ -76,13 +76,17 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 	}
 
 	fmt.Println("Checking Kademlia")
-	if err := checkKademlia(topologies); err != nil {
+	if err := checkKademliaD(topologies); err != nil {
 		return fmt.Errorf("check Kademlia: %w", err)
 	}
 
 	for i, a := range o.DynamicActions {
 		ng := cluster.NodeGroup(a.NodeGroup)
-		fmt.Println(ng.Name(), a.AddCount, a.StartCount, a.StopCount, a.DeleteCount)
+		fmt.Printf("Start dynamic action on node group: %s\n", ng.Name())
+		fmt.Printf("add %d nodes\n", a.AddCount)
+		fmt.Printf("delete %d nodes\n", a.DeleteCount)
+		fmt.Printf("start %d nodes\n", a.StartCount)
+		fmt.Printf("stop %d nodes\n", a.StopCount)
 
 		// delete nodes
 		for j := 0; j < a.DeleteCount; j++ {
@@ -151,7 +155,7 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		checkKademliaD(topologies)
 	}
 
-	return
+	return nil
 }
 
 func checkKademlia(topologies bee.ClusterTopologies) (err error) {
@@ -183,27 +187,27 @@ func checkKademlia(topologies bee.ClusterTopologies) (err error) {
 	return
 }
 
-func checkKademliaD(topologies bee.ClusterTopologies) {
+func checkKademliaD(topologies bee.ClusterTopologies) (err error) {
 	for _, v := range topologies {
 		for n, t := range v {
 			if t.Depth == 0 {
 				fmt.Printf("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
-				fmt.Printf("error: %v\n", errKadmeliaNotHealthy.Error())
+				fmt.Printf("Error: %v\n", errKadmeliaNotHealthy.Error())
 			}
 
 			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
 			for k, b := range t.Bins {
 				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
 				if err != nil {
-					fmt.Printf("error: node %s: %v\n", n, err)
+					fmt.Printf("Error: node %s: %v\n", n, err)
 				}
 				fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
 				if binDepth < t.Depth && b.Connected < 1 {
-					fmt.Printf("error: %v\n", errKadmeliaBinConnected.Error())
+					fmt.Printf("Error: %v\n", errKadmeliaBinConnected.Error())
 				}
 
 				if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
-					fmt.Printf("error: %v, %s\n", errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
+					fmt.Printf("Error: %v, %s\n", errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
 				}
 			}
 		}

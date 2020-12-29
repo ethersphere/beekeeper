@@ -18,6 +18,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 	const (
 		optionNameStartCluster   = "start-cluster"
 		optionNameDynamic        = "dynamic"
+		optionNameDynamicActions = "dynamic-actions"
 		optionNameClusterName    = "cluster-name"
 		optionNameBootnodeCount  = "bootnode-count"
 		optionNameNodeCount      = "node-count"
@@ -31,6 +32,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 	var (
 		startCluster   bool
 		dynamic        bool
+		dynamicActions []int
 		clusterName    string
 		bootnodeCount  int
 		nodeCount      int
@@ -172,31 +174,23 @@ func (c *command) initCheckKademlia() *cobra.Command {
 			}
 
 			if dynamic {
+				if len(dynamicActions)%4 != 0 {
+					return fmt.Errorf("number of dynamic actions must be divisable by 4")
+				}
+				kActions := []kademlia.Actions{}
+				for i := 0; i < len(dynamicActions); i = i + 4 {
+					kActions = append(kActions, kademlia.Actions{
+						NodeGroup:   "nodes",
+						AddCount:    dynamicActions[i],
+						DeleteCount: dynamicActions[i+1],
+						StartCount:  dynamicActions[i+2],
+						StopCount:   dynamicActions[i+3],
+					})
+				}
+
 				return kademlia.CheckDynamic(cmd.Context(), cluster, kademlia.Options{
-					Seed: seed,
-					DynamicActions: []kademlia.Actions{
-						{
-							NodeGroup:   "nodes",
-							AddCount:    1,
-							StartCount:  0,
-							StopCount:   1,
-							DeleteCount: 1,
-						},
-						{
-							NodeGroup:   "nodes",
-							AddCount:    2,
-							StartCount:  1,
-							StopCount:   2,
-							DeleteCount: 1,
-						},
-						{
-							NodeGroup:   "nodes",
-							AddCount:    3,
-							StartCount:  3,
-							StopCount:   3,
-							DeleteCount: 3,
-						},
-					},
+					Seed:           seed,
+					DynamicActions: kActions,
 				})
 			}
 
@@ -212,6 +206,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
 	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:0.4.1", "Bee Docker image")
+	cmd.Flags().IntSliceVar(&dynamicActions, optionNameDynamicActions, []int{1, 1, 0, 1, 2, 1, 1, 2}, "passed in groups of 4 dynamic actions: add, start, stop, delete")
 	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
