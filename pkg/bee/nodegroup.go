@@ -21,8 +21,6 @@ type NodeGroup struct {
 	cluster *Cluster
 	k8s     *k8sBee.Client
 
-	stopped []string
-
 	lock sync.RWMutex
 }
 
