@@ -152,7 +152,9 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		}
 
 		fmt.Println("Checking Kademlia")
-		checkKademliaD(topologies)
+		if err := checkKademliaD(topologies); err != nil {
+			fmt.Printf("Kademlia check failed: %v\n", err)
+		}
 	}
 
 	return nil
