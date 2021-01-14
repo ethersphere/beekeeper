@@ -518,15 +518,10 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 
 // NodeReady returns node's readiness
 func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err error) {
-	ok, err = g.k8s.Ready(ctx, k8sBee.ReadyOptions{
+	return g.k8s.Ready(ctx, k8sBee.ReadyOptions{
 		Namespace: g.cluster.namespace,
 		Name:      name,
 	})
-	if err != nil {
-		return false, fmt.Errorf("node %s readiness: %w", name, err)
-	}
-
-	return
 }
 
 // NodeGroupSettlements represents settlements of all nodes in the node group
