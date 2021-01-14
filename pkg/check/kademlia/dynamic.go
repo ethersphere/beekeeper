@@ -12,35 +12,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-func checkKademliaD(topologies bee.ClusterTopologies) (err error) {
-	for _, v := range topologies {
-		for n, t := range v {
-			if t.Depth == 0 {
-				fmt.Printf("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
-				fmt.Printf("Error: %v\n", errKadmeliaNotHealthy.Error())
-			}
-
-			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
-			for k, b := range t.Bins {
-				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
-				if err != nil {
-					fmt.Printf("Error: node %s: %v\n", n, err)
-				}
-				fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
-				if binDepth < t.Depth && b.Connected < 1 {
-					fmt.Printf("Error: %v\n", errKadmeliaBinConnected.Error())
-				}
-
-				if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
-					fmt.Printf("Error: %v, %s\n", errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
-				}
-			}
-		}
-	}
-
-	return
-}
-
 // Actions for dynamic behavior
 type Actions struct {
 	NodeGroup   string
@@ -151,4 +122,33 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 	}
 
 	return nil
+}
+
+func checkKademliaD(topologies bee.ClusterTopologies) (err error) {
+	for _, v := range topologies {
+		for n, t := range v {
+			if t.Depth == 0 {
+				fmt.Printf("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
+				fmt.Printf("Error: %v\n", errKadmeliaNotHealthy.Error())
+			}
+
+			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
+			for k, b := range t.Bins {
+				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
+				if err != nil {
+					fmt.Printf("Error: node %s: %v\n", n, err)
+				}
+				fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
+				if binDepth < t.Depth && b.Connected < 1 {
+					fmt.Printf("Error: %v\n", errKadmeliaBinConnected.Error())
+				}
+
+				if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
+					fmt.Printf("Error: %v, %s\n", errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
+				}
+			}
+		}
+	}
+
+	return
 }
