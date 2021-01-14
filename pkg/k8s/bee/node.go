@@ -121,11 +121,7 @@ func (c *Client) Ready(ctx context.Context, o ReadyOptions) (ready bool, err err
 		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", o.Name, o.Namespace, err)
 	}
 
-	if r != 1 {
-		return false, nil
-	}
-
-	return true, nil
+	return r == 1, nil
 }
 
 // StartOptions represents available options for starting node
