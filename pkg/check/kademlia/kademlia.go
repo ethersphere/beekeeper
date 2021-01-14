@@ -48,7 +48,7 @@ func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
 	return
 }
 
-// Actions ...
+// Actions for dynamic behavior
 type Actions struct {
 	NodeGroup   string
 	AddCount    int
