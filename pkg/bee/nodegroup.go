@@ -11,6 +11,8 @@ import (
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 )
 
+const nodeReadyTimeout = 3 * time.Second
+
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
 	name  string
@@ -673,7 +675,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		}
 
 		fmt.Printf("%s is not ready yet\n", name)
-		time.Sleep(3 * time.Second)
+		time.Sleep(nodeReadyTimeout)
 	}
 }
 
@@ -695,14 +697,10 @@ func (g *NodeGroup) StartedNodes(ctx context.Context) (started []string, err err
 
 // StopNode stops node by scaling down its statefulset to 0
 func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
-	if err := g.k8s.Stop(ctx, k8sBee.StopOptions{
+	return g.k8s.Stop(ctx, k8sBee.StopOptions{
 		Name:      name,
 		Namespace: g.cluster.namespace,
-	}); err != nil {
-		return fmt.Errorf("k8s stop node %s: %w", name, err)
-	}
-
-	return
+	})
 }
 
 // StoppedNodes returns list of stopped nodes
