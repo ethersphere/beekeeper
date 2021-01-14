@@ -28,9 +28,9 @@ func Check(cluster *bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err err
 
 				if n.Error != nil {
 					if t == 4 {
-						return fmt.Errorf("node %s: %s", n.Name, n.Error)
+						return fmt.Errorf("node %s: %w", n.Name, n.Error)
 					}
-					fmt.Printf("node %s: %s\n", n.Name, n.Error)
+					fmt.Printf("node %s: %v\n", n.Name, n.Error)
 					continue
 				}
 				fmt.Printf("Node %s: %s Peer: %s RTT: %s\n", n.Name, n.Address, n.PeerAddress, n.RTT)
@@ -38,9 +38,9 @@ func Check(cluster *bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err err
 				rtt, err := time.ParseDuration(n.RTT)
 				if err != nil {
 					if t == 4 {
-						return fmt.Errorf("node %s: %s", n.Name, err)
+						return fmt.Errorf("node %s: %w", n.Name, err)
 					}
-					fmt.Printf("node %s: %s\n", n.Name, err)
+					fmt.Printf("node %s: %v\n", n.Name, err)
 					continue
 				}
 
@@ -49,7 +49,7 @@ func Check(cluster *bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err err
 
 				if pushMetrics {
 					if err := pusher.Push(); err != nil {
-						fmt.Printf("node %s: %s\n", n.Name, err)
+						fmt.Printf("node %s: %v\n", n.Name, err)
 					}
 				}
 				break

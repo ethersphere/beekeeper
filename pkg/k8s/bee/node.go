@@ -30,63 +30,63 @@ func (c *Client) Delete(ctx context.Context, o DeleteOptions) (err error) {
 	// statefulset
 	sSet := o.Name
 	if err := c.k8s.StatefulSet.Delete(ctx, sSet, o.Namespace); err != nil {
-		return fmt.Errorf("deleting statefulset in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting statefulset in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("statefulset %s is deleted in namespace %s\n", sSet, o.Namespace)
 
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
 	if err := c.k8s.Service.Delete(ctx, headlessSvc, o.Namespace); err != nil {
-		return fmt.Errorf("deleting service in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting service in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", headlessSvc, o.Namespace)
 
 	// p2p service
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
 	if err := c.k8s.Service.Delete(ctx, p2pSvc, o.Namespace); err != nil {
-		return fmt.Errorf("deleting service in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting service in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", p2pSvc, o.Namespace)
 
 	// debug service's ingress
 	debugIn := fmt.Sprintf("%s-debug", o.Name)
 	if err := c.k8s.Ingress.Delete(ctx, debugIn, o.Namespace); err != nil {
-		return fmt.Errorf("deleting ingress in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting ingress in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("ingress %s is deleted in namespace %s\n", debugIn, o.Namespace)
 
 	// debug service
 	debugSvc := fmt.Sprintf("%s-debug", o.Name)
 	if err := c.k8s.Service.Delete(ctx, debugSvc, o.Namespace); err != nil {
-		return fmt.Errorf("deleting service in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting service in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", debugSvc, o.Namespace)
 
 	// api service's ingress
 	apiIn := fmt.Sprintf("%s-api", o.Name)
 	if err := c.k8s.Ingress.Delete(ctx, apiIn, o.Namespace); err != nil {
-		return fmt.Errorf("deleting ingress in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting ingress in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("ingress %s is deleted in namespace %s\n", apiIn, o.Namespace)
 
 	// api service
 	apiSvc := fmt.Sprintf("%s-api", o.Name)
 	if err := c.k8s.Service.Delete(ctx, apiSvc, o.Namespace); err != nil {
-		return fmt.Errorf("deleting service in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting service in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", apiSvc, o.Namespace)
 
 	// service account
 	svcAccount := o.Name
 	if err := c.k8s.ServiceAccount.Delete(ctx, svcAccount, o.Namespace); err != nil {
-		return fmt.Errorf("deleting serviceaccount in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting serviceaccount in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("serviceaccount %s is deleted in namespace %s\n", svcAccount, o.Namespace)
 
 	// secret with clef key
 	clefKeySecret := fmt.Sprintf("%s-clef-key", o.Name)
 	if err := c.k8s.Secret.Delete(ctx, clefKeySecret, o.Namespace); err != nil {
-		return fmt.Errorf("deleting secret in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("deleting secret in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("secret %s is deleted in namespace %s\n", clefKeySecret, o.Namespace)
 
@@ -179,7 +179,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			".bee.yaml": config.String(),
 		},
 	}); err != nil {
-		return fmt.Errorf("set configmap in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set configmap in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("configmap %s is set in namespace %s\n", configCM, o.Namespace)
 
@@ -198,7 +198,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 		Labels:      o.Labels,
 		StringData:  keysSecretData,
 	}); err != nil {
-		return fmt.Errorf("set secret in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set secret in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("secret %s is set in namespace %s\n", keysSecret, o.Namespace)
 
@@ -214,7 +214,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			Labels:      o.Labels,
 			StringData:  clefKeySecretData,
 		}); err != nil {
-			return fmt.Errorf("set secret in namespace %s: %s", o.Namespace, err)
+			return fmt.Errorf("set secret in namespace %s: %w", o.Namespace, err)
 		}
 		fmt.Printf("secret %s is set in namespace %s\n", clefKeySecret, o.Namespace)
 	}
@@ -225,7 +225,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 	}); err != nil {
-		return fmt.Errorf("set serviceaccount in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set serviceaccount in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("serviceaccount %s is set in namespace %s\n", svcAccount, o.Namespace)
 
@@ -252,7 +252,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			Type:     "ClusterIP",
 		},
 	}); err != nil {
-		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("service %s is set in namespace %s\n", apiSvc, o.Namespace)
 
@@ -278,7 +278,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			}},
 		},
 	}); err != nil {
-		return fmt.Errorf("set ingress in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set ingress in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("ingress %s is set in namespace %s\n", apiIn, o.Namespace)
 
@@ -304,7 +304,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			Type:     "ClusterIP",
 		},
 	}); err != nil {
-		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("service %s is set in namespace %s\n", debugSvc, o.Namespace)
 
@@ -330,7 +330,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			}},
 		},
 	}); err != nil {
-		return fmt.Errorf("set ingress in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set ingress in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("ingress %s is set in namespace %s\n", debugIn, o.Namespace)
 
@@ -365,7 +365,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			Type:     "NodePort",
 		},
 	}); err != nil {
-		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("service %s is set in namespace %s\n", p2pSvc, o.Namespace)
 
@@ -399,7 +399,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			Type:     "ClusterIP",
 		},
 	}); err != nil {
-		return fmt.Errorf("set service in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("service %s is set in namespace %s\n", headlessSvc, o.Namespace)
 
@@ -477,7 +477,7 @@ func (c *Client) Start(ctx context.Context, o StartOptions) (err error) {
 			}),
 		},
 	}); err != nil {
-		return fmt.Errorf("set statefulset in namespace %s: %s", o.Namespace, err)
+		return fmt.Errorf("set statefulset in namespace %s: %w", o.Namespace, err)
 	}
 	fmt.Printf("statefulset %s is set in namespace %s\n", sSet, o.Namespace)
 

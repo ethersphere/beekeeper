@@ -103,7 +103,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 			if pushMetrics {
 				if err := pusher.Push(); err != nil {
-					fmt.Printf("node %s: %s\n", nodeName, err)
+					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}
 		}
