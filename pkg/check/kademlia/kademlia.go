@@ -30,7 +30,7 @@ func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
 	fmt.Println("Checking connectivity")
 	err = fullconnectivity.Check(ctx, cluster)
 	if err != nil {
-		fmt.Printf("Full connectivity not present\n")
+		fmt.Printf("Full connectivity not present: %v\n", err)
 	} else {
 		fmt.Printf("Full connectivity present\n")
 	}
