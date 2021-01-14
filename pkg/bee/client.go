@@ -18,6 +18,8 @@ import (
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
 )
 
+const retryCount int = 5
+
 // Client manages communication with the Bee node
 type Client struct {
 	api   *api.Client
@@ -39,7 +41,7 @@ type ClientOptions struct {
 // NewClient returns Bee client
 func NewClient(opts ClientOptions) (c *Client) {
 	c = &Client{
-		retry: 5,
+		retry: retryCount,
 	}
 
 	if opts.APIURL != nil {
