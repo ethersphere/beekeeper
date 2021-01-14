@@ -49,7 +49,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
 			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %v", err)
+				return fmt.Errorf("creating Kubernetes client: %w", err)
 			}
 
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
@@ -101,7 +101,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				}
 
 				if err := bnGroup.Wait(); err != nil {
-					return fmt.Errorf("starting bootnodes: %v", err)
+					return fmt.Errorf("starting bootnodes: %w", err)
 				}
 				fmt.Println("bootnodes started")
 
@@ -134,7 +134,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				}
 
 				if err := nGroup.Wait(); err != nil {
-					return fmt.Errorf("starting nodes: %v", err)
+					return fmt.Errorf("starting nodes: %w", err)
 				}
 				fmt.Println("nodes started")
 
@@ -148,7 +148,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 
 					for i := 0; i < bootnodeCount; i++ {
 						if err := bg.AddNode(fmt.Sprintf("bootnode-%d", i), bee.NodeOptions{}); err != nil {
-							return fmt.Errorf("adding bootnode-%d: %v", i, err)
+							return fmt.Errorf("adding bootnode-%d: %w", i, err)
 						}
 					}
 				}
@@ -161,7 +161,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 
 				for i := 0; i < nodeCount; i++ {
 					if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
-						return fmt.Errorf("adding bee-%d: %v", i, err)
+						return fmt.Errorf("adding bee-%d: %w", i, err)
 					}
 				}
 			}

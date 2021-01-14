@@ -37,7 +37,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		return fmt.Errorf("deleting statefulset %s in namespace %s: %v", name, namespace, err)
+		return fmt.Errorf("deleting statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 
 	return
@@ -50,7 +50,7 @@ func (c *Client) ReadyReplicas(ctx context.Context, name, namespace string) (rea
 		if errors.IsNotFound(err) {
 			return 0, nil
 		}
-		return 0, fmt.Errorf("getting ReadyReplicas from statefulset %s in namespace %s: %v", name, namespace, err)
+		return 0, fmt.Errorf("getting ReadyReplicas from statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 	ready = s.Status.ReadyReplicas
 
@@ -71,7 +71,7 @@ func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int
 
 	_, err = c.clientset.AppsV1().StatefulSets(namespace).UpdateScale(ctx, name, scale, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("scaling statefulset %s in namespace %s: %v", name, namespace, err)
+		return fmt.Errorf("scaling statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 
 	return
@@ -94,10 +94,10 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		if errors.IsNotFound(err) {
 			_, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating statefulset %s in namespace %s: %v", name, namespace, err)
+				return fmt.Errorf("creating statefulset %s in namespace %s: %w", name, namespace, err)
 			}
 		} else {
-			return fmt.Errorf("updating statefulset %s in namespace %s: %v", name, namespace, err)
+			return fmt.Errorf("updating statefulset %s in namespace %s: %w", name, namespace, err)
 		}
 	}
 
@@ -111,7 +111,7 @@ func (c *Client) StartedStatefulSets(ctx context.Context, namespace string) (sta
 		if errors.IsNotFound(err) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("list statefulsets in namespace %s: %v", namespace, err)
+		return nil, fmt.Errorf("list statefulsets in namespace %s: %w", namespace, err)
 	}
 
 	for _, s := range statefulSets.Items {

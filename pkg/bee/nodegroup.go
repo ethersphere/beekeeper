@@ -130,7 +130,7 @@ func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, er
 	addrs = make(NodeGroupAddresses)
 	for _, m := range msgs {
 		if m.Error != nil {
-			return nil, fmt.Errorf("%s: %v", m.Name, m.Error)
+			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
 		}
 		addrs[m.Name] = m.Addresses
 	}

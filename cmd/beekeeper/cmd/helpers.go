@@ -140,7 +140,7 @@ func setK8SClient(kubeconfig string, inCluster bool) (c *k8s.Client, err error) 
 		InCluster:      inCluster,
 		KubeconfigPath: kubeconfig,
 	}); err != nil {
-		return nil, fmt.Errorf("creating Kubernetes client: %v", err)
+		return nil, fmt.Errorf("creating Kubernetes client: %w", err)
 	}
 
 	return
