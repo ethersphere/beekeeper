@@ -84,7 +84,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				defer bCancel()
 				bnGroup := new(errgroup.Group)
 				for i := 0; i < bootnodeCount; i++ {
-					bConfig := defaultBeeConfig()
+					bConfig := newDefaultBeeConfig()
 					bConfig.Bootnodes = bSetup[i].Bootnodes
 					bName := fmt.Sprintf("bootnode-%d", i)
 					bOptions := bee.NodeOptions{
@@ -117,7 +117,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				ngOptions.PersistenceEnabled = persistence
 				ngOptions.PersistenceStorageClass = storageClass
 				ngOptions.PersistanceStorageRequest = storageRequest
-				ngOptions.BeeConfig = defaultBeeConfig()
+				ngOptions.BeeConfig = newDefaultBeeConfig()
 				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 				cluster.AddNodeGroup(ngName, *ngOptions)
 				ng := cluster.NodeGroup(ngName)

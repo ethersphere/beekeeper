@@ -79,7 +79,7 @@ func (c *command) initAddStartNode() *cobra.Command {
 			cluster.AddNodeGroup(nodeGroupName, *ngOptions)
 			ng := cluster.NodeGroup(nodeGroupName)
 
-			nodeConfig := defaultBeeConfig()
+			nodeConfig := newDefaultBeeConfig()
 			nodeConfig.Bootnodes = bootnodes
 			nodeConfig.Standalone = standalone
 

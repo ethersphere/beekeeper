@@ -8,8 +8,8 @@ import (
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 )
 
-// defaultBeeConfig returns default Bee node configuration
-func defaultBeeConfig() *k8sBee.Config {
+// newDefaultBeeConfig returns default Bee node configuration
+func newDefaultBeeConfig() *k8sBee.Config {
 	return &k8sBee.Config{
 		APIAddr:              ":1633",
 		Bootnodes:            "",
