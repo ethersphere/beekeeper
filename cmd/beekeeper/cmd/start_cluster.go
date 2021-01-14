@@ -67,7 +67,7 @@ func (c *command) initStartCluster() *cobra.Command {
 
 			// bootnodes group
 			bgName := "bootnodes"
-			bgOptions := defaultNodeGroupOptions()
+			bgOptions := newDefaultNodeGroupOptions()
 			bgOptions.Image = image
 			bgOptions.Labels = map[string]string{
 				"app.kubernetes.io/component": "bootnode",
@@ -108,7 +108,7 @@ func (c *command) initStartCluster() *cobra.Command {
 
 			// nodes group
 			ngName := "nodes"
-			ngOptions := defaultNodeGroupOptions()
+			ngOptions := newDefaultNodeGroupOptions()
 			ngOptions.Image = image
 			ngOptions.Labels = map[string]string{
 				"app.kubernetes.io/component": "node",

@@ -55,7 +55,7 @@ and checks if chunks are synced to their closest nodes.`,
 				DisableNamespace:    disableNamespace,
 			})
 
-			ngOptions := defaultNodeGroupOptions()
+			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
 

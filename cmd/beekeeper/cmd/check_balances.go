@@ -41,7 +41,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 				DisableNamespace:    disableNamespace,
 			})
 
-			ngOptions := defaultNodeGroupOptions()
+			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
 

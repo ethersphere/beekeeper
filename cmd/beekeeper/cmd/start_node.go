@@ -66,7 +66,7 @@ func (c *command) initAddStartNode() *cobra.Command {
 			})
 
 			// node group
-			ngOptions := defaultNodeGroupOptions()
+			ngOptions := newDefaultNodeGroupOptions()
 			ngOptions.Image = fmt.Sprintf("ethersphere/bee:%s", nodeGroupVersion)
 			ngOptions.Labels = map[string]string{
 				"app.kubernetes.io/component": nodeGroupName,

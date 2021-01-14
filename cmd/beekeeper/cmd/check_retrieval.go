@@ -41,7 +41,7 @@ and attempts retrieval of those chunks from the last node in the cluster.`,
 				DisableNamespace:    disableNamespace,
 			})
 
-			ngOptions := defaultNodeGroupOptions()
+			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
 

@@ -42,7 +42,7 @@ func (c *command) initDeleteNode() *cobra.Command {
 			})
 
 			// node group
-			ngOptions := defaultNodeGroupOptions()
+			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup(nodeGroupName, *ngOptions)
 			ng := cluster.NodeGroup(nodeGroupName)
 

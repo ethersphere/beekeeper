@@ -45,8 +45,8 @@ func newDefaultBeeConfig() *k8sBee.Config {
 	}
 }
 
-// defaultNodeGroupOptions returns default node group options
-func defaultNodeGroupOptions() *bee.NodeGroupOptions {
+// newDefaultNodeGroupOptions returns default node group options
+func newDefaultNodeGroupOptions() *bee.NodeGroupOptions {
 	return &bee.NodeGroupOptions{
 		ClefImage:           "ethersphere/clef:0.4.4",
 		ClefImagePullPolicy: "IfNotPresent",

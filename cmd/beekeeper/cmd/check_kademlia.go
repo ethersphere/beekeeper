@@ -66,7 +66,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 			if startCluster {
 				// bootnodes group
 				bgName := "bootnodes"
-				bgOptions := defaultNodeGroupOptions()
+				bgOptions := newDefaultNodeGroupOptions()
 				bgOptions.Image = image
 				bgOptions.Labels = map[string]string{
 					"app.kubernetes.io/component": "bootnode",
@@ -107,7 +107,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 
 				// nodes group
 				ngName := "nodes"
-				ngOptions := defaultNodeGroupOptions()
+				ngOptions := newDefaultNodeGroupOptions()
 				ngOptions.Image = image
 				ngOptions.Labels = map[string]string{
 					"app.kubernetes.io/component": "node",
@@ -142,7 +142,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				if bootnodeCount > 0 {
 					// bootnodes group
 					bgName := "bootnodes"
-					bgOptions := defaultNodeGroupOptions()
+					bgOptions := newDefaultNodeGroupOptions()
 					cluster.AddNodeGroup(bgName, *bgOptions)
 					bg := cluster.NodeGroup(bgName)
 
@@ -155,7 +155,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 
 				// nodes group
 				ngName := "nodes"
-				ngOptions := defaultNodeGroupOptions()
+				ngOptions := newDefaultNodeGroupOptions()
 				cluster.AddNodeGroup(ngName, *ngOptions)
 				ng := cluster.NodeGroup(ngName)
 

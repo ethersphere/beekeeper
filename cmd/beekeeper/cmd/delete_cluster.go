@@ -43,7 +43,7 @@ func (c *command) initDeleteCluster() *cobra.Command {
 
 			// nodes group
 			ngName := "nodes"
-			ngOptions := defaultNodeGroupOptions()
+			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup(ngName, *ngOptions)
 			ng := cluster.NodeGroup(ngName)
 
@@ -55,7 +55,7 @@ func (c *command) initDeleteCluster() *cobra.Command {
 
 			// bootnodes group
 			bgName := "bootnodes"
-			bgOptions := defaultNodeGroupOptions()
+			bgOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup(bgName, *bgOptions)
 			bg := cluster.NodeGroup(bgName)
 			for i := 0; i < bootnodeCount; i++ {

@@ -34,7 +34,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 				DisableNamespace:    disableNamespace,
 			})
 
-			ngOptions := defaultNodeGroupOptions()
+			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
 
