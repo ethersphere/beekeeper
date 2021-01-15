@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initStartNode() *cobra.Command {
+func (c *command) initAddStartNode() *cobra.Command {
 	const (
 		createdBy                  = "beekeeper"
 		labelName                  = "bee"
@@ -19,6 +19,9 @@ func (c *command) initStartNode() *cobra.Command {
 		optionNameNodeGroupVersion = "node-group-version"
 		optionNameNodeName         = "node-name"
 		optionNameStartStandalone  = "standalone"
+		optionNamePersistence      = "persistence"
+		optionNameStorageClass     = "storage-class"
+		optionNameStorageRequest   = "storage-request"
 	)
 
 	var (
@@ -28,6 +31,9 @@ func (c *command) initStartNode() *cobra.Command {
 		nodeGroupVersion string
 		nodeName         string
 		standalone       bool
+		persistence      bool
+		storageClass     string
+		storageRequest   string
 	)
 
 	cmd := &cobra.Command{
@@ -37,7 +43,7 @@ func (c *command) initStartNode() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
 			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %v", err)
+				return fmt.Errorf("creating Kubernetes client: %w", err)
 			}
 
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
@@ -67,16 +73,18 @@ func (c *command) initStartNode() *cobra.Command {
 				"app.kubernetes.io/part-of":   nodeGroupName,
 				"app.kubernetes.io/version":   nodeGroupVersion,
 			}
+			ngOptions.PersistenceEnabled = persistence
+			ngOptions.PersistenceStorageClass = storageClass
+			ngOptions.PersistanceStorageRequest = storageRequest
 			cluster.AddNodeGroup(nodeGroupName, *ngOptions)
 			ng := cluster.NodeGroup(nodeGroupName)
 
-			nodeConfig := newBeeDefaultConfig()
+			nodeConfig := newDefaultBeeConfig()
 			nodeConfig.Bootnodes = bootnodes
 			nodeConfig.Standalone = standalone
 
-			return ng.StartNode(cmd.Context(), bee.StartNodeOptions{
-				Name:   nodeName,
-				Config: *nodeConfig,
+			return ng.AddStartNode(cmd.Context(), nodeName, bee.NodeOptions{
+				Config: nodeConfig,
 			})
 		},
 		PreRunE: c.startPreRunE,
@@ -88,6 +96,9 @@ func (c *command) initStartNode() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&nodeGroupVersion, optionNameNodeGroupVersion, "latest", "node group version")
 	cmd.PersistentFlags().StringVar(&nodeName, optionNameNodeName, "bee", "node name")
 	cmd.PersistentFlags().BoolVarP(&standalone, optionNameStartStandalone, "s", false, "start a standalone node")
+	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
+	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
+	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
 
 	return cmd
 }

@@ -247,7 +247,7 @@ func (c *Cluster) apiURL(name string) (u *url.URL, err error) {
 		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", c.apiScheme, name, c.namespace, c.apiDomain))
 	}
 	if err != nil {
-		return nil, fmt.Errorf("bad API url for node %s: %s", name, err)
+		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)
 	}
 	return
 }
@@ -268,7 +268,7 @@ func (c *Cluster) debugAPIURL(name string) (u *url.URL, err error) {
 		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s.%s", c.debugAPIScheme, name, c.namespace, c.debugAPIDomain))
 	}
 	if err != nil {
-		return nil, fmt.Errorf("bad debug API url for node %s: %s", name, err)
+		return nil, fmt.Errorf("bad debug API url for node %s: %w", name, err)
 	}
 	return
 }

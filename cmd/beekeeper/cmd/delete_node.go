@@ -27,7 +27,7 @@ func (c *command) initDeleteNode() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
 			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %v", err)
+				return fmt.Errorf("creating Kubernetes client: %w", err)
 			}
 
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{

@@ -56,7 +56,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		uIndex := rnd.Intn(c.Size())
 		uNode := sortedNodes[uIndex]
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
-		if err := ng.Node(uNode).UploadFile(ctx, &file, false); err != nil {
+		if err := ng.NodeClient(uNode).UploadFile(ctx, &file, false); err != nil {
 			return fmt.Errorf("node %s: %w", uNode, err)
 		}
 		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())
@@ -92,7 +92,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
 		dNode := sortedNodes[dIndex]
-		size, hash, err := ng.Node(dNode).DownloadFile(ctx, file.Address())
+		size, hash, err := ng.NodeClient(dNode).DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %s: %w", dNode, err)
 		}

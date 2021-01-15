@@ -60,7 +60,7 @@ func Check(c *bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			addr, err := chunk.Address(), ng.Node(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			addr, err := chunk.Address(), ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -73,7 +73,7 @@ func Check(c *bee.Cluster, o Options) (err error) {
 			}
 			fmt.Printf("Upload node %s. Chunk: %d. Closest: %s %s\n", nodeName, j, closestName, closestAddress.String())
 
-			topology, err := ng.Node(closestName).Topology(ctx)
+			topology, err := ng.NodeClient(closestName).Topology(ctx)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", closestName, err)
 			}
@@ -108,7 +108,7 @@ func Check(c *bee.Cluster, o Options) (err error) {
 
 				for t := 1; t < 5; t++ {
 					time.Sleep(2 * time.Duration(t) * time.Second)
-					synced, err = ng.Node(ni).HasChunk(ctx, chunk.Address())
+					synced, err = ng.NodeClient(ni).HasChunk(ctx, chunk.Address())
 					if err != nil {
 						return fmt.Errorf("node %s: %w", ni, err)
 					}

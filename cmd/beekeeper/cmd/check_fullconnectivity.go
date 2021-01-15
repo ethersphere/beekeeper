@@ -31,12 +31,12 @@ func (c *command) initCheckFullConnectivity() *cobra.Command {
 			ng := cluster.NodeGroup("nodes")
 
 			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
-				if err := ng.AddNode(fmt.Sprintf("bee-%d", i)); err != nil {
+				if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
 					return fmt.Errorf("adding node bee-%d: %s", i, err)
 				}
 			}
 
-			return fullconnectivity.Check(cluster)
+			return fullconnectivity.Check(cmd.Context(), cluster)
 		},
 		PreRunE: c.checkPreRunE,
 	}

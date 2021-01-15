@@ -63,7 +63,7 @@ func (c *Client) Delete(ctx context.Context, name string) (err error) {
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		return fmt.Errorf("deleting namespace %s: %v", name, err)
+		return fmt.Errorf("deleting namespace %s: %w", name, err)
 	}
 
 	return

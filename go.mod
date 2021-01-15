@@ -12,6 +12,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	helm.sh/helm/v3 v3.2.4
 	k8s.io/api v0.18.3
 	k8s.io/apimachinery v0.18.3

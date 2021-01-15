@@ -46,18 +46,18 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		if errors.IsNotFound(err) {
 			_, err = c.clientset.CoreV1().Services(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating service %s in namespace %s: %v", name, namespace, err)
+				return fmt.Errorf("creating service %s in namespace %s: %w", name, namespace, err)
 			}
 			return
 		}
-		return fmt.Errorf("getting service %s in namespace %s: %v", name, namespace, err)
+		return fmt.Errorf("getting service %s in namespace %s: %w", name, namespace, err)
 	}
 
 	spec.ResourceVersion = svc.ResourceVersion
 	spec.Spec.ClusterIP = svc.Spec.ClusterIP
 	_, err = c.clientset.CoreV1().Services(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("updating service %s in namespacee %s: %v", name, namespace, err)
+		return fmt.Errorf("updating service %s in namespacee %s: %w", name, namespace, err)
 	}
 
 	return
@@ -70,7 +70,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		return fmt.Errorf("deleting service %s in namespace %s: %v", name, namespace, err)
+		return fmt.Errorf("deleting service %s in namespace %s: %w", name, namespace, err)
 	}
 
 	return
