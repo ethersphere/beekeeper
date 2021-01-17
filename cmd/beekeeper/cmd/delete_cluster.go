@@ -27,7 +27,7 @@ func (c *command) initDeleteCluster() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
 			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %v", err)
+				return fmt.Errorf("creating Kubernetes client: %w", err)
 			}
 
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
@@ -49,7 +49,7 @@ func (c *command) initDeleteCluster() *cobra.Command {
 
 			for i := 0; i < nodeCount; i++ {
 				if err := ng.DeleteNode(cmd.Context(), fmt.Sprintf("bee-%d", i)); err != nil {
-					return fmt.Errorf("deleting bee-%d: %v", i, err)
+					return fmt.Errorf("deleting bee-%d: %w", i, err)
 				}
 			}
 
@@ -60,7 +60,7 @@ func (c *command) initDeleteCluster() *cobra.Command {
 			bg := cluster.NodeGroup(bgName)
 			for i := 0; i < bootnodeCount; i++ {
 				if err := bg.DeleteNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i)); err != nil {
-					return fmt.Errorf("deleting bootnode-%d: %v", i, err)
+					return fmt.Errorf("deleting bootnode-%d: %w", i, err)
 				}
 			}
 

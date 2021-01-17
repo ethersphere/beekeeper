@@ -55,12 +55,12 @@ func NewClient(o *ClientOptions) (c *Client, err error) {
 	if o.InCluster {
 		config, err := rest.InClusterConfig()
 		if err != nil {
-			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %v", err)
+			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
 
 		clientset, err := kubernetes.NewForConfig(config)
 		if err != nil {
-			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %v", err)
+			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
 		}
 
 		return newClient(clientset), nil
@@ -71,7 +71,7 @@ func NewClient(o *ClientOptions) (c *Client, err error) {
 	if len(o.KubeconfigPath) == 0 || o.KubeconfigPath == "~/.kube/config" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return nil, fmt.Errorf("obtaining user's home dir: %v", err)
+			return nil, fmt.Errorf("obtaining user's home dir: %w", err)
 		}
 		configPath = home + "/.kube/config"
 	} else {
@@ -83,12 +83,12 @@ func NewClient(o *ClientOptions) (c *Client, err error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("creating Kubernetes client config: %v", err)
+		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("creating Kubernetes clientset: %v", err)
+		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
 
 	return newClient(clientset), nil

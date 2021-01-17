@@ -60,7 +60,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			}
 
 			t0 := time.Now()
-			addr, err := chunk.Address(), ng.Node(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			addr, err := chunk.Address(), ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -84,8 +84,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 				}
 
 				time.Sleep(o.RetryDelay)
-
-				synced, err := ng.Node(closestName).HasChunk(ctx, addr)
+				synced, err := ng.NodeClient(closestName).HasChunk(ctx, addr)
 				if err != nil {
 					return fmt.Errorf("node %s: %w", nodeName, err)
 				}
@@ -104,7 +103,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 			if pushMetrics {
 				if err := pusher.Push(); err != nil {
-					fmt.Printf("node %s: %s\n", nodeName, err)
+					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}
 		}
@@ -125,7 +124,7 @@ func CheckConcurrent(c *bee.Cluster, o Options) (err error) {
 		nodeName := sortedNodes[i]
 
 		var chunkResults []chunkStreamMsg
-		for m := range chunkStream(ctx, ng.Node(nodeName), rnds[i], o.ChunksPerNode) {
+		for m := range chunkStream(ctx, ng.NodeClient(nodeName), rnds[i], o.ChunksPerNode) {
 			chunkResults = append(chunkResults, m)
 		}
 		for j, c := range chunkResults {
@@ -157,7 +156,7 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			if err := ng.Node(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false}); err != nil {
+			if err := ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false}); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
@@ -167,7 +166,7 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 			}
 
 			time.Sleep(1 * time.Second)
-			synced, err := ng.Node(closestName).HasChunk(ctx, chunk.Address())
+			synced, err := ng.NodeClient(closestName).HasChunk(ctx, chunk.Address())
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -203,14 +202,14 @@ func CheckFiles(c *bee.Cluster, o Options) (err error) {
 			fileSize := o.FileSize + int64(j)
 			file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d-%d", "file", i, j), fileSize)
 
-			tagResponse, err := ng.Node(nodeName).CreateTag(ctx)
+			tagResponse, err := ng.NodeClient(nodeName).CreateTag(ctx)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
 			tagUID := tagResponse.Uid
 
-			if err := ng.Node(nodeName).UploadFileWithTag(ctx, &file, false, tagUID); err != nil {
+			if err := ng.NodeClient(nodeName).UploadFileWithTag(ctx, &file, false, tagUID); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
@@ -226,7 +225,7 @@ func CheckFiles(c *bee.Cluster, o Options) (err error) {
 
 				time.Sleep(o.RetryDelay)
 
-				afterUploadTagResponse, err := ng.Node(nodeName).GetTag(ctx, tagUID)
+				afterUploadTagResponse, err := ng.NodeClient(nodeName).GetTag(ctx, tagUID)
 				if err != nil {
 					return fmt.Errorf("node %s: %w", nodeName, err)
 				}

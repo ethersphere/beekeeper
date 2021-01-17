@@ -58,7 +58,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			}
 
 			t0 := time.Now()
-			err = ng.Node(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			err = ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -69,7 +69,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			t1 := time.Now()
-			data, err := ng.Node(lastNodeName).DownloadChunk(ctx, chunk.Address(), "")
+			data, err := ng.NodeClient(lastNodeName).DownloadChunk(ctx, chunk.Address(), "")
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastNodeName, err)
 			}
@@ -93,7 +93,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 			if pushMetrics {
 				if err := pusher.Push(); err != nil {
-					fmt.Printf("node %s: %s\n", nodeName, err)
+					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}
 		}

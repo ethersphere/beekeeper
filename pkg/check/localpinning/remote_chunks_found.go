@@ -40,7 +40,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	sortedNodes := ng.NodesSorted()
 	pivot := rnd.Intn(c.Size())
 	pivotNode := sortedNodes[pivot]
-	ref, err := ng.Node(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
+	ref, err := ng.NodeClient(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
 	if err != nil {
 		return fmt.Errorf("node %s: upload bytes: %w", pivotNode, err)
 	}
@@ -56,7 +56,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 			continue
 		}
 
-		nodeClient := ng.Node(name)
+		nodeClient := ng.NodeClient(name)
 
 		fmt.Printf("Node %s: removing expected chunks\n", name)
 
@@ -113,7 +113,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	for name, o := range overlays {
 		fmt.Printf("Node %s: unpinning chunks\n", o.String())
 
-		nodeClient := ng.Node(name)
+		nodeClient := ng.NodeClient(name)
 
 		for _, a := range addrs {
 			err := nodeClient.UnpinChunk(ctx, a)
@@ -126,7 +126,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	for name, o := range overlays {
 		fmt.Printf("Node %s: removing chunks\n", o.String())
 
-		nodeClient := ng.Node(name)
+		nodeClient := ng.NodeClient(name)
 
 		for _, a := range addrs {
 			err := nodeClient.RemoveChunkWithAddress(ctx, a)

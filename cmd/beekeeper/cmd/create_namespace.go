@@ -22,7 +22,7 @@ func (c *command) initCreateNamespace() *cobra.Command {
 				KubeconfigPath: kubeconfig,
 			})
 			if err != nil {
-				return fmt.Errorf("creating new Kubernetes client: %v", err)
+				return fmt.Errorf("creating new Kubernetes client: %w", err)
 			}
 
 			if err = k.Namespace.Create(cmd.Context(), ns, namespace.Options{

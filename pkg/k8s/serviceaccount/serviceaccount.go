@@ -60,10 +60,10 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		if errors.IsNotFound(err) {
 			_, err = c.clientset.CoreV1().ServiceAccounts(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating service account %s in namespace %s: %v", name, namespace, err)
+				return fmt.Errorf("creating service account %s in namespace %s: %w", name, namespace, err)
 			}
 		} else {
-			return fmt.Errorf("updating service account %s in namespace %s: %v", name, namespace, err)
+			return fmt.Errorf("updating service account %s in namespace %s: %w", name, namespace, err)
 		}
 	}
 
@@ -77,7 +77,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		return fmt.Errorf("deleting service account %s in namespace %s: %v", name, namespace, err)
+		return fmt.Errorf("deleting service account %s in namespace %s: %w", name, namespace, err)
 	}
 
 	return

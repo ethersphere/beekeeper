@@ -8,8 +8,8 @@ import (
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 )
 
-// newBeeDefaultConfig returns default Bee node configuration
-func newBeeDefaultConfig() *k8sBee.Config {
+// newDefaultBeeConfig returns default Bee node configuration
+func newDefaultBeeConfig() *k8sBee.Config {
 	return &k8sBee.Config{
 		APIAddr:              ":1633",
 		Bootnodes:            "",
@@ -48,10 +48,10 @@ func newBeeDefaultConfig() *k8sBee.Config {
 // newDefaultNodeGroupOptions returns default node group options
 func newDefaultNodeGroupOptions() *bee.NodeGroupOptions {
 	return &bee.NodeGroupOptions{
-		ClefImage:           "ethersphere/clef:latest",
-		ClefImagePullPolicy: "Always",
-		Image:               "ethersphere/bee:latest",
-		ImagePullPolicy:     "Always",
+		ClefImage:           "ethersphere/clef:0.4.4",
+		ClefImagePullPolicy: "IfNotPresent",
+		Image:               "ethersphere/bee:0.4.1",
+		ImagePullPolicy:     "IfNotPresent",
 		IngressAnnotations: map[string]string{
 			"kubernetes.io/ingress.class":                        "nginx-internal",
 			"nginx.ingress.kubernetes.io/affinity":               "cookie",
@@ -140,7 +140,7 @@ func setK8SClient(kubeconfig string, inCluster bool) (c *k8s.Client, err error) 
 		InCluster:      inCluster,
 		KubeconfigPath: kubeconfig,
 	}); err != nil {
-		return nil, fmt.Errorf("creating Kubernetes client: %v", err)
+		return nil, fmt.Errorf("creating Kubernetes client: %w", err)
 	}
 
 	return

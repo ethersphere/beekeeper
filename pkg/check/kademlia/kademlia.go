@@ -12,27 +12,41 @@ import (
 )
 
 var (
-	errKademliaFullConnectivity = errors.New("full connectivity present")
-	errKadmeliaNotHealthy       = errors.New("kademlia not healthy")
-	errKadmeliaBinConnected     = errors.New("at least 1 connected peer is required in a bin which is shallower than depth")
-	errKadmeliaBinDisconnected  = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
+	errKadmeliaNotHealthy      = errors.New("kademlia not healthy")
+	errKadmeliaBinConnected    = errors.New("at least 1 connected peer is required in a bin which is shallower than depth")
+	errKadmeliaBinDisconnected = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
 )
 
-// Check executes Kademlia topology check on cluster
-func Check(cluster *bee.Cluster) (err error) {
-	ctx := context.Background()
+// Options represents kademlia check options
+type Options struct {
+	Seed           int64
+	DynamicActions []Actions
+}
 
-	fmt.Printf("Checking for full connectivity:\n")
-	if err := fullconnectivity.Check(cluster); err == nil {
-		return errKademliaFullConnectivity
+// Check executes Kademlia topology check on cluster
+func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
+	fmt.Println("Checking connectivity")
+	err = fullconnectivity.Check(ctx, cluster)
+	if err != nil {
+		fmt.Printf("Full connectivity not present: %v\n", err)
+	} else {
+		fmt.Printf("Full connectivity present\n")
 	}
-	fmt.Printf("Full connectivity not present, continuing with kademlia topology check\n")
 
 	topologies, err := cluster.Topologies(ctx)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("Checking Kademlia")
+	if err := checkKademlia(topologies); err != nil {
+		return fmt.Errorf("check Kademlia: %w", err)
+	}
+
+	return
+}
+
+func checkKademlia(topologies bee.ClusterTopologies) (err error) {
 	for _, v := range topologies {
 		for n, t := range v {
 			if t.Depth == 0 {
