@@ -25,7 +25,8 @@ func NewRandomFile(r *rand.Rand, name string, size int64) File {
 	return File{
 		name:       name,
 		dataReader: io.LimitReader(r, size),
-		size:       size}
+		size:       size,
+	}
 }
 
 // NewBufferFile returns new file with specified buffer
@@ -40,7 +41,7 @@ func NewBufferFile(name string, buffer *bytes.Buffer) File {
 // CalculateHash calculates hash from dataReader.
 // It replaces dataReader with another that will contain the data.
 func (f *File) CalculateHash() error {
-	h := fileHahser()
+	h := fileHasher()
 
 	var buf bytes.Buffer
 	tee := io.TeeReader(f.DataReader(), &buf)
@@ -104,6 +105,6 @@ func (f *File) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err er
 	return
 }
 
-func fileHahser() hash.Hash {
+func fileHasher() hash.Hash {
 	return sha3.New256()
 }
