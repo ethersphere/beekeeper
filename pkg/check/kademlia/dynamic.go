@@ -134,9 +134,7 @@ func checkKademliaD(topologies bee.ClusterTopologies) error {
 				}
 
 				if bin >= t.Depth {
-					for _, v := range b.ConnectedPeers {
-						nodes = append(nodes, v)
-					}
+					nodes = append(nodes, b.ConnectedPeers...)
 				}
 			}
 
