@@ -2,13 +2,14 @@ package kademlia
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -25,14 +26,6 @@ type Actions struct {
 func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
-
-	fmt.Println("Checking connectivity")
-	err = fullconnectivity.Check(ctx, cluster)
-	if err != nil {
-		fmt.Printf("Full connectivity not present: %v\n", err)
-	} else {
-		fmt.Printf("Full connectivity present\n")
-	}
 
 	topologies, err := cluster.Topologies(ctx)
 	if err != nil {
@@ -102,14 +95,6 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 
 		time.Sleep(5 * time.Second)
 
-		fmt.Println("Checking connectivity")
-		err = fullconnectivity.Check(ctx, cluster)
-		if err != nil {
-			fmt.Printf("Full connectivity not present\n")
-		} else {
-			fmt.Printf("Full connectivity present\n")
-		}
-
 		topologies, err := cluster.Topologies(ctx)
 		if err != nil {
 			return err
@@ -117,38 +102,100 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 
 		fmt.Println("Checking Kademlia")
 		if err := checkKademliaD(topologies); err != nil {
-			fmt.Printf("Kademlia check failed: %v\n", err)
+			fmt.Printf("Dynamic kademlia check failed: %v\n", err)
+			return err
 		}
 	}
 
 	return nil
 }
 
-func checkKademliaD(topologies bee.ClusterTopologies) (err error) {
-	for _, v := range topologies {
-		for n, t := range v {
+// checkKademliaD checks that for each topology, each node is connected to all
+// peers that are within depth and that are online. Online-ness is assumed by the list
+// of topologies (i.e. if we have the peer's topology, it is assumed it is online).
+func checkKademliaD(topologies bee.ClusterTopologies) error {
+	overlays := allOverlays(topologies)
+	culprits := make(map[string][]swarm.Address)
+	for _, nodeGroup := range topologies {
+		for k, t := range nodeGroup {
 			if t.Depth == 0 {
-				fmt.Printf("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
-				fmt.Printf("Error: %v\n", errKadmeliaNotHealthy.Error())
+				return fmt.Errorf("node %s, address %s: %w", k, t.Overlay, errKademliaNotHealthy)
 			}
 
-			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
+			expNodes := nodesInDepth(t.Depth, t.Overlay, overlays)
+			var nodes []swarm.Address
+
+			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s. Expecting %d nodes within depth.\n", k, t.Population, t.Connected, t.Depth, t.Overlay, len(expNodes))
+
 			for k, b := range t.Bins {
-				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
+				bin, err := strconv.Atoi(strings.Split(k, "_")[1])
 				if err != nil {
 					fmt.Printf("Error: node %s: %v\n", n, err)
 				}
-				fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
-				if binDepth < t.Depth && b.Connected < 1 {
-					fmt.Printf("Error: %v\n", errKadmeliaBinConnected.Error())
-				}
 
-				if binDepth >= t.Depth && len(b.DisconnectedPeers) > 0 {
-					fmt.Printf("Error: %v, %s\n", errKadmeliaBinDisconnected.Error(), b.DisconnectedPeers)
+				if bin >= t.Depth {
+					for _, v := range b.ConnectedPeers {
+						nodes = append(nodes, v)
+					}
 				}
+			}
+
+			if c := verifyNodes(expNodes, nodes); len(c) > 0 {
+				culprits[t.Overlay.String()] = c
 			}
 		}
 	}
 
-	return
+	if len(culprits > 0) {
+		errmsg := ""
+		for node, c := range culprits {
+			msg := fmt.Sprintf("node %s expected connection to:\n", node)
+			for _, addr := range c {
+				msg += addr.String() + "\n"
+			}
+
+			errmsg += msg
+		}
+		return errors.New(errmsg)
+	}
+
+	return nil
+}
+
+func allOverlays(t bee.ClusterTopologies) []swarm.Address {
+	var addrs []swarm.Address
+	for _, nodeGroup := range topologies {
+		for k, t := range nodeGroup {
+			addrs = append(addrs, t.Overlay)
+		}
+	}
+	return addrs
+}
+
+func nodesInDepth(d uint8, pivot swarm.Address, addrs []swarm.Address) []swarm.Address {
+	var addrsInDepth []swarm.Address
+	for _, addr := range addrs {
+		if swarm.Proximity(pivot, addr) >= d {
+			addrsInDepth = append(addrsInDepth, addr)
+		}
+	}
+	return addrsInDepth
+}
+
+// verifyNodes verifies that all addresses in exp exist in nodes.
+// returns a list of missing connections if any exist.
+func verifyNodes(exp, nodes []swarm.Address) []swarm.Address {
+	var culprits []swarm.Address
+
+OUTER:
+	for _, e := range exp {
+		for _, n := range nodes {
+			if e.Equal(n) {
+				continue OUTER
+			}
+		}
+		culprits = append(culprits, e)
+	}
+
+	return culprits
 }
