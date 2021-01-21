@@ -119,7 +119,7 @@ func checkKademliaD(topologies bee.ClusterTopologies) error {
 	for _, nodeGroup := range topologies {
 		for k, t := range nodeGroup {
 			if t.Depth == 0 {
-				return fmt.Errorf("node %s, address %s: %w", k, t.Overlay, errKademliaNotHealthy)
+				return fmt.Errorf("node %s, address %s: %w", k, t.Overlay, errKadmeliaNotHealthy)
 			}
 
 			expNodes := nodesInDepth(t.Depth, t.Overlay, overlays)
@@ -130,7 +130,7 @@ func checkKademliaD(topologies bee.ClusterTopologies) error {
 			for k, b := range t.Bins {
 				bin, err := strconv.Atoi(strings.Split(k, "_")[1])
 				if err != nil {
-					fmt.Printf("Error: node %s: %v\n", n, err)
+					fmt.Printf("Error: node %s: %v\n", k, err)
 				}
 
 				if bin >= t.Depth {
@@ -146,7 +146,7 @@ func checkKademliaD(topologies bee.ClusterTopologies) error {
 		}
 	}
 
-	if len(culprits > 0) {
+	if len(culprits) > 0 {
 		errmsg := ""
 		for node, c := range culprits {
 			msg := fmt.Sprintf("node %s expected connection to:\n", node)
@@ -164,7 +164,7 @@ func checkKademliaD(topologies bee.ClusterTopologies) error {
 
 func allOverlays(t bee.ClusterTopologies) []swarm.Address {
 	var addrs []swarm.Address
-	for _, nodeGroup := range topologies {
+	for _, nodeGroup := range t {
 		for k, t := range nodeGroup {
 			addrs = append(addrs, t.Overlay)
 		}
@@ -175,7 +175,7 @@ func allOverlays(t bee.ClusterTopologies) []swarm.Address {
 func nodesInDepth(d uint8, pivot swarm.Address, addrs []swarm.Address) []swarm.Address {
 	var addrsInDepth []swarm.Address
 	for _, addr := range addrs {
-		if swarm.Proximity(pivot, addr) >= d {
+		if swarm.Proximity(pivot.Bytes(), addr.Bytes()) >= d {
 			addrsInDepth = append(addrsInDepth, addr)
 		}
 	}
