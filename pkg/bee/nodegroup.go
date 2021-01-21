@@ -806,13 +806,14 @@ func (g *NodeGroup) getClient(name string) *Client {
 	return c
 }
 
-func (g *NodeGroup) getClients() (c map[string]*Client) {
+func (g *NodeGroup) getClients() map[string]*Client {
+	c := make(map[string]*Client)
 	g.lock.RLock()
 	for k, v := range g.nodes {
 		c[k] = v.client
 	}
 	g.lock.RUnlock()
-	return
+	return c
 }
 
 func (g *NodeGroup) getNode(name string) *Node {
