@@ -122,7 +122,7 @@ func checkKademliaD(topologies bee.ClusterTopologies) error {
 				return fmt.Errorf("node %s, address %s: %w", k, t.Overlay, errKadmeliaNotHealthy)
 			}
 
-			expNodes := nodesInDepth(t.Depth, t.Overlay, overlays)
+			expNodes := nodesInDepth(uint8(t.Depth), t.Overlay, overlays)
 			var nodes []swarm.Address
 
 			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s. Expecting %d nodes within depth.\n", k, t.Population, t.Connected, t.Depth, t.Overlay, len(expNodes))
@@ -165,7 +165,7 @@ func checkKademliaD(topologies bee.ClusterTopologies) error {
 func allOverlays(t bee.ClusterTopologies) []swarm.Address {
 	var addrs []swarm.Address
 	for _, nodeGroup := range t {
-		for k, t := range nodeGroup {
+		for _, t := range nodeGroup {
 			addrs = append(addrs, t.Overlay)
 		}
 	}
