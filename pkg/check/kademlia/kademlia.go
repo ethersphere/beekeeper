@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 )
 
 var (
@@ -24,29 +23,23 @@ type Options struct {
 }
 
 // Check executes Kademlia topology check on cluster
-func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
-	fmt.Println("Checking connectivity")
-	err = fullconnectivity.Check(ctx, cluster)
-	if err != nil {
-		fmt.Printf("Full connectivity not present: %v\n", err)
-	} else {
-		fmt.Printf("Full connectivity present\n")
-	}
-
+func Check(ctx context.Context, cluster *bee.Cluster) error {
 	topologies, err := cluster.Topologies(ctx)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Checking Kademlia")
-	if err := checkKademlia(topologies); err != nil {
-		return fmt.Errorf("check Kademlia: %w", err)
+	fmt.Println("Kademlia check running")
+	if checkKademlia(topologies); err != nil {
+		return err
 	}
 
-	return
+	fmt.Println("Success!")
+
+	return nil
 }
 
-func checkKademlia(topologies bee.ClusterTopologies) (err error) {
+func checkKademlia(topologies bee.ClusterTopologies) error {
 	for _, v := range topologies {
 		for n, t := range v {
 			if t.Depth == 0 {
@@ -72,5 +65,5 @@ func checkKademlia(topologies bee.ClusterTopologies) (err error) {
 		}
 	}
 
-	return
+	return nil
 }
