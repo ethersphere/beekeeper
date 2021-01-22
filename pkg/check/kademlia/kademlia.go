@@ -30,7 +30,7 @@ func Check(ctx context.Context, cluster *bee.Cluster) error {
 	}
 
 	fmt.Println("Kademlia check running")
-	if checkKademlia(topologies); err != nil {
+	if err := checkKademlia(topologies); err != nil {
 		return err
 	}
 
