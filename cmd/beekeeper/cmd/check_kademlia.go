@@ -61,6 +61,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
 				K8SClient:           k8sClient,
 				Namespace:           c.config.GetString(optionNameNamespace),
+				DisableNamespace:    disableNamespace,
 			})
 
 			if startCluster {
