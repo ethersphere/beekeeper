@@ -67,7 +67,13 @@ func NewCluster(name string, o ClusterOptions) *Cluster {
 func (c *Cluster) AddNodeGroup(name string, o NodeGroupOptions) {
 	g := NewNodeGroup(name, o)
 	g.cluster = c
-	g.k8s = k8sBee.NewClient(g.cluster.k8s)
+
+	if g.cluster.k8s != nil {
+		g.k8s = k8sBee.NewClient(g.cluster.k8s)
+	} else {
+		g.k8s = nil
+	}
+
 	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)
 	g.opts.Labels = mergeMaps(g.cluster.labels, o.Labels)
 
