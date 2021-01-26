@@ -157,6 +157,8 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				// nodes group
 				ngName := "nodes"
 				ngOptions := newDefaultNodeGroupOptions()
+				ngOptions.BeeConfig = newDefaultBeeConfig()
+				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 				cluster.AddNodeGroup(ngName, *ngOptions)
 				ng := cluster.NodeGroup(ngName)
 
@@ -206,7 +208,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
-	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:0.4.1", "Bee Docker image")
+	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
 	cmd.Flags().IntSliceVar(&dynamicActions, optionNameDynamicActions, []int{1, 1, 0, 1, 2, 1, 1, 2}, "passed in groups of 4 dynamic actions: add, delete, start, stop")
 	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
