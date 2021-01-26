@@ -157,6 +157,15 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				// nodes group
 				ngName := "nodes"
 				ngOptions := newDefaultNodeGroupOptions()
+				ngOptions.Image = image
+				ngOptions.Labels = map[string]string{
+					"app.kubernetes.io/component": "node",
+					"app.kubernetes.io/part-of":   ngName,
+					"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+				}
+				ngOptions.PersistenceEnabled = persistence
+				ngOptions.PersistenceStorageClass = storageClass
+				ngOptions.PersistanceStorageRequest = storageRequest
 				ngOptions.BeeConfig = newDefaultBeeConfig()
 				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 				cluster.AddNodeGroup(ngName, *ngOptions)
