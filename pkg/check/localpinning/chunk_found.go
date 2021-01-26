@@ -32,11 +32,12 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	if err := ng.NodeClient(pivotNode).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: true}); err != nil {
+	ref, err := ng.NodeClient(pivotNode).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: true})
+	if err != nil {
 		return fmt.Errorf("node %s: %w", pivotNode, err)
 	}
 
-	fmt.Printf("uploaded pinned chunk %s to node %s: %s\n", chunk.Address().String(), pivotNode, overlays[pivotNode].String())
+	fmt.Printf("uploaded pinned chunk %s to node %s: %s\n", ref.String(), pivotNode, overlays[pivotNode].String())
 
 	b := make([]byte, (o.StoreSize/o.StoreSizeDivisor)*swarm.ChunkSize)
 

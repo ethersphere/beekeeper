@@ -15,7 +15,6 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
-	bmtlegacy "github.com/ethersphere/bmt/legacy"
 )
 
 const retryCount int = 5
@@ -433,25 +432,13 @@ func (c *Client) UploadBytes(ctx context.Context, b []byte, o api.UploadOptions)
 }
 
 // UploadChunk uploads chunk to the node
-func (c *Client) UploadChunk(ctx context.Context, chunk *Chunk, o api.UploadOptions) (err error) {
-	p := bmtlegacy.NewTreePool(chunkHahser, swarm.Branches, bmtlegacy.PoolSize)
-	hasher := bmtlegacy.New(p)
-	err = hasher.SetSpan(int64(chunk.Span()))
+func (c *Client) UploadChunk(ctx context.Context, chunk *Chunk, o api.UploadOptions) (swarm.Address, error) {
+	resp, err := c.api.Chunks.Upload(ctx, chunk.address, bytes.NewReader(chunk.Data()), o)
 	if err != nil {
-		return fmt.Errorf("upload chunk: %w", err)
-	}
-	_, err = hasher.Write(chunk.Data()[8:])
-	if err != nil {
-		return fmt.Errorf("upload chunk: %w", err)
-	}
-	chunk.address = swarm.NewAddress(hasher.Sum(nil))
-
-	_, err = c.api.Chunks.Upload(ctx, chunk.address, bytes.NewReader(chunk.Data()), o)
-	if err != nil {
-		return fmt.Errorf("upload chunk: %w", err)
+		return swarm.ZeroAddress, fmt.Errorf("upload chunk: %w", err)
 	}
 
-	return
+	return resp.Reference, nil
 }
 
 // RemoveChunk removes the given chunk from the node's local store

@@ -25,12 +25,12 @@ type Chunk struct {
 }
 
 // NewChunk returns new chunk
-func NewChunk(data []byte) (Chunk, error) {
-	if len(data) > MaxChunkSize {
-		return Chunk{}, fmt.Errorf("create chunk: requested size too big (max %d bytes)", MaxChunkSize)
+func NewChunk(address swarm.Address, data []byte) (*Chunk, error) {
+	if len(data) > MaxChunkSize+spanInfoSize {
+		return nil, fmt.Errorf("create chunk: requested size too big (max %d bytes)", MaxChunkSize+spanInfoSize)
 	}
 
-	return Chunk{data: data}, nil
+	return &Chunk{address: address, data: data}, nil
 }
 
 // NewRandomChunk returns new pseudorandom chunk

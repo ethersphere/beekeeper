@@ -22,8 +22,7 @@ func (c *ChunksService) Download(ctx context.Context, a swarm.Address, targets s
 
 // ChunksUploadResponse represents Upload's response
 type ChunksUploadResponse struct {
-	Message string `json:"message,omitempty"`
-	Code    int    `json:"code,omitempty"`
+	Reference swarm.Address `json:"reference"`
 }
 
 // Upload uploads chunks to the node
@@ -33,6 +32,6 @@ func (c *ChunksService) Upload(ctx context.Context, a swarm.Address, data io.Rea
 	if o.Pin {
 		h.Add("Swarm-Pin", "true")
 	}
-	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks/"+a.String(), h, data, &resp)
+	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks", h, data, &resp)
 	return resp, err
 }

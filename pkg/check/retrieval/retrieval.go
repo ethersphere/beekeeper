@@ -58,30 +58,30 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			}
 
 			t0 := time.Now()
-			err = ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			ref, err := ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
 
 			uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), chunk.Address().String()).Set(d0.Seconds())
+			uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			t1 := time.Now()
-			data, err := ng.NodeClient(lastNodeName).DownloadChunk(ctx, chunk.Address(), "")
+			data, err := ng.NodeClient(lastNodeName).DownloadChunk(ctx, ref, "")
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastNodeName, err)
 			}
 			d1 := time.Since(t1)
 
 			downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), chunk.Address().String()).Set(d1.Seconds())
+			downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d1.Seconds())
 			downloadTimeHistogram.Observe(d1.Seconds())
 
 			if !bytes.Equal(chunk.Data(), data) {
 				notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", nodeName, j, chunk.Size(), len(data), overlays[nodeName].String(), chunk.Address().String())
+				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", nodeName, j, chunk.Size(), len(data), overlays[nodeName].String(), ref.String())
 				if bytes.Contains(chunk.Data(), data) {
 					fmt.Printf("Downloaded data is subset of the uploaded data\n")
 				}

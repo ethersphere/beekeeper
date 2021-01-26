@@ -60,7 +60,7 @@ func Check(c *bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			addr, err := chunk.Address(), ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			addr, err := ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}

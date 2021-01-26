@@ -40,10 +40,11 @@ func CheckChunkNotFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	if err := ng.NodeClient(pivotNode).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false}); err != nil {
+	ref, err := ng.NodeClient(pivotNode).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+	if err != nil {
 		return fmt.Errorf("node %s: %w", pivotNode, err)
 	}
-	fmt.Printf("uploaded chunk %s (%d bytes) to node %s: %s\n", chunk.Address().String(), len(chunk.Data()), pivotNode, overlays[pivotNode].String())
+	fmt.Printf("uploaded chunk %s (%d bytes) to node %s: %s\n", ref.String(), len(chunk.Data()), pivotNode, overlays[pivotNode].String())
 
 	b := make([]byte, (o.StoreSize/o.StoreSizeDivisor)*swarm.ChunkSize)
 
@@ -61,7 +62,7 @@ func CheckChunkNotFound(c *bee.Cluster, o Options) error {
 	// allow time for syncing and GC
 	time.Sleep(5 * time.Second)
 
-	has, err := ng.NodeClient(pivotNode).HasChunk(ctx, chunk.Address())
+	has, err := ng.NodeClient(pivotNode).HasChunk(ctx, ref)
 	if err != nil {
 		return fmt.Errorf("node has chunk: %w", err)
 	}
