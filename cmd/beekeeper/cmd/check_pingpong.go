@@ -168,14 +168,10 @@ and prints round-trip time (RTT) of each ping.`,
 				}
 			}
 
-			// var seed int64
-			// if cmd.Flags().Changed("seed") {
-			// 	seed = c.config.GetInt64(optionNameSeed)
-			// } else {
-			// 	seed = random.Int64()
-			// }
-
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pingpongOptions := pingpong.Options{
+				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
+				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace)),
+			}
 
 			if dynamic {
 				if len(dynamicActions)%4 != 0 {
@@ -192,10 +188,10 @@ and prints round-trip time (RTT) of each ping.`,
 					})
 				}
 
-				return pingpong.Check(cluster, pusher, c.config.GetBool(optionNamePushMetrics))
+				return pingpong.Check(cmd.Context(), cluster, pingpongOptions)
 			}
 
-			return pingpong.Check(cluster, pusher, c.config.GetBool(optionNamePushMetrics))
+			return pingpong.Check(cmd.Context(), cluster, pingpongOptions)
 		},
 		PreRunE: c.checkPreRunE,
 	}

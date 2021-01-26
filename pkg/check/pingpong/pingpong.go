@@ -12,14 +12,18 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
+// Options represents pingpong check options
+type Options struct {
+	MetricsEnabled bool
+	MetricsPusher  *push.Pusher
+}
+
 // Check executes ping from all nodes to all other nodes in the cluster
-func Check(cluster *bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+func Check(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+	o.MetricsPusher.Collector(rttGauge)
+	o.MetricsPusher.Collector(rttHistogram)
 
-	pusher.Collector(rttGauge)
-	pusher.Collector(rttHistogram)
-
-	pusher.Format(expfmt.FmtText)
+	o.MetricsPusher.Format(expfmt.FmtText)
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
 		for n := range nodeStream(ctx, ng.NodesClients()) {
@@ -47,8 +51,8 @@ func Check(cluster *bee.Cluster, pusher *push.Pusher, pushMetrics bool) (err err
 				rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
 				rttHistogram.Observe(rtt.Seconds())
 
-				if pushMetrics {
-					if err := pusher.Push(); err != nil {
+				if o.MetricsEnabled {
+					if err := o.MetricsPusher.Push(); err != nil {
 						fmt.Printf("node %s: %v\n", n.Name, err)
 					}
 				}
