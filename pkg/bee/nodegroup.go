@@ -358,8 +358,18 @@ func (g *NodeGroup) Nodes() map[string]*Node {
 }
 
 // NodesClients returns map of node's clients in the node group
-func (g *NodeGroup) NodesClients() map[string]*Client {
-	return g.getClients()
+func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*Client, error) {
+	stopped, err := g.StoppedNodes(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("stopped nodes: %w", err)
+	}
+
+	clients := g.getClients()
+	for _, n := range stopped {
+		delete(clients, n)
+	}
+
+	return clients, nil
 }
 
 // NodesSorted returns sorted list of node names in the node group

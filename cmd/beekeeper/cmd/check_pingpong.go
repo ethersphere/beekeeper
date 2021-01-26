@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check/kademlia"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
+	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"golang.org/x/sync/errgroup"
 
@@ -168,18 +168,20 @@ and prints round-trip time (RTT) of each ping.`,
 				}
 			}
 
-			pingpongOptions := pingpong.Options{
-				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
-				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace)),
+			var seed int64
+			if cmd.Flags().Changed("seed") {
+				seed = c.config.GetInt64(optionNameSeed)
+			} else {
+				seed = random.Int64()
 			}
 
 			if dynamic {
 				if len(dynamicActions)%4 != 0 {
 					return fmt.Errorf("number of dynamic actions must be divisable by 4")
 				}
-				kActions := []kademlia.Actions{}
+				dActions := []pingpong.Actions{}
 				for i := 0; i < len(dynamicActions); i = i + 4 {
-					kActions = append(kActions, kademlia.Actions{
+					dActions = append(dActions, pingpong.Actions{
 						NodeGroup:   "nodes",
 						AddCount:    dynamicActions[i],
 						DeleteCount: dynamicActions[i+1],
@@ -188,10 +190,18 @@ and prints round-trip time (RTT) of each ping.`,
 					})
 				}
 
-				return pingpong.Check(cmd.Context(), cluster, pingpongOptions)
+				return pingpong.CheckDynamic(cmd.Context(), cluster, pingpong.Options{
+					DynamicActions: dActions,
+					MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
+					MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace)),
+					Seed:           seed,
+				})
 			}
 
-			return pingpong.Check(cmd.Context(), cluster, pingpongOptions)
+			return pingpong.Check(cmd.Context(), cluster, pingpong.Options{
+				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
+				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace)),
+			})
 		},
 		PreRunE: c.checkPreRunE,
 	}
@@ -203,7 +213,7 @@ and prints round-trip time (RTT) of each ping.`,
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
 	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:0.4.1", "Bee Docker image")
-	cmd.Flags().IntSliceVar(&dynamicActions, optionNameDynamicActions, []int{1, 1, 0, 1, 2, 1, 1, 2}, "passed in groups of 4 dynamic actions: add, start, stop, delete")
+	cmd.Flags().IntSliceVar(&dynamicActions, optionNameDynamicActions, []int{1, 1, 0, 1, 2, 1, 1, 2}, "passed in groups of 4 dynamic actions: add, delete, start, stop")
 	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
