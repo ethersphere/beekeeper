@@ -173,6 +173,9 @@ func allOverlays(t bee.ClusterTopologies) []swarm.Address {
 func nodesInDepth(d uint8, pivot swarm.Address, addrs []swarm.Address) []swarm.Address {
 	var addrsInDepth []swarm.Address
 	for _, addr := range addrs {
+		if addr.Equal(pivot) {
+			continue
+		}
 		if swarm.Proximity(pivot.Bytes(), addr.Bytes()) >= d {
 			addrsInDepth = append(addrsInDepth, addr)
 		}
