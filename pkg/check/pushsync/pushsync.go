@@ -128,7 +128,7 @@ func CheckConcurrent(c *bee.Cluster, o Options) (err error) {
 			chunkResults = append(chunkResults, m)
 		}
 		for j, c := range chunkResults {
-			fmt.Println(i, j, c.Index, c.Chunk.Size(), c.Error)
+			fmt.Println(i, j, c.Chunk.Size(), c.Error)
 		}
 	}
 
@@ -254,7 +254,6 @@ func CheckFiles(c *bee.Cluster, o Options) (err error) {
 }
 
 type chunkStreamMsg struct {
-	Index int
 	Chunk bee.Chunk
 	Error error
 }
@@ -269,16 +268,16 @@ func chunkStream(ctx context.Context, node *bee.Client, rnd *rand.Rand, count in
 			defer wg.Done()
 			chunk, err := bee.NewRandomChunk(rnd)
 			if err != nil {
-				chunkStream <- chunkStreamMsg{Index: i, Error: err}
+				chunkStream <- chunkStreamMsg{Error: err}
 				return
 			}
 
 			if err := n.UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false}); err != nil {
-				chunkStream <- chunkStreamMsg{Index: i, Error: err}
+				chunkStream <- chunkStreamMsg{Error: err}
 				return
 			}
 
-			chunkStream <- chunkStreamMsg{Index: i, Chunk: chunk}
+			chunkStream <- chunkStreamMsg{Chunk: chunk}
 		}(node, i)
 	}
 
