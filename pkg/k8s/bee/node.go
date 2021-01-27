@@ -93,21 +93,21 @@ func (c *Client) Create(ctx context.Context, o CreateOptions) (err error) {
 	}
 	fmt.Printf("secret %s is set in namespace %s\n", keysSecret, o.Namespace)
 
-	// secret with clef key
-	clefKeySecret := fmt.Sprintf("%s-clef-key", o.Name)
-	if len(o.ClefKey) > 0 {
-		clefKeySecretData := map[string]string{
-			"clef": o.ClefKey,
+	// secret with clef key and pass
+	clefSecret := fmt.Sprintf("%s-clef", o.Name)
+	if len(o.ClefKey) > 0 && len(o.ClefPassword) > 0 {
+		clefSecretData := map[string]string{
+			"key":      o.ClefKey,
+			"password": o.ClefPassword,
 		}
-
-		if err := c.k8s.Secret.Set(ctx, clefKeySecret, o.Namespace, secret.Options{
+		if err := c.k8s.Secret.Set(ctx, clefSecret, o.Namespace, secret.Options{
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
-			StringData:  clefKeySecretData,
+			StringData:  clefSecretData,
 		}); err != nil {
 			return fmt.Errorf("set secret in namespace %s: %w", o.Namespace, err)
 		}
-		fmt.Printf("secret %s is set in namespace %s\n", clefKeySecret, o.Namespace)
+		fmt.Printf("secret %s is set in namespace %s\n", clefSecret, o.Namespace)
 	}
 
 	// service account
@@ -352,7 +352,7 @@ func (c *Client) Create(ctx context.Context, o CreateOptions) (err error) {
 						KeysSecret:         keysSecret,
 						PersistenceEnabled: o.PersistenceEnabled,
 						ClefEnabled:        clefEnabled,
-						ClefKeySecret:      clefKeySecret,
+						ClefSecret:         clefSecret,
 						LibP2PEnabled:      libP2PEnabled,
 						SwarmEnabled:       swarmEnabled,
 					}),
@@ -441,11 +441,11 @@ func (c *Client) Delete(ctx context.Context, o DeleteOptions) (err error) {
 	fmt.Printf("serviceaccount %s is deleted in namespace %s\n", svcAccount, o.Namespace)
 
 	// secret with clef key
-	clefKeySecret := fmt.Sprintf("%s-clef-key", o.Name)
-	if err := c.k8s.Secret.Delete(ctx, clefKeySecret, o.Namespace); err != nil {
+	clefSecret := fmt.Sprintf("%s-clef", o.Name)
+	if err := c.k8s.Secret.Delete(ctx, clefSecret, o.Namespace); err != nil {
 		return fmt.Errorf("deleting secret in namespace %s: %w", o.Namespace, err)
 	}
-	fmt.Printf("secret %s is deleted in namespace %s\n", clefKeySecret, o.Namespace)
+	fmt.Printf("secret %s is deleted in namespace %s\n", clefSecret, o.Namespace)
 
 	// secret with keys
 	keysSecret := fmt.Sprintf("%s-keys", o.Name)
