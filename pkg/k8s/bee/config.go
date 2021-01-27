@@ -22,7 +22,9 @@ type Config struct {
 	PaymentEarly         uint64 // amount in BZZ below the peers payment threshold when we initiate settlement
 	PaymentThreshold     uint64 // threshold in BZZ where you expect to get paid from your peers
 	PaymentTolerance     uint64 // excess debt above payment threshold in BZZ where you disconnect from your peer
-	ResolverEndpoints    string // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
+	PostageStampAddress  string // postage stamp address
+	PriceOracleAddress   string // price Oracle address
+	ResolverOptions      string // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
 	Standalone           bool   // whether we want the node to start with no listen addresses for p2p
 	SwapEnable           bool   // enable swap
 	SwapEndpoint         string // swap ethereum blockchain endpoint
@@ -55,7 +57,9 @@ password: {{.Password}}
 payment-early: {{.PaymentEarly}}
 payment-threshold: {{.PaymentThreshold}}
 payment-tolerance: {{.PaymentTolerance}}
-resolver-endpoints: {{.ResolverEndpoints}}
+postage-stamp-address: {{ .PostageStampAddress }}
+price-oracle-address: {{ .PriceOracleAddress }}
+resolver-options: {{.ResolverOptions}}
 standalone: {{.Standalone}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
