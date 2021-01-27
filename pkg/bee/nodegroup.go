@@ -104,14 +104,18 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 	return
 }
 
-// AddStartNode adds new node in the node group and starts it
+// AddStartNode adds new node in the node group and starts it in the k8s cluster
 func (g *NodeGroup) AddStartNode(ctx context.Context, name string, o NodeOptions) (err error) {
 	if err := g.AddNode(name, o); err != nil {
 		return fmt.Errorf("add node %s: %w", name, err)
 	}
 
+	if err := g.CreateNode(ctx, name); err != nil {
+		return fmt.Errorf("create node %s in k8s: %w", name, err)
+	}
+
 	if err := g.StartNode(ctx, name); err != nil {
-		return fmt.Errorf("start node %s: %w", name, err)
+		return fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
 	return
@@ -263,6 +267,57 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 	return balancesStream, nil
 }
 
+// CreateNode creates new node in the k8s cluster
+func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
+	if g.k8s == nil {
+		return errKubernetesClientNotSet
+	}
+
+	labels := mergeMaps(g.opts.Labels, map[string]string{
+		"app.kubernetes.io/instance": name,
+	})
+
+	n := g.getNode(name)
+
+	if err := g.k8s.Create(ctx, k8sBee.CreateOptions{
+		// Bee configuration
+		Config: *n.config,
+		// Kubernetes configuration
+		Name:                      name,
+		Namespace:                 g.cluster.namespace,
+		Annotations:               g.opts.Annotations,
+		ClefImage:                 g.opts.ClefImage,
+		ClefImagePullPolicy:       g.opts.ClefImagePullPolicy,
+		ClefKey:                   n.clefKey,
+		ClefPassword:              n.clefPassword,
+		Image:                     g.opts.Image,
+		ImagePullPolicy:           g.opts.ImagePullPolicy,
+		IngressAnnotations:        g.opts.IngressAnnotations,
+		IngressHost:               g.cluster.ingressHost(name),
+		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
+		IngressDebugHost:          g.cluster.ingressDebugHost(name),
+		Labels:                    labels,
+		LibP2PKey:                 n.libP2PKey,
+		LimitCPU:                  g.opts.LimitCPU,
+		LimitMemory:               g.opts.LimitMemory,
+		NodeSelector:              g.opts.NodeSelector,
+		PersistenceEnabled:        g.opts.PersistenceEnabled,
+		PersistenceStorageClass:   g.opts.PersistenceStorageClass,
+		PersistanceStorageRequest: g.opts.PersistanceStorageRequest,
+		PodManagementPolicy:       g.opts.PodManagementPolicy,
+		RestartPolicy:             g.opts.RestartPolicy,
+		RequestCPU:                g.opts.RequestCPU,
+		RequestMemory:             g.opts.RequestMemory,
+		Selector:                  labels,
+		SwarmKey:                  n.swarmKey,
+		UpdateStrategy:            g.opts.UpdateStrategy,
+	}); err != nil {
+		return fmt.Errorf("k8s create node %s: %w", name, err)
+	}
+
+	return
+}
+
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	if g.k8s == nil {
@@ -358,8 +413,18 @@ func (g *NodeGroup) Nodes() map[string]*Node {
 }
 
 // NodesClients returns map of node's clients in the node group
-func (g *NodeGroup) NodesClients() map[string]*Client {
-	return g.getClients()
+func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*Client, error) {
+	stopped, err := g.StoppedNodes(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("stopped nodes: %w", err)
+	}
+
+	clients := g.getClients()
+	for _, n := range stopped {
+		delete(clients, n)
+	}
+
+	return clients, nil
 }
 
 // NodesSorted returns sorted list of node names in the node group
@@ -629,52 +694,17 @@ func (g *NodeGroup) Size() int {
 	return len(g.nodes)
 }
 
-// StartNode starts new node in the node group
+// StartNode start node by scaling its statefulset to 1
 func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 	if g.k8s == nil {
 		return errKubernetesClientNotSet
 	}
 
-	labels := mergeMaps(g.opts.Labels, map[string]string{
-		"app.kubernetes.io/instance": name,
-	})
-
-	n := g.getNode(name)
-
-	if err := g.k8s.Start(ctx, k8sBee.StartOptions{
-		// Bee configuration
-		Config: *n.config,
-		// Kubernetes configuration
-		Name:                      name,
-		Namespace:                 g.cluster.namespace,
-		Annotations:               g.opts.Annotations,
-		ClefImage:                 g.opts.ClefImage,
-		ClefImagePullPolicy:       g.opts.ClefImagePullPolicy,
-		ClefKey:                   n.clefKey,
-		ClefPassword:              n.clefPassword,
-		Image:                     g.opts.Image,
-		ImagePullPolicy:           g.opts.ImagePullPolicy,
-		IngressAnnotations:        g.opts.IngressAnnotations,
-		IngressHost:               g.cluster.ingressHost(name),
-		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
-		IngressDebugHost:          g.cluster.ingressDebugHost(name),
-		Labels:                    labels,
-		LibP2PKey:                 n.libP2PKey,
-		LimitCPU:                  g.opts.LimitCPU,
-		LimitMemory:               g.opts.LimitMemory,
-		NodeSelector:              g.opts.NodeSelector,
-		PersistenceEnabled:        g.opts.PersistenceEnabled,
-		PersistenceStorageClass:   g.opts.PersistenceStorageClass,
-		PersistanceStorageRequest: g.opts.PersistanceStorageRequest,
-		PodManagementPolicy:       g.opts.PodManagementPolicy,
-		RestartPolicy:             g.opts.RestartPolicy,
-		RequestCPU:                g.opts.RequestCPU,
-		RequestMemory:             g.opts.RequestMemory,
-		Selector:                  labels,
-		SwarmKey:                  n.swarmKey,
-		UpdateStrategy:            g.opts.UpdateStrategy,
+	if err := g.k8s.Start(ctx, k8sBee.StopOptions{
+		Name:      name,
+		Namespace: g.cluster.namespace,
 	}); err != nil {
-		return fmt.Errorf("k8s start node %s: %w", name, err)
+		return fmt.Errorf("start node %s: %w", name, err)
 	}
 
 	fmt.Printf("wait for %s to become ready\n", name)

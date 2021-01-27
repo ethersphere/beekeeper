@@ -48,10 +48,14 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		// delete nodes
 		for j := 0; j < a.DeleteCount; j++ {
 			nName := ng.NodesSorted()[rnd.Intn(ng.Size())]
+			overlay, err := ng.NodeClient(nName).Overlay(ctx)
+			if err != nil {
+				return fmt.Errorf("get node %s overlay: %w", nName, err)
+			}
 			if err := ng.DeleteNode(ctx, nName); err != nil {
 				return fmt.Errorf("delete node %s: %w", nName, err)
 			}
-			fmt.Printf("node %s is deleted\n", nName)
+			fmt.Printf("node %s (%s) is deleted\n", nName, overlay)
 		}
 
 		// start nodes
@@ -65,7 +69,12 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 				if err := ng.StartNode(ctx, nName); err != nil {
 					return fmt.Errorf("start node %s: %w", nName, err)
 				}
+				overlay, err := ng.NodeClient(nName).Overlay(ctx)
+				if err != nil {
+					return fmt.Errorf("get node %s overlay: %w", nName, err)
+				}
 				fmt.Printf("node %s is started\n", nName)
+				fmt.Printf("node %s (%s) is started\n", nName, overlay)
 			}
 		}
 
@@ -77,10 +86,14 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 			}
 			if len(started) > 0 {
 				nName := started[rnd.Intn(len(started))]
+				overlay, err := ng.NodeClient(nName).Overlay(ctx)
+				if err != nil {
+					return fmt.Errorf("get node %s overlay: %w", nName, err)
+				}
 				if err := ng.StopNode(ctx, nName); err != nil {
 					return fmt.Errorf("stop node %s: %w", nName, err)
 				}
-				fmt.Printf("node %s is stopped\n", nName)
+				fmt.Printf("node %s (%s) is stopped\n", nName, overlay)
 			}
 		}
 
@@ -90,7 +103,11 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 			if err := ng.AddStartNode(ctx, nName, bee.NodeOptions{}); err != nil {
 				return fmt.Errorf("add start node %s: %w", nName, err)
 			}
-			fmt.Printf("node %s is added\n", nName)
+			overlay, err := ng.NodeClient(nName).Overlay(ctx)
+			if err != nil {
+				return fmt.Errorf("get node %s overlay: %w", nName, err)
+			}
+			fmt.Printf("node %s (%s) is added\n", nName, overlay)
 		}
 
 		time.Sleep(5 * time.Second)

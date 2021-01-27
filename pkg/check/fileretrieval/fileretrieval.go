@@ -137,7 +137,11 @@ func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool)
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			time.Sleep(1 * time.Second)
-			for n, nc := range ng.NodesClients() {
+			nodesClients, err := ng.NodesClients(ctx)
+			if err != nil {
+				return fmt.Errorf("get nodes clients: %w", err)
+			}
+			for n, nc := range nodesClients {
 				if n == nodeName {
 					continue
 				}

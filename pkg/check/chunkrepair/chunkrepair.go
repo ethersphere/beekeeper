@@ -204,7 +204,11 @@ func getNodes(ctx context.Context, ng *bee.NodeGroup, rnd *rand.Rand) (*bee.Clie
 	var nodeA *bee.Client
 	var nodeB *bee.Client
 	var nodeC *bee.Client
-	for _, node := range ng.NodesClients() {
+	nodesClients, err := ng.NodesClients(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("get nodes clients: %w", err)
+	}
+	for _, node := range nodesClients {
 		addresses, err := node.Addresses(ctx)
 		if err != nil {
 			return nil, nil, nil, nil, err
@@ -235,7 +239,12 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.C
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
 func deleteChunkFromAllNodes(ctx context.Context, ng *bee.NodeGroup, chunk *bee.Chunk) error {
-	for _, node := range ng.NodesClients() {
+	nodesClients, err := ng.NodesClients(ctx)
+	if err != nil {
+		return fmt.Errorf("get nodes clients: %w", err)
+	}
+
+	for _, node := range nodesClients {
 		err := node.RemoveChunk(ctx, chunk)
 		if err != nil {
 			return err
