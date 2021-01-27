@@ -1,7 +1,6 @@
 package bee
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -26,7 +25,7 @@ func setInitContainers(o setInitContainersOptions) (inits containers.Containers)
 			Name:            "init-clef",
 			Image:           o.ClefImage,
 			ImagePullPolicy: o.ClefImagePullPolicy,
-			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh init %s; echo 'clef initialization done';", o.ClefPassword)},
+			Command:         []string{"sh", "-c", "/entrypoint.sh init; echo 'clef initialization done';"},
 			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
 				ClefEnabled: o.ClefEnabled,
 			}),
@@ -127,7 +126,7 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 			Name:            "clef",
 			Image:           o.ClefImage,
 			ImagePullPolicy: o.ClefImagePullPolicy,
-			Command:         []string{"sh", "-c", fmt.Sprintf("/entrypoint.sh run %s;", o.ClefPassword)},
+			Command:         []string{"sh", "-c", "/entrypoint.sh run;"},
 			Ports: containers.Ports{
 				{
 					Name:          "api",
@@ -187,9 +186,20 @@ type setClefVolumeMountsOptions struct {
 func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts containers.VolumeMounts) {
 	if o.ClefEnabled {
 		volumeMounts = append(volumeMounts, containers.VolumeMount{
+			Name:      "clef",
+			MountPath: "/app/data",
+			ReadOnly:  false,
+		})
+		volumeMounts = append(volumeMounts, containers.VolumeMount{
 			Name:      "clef-key",
-			MountPath: "/root/.clef/keys/clef.key",
+			MountPath: "/app/data/keystore/clef.key",
 			SubPath:   "clef.key",
+			ReadOnly:  true,
+		})
+		volumeMounts = append(volumeMounts, containers.VolumeMount{
+			Name:      "clef-secret",
+			MountPath: "/app/data/password",
+			SubPath:   "password",
 			ReadOnly:  true,
 		})
 	}
@@ -200,7 +210,7 @@ func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts containers.
 type setVolumesOptions struct {
 	ConfigCM           string
 	KeysSecret         string
-	ClefKeySecret      string
+	ClefSecret         string
 	PersistenceEnabled bool
 	ClefEnabled        bool
 	LibP2PEnabled      bool
@@ -223,12 +233,27 @@ func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
 	}
 	if o.ClefEnabled {
 		volumes = append(volumes, pod.Volume{
+			EmptyDir: &pod.EmptyDirVolume{
+				Name: "clef",
+			},
+		})
+		volumes = append(volumes, pod.Volume{
 			Secret: &pod.SecretVolume{
 				Name:       "clef-key",
-				SecretName: o.ClefKeySecret,
+				SecretName: o.ClefSecret,
 				Items: pod.Items{{
-					Key:   "clef",
+					Key:   "key",
 					Value: "clef.key",
+				}},
+			},
+		})
+		volumes = append(volumes, pod.Volume{
+			Secret: &pod.SecretVolume{
+				Name:       "clef-secret",
+				SecretName: o.ClefSecret,
+				Items: pod.Items{{
+					Key:   "password",
+					Value: "password",
 				}},
 			},
 		})
