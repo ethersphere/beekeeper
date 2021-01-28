@@ -412,7 +412,7 @@ func (g *NodeGroup) Nodes() map[string]*Node {
 	return g.getNodes()
 }
 
-// NodesClients returns map of node's clients in the node group
+// NodesClients returns map of node's clients in the node group excluding stopped nodes
 func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*Client, error) {
 	stopped, err := g.StoppedNodes(ctx)
 	if err != nil {
@@ -425,6 +425,11 @@ func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*Client, error
 	}
 
 	return clients, nil
+}
+
+// NodesClientsAll returns map of node's clients in the node group
+func (g *NodeGroup) NodesClientsAll(ctx context.Context) map[string]*Client {
+	return g.getClients()
 }
 
 // NodesSorted returns sorted list of node names in the node group

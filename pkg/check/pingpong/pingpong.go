@@ -28,12 +28,7 @@ func Check(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
-		nodesClients, err := ng.NodesClients(ctx)
-		if err != nil {
-			return fmt.Errorf("get nodes clients: %w", err)
-		}
-
-		for n := range nodeStream(ctx, nodesClients) {
+		for n := range nodeStream(ctx, ng.NodesClientsAll(ctx)) {
 			for t := 0; t < 5; t++ {
 				time.Sleep(2 * time.Duration(t) * time.Second)
 

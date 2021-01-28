@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/common/expfmt"
 )
 
 // Actions for dynamic behavior
@@ -24,7 +25,7 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 	fmt.Printf("Seed: %d\n", o.Seed)
 
 	fmt.Println("Checking PingPong")
-	if err := Check(ctx, cluster, o); err != nil {
+	if err := CheckD(ctx, cluster, o); err != nil {
 		return fmt.Errorf("check pingpong: %w", err)
 	}
 
@@ -104,11 +105,62 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		time.Sleep(65 * time.Second)
 
 		fmt.Println("Checking PingPong")
-		if err := Check(ctx, cluster, o); err != nil {
+		if err := CheckD(ctx, cluster, o); err != nil {
 			return fmt.Errorf("check pingpong: %w", err)
 		}
 		fmt.Println("pingpong check completed successfully")
 	}
 
 	return nil
+}
+
+// CheckD executes ping from all nodes to all other nodes in the cluster
+func CheckD(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+	o.MetricsPusher.Collector(rttGauge)
+	o.MetricsPusher.Collector(rttHistogram)
+	o.MetricsPusher.Format(expfmt.FmtText)
+
+	nodeGroups := cluster.NodeGroups()
+	for _, ng := range nodeGroups {
+		nodesClients, err := ng.NodesClients(ctx)
+		if err != nil {
+			return fmt.Errorf("get nodes clients: %w", err)
+		}
+
+		for n := range nodeStream(ctx, nodesClients) {
+			for t := 0; t < 5; t++ {
+				time.Sleep(2 * time.Duration(t) * time.Second)
+
+				if n.Error != nil {
+					if t == 4 {
+						return fmt.Errorf("node %s: %w", n.Name, n.Error)
+					}
+					fmt.Printf("node %s: %v\n", n.Name, n.Error)
+					continue
+				}
+				fmt.Printf("Node %s: %s Peer: %s RTT: %s\n", n.Name, n.Address, n.PeerAddress, n.RTT)
+
+				rtt, err := time.ParseDuration(n.RTT)
+				if err != nil {
+					if t == 4 {
+						return fmt.Errorf("node %s: %w", n.Name, err)
+					}
+					fmt.Printf("node %s: %v\n", n.Name, err)
+					continue
+				}
+
+				rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
+				rttHistogram.Observe(rtt.Seconds())
+
+				if o.MetricsEnabled {
+					if err := o.MetricsPusher.Push(); err != nil {
+						fmt.Printf("node %s: %v\n", n.Name, err)
+					}
+				}
+				break
+			}
+		}
+	}
+
+	return
 }
