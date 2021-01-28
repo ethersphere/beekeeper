@@ -28,6 +28,7 @@ func (c *command) initPrintCmd() (err error) {
 	cmd.PersistentFlags().Bool(optionNameInsecureTLS, false, "skips TLS verification for both API and debug API")
 	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
 	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
+	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
 
 	cmd.AddCommand(c.initPrintAddresses())
 	cmd.AddCommand(c.initPrintOverlay())

@@ -58,6 +58,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().String(optionNamePushGateway, "http://localhost:9091/", "Prometheus PushGateway")
 	cmd.PersistentFlags().BoolVar(&pushMetrics, optionNamePushMetrics, false, "push metrics to pushgateway")
 	cmd.PersistentFlags().BoolVar(&inCluster, optionNameInCluster, false, "run Beekeeper in Kubernetes cluster")
+	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
 
 	cmd.AddCommand(c.initCheckBalances())
 	cmd.AddCommand(c.initCheckFileRetrieval())
