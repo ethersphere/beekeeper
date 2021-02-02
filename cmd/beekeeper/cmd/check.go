@@ -77,6 +77,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.AddCommand(c.initCheckChunkRepair())
 	cmd.AddCommand(c.initCheckManifest())
 	cmd.AddCommand(c.initCheckPing())
+	cmd.AddCommand(c.initCheckSmoke())
 
 	c.root.AddCommand(cmd)
 	return nil
