@@ -63,6 +63,7 @@ and prints round-trip time (RTT) of each ping.`,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
 				K8SClient:           k8sClient,
 				Namespace:           c.config.GetString(optionNameNamespace),
+				DisableNamespace:    disableNamespace,
 			})
 
 			if startCluster {
