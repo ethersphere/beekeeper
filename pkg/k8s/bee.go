@@ -1,6 +1,12 @@
 package k8s
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+// ErrNotSet ...
+var ErrNotSet = errors.New("kubernetes Bee client not set")
 
 // Bee represents Bee implementation in Kubernetes
 type Bee interface {

@@ -16,6 +16,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 )
 
+// compile check whether client implements interface
 var _ k8s.Bee = (*Client)(nil)
 
 // Client manages communication with the Kubernetes
