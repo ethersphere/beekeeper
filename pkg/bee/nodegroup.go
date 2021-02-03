@@ -324,10 +324,7 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 		return errKubernetesClientNotSet
 	}
 
-	if err := g.k8s.Delete(ctx, k8s.Options{
-		Name:      name,
-		Namespace: g.cluster.namespace,
-	}); err != nil {
+	if err := g.k8s.Delete(ctx, name, g.cluster.namespace); err != nil {
 		return fmt.Errorf("deleting node %s: %w", name, err)
 	}
 
@@ -601,10 +598,7 @@ func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err er
 		return false, errKubernetesClientNotSet
 	}
 
-	return g.k8s.Ready(ctx, k8s.Options{
-		Namespace: g.cluster.namespace,
-		Name:      name,
-	})
+	return g.k8s.Ready(ctx, name, g.cluster.namespace)
 }
 
 // NodeGroupSettlements represents settlements of all nodes in the node group
@@ -705,10 +699,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		return errKubernetesClientNotSet
 	}
 
-	if err := g.k8s.Start(ctx, k8s.Options{
-		Name:      name,
-		Namespace: g.cluster.namespace,
-	}); err != nil {
+	if err := g.k8s.Start(ctx, name, g.cluster.namespace); err != nil {
 		return fmt.Errorf("start node %s: %w", name, err)
 	}
 
@@ -755,10 +746,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		return errKubernetesClientNotSet
 	}
 
-	return g.k8s.Stop(ctx, k8s.Options{
-		Name:      name,
-		Namespace: g.cluster.namespace,
-	})
+	return g.k8s.Stop(ctx, name, g.cluster.namespace)
 }
 
 // StoppedNodes returns list of stopped nodes

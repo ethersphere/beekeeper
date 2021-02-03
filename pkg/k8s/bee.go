@@ -5,18 +5,12 @@ import "context"
 // Bee represents Bee implementation in Kubernetes
 type Bee interface {
 	Create(ctx context.Context, o CreateOptions) (err error)
-	Delete(ctx context.Context, o Options) (err error)
-	Ready(ctx context.Context, o Options) (ready bool, err error)
-	Start(ctx context.Context, o Options) (err error)
+	Delete(ctx context.Context, name, namespace string) (err error)
+	Ready(ctx context.Context, name, namespace string) (ready bool, err error)
+	Start(ctx context.Context, name, namespace string) (err error)
 	StartedNodes(ctx context.Context, namespace string) (started []string, err error)
-	Stop(ctx context.Context, o Options) (err error)
+	Stop(ctx context.Context, name, namespace string) (err error)
 	StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error)
-}
-
-// Options represents default available options
-type Options struct {
-	Name      string
-	Namespace string
 }
 
 // CreateOptions represents available options for creating node
