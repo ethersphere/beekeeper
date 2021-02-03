@@ -432,8 +432,8 @@ func (c *Client) UploadBytes(ctx context.Context, b []byte, o api.UploadOptions)
 }
 
 // UploadChunk uploads chunk to the node
-func (c *Client) UploadChunk(ctx context.Context, chunk *Chunk, o api.UploadOptions) (swarm.Address, error) {
-	resp, err := c.api.Chunks.Upload(ctx, chunk.address, bytes.NewReader(chunk.Data()), o)
+func (c *Client) UploadChunk(ctx context.Context, data []byte, o api.UploadOptions) (swarm.Address, error) {
+	resp, err := c.api.Chunks.Upload(ctx, data, o)
 	if err != nil {
 		return swarm.ZeroAddress, fmt.Errorf("upload chunk: %w", err)
 	}

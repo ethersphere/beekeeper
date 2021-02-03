@@ -58,7 +58,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			}
 
 			t0 := time.Now()
-			ref, err := ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			ref, err := ng.NodeClient(nodeName).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}

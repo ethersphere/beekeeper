@@ -32,7 +32,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	ref, err := ng.NodeClient(pivotNode).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: true})
+	ref, err := ng.NodeClient(pivotNode).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: true})
 	if err != nil {
 		return fmt.Errorf("node %s: %w", pivotNode, err)
 	}

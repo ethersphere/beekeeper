@@ -58,7 +58,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		}
 
 		// upload the chunk in nodeA
-		ref, err := nodeA.UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
+		ref, err := nodeA.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 		if err != nil {
 			return err
 		}
@@ -229,7 +229,7 @@ func getNodes(ctx context.Context, ng *bee.NodeGroup, rnd *rand.Rand) (*bee.Clie
 
 // uploadAndPinChunkToNode uploads a given chunk to a given node and pins it.
 func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.Chunk) error {
-	ref, err := node.UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
+	ref, err := node.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 	if err != nil {
 		return err
 	}

@@ -60,7 +60,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			}
 
 			t0 := time.Now()
-			addr, err := ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			addr, err := ng.NodeClient(nodeName).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -156,7 +156,7 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			ref, err := ng.NodeClient(nodeName).UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			ref, err := ng.NodeClient(nodeName).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -273,7 +273,7 @@ func chunkStream(ctx context.Context, node *bee.Client, rnd *rand.Rand, count in
 				return
 			}
 
-			ref, err := n.UploadChunk(ctx, &chunk, api.UploadOptions{Pin: false})
+			ref, err := n.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
 				chunkStream <- chunkStreamMsg{Error: err}
 				return
