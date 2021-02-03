@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -22,17 +23,16 @@ func (c *ChunksService) Download(ctx context.Context, a swarm.Address, targets s
 
 // ChunksUploadResponse represents Upload's response
 type ChunksUploadResponse struct {
-	Message string `json:"message,omitempty"`
-	Code    int    `json:"code,omitempty"`
+	Reference swarm.Address `json:"reference"`
 }
 
 // Upload uploads chunks to the node
-func (c *ChunksService) Upload(ctx context.Context, a swarm.Address, data io.Reader, o UploadOptions) (ChunksUploadResponse, error) {
+func (c *ChunksService) Upload(ctx context.Context, data []byte, o UploadOptions) (ChunksUploadResponse, error) {
 	var resp ChunksUploadResponse
 	h := http.Header{}
 	if o.Pin {
 		h.Add("Swarm-Pin", "true")
 	}
-	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks/"+a.String(), h, data, &resp)
+	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks", h, bytes.NewReader(data), &resp)
 	return resp, err
 }

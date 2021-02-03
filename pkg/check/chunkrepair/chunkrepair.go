@@ -58,7 +58,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		}
 
 		// upload the chunk in nodeA
-		err = nodeA.UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
+		ref, err := nodeA.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			// check if the node is there in the local store of node B
 			// this does a get chunk instead of Has chunk, so the following
 			// call just checks if the chunk is accessible from nodeB
-			present, err := nodeB.HasChunk(ctx, chunk.Address())
+			present, err := nodeB.HasChunk(ctx, ref)
 			if err != nil {
 				// give time for the chunk to reach its destination
 				time.Sleep(100 * time.Millisecond)
@@ -86,7 +86,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		}
 
 		// download the chunk from nodeC
-		data1, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
+		data1, err := nodeC.DownloadChunk(ctx, ref, "")
 		if err != nil {
 			return err
 		}
@@ -229,12 +229,12 @@ func getNodes(ctx context.Context, ng *bee.NodeGroup, rnd *rand.Rand) (*bee.Clie
 
 // uploadAndPinChunkToNode uploads a given chunk to a given node and pins it.
 func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.Chunk) error {
-	err := node.UploadChunk(ctx, chunk, api.UploadOptions{Pin: false})
+	ref, err := node.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 	if err != nil {
 		return err
 	}
 
-	return node.PinChunk(ctx, chunk.Address())
+	return node.PinChunk(ctx, ref)
 }
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
