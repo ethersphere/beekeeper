@@ -1,4 +1,58 @@
-package bee
+package k8s
+
+import "context"
+
+// Bee represents Bee implementation in Kubernetes
+type Bee interface {
+	Create(ctx context.Context, o CreateOptions) (err error)
+	Delete(ctx context.Context, o Options) (err error)
+	Ready(ctx context.Context, o Options) (ready bool, err error)
+	Start(ctx context.Context, o Options) (err error)
+	StartedNodes(ctx context.Context, namespace string) (started []string, err error)
+	Stop(ctx context.Context, o Options) (err error)
+	StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error)
+}
+
+// Options represents default available options
+type Options struct {
+	Name      string
+	Namespace string
+}
+
+// CreateOptions represents available options for creating node
+type CreateOptions struct {
+	// Bee configuration
+	Config Config
+	// Kubernetes configuration
+	Name                      string
+	Namespace                 string
+	Annotations               map[string]string
+	ClefImage                 string
+	ClefImagePullPolicy       string
+	ClefKey                   string
+	ClefPassword              string
+	Labels                    map[string]string
+	LimitCPU                  string
+	LimitMemory               string
+	Image                     string
+	ImagePullPolicy           string
+	IngressAnnotations        map[string]string
+	IngressHost               string
+	IngressDebugAnnotations   map[string]string
+	IngressDebugHost          string
+	LibP2PKey                 string
+	NodeSelector              map[string]string
+	PersistenceEnabled        bool
+	PersistenceStorageClass   string
+	PersistanceStorageRequest string
+	PodManagementPolicy       string
+	RestartPolicy             string
+	RequestCPU                string
+	RequestMemory             string
+	Selector                  map[string]string
+	SwarmKey                  string
+	UpdateStrategy            string
+}
 
 // Config represents Bee configuration
 type Config struct {
@@ -36,38 +90,3 @@ type Config struct {
 	Verbosity            uint64 // log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace
 	WelcomeMessage       string // send a welcome message string during handshakes
 }
-
-const configTemplate = `api-addr: {{.APIAddr}}
-bootnode: {{.Bootnodes}}
-clef-signer-enable: {{.ClefSignerEnable}}
-clef-signer-endpoint: {{.ClefSignerEndpoint}}
-cors-allowed-origins: {{.CORSAllowedOrigins}}
-data-dir: {{.DataDir}}
-db-capacity: {{.DBCapacity}}
-debug-api-addr: {{.DebugAPIAddr}}
-debug-api-enable: {{.DebugAPIEnable}}
-gateway-mode: {{.GatewayMode}}
-global-pinning-enable: {{.GlobalPinningEnabled}}
-nat-addr: {{.NATAddr}}
-network-id: {{.NetworkID}}
-p2p-addr: {{.P2PAddr}}
-p2p-quic-enable: {{.P2PQUICEnable}}
-p2p-ws-enable: {{.P2PWSEnable}}
-password: {{.Password}}
-payment-early: {{.PaymentEarly}}
-payment-threshold: {{.PaymentThreshold}}
-payment-tolerance: {{.PaymentTolerance}}
-postage-stamp-address: {{ .PostageStampAddress }}
-price-oracle-address: {{ .PriceOracleAddress }}
-resolver-options: {{.ResolverOptions}}
-standalone: {{.Standalone}}
-swap-enable: {{.SwapEnable}}
-swap-endpoint: {{.SwapEndpoint}}
-swap-factory-address: {{.SwapFactoryAddress}}
-swap-initial-deposit: {{.SwapInitialDeposit}}
-tracing-enable: {{.TracingEnabled}}
-tracing-endpoint: {{.TracingEndpoint}}
-tracing-service-name: {{.TracingServiceName}}
-verbosity: {{.Verbosity}}
-welcome-message: {{.WelcomeMessage}}
-`

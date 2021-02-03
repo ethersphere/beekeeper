@@ -71,6 +71,7 @@ func (c *Cluster) AddNodeGroup(name string, o NodeGroupOptions) {
 	if g.cluster.k8s != nil {
 		g.k8s = k8sBee.NewClient(g.cluster.k8s)
 	} else {
+		// TODO: create NopBeeClient and assign it here
 		g.k8s = nil
 	}
 

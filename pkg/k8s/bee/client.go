@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
@@ -15,47 +16,27 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 )
 
-const (
-	portHTTP = 80
-)
+var _ k8s.Bee = (*Client)(nil)
 
-// CreateOptions represents available options for creating node
-type CreateOptions struct {
-	// Bee configuration
-	Config Config
-	// Kubernetes configuration
-	Name                      string
-	Namespace                 string
-	Annotations               map[string]string
-	ClefImage                 string
-	ClefImagePullPolicy       string
-	ClefKey                   string
-	ClefPassword              string
-	Labels                    map[string]string
-	LimitCPU                  string
-	LimitMemory               string
-	Image                     string
-	ImagePullPolicy           string
-	IngressAnnotations        map[string]string
-	IngressHost               string
-	IngressDebugAnnotations   map[string]string
-	IngressDebugHost          string
-	LibP2PKey                 string
-	NodeSelector              map[string]string
-	PersistenceEnabled        bool
-	PersistenceStorageClass   string
-	PersistanceStorageRequest string
-	PodManagementPolicy       string
-	RestartPolicy             string
-	RequestCPU                string
-	RequestMemory             string
-	Selector                  map[string]string
-	SwarmKey                  string
-	UpdateStrategy            string
+// Client manages communication with the Kubernetes
+type Client struct {
+	k8s *k8s.Client
+}
+
+// ClientOptions holds optional parameters for the Client.
+type ClientOptions struct {
+	KubeconfigPath string
+}
+
+// NewClient returns Kubernetes clientset
+func NewClient(k8s *k8s.Client) (c *Client) {
+	return &Client{
+		k8s: k8s,
+	}
 }
 
 // Create creates Bee node in the cluster
-func (c *Client) Create(ctx context.Context, o CreateOptions) (err error) {
+func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 	// bee configuration
 	var config bytes.Buffer
 	if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
@@ -376,14 +357,8 @@ func (c *Client) Create(ctx context.Context, o CreateOptions) (err error) {
 	return
 }
 
-// DeleteOptions represents available options for starting node
-type DeleteOptions struct {
-	Name      string
-	Namespace string
-}
-
 // Delete deletes Bee node from the cluster
-func (c *Client) Delete(ctx context.Context, o DeleteOptions) (err error) {
+func (c *Client) Delete(ctx context.Context, o k8s.Options) (err error) {
 	// statefulset
 	sSet := o.Name
 	if err := c.k8s.StatefulSet.Delete(ctx, sSet, o.Namespace); err != nil {
@@ -465,14 +440,8 @@ func (c *Client) Delete(ctx context.Context, o DeleteOptions) (err error) {
 	return
 }
 
-// ReadyOptions represents available options for getting node's readiness
-type ReadyOptions struct {
-	Name      string
-	Namespace string
-}
-
 // Ready gets Bee node's readiness
-func (c *Client) Ready(ctx context.Context, o ReadyOptions) (ready bool, err error) {
+func (c *Client) Ready(ctx context.Context, o k8s.Options) (ready bool, err error) {
 	r, err := c.k8s.StatefulSet.ReadyReplicas(ctx, o.Name, o.Namespace)
 	if err != nil {
 		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", o.Name, o.Namespace, err)
@@ -481,14 +450,8 @@ func (c *Client) Ready(ctx context.Context, o ReadyOptions) (ready bool, err err
 	return r == 1, nil
 }
 
-// StartOptions represents available options for starting node
-type StartOptions struct {
-	Name      string
-	Namespace string
-}
-
 // Start starts Bee node in the cluster
-func (c *Client) Start(ctx context.Context, o StopOptions) (err error) {
+func (c *Client) Start(ctx context.Context, o k8s.Options) (err error) {
 	err = c.k8s.StatefulSet.Scale(ctx, o.Name, o.Namespace, 1)
 	if err != nil {
 		return fmt.Errorf("scale statefulset %s in namespace %s: %w", o.Name, o.Namespace, err)
@@ -508,14 +471,8 @@ func (c *Client) StartedNodes(ctx context.Context, namespace string) (started []
 	return
 }
 
-// StopOptions represents available options for stopping node
-type StopOptions struct {
-	Name      string
-	Namespace string
-}
-
 // Stop stops Bee node in the cluster
-func (c *Client) Stop(ctx context.Context, o StopOptions) (err error) {
+func (c *Client) Stop(ctx context.Context, o k8s.Options) (err error) {
 	err = c.k8s.StatefulSet.Scale(ctx, o.Name, o.Namespace, 0)
 	if err != nil {
 		return fmt.Errorf("scale statefulset %s in namespace %s: %w", o.Name, o.Namespace, err)

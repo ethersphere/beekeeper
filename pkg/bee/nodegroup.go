@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
 const nodeReadyTimeout = 3 * time.Second
@@ -24,7 +24,7 @@ type NodeGroup struct {
 
 	// set when added to the cluster
 	cluster *Cluster
-	k8s     *k8sBee.Client
+	k8s     k8s.Bee
 
 	lock sync.RWMutex
 }
@@ -34,7 +34,7 @@ type NodeGroupOptions struct {
 	Annotations               map[string]string
 	ClefImage                 string
 	ClefImagePullPolicy       string
-	BeeConfig                 *k8sBee.Config
+	BeeConfig                 *k8s.Config
 	Image                     string
 	ImagePullPolicy           string
 	IngressAnnotations        map[string]string
@@ -83,7 +83,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 	})
 
 	// TODO: make more granular, check every sub-option
-	var config *k8sBee.Config
+	var config *k8s.Config
 	if o.Config != nil {
 		config = o.Config
 	} else {
@@ -279,7 +279,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 	n := g.getNode(name)
 
-	if err := g.k8s.Create(ctx, k8sBee.CreateOptions{
+	if err := g.k8s.Create(ctx, k8s.CreateOptions{
 		// Bee configuration
 		Config: *n.config,
 		// Kubernetes configuration
@@ -324,7 +324,7 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 		return errKubernetesClientNotSet
 	}
 
-	if err := g.k8s.Delete(ctx, k8sBee.DeleteOptions{
+	if err := g.k8s.Delete(ctx, k8s.Options{
 		Name:      name,
 		Namespace: g.cluster.namespace,
 	}); err != nil {
@@ -601,7 +601,7 @@ func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err er
 		return false, errKubernetesClientNotSet
 	}
 
-	return g.k8s.Ready(ctx, k8sBee.ReadyOptions{
+	return g.k8s.Ready(ctx, k8s.Options{
 		Namespace: g.cluster.namespace,
 		Name:      name,
 	})
@@ -705,7 +705,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		return errKubernetesClientNotSet
 	}
 
-	if err := g.k8s.Start(ctx, k8sBee.StopOptions{
+	if err := g.k8s.Start(ctx, k8s.Options{
 		Name:      name,
 		Namespace: g.cluster.namespace,
 	}); err != nil {
@@ -755,7 +755,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		return errKubernetesClientNotSet
 	}
 
-	return g.k8s.Stop(ctx, k8sBee.StopOptions{
+	return g.k8s.Stop(ctx, k8s.Options{
 		Name:      name,
 		Namespace: g.cluster.namespace,
 	})
