@@ -19,7 +19,7 @@ type Options struct {
 	FileName           string
 	FileSize           int64
 	Seed               int64
-	Threshold          int
+	Threshold          int64
 	WaitBeforeDownload int
 }
 
@@ -161,7 +161,7 @@ func DryRunCheck(c *bee.Cluster, o Options) (err error) {
 }
 
 // validateSettlements checks if settlements are valid
-func validateSettlements(threshold int, overlays bee.NodeGroupOverlays, balances bee.NodeGroupBalances, settlements bee.NodeGroupSettlements) (err error) {
+func validateSettlements(threshold int64, overlays bee.NodeGroupOverlays, balances bee.NodeGroupBalances, settlements bee.NodeGroupSettlements) (err error) {
 	// threshold validation
 	for node, v := range balances {
 		for _, balance := range v {
