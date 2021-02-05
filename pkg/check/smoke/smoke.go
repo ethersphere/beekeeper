@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
@@ -44,6 +45,8 @@ func Check(c *bee.Cluster, o Options) error {
 		if err != nil {
 			return fmt.Errorf("upload to node %s: %w", nodeName, err)
 		}
+
+		time.Sleep(30 * time.Second)
 
 		fmt.Printf("uploaded %d bytes successfully, hash %s\n", len(data), addr.String())
 
