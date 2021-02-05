@@ -27,7 +27,7 @@ func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error)
 
 // Balance represents node's balance with a peer
 type Balance struct {
-	Balance int    `json:"balance"`
+	Balance int64  `json:"balance"`
 	Peer    string `json:"peer"`
 }
 

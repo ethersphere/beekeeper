@@ -85,7 +85,7 @@ func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
 
 // Balance represents node's balance with peer
 type Balance struct {
-	Balance int
+	Balance int64
 	Peer    string
 }
 

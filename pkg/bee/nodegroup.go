@@ -190,7 +190,7 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStream
 }
 
 // NodeGroupBalances represents balances of all nodes in the node group
-type NodeGroupBalances map[string]map[string]int
+type NodeGroupBalances map[string]map[string]int64
 
 // Balances returns NodeGroupBalances
 func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, err error) {
@@ -215,7 +215,7 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, e
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
 		}
 
-		tmp := make(map[string]int)
+		tmp := make(map[string]int64)
 		for _, b := range m.Balances.Balances {
 			tmp[b.Peer] = b.Balance
 		}
