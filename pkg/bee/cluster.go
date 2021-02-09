@@ -9,6 +9,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s/notset"
 )
 
 // Cluster represents cluster of Bee nodes
@@ -71,7 +72,7 @@ func (c *Cluster) AddNodeGroup(name string, o NodeGroupOptions) {
 	if g.cluster.k8s != nil {
 		g.k8s = k8sBee.NewClient(g.cluster.k8s)
 	} else {
-		g.k8s = nil
+		g.k8s = new(notset.BeeClient)
 	}
 
 	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)

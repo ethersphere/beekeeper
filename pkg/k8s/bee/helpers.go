@@ -10,6 +10,44 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 )
 
+const (
+	configTemplate = `api-addr: {{.APIAddr}}
+bootnode: {{.Bootnodes}}
+clef-signer-enable: {{.ClefSignerEnable}}
+clef-signer-endpoint: {{.ClefSignerEndpoint}}
+cors-allowed-origins: {{.CORSAllowedOrigins}}
+data-dir: {{.DataDir}}
+db-capacity: {{.DBCapacity}}
+debug-api-addr: {{.DebugAPIAddr}}
+debug-api-enable: {{.DebugAPIEnable}}
+gateway-mode: {{.GatewayMode}}
+global-pinning-enable: {{.GlobalPinningEnabled}}
+nat-addr: {{.NATAddr}}
+network-id: {{.NetworkID}}
+p2p-addr: {{.P2PAddr}}
+p2p-quic-enable: {{.P2PQUICEnable}}
+p2p-ws-enable: {{.P2PWSEnable}}
+password: {{.Password}}
+payment-early: {{.PaymentEarly}}
+payment-threshold: {{.PaymentThreshold}}
+payment-tolerance: {{.PaymentTolerance}}
+postage-stamp-address: {{ .PostageStampAddress }}
+price-oracle-address: {{ .PriceOracleAddress }}
+resolver-options: {{.ResolverOptions}}
+standalone: {{.Standalone}}
+swap-enable: {{.SwapEnable}}
+swap-endpoint: {{.SwapEndpoint}}
+swap-factory-address: {{.SwapFactoryAddress}}
+swap-initial-deposit: {{.SwapInitialDeposit}}
+tracing-enable: {{.TracingEnabled}}
+tracing-endpoint: {{.TracingEndpoint}}
+tracing-service-name: {{.TracingServiceName}}
+verbosity: {{.Verbosity}}
+welcome-message: {{.WelcomeMessage}}
+`
+	portHTTP = 80
+)
+
 type setInitContainersOptions struct {
 	ClefEnabled         bool
 	ClefImage           string

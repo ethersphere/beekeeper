@@ -2,19 +2,16 @@ package bee
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
 const nodeReadyTimeout = 3 * time.Second
-
-var errKubernetesClientNotSet = errors.New("kubernetes client not set")
 
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
@@ -24,7 +21,7 @@ type NodeGroup struct {
 
 	// set when added to the cluster
 	cluster *Cluster
-	k8s     *k8sBee.Client
+	k8s     k8s.Bee
 
 	lock sync.RWMutex
 }
@@ -34,7 +31,7 @@ type NodeGroupOptions struct {
 	Annotations               map[string]string
 	ClefImage                 string
 	ClefImagePullPolicy       string
-	BeeConfig                 *k8sBee.Config
+	BeeConfig                 *k8s.Config
 	Image                     string
 	ImagePullPolicy           string
 	IngressAnnotations        map[string]string
@@ -83,7 +80,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 	})
 
 	// TODO: make more granular, check every sub-option
-	var config *k8sBee.Config
+	var config *k8s.Config
 	if o.Config != nil {
 		config = o.Config
 	} else {
@@ -157,7 +154,7 @@ type AddressesStreamMsg struct {
 // AddressesStream returns stream of addresses of all nodes in the node group
 func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != errKubernetesClientNotSet {
+	if err != nil && err != k8s.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -235,7 +232,7 @@ type BalancesStreamMsg struct {
 // BalancesStream returns stream of balances of all nodes in the cluster
 func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != errKubernetesClientNotSet {
+	if err != nil && err != k8s.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -269,17 +266,13 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 
 // CreateNode creates new node in the k8s cluster
 func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
-	if g.k8s == nil {
-		return errKubernetesClientNotSet
-	}
-
 	labels := mergeMaps(g.opts.Labels, map[string]string{
 		"app.kubernetes.io/instance": name,
 	})
 
 	n := g.getNode(name)
 
-	if err := g.k8s.Create(ctx, k8sBee.CreateOptions{
+	if err := g.k8s.Create(ctx, k8s.CreateOptions{
 		// Bee configuration
 		Config: *n.config,
 		// Kubernetes configuration
@@ -320,14 +313,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	if g.k8s == nil {
-		return errKubernetesClientNotSet
-	}
-
-	if err := g.k8s.Delete(ctx, k8sBee.DeleteOptions{
-		Name:      name,
-		Namespace: g.cluster.namespace,
-	}); err != nil {
+	if err := g.k8s.Delete(ctx, name, g.cluster.namespace); err != nil {
 		return fmt.Errorf("deleting node %s: %w", name, err)
 	}
 
@@ -370,7 +356,7 @@ type HasChunkStreamMsg struct {
 // HasChunkStream returns stream of HasChunk requests for all nodes in the node group
 func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan HasChunkStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != errKubernetesClientNotSet {
+	if err != nil && err != k8s.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -495,7 +481,7 @@ type OverlaysStreamMsg struct {
 // TODO: add semaphore
 func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != errKubernetesClientNotSet {
+	if err != nil && err != k8s.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -563,7 +549,7 @@ type PeersStreamMsg struct {
 // PeersStream returns stream of peers of all nodes in the node group
 func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != errKubernetesClientNotSet {
+	if err != nil && err != k8s.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -597,14 +583,7 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 
 // NodeReady returns node's readiness
 func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err error) {
-	if g.k8s == nil {
-		return false, errKubernetesClientNotSet
-	}
-
-	return g.k8s.Ready(ctx, k8sBee.ReadyOptions{
-		Namespace: g.cluster.namespace,
-		Name:      name,
-	})
+	return g.k8s.Ready(ctx, name, g.cluster.namespace)
 }
 
 // NodeGroupSettlements represents settlements of all nodes in the node group
@@ -662,7 +641,7 @@ type SettlementsStreamMsg struct {
 // SettlementsStream returns stream of settlements of all nodes in the cluster
 func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != errKubernetesClientNotSet {
+	if err != nil && err != k8s.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -701,14 +680,7 @@ func (g *NodeGroup) Size() int {
 
 // StartNode start node by scaling its statefulset to 1
 func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
-	if g.k8s == nil {
-		return errKubernetesClientNotSet
-	}
-
-	if err := g.k8s.Start(ctx, k8sBee.StopOptions{
-		Name:      name,
-		Namespace: g.cluster.namespace,
-	}); err != nil {
+	if err := g.k8s.Start(ctx, name, g.cluster.namespace); err != nil {
 		return fmt.Errorf("start node %s: %w", name, err)
 	}
 
@@ -731,10 +703,6 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 
 // StartedNodes returns list of started nodes
 func (g *NodeGroup) StartedNodes(ctx context.Context) (started []string, err error) {
-	if g.k8s == nil {
-		return []string{}, errKubernetesClientNotSet
-	}
-
 	allStarted, err := g.k8s.StartedNodes(ctx, g.cluster.namespace)
 	if err != nil {
 		return nil, fmt.Errorf("k8s started nodes: %w", err)
@@ -751,22 +719,11 @@ func (g *NodeGroup) StartedNodes(ctx context.Context) (started []string, err err
 
 // StopNode stops node by scaling down its statefulset to 0
 func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
-	if g.k8s == nil {
-		return errKubernetesClientNotSet
-	}
-
-	return g.k8s.Stop(ctx, k8sBee.StopOptions{
-		Name:      name,
-		Namespace: g.cluster.namespace,
-	})
+	return g.k8s.Stop(ctx, name, g.cluster.namespace)
 }
 
 // StoppedNodes returns list of stopped nodes
 func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
-	if g.k8s == nil {
-		return []string{}, errKubernetesClientNotSet
-	}
-
 	allStopped, err := g.k8s.StoppedNodes(ctx, g.cluster.namespace)
 	if err != nil {
 		return nil, fmt.Errorf("k8s stopped nodes: %w", err)
@@ -817,7 +774,7 @@ type TopologyStreamMsg struct {
 // TopologyStream returns stream of Kademlia topologies of all nodes in the node group
 func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != errKubernetesClientNotSet {
+	if err != nil && err != k8s.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
