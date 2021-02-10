@@ -140,9 +140,9 @@ func setK8SClient(kubeconfig string, inCluster bool) (c *k8s.Client, err error) 
 	if c, err = k8s.NewClient(&k8s.ClientOptions{
 		InCluster:      inCluster,
 		KubeconfigPath: kubeconfig,
-	}); err != nil {
+	}); err != nil && err != k8s.ErrKubeconfigNotSet {
 		return nil, fmt.Errorf("creating Kubernetes client: %w", err)
 	}
 
-	return
+	return c, nil
 }

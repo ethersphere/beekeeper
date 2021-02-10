@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// ErrNotSet ...
+// ErrNotSet represents error when Kubernetes Bee client is not set
 var ErrNotSet = errors.New("kubernetes Bee client not set")
 
 // Bee represents Bee implementation in Kubernetes
