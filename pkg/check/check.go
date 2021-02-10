@@ -14,11 +14,12 @@ type Options struct{}
 
 // Check ...
 type Check interface {
-	Run(ctx context.Context, o Options) (err error)
+	Run(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 }
 
 // RunOptions for updating cluster
 type RunOptions struct {
+	Check   Check
 	Cluster *bee.Cluster
 	Seed    int64
 	Stages  []Stage
@@ -59,6 +60,9 @@ func Run(ctx context.Context, o RunOptions) (err error) {
 		}
 
 		// run check here
+		if err := o.Check.Run(ctx, o.Cluster, Options{}); err != nil {
+			return err
+		}
 	}
 
 	return

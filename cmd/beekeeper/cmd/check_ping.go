@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -182,7 +183,10 @@ func (c *command) initCheckPing() *cobra.Command {
 				seed = random.Int64()
 			}
 
+			checkPing := pingpong.NewPing()
+
 			runOptions := check.RunOptions{
+				Check:   checkPing,
 				Cluster: cluster,
 				Seed:    seed,
 				Stages:  runStages,
@@ -221,30 +225,30 @@ var runStages = []check.Stage{
 			},
 		},
 	},
-	{
-		Updates: []check.Update{
-			{
-				NodeGroup: "nodes",
-				Actions: check.Actions{
-					AddCount:    2,
-					StartCount:  1,
-					StopCount:   2,
-					DeleteCount: 1,
-				},
-			},
-		},
-	},
-	{
-		Updates: []check.Update{
-			{
-				NodeGroup: "nodes",
-				Actions: check.Actions{
-					AddCount:    3,
-					StartCount:  1,
-					StopCount:   2,
-					DeleteCount: 1,
-				},
-			},
-		},
-	},
+	// {
+	// 	Updates: []check.Update{
+	// 		{
+	// 			NodeGroup: "nodes",
+	// 			Actions: check.Actions{
+	// 				AddCount:    2,
+	// 				StartCount:  1,
+	// 				StopCount:   2,
+	// 				DeleteCount: 1,
+	// 			},
+	// 		},
+	// 	},
+	// },
+	// {
+	// 	Updates: []check.Update{
+	// 		{
+	// 			NodeGroup: "nodes",
+	// 			Actions: check.Actions{
+	// 				AddCount:    3,
+	// 				StartCount:  1,
+	// 				StopCount:   2,
+	// 				DeleteCount: 1,
+	// 			},
+	// 		},
+	// 	},
+	// },
 }

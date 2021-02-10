@@ -250,6 +250,7 @@ github.com/ethereum/go-ethereum v1.9.20 h1:kk/J5OIoaoz3DRrCXznz3RGi212mHHXwzXlY/
 github.com/ethereum/go-ethereum v1.9.20/go.mod h1:JSSTypSMTkGZtAdAChH2wP5dZEvPGh3nUTuDpH+hNrg=
 github.com/ethersphere/bee v0.3.1 h1:w9w9u9zvfTJVzOVqV1EssFckD1obUYb9PMBFwSJqJn0=
 github.com/ethersphere/bee v0.3.1/go.mod h1:qxF0RmmD+WECPI57u5AJfXyYLLM87aRLj+h0V5njuU8=
+github.com/ethersphere/bee v0.5.0 h1:SA5CP2wY2OJ1sDJrDcoWIJqiPWZQSl6MzkR4fMJmM1U=
 github.com/ethersphere/bmt v0.1.2/go.mod h1:fqRBDmYwn3lX2MH4lkImXQgFWeNP8ikLkS/hgi/HRws=
 github.com/ethersphere/bmt v0.1.4 h1:+rkWYNtMgDx6bkNqGdWu+U9DgGI1rRZplpSW3YhBr1Q=
 github.com/ethersphere/bmt v0.1.4/go.mod h1:Yd8ft1U69WDuHevZc/rwPxUv1rzPSMpMnS6xbU53aY8=
