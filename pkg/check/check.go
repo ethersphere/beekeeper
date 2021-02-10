@@ -20,6 +20,7 @@ type Check interface {
 // RunOptions for updating cluster
 type RunOptions struct {
 	Check   Check
+	Options Options
 	Cluster *bee.Cluster
 	Seed    int64
 	Stages  []Stage

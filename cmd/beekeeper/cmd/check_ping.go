@@ -225,30 +225,30 @@ var runStages = []check.Stage{
 			},
 		},
 	},
-	// {
-	// 	Updates: []check.Update{
-	// 		{
-	// 			NodeGroup: "nodes",
-	// 			Actions: check.Actions{
-	// 				AddCount:    2,
-	// 				StartCount:  1,
-	// 				StopCount:   2,
-	// 				DeleteCount: 1,
-	// 			},
-	// 		},
-	// 	},
-	// },
-	// {
-	// 	Updates: []check.Update{
-	// 		{
-	// 			NodeGroup: "nodes",
-	// 			Actions: check.Actions{
-	// 				AddCount:    3,
-	// 				StartCount:  1,
-	// 				StopCount:   2,
-	// 				DeleteCount: 1,
-	// 			},
-	// 		},
-	// 	},
-	// },
+	{
+		Updates: []check.Update{
+			{
+				NodeGroup: "nodes",
+				Actions: check.Actions{
+					AddCount:    2,
+					StartCount:  1,
+					StopCount:   2,
+					DeleteCount: 1,
+				},
+			},
+		},
+	},
+	{
+		Updates: []check.Update{
+			{
+				NodeGroup: "nodes",
+				Actions: check.Actions{
+					AddCount:    3,
+					StartCount:  1,
+					StopCount:   2,
+					DeleteCount: 1,
+				},
+			},
+		},
+	},
 }
