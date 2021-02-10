@@ -305,7 +305,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		SwarmKey:                  n.swarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
 	}); err != nil {
-		return fmt.Errorf("k8s create node %s: %w", name, err)
+		return err
 	}
 
 	return
@@ -314,7 +314,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	if err := g.k8s.Delete(ctx, name, g.cluster.namespace); err != nil {
-		return fmt.Errorf("deleting node %s: %w", name, err)
+		return err
 	}
 
 	g.deleteNode(name)
@@ -681,7 +681,7 @@ func (g *NodeGroup) Size() int {
 // StartNode start node by scaling its statefulset to 1
 func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 	if err := g.k8s.Start(ctx, name, g.cluster.namespace); err != nil {
-		return fmt.Errorf("start node %s: %w", name, err)
+		return err
 	}
 
 	fmt.Printf("wait for %s to become ready\n", name)
@@ -705,7 +705,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 func (g *NodeGroup) StartedNodes(ctx context.Context) (started []string, err error) {
 	allStarted, err := g.k8s.StartedNodes(ctx, g.cluster.namespace)
 	if err != nil {
-		return nil, fmt.Errorf("k8s started nodes: %w", err)
+		return nil, err
 	}
 
 	for _, v := range allStarted {
@@ -726,7 +726,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
 	allStopped, err := g.k8s.StoppedNodes(ctx, g.cluster.namespace)
 	if err != nil {
-		return nil, fmt.Errorf("k8s stopped nodes: %w", err)
+		return nil, err
 	}
 
 	for _, v := range allStopped {

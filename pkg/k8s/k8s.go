@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -18,6 +19,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+// ErrKubeconfigNotSet represents error when kubeconfig is empty string
+var ErrKubeconfigNotSet = errors.New("kubeconfig is not set")
 
 // Client manages communication with the Kubernetes
 type Client struct {
@@ -68,7 +72,9 @@ func NewClient(o *ClientOptions) (c *Client, err error) {
 
 	// set client
 	configPath := ""
-	if len(o.KubeconfigPath) == 0 || o.KubeconfigPath == "~/.kube/config" {
+	if len(o.KubeconfigPath) == 0 {
+		return nil, ErrKubeconfigNotSet
+	} else if o.KubeconfigPath == "~/.kube/config" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return nil, fmt.Errorf("obtaining user's home dir: %w", err)
