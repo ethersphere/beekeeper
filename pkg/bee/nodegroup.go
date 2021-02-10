@@ -719,7 +719,25 @@ func (g *NodeGroup) StartedNodes(ctx context.Context) (started []string, err err
 
 // StopNode stops node by scaling down its statefulset to 0
 func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
-	return g.k8s.Stop(ctx, name, g.cluster.namespace)
+	if err := g.k8s.Stop(ctx, name, g.cluster.namespace); err != nil {
+		return err
+	}
+
+	fmt.Printf("wait for %s to stop\n", name)
+	for {
+		ok, err := g.NodeReady(ctx, name)
+		if err != nil {
+			return fmt.Errorf("node %s readiness: %w", name, err)
+		}
+
+		if !ok {
+			fmt.Printf("%s is stopped\n", name)
+			return nil
+		}
+
+		fmt.Printf("%s is not stopped yet\n", name)
+		time.Sleep(nodeReadyTimeout)
+	}
 }
 
 // StoppedNodes returns list of stopped nodes

@@ -47,15 +47,21 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 
 		// delete nodes
 		for j := 0; j < a.DeleteCount; j++ {
-			nName := ng.NodesSorted()[rnd.Intn(ng.Size())]
-			overlay, err := ng.NodeClient(nName).Overlay(ctx)
+			started, err := ng.StartedNodes(ctx)
 			if err != nil {
-				return fmt.Errorf("get node %s overlay: %w", nName, err)
+				return fmt.Errorf("started nodes: %w", err)
 			}
-			if err := ng.DeleteNode(ctx, nName); err != nil {
-				return fmt.Errorf("delete node %s: %w", nName, err)
+			if len(started) > 0 {
+				nName := started[rnd.Intn(len(started))]
+				overlay, err := ng.NodeClient(nName).Overlay(ctx)
+				if err != nil {
+					return fmt.Errorf("get node %s overlay: %w", nName, err)
+				}
+				if err := ng.DeleteNode(ctx, nName); err != nil {
+					return fmt.Errorf("delete node %s: %w", nName, err)
+				}
+				fmt.Printf("node %s (%s) is deleted\n", nName, overlay)
 			}
-			fmt.Printf("node %s (%s) is deleted\n", nName, overlay)
 		}
 
 		// start nodes
