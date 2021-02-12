@@ -41,7 +41,7 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		for j := 0; j < a.DeleteCount; j++ {
 			running, err := ng.RunningNodes(ctx)
 			if err != nil {
-				return fmt.Errorf("started nodes: %w", err)
+				return fmt.Errorf("running nodes: %w", err)
 			}
 			if len(running) > 0 {
 				nName := running[rnd.Intn(len(running))]
@@ -79,7 +79,7 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		for j := 0; j < a.StopCount; j++ {
 			running, err := ng.RunningNodes(ctx)
 			if err != nil {
-				return fmt.Errorf("started nodes: %w", err)
+				return fmt.Errorf("running nodes: %w", err)
 			}
 			if len(running) > 0 {
 				nName := running[rnd.Intn(len(running))]
