@@ -12,21 +12,19 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Check ...
+// Check defines Bee check
 type Check interface {
 	Run(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 }
 
-// Options ...
+// Options for Bee checks
 type Options struct {
 	MetricsEnabled bool
 	MetricsPusher  *push.Pusher
 }
 
-// Stage ...
-type Stage struct {
-	Updates []Update
-}
+// Stage define stages for updating Bee
+type Stage []Update
 
 // Update represents details for updating a node group
 type Update struct {
@@ -34,7 +32,7 @@ type Update struct {
 	Actions   Actions
 }
 
-// Actions ...
+// Actions represents node group update actions
 type Actions struct {
 	AddCount    int
 	StartCount  int
@@ -51,7 +49,7 @@ func Run(ctx context.Context, seed int64, cluster *bee.Cluster, check Check, opt
 	}
 
 	for i, s := range stages {
-		for _, u := range s.Updates {
+		for _, u := range s {
 			fmt.Printf("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 
 			rnd := random.PseudoGenerator(seed)
@@ -80,7 +78,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 	}
 
 	for i, s := range stages {
-		for _, u := range s.Updates {
+		for _, u := range s {
 			fmt.Printf("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 			// make weighter buffer
 
