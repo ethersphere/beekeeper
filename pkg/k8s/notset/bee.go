@@ -24,14 +24,14 @@ func (c *BeeClient) Ready(ctx context.Context, name string, namespace string) (r
 	return false, k8s.ErrNotSet
 }
 
+// RunningNodes returns list of running nodes
+func (c *BeeClient) RunningNodes(ctx context.Context, namespace string) (running []string, err error) {
+	return nil, k8s.ErrNotSet
+}
+
 // Start starts Bee node in the cluster
 func (c *BeeClient) Start(ctx context.Context, name string, namespace string) (err error) {
 	return k8s.ErrNotSet
-}
-
-// StartedNodes returns list of started nodes
-func (c *BeeClient) StartedNodes(ctx context.Context, namespace string) (started []string, err error) {
-	return nil, k8s.ErrNotSet
 }
 
 // Stop stops Bee node in the cluster
