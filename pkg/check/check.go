@@ -121,7 +121,7 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, stage in
 	// plan execution
 	var toAdd []string
 	for i := 0; i < a.AddCount; i++ {
-		toAdd = append(toAdd, fmt.Sprintf("bee-s%dn%d", stage, i))
+		toAdd = append(toAdd, fmt.Sprintf("%s-s%dn%d", ng.Name(), stage, i))
 	}
 	toDelete, running := randomPick(rnd, running, a.DeleteCount)
 	toStart, stopped := randomPick(rnd, stopped, a.StartCount)
@@ -200,7 +200,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 	// plan execution
 	var toAdd []string
 	for i := 0; i < a.AddCount; i++ {
-		toAdd = append(toAdd, fmt.Sprintf("bee-s%dn%d", stage, i))
+		toAdd = append(toAdd, fmt.Sprintf("%s-s%dn%d", ng.Name(), stage, i))
 	}
 	toDelete, running := randomPick(rnd, running, a.DeleteCount)
 	toStart, stopped := randomPick(rnd, stopped, a.StartCount)

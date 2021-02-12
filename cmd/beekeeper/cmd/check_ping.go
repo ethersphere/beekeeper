@@ -105,8 +105,8 @@ func (c *command) initCheckPing() *cobra.Command {
 				}
 				fmt.Println("bootnodes started")
 
-				// nodes group
-				ngName := "nodes"
+				// bee node group
+				ngName := "bee"
 				ngOptions := newDefaultNodeGroupOptions()
 				ngOptions.Image = image
 				ngOptions.Labels = map[string]string{
@@ -126,7 +126,7 @@ func (c *command) initCheckPing() *cobra.Command {
 				defer nCancel()
 				nGroup := new(errgroup.Group)
 				for i := 0; i < nodeCount; i++ {
-					nName := fmt.Sprintf("bee-%d", i)
+					nName := fmt.Sprintf("%s-%d", ngName, i)
 
 					nGroup.Go(func() error {
 						return ng.AddStartNode(nCtx, nName, bee.NodeOptions{})
@@ -134,9 +134,42 @@ func (c *command) initCheckPing() *cobra.Command {
 				}
 
 				if err := nGroup.Wait(); err != nil {
-					return fmt.Errorf("starting nodes: %w", err)
+					return fmt.Errorf("starting %s nodes: %w", ngName, err)
 				}
-				fmt.Println("nodes started")
+				fmt.Printf("%s nodes started\n", ngName)
+
+				// drone node group
+				ngName = "drone"
+				ngOptions = newDefaultNodeGroupOptions()
+				ngOptions.Image = image
+				ngOptions.Labels = map[string]string{
+					"app.kubernetes.io/component": "node",
+					"app.kubernetes.io/part-of":   ngName,
+					"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+				}
+				ngOptions.PersistenceEnabled = persistence
+				ngOptions.PersistenceStorageClass = storageClass
+				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.BeeConfig = newDefaultBeeConfig()
+				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
+				cluster.AddNodeGroup(ngName, *ngOptions)
+				ng = cluster.NodeGroup(ngName)
+
+				nCtx, nCancel = context.WithTimeout(cmd.Context(), 10*time.Minute)
+				defer nCancel()
+				nGroup = new(errgroup.Group)
+				for i := 0; i < nodeCount; i++ {
+					nName := fmt.Sprintf("%s-%d", ngName, i)
+
+					nGroup.Go(func() error {
+						return ng.AddStartNode(nCtx, nName, bee.NodeOptions{})
+					})
+				}
+
+				if err := nGroup.Wait(); err != nil {
+					return fmt.Errorf("starting %s nodes: %w", ngName, err)
+				}
+				fmt.Printf("%s nodes started\n", ngName)
 
 			} else {
 				if bootnodeCount > 0 {
@@ -153,8 +186,8 @@ func (c *command) initCheckPing() *cobra.Command {
 					}
 				}
 
-				// nodes group
-				ngName := "nodes"
+				// bee nodes group
+				ngName := "bee"
 				ngOptions := newDefaultNodeGroupOptions()
 				ngOptions.Image = image
 				ngOptions.Labels = map[string]string{
@@ -171,8 +204,31 @@ func (c *command) initCheckPing() *cobra.Command {
 				ng := cluster.NodeGroup(ngName)
 
 				for i := 0; i < nodeCount; i++ {
-					if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
-						return fmt.Errorf("adding bee-%d: %w", i, err)
+					if err := ng.AddNode(fmt.Sprintf("%s-%d", ngName, i), bee.NodeOptions{}); err != nil {
+						return fmt.Errorf("adding %s-%d: %w", ngName, i, err)
+					}
+				}
+
+				// drone nodes group
+				ngName = "drone"
+				ngOptions = newDefaultNodeGroupOptions()
+				ngOptions.Image = image
+				ngOptions.Labels = map[string]string{
+					"app.kubernetes.io/component": "node",
+					"app.kubernetes.io/part-of":   ngName,
+					"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+				}
+				ngOptions.PersistenceEnabled = persistence
+				ngOptions.PersistenceStorageClass = storageClass
+				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.BeeConfig = newDefaultBeeConfig()
+				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
+				cluster.AddNodeGroup(ngName, *ngOptions)
+				ng = cluster.NodeGroup(ngName)
+
+				for i := 0; i < nodeCount; i++ {
+					if err := ng.AddNode(fmt.Sprintf("%s-%d", ngName, i), bee.NodeOptions{}); err != nil {
+						return fmt.Errorf("adding %s-%d: %w", ngName, i, err)
 					}
 				}
 			}
@@ -214,7 +270,16 @@ func (c *command) initCheckPing() *cobra.Command {
 var checkStages = []check.Stage{
 	[]check.Update{
 		{
-			NodeGroup: "nodes",
+			NodeGroup: "bee",
+			Actions: check.Actions{
+				AddCount:    1,
+				StartCount:  0,
+				StopCount:   1,
+				DeleteCount: 1,
+			},
+		},
+		{
+			NodeGroup: "drone",
 			Actions: check.Actions{
 				AddCount:    1,
 				StartCount:  0,
@@ -225,7 +290,16 @@ var checkStages = []check.Stage{
 	},
 	[]check.Update{
 		{
-			NodeGroup: "nodes",
+			NodeGroup: "bee",
+			Actions: check.Actions{
+				AddCount:    2,
+				StartCount:  1,
+				StopCount:   2,
+				DeleteCount: 1,
+			},
+		},
+		{
+			NodeGroup: "drone",
 			Actions: check.Actions{
 				AddCount:    2,
 				StartCount:  1,
@@ -236,7 +310,16 @@ var checkStages = []check.Stage{
 	},
 	[]check.Update{
 		{
-			NodeGroup: "nodes",
+			NodeGroup: "bee",
+			Actions: check.Actions{
+				AddCount:    3,
+				StartCount:  1,
+				StopCount:   2,
+				DeleteCount: 1,
+			},
+		},
+		{
+			NodeGroup: "drone",
 			Actions: check.Actions{
 				AddCount:    3,
 				StartCount:  1,
