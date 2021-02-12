@@ -183,6 +183,8 @@ func (c *command) initCheckPing() *cobra.Command {
 			} else {
 				seed = random.Int64()
 			}
+			buffer := 10
+			timeout := 10 * time.Minute
 
 			checkPing := pingpong.NewPing()
 			checkOptions := check.Options{
@@ -190,7 +192,7 @@ func (c *command) initCheckPing() *cobra.Command {
 				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace)),
 			}
 
-			return check.Run(cmd.Context(), seed, cluster, checkPing, checkOptions, checkStages)
+			return check.RunConcurrently(cmd.Context(), cluster, checkPing, checkOptions, checkStages, buffer, seed, timeout)
 		},
 		PreRunE: c.checkPreRunE,
 	}

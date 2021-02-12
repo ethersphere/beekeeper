@@ -9,6 +9,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
+	"golang.org/x/sync/errgroup"
 )
 
 // Check ...
@@ -50,12 +51,12 @@ func Run(ctx context.Context, seed int64, cluster *bee.Cluster, check Check, opt
 	}
 
 	for i, s := range stages {
-		for j, u := range s.Updates {
-			fmt.Println("stage", i, "update", j, u.NodeGroup, u.Actions)
+		for _, u := range s.Updates {
+			fmt.Printf("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 
 			rnd := random.PseudoGenerator(seed)
 			ng := cluster.NodeGroup(u.NodeGroup)
-			if err := updateCluster(ctx, i, rnd, ng, u.Actions); err != nil {
+			if err := updateNodeGroup(ctx, ng, u.Actions, i, rnd); err != nil {
 				return err
 			}
 		}
@@ -66,81 +67,245 @@ func Run(ctx context.Context, seed int64, cluster *bee.Cluster, check Check, opt
 			return err
 		}
 	}
-	fmt.Println("check completed successfully")
 
 	return
 }
 
-func updateCluster(ctx context.Context, i int, rnd *rand.Rand, ng *bee.NodeGroup, a Actions) (err error) {
-	// delete nodes
-	for j := 0; j < a.DeleteCount; j++ {
-		running, err := ng.RunningNodes(ctx)
-		if err != nil {
-			return fmt.Errorf("running nodes: %w", err)
-		}
-		if len(running) > 0 {
-			nName := running[rnd.Intn(len(running))]
-			overlay, err := ng.NodeClient(nName).Overlay(ctx)
-			if err != nil {
-				return fmt.Errorf("get node %s overlay: %w", nName, err)
-			}
-			if err := ng.DeleteNode(ctx, nName); err != nil {
-				return fmt.Errorf("delete node %s: %w", nName, err)
-			}
-			fmt.Printf("node %s (%s) is deleted\n", nName, overlay)
-		}
+// RunConcurrently runs check against the cluster, cluster updates are executed concurrently
+func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, options Options, stages []Stage, buffer int, seed int64, timeout time.Duration) (err error) {
+	fmt.Printf("root seed: %d\n", seed)
+
+	if err := check.Run(ctx, cluster, options); err != nil {
+		return err
 	}
 
-	// start nodes
-	for j := 0; j < a.StartCount; j++ {
-		stopped, err := ng.StoppedNodes(ctx)
-		if err != nil {
-			return fmt.Errorf("stoped nodes: %w", err)
-		}
-		if len(stopped) > 0 {
-			nName := stopped[rnd.Intn(len(stopped))]
-			if err := ng.StartNode(ctx, nName); err != nil {
-				return fmt.Errorf("start node %s: %w", nName, err)
-			}
-			overlay, err := ng.NodeClient(nName).Overlay(ctx)
-			if err != nil {
-				return fmt.Errorf("get node %s overlay: %w", nName, err)
-			}
-			fmt.Printf("node %s (%s) is started\n", nName, overlay)
-		}
-	}
+	for i, s := range stages {
+		for _, u := range s.Updates {
+			fmt.Printf("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
+			// make weighter buffer
 
-	// stop nodes
-	for j := 0; j < a.StopCount; j++ {
-		running, err := ng.RunningNodes(ctx)
-		if err != nil {
-			return fmt.Errorf("running nodes: %w", err)
-		}
-		if len(running) > 0 {
-			nName := running[rnd.Intn(len(running))]
-			overlay, err := ng.NodeClient(nName).Overlay(ctx)
-			if err != nil {
-				return fmt.Errorf("get node %s overlay: %w", nName, err)
+			rnd := random.PseudoGenerator(seed)
+			ng := cluster.NodeGroup(u.NodeGroup)
+			if err := updateNodeGroupConcurrently(ctx, ng, u.Actions, i, buffer, rnd, timeout); err != nil {
+				return err
 			}
-			if err := ng.StopNode(ctx, nName); err != nil {
-				return fmt.Errorf("stop node %s: %w", nName, err)
-			}
-			fmt.Printf("node %s (%s) is stopped\n", nName, overlay)
 		}
-	}
 
-	// add nodes
-	for j := 0; j < a.AddCount; j++ {
-		nName := fmt.Sprintf("bee-i%dn%d", i, j)
-		if err := ng.AddStartNode(ctx, nName, bee.NodeOptions{}); err != nil {
-			return fmt.Errorf("add start node %s: %w", nName, err)
+		// wait at least 60s for deleted nodes to be removed from the peers list
+		time.Sleep(65 * time.Second)
+		if err := check.Run(ctx, cluster, options); err != nil {
+			return err
 		}
-		overlay, err := ng.NodeClient(nName).Overlay(ctx)
-		if err != nil {
-			return fmt.Errorf("get node %s overlay: %w", nName, err)
-		}
-		fmt.Printf("node %s (%s) is added\n", nName, overlay)
 	}
 
 	return
+}
+
+// updateNodeGroup updates node group by adding, deleting, starting and stopping it's nodes
+func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, stage int, rnd *rand.Rand) (err error) {
+	// get info from the cluster
+	running, err := ng.RunningNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("running nodes: %w", err)
+	}
+	if len(running) < a.DeleteCount+a.StopCount {
+		return fmt.Errorf("not enough running nodes for given parameters, running: %d, delete: %d, stop %d", len(running), a.DeleteCount, a.StopCount)
+	}
+
+	stopped, err := ng.StoppedNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("stoped nodes: %w", err)
+	}
+	if len(stopped) < a.StartCount {
+		return fmt.Errorf("not enough stopped nodes for given parameters, stopped: %d, start: %d", len(running), a.StartCount)
+	}
+
+	// plan execution
+	var toAdd []string
+	for i := 0; i < a.AddCount; i++ {
+		toAdd = append(toAdd, fmt.Sprintf("bee-s%dn%d", stage, i))
+	}
+	toDelete, running := randomPick(rnd, running, a.DeleteCount)
+	toStart, stopped := randomPick(rnd, stopped, a.StartCount)
+	toStop, running := randomPick(rnd, running, a.StopCount)
+
+	// add nodes
+	for _, n := range toAdd {
+		if err := ng.AddStartNode(ctx, n, bee.NodeOptions{}); err != nil {
+			return fmt.Errorf("add start node %s: %w", n, err)
+		}
+		overlay, err := ng.NodeClient(n).Overlay(ctx)
+		if err != nil {
+			return fmt.Errorf("get node %s overlay: %w", n, err)
+		}
+		fmt.Printf("node %s (%s) is added\n", n, overlay)
+	}
+
+	// delete nodes
+	for _, n := range toDelete {
+		overlay, err := ng.NodeClient(n).Overlay(ctx)
+		if err != nil {
+			return fmt.Errorf("get node %s overlay: %w", n, err)
+		}
+		if err := ng.DeleteNode(ctx, n); err != nil {
+			return fmt.Errorf("delete node %s: %w", n, err)
+		}
+		fmt.Printf("node %s (%s) is deleted\n", n, overlay)
+	}
+
+	// start nodes
+	for _, n := range toStart {
+		if err := ng.StartNode(ctx, n); err != nil {
+			return fmt.Errorf("start node %s: %w", n, err)
+		}
+		overlay, err := ng.NodeClient(n).Overlay(ctx)
+		if err != nil {
+			return fmt.Errorf("get node %s overlay: %w", n, err)
+		}
+		fmt.Printf("node %s (%s) is started\n", n, overlay)
+	}
+
+	// stop nodes
+	for _, n := range toStop {
+		overlay, err := ng.NodeClient(n).Overlay(ctx)
+		if err != nil {
+			return fmt.Errorf("get node %s overlay: %w", n, err)
+		}
+		if err := ng.StopNode(ctx, n); err != nil {
+			return fmt.Errorf("stop node %s: %w", n, err)
+		}
+		fmt.Printf("node %s (%s) is stopped\n", n, overlay)
+	}
+
+	return
+}
+
+// updateNodeGroupConcurrently updates node group concurrently
+func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actions, stage, buff int, rnd *rand.Rand, timeout time.Duration) (err error) {
+	// get info from the cluster
+	running, err := ng.RunningNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("running nodes: %w", err)
+	}
+	if len(running) < a.DeleteCount+a.StopCount {
+		return fmt.Errorf("not enough running nodes for given parameters, running: %d, delete: %d, stop %d", len(running), a.DeleteCount, a.StopCount)
+	}
+
+	stopped, err := ng.StoppedNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("stoped nodes: %w", err)
+	}
+	if len(stopped) < a.StartCount {
+		return fmt.Errorf("not enough stopped nodes for given parameters, stopped: %d, start: %d", len(running), a.StartCount)
+	}
+
+	// plan execution
+	var toAdd []string
+	for i := 0; i < a.AddCount; i++ {
+		toAdd = append(toAdd, fmt.Sprintf("bee-s%dn%d", stage, i))
+	}
+	toDelete, running := randomPick(rnd, running, a.DeleteCount)
+	toStart, stopped := randomPick(rnd, stopped, a.StartCount)
+	toStop, running := randomPick(rnd, running, a.StopCount)
+
+	updateCtx, updateCancel := context.WithTimeout(ctx, timeout)
+	defer updateCancel()
+	updateGroup := new(errgroup.Group)
+	updateSemaphore := make(chan struct{}, buff)
+
+	// add nodes
+	for _, n := range toAdd {
+		n := n
+		updateSemaphore <- struct{}{}
+		updateGroup.Go(func() error {
+			defer func() {
+				<-updateSemaphore
+			}()
+
+			if err := ng.AddStartNode(updateCtx, n, bee.NodeOptions{}); err != nil {
+				return fmt.Errorf("add start node %s: %w", n, err)
+			}
+			overlay, err := ng.NodeClient(n).Overlay(updateCtx)
+			if err != nil {
+				return fmt.Errorf("get node %s overlay: %w", n, err)
+			}
+			fmt.Printf("node %s (%s) is added\n", n, overlay)
+			return nil
+		})
+	}
+
+	// delete nodes
+	for _, n := range toDelete {
+		n := n
+		updateSemaphore <- struct{}{}
+		updateGroup.Go(func() error {
+			defer func() {
+				<-updateSemaphore
+			}()
+
+			overlay, err := ng.NodeClient(n).Overlay(updateCtx)
+			if err != nil {
+				return fmt.Errorf("get node %s overlay: %w", n, err)
+			}
+			if err := ng.DeleteNode(updateCtx, n); err != nil {
+				return fmt.Errorf("delete node %s: %w", n, err)
+			}
+			fmt.Printf("node %s (%s) is deleted\n", n, overlay)
+			return nil
+		})
+	}
+
+	// start nodes
+	for _, n := range toStart {
+		n := n
+		updateSemaphore <- struct{}{}
+		updateGroup.Go(func() error {
+			defer func() {
+				<-updateSemaphore
+			}()
+
+			if err := ng.StartNode(updateCtx, n); err != nil {
+				return fmt.Errorf("start node %s: %w", n, err)
+			}
+			overlay, err := ng.NodeClient(n).Overlay(updateCtx)
+			if err != nil {
+				return fmt.Errorf("get node %s overlay: %w", n, err)
+			}
+			fmt.Printf("node %s (%s) is started\n", n, overlay)
+			return nil
+		})
+	}
+
+	// stop nodes
+	for _, n := range toStop {
+		n := n
+		updateSemaphore <- struct{}{}
+		updateGroup.Go(func() error {
+			defer func() {
+				<-updateSemaphore
+			}()
+
+			overlay, err := ng.NodeClient(n).Overlay(updateCtx)
+			if err != nil {
+				return fmt.Errorf("get node %s overlay: %w", n, err)
+			}
+			if err := ng.StopNode(updateCtx, n); err != nil {
+				return fmt.Errorf("stop node %s: %w", n, err)
+			}
+			fmt.Printf("node %s (%s) is stopped\n", n, overlay)
+			return nil
+		})
+	}
+
+	return updateGroup.Wait()
+}
+
+// randomPick randomly picks n elements from the list, and returns lists of picked and unpicked elements
+func randomPick(rnd *rand.Rand, list []string, n int) (picked, unpicked []string) {
+	for i := 0; i < n; i++ {
+		index := rnd.Intn(len(list))
+		picked = append(picked, list[index])
+		list = append(list[:index], list[index+1:]...)
+	}
+	return picked, list
 }
