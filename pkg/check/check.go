@@ -4,21 +4,22 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
+// Check ...
+type Check interface {
+	Run(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
+}
+
 // Options ...
 type Options struct {
 	MetricsEnabled bool
 	MetricsPusher  *push.Pusher
-}
-
-// Check ...
-type Check interface {
-	Run(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 }
 
 // Stage ...
@@ -44,38 +45,50 @@ type Actions struct {
 func Run(ctx context.Context, seed int64, cluster *bee.Cluster, check Check, options Options, stages []Stage) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	for i, stage := range stages {
-		for j, update := range stage.Updates {
-			fmt.Println("stage", i, "update", j, update.NodeGroup, update.Actions)
+	if err := check.Run(ctx, cluster, options); err != nil {
+		return err
+	}
+
+	for i, s := range stages {
+		for j, u := range s.Updates {
+			fmt.Println("stage", i, "update", j, u.NodeGroup, u.Actions)
 
 			rnd := random.PseudoGenerator(seed)
-			ng := cluster.NodeGroup(update.NodeGroup)
-			if err := updateNodeGroup(ctx, i, rnd, ng, update.Actions); err != nil {
+			ng := cluster.NodeGroup(u.NodeGroup)
+			if err := updateCluster(ctx, i, rnd, ng, u.Actions); err != nil {
 				return err
 			}
 		}
 
-		// run check here
+		// wait at least 60s for deleted nodes to be removed from the peers list
+		time.Sleep(65 * time.Second)
 		if err := check.Run(ctx, cluster, options); err != nil {
 			return err
 		}
 	}
+	fmt.Println("check completed successfully")
 
 	return
 }
 
-func updateNodeGroup(ctx context.Context, i int, rnd *rand.Rand, ng *bee.NodeGroup, a Actions) (err error) {
+func updateCluster(ctx context.Context, i int, rnd *rand.Rand, ng *bee.NodeGroup, a Actions) (err error) {
 	// delete nodes
 	for j := 0; j < a.DeleteCount; j++ {
-		nName := ng.NodesSorted()[rnd.Intn(ng.Size())]
-		overlay, err := ng.NodeClient(nName).Overlay(ctx)
+		running, err := ng.RunningNodes(ctx)
 		if err != nil {
-			return fmt.Errorf("get node %s overlay: %w", nName, err)
+			return fmt.Errorf("running nodes: %w", err)
 		}
-		if err := ng.DeleteNode(ctx, nName); err != nil {
-			return fmt.Errorf("delete node %s: %w", nName, err)
+		if len(running) > 0 {
+			nName := running[rnd.Intn(len(running))]
+			overlay, err := ng.NodeClient(nName).Overlay(ctx)
+			if err != nil {
+				return fmt.Errorf("get node %s overlay: %w", nName, err)
+			}
+			if err := ng.DeleteNode(ctx, nName); err != nil {
+				return fmt.Errorf("delete node %s: %w", nName, err)
+			}
+			fmt.Printf("node %s (%s) is deleted\n", nName, overlay)
 		}
-		fmt.Printf("node %s (%s) is deleted\n", nName, overlay)
 	}
 
 	// start nodes
@@ -101,7 +114,7 @@ func updateNodeGroup(ctx context.Context, i int, rnd *rand.Rand, ng *bee.NodeGro
 	for j := 0; j < a.StopCount; j++ {
 		running, err := ng.RunningNodes(ctx)
 		if err != nil {
-			return fmt.Errorf("started nodes: %w", err)
+			return fmt.Errorf("running nodes: %w", err)
 		}
 		if len(running) > 0 {
 			nName := running[rnd.Intn(len(running))]
@@ -128,5 +141,6 @@ func updateNodeGroup(ctx context.Context, i int, rnd *rand.Rand, ng *bee.NodeGro
 		}
 		fmt.Printf("node %s (%s) is added\n", nName, overlay)
 	}
+
 	return
 }
