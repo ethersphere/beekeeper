@@ -7,23 +7,18 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // Options ...
-type Options struct{}
+type Options struct {
+	MetricsEnabled bool
+	MetricsPusher  *push.Pusher
+}
 
 // Check ...
 type Check interface {
 	Run(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
-}
-
-// RunOptions for updating cluster
-type RunOptions struct {
-	Check   Check
-	Options Options
-	Cluster *bee.Cluster
-	Seed    int64
-	Stages  []Stage
 }
 
 // Stage ...
@@ -46,22 +41,22 @@ type Actions struct {
 }
 
 // Run runs check against the cluster
-func Run(ctx context.Context, o RunOptions) (err error) {
-	fmt.Printf("root seed: %d\n", o.Seed)
+func Run(ctx context.Context, seed int64, cluster *bee.Cluster, check Check, options Options, stages []Stage) (err error) {
+	fmt.Printf("root seed: %d\n", seed)
 
-	for i, stage := range o.Stages {
+	for i, stage := range stages {
 		for j, update := range stage.Updates {
 			fmt.Println("stage", i, "update", j, update.NodeGroup, update.Actions)
 
-			rnd := random.PseudoGenerator(o.Seed)
-			ng := o.Cluster.NodeGroup(update.NodeGroup)
+			rnd := random.PseudoGenerator(seed)
+			ng := cluster.NodeGroup(update.NodeGroup)
 			if err := updateNodeGroup(ctx, i, rnd, ng, update.Actions); err != nil {
 				return err
 			}
 		}
 
 		// run check here
-		if err := o.Check.Run(ctx, o.Cluster, Options{}); err != nil {
+		if err := check.Run(ctx, cluster, options); err != nil {
 			return err
 		}
 	}

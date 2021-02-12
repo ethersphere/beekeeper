@@ -10,6 +10,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
@@ -184,15 +185,12 @@ func (c *command) initCheckPing() *cobra.Command {
 			}
 
 			checkPing := pingpong.NewPing()
-
-			runOptions := check.RunOptions{
-				Check:   checkPing,
-				Cluster: cluster,
-				Seed:    seed,
-				Stages:  runStages,
+			checkOptions := check.Options{
+				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
+				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace)),
 			}
 
-			return check.Run(cmd.Context(), runOptions)
+			return check.Run(cmd.Context(), seed, cluster, checkPing, checkOptions, checkStages)
 		},
 		PreRunE: c.checkPreRunE,
 	}
@@ -211,7 +209,7 @@ func (c *command) initCheckPing() *cobra.Command {
 	return cmd
 }
 
-var runStages = []check.Stage{
+var checkStages = []check.Stage{
 	{
 		Updates: []check.Update{
 			{
