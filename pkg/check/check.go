@@ -41,7 +41,7 @@ type Actions struct {
 }
 
 // Run runs check against the cluster
-func Run(ctx context.Context, seed int64, cluster *bee.Cluster, check Check, options Options, stages []Stage) (err error) {
+func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options, stages []Stage, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
 	if err := check.Run(ctx, cluster, options); err != nil {
@@ -54,7 +54,7 @@ func Run(ctx context.Context, seed int64, cluster *bee.Cluster, check Check, opt
 
 			rnd := random.PseudoGenerator(seed)
 			ng := cluster.NodeGroup(u.NodeGroup)
-			if err := updateNodeGroup(ctx, ng, u.Actions, i, rnd); err != nil {
+			if err := updateNodeGroup(ctx, ng, u.Actions, rnd, i); err != nil {
 				return err
 			}
 		}
@@ -70,7 +70,7 @@ func Run(ctx context.Context, seed int64, cluster *bee.Cluster, check Check, opt
 }
 
 // RunConcurrently runs check against the cluster, cluster updates are executed concurrently
-func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, options Options, stages []Stage, buffer int, seed int64, timeout time.Duration) (err error) {
+func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, options Options, stages []Stage, buffer int, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
 	if err := check.Run(ctx, cluster, options); err != nil {
@@ -78,19 +78,39 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 	}
 
 	for i, s := range stages {
-		for _, u := range s {
-			fmt.Printf("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
-			// make weighter buffer
+		fmt.Printf("starting stage %d\n", i)
+		buffers := weightedBuffers(buffer, s)
+		rnds := random.PseudoGenerators(seed, len(s))
 
-			rnd := random.PseudoGenerator(seed)
-			ng := cluster.NodeGroup(u.NodeGroup)
-			if err := updateNodeGroupConcurrently(ctx, ng, u.Actions, i, buffer, rnd, timeout); err != nil {
-				return err
-			}
+		stageGroup := new(errgroup.Group)
+		stageSemaphore := make(chan struct{}, buffer)
+
+		for j, u := range s {
+			j, u := j, u
+
+			stageSemaphore <- struct{}{}
+			stageGroup.Go(func() error {
+				defer func() {
+					<-stageSemaphore
+				}()
+
+				fmt.Printf("node group %s, add %d, delete %d, start %d, stop %d\n", u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
+				ng := cluster.NodeGroup(u.NodeGroup)
+				if err := updateNodeGroupConcurrently(ctx, ng, u.Actions, rnds[j], i, buffers[j]); err != nil {
+					return err
+				}
+
+				fmt.Printf("node group %s updated successfully\n", u.NodeGroup)
+				return nil
+			})
 		}
 
-		// wait at least 60s for deleted nodes to be removed from the peers list
-		time.Sleep(65 * time.Second)
+		if err := stageGroup.Wait(); err != nil {
+			return fmt.Errorf("stage %d failed: %w", i, err)
+		}
+
+		// wait 60s for deleted nodes to be removed from the peers list
+		time.Sleep(60 * time.Second)
 		if err := check.Run(ctx, cluster, options); err != nil {
 			return err
 		}
@@ -100,7 +120,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 }
 
 // updateNodeGroup updates node group by adding, deleting, starting and stopping it's nodes
-func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, stage int, rnd *rand.Rand) (err error) {
+func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *rand.Rand, stage int) (err error) {
 	// get info from the cluster
 	running, err := ng.RunningNodes(ctx)
 	if err != nil {
@@ -179,7 +199,7 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, stage in
 }
 
 // updateNodeGroupConcurrently updates node group concurrently
-func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actions, stage, buff int, rnd *rand.Rand, timeout time.Duration) (err error) {
+func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *rand.Rand, stage, buff int) (err error) {
 	// get info from the cluster
 	running, err := ng.RunningNodes(ctx)
 	if err != nil {
@@ -206,8 +226,6 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 	toStart, stopped := randomPick(rnd, stopped, a.StartCount)
 	toStop, running := randomPick(rnd, running, a.StopCount)
 
-	updateCtx, updateCancel := context.WithTimeout(ctx, timeout)
-	defer updateCancel()
 	updateGroup := new(errgroup.Group)
 	updateSemaphore := make(chan struct{}, buff)
 
@@ -220,10 +238,10 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 				<-updateSemaphore
 			}()
 
-			if err := ng.AddStartNode(updateCtx, n, bee.NodeOptions{}); err != nil {
+			if err := ng.AddStartNode(ctx, n, bee.NodeOptions{}); err != nil {
 				return fmt.Errorf("add start node %s: %w", n, err)
 			}
-			overlay, err := ng.NodeClient(n).Overlay(updateCtx)
+			overlay, err := ng.NodeClient(n).Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
@@ -241,11 +259,11 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 				<-updateSemaphore
 			}()
 
-			overlay, err := ng.NodeClient(n).Overlay(updateCtx)
+			overlay, err := ng.NodeClient(n).Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
-			if err := ng.DeleteNode(updateCtx, n); err != nil {
+			if err := ng.DeleteNode(ctx, n); err != nil {
 				return fmt.Errorf("delete node %s: %w", n, err)
 			}
 			fmt.Printf("node %s (%s) is deleted\n", n, overlay)
@@ -262,10 +280,10 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 				<-updateSemaphore
 			}()
 
-			if err := ng.StartNode(updateCtx, n); err != nil {
+			if err := ng.StartNode(ctx, n); err != nil {
 				return fmt.Errorf("start node %s: %w", n, err)
 			}
-			overlay, err := ng.NodeClient(n).Overlay(updateCtx)
+			overlay, err := ng.NodeClient(n).Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
@@ -283,11 +301,11 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 				<-updateSemaphore
 			}()
 
-			overlay, err := ng.NodeClient(n).Overlay(updateCtx)
+			overlay, err := ng.NodeClient(n).Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
-			if err := ng.StopNode(updateCtx, n); err != nil {
+			if err := ng.StopNode(ctx, n); err != nil {
 				return fmt.Errorf("stop node %s: %w", n, err)
 			}
 			fmt.Printf("node %s (%s) is stopped\n", n, overlay)
@@ -306,4 +324,20 @@ func randomPick(rnd *rand.Rand, list []string, n int) (picked, unpicked []string
 		list = append(list[:index], list[index+1:]...)
 	}
 	return picked, list
+}
+
+// weightedBuffers breaks buffer into smaller buffers for each update
+func weightedBuffers(buffer int, s Stage) (buffers []int) {
+	total := 0
+	for _, u := range s {
+		actions := u.Actions.AddCount + u.Actions.DeleteCount + u.Actions.StartCount + u.Actions.StopCount
+		total += actions
+	}
+
+	for _, u := range s {
+		actions := u.Actions.AddCount + u.Actions.DeleteCount + u.Actions.StartCount + u.Actions.StopCount
+		buffers = append(buffers, buffer*actions/total)
+	}
+
+	return
 }

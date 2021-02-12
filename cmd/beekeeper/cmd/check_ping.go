@@ -239,8 +239,10 @@ func (c *command) initCheckPing() *cobra.Command {
 			} else {
 				seed = random.Int64()
 			}
-			buffer := 10
-			timeout := 10 * time.Minute
+			buffer := 12
+
+			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), 15*time.Minute)
+			defer checkCancel()
 
 			checkPing := pingpong.NewPing()
 			checkOptions := check.Options{
@@ -248,7 +250,7 @@ func (c *command) initCheckPing() *cobra.Command {
 				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace)),
 			}
 
-			return check.RunConcurrently(cmd.Context(), cluster, checkPing, checkOptions, checkStages, buffer, seed, timeout)
+			return check.RunConcurrently(checkCtx, cluster, checkPing, checkOptions, checkStages, buffer, seed)
 		},
 		PreRunE: c.checkPreRunE,
 	}
@@ -272,38 +274,18 @@ var checkStages = []check.Stage{
 		{
 			NodeGroup: "bee",
 			Actions: check.Actions{
-				AddCount:    1,
+				AddCount:    2,
 				StartCount:  0,
 				StopCount:   1,
-				DeleteCount: 1,
+				DeleteCount: 3,
 			},
 		},
 		{
 			NodeGroup: "drone",
 			Actions: check.Actions{
-				AddCount:    1,
+				AddCount:    4,
 				StartCount:  0,
-				StopCount:   1,
-				DeleteCount: 1,
-			},
-		},
-	},
-	[]check.Update{
-		{
-			NodeGroup: "bee",
-			Actions: check.Actions{
-				AddCount:    2,
-				StartCount:  1,
-				StopCount:   2,
-				DeleteCount: 1,
-			},
-		},
-		{
-			NodeGroup: "drone",
-			Actions: check.Actions{
-				AddCount:    2,
-				StartCount:  1,
-				StopCount:   2,
+				StopCount:   3,
 				DeleteCount: 1,
 			},
 		},
@@ -314,7 +296,27 @@ var checkStages = []check.Stage{
 			Actions: check.Actions{
 				AddCount:    3,
 				StartCount:  1,
+				StopCount:   1,
+				DeleteCount: 3,
+			},
+		},
+		{
+			NodeGroup: "drone",
+			Actions: check.Actions{
+				AddCount:    2,
+				StartCount:  1,
 				StopCount:   2,
+				DeleteCount: 1,
+			},
+		},
+	},
+	[]check.Update{
+		{
+			NodeGroup: "bee",
+			Actions: check.Actions{
+				AddCount:    4,
+				StartCount:  1,
+				StopCount:   3,
 				DeleteCount: 1,
 			},
 		},
