@@ -57,6 +57,25 @@ func (c *Client) ReadyReplicas(ctx context.Context, name, namespace string) (rea
 	return
 }
 
+// RunningStatefulSets returns names of running StatefulSets
+func (c *Client) RunningStatefulSets(ctx context.Context, namespace string) (running []string, err error) {
+	statefulSets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("list statefulsets in namespace %s: %w", namespace, err)
+	}
+
+	for _, s := range statefulSets.Items {
+		if s.Status.Replicas == 1 {
+			running = append(running, s.Name)
+		}
+	}
+
+	return
+}
+
 // Scale scales StatefulSet
 func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int32) (err error) {
 	scale := &v1.Scale{
@@ -98,25 +117,6 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 			}
 		} else {
 			return fmt.Errorf("updating statefulset %s in namespace %s: %w", name, namespace, err)
-		}
-	}
-
-	return
-}
-
-// StartedStatefulSets returns names of started StatefulSets
-func (c *Client) StartedStatefulSets(ctx context.Context, namespace string) (started []string, err error) {
-	statefulSets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("list statefulsets in namespace %s: %w", namespace, err)
-	}
-
-	for _, s := range statefulSets.Items {
-		if s.Status.Replicas == 1 {
-			started = append(started, s.Name)
 		}
 	}
 

@@ -450,6 +450,16 @@ func (c *Client) Ready(ctx context.Context, name, namespace string) (ready bool,
 	return r == 1, nil
 }
 
+// RunningNodes returns list of running nodes
+// TODO: filter by labels
+func (c *Client) RunningNodes(ctx context.Context, namespace string) (running []string, err error) {
+	running, err = c.k8s.StatefulSet.RunningStatefulSets(ctx, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("running statefulsets in namespace %s: %w", namespace, err)
+	}
+	return
+}
+
 // Start starts Bee node in the cluster
 func (c *Client) Start(ctx context.Context, name, namespace string) (err error) {
 	err = c.k8s.StatefulSet.Scale(ctx, name, namespace, 1)
@@ -458,16 +468,6 @@ func (c *Client) Start(ctx context.Context, name, namespace string) (err error) 
 	}
 
 	fmt.Printf("node %s is started in namespace %s\n", name, namespace)
-	return
-}
-
-// StartedNodes returns list of started nodes
-// TODO: filter by labels
-func (c *Client) StartedNodes(ctx context.Context, namespace string) (started []string, err error) {
-	started, err = c.k8s.StatefulSet.StartedStatefulSets(ctx, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("started statefulsets in namespace %s: %w", namespace, err)
-	}
 	return
 }
 
