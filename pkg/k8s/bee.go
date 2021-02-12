@@ -13,8 +13,8 @@ type Bee interface {
 	Create(ctx context.Context, o CreateOptions) (err error)
 	Delete(ctx context.Context, name, namespace string) (err error)
 	Ready(ctx context.Context, name, namespace string) (ready bool, err error)
+	RunningNodes(ctx context.Context, namespace string) (running []string, err error)
 	Start(ctx context.Context, name, namespace string) (err error)
-	StartedNodes(ctx context.Context, namespace string) (started []string, err error)
 	Stop(ctx context.Context, name, namespace string) (err error)
 	StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error)
 }

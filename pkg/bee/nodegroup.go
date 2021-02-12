@@ -586,6 +586,22 @@ func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err er
 	return g.k8s.Ready(ctx, name, g.cluster.namespace)
 }
 
+// RunningNodes returns list of running nodes
+func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err error) {
+	allRunning, err := g.k8s.RunningNodes(ctx, g.cluster.namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range allRunning {
+		if contains(g.NodesSorted(), v) {
+			running = append(running, v)
+		}
+	}
+
+	return
+}
+
 // NodeGroupSettlements represents settlements of all nodes in the node group
 type NodeGroupSettlements map[string]map[string]SentReceived
 
@@ -699,22 +715,6 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		fmt.Printf("%s is not ready yet\n", name)
 		time.Sleep(nodeReadyTimeout)
 	}
-}
-
-// StartedNodes returns list of started nodes
-func (g *NodeGroup) StartedNodes(ctx context.Context) (started []string, err error) {
-	allStarted, err := g.k8s.StartedNodes(ctx, g.cluster.namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, v := range allStarted {
-		if contains(g.NodesSorted(), v) {
-			started = append(started, v)
-		}
-	}
-
-	return
 }
 
 // StopNode stops node by scaling down its statefulset to 0

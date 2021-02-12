@@ -47,12 +47,12 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 
 		// delete nodes
 		for j := 0; j < a.DeleteCount; j++ {
-			started, err := ng.StartedNodes(ctx)
+			running, err := ng.RunningNodes(ctx)
 			if err != nil {
-				return fmt.Errorf("started nodes: %w", err)
+				return fmt.Errorf("running nodes: %w", err)
 			}
-			if len(started) > 0 {
-				nName := started[rnd.Intn(len(started))]
+			if len(running) > 0 {
+				nName := running[rnd.Intn(len(running))]
 				overlay, err := ng.NodeClient(nName).Overlay(ctx)
 				if err != nil {
 					return fmt.Errorf("get node %s overlay: %w", nName, err)
@@ -86,12 +86,12 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 
 		// stop nodes
 		for j := 0; j < a.StopCount; j++ {
-			started, err := ng.StartedNodes(ctx)
+			running, err := ng.RunningNodes(ctx)
 			if err != nil {
-				return fmt.Errorf("started nodes: %w", err)
+				return fmt.Errorf("running nodes: %w", err)
 			}
-			if len(started) > 0 {
-				nName := started[rnd.Intn(len(started))]
+			if len(running) > 0 {
+				nName := running[rnd.Intn(len(running))]
 				overlay, err := ng.NodeClient(nName).Overlay(ctx)
 				if err != nil {
 					return fmt.Errorf("get node %s overlay: %w", nName, err)
