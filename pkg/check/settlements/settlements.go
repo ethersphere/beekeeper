@@ -75,7 +75,9 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			if err != nil {
 				return err
 			}
-			settlementsHaveHappened(settlements, previousSettlements)
+			if err := settlementsHaveHappened(settlements, previousSettlements); err != nil {
+				return err
+			}
 
 			err = validateSettlements(o.Threshold, overlays, balances, settlements)
 			if err != nil {
@@ -115,7 +117,9 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			if err != nil {
 				return err
 			}
-			settlementsHaveHappened(settlements, previousSettlements)
+			if err := settlementsHaveHappened(settlements, previousSettlements); err != nil {
+				return err
+			}
 
 			err = validateSettlements(o.Threshold, overlays, balances, settlements)
 			if err != nil {
@@ -211,16 +215,17 @@ func validateSettlements(threshold int64, overlays bee.NodeGroupOverlays, balanc
 }
 
 // settlementsHaveHappened checks if settlements have happened
-func settlementsHaveHappened(current, previous map[string]map[string]bee.SentReceived) {
+func settlementsHaveHappened(current, previous map[string]map[string]bee.SentReceived) error {
 	for node, v := range current {
 		for peer, settlement := range v {
 			if settlement.Received != previous[node][peer].Received || settlement.Sent != previous[node][peer].Sent {
 				fmt.Println("Settlements have happened")
-				return
+				return nil
 			}
 		}
 	}
-	fmt.Println("Settlements have not happened")
+
+	return fmt.Errorf("settlements have not happened")
 }
 
 // randomIndex finds random index <max and not equal to unallowed
