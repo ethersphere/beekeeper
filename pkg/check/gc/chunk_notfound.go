@@ -18,6 +18,7 @@ type Options struct {
 	StoreSize        int // size of the node's localstore in chunks
 	StoreSizeDivisor int // divide store size by how much when uploading bytes
 	Seed             int64
+	Wait             int
 }
 
 // CheckChunkNotFound uploads a single chunk to a node, then uploads a lot of other chunks to see that it has been purged with gc
@@ -60,7 +61,7 @@ func CheckChunkNotFound(c *bee.Cluster, o Options) error {
 	}
 
 	// allow time for syncing and GC
-	time.Sleep(5 * time.Second)
+	time.Sleep(time.Duration(o.Wait) * time.Second)
 
 	has, err := ng.NodeClient(pivotNode).HasChunk(ctx, ref)
 	if err != nil {
