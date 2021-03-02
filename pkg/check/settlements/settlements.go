@@ -3,6 +3,7 @@ package settlements
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -52,6 +53,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	var previousSettlements map[string]map[string]bee.SentReceived
 	sortedNodes := ng.NodesSorted()
 	for i := 0; i < o.UploadNodeCount; i++ {
+		var settlementsHappened = false
 		// upload file to random node
 		uIndex := rnd.Intn(c.Size())
 		uNode := sortedNodes[uIndex]
@@ -75,8 +77,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			if err != nil {
 				return err
 			}
-			if err := settlementsHaveHappened(settlements, previousSettlements); err != nil {
-				return err
+			if settlementsHaveHappened(settlements, previousSettlements) {
+				settlementsHappened = true
 			}
 
 			err = validateSettlements(o.Threshold, overlays, balances, settlements)
@@ -117,8 +119,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			if err != nil {
 				return err
 			}
-			if err := settlementsHaveHappened(settlements, previousSettlements); err != nil {
-				return err
+			if settlementsHaveHappened(settlements, previousSettlements) {
+				settlementsHappened = true
 			}
 
 			err = validateSettlements(o.Threshold, overlays, balances, settlements)
@@ -126,6 +128,10 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 				fmt.Printf("Invalid settlements after downloading a file: %s\n", err.Error())
 				fmt.Println("Retrying ...")
 				continue
+			}
+
+			if !settlementsHappened {
+				return errors.New("settlements have not happened")
 			}
 
 			fmt.Println("Settlements are valid")
@@ -215,17 +221,17 @@ func validateSettlements(threshold int64, overlays bee.NodeGroupOverlays, balanc
 }
 
 // settlementsHaveHappened checks if settlements have happened
-func settlementsHaveHappened(current, previous map[string]map[string]bee.SentReceived) error {
+func settlementsHaveHappened(current, previous map[string]map[string]bee.SentReceived) bool {
 	for node, v := range current {
 		for peer, settlement := range v {
 			if settlement.Received != previous[node][peer].Received || settlement.Sent != previous[node][peer].Sent {
 				fmt.Println("Settlements have happened")
-				return nil
+				return true
 			}
 		}
 	}
 
-	return fmt.Errorf("settlements have not happened")
+	return false
 }
 
 // randomIndex finds random index <max and not equal to unallowed
