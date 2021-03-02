@@ -90,7 +90,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 
 	cmd.Flags().IntP(optionNameUploadNodeCount, "u", 1, "number of nodes to upload files to")
 	cmd.Flags().String(optionNameFileName, "file", "file name template")
-	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
+	cmd.Flags().Float64(optionNameFileSize, 2, "file size in MB")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().Int64P(optionNameThreshold, "t", 10000000000000, "balances treshold")
 	cmd.Flags().BoolVar(&dryRun, optionNameDryRun, false, "don't upload and download files, just validate")
