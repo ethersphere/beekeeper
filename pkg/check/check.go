@@ -122,8 +122,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 // updateNodeGroup updates node group by adding, deleting, starting and stopping it's nodes
 func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *rand.Rand, stage int) (err error) {
 	// get info from the cluster
-	var running, stopped, toDelete, toStart, toStop []string
-	running, err = ng.RunningNodes(ctx)
+	running, err := ng.RunningNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("running nodes: %w", err)
 	}
@@ -131,7 +130,7 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 		return fmt.Errorf("not enough running nodes for given parameters, running: %d, delete: %d, stop %d", len(running), a.DeleteCount, a.StopCount)
 	}
 
-	stopped, err = ng.StoppedNodes(ctx)
+	stopped, err := ng.StoppedNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("stoped nodes: %w", err)
 	}
@@ -144,9 +143,9 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 	for i := 0; i < a.AddCount; i++ {
 		toAdd = append(toAdd, fmt.Sprintf("%s-s%dn%d", ng.Name(), stage, i))
 	}
-	toDelete, running = randomPick(rnd, running, a.DeleteCount)
-	toStart, stopped = randomPick(rnd, stopped, a.StartCount)
-	toStop, running = randomPick(rnd, running, a.StopCount)
+	toDelete, running := randomPick(rnd, running, a.DeleteCount)
+	toStart, _ := randomPick(rnd, stopped, a.StartCount)
+	toStop, _ := randomPick(rnd, running, a.StopCount)
 
 	// add nodes
 	for _, n := range toAdd {
@@ -202,8 +201,7 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 // updateNodeGroupConcurrently updates node group concurrently
 func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *rand.Rand, stage, buff int) (err error) {
 	// get info from the cluster
-	var running, stopped, toDelete, toStart, toStop []string
-	running, err = ng.RunningNodes(ctx)
+	running, err := ng.RunningNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("running nodes: %w", err)
 	}
@@ -211,7 +209,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 		return fmt.Errorf("not enough running nodes for given parameters, running: %d, delete: %d, stop %d", len(running), a.DeleteCount, a.StopCount)
 	}
 
-	stopped, err = ng.StoppedNodes(ctx)
+	stopped, err := ng.StoppedNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("stoped nodes: %w", err)
 	}
@@ -224,9 +222,9 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 	for i := 0; i < a.AddCount; i++ {
 		toAdd = append(toAdd, fmt.Sprintf("%s-s%dn%d", ng.Name(), stage, i))
 	}
-	toDelete, running = randomPick(rnd, running, a.DeleteCount)
-	toStart, stopped = randomPick(rnd, stopped, a.StartCount)
-	toStop, running = randomPick(rnd, running, a.StopCount)
+	toDelete, running := randomPick(rnd, running, a.DeleteCount)
+	toStart, _ := randomPick(rnd, stopped, a.StartCount)
+	toStop, _ := randomPick(rnd, running, a.StopCount)
 
 	updateGroup := new(errgroup.Group)
 	updateSemaphore := make(chan struct{}, buff)
