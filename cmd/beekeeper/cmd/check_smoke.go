@@ -46,6 +46,11 @@ func (c *command) initCheckSmoke() *cobra.Command {
 			if b == 0 && mb == 0 {
 				return errors.New("must set either bytes or megabytes")
 			}
+
+			if b == 0 && mb > 0 {
+				b = mb * 1000 * 1000
+			}
+
 			ngOptions := newDefaultNodeGroupOptions()
 			cluster.AddNodeGroup("nodes", *ngOptions)
 			ng := cluster.NodeGroup("nodes")
@@ -64,9 +69,11 @@ func (c *command) initCheckSmoke() *cobra.Command {
 			}
 
 			return smoke.Check(cluster, smoke.Options{
-				NodeGroup: "nodes",
-				Seed:      seed,
-				Runs:      runs,
+				NodeGroup:       "nodes",
+				UploadNodeCount: c.config.GetInt(optionNameNodeCount),
+				Seed:            seed,
+				Runs:            runs,
+				Bytes:           b,
 			})
 		},
 		PreRunE: c.checkPreRunE,

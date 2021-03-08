@@ -28,7 +28,7 @@ func (s *DirsService) Upload(ctx context.Context, data io.Reader, size int64) (r
 	header.Set("Content-Type", "application/x-tar")
 	header.Set("Content-Length", strconv.FormatInt(size, 10))
 
-	err = s.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/dirs", header, data, &resp)
+	_, err = s.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/dirs", header, data, &resp)
 
 	return
 }

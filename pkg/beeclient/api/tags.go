@@ -32,7 +32,7 @@ func (p *TagsService) CreateTag(ctx context.Context) (resp TagResponse, err erro
 	return
 }
 
-// GetTag creates new tag
+// GetTag gets a new tag
 func (p *TagsService) GetTag(ctx context.Context, tagUID uint32) (resp TagResponse, err error) {
 
 	tag := strconv.FormatUint(uint64(tagUID), 10)

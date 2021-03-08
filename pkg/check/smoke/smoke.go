@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
@@ -15,6 +14,7 @@ import (
 // Options represents smoke test options
 type Options struct {
 	NodeGroup string
+	UploadNodeCount    int
 	Runs      int // how many runs to do
 	Bytes     int // how many bytes to upload each time
 	Seed      int64
@@ -41,12 +41,10 @@ func Check(c *bee.Cluster, o Options) error {
 			return fmt.Errorf("create random data: %w", err)
 		}
 
-		addr, err := ng.NodeClient(nodeName).UploadBytes(ctx, data, api.UploadOptions{Pin: false})
+		addr, err := ng.NodeClient(nodeName).UploadAndSyncBytes(ctx, data, api.UploadOptions{Pin: false})
 		if err != nil {
 			return fmt.Errorf("upload to node %s: %w", nodeName, err)
 		}
-
-		time.Sleep(30 * time.Second)
 
 		fmt.Printf("uploaded %d bytes successfully, hash %s\n", len(data), addr.String())
 

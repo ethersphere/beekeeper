@@ -422,6 +422,17 @@ func (c *Client) UnpinChunk(ctx context.Context, a swarm.Address) error {
 }
 
 // UploadBytes uploads bytes to the node
+func (c *Client) UploadAndSyncBytes(ctx context.Context, b []byte, o api.UploadOptions) (swarm.Address, error) {
+	r, err := c.api.Bytes.UploadAndSync(ctx, bytes.NewReader(b), o)
+	if err != nil {
+		return swarm.ZeroAddress, fmt.Errorf("upload bytes: %w", err)
+	}
+
+	return r.Reference, nil
+}
+
+
+// UploadBytes uploads bytes to the node
 func (c *Client) UploadBytes(ctx context.Context, b []byte, o api.UploadOptions) (swarm.Address, error) {
 	r, err := c.api.Bytes.Upload(ctx, bytes.NewReader(b), o)
 	if err != nil {

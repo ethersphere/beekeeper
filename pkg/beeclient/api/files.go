@@ -35,6 +35,6 @@ func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, 
 		header.Set("Swarm-Tag-Uid", strconv.FormatUint(uint64(tagUID), 10))
 	}
 
-	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/files?"+url.QueryEscape("name="+name), header, data, &resp)
+	_, err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/files?"+url.QueryEscape("name="+name), header, data, &resp)
 	return
 }
