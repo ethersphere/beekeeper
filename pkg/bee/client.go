@@ -296,8 +296,8 @@ func (c *Client) PingStream(ctx context.Context, nodes []swarm.Address) <-chan P
 	return pingStream
 }
 
-// RemoveChunkWithAddress removes chunk from the node
-func (c *Client) RemoveChunkWithAddress(ctx context.Context, a swarm.Address) error {
+// RemoveChunk removes chunk from the node
+func (c *Client) RemoveChunk(ctx context.Context, a swarm.Address) error {
 	return c.debug.Node.RemoveChunk(ctx, a)
 }
 
@@ -439,11 +439,6 @@ func (c *Client) UploadChunk(ctx context.Context, data []byte, o api.UploadOptio
 	}
 
 	return resp.Reference, nil
-}
-
-// RemoveChunk removes the given chunk from the node's local store
-func (c *Client) RemoveChunk(ctx context.Context, chunk *Chunk) (err error) {
-	return c.debug.Chunks.Remove(ctx, chunk.Address())
 }
 
 // UploadFile uploads file to the node
