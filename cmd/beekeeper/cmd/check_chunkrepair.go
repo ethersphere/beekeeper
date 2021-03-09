@@ -23,6 +23,11 @@ func (c *command) initCheckChunkRepair() *cobra.Command {
 It uploads given number of chunks to given number of nodes, 
 and attempts repairing of those chunks for the other nodes in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
+			if err != nil {
+				return fmt.Errorf("creating Kubernetes client: %w", err)
+			}
+
 			cluster := bee.NewCluster("bee", bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
@@ -30,6 +35,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
+				K8SClient:           k8sClient,
 				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})
