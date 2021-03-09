@@ -11,15 +11,15 @@ import (
 // compile check whether Ping implements interface
 var _ check.Check = (*Ping)(nil)
 
-// Ping ...
+// Ping check
 type Ping struct{}
 
-// NewPing ...
+// NewPing returns new ping check
 func NewPing() *Ping {
 	return &Ping{}
 }
 
-// Run ...
+// Run executes ping check
 func (p *Ping) Run(ctx context.Context, cluster *bee.Cluster, o check.Options) (err error) {
 	fmt.Println("checking pingpong")
 
