@@ -49,7 +49,12 @@ func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options
 	}
 
 	for i, s := range stages {
+		waitDeleted := false
 		for _, u := range s {
+			if u.Actions.DeleteCount > 0 {
+				waitDeleted = true
+			}
+
 			fmt.Printf("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 
 			rnd := random.PseudoGenerator(seed)
@@ -60,7 +65,10 @@ func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options
 		}
 
 		// wait at least 60s for deleted nodes to be removed from the peers list
-		time.Sleep(65 * time.Second)
+		if waitDeleted {
+			time.Sleep(60 * time.Second)
+		}
+
 		if err := check.Run(ctx, cluster, options); err != nil {
 			return err
 		}
@@ -85,8 +93,13 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 		stageGroup := new(errgroup.Group)
 		stageSemaphore := make(chan struct{}, buffer)
 
+		waitDeleted := false
 		for j, u := range s {
 			j, u := j, u
+
+			if u.Actions.DeleteCount > 0 {
+				waitDeleted = true
+			}
 
 			stageSemaphore <- struct{}{}
 			stageGroup.Go(func() error {
@@ -110,7 +123,10 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 		}
 
 		// wait 60s for deleted nodes to be removed from the peers list
-		time.Sleep(60 * time.Second)
+		if waitDeleted {
+			time.Sleep(60 * time.Second)
+		}
+
 		if err := check.Run(ctx, cluster, options); err != nil {
 			return err
 		}
