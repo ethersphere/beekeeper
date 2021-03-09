@@ -3,11 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/kademlia"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/spf13/cobra"
 )
@@ -50,7 +52,6 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				return fmt.Errorf("creating Kubernetes client: %w", err)
 			}
 
-			namespace := c.config.GetString(optionNameNamespace)
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
@@ -59,39 +60,121 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
 				K8SClient:           k8sClient,
-				Namespace:           namespace,
+				Namespace:           c.config.GetString(optionNameNamespace),
 				DisableNamespace:    disableNamespace,
 			})
 
 			if startCluster {
 				// bootnodes group
-				bgName := "bootnode"
+				bgName := "bootnodes"
+				bgOptions := newDefaultNodeGroupOptions()
+				bgOptions.Image = image
+				bgOptions.Labels = map[string]string{
+					"app.kubernetes.io/component": "bootnode",
+					"app.kubernetes.io/part-of":   bgName,
+					"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+				}
+				bgOptions.PersistenceEnabled = persistence
+				bgOptions.PersistenceStorageClass = storageClass
+				bgOptions.PersistanceStorageRequest = storageRequest
+				cluster.AddNodeGroup(bgName, *bgOptions)
+				bg := cluster.NodeGroup(bgName)
+				bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameNamespace))
+
 				bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer bCancel()
-				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
+				bnGroup := new(errgroup.Group)
+				for i := 0; i < bootnodeCount; i++ {
+					bConfig := newDefaultBeeConfig()
+					bConfig.Bootnodes = bSetup[i].Bootnodes
+					bName := fmt.Sprintf("bootnode-%d", i)
+					bOptions := bee.NodeOptions{
+						Config:       bConfig,
+						ClefKey:      bSetup[i].ClefKey,
+						ClefPassword: bSetup[i].ClefPassword,
+						LibP2PKey:    bSetup[i].LibP2PKey,
+						SwarmKey:     bSetup[i].SwarmKey,
+					}
+
+					bnGroup.Go(func() error {
+						return bg.AddStartNode(bCtx, bName, bOptions)
+					})
 				}
 
+				if err := bnGroup.Wait(); err != nil {
+					return fmt.Errorf("starting bootnodes: %w", err)
+				}
+				fmt.Println("bootnodes started")
+
 				// nodes group
-				ngName := "bee"
+				ngName := "nodes"
+				ngOptions := newDefaultNodeGroupOptions()
+				ngOptions.Image = image
+				ngOptions.Labels = map[string]string{
+					"app.kubernetes.io/component": "node",
+					"app.kubernetes.io/part-of":   ngName,
+					"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+				}
+				ngOptions.PersistenceEnabled = persistence
+				ngOptions.PersistenceStorageClass = storageClass
+				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.BeeConfig = newDefaultBeeConfig()
+				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
+				cluster.AddNodeGroup(ngName, *ngOptions)
+				ng := cluster.NodeGroup(ngName)
+
 				nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("starting node group %s: %w", ngName, err)
+				nGroup := new(errgroup.Group)
+				for i := 0; i < nodeCount; i++ {
+					nName := fmt.Sprintf("bee-%d", i)
+
+					nGroup.Go(func() error {
+						return ng.AddStartNode(nCtx, nName, bee.NodeOptions{})
+					})
 				}
+
+				if err := nGroup.Wait(); err != nil {
+					return fmt.Errorf("starting nodes: %w", err)
+				}
+				fmt.Println("nodes started")
 
 			} else {
 				if bootnodeCount > 0 {
-					bgName := "bootnode"
-					if err := addBootNodeGroup(cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-						return fmt.Errorf("adding bootnode group %s: %w", bgName, err)
+					// bootnodes group
+					bgName := "bootnodes"
+					bgOptions := newDefaultNodeGroupOptions()
+					cluster.AddNodeGroup(bgName, *bgOptions)
+					bg := cluster.NodeGroup(bgName)
+
+					for i := 0; i < bootnodeCount; i++ {
+						if err := bg.AddNode(fmt.Sprintf("bootnode-%d", i), bee.NodeOptions{}); err != nil {
+							return fmt.Errorf("adding bootnode-%d: %w", i, err)
+						}
 					}
 				}
 
 				// nodes group
-				ngName := "bee"
-				if err := addNodeGroup(cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("adding node group %s: %w", ngName, err)
+				ngName := "nodes"
+				ngOptions := newDefaultNodeGroupOptions()
+				ngOptions.Image = image
+				ngOptions.Labels = map[string]string{
+					"app.kubernetes.io/component": "node",
+					"app.kubernetes.io/part-of":   ngName,
+					"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+				}
+				ngOptions.PersistenceEnabled = persistence
+				ngOptions.PersistenceStorageClass = storageClass
+				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.BeeConfig = newDefaultBeeConfig()
+				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
+				cluster.AddNodeGroup(ngName, *ngOptions)
+				ng := cluster.NodeGroup(ngName)
+
+				for i := 0; i < nodeCount; i++ {
+					if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
+						return fmt.Errorf("adding bee-%d: %w", i, err)
+					}
 				}
 			}
 
