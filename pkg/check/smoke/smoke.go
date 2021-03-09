@@ -33,7 +33,8 @@ func Check(c *bee.Cluster, o Options) error {
 
 	for i := 0; i < o.Runs; i++ {
 		uploader := r.Intn(len(sortedNodes))
-		nodeName := sortedNodes[i]
+		nodeName := sortedNodes[uploader]
+		
 		fmt.Printf("run %d, uploader node is: %s\n", i, nodeName)
 
 		data := make([]byte, o.Bytes)
