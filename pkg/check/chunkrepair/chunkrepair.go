@@ -245,7 +245,7 @@ func deleteChunkFromAllNodes(ctx context.Context, ng *bee.NodeGroup, chunk *bee.
 	}
 
 	for _, node := range nodesClients {
-		err := node.RemoveChunk(ctx, chunk)
+		err := node.RemoveChunk(ctx, chunk.Address())
 		if err != nil {
 			return err
 		}

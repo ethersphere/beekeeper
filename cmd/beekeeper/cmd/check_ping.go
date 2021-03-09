@@ -41,8 +41,9 @@ func (c *command) initCheckPing() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "ping",
-		Short: "",
-		Long:  ``,
+		Short: "Executes ping from all nodes to all other nodes in the cluster",
+		Long: `Executes ping from all nodes to all other nodes in the cluster,
+and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
 			if err != nil {

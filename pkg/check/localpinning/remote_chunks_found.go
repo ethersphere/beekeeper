@@ -61,7 +61,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		fmt.Printf("Node %s: removing expected chunks\n", name)
 
 		for _, a := range addrs {
-			err := nodeClient.RemoveChunkWithAddress(ctx, a)
+			err := nodeClient.RemoveChunk(ctx, a)
 			if err != nil {
 				return fmt.Errorf("node has chunk: %w", err)
 			}
@@ -129,7 +129,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		nodeClient := ng.NodeClient(name)
 
 		for _, a := range addrs {
-			err := nodeClient.RemoveChunkWithAddress(ctx, a)
+			err := nodeClient.RemoveChunk(ctx, a)
 			if err != nil {
 				return fmt.Errorf("cannot delete chunk: %w", err)
 			}

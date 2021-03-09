@@ -12,9 +12,10 @@ import (
 
 func (c *command) initCheckGc() *cobra.Command {
 	const (
-		optionNameDbCapacity = "db-capacity"
-		optionNameDivisor    = "capacity-divisor"
-		optionNameSeed       = "seed"
+		optionNameDbCapacity      = "db-capacity"
+		optionNameDivisor         = "capacity-divisor"
+		optionNameSeed            = "seed"
+		optionNameWaitBeforeCheck = "wait"
 	)
 
 	cmd := &cobra.Command{
@@ -55,6 +56,7 @@ func (c *command) initCheckGc() *cobra.Command {
 				NodeGroup:        "nodes",
 				StoreSize:        c.config.GetInt(optionNameDbCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
+				Wait:             c.config.GetInt(optionNameWaitBeforeCheck),
 				Seed:             seed,
 			})
 		},
@@ -64,6 +66,7 @@ func (c *command) initCheckGc() *cobra.Command {
 	cmd.Flags().Int(optionNameDbCapacity, 1000, "DB capacity in chunks")
 	cmd.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
+	cmd.Flags().IntP(optionNameWaitBeforeCheck, "w", 5, "wait before check")
 
 	return cmd
 }
