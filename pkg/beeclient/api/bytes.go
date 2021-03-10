@@ -1,12 +1,10 @@
 package api
 
 import (
-	"fmt"
 	"context"
 	"io"
 	"net/http"
 	"time"
-	"errors"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 )
@@ -75,7 +73,6 @@ func (b *BytesService) UploadAndSync(ctx context.Context, data io.Reader, o Uplo
 
 		if attemptAfterSent > maxAttemptsAfterSent {
 			syncing = false
-			err = errors.New(fmt.Sprintf("syncing failed, no change after %d ticks, abandoning... ", maxAttemptsAfterSent))
 		}
 	}
 
