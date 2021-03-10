@@ -1,11 +1,146 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"golang.org/x/sync/errgroup"
 )
+
+func addBootNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
+	gOptions := newDefaultNodeGroupOptions()
+	gOptions.Image = image
+	gOptions.Labels = map[string]string{
+		"app.kubernetes.io/component": "node",
+		"app.kubernetes.io/part-of":   name,
+		"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+	}
+	gOptions.PersistenceEnabled = persistence
+	gOptions.PersistenceStorageClass = storageClass
+	gOptions.PersistanceStorageRequest = storageRequest
+	cluster.AddNodeGroup(name, *gOptions)
+	g := cluster.NodeGroup(name)
+
+	bSetup := setupBootnodes(bootNodeCount, namespace)
+	for i := 0; i < bootNodeCount; i++ {
+		bName := fmt.Sprintf("bootnode-%d", i)
+		bConfig := newDefaultBeeConfig()
+		bConfig.Bootnodes = bSetup[i].Bootnodes
+		if err := g.AddNode(bName, bee.NodeOptions{
+			Config:       bConfig,
+			ClefKey:      bSetup[i].ClefKey,
+			ClefPassword: bSetup[i].ClefPassword,
+			LibP2PKey:    bSetup[i].LibP2PKey,
+			SwarmKey:     bSetup[i].SwarmKey,
+		}); err != nil {
+			return fmt.Errorf("adding %s-%d: %w", name, i, err)
+		}
+	}
+
+	fmt.Println("bootnodes added")
+	return
+}
+
+func addNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
+	gOptions := newDefaultNodeGroupOptions()
+	gOptions.Image = image
+	gOptions.Labels = map[string]string{
+		"app.kubernetes.io/component": "node",
+		"app.kubernetes.io/part-of":   name,
+		"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+	}
+	gOptions.PersistenceEnabled = persistence
+	gOptions.PersistenceStorageClass = storageClass
+	gOptions.PersistanceStorageRequest = storageRequest
+	gOptions.BeeConfig = newDefaultBeeConfig()
+	gOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootNodeCount, namespace)
+	cluster.AddNodeGroup(name, *gOptions)
+	g := cluster.NodeGroup(name)
+
+	for i := 0; i < nodeCount; i++ {
+		if err := g.AddNode(fmt.Sprintf("%s-%d", name, i), bee.NodeOptions{}); err != nil {
+			return fmt.Errorf("adding %s-%d: %w", name, i, err)
+		}
+	}
+
+	fmt.Printf("%s nodes added\n", name)
+	return
+}
+
+func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
+	gOptions := newDefaultNodeGroupOptions()
+	gOptions.Image = image
+	gOptions.Labels = map[string]string{
+		"app.kubernetes.io/component": "node",
+		"app.kubernetes.io/part-of":   name,
+		"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+	}
+	gOptions.PersistenceEnabled = persistence
+	gOptions.PersistenceStorageClass = storageClass
+	gOptions.PersistanceStorageRequest = storageRequest
+	cluster.AddNodeGroup(name, *gOptions)
+	g := cluster.NodeGroup(name)
+	bSetup := setupBootnodes(bootNodeCount, namespace)
+
+	errGroup := new(errgroup.Group)
+	for i := 0; i < bootNodeCount; i++ {
+		bConfig := newDefaultBeeConfig()
+		bConfig.Bootnodes = bSetup[i].Bootnodes
+		bName := fmt.Sprintf("bootnode-%d", i)
+		bOptions := bee.NodeOptions{
+			Config:       bConfig,
+			ClefKey:      bSetup[i].ClefKey,
+			ClefPassword: bSetup[i].ClefPassword,
+			LibP2PKey:    bSetup[i].LibP2PKey,
+			SwarmKey:     bSetup[i].SwarmKey,
+		}
+
+		errGroup.Go(func() error {
+			return g.AddStartNode(ctx, bName, bOptions)
+		})
+	}
+
+	if err := errGroup.Wait(); err != nil {
+		return fmt.Errorf("starting bootnodes: %w", err)
+	}
+	fmt.Println("bootnodes started")
+	return
+}
+
+func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
+	gOptions := newDefaultNodeGroupOptions()
+	gOptions.Image = image
+	gOptions.Labels = map[string]string{
+		"app.kubernetes.io/component": "node",
+		"app.kubernetes.io/part-of":   name,
+		"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+	}
+	gOptions.PersistenceEnabled = persistence
+	gOptions.PersistenceStorageClass = storageClass
+	gOptions.PersistanceStorageRequest = storageRequest
+	gOptions.BeeConfig = newDefaultBeeConfig()
+	gOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootNodeCount, namespace)
+	cluster.AddNodeGroup(name, *gOptions)
+	g := cluster.NodeGroup(name)
+
+	errGroup := new(errgroup.Group)
+	for i := 0; i < nodeCount; i++ {
+		nName := fmt.Sprintf("%s-%d", name, i)
+
+		errGroup.Go(func() error {
+			return g.AddStartNode(ctx, nName, bee.NodeOptions{})
+		})
+	}
+
+	if err := errGroup.Wait(); err != nil {
+		return fmt.Errorf("starting %s nodes: %w", name, err)
+	}
+	fmt.Printf("%s nodes started\n", name)
+	return
+}
 
 // newDefaultBeeConfig returns default Bee node configuration
 func newDefaultBeeConfig() *k8s.Config {

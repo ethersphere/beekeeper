@@ -72,7 +72,7 @@ func setInitContainers(o setInitContainersOptions) (inits containers.Containers)
 	if o.LibP2PEnabled || o.SwarmEnabled {
 		inits = append(inits, containers.Container{
 			Name:  "init-bee",
-			Image: "busybox:1.28",
+			Image: "ethersphere/busybox:1.33",
 			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
 chown -R 999:999 /home/bee/.bee/keys;
 echo 'bee initialization done';`},
