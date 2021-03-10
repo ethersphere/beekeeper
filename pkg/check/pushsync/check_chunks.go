@@ -47,7 +47,21 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			if !synced {
-				fmt.Printf("Node %s. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest: %s\n", nodeName, j, overlays[nodeName].String(), ref.String(), closestAddress.String())
+				fmt.Printf("Node %s. Chunk %d not found in the closest node. Node: %s Chunk: %s Closest: %s\n", nodeName, j, overlays[nodeName].String(), ref.String(), closestAddress.String())
+				return errPushSync
+			}
+
+			// chunk should be replicated at least once in the neighborhood
+			closestName, _, err = chunk.ClosestNodeFromMap(overlays, closestAddress)
+			if err != nil {
+				return fmt.Errorf("node %s: %w", nodeName, err)
+			}
+			synced, err = ng.NodeClient(closestName).HasChunk(ctx, ref)
+			if err != nil {
+				return fmt.Errorf("node %s: %w", nodeName, err)
+			}
+			if !synced {
+				fmt.Printf("Node %s. Chunk %d not found in the neighbor node. Node: %s Chunk: %s Closest: %s\n", nodeName, j, overlays[nodeName].String(), ref.String(), closestAddress.String())
 				return errPushSync
 			}
 
