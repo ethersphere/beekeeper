@@ -118,7 +118,7 @@ next:
 
 		for _, skip := range skipNodes {
 			if a.Equal(skip) {
-				goto next
+				continue next
 			}
 		}
 
