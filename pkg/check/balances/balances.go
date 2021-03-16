@@ -29,46 +29,48 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
+	flatOverlays := flattenOverlays(overlays)
+
 	// Initial balances validation
-	balances, err := ng.Balances(ctx)
+	balances, err := c.Balances(ctx)
 	if err != nil {
 		return err
 	}
-	if err := validateBalances(overlays, balances); err != nil {
+
+	flatBalances := flattenBalances(balances)
+	if err := validateBalances(flatOverlays, flatBalances); err != nil {
 		return fmt.Errorf("invalid initial balances: %s", err.Error())
 	}
 	fmt.Println("Balances are valid")
 
 	var previousBalances bee.NodeGroupBalances
-	sortedNodes := ng.NodesSorted()
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload file to random node
-		uIndex := rnd.Intn(c.Size())
-		uNode := sortedNodes[uIndex]
-		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
-		if err := ng.NodeClient(uNode).UploadFile(ctx, &file, false); err != nil {
-			return fmt.Errorf("node %s: %w", uNode, err)
+		ng, nodeName, overlay := overlays.Random(rnd)
+		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
+		if err := c.NodeGroups()[ng].NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
+			return fmt.Errorf("node %s: %w", nodeName, err)
 		}
-		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())
+		fmt.Printf("File %s uploaded successfully to node \"%s\" (%s)\n", file.Address().String(), nodeName, overlay.String())
 
 		// Validate balances after uploading a file
-		previousBalances = balances
+		previousBalances = flatBalances
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = ng.Balances(ctx)
+			balances, err = c.Balances(ctx)
 			if err != nil {
 				return err
 			}
-			balancesHaveChanged(balances, previousBalances)
+			flatBalances = flattenBalances(balances)
+			balancesHaveChanged(flatBalances, previousBalances)
 
-			err = validateBalances(overlays, balances)
+			err = validateBalances(flatOverlays, flatBalances)
 			if err != nil {
 				fmt.Printf("Invalid balances after uploading a file: %s\n", err.Error())
 				fmt.Println("Retrying ...")
@@ -81,29 +83,29 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
 		// download file from random node
-		dIndex := randomIndex(rnd, c.Size(), uIndex)
-		dNode := sortedNodes[dIndex]
-		size, hash, err := ng.NodeClient(dNode).DownloadFile(ctx, file.Address())
+		ng, nodeName, overlay = overlays.Random(rnd)
+		size, hash, err := c.NodeGroups()[ng].NodeClient(nodeName).DownloadFile(ctx, file.Address())
 		if err != nil {
-			return fmt.Errorf("node %s: %w", dNode, err)
+			return fmt.Errorf("node %s: %w", nodeName, err)
 		}
 		if !bytes.Equal(file.Hash(), hash) {
-			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dNode].String(), file.Size(), size)
+			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlay.String(), file.Size(), size)
 		}
-		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dNode].String())
+		fmt.Printf("File %s downloaded successfully from node \"%s\"(%s)\n", file.Address().String(), nodeName, overlay.String())
 
 		// Validate balances after downloading a file
-		previousBalances = balances
+		previousBalances = flatBalances
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = ng.Balances(ctx)
+			balances, err = c.Balances(ctx)
 			if err != nil {
 				return err
 			}
-			balancesHaveChanged(balances, previousBalances)
+			flatBalances = flattenBalances(balances)
+			balancesHaveChanged(flatBalances, previousBalances)
 
-			err := validateBalances(overlays, balances)
+			err := validateBalances(flatOverlays, flatBalances)
 			if err != nil {
 				fmt.Printf("Invalid balances after downloading a file: %s\n", err.Error())
 				fmt.Println("Retrying ...")
@@ -122,18 +124,19 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 func DryRunCheck(c *bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.Overlays(ctx)
 	if err != nil {
 		return err
 	}
+	flatOverlays := flattenOverlays(overlays)
 
-	balances, err := ng.Balances(ctx)
+	balances, err := c.Balances(ctx)
 	if err != nil {
 		return err
 	}
+	flatBalances := flattenBalances(balances)
 
-	if err := validateBalances(overlays, balances); err != nil {
+	if err := validateBalances(flatOverlays, flatBalances); err != nil {
 		return fmt.Errorf("invalid balances")
 	}
 	fmt.Println("Balances are valid")
@@ -142,8 +145,9 @@ func DryRunCheck(c *bee.Cluster, o Options) (err error) {
 }
 
 // validateBalances checks balances symmetry
-func validateBalances(overlays map[string]swarm.Address, balances bee.NodeGroupBalances) (err error) {
+func validateBalances(overlays map[string]swarm.Address, balances map[string]map[string]int64) (err error) {
 	var noSymmetry bool
+
 	for node, v := range balances {
 		for peer, balance := range v {
 			diff := balance + balances[peer][node]
@@ -187,4 +191,24 @@ func randomIndex(rnd *rand.Rand, max int, unallowed int) (index int) {
 	}
 
 	return
+}
+
+func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
+	res := make(map[string]swarm.Address)
+	for _, ngo := range o {
+		for n, over := range ngo {
+			res[n] = over
+		}
+	}
+	return res
+}
+
+func flattenBalances(b bee.ClusterBalances) map[string]map[string]int64 {
+	res := make(map[string]map[string]int64)
+	for _, ngb := range b {
+		for n, balances := range ngb {
+			res[n] = balances
+		}
+	}
+	return res
 }
