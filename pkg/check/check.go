@@ -21,6 +21,7 @@ type Check interface {
 type Options struct {
 	MetricsEnabled bool
 	MetricsPusher  *push.Pusher
+	Seed           int64
 }
 
 // Stage define stages for updating Bee
