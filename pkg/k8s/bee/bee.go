@@ -117,7 +117,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 				{
 					Name:       "api",
 					Protocol:   "TCP",
-					Port:       portHTTP,
+					Port:       portAPI,
 					TargetPort: "api",
 				},
 			},
