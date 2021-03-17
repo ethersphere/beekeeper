@@ -129,6 +129,7 @@ func (c *command) initCheckUploadStress() *cobra.Command {
 			checkOptions := check.Options{
 				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
 				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), namespace),
+				Seed:           seed,
 			}
 
 			dynamicStages := []check.Stage{}
