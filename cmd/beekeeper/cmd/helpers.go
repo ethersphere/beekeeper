@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"golang.org/x/sync/errgroup"
 )
@@ -280,4 +281,67 @@ func setK8SClient(kubeconfig string, inCluster bool) (c *k8s.Client, err error) 
 	}
 
 	return c, nil
+}
+
+var checkStages = []check.Stage{
+	[]check.Update{
+		{
+			NodeGroup: "bee",
+			Actions: check.Actions{
+				AddCount:    2,
+				StartCount:  0,
+				StopCount:   1,
+				DeleteCount: 3,
+			},
+		},
+		{
+			NodeGroup: "drone",
+			Actions: check.Actions{
+				AddCount:    4,
+				StartCount:  0,
+				StopCount:   3,
+				DeleteCount: 1,
+			},
+		},
+	},
+	[]check.Update{
+		{
+			NodeGroup: "bee",
+			Actions: check.Actions{
+				AddCount:    3,
+				StartCount:  1,
+				StopCount:   1,
+				DeleteCount: 3,
+			},
+		},
+		{
+			NodeGroup: "drone",
+			Actions: check.Actions{
+				AddCount:    2,
+				StartCount:  1,
+				StopCount:   2,
+				DeleteCount: 1,
+			},
+		},
+	},
+	[]check.Update{
+		{
+			NodeGroup: "bee",
+			Actions: check.Actions{
+				AddCount:    4,
+				StartCount:  1,
+				StopCount:   3,
+				DeleteCount: 1,
+			},
+		},
+		{
+			NodeGroup: "drone",
+			Actions: check.Actions{
+				AddCount:    3,
+				StartCount:  1,
+				StopCount:   2,
+				DeleteCount: 1,
+			},
+		},
+	},
 }

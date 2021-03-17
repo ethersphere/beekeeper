@@ -108,9 +108,7 @@ func (c *command) initCheckUploadStress() *cobra.Command {
 
 				if additionalNodeCount > 0 {
 					addNgName := "drone"
-					addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
-					defer addNCancel()
-					if err := addNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, storageClass, storageRequest, persistence); err != nil {
+					if err := addNodeGroup(cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, storageClass, storageRequest, persistence); err != nil {
 						return fmt.Errorf("starting node group %s: %w", addNgName, err)
 					}
 				}
