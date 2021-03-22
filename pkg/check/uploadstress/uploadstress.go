@@ -3,6 +3,10 @@ package uploadstress
 import (
 	"context"
 	"fmt"
+	"math"
+	"math/rand"
+	"sort"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
@@ -23,63 +27,82 @@ func NewUploadStress() *UploadStress {
 
 // Run executes upload stress check
 func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Options) (err error) {
-	buffer := 5
-	ngGroup := new(errgroup.Group)
-	ngSemaphore := make(chan struct{}, buffer)
-	for _, ng := range cluster.NodeGroups() {
-		ng := ng
-		rnds := random.PseudoGenerators(o.Seed, ng.Size())
+	buffer := 10
 
-		nGroup := new(errgroup.Group)
-		nSemaphore := make(chan struct{}, buffer)
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return fmt.Errorf("node clients: %w", err)
+	}
 
-		ngSemaphore <- struct{}{}
-		ngGroup.Go(func() error {
+	nodeNames := []string{}
+	for k := range clients {
+		nodeNames = append(nodeNames, k)
+	}
+	sort.Strings(nodeNames)
+	nodeCount := int(math.Round(float64(len(clients)*o.UploadNodesPercentage) / 100))
+	rnd := random.PseudoGenerator(o.Seed)
+	picked, _ := randomPick(rnd, nodeNames, nodeCount)
+
+	rnds := random.PseudoGenerators(rnd.Int63(), nodeCount)
+
+	uGroup := new(errgroup.Group)
+	uSemaphore := make(chan struct{}, buffer)
+	for i, p := range picked {
+		o := o
+		i := i
+		p := p
+		n := clients[p]
+
+		uSemaphore <- struct{}{}
+		uGroup.Go(func() error {
 			defer func() {
-				<-ngSemaphore
+				<-uSemaphore
 			}()
 
-			nodes := ng.NodesSorted()
-			for i := 0; i < ng.Size(); i++ {
-				i := i
-				n := ng.Node(nodes[i])
-
-				nSemaphore <- struct{}{}
-				nGroup.Go(func() error {
-					defer func() {
-						<-nSemaphore
-					}()
-
-					for {
-						o, err := n.Client().Overlay(ctx)
-						if err != nil {
-							return fmt.Errorf("node %s: %w", n.Name(), err)
-						}
-
-						file := bee.NewRandomFile(rnds[i], "filename", 1)
-						tagResponse, err := n.Client().CreateTag(ctx)
-						if err != nil {
-							return fmt.Errorf("node %s: %w", n.Name(), err)
-						}
-						tagUID := tagResponse.Uid
-
-						if err := n.Client().UploadFileWithTag(ctx, &file, false, tagUID); err != nil {
-							return fmt.Errorf("node %s: %w", n.Name(), err)
-						}
-
-						fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), o)
-					}
-				})
+			overlay, err := n.Overlay(ctx)
+			if err != nil {
+				return fmt.Errorf("node %s: %w", p, err)
 			}
 
-			return nGroup.Wait()
+			for j := 0; j < o.FilesPerNode; j++ {
+				file := bee.NewRandomFile(rnds[i], "filename", o.FileSize)
+
+				retryCount := 0
+				for {
+					retryCount++
+					if retryCount > o.Retries {
+						return fmt.Errorf("file %s upload to node %s exceeded number of retires", file.Address().String(), overlay)
+					}
+					time.Sleep(o.RetryDelay)
+
+					if err := n.UploadFile(ctx, &file, false); err != nil {
+						fmt.Printf("uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)
+						continue
+					}
+					break
+				}
+
+				fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlay)
+			}
+
+			return nil
 		})
 	}
 
-	if err := ngGroup.Wait(); err != nil {
+	if err := uGroup.Wait(); err != nil {
 		return err
 	}
 
 	fmt.Println("upload stress check completed successfully")
 	return
+}
+
+// randomPick randomly picks n elements from the list, and returns lists of picked and unpicked elements
+func randomPick(rnd *rand.Rand, list []string, n int) (picked, unpicked []string) {
+	for i := 0; i < n; i++ {
+		index := rnd.Intn(len(list))
+		picked = append(picked, list[index])
+		list = append(list[:index], list[index+1:]...)
+	}
+	return picked, list
 }

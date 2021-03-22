@@ -19,9 +19,14 @@ type Check interface {
 
 // Options for Bee checks
 type Options struct {
-	MetricsEnabled bool
-	MetricsPusher  *push.Pusher
-	Seed           int64
+	FilesPerNode          int
+	FileSize              int64
+	MetricsEnabled        bool
+	MetricsPusher         *push.Pusher
+	Retries               int
+	RetryDelay            time.Duration
+	Seed                  int64
+	UploadNodesPercentage int
 }
 
 // Stage define stages for updating Bee

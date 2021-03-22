@@ -162,6 +162,43 @@ func (c *Cluster) NodeGroup(name string) *NodeGroup {
 	return c.nodeGroups[name]
 }
 
+// Nodes returns map of nodes in the cluster
+func (c *Cluster) Nodes() map[string]*Node {
+	n := make(map[string]*Node)
+	for _, ng := range c.NodeGroups() {
+		for k, v := range ng.getNodes() {
+			n[k] = v
+		}
+	}
+	return n
+}
+
+// NodesClients returns map of node's clients in the cluster excluding stopped nodes
+func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) {
+	clients := make(map[string]*Client)
+	for _, ng := range c.NodeGroups() {
+		ngc, err := ng.NodesClients(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("nodes clients: %w", err)
+		}
+		for n, client := range ngc {
+			clients[n] = client
+		}
+	}
+	return clients, nil
+}
+
+// NodesClientsAll returns map of node's clients in the cluster
+func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*Client, error) {
+	clients := make(map[string]*Client)
+	for _, ng := range c.NodeGroups() {
+		for n, client := range ng.NodesClientsAll(ctx) {
+			clients[n] = client
+		}
+	}
+	return clients, nil
+}
+
 // ClusterOverlays represents overlay addresses of all nodes in the cluster
 type ClusterOverlays map[string]NodeGroupOverlays
 

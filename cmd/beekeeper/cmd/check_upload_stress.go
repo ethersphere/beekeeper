@@ -15,32 +15,38 @@ import (
 
 func (c *command) initCheckUploadStress() *cobra.Command {
 	const (
-		optionNameStartCluster        = "start-cluster"
-		optionNameDynamic             = "dynamic"
-		optionNameClusterName         = "cluster-name"
-		optionNameBootnodeCount       = "bootnode-count"
-		optionNameNodeCount           = "node-count"
-		optionNameImage               = "bee-image"
-		optionNameAdditionalImage     = "additional-bee-image"
-		optionNameAdditionalNodeCount = "additional-node-count"
-		optionNameSeed                = "seed"
-		optionNamePersistence         = "persistence"
-		optionNameStorageClass        = "storage-class"
-		optionNameStorageRequest      = "storage-request"
+		optionNameStartCluster          = "start-cluster"
+		optionNameDynamic               = "dynamic"
+		optionNameClusterName           = "cluster-name"
+		optionNameBootnodeCount         = "bootnode-count"
+		optionNameNodeCount             = "node-count"
+		optionNameImage                 = "bee-image"
+		optionNameAdditionalImage       = "additional-bee-image"
+		optionNameAdditionalNodeCount   = "additional-node-count"
+		optionNameSeed                  = "seed"
+		optionNamePersistence           = "persistence"
+		optionNameStorageClass          = "storage-class"
+		optionNameStorageRequest        = "storage-request"
+		optionNameUploadNodesPercentage = "upload-nodes-percentage"
+		optionNameFilesPerNode          = "files-per-node"
+		optionNameFileSize              = "file-size"
+		optionNameRetries               = "retries"
+		optionNameRetryDelay            = "retry-delay"
 	)
 
 	var (
-		startCluster        bool
-		dynamic             bool
-		clusterName         string
-		bootnodeCount       int
-		nodeCount           int
-		additionalNodeCount int
-		image               string
-		additionalImage     string
-		persistence         bool
-		storageClass        string
-		storageRequest      string
+		startCluster          bool
+		dynamic               bool
+		clusterName           string
+		bootnodeCount         int
+		nodeCount             int
+		additionalNodeCount   int
+		image                 string
+		additionalImage       string
+		persistence           bool
+		storageClass          string
+		storageRequest        string
+		uploadNodesPercentage int
 	)
 
 	cmd := &cobra.Command{
@@ -122,20 +128,29 @@ func (c *command) initCheckUploadStress() *cobra.Command {
 			}
 			buffer := 12
 
-			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), 60*time.Minute)
-			defer checkCancel()
+			if uploadNodesPercentage < 0 || uploadNodesPercentage > 100 {
+				return fmt.Errorf("upload-nodes-percentage must be number between 0 and 100")
+			}
 
 			checkUploadStress := uploadstress.NewUploadStress()
 			checkOptions := check.Options{
-				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
-				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), namespace),
-				Seed:           seed,
+				FilesPerNode:          c.config.GetInt(optionNameFilesPerNode),
+				FileSize:              round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024),
+				MetricsEnabled:        c.config.GetBool(optionNamePushMetrics),
+				MetricsPusher:         push.New(c.config.GetString(optionNamePushGateway), namespace),
+				Retries:               c.config.GetInt(optionNameRetries),
+				RetryDelay:            c.config.GetDuration(optionNameRetryDelay),
+				Seed:                  seed,
+				UploadNodesPercentage: uploadNodesPercentage,
 			}
 
 			dynamicStages := []check.Stage{}
 			if dynamic {
 				dynamicStages = checkStages
 			}
+
+			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), 60*time.Minute)
+			defer checkCancel()
 
 			return check.RunConcurrently(checkCtx, cluster, checkUploadStress, checkOptions, dynamicStages, buffer, seed)
 		},
@@ -154,6 +169,11 @@ func (c *command) initCheckUploadStress() *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
+	cmd.PersistentFlags().IntVar(&uploadNodesPercentage, optionNameUploadNodesPercentage, 50, "percentage of nodes to upload to")
+	cmd.Flags().IntP(optionNameFilesPerNode, "f", 1, "number of files to upload per node")
+	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
+	cmd.Flags().Int(optionNameRetries, 5, "number of reties on problems")
+	cmd.Flags().Duration(optionNameRetryDelay, time.Second, "retry delay duration")
 
 	return cmd
 }
