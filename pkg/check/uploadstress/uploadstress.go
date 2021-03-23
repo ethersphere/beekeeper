@@ -27,7 +27,7 @@ func NewUploadStress() *UploadStress {
 
 // Run executes upload stress check
 func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Options) (err error) {
-	buffer := 10
+	concurrency := 10
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -46,9 +46,8 @@ func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Op
 	rnds := random.PseudoGenerators(rnd.Int63(), nodeCount)
 
 	uGroup := new(errgroup.Group)
-	uSemaphore := make(chan struct{}, buffer)
+	uSemaphore := make(chan struct{}, concurrency)
 	for i, p := range picked {
-		o := o
 		i := i
 		p := p
 		n := clients[p]
@@ -73,7 +72,11 @@ func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Op
 					if retryCount > o.Retries {
 						return fmt.Errorf("file %s upload to node %s exceeded number of retires", file.Address().String(), overlay)
 					}
-					time.Sleep(o.RetryDelay)
+					select {
+					case <-time.After(o.RetryDelay):
+					case <-ctx.Done():
+						return ctx.Err()
+					}
 
 					if err := n.UploadFile(ctx, &file, false); err != nil {
 						fmt.Printf("uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)
