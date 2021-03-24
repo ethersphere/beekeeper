@@ -22,6 +22,7 @@ type Options struct {
 	Seed               int64
 	Threshold          int64
 	WaitBeforeDownload int
+	ExpectSettlements  bool
 }
 
 // Check executes settlements check
@@ -119,6 +120,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			if err != nil {
 				return err
 			}
+
 			if settlementsHaveHappened(settlements, previousSettlements) {
 				settlementsHappened = true
 			}
@@ -130,7 +132,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 				continue
 			}
 
-			if !settlementsHappened {
+			if !settlementsHappened && o.ExpectSettlements {
 				return errors.New("settlements have not happened")
 			}
 
