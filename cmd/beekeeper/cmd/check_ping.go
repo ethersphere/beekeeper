@@ -1,15 +1,10 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
-	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
-	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
-	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -45,83 +40,94 @@ func (c *command) initCheckPing() *cobra.Command {
 		Long: `Executes ping from all nodes to all other nodes in the cluster,
 and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
-			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %w", err)
-			}
+			fmt.Println("ping")
+			var cfg config.Config
+			cfg.Read()
 
-			namespace := c.config.GetString(optionNameNamespace)
-			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				K8SClient:           k8sClient,
-				Namespace:           namespace,
-				DisableNamespace:    disableNamespace,
-			})
-
-			if startCluster {
-				// bootnodes group
-				bgName := "bootnode"
-				bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
-				defer bCancel()
-				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
-				}
-
-				// bee node group
-				ngName := "bee"
-				nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
-				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("starting node group %s: %w", ngName, err)
-				}
-
-				// drone node group
-				ngName = "drone"
-				nCtx, nCancel = context.WithTimeout(cmd.Context(), 10*time.Minute)
-				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("starting node group %s: %w", ngName, err)
-				}
-
-			} else {
-				// bootnodes group
-				if bootnodeCount > 0 {
-					bgName := "bootnode"
-					if err := addBootNodeGroup(cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-						return fmt.Errorf("adding bootnode group %s: %w", bgName, err)
-					}
-				}
-
-				// bee nodes group
-				ngName := "bee"
-				if err := addNodeGroup(cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("adding node group %s: %w", ngName, err)
+			fmt.Printf("%v\n", cfg)
+			for k, v := range cfg.Cluster.NodeGroups {
+				for x, y := range v.Nodes {
+					fmt.Println(k, x, y)
 				}
 			}
+			// k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
+			// if err != nil {
+			// 	return fmt.Errorf("creating Kubernetes client: %w", err)
+			// }
 
-			var seed int64
-			if cmd.Flags().Changed("seed") {
-				seed = c.config.GetInt64(optionNameSeed)
-			} else {
-				seed = random.Int64()
-			}
-			buffer := 12
+			// namespace := c.config.GetString(optionNameNamespace)
+			// cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
+			// 	APIDomain:           c.config.GetString(optionNameAPIDomain),
+			// 	APIInsecureTLS:      insecureTLSAPI,
+			// 	APIScheme:           c.config.GetString(optionNameAPIScheme),
+			// 	DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
+			// 	DebugAPIInsecureTLS: insecureTLSDebugAPI,
+			// 	DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
+			// 	K8SClient:           k8sClient,
+			// 	Namespace:           namespace,
+			// 	DisableNamespace:    disableNamespace,
+			// })
 
-			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), 15*time.Minute)
-			defer checkCancel()
+			// if startCluster {
+			// 	// bootnodes group
+			// 	bgName := "bootnode"
+			// 	bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
+			// 	defer bCancel()
+			// 	if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+			// 		return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
+			// 	}
 
-			checkPing := pingpong.NewPing()
-			checkOptions := check.Options{
-				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
-				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), namespace),
-			}
+			// 	// bee node group
+			// 	ngName := "bee"
+			// 	nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
+			// 	defer nCancel()
+			// 	if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+			// 		return fmt.Errorf("starting node group %s: %w", ngName, err)
+			// 	}
 
-			return check.RunConcurrently(checkCtx, cluster, checkPing, checkOptions, checkStages, buffer, seed)
+			// 	// drone node group
+			// 	ngName = "drone"
+			// 	nCtx, nCancel = context.WithTimeout(cmd.Context(), 10*time.Minute)
+			// 	defer nCancel()
+			// 	if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+			// 		return fmt.Errorf("starting node group %s: %w", ngName, err)
+			// 	}
+
+			// } else {
+			// 	// bootnodes group
+			// 	if bootnodeCount > 0 {
+			// 		bgName := "bootnode"
+			// 		if err := addBootNodeGroup(cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+			// 			return fmt.Errorf("adding bootnode group %s: %w", bgName, err)
+			// 		}
+			// 	}
+
+			// 	// bee nodes group
+			// 	ngName := "bee"
+			// 	if err := addNodeGroup(cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+			// 		return fmt.Errorf("adding node group %s: %w", ngName, err)
+			// 	}
+			// }
+
+			// var seed int64
+			// if cmd.Flags().Changed("seed") {
+			// 	seed = c.config.GetInt64(optionNameSeed)
+			// } else {
+			// 	seed = random.Int64()
+			// }
+			// buffer := 12
+
+			// checkCtx, checkCancel := context.WithTimeout(cmd.Context(), 15*time.Minute)
+			// defer checkCancel()
+
+			// checkPing := pingpong.NewPing()
+			// checkOptions := check.Options{
+			// 	MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
+			// 	MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), namespace),
+			// }
+
+			// return check.RunConcurrently(checkCtx, cluster, checkPing, checkOptions, checkStages, buffer, seed)
+			return
 		},
 		PreRunE: c.checkPreRunE,
 	}
