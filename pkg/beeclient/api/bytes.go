@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"fmt"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 )
@@ -57,6 +58,8 @@ func (b *BytesService) UploadAndSync(ctx context.Context, data io.Reader, o Uplo
 	attemptAfterSent := 0
 	syncing := true
 	for syncing == true {
+
+		fmt.Println(tr)
 
 		if tr.Synced >= tr.Total{
 			syncing = false

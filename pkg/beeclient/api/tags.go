@@ -40,3 +40,12 @@ func (p *TagsService) GetTag(ctx context.Context, tagUID uint32) (resp TagRespon
 	err = p.client.requestJSON(ctx, http.MethodGet, "/tags/"+tag, nil, &resp)
 	return
 }
+
+// func (p *TagsService) WaitSync(ctx context.Context) error {
+// 	for {
+// 		select {
+// 			case <-ctx.Done():
+// 				return ctx.Err()
+// 		}
+// 	}
+// }

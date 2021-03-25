@@ -90,12 +90,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 				}
 				if !synced {
 					notSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					fmt.Printf("Node %s. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest node %s: %s\n", nodeName, j, overlays[nodeName].String(), addr.String(), closestName, closestAddress.String())
+					fmt.Printf("Node %s. Chunk %d not found on the closest node. \nNode: %s \nChunk: %s Closest node %s: %s\n\n", nodeName, j, overlays[nodeName].String(), addr.String(), closestName, closestAddress.String())
 					continue
 				}
 
 				syncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("Node %s. Chunk %d found on the closest node. Node: %s Chunk: %s Closest node %s: %s\n", nodeName, j, overlays[nodeName].String(), addr.String(), closestName, closestAddress.String())
+				fmt.Printf("Node %s. Chunk %d found on the closest node. Node: %s \nChunk: %s \nClosest node %s: %s\n\n", nodeName, j, overlays[nodeName].String(), addr.String(), closestName, closestAddress.String())
 
 				// check succeeded
 				break
