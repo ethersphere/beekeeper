@@ -8,6 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/stress"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -337,6 +338,69 @@ var checkStages = []check.Stage{
 		{
 			NodeGroup: "drone",
 			Actions: check.Actions{
+				AddCount:    3,
+				StartCount:  1,
+				StopCount:   2,
+				DeleteCount: 1,
+			},
+		},
+	},
+}
+
+var stressStages = []stress.Stage{
+	[]stress.Update{
+		{
+			NodeGroup: "bee",
+			Actions: stress.Actions{
+				AddCount:    2,
+				StartCount:  0,
+				StopCount:   1,
+				DeleteCount: 3,
+			},
+		},
+		{
+			NodeGroup: "drone",
+			Actions: stress.Actions{
+				AddCount:    4,
+				StartCount:  0,
+				StopCount:   3,
+				DeleteCount: 1,
+			},
+		},
+	},
+	[]stress.Update{
+		{
+			NodeGroup: "bee",
+			Actions: stress.Actions{
+				AddCount:    3,
+				StartCount:  1,
+				StopCount:   1,
+				DeleteCount: 3,
+			},
+		},
+		{
+			NodeGroup: "drone",
+			Actions: stress.Actions{
+				AddCount:    2,
+				StartCount:  1,
+				StopCount:   2,
+				DeleteCount: 1,
+			},
+		},
+	},
+	[]stress.Update{
+		{
+			NodeGroup: "bee",
+			Actions: stress.Actions{
+				AddCount:    4,
+				StartCount:  1,
+				StopCount:   3,
+				DeleteCount: 1,
+			},
+		},
+		{
+			NodeGroup: "drone",
+			Actions: stress.Actions{
 				AddCount:    3,
 				StartCount:  1,
 				StopCount:   2,

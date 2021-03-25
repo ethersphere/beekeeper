@@ -1,7 +1,8 @@
-package uploadstress
+package upload
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -9,25 +10,25 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/beekeeper/pkg/stress"
 	"golang.org/x/sync/errgroup"
 )
 
-// compile check whether UploadStress implements interface
-var _ check.Check = (*UploadStress)(nil)
+// compile stress whether Upload implements interface
+var _ stress.Stress = (*Upload)(nil)
 
-// UploadStress check
-type UploadStress struct{}
+// UploadStress stress
+type Upload struct{}
 
-// NewUploadStress returns new ping check
-func NewUploadStress() *UploadStress {
-	return &UploadStress{}
+// NewUploadStress returns new ping stress
+func NewUpload() *Upload {
+	return &Upload{}
 }
 
-// Run executes upload stress check
-func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Options) (err error) {
-	concurrency := 10
+// Run executes upload stress
+func (u *Upload) Run(ctx context.Context, cluster *bee.Cluster, o stress.Options) (err error) {
+	concurrency := 100
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -41,7 +42,7 @@ func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Op
 	sort.Strings(nodeNames)
 	nodeCount := int(math.Round(float64(len(clients)*o.UploadNodesPercentage) / 100))
 	rnd := random.PseudoGenerator(o.Seed)
-	picked, _ := randomPick(rnd, nodeNames, nodeCount)
+	picked := randomPick(rnd, nodeNames, nodeCount)
 
 	rnds := random.PseudoGenerators(rnd.Int63(), nodeCount)
 
@@ -58,12 +59,15 @@ func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Op
 				<-uSemaphore
 			}()
 
+			ctx, ctxCancel := context.WithTimeout(ctx, o.Timeout)
+			defer ctxCancel()
+
 			overlay, err := n.Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", p, err)
 			}
 
-			for j := 0; j < o.FilesPerNode; j++ {
+			for {
 				file := bee.NewRandomFile(rnds[i], "filename", o.FileSize)
 
 				retryCount := 0
@@ -72,14 +76,18 @@ func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Op
 					if retryCount > o.Retries {
 						return fmt.Errorf("file %s upload to node %s exceeded number of retires", file.Address().String(), overlay)
 					}
+
 					select {
 					case <-time.After(o.RetryDelay):
 					case <-ctx.Done():
+						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+							return nil
+						}
 						return ctx.Err()
 					}
 
 					if err := n.UploadFile(ctx, &file, false); err != nil {
-						fmt.Printf("uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)
+						fmt.Printf("error: uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)
 						continue
 					}
 					break
@@ -87,8 +95,6 @@ func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Op
 
 				fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlay)
 			}
-
-			return nil
 		})
 	}
 
@@ -96,16 +102,16 @@ func (u *UploadStress) Run(ctx context.Context, cluster *bee.Cluster, o check.Op
 		return err
 	}
 
-	fmt.Println("upload stress check completed successfully")
+	fmt.Println("upload stress completed successfully")
 	return
 }
 
-// randomPick randomly picks n elements from the list, and returns lists of picked and unpicked elements
-func randomPick(rnd *rand.Rand, list []string, n int) (picked, unpicked []string) {
+// randomPick randomly picks n elements from the list, and returns lists of picked elements
+func randomPick(rnd *rand.Rand, list []string, n int) (picked []string) {
 	for i := 0; i < n; i++ {
 		index := rnd.Intn(len(list))
 		picked = append(picked, list[index])
 		list = append(list[:index], list[index+1:]...)
 	}
-	return picked, list
+	return
 }

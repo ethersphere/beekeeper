@@ -4,37 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	optionNameAPIScheme               = "api-scheme"
-	optionNameAPIHostnamePattern      = "api-hostnames"
-	optionNameAPIDomain               = "api-domain"
-	optionNameAPIInsecureTLS          = "api-insecure-tls"
-	optionNameDebugAPIScheme          = "debug-api-scheme"
-	optionNameDebugAPIHostnamePattern = "debug-api-hostnames"
-	optionNameDebugAPIDomain          = "debug-api-domain"
-	optionNameDebugAPIInsecureTLS     = "debug-api-insecure-tls"
-	optionNameDisableNamespace        = "disable-namespace"
-	optionNameInsecureTLS             = "insecure-tls"
-	optionNameInCluster               = "in-cluster"
-	optionNameKubeconfig              = "kubeconfig"
-	optionNameNamespace               = "namespace"
-	optionNameNodeCount               = "node-count"
-	optionNamePushGateway             = "push-gateway"
-	optionNamePushMetrics             = "push-metrics"
-)
-
-var (
-	disableNamespace    bool
-	inCluster           bool
-	insecureTLSAPI      bool
-	insecureTLSDebugAPI bool
-	pushMetrics         bool
-)
-
-func (c *command) initCheckCmd() (err error) {
+func (c *command) initStressCmd() (err error) {
 	cmd := &cobra.Command{
-		Use:   "check",
-		Short: "Run tests on a Bee cluster",
+		Use:   "stress",
+		Short: "Run stress on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},
@@ -60,29 +33,13 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&inCluster, optionNameInCluster, false, "run Beekeeper in Kubernetes cluster")
 	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
 
-	cmd.AddCommand(c.initCheckBalances())
-	cmd.AddCommand(c.initCheckFileRetrieval())
-	cmd.AddCommand(c.initCheckFullConnectivity())
-	cmd.AddCommand(c.initCheckKademlia())
-	cmd.AddCommand(c.initCheckGc())
-	cmd.AddCommand(c.initCheckLocalPinningChunk())
-	cmd.AddCommand(c.initCheckLocalPinningBytes())
-	cmd.AddCommand(c.initCheckLocalPinningRemote())
-	cmd.AddCommand(c.initCheckPeerCount())
-	cmd.AddCommand(c.initCheckPingPong())
-	cmd.AddCommand(c.initCheckPullSync())
-	cmd.AddCommand(c.initCheckPushSync())
-	cmd.AddCommand(c.initCheckRetrieval())
-	cmd.AddCommand(c.initCheckSettlements())
-	cmd.AddCommand(c.initCheckChunkRepair())
-	cmd.AddCommand(c.initCheckManifest())
-	cmd.AddCommand(c.initCheckPing())
+	cmd.AddCommand(c.initStressUpload())
 
 	c.root.AddCommand(cmd)
 	return nil
 }
 
-func (c *command) checkPreRunE(cmd *cobra.Command, args []string) (err error) {
+func (c *command) stressPreRunE(cmd *cobra.Command, args []string) (err error) {
 	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
 		if err = cmd.MarkFlagRequired(optionNameNamespace); err != nil {
 			return

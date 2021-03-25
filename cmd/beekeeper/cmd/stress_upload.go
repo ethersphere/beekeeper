@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check"
-	"github.com/ethersphere/beekeeper/pkg/check/uploadstress"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/beekeeper/pkg/stress"
+	"github.com/ethersphere/beekeeper/pkg/stress/upload"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initCheckUploadStress() *cobra.Command {
+func (c *command) initStressUpload() *cobra.Command {
 	const (
 		optionNameStartCluster          = "start-cluster"
 		optionNameDynamic               = "dynamic"
@@ -28,7 +28,7 @@ func (c *command) initCheckUploadStress() *cobra.Command {
 		optionNameStorageClass          = "storage-class"
 		optionNameStorageRequest        = "storage-request"
 		optionNameUploadNodesPercentage = "upload-nodes-percentage"
-		optionNameFilesPerNode          = "files-per-node"
+		optionNameTimeout               = "timeout"
 		optionNameFileSize              = "file-size"
 		optionNameRetries               = "retries"
 		optionNameRetryDelay            = "retry-delay"
@@ -50,7 +50,7 @@ func (c *command) initCheckUploadStress() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "uploadstress",
+		Use:   "upload",
 		Short: "Uploads data to all nodes in the cluster",
 		Long:  `Uploads data to all nodes in the cluster to ensure that the GC process is activated.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
@@ -132,34 +132,31 @@ func (c *command) initCheckUploadStress() *cobra.Command {
 				return fmt.Errorf("upload-nodes-percentage must be number between 0 and 100")
 			}
 
-			checkUploadStress := uploadstress.NewUploadStress()
-			checkOptions := check.Options{
-				FilesPerNode:          c.config.GetInt(optionNameFilesPerNode),
+			stressUpload := upload.NewUpload()
+			stressOptions := stress.Options{
 				FileSize:              round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024),
 				MetricsEnabled:        c.config.GetBool(optionNamePushMetrics),
 				MetricsPusher:         push.New(c.config.GetString(optionNamePushGateway), namespace),
 				Retries:               c.config.GetInt(optionNameRetries),
 				RetryDelay:            c.config.GetDuration(optionNameRetryDelay),
 				Seed:                  seed,
+				Timeout:               c.config.GetDuration(optionNameTimeout),
 				UploadNodesPercentage: uploadNodesPercentage,
 			}
 
-			dynamicStages := []check.Stage{}
+			dynamicStages := []stress.Stage{}
 			if dynamic {
-				dynamicStages = checkStages
+				dynamicStages = stressStages
 			}
 
-			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), 60*time.Minute)
-			defer checkCancel()
-
-			return check.RunConcurrently(checkCtx, cluster, checkUploadStress, checkOptions, dynamicStages, buffer, seed)
+			return stress.RunConcurrently(cmd.Context(), cluster, stressUpload, stressOptions, dynamicStages, buffer, seed)
 		},
-		PreRunE: c.checkPreRunE,
+		PreRunE: c.stressPreRunE,
 	}
 
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
-	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "check on dynamic cluster")
+	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "stress on dynamic cluster")
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
@@ -170,7 +167,7 @@ func (c *command) initCheckUploadStress() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
 	cmd.PersistentFlags().IntVar(&uploadNodesPercentage, optionNameUploadNodesPercentage, 50, "percentage of nodes to upload to")
-	cmd.Flags().IntP(optionNameFilesPerNode, "f", 1, "number of files to upload per node")
+	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "how long to upload files on each node")
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int(optionNameRetries, 5, "number of reties on problems")
 	cmd.Flags().Duration(optionNameRetryDelay, time.Second, "retry delay duration")
