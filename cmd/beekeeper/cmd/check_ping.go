@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/check"
+	// "github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
