@@ -54,8 +54,6 @@ func Check(c *bee.Cluster, o Options) error {
 			return fmt.Errorf("upload to node %s: %w", nodeName, err)
 		}
 
-		// fmt.Printf("uploaded %d bytes successfully, hash %s\n", len(data), addr.String())
-
 		ctx, cancel := context.WithTimeout(ctx, o.Timeout)
 		defer cancel()
 
@@ -64,21 +62,16 @@ func Check(c *bee.Cluster, o Options) error {
 			return fmt.Errorf("sync with node %s: %w", nodeName, err)
 		}
 
-		// fmt.Printf("synced %d bytes successfully, hash %s\n", len(data), addr.String())
-
 		// pick a random different node and try to download the content
 		n := randNot(r, len(sortedNodes), uploader)
 		downloadNode := sortedNodes[n]
-		// fmt.Printf("trying to download from node: %s\n", downloadNode)
 
 		dd, err := ng.NodeClient(downloadNode).DownloadBytes(ctx, addr)
 		if err != nil {
-			// fmt.Printf("ERR download from node %s: %w", nodeName, err)
 			return fmt.Errorf("download from node %s: %w", nodeName, err)
 		}
 
 		if !bytes.Equal(data, dd) {
-			// fmt.Println("ERR download data mismatch")
 			return fmt.Errorf("download data mismatch")
 		}
 
@@ -89,9 +82,8 @@ func Check(c *bee.Cluster, o Options) error {
 }
 
 func randNot(r *rand.Rand, l, not int) int {
-	// i feel like it is useful perhaps to allow this behaviour so this userstory can be tested too?
 	if l < 2 {
-		fmt.Println("warning: downloading from same node!")
+		fmt.Println("Warning: downloading from same node!")
 		return 0
 	}
 	for {
