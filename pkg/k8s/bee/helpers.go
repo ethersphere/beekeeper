@@ -45,7 +45,6 @@ tracing-service-name: {{.TracingServiceName}}
 verbosity: {{.Verbosity}}
 welcome-message: {{.WelcomeMessage}}
 `
-	portHTTP = 80
 )
 
 type setInitContainersOptions struct {

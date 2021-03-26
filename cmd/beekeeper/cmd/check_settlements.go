@@ -20,10 +20,12 @@ func (c *command) initCheckSettlements() *cobra.Command {
 		optionNameThreshold          = "threshold"
 		optionNameDryRun             = "dry-run"
 		optionNameWaitBeforeDownload = "wait-before-download"
+		optionNameExpectSettlements  = "expect-settlements"
 	)
 
 	var (
-		dryRun bool
+		dryRun            bool
+		expectSettlements bool
 	)
 
 	cmd := &cobra.Command{
@@ -72,6 +74,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 					Seed:               seed,
 					Threshold:          c.config.GetInt64(optionNameThreshold),
 					WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
+					ExpectSettlements:  c.config.GetBool(optionNameExpectSettlements),
 				})
 			}
 
@@ -83,6 +86,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 				Seed:               seed,
 				Threshold:          c.config.GetInt64(optionNameThreshold),
 				WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
+				ExpectSettlements:  c.config.GetBool(optionNameExpectSettlements),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
@@ -95,6 +99,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 	cmd.Flags().Int64P(optionNameThreshold, "t", 10000000000000, "balances treshold")
 	cmd.Flags().BoolVar(&dryRun, optionNameDryRun, false, "don't upload and download files, just validate")
 	cmd.Flags().IntP(optionNameWaitBeforeDownload, "w", 5, "wait before downloading a file [s]")
+	cmd.Flags().BoolVar(&expectSettlements, optionNameExpectSettlements, true, "expects settlements happening during settlements check")
 
 	return cmd
 }

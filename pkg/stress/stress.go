@@ -1,4 +1,4 @@
-package check
+package stress
 
 import (
 	"context"
@@ -12,20 +12,20 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Check defines Bee check
-type Check interface {
+// Stress defines Bee stress
+type Stress interface {
 	Run(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 }
 
-// Options for Bee checks
+// Options for Bee stress
 type Options struct {
-	FilesPerNode          int
 	FileSize              int64
 	MetricsEnabled        bool
 	MetricsPusher         *push.Pusher
 	Retries               int
 	RetryDelay            time.Duration
 	Seed                  int64
+	Timeout               time.Duration
 	UploadNodesPercentage int
 }
 
@@ -46,11 +46,11 @@ type Actions struct {
 	DeleteCount int
 }
 
-// Run runs check against the cluster
-func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options, stages []Stage, seed int64) (err error) {
+// Run runs stress against the cluster
+func Run(ctx context.Context, cluster *bee.Cluster, stress Stress, options Options, stages []Stage, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	if err := check.Run(ctx, cluster, options); err != nil {
+	if err := stress.Run(ctx, cluster, options); err != nil {
 		return err
 	}
 
@@ -75,7 +75,7 @@ func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options
 			time.Sleep(60 * time.Second)
 		}
 
-		if err := check.Run(ctx, cluster, options); err != nil {
+		if err := stress.Run(ctx, cluster, options); err != nil {
 			return err
 		}
 	}
@@ -83,11 +83,11 @@ func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options
 	return
 }
 
-// RunConcurrently runs check against the cluster, cluster updates are executed concurrently
-func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, options Options, stages []Stage, buffer int, seed int64) (err error) {
+// RunConcurrently runs stress against the cluster, cluster updates are executed concurrently
+func RunConcurrently(ctx context.Context, cluster *bee.Cluster, stress Stress, options Options, stages []Stage, buffer int, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	if err := check.Run(ctx, cluster, options); err != nil {
+	if err := stress.Run(ctx, cluster, options); err != nil {
 		return err
 	}
 
@@ -98,6 +98,8 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 
 		stageGroup := new(errgroup.Group)
 		stageSemaphore := make(chan struct{}, buffer)
+		stageCtx, stageCancel := context.WithTimeout(ctx, 20*time.Minute)
+		defer stageCancel()
 
 		waitDeleted := false
 		for j, u := range s {
@@ -115,7 +117,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 
 				fmt.Printf("node group %s, add %d, delete %d, start %d, stop %d\n", u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 				ng := cluster.NodeGroup(u.NodeGroup)
-				if err := updateNodeGroupConcurrently(ctx, ng, u.Actions, rnds[j], i, buffers[j]); err != nil {
+				if err := updateNodeGroupConcurrently(stageCtx, ng, u.Actions, rnds[j], i, buffers[j]); err != nil {
 					return err
 				}
 
@@ -133,7 +135,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, opt
 			time.Sleep(60 * time.Second)
 		}
 
-		if err := check.Run(ctx, cluster, options); err != nil {
+		if err := stress.Run(ctx, cluster, options); err != nil {
 			return err
 		}
 	}
