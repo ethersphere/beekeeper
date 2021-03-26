@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 )
@@ -34,48 +34,9 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 	if o.Pin {
 		h.Add("Swarm-Pin", "true")
 	}
+	if o.Tag > 0 {
+		h.Add("Swarm-Tag", strconv.FormatUint(uint64(o.Tag),10))
+	}
 	_, err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
 	return resp, err
 }
-
-// Upload uploads bytes to the node
-func (b *BytesService) UploadAndSync(ctx context.Context, data io.Reader, o UploadOptions) (BytesUploadResponse, error) {
-	var resp BytesUploadResponse
-	h := http.Header{}
-	if o.Pin {
-		h.Add("Swarm-Pin", "true")
-	}
-
-	r, err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
-
-	tag := r.Header["Swarm-Tag"][0]
-
-	var tr TagResponse
-	err = b.client.requestJSON(ctx, http.MethodGet, "/tags/"+tag, nil, &tr)
-
-	var lastSynced int64
-	attemptAfterSent := 0
-	syncing := true
-	for syncing == true {
-
-		if tr.Synced >= tr.Total{
-			syncing = false
-		}
-		lastSynced = tr.Synced
-
-		time.Sleep(1000 * time.Millisecond)
-
-		if lastSynced == tr.Synced {
-			attemptAfterSent++
-		}else{
-			attemptAfterSent = 0
-		}
-
-		if attemptAfterSent > maxAttemptsAfterSent {
-			syncing = false
-		}
-	}
-
-	return resp, err
-}
-

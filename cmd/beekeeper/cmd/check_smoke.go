@@ -13,10 +13,11 @@ import (
 
 func (c *command) initCheckSmoke() *cobra.Command {
 	const (
-		optionNameRuns      = "runs"
-		optionNameBytes     = "bytes"
-		optionNameMegabytes = "megabytes"
-		optionNameSeed      = "seed"
+		optionNameRuns         = "runs"
+		optionNameBytes        = "bytes"
+		optionNameMegabytes    = "megabytes"
+		optionNameSeed         = "seed"
+		optionNameTimeout      = "timeout"
 	)
 
 	var (
@@ -68,12 +69,17 @@ func (c *command) initCheckSmoke() *cobra.Command {
 				seed = random.Int64()
 			}
 
+			t := c.config.GetDuration(optionNameTimeout)
+
+			ts := t * 1000000000
+
 			return smoke.Check(cluster, smoke.Options{
 				NodeGroup:       "nodes",
 				UploadNodeCount: c.config.GetInt(optionNameNodeCount),
 				Seed:            seed,
 				Runs:            runs,
 				Bytes:           b,
+				Timeout:         ts,
 			})
 		},
 		PreRunE: c.checkPreRunE,
@@ -83,6 +89,7 @@ func (c *command) initCheckSmoke() *cobra.Command {
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 	cmd.Flags().IntP(optionNameBytes, "b", 0, "number of bytes to upload on each run")
 	cmd.Flags().IntP(optionNameMegabytes, "m", 0, "number of megabytes to upload on each run")
+	cmd.Flags().IntP(optionNameTimeout, "t", 0, "number of seconds before sync times out")
 
 	return cmd
 }

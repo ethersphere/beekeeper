@@ -38,5 +38,44 @@ func (p *TagsService) GetTag(ctx context.Context, tagUID uint32) (resp TagRespon
 	tag := strconv.FormatUint(uint64(tagUID), 10)
 
 	err = p.client.requestJSON(ctx, http.MethodGet, "/tags/"+tag, nil, &resp)
-	return
+
+	return resp, err
+}
+
+func (p *TagsService) WaitSync(ctx context.Context, tagUID uint32) (err error) {
+	
+	c := make(chan bool)
+	e := make(chan error)
+	defer close(c)
+	defer close(e)
+	// defer
+	go func(c chan bool, e chan error){
+		for {
+			tr, err := p.GetTag(ctx, tagUID)
+
+			if err != nil {
+				e<-err
+				return
+			}
+
+			if tr.Synced >= tr.Total{
+				c<-true
+				return
+			}
+
+			time.Sleep(1000 * time.Millisecond)
+		}
+	}(c, e)
+
+	for {
+		select {
+			case <-c:
+				return
+			case err := <-e:
+				return err
+			case <-ctx.Done():
+				return ctx.Err()
+		}
+	}
+
 }

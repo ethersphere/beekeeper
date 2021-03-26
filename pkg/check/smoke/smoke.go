@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
@@ -17,6 +18,7 @@ type Options struct {
 	UploadNodeCount    int
 	Runs      int // how many runs to do
 	Bytes     int // how many bytes to upload each time
+	Timeout   time.Duration
 	Seed      int64
 }
 
@@ -37,37 +39,61 @@ func Check(c *bee.Cluster, o Options) error {
 		
 		fmt.Printf("run %d, uploader node is: %s\n", i, nodeName)
 
+		tr, err := ng.NodeClient(nodeName).CreateTag(ctx)
+		if err != nil {
+			return fmt.Errorf("get tag from node %s: %w", nodeName, err)
+		}
+
 		data := make([]byte, o.Bytes)
 		if _, err := rnd.Read(data); err != nil {
 			return fmt.Errorf("create random data: %w", err)
 		}
 
-		addr, err := ng.NodeClient(nodeName).UploadAndSyncBytes(ctx, data, api.UploadOptions{Pin: false})
+		addr, err := ng.NodeClient(nodeName).UploadBytes(ctx, data, api.UploadOptions{Pin: false, Tag: tr.Uid})
 		if err != nil {
 			return fmt.Errorf("upload to node %s: %w", nodeName, err)
 		}
 
-		fmt.Printf("uploaded %d bytes successfully, hash %s\n", len(data), addr.String())
+		// fmt.Printf("uploaded %d bytes successfully, hash %s\n", len(data), addr.String())
+
+		ctx, cancel := context.WithTimeout(ctx, o.Timeout)
+		defer cancel()
+
+		err = ng.NodeClient(nodeName).WaitSync(ctx, tr.Uid)
+		if err != nil {
+			return fmt.Errorf("sync with node %s: %w", nodeName, err)
+		}
+
+		// fmt.Printf("synced %d bytes successfully, hash %s\n", len(data), addr.String())
 
 		// pick a random different node and try to download the content
 		n := randNot(r, len(sortedNodes), uploader)
 		downloadNode := sortedNodes[n]
-		fmt.Printf("trying to download from node: %s\n", downloadNode)
+		// fmt.Printf("trying to download from node: %s\n", downloadNode)
 
 		dd, err := ng.NodeClient(downloadNode).DownloadBytes(ctx, addr)
 		if err != nil {
+			// fmt.Printf("ERR download from node %s: %w", nodeName, err)
 			return fmt.Errorf("download from node %s: %w", nodeName, err)
 		}
 
 		if !bytes.Equal(data, dd) {
+			// fmt.Println("ERR download data mismatch")
 			return fmt.Errorf("download data mismatch")
 		}
+
+		fmt.Printf("Downloaded successfully from node: %s\n", downloadNode)
 	}
 	fmt.Println("smoke test completed successfully")
 	return nil
 }
 
 func randNot(r *rand.Rand, l, not int) int {
+	// i feel like it is useful perhaps to allow this behaviour so this userstory can be tested too?
+	if l < 2 {
+		fmt.Println("warning: downloading from same node!")
+		return 0
+	}
 	for {
 		pick := r.Intn(l)
 		if pick != not {

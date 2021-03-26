@@ -422,13 +422,13 @@ func (c *Client) UnpinChunk(ctx context.Context, a swarm.Address) error {
 }
 
 // UploadBytes uploads bytes to the node
-func (c *Client) UploadAndSyncBytes(ctx context.Context, b []byte, o api.UploadOptions) (swarm.Address, error) {
-	r, err := c.api.Bytes.UploadAndSync(ctx, bytes.NewReader(b), o)
+func (c *Client) WaitSync(ctx context.Context, UId uint32) (error) {
+	err := c.api.Tags.WaitSync(ctx, UId)
 	if err != nil {
-		return swarm.ZeroAddress, fmt.Errorf("upload bytes: %w", err)
+		return fmt.Errorf("sync tag: %w", err)
 	}
 
-	return r.Reference, nil
+	return err
 }
 
 
