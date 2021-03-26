@@ -88,8 +88,10 @@ check:
           stop: 2
           delete: 1
 
-bee-config-profiles:
+bee-profiles:
   default:
+    _file: ""
+    _inherit: ""
     api-addr: ":1633"
     bootnodes: ""
     clef-signer-enable: false
@@ -123,12 +125,15 @@ bee-config-profiles:
     tracing-service-name: "bee"
     verbosity: 5
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
-  # light-node:
-  #   inherit: default
-  #   api-addr: ":1644"
+  light-node:
+    _file: ""
+    _inherit: default
+    api-addr: ":1644"
 
 node-group-profiles:
   default:
+    _file: ""
+    _inherit: ""
     image:
       name: ethersphere/bee
       tag: latest
@@ -170,11 +175,12 @@ node-group-profiles:
         memory: 1Gi
     restart-policy: "Always"
     update-strategy: "RollingUpdate"
-  # light-node:
-  #   inherit: default
-  #   image:
-  #     name: svetomir/bee
+  light-node:
+    _file: ""
+    _inherit: default
+    image:
+      name: svetomir/bee
 
 kubernetes:
-  kubeconfig: ""
+  kubeconfig: "kubeconfig"
   in-cluster: false

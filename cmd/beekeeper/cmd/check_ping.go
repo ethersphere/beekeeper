@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	// "github.com/ethersphere/beekeeper/pkg/check"
+
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
@@ -41,15 +42,15 @@ func (c *command) initCheckPing() *cobra.Command {
 and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			fmt.Println("ping")
-			var cfg config.Config
-			cfg.Read()
+			cfg := config.Read("config.yaml")
 
-			fmt.Printf("%v\n", cfg)
-			for k, v := range cfg.Cluster.NodeGroups {
-				for x, y := range v.Nodes {
-					fmt.Println(k, x, y)
-				}
-			}
+			fmt.Println(cfg.Cluster.API)
+
+			// for k, v := range cfg.Cluster.NodeGroups {
+			// 	for x, y := range v.Nodes {
+			// 		fmt.Println(k, x, y)
+			// 	}
+			// }
 			// k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
 			// if err != nil {
 			// 	return fmt.Errorf("creating Kubernetes client: %w", err)

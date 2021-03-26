@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -8,52 +9,48 @@ import (
 )
 
 type Config struct {
-	Cluster struct {
-		Name             string `yaml:"name"`
-		Namespace        string `yaml:"namespace"`
-		DisableNamespace bool   `yaml:"disable-namespace"`
-		API              struct {
-			Domain          string `yaml:"domain"`
-			HostnamePattern string `yaml:"hostname-pattern"`
-			InsecureTLS     bool   `yaml:"insecure-tls"`
-			Scheme          string `yaml:"scheme"`
-		} `yaml:"api"`
-		DebugAPI struct {
-			Domain          string `yaml:"domain"`
-			HostnamePattern string `yaml:"hostname-pattern"`
-			InsecureTLS     bool   `yaml:"insecure-tls"`
-			Scheme          string `yaml:"scheme"`
-		} `yaml:"debug-api"`
-		NodeGroups []struct {
-			Name      string `yaml:"name"`
-			Mode      string `yaml:"mode"`
-			BeeConfig string `yaml:"bee-config"`
-			Config    string `yaml:"config"`
-			Count     string `yaml:"count"`
-			Nodes     []struct {
-				Bootnodes    string `yaml:"bootnodes"`
-				ClefKey      string `yaml:"clef-key"`
-				ClefPassword string `yaml:"clef-password"`
-				LibP2PKey    string `yaml:"libp2p-key"`
-				SwarmKey     string `yaml:"swarm-key"`
-			} `yaml:"nodes"`
-		} `yaml:"node-groups"`
-	} `yaml:"cluster"`
-	Kubernetes struct {
+	Cluster           Cluster               `yaml:"cluster"`
+	Check             Check                 `yaml:"check"`
+	BeeProfiles       map[string]BeeProfile `yaml:"bee-profiles"`
+	NodeGroupProfiles map[string]NodeGroup  `yaml:"node-group-profiles"`
+	Kubernetes        struct {
 		Kubeconfig string `yaml:"kubeconfig"`
 		InCluster  bool   `yaml:"in-cluster"`
 	} `yaml:"kubernetes"`
 }
 
-func (c *Config) Read() *Config {
-	yamlFile, err := ioutil.ReadFile("config.yaml")
+type Profile struct {
+	File    string `yaml:"_file"`
+	Inherit string `yaml:"_inherit"`
+}
+
+func (c *Config) Merge() {
+	// merge BeeProfiles
+	for name, v := range c.BeeProfiles {
+		if len(v.Profile.Inherit) > 0 {
+			fmt.Println(name, "from", v.Profile.Inherit)
+		}
+	}
+
+	// merge NodeGroupProfiles
+	for name, v := range c.NodeGroupProfiles {
+		if len(v.Profile.Inherit) > 0 {
+			fmt.Println(name, "from", v.Profile.Inherit)
+		}
+	}
+}
+
+func Read(file string) (c *Config) {
+	yamlFile, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
 	}
-	err = yaml.Unmarshal(yamlFile, c)
-	if err != nil {
+
+	if err := yaml.Unmarshal(yamlFile, &c); err != nil {
 		log.Fatalf("Unmarshal: %v", err)
 	}
 
-	return c
+	c.Merge()
+
+	return
 }
