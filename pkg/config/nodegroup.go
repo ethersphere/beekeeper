@@ -1,9 +1,10 @@
 package config
 
-type NodeGroupProfile struct {
-	Profile   `yaml:",inline"`
-	NodeGroup `yaml:",inline"`
-}
+import (
+	"fmt"
+
+	"github.com/ethersphere/beekeeper/pkg/bee"
+)
 
 type NodeGroup struct {
 	Annotations *map[string]string `yaml:"annotations"`
@@ -39,4 +40,29 @@ type NodeGroup struct {
 	} `yaml:"resources"`
 	RestartPolicy  *string `yaml:"restart-policy"`
 	UpdateStrategy *string `yaml:"update-strategy"`
+}
+
+// TODO: with reflex
+func (n *NodeGroup) Export() bee.NodeGroupOptions {
+	return bee.NodeGroupOptions{
+		// Annotations:               *n.Annotations,
+		ClefImage:                 fmt.Sprintf("%s:%s", n.ClefImage.Name, n.ClefImage.Tag),
+		ClefImagePullPolicy:       n.ClefImage.PullPolicy,
+		BeeConfig:                 nil,
+		Image:                     fmt.Sprintf("%s:%s", n.Image.Name, n.Image.Tag),
+		IngressAnnotations:        *n.IngressAnnotations,
+		IngressDebugAnnotations:   *n.IngressDebugAnnotations,
+		Labels:                    *n.Labels,
+		LimitCPU:                  n.Resources.Limit.CPU,
+		LimitMemory:               n.Resources.Limit.Memory,
+		NodeSelector:              *n.NodeSelector,
+		PersistenceEnabled:        n.Persistence.Enabled,
+		PersistenceStorageClass:   n.Persistence.StorageClass,
+		PersistanceStorageRequest: n.Persistence.StorageRequest,
+		PodManagementPolicy:       *n.PodManagementPolicy,
+		RestartPolicy:             *n.RestartPolicy,
+		RequestCPU:                n.Resources.Request.CPU,
+		RequestMemory:             n.Resources.Request.Memory,
+		UpdateStrategy:            *n.UpdateStrategy,
+	}
 }

@@ -2,11 +2,6 @@ package config
 
 import "github.com/ethersphere/beekeeper/pkg/k8s"
 
-type BeeProfile struct {
-	Profile `yaml:",inline"`
-	Bee     `yaml:",inline"`
-}
-
 type Bee struct {
 	APIAddr              *string `yaml:"api-addr"`
 	Bootnodes            *string `yaml:"bootnodes"`
@@ -16,7 +11,7 @@ type Bee struct {
 	DataDir              *string `yaml:"data-dir"`
 	DBCapacity           *uint64 `yaml:"db-capacity"`
 	DebugAPIAddr         *string `yaml:"debug-api-addr"`
-	DebugAPIEnable       *bool   `yaml:"debug-api-enable:"`
+	DebugAPIEnable       *bool   `yaml:"debug-api-enable"`
 	GatewayMode          *bool   `yaml:"gateway-mode"`
 	GlobalPinningEnabled *bool   `yaml:"global-pinning-enabled"`
 	NATAddr              *string `yaml:"nat-addr"`
@@ -45,6 +40,39 @@ type Bee struct {
 
 // TODO: with reflex
 func (b *Bee) Export() k8s.Config {
-
-	return k8s.Config{}
+	return k8s.Config{
+		APIAddr:              *b.APIAddr,
+		Bootnodes:            *b.Bootnodes,
+		ClefSignerEnable:     *b.ClefSignerEnable,
+		ClefSignerEndpoint:   *b.ClefSignerEndpoint,
+		CORSAllowedOrigins:   *b.CORSAllowedOrigins,
+		DataDir:              *b.DataDir,
+		DBCapacity:           *b.DBCapacity,
+		DebugAPIAddr:         *b.DebugAPIAddr,
+		DebugAPIEnable:       *b.DebugAPIEnable,
+		GatewayMode:          *b.GatewayMode,
+		GlobalPinningEnabled: *b.GlobalPinningEnabled,
+		NATAddr:              *b.NATAddr,
+		NetworkID:            *b.NetworkID,
+		P2PAddr:              *b.P2PAddr,
+		P2PQUICEnable:        *b.P2PQUICEnable,
+		P2PWSEnable:          *b.P2PWSEnable,
+		Password:             *b.Password,
+		PaymentEarly:         *b.PaymentEarly,
+		PaymentThreshold:     *b.PaymentThreshold,
+		PaymentTolerance:     *b.PaymentTolerance,
+		PostageStampAddress:  *b.PostageStampAddress,
+		PriceOracleAddress:   *b.PriceOracleAddress,
+		ResolverOptions:      *b.ResolverOptions,
+		Standalone:           *b.Standalone,
+		SwapEnable:           *b.SwapEnable,
+		SwapEndpoint:         *b.SwapEndpoint,
+		SwapFactoryAddress:   *b.SwapFactoryAddress,
+		SwapInitialDeposit:   *b.SwapInitialDeposit,
+		TracingEnabled:       *b.TracingEnabled,
+		TracingEndpoint:      *b.TracingEndpoint,
+		TracingServiceName:   *b.TracingServiceName,
+		Verbosity:            *b.Verbosity,
+		WelcomeMessage:       *b.WelcomeMessage,
+	}
 }

@@ -24,6 +24,16 @@ type Profile struct {
 	Inherit string `yaml:"_inherit"`
 }
 
+type BeeProfile struct {
+	Profile `yaml:",inline"`
+	Bee     `yaml:",inline"`
+}
+
+type NodeGroupProfile struct {
+	Profile   `yaml:",inline"`
+	NodeGroup `yaml:",inline"`
+}
+
 func (c *Config) Merge() {
 	// merge BeeProfiles
 	mergedBP := map[string]BeeProfile{}
