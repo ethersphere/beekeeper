@@ -180,6 +180,8 @@ node-group-profiles:
     _inherit: default
     image:
       name: svetomir/bee
+      tag: latest
+      pull-policy: IfNotPresent
 
 kubernetes:
   kubeconfig: "kubeconfig"

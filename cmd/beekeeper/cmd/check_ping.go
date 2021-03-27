@@ -45,6 +45,15 @@ and prints round-trip time (RTT) of each ping.`,
 			cfg := config.Read("config.yaml")
 
 			fmt.Println(cfg.Cluster.API)
+			for profile, v := range cfg.BeeProfiles {
+				fmt.Println("--- BEE ---", profile)
+				fmt.Println(*v.Bee.APIAddr, *v.Bee.DebugAPIAddr, *v.Bee.P2PAddr)
+			}
+
+			for profile, v := range cfg.NodeGroupProfiles {
+				fmt.Println("--- NG ---", profile)
+				fmt.Println(*v.Image, *v.ClefImage)
+			}
 
 			// for k, v := range cfg.Cluster.NodeGroups {
 			// 	for x, y := range v.Nodes {
