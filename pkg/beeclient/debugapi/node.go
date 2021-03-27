@@ -2,6 +2,7 @@ package debugapi
 
 import (
 	"context"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -136,6 +137,50 @@ type Settlements struct {
 // Settlements returns node's settlements with all peers
 func (n *NodeService) Settlements(ctx context.Context) (resp Settlements, err error) {
 	err = n.client.request(ctx, http.MethodGet, "/settlements", nil, &resp)
+	return
+}
+
+type Cheque struct {
+	Beneficiary string   `json:"beneficiary"`
+	Chequebook  string   `json:"chequebook"`
+	Payout      *big.Int `json:"payout"`
+}
+
+type CashoutStatusResult struct {
+	Recipient  string   `json:"recipient"`
+	LastPayout *big.Int `json:"lastPayout"`
+	Bounced    bool     `json:"bounced"`
+}
+
+type CashoutStatusResponse struct {
+	Peer            swarm.Address        `json:"peer"`
+	Cheque          *Cheque              `json:"lastCashedCheque"`
+	TransactionHash *string              `json:"transactionHash"`
+	Result          *CashoutStatusResult `json:"result"`
+	UncashedAmount  *big.Int             `json:"uncashedAmount"`
+}
+
+func (n *NodeService) CashoutStatus(ctx context.Context, a swarm.Address) (resp CashoutStatusResponse, err error) {
+	err = n.client.request(ctx, http.MethodGet, "/chequebook/cashout/"+a.String(), nil, &resp)
+	return
+}
+
+type TransactionHashResponse struct {
+	TransactionHash string `json:"transactionHash"`
+}
+
+func (n *NodeService) Cashout(ctx context.Context, a swarm.Address) (resp TransactionHashResponse, err error) {
+	err = n.client.request(ctx, http.MethodPost, "/chequebook/cashout/"+a.String(), nil, &resp)
+	return
+}
+
+type ChequebookBalanceResponse struct {
+	TotalBalance     *big.Int `json:"totalBalance"`
+	AvailableBalance *big.Int `json:"availableBalance"`
+}
+
+func (n *NodeService) ChequebookBalance(ctx context.Context) (resp ChequebookBalanceResponse, err error) {
+	err = n.client.request(ctx, http.MethodGet, "/chequebook/balance", nil, &resp)
 	return
 }
 

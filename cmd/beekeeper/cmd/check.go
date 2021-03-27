@@ -74,6 +74,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.AddCommand(c.initCheckPushSync())
 	cmd.AddCommand(c.initCheckRetrieval())
 	cmd.AddCommand(c.initCheckSettlements())
+	cmd.AddCommand(c.initCheckCashout())
 	cmd.AddCommand(c.initCheckChunkRepair())
 	cmd.AddCommand(c.initCheckManifest())
 	cmd.AddCommand(c.initCheckPing())

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/url"
 	"sync"
@@ -347,6 +348,80 @@ func (c *Client) Settlements(ctx context.Context) (resp Settlements, err error) 
 	resp.TotalSent = r.TotalSent
 
 	return
+}
+
+type Cheque struct {
+	Beneficiary string
+	Chequebook  string
+	Payout      *big.Int
+}
+
+type CashoutStatusResult struct {
+	Recipient  string
+	LastPayout *big.Int
+	Bounced    bool
+}
+
+type CashoutStatusResponse struct {
+	Peer            swarm.Address
+	Cheque          *Cheque
+	TransactionHash *string
+	Result          *CashoutStatusResult
+	UncashedAmount  *big.Int
+}
+
+func (c *Client) CashoutStatus(ctx context.Context, a swarm.Address) (resp CashoutStatusResponse, err error) {
+	r, err := c.debug.Node.CashoutStatus(ctx, a)
+	if err != nil {
+		return CashoutStatusResponse{}, fmt.Errorf("cashout: %w", err)
+	}
+
+	var cashoutStatusResult *CashoutStatusResult
+	if r.Result != nil {
+		cashoutStatusResult = &CashoutStatusResult{
+			Recipient:  r.Result.Recipient,
+			LastPayout: r.Result.LastPayout,
+			Bounced:    r.Result.Bounced,
+		}
+	}
+
+	return CashoutStatusResponse{
+		Peer: r.Peer,
+		Cheque: &Cheque{
+			Beneficiary: r.Cheque.Beneficiary,
+			Chequebook:  r.Cheque.Chequebook,
+			Payout:      r.Cheque.Payout,
+		},
+		TransactionHash: r.TransactionHash,
+		Result:          cashoutStatusResult,
+		UncashedAmount:  r.UncashedAmount,
+	}, nil
+}
+
+func (c *Client) Cashout(ctx context.Context, a swarm.Address) (resp string, err error) {
+	r, err := c.debug.Node.Cashout(ctx, a)
+	if err != nil {
+		return "", fmt.Errorf("cashout: %w", err)
+	}
+
+	return r.TransactionHash, nil
+}
+
+type ChequebookBalanceResponse struct {
+	TotalBalance     *big.Int
+	AvailableBalance *big.Int
+}
+
+func (c *Client) ChequebookBalance(ctx context.Context) (resp ChequebookBalanceResponse, err error) {
+	r, err := c.debug.Node.ChequebookBalance(ctx)
+	if err != nil {
+		return ChequebookBalanceResponse{}, fmt.Errorf("cashout: %w", err)
+	}
+
+	return ChequebookBalanceResponse{
+		TotalBalance:     r.TotalBalance,
+		AvailableBalance: r.AvailableBalance,
+	}, nil
 }
 
 // Topology represents Kademlia topology
