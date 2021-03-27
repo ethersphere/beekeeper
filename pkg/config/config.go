@@ -31,8 +31,8 @@ func (c *Config) Merge() {
 		if len(v.Profile.Inherit) == 0 {
 			mergedBP[name] = v
 		} else {
-			parent := c.BeeProfiles[v.Profile.Inherit].Bee
-			p := reflect.ValueOf(&parent).Elem()
+			parent := c.BeeProfiles[v.Profile.Inherit]
+			p := reflect.ValueOf(&parent.Bee).Elem()
 			m := reflect.ValueOf(&v.Bee).Elem()
 			for i := 0; i < m.NumField(); i++ {
 				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
@@ -53,8 +53,8 @@ func (c *Config) Merge() {
 		if len(v.Profile.Inherit) == 0 {
 			mergedNGP[name] = v
 		} else {
-			parent := c.NodeGroupProfiles[v.Profile.Inherit].NodeGroup
-			p := reflect.ValueOf(&parent).Elem()
+			parent := c.NodeGroupProfiles[v.Profile.Inherit]
+			p := reflect.ValueOf(&parent.NodeGroup).Elem()
 			m := reflect.ValueOf(&v.NodeGroup).Elem()
 			for i := 0; i < m.NumField(); i++ {
 				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
