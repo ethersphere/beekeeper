@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 
 	// "github.com/ethersphere/beekeeper/pkg/check"
+
+	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
@@ -11,28 +12,14 @@ import (
 
 func (c *command) initCheckPing() *cobra.Command {
 	const (
-		optionNameStartCluster   = "start-cluster"
-		optionNameDynamic        = "dynamic"
-		optionNameClusterName    = "cluster-name"
-		optionNameBootnodeCount  = "bootnode-count"
-		optionNameNodeCount      = "node-count"
-		optionNameImage          = "bee-image"
-		optionNameSeed           = "seed"
-		optionNamePersistence    = "persistence"
-		optionNameStorageClass   = "storage-class"
-		optionNameStorageRequest = "storage-request"
+		optionNameDynamic      = "dynamic"
+		optionNameSeed         = "seed"
+		optionNameStartCluster = "start-cluster"
 	)
 
 	var (
-		startCluster   bool
-		dynamic        bool
-		clusterName    string
-		bootnodeCount  int
-		nodeCount      int
-		image          string
-		persistence    bool
-		storageClass   string
-		storageRequest string
+		dynamic      bool
+		startCluster bool
 	)
 
 	cmd := &cobra.Command{
@@ -41,83 +28,14 @@ func (c *command) initCheckPing() *cobra.Command {
 		Long: `Executes ping from all nodes to all other nodes in the cluster,
 and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			fmt.Println("ping")
 			cfg := config.Read("config.yaml")
 
-			fmt.Println(cfg.Cluster.API)
-			for profile, v := range cfg.BeeProfiles {
-				fmt.Println("--- BEE ---", profile)
-				fmt.Println(v.Bee.Export())
+			cluster, err := setupCluster(cmd.Context(), cfg, startCluster)
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			for profile, v := range cfg.NodeGroupProfiles {
-				fmt.Println("--- NG ---", profile)
-				fmt.Println(v.NodeGroup.Export())
-			}
-
-			// for k, v := range cfg.Cluster.NodeGroups {
-			// 	for x, y := range v.Nodes {
-			// 		fmt.Println(k, x, y)
-			// 	}
-			// }
-			// k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
-			// if err != nil {
-			// 	return fmt.Errorf("creating Kubernetes client: %w", err)
-			// }
-
-			// namespace := c.config.GetString(optionNameNamespace)
-			// cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
-			// 	APIDomain:           c.config.GetString(optionNameAPIDomain),
-			// 	APIInsecureTLS:      insecureTLSAPI,
-			// 	APIScheme:           c.config.GetString(optionNameAPIScheme),
-			// 	DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-			// 	DebugAPIInsecureTLS: insecureTLSDebugAPI,
-			// 	DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-			// 	K8SClient:           k8sClient,
-			// 	Namespace:           namespace,
-			// 	DisableNamespace:    disableNamespace,
-			// })
-
-			// if startCluster {
-			// 	// bootnodes group
-			// 	bgName := "bootnode"
-			// 	bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
-			// 	defer bCancel()
-			// 	if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-			// 		return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
-			// 	}
-
-			// 	// bee node group
-			// 	ngName := "bee"
-			// 	nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
-			// 	defer nCancel()
-			// 	if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-			// 		return fmt.Errorf("starting node group %s: %w", ngName, err)
-			// 	}
-
-			// 	// drone node group
-			// 	ngName = "drone"
-			// 	nCtx, nCancel = context.WithTimeout(cmd.Context(), 10*time.Minute)
-			// 	defer nCancel()
-			// 	if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-			// 		return fmt.Errorf("starting node group %s: %w", ngName, err)
-			// 	}
-
-			// } else {
-			// 	// bootnodes group
-			// 	if bootnodeCount > 0 {
-			// 		bgName := "bootnode"
-			// 		if err := addBootNodeGroup(cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-			// 			return fmt.Errorf("adding bootnode group %s: %w", bgName, err)
-			// 		}
-			// 	}
-
-			// 	// bee nodes group
-			// 	ngName := "bee"
-			// 	if err := addNodeGroup(cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-			// 		return fmt.Errorf("adding node group %s: %w", ngName, err)
-			// 	}
-			// }
+			fmt.Println("cluster", cluster.Name(), "success")
 
 			// var seed int64
 			// if cmd.Flags().Changed("seed") {
@@ -142,16 +60,9 @@ and prints round-trip time (RTT) of each ping.`,
 		PreRunE: c.checkPreRunE,
 	}
 
+	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "check on dynamic cluster")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
-	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "check on dynamic cluster")
-	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
-	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
-	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
-	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
-	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
-	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
-	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
 
 	return cmd
 }
