@@ -63,11 +63,9 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 				}
 			}
 		}
-		fmt.Println(1)
+
 		for ng, v := range c.Cluster.NodeGroups {
-			fmt.Println(2)
-			if v.Mode != "bootnode" {
-				fmt.Println(3)
+			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
 				gOptions := gProfile.Export()
@@ -94,7 +92,6 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 			}
 		}
 	} else {
-		fmt.Println("add")
 		bootnodes := ""
 		for ng, v := range c.Cluster.NodeGroups {
 			if v.Mode == "bootnode" {
@@ -127,7 +124,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		}
 
 		for ng, v := range c.Cluster.NodeGroups {
-			if v.Mode != "bootnode" {
+			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
 				gOptions := gProfile.Export()

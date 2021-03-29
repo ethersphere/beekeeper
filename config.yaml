@@ -33,12 +33,12 @@ cluster:
     bee:
       bee-config: default
       config: default
-      count: 5
+      count: 3
       mode: node
     drone:
       bee-config: default
       config: default
-      count: 5
+      count: 3
       mode: node
   # stray:
   #   count: 1
