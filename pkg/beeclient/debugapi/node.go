@@ -148,6 +148,7 @@ type Topology struct {
 	NnLowWatermark int            `json:"nnLowWatermark"`
 	Depth          int            `json:"depth"`
 	Bins           map[string]Bin `json:"bins"`
+	LightNodes     Bin            `json:"lightNodes"`
 }
 
 // Bin represents Kademlia bin
