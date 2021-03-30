@@ -13,11 +13,11 @@ import (
 
 func (c *command) initCheckSmoke() *cobra.Command {
 	const (
-		optionNameRuns         = "runs"
-		optionNameBytes        = "bytes"
-		optionNameMegabytes    = "megabytes"
-		optionNameSeed         = "seed"
-		optionNameTimeout      = "timeout"
+		optionNameRuns      = "runs"
+		optionNameBytes     = "bytes"
+		optionNameMegabytes = "megabytes"
+		optionNameSeed      = "seed"
+		optionNameTimeout   = "timeout"
 	)
 
 	var (

@@ -14,12 +14,12 @@ import (
 
 // Options represents smoke test options
 type Options struct {
-	NodeGroup string
-	UploadNodeCount    int
-	Runs      int // how many runs to do
-	Bytes     int // how many bytes to upload each time
-	Timeout   time.Duration
-	Seed      int64
+	NodeGroup       string
+	UploadNodeCount int
+	Runs            int // how many runs to do
+	Bytes           int // how many bytes to upload each time
+	Timeout         time.Duration
+	Seed            int64
 }
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
@@ -36,7 +36,7 @@ func Check(c *bee.Cluster, o Options) error {
 	for i := 0; i < o.Runs; i++ {
 		uploader := r.Intn(len(sortedNodes))
 		nodeName := sortedNodes[uploader]
-		
+
 		fmt.Printf("run %d, uploader node is: %s\n", i, nodeName)
 
 		tr, err := ng.NodeClient(nodeName).CreateTag(ctx)

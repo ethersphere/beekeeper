@@ -9,11 +9,6 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 )
 
-
-const (
-	maxAttemptsAfterSent  = 10
-)
-
 // BytesService represents Bee's Bytes service
 type BytesService service
 
@@ -35,7 +30,7 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 		h.Add("Swarm-Pin", "true")
 	}
 	if o.Tag > 0 {
-		h.Add("Swarm-Tag", strconv.FormatUint(uint64(o.Tag),10))
+		h.Add("Swarm-Tag", strconv.FormatUint(uint64(o.Tag), 10))
 	}
 	_, err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
 	return resp, err
