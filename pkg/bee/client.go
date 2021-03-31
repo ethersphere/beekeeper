@@ -335,6 +335,16 @@ func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, 
 	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, bytes.NewReader(data))
 }
 
+// UploadSOC uploads a single owner chunk to a node with a E
+func (c *Client) UploadSOC(ctx context.Context, owner, ID, signature string, data []byte) (swarm.Address, error) {
+	resp, err := c.api.SOC.UploadSOC(ctx, owner, ID, signature, bytes.NewReader(data))
+	if err != nil {
+		return swarm.ZeroAddress, err
+	}
+
+	return resp.Reference, nil
+}
+
 // Settlements represents Settlements's response
 type Settlements struct {
 	Settlements   []Settlement
