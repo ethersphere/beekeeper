@@ -23,6 +23,7 @@ const retryCount int = 5
 type Client struct {
 	api   *api.Client
 	debug *debugapi.Client
+	opts  ClientOptions
 
 	// number of times to retry call
 	retry int
@@ -41,6 +42,7 @@ type ClientOptions struct {
 func NewClient(opts ClientOptions) (c *Client) {
 	c = &Client{
 		retry: retryCount,
+		opts:  opts,
 	}
 
 	if opts.APIURL != nil {
@@ -62,10 +64,15 @@ func NewClient(opts ClientOptions) (c *Client) {
 
 // Addresses represents node's addresses
 type Addresses struct {
-	Overlay   swarm.Address
-	Underlay  []string
-	Ethereum  string
-	PublicKey string
+	Overlay      swarm.Address
+	Underlay     []string
+	Ethereum     string
+	PublicKey    string
+	PSSPublicKey string
+}
+
+func (c *Client) Config() ClientOptions {
+	return c.opts
 }
 
 // Addresses returns node's addresses
@@ -76,10 +83,11 @@ func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
 	}
 
 	return Addresses{
-		Ethereum:  a.Ethereum,
-		Overlay:   a.Overlay,
-		PublicKey: a.PublicKey,
-		Underlay:  a.Underlay,
+		Ethereum:     a.Ethereum,
+		Overlay:      a.Overlay,
+		PublicKey:    a.PublicKey,
+		Underlay:     a.Underlay,
+		PSSPublicKey: a.PSSPublicKey,
 	}, nil
 }
 
@@ -320,6 +328,11 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 		Received: b.Received,
 		Sent:     b.Sent,
 	}, nil
+}
+
+// SendPSSMessage triggers a PSS message with a topic and recipient address
+func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, publicKey string, topic string, data []byte) error {
+	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, bytes.NewReader(data))
 }
 
 // Settlements represents Settlements's response
