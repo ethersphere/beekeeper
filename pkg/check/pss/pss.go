@@ -14,7 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-// Options represents pushsync check options
+// Options represents PSS check options
 type Options struct {
 	NodeGroup string
 	NodeCount int
