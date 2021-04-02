@@ -19,11 +19,6 @@ type Config struct {
 	} `yaml:"kubernetes"`
 }
 
-type Profile struct {
-	File    string `yaml:"_file"`
-	Inherit string `yaml:"_inherit"`
-}
-
 type BeeProfile struct {
 	Profile `yaml:",inline"`
 	Bee     `yaml:",inline"`
@@ -34,7 +29,13 @@ type NodeGroupProfile struct {
 	NodeGroup `yaml:",inline"`
 }
 
+type Profile struct {
+	File    string `yaml:"_file"`
+	Inherit string `yaml:"_inherit"`
+}
+
 func (c *Config) Merge() {
+	// TODO: generalize to have 1 function supporting all types
 	// merge BeeProfiles
 	mergedBP := map[string]BeeProfile{}
 	for name, v := range c.BeeProfiles {
