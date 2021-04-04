@@ -16,9 +16,11 @@ import (
 
 // Options represents PSS check options
 type Options struct {
-	NodeGroup string
-	NodeCount int
-	Seed      int64
+	NodeGroup      string
+	NodeCount      int
+	RequestTimeout time.Duration
+	AddressPrefix  int
+	Seed           int64
 }
 
 var (
@@ -44,7 +46,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 		fmt.Printf("pss: test %d of %d\n", i+1, testCount)
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
 
 		nodeAName := sortedNodes[set[i][0]]
 		nodeBName := sortedNodes[set[i][1]]
@@ -67,7 +69,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		fmt.Printf("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
 
 		tStart := time.Now()
-		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, testData)
+		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData)
 		if err != nil {
 			close()
 			cancel()

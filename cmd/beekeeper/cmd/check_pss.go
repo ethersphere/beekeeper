@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pss"
@@ -13,7 +14,9 @@ import (
 
 func (c *command) initCheckPSS() *cobra.Command {
 	const (
-		optionNameSeed = "seed"
+		optionNameSeed   = "seed"
+		optionTimeout    = "timeout"
+		optionAddrPrefix = "address-prefix"
 	)
 
 	cmd := &cobra.Command{
@@ -55,15 +58,19 @@ sends PSS messages to random nodes to check if WebSocket connections receive the
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			return pss.Check(cluster, pss.Options{
-				NodeGroup: "nodes",
-				NodeCount: c.config.GetInt(optionNameNodeCount),
-				Seed:      seed,
+				NodeGroup:      "nodes",
+				NodeCount:      c.config.GetInt(optionNameNodeCount),
+				Seed:           seed,
+				RequestTimeout: c.config.GetDuration(optionTimeout),
+				AddressPrefix:  c.config.GetInt(optionAddrPrefix),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for choosing random nodes; if not set, will be random")
+	cmd.Flags().Duration(optionTimeout, time.Minute*5, "timeout duration for pss retrieval")
+	cmd.Flags().Int(optionAddrPrefix, 1, "public address prefix bytes count")
 
 	return cmd
 }

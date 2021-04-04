@@ -331,8 +331,8 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 }
 
 // SendPSSMessage triggers a PSS message with a topic and recipient address
-func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, publicKey string, topic string, data []byte) error {
-	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, bytes.NewReader(data))
+func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, publicKey string, topic string, prefix int, data []byte) error {
+	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, prefix, bytes.NewReader(data))
 }
 
 // UploadSOC uploads a single owner chunk to a node with a E
