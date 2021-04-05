@@ -122,9 +122,11 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 
 // CheckD executes ping from all nodes to all other nodes in the cluster
 func CheckD(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
-	o.MetricsPusher.Collector(rttGauge)
-	o.MetricsPusher.Collector(rttHistogram)
-	o.MetricsPusher.Format(expfmt.FmtText)
+	if o.MetricsEnabled {
+		o.MetricsPusher.Collector(rttGauge)
+		o.MetricsPusher.Collector(rttHistogram)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {

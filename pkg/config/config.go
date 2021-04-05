@@ -73,28 +73,6 @@ func (c *Config) Merge() {
 	}
 	c.BeeProfiles = mergedBP
 
-	// merge CheckProfiles
-	mergedCP := map[string]CheckProfile{}
-	for name, v := range c.CheckProfiles {
-		if len(v.Profile.Inherit) == 0 {
-			mergedCP[name] = v
-		} else {
-			parent := c.CheckProfiles[v.Profile.Inherit]
-			p := reflect.ValueOf(&parent.Check).Elem()
-			m := reflect.ValueOf(&v.Check).Elem()
-			for i := 0; i < m.NumField(); i++ {
-				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
-					m.Field(i).Set(p.Field(i))
-				}
-			}
-			mergedCP[name] = CheckProfile{
-				Profile: v.Profile,
-				Check:   m.Interface().(Check),
-			}
-		}
-	}
-	c.CheckProfiles = mergedCP
-
 	// merge NodeGroupProfiles
 	mergedNGP := map[string]NodeGroupProfile{}
 	for name, v := range c.NodeGroupProfiles {

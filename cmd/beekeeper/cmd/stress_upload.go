@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/stress"
 	"github.com/ethersphere/beekeeper/pkg/stress/upload"
@@ -54,70 +53,10 @@ func (c *command) initStressUpload() *cobra.Command {
 		Short: "Uploads data to all nodes in the cluster",
 		Long:  `Uploads data to all nodes in the cluster to ensure that the GC process is activated.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
+			cfg := config.Read("config.yaml")
+			cluster, err := setupCluster(cmd.Context(), cfg, startCluster)
 			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %w", err)
-			}
-
-			namespace := c.config.GetString(optionNameNamespace)
-			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				K8SClient:           k8sClient,
-				Namespace:           namespace,
-				DisableNamespace:    disableNamespace,
-			})
-
-			if startCluster {
-				// bootnodes group
-				bgName := "bootnode"
-				bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
-				defer bCancel()
-				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
-				}
-
-				// node groups
-				ngName := "bee"
-				nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
-				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("starting node group %s: %w", ngName, err)
-				}
-
-				if additionalNodeCount > 0 {
-					addNgName := "drone"
-					addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
-					defer addNCancel()
-					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, storageClass, storageRequest, persistence); err != nil {
-						return fmt.Errorf("starting node group %s: %w", addNgName, err)
-					}
-				}
-			} else {
-				// bootnodes group
-				if bootnodeCount > 0 {
-					bgName := "bootnode"
-					if err := addBootNodeGroup(cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-						return fmt.Errorf("adding bootnode group %s: %w", bgName, err)
-					}
-				}
-
-				// nodes group
-				ngName := "bee"
-				if err := addNodeGroup(cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("adding node group %s: %w", ngName, err)
-				}
-
-				if additionalNodeCount > 0 {
-					addNgName := "drone"
-					if err := addNodeGroup(cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, storageClass, storageRequest, persistence); err != nil {
-						return fmt.Errorf("starting node group %s: %w", addNgName, err)
-					}
-				}
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
 			var seed int64
@@ -136,7 +75,7 @@ func (c *command) initStressUpload() *cobra.Command {
 			stressOptions := stress.Options{
 				FileSize:              round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024),
 				MetricsEnabled:        c.config.GetBool(optionNamePushMetrics),
-				MetricsPusher:         push.New(c.config.GetString(optionNamePushGateway), namespace),
+				MetricsPusher:         push.New(c.config.GetString(optionNamePushGateway), cfg.Cluster.Namespace),
 				Retries:               c.config.GetInt(optionNameRetries),
 				RetryDelay:            c.config.GetDuration(optionNameRetryDelay),
 				Seed:                  seed,

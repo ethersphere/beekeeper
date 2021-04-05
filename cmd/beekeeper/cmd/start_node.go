@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
 )
 
@@ -41,51 +39,7 @@ func (c *command) initAddStartNode() *cobra.Command {
 		Short: "Start Bee node",
 		Long:  `Start Bee node.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
-			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %w", err)
-			}
-
-			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
-				Annotations: map[string]string{
-					"created-by":        createdBy,
-					"beekeeper/version": beekeeper.Version,
-				},
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				K8SClient:           k8sClient,
-				Labels: map[string]string{
-					"app.kubernetes.io/managed-by": managedBy,
-					"app.kubernetes.io/name":       labelName,
-				},
-				Namespace: c.config.GetString(optionNameNamespace),
-			})
-
-			// node group
-			ngOptions := newDefaultNodeGroupOptions()
-			ngOptions.Image = fmt.Sprintf("ethersphere/bee:%s", nodeGroupVersion)
-			ngOptions.Labels = map[string]string{
-				"app.kubernetes.io/component": nodeGroupName,
-				"app.kubernetes.io/part-of":   nodeGroupName,
-				"app.kubernetes.io/version":   nodeGroupVersion,
-			}
-			ngOptions.PersistenceEnabled = persistence
-			ngOptions.PersistenceStorageClass = storageClass
-			ngOptions.PersistenceStorageRequest = storageRequest
-			cluster.AddNodeGroup(nodeGroupName, *ngOptions)
-			ng := cluster.NodeGroup(nodeGroupName)
-
-			nodeConfig := newDefaultBeeConfig()
-			nodeConfig.Bootnodes = bootnodes
-			nodeConfig.Standalone = standalone
-
-			return ng.AddStartNode(cmd.Context(), nodeName, bee.NodeOptions{
-				Config: nodeConfig,
-			})
+			return fmt.Errorf("to be rethinked, subset of start cluster, probably not needed anymore")
 		},
 		PreRunE: c.startPreRunE,
 	}

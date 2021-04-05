@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
 )
 
@@ -27,60 +26,8 @@ func (c *command) initDeleteCluster() *cobra.Command {
 		Short: "Delete Bee cluster",
 		Long:  `Delete Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
-			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %w", err)
-			}
-
-			namespace := c.config.GetString(optionNameNamespace)
-			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				K8SClient:           k8sClient,
-				Namespace:           namespace,
-			})
-
-			// node groups
-			if additionalNodeCount > 0 {
-				addNgName := "drone"
-				addNgOptions := newDefaultNodeGroupOptions()
-				cluster.AddNodeGroup(addNgName, *addNgOptions)
-				addNg := cluster.NodeGroup(addNgName)
-
-				for i := 0; i < additionalNodeCount; i++ {
-					if err := addNg.DeleteNode(cmd.Context(), fmt.Sprintf("drone-%d", i)); err != nil {
-						return fmt.Errorf("deleting drone-%d: %w", i, err)
-					}
-				}
-			}
-
-			ngName := "bee"
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup(ngName, *ngOptions)
-			ng := cluster.NodeGroup(ngName)
-
-			for i := 0; i < nodeCount; i++ {
-				if err := ng.DeleteNode(cmd.Context(), fmt.Sprintf("bee-%d", i)); err != nil {
-					return fmt.Errorf("deleting bee-%d: %w", i, err)
-				}
-			}
-
-			// bootnodes group
-			bgName := "bootnodes"
-			bgOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup(bgName, *bgOptions)
-			bg := cluster.NodeGroup(bgName)
-			for i := 0; i < bootnodeCount; i++ {
-				if err := bg.DeleteNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i)); err != nil {
-					return fmt.Errorf("deleting bootnode-%d: %w", i, err)
-				}
-			}
-
-			return
+			// cfg := config.Read("config.yaml")
+			return fmt.Errorf("test")
 		},
 		PreRunE: c.deletePreRunE,
 	}

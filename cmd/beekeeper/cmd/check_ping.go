@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/check"
-	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
+	"github.com/ethersphere/beekeeper/pkg/check/ping"
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -34,7 +34,6 @@ func (c *command) initCheckPing() *cobra.Command {
 and prints round-trip time (RTT) of each ping.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.Read("config.yaml")
-
 			cluster, err := setupCluster(cmd.Context(), cfg, startCluster)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
@@ -52,7 +51,7 @@ and prints round-trip time (RTT) of each ping.`,
 			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), timeout)
 			defer checkCancel()
 
-			checkPing := pingpong.NewPing()
+			checkPing := ping.NewPing()
 			checkOptions := check.Options{
 				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
 				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), cfg.Cluster.Namespace),

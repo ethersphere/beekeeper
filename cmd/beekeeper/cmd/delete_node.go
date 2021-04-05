@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
 )
 
@@ -25,28 +24,7 @@ func (c *command) initDeleteNode() *cobra.Command {
 		Short: "Delete Bee node",
 		Long:  `Delete Bee node.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
-			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %w", err)
-			}
-
-			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				K8SClient:           k8sClient,
-				Namespace:           c.config.GetString(optionNameNamespace),
-			})
-
-			// node group
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup(nodeGroupName, *ngOptions)
-			ng := cluster.NodeGroup(nodeGroupName)
-
-			return ng.DeleteNode(cmd.Context(), nodeName)
+			return fmt.Errorf("to be rethinked, subset of start cluster, probably not needed anymore")
 		},
 		PreRunE: c.deletePreRunE,
 	}

@@ -14,7 +14,7 @@ import (
 
 // Check defines Bee check
 type Check interface {
-	Run(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
+	Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error)
 }
 
 // Options for Bee checks
