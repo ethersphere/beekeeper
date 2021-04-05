@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 
@@ -44,25 +44,11 @@ and checks if chunks are synced to their closest nodes.`,
 				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
 			}
 
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				Namespace:           c.config.GetString(optionNameNamespace),
-				DisableNamespace:    disableNamespace,
-			})
+			cfg := config.Read("config.yaml")
 
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup("nodes", *ngOptions)
-			ng := cluster.NodeGroup("nodes")
-
-			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
-				if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
-					return fmt.Errorf("adding node bee-%d: %s", i, err)
-				}
+			cluster, err := setupCluster(cmd.Context(), cfg, false)
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
 			var seed int64
@@ -72,11 +58,11 @@ and checks if chunks are synced to their closest nodes.`,
 				seed = random.Int64()
 			}
 
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pusher := push.New(c.config.GetString(optionNamePushGateway), cfg.Cluster.Namespace)
 
 			if concurrent {
 				return pushsync.CheckConcurrent(cluster, pushsync.Options{
-					NodeGroup:       "nodes",
+					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					Seed:            seed,
@@ -85,7 +71,7 @@ and checks if chunks are synced to their closest nodes.`,
 
 			if uploadChunks {
 				return pushsync.CheckChunks(cluster, pushsync.Options{
-					NodeGroup:       "nodes",
+					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					Seed:            seed,
@@ -97,7 +83,7 @@ and checks if chunks are synced to their closest nodes.`,
 				retryDelayDuration := c.config.GetDuration(optionNameRetryDelay)
 
 				return pushsync.CheckFiles(cluster, pushsync.Options{
-					NodeGroup:       "nodes",
+					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
@@ -110,7 +96,7 @@ and checks if chunks are synced to their closest nodes.`,
 
 			retryDelayDuration := c.config.GetDuration(optionNameRetryDelay)
 			return pushsync.Check(cluster, pushsync.Options{
-				NodeGroup:       "nodes",
+				NodeGroup:       "bee",
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Retries:         c.config.GetInt(optionNameRetries),

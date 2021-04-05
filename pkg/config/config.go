@@ -4,19 +4,34 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Cluster           Cluster                     `yaml:"cluster"`
-	Check             Check                       `yaml:"check"`
-	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
-	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
-	Kubernetes        struct {
-		Kubeconfig string `yaml:"kubeconfig"`
+	Cluster    Cluster `yaml:"cluster"`
+	Kubernetes struct {
+		Enable     bool   `yaml:"enable"`
 		InCluster  bool   `yaml:"in-cluster"`
+		Kubeconfig string `yaml:"kubeconfig"`
 	} `yaml:"kubernetes"`
+	Run Run `yaml:"run"`
+	// profiles
+	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
+	CheckProfiles     map[string]CheckProfile     `yaml:"check-profiles"`
+	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
+}
+
+type Profile struct {
+	File    string `yaml:"_file"`
+	Inherit string `yaml:"_inherit"`
+}
+
+type Run struct {
+	Checks  []string      `yaml:"checks"`
+	Seed    int64         `yaml:"seed"`
+	Timeout time.Duration `yaml:"timeout"`
 }
 
 type BeeProfile struct {
@@ -24,14 +39,14 @@ type BeeProfile struct {
 	Bee     `yaml:",inline"`
 }
 
+type CheckProfile struct {
+	Profile `yaml:",inline"`
+	Check   `yaml:",inline"`
+}
+
 type NodeGroupProfile struct {
 	Profile   `yaml:",inline"`
 	NodeGroup `yaml:",inline"`
-}
-
-type Profile struct {
-	File    string `yaml:"_file"`
-	Inherit string `yaml:"_inherit"`
 }
 
 func (c *Config) Merge() {
@@ -57,6 +72,28 @@ func (c *Config) Merge() {
 		}
 	}
 	c.BeeProfiles = mergedBP
+
+	// merge CheckProfiles
+	mergedCP := map[string]CheckProfile{}
+	for name, v := range c.CheckProfiles {
+		if len(v.Profile.Inherit) == 0 {
+			mergedCP[name] = v
+		} else {
+			parent := c.CheckProfiles[v.Profile.Inherit]
+			p := reflect.ValueOf(&parent.Check).Elem()
+			m := reflect.ValueOf(&v.Check).Elem()
+			for i := 0; i < m.NumField(); i++ {
+				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
+					m.Field(i).Set(p.Field(i))
+				}
+			}
+			mergedCP[name] = CheckProfile{
+				Profile: v.Profile,
+				Check:   m.Interface().(Check),
+			}
+		}
+	}
+	c.CheckProfiles = mergedCP
 
 	// merge NodeGroupProfiles
 	mergedNGP := map[string]NodeGroupProfile{}

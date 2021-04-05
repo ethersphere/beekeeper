@@ -6,13 +6,17 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"golang.org/x/sync/errgroup"
 )
 
 func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *bee.Cluster, err error) {
-	k8sClient, err := setK8SClient(c.Kubernetes.Kubeconfig, c.Kubernetes.InCluster)
-	if err != nil {
-		return nil, fmt.Errorf("kubernetes client: %w", err)
+	var k8sClient *k8s.Client
+	if c.Kubernetes.Enable {
+		k8sClient, err = setK8SClient(c.Kubernetes.Kubeconfig, c.Kubernetes.InCluster)
+		if err != nil {
+			return nil, fmt.Errorf("kubernetes client: %w", err)
+		}
 	}
 
 	cluster = bee.NewCluster(c.Cluster.Name, bee.ClusterOptions{

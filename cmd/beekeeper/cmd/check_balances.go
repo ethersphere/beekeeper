@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 
@@ -30,32 +30,17 @@ func (c *command) initCheckBalances() *cobra.Command {
 		Short: "Executes balances check",
 		Long:  `Executes balances check.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				Namespace:           c.config.GetString(optionNameNamespace),
-				DisableNamespace:    disableNamespace,
-			})
-
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup("nodes", *ngOptions)
-			ng := cluster.NodeGroup("nodes")
-
-			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
-				if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
-					return fmt.Errorf("adding node bee-%d: %s", i, err)
-				}
+			cfg := config.Read("config.yaml")
+			cluster, err := setupCluster(cmd.Context(), cfg, false)
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pusher := push.New(c.config.GetString(optionNamePushGateway), cfg.Cluster.Namespace)
 
 			if dryRun {
 				return balances.DryRunCheck(cluster, balances.Options{
-					NodeGroup: "nodes",
+					NodeGroup: "bee",
 				})
 			}
 
@@ -69,7 +54,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 			fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
 
 			return balances.Check(cluster, balances.Options{
-				NodeGroup:          "nodes",
+				NodeGroup:          "bee",
 				UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
 				FileName:           c.config.GetString(optionNameFileName),
 				FileSize:           fileSize,

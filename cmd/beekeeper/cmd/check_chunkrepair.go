@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/chunkrepair"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
@@ -23,34 +23,13 @@ func (c *command) initCheckChunkRepair() *cobra.Command {
 It uploads given number of chunks to given number of nodes, 
 and attempts repairing of those chunks for the other nodes in the cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			k8sClient, err := setK8SClient(c.config.GetString(optionNameKubeconfig), c.config.GetBool(optionNameInCluster))
+			cfg := config.Read("config.yaml")
+			cluster, err := setupCluster(cmd.Context(), cfg, false)
 			if err != nil {
-				return fmt.Errorf("creating Kubernetes client: %w", err)
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				K8SClient:           k8sClient,
-				Namespace:           c.config.GetString(optionNameNamespace),
-				DisableNamespace:    disableNamespace,
-			})
-
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup("nodes", *ngOptions)
-			ng := cluster.NodeGroup("nodes")
-
-			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
-				if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
-					return fmt.Errorf("adding node bee-%d: %s", i, err)
-				}
-			}
-
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pusher := push.New(c.config.GetString(optionNamePushGateway), cfg.Cluster.Namespace)
 
 			var seed int64
 			if cmd.Flags().Changed("seed") {
@@ -60,7 +39,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 			}
 
 			return chunkrepair.Check(cluster, chunkrepair.Options{
-				NodeGroup:              "nodes",
+				NodeGroup:              "bee",
 				NumberOfChunksToRepair: c.config.GetInt(optionNumberOfChunks),
 				Seed:                   seed,
 			}, pusher, c.config.GetBool(optionNamePushMetrics))

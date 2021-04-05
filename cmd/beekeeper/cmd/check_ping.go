@@ -4,9 +4,14 @@ import (
 
 	// "github.com/ethersphere/beekeeper/pkg/check"
 
+	"context"
 	"fmt"
 
+	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 )
 
@@ -35,27 +40,25 @@ and prints round-trip time (RTT) of each ping.`,
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			fmt.Println("cluster", cluster.Name(), "success")
+			var seed int64
+			if cmd.Flags().Changed("seed") {
+				seed = c.config.GetInt64(optionNameSeed)
+			} else {
+				seed = random.Int64()
+			}
+			buffer := 12
 
-			// var seed int64
-			// if cmd.Flags().Changed("seed") {
-			// 	seed = c.config.GetInt64(optionNameSeed)
-			// } else {
-			// 	seed = random.Int64()
-			// }
-			// buffer := 12
+			timeout := *cfg.CheckProfiles["ping"].Timeout
+			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), timeout)
+			defer checkCancel()
 
-			// checkCtx, checkCancel := context.WithTimeout(cmd.Context(), 15*time.Minute)
-			// defer checkCancel()
+			checkPing := pingpong.NewPing()
+			checkOptions := check.Options{
+				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
+				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), cfg.Cluster.Namespace),
+			}
 
-			// checkPing := pingpong.NewPing()
-			// checkOptions := check.Options{
-			// 	MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
-			// 	MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), namespace),
-			// }
-
-			// return check.RunConcurrently(checkCtx, cluster, checkPing, checkOptions, checkStages, buffer, seed)
-			return
+			return check.RunConcurrently(checkCtx, cluster, checkPing, checkOptions, checkStages, buffer, seed)
 		},
 		PreRunE: c.checkPreRunE,
 	}

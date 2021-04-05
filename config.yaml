@@ -46,49 +46,59 @@ cluster:
   #   config: default
   #   mode: standalone
 
-check:
-  seed: ""
-  run:
-  - name: ping
+run:
+  check: [ping, ping-dynamic]
+  seed: 
+  timeout: 1h
+
+check-profiles:
+  ping:
+    _file: ""
+    _inherit: ""
     # initial:
     #   - name: bee
     #     count: 5
     #   - name: drone
     #     count: 3
-    stages:
-      -
-        - node-group: bee
-          add: 2
-          start: 0
-          stop: 1
-          delete: 3
-        - node-group: drone
-          add: 4
-          start: 0
-          stop: 3
-          delete: 1
-      -
-        - node-group: bee
-          add: 3
-          start: 1
-          stop: 1
-          delete: 3
-        - node-group: drone
-          add: 2
-          start: 1
-          stop: 2
-          delete: 1
-      -
-        - node-group: bee
-          add: 4
-          start: 1
-          stop: 3
-          delete: 1
-        - node-group: drone
-          add: 3
-          start: 1
-          stop: 2
-          delete: 1
+    timeout: 5m
+  ping-dynamic:
+    _file: ""
+    _inherit: "ping"
+    # stages:
+    #   -
+    #     - node-group: bee
+    #       add: 2
+    #       start: 0
+    #       stop: 1
+    #       delete: 3
+    #     - node-group: drone
+    #       add: 4
+    #       start: 0
+    #       stop: 3
+    #       delete: 1
+    #   -
+    #     - node-group: bee
+    #       add: 3
+    #       start: 1
+    #       stop: 1
+    #       delete: 3
+    #     - node-group: drone
+    #       add: 2
+    #       start: 1
+    #       stop: 2
+    #       delete: 1
+    #   -
+    #     - node-group: bee
+    #       add: 4
+    #       start: 1
+    #       stop: 3
+    #       delete: 1
+    #     - node-group: drone
+    #       add: 3
+    #       start: 1
+    #       stop: 2
+    #       delete: 1
+    timeout: 15m
 
 bee-profiles:
   default:
@@ -176,5 +186,6 @@ node-group-profiles:
     image-pull-policy: IfNotPresent
 
 kubernetes:
-  kubeconfig: "~/.kube/config"
+  enable: true
   in-cluster: false
+  kubeconfig: "~/.kube/config"

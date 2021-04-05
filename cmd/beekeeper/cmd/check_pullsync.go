@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pullsync"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/random"
 
 	"github.com/spf13/cobra"
@@ -28,25 +28,11 @@ func (c *command) initCheckPullSync() *cobra.Command {
 				return errors.New("bad parameters: upload-node-count must be less or equal to node-count")
 			}
 
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				Namespace:           c.config.GetString(optionNameNamespace),
-				DisableNamespace:    disableNamespace,
-			})
+			cfg := config.Read("config.yaml")
 
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup("nodes", *ngOptions)
-			ng := cluster.NodeGroup("nodes")
-
-			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
-				if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
-					return fmt.Errorf("adding node bee-%d: %s", i, err)
-				}
+			cluster, err := setupCluster(cmd.Context(), cfg, false)
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
 			var seed int64
@@ -57,7 +43,7 @@ func (c *command) initCheckPullSync() *cobra.Command {
 			}
 
 			return pullsync.Check(cluster, pullsync.Options{
-				NodeGroup:                  "nodes",
+				NodeGroup:                  "bee",
 				UploadNodeCount:            c.config.GetInt(optionNameUploadNodeCount),
 				ReplicationFactorThreshold: c.config.GetInt(optionNameReplicationFactor),
 				ChunksPerNode:              c.config.GetInt(optionNameChunksPerNode),
