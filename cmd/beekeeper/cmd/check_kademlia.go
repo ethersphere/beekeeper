@@ -76,7 +76,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				}
 				bgOptions.PersistenceEnabled = persistence
 				bgOptions.PersistenceStorageClass = storageClass
-				bgOptions.PersistanceStorageRequest = storageRequest
+				bgOptions.PersistenceStorageRequest = storageRequest
 				cluster.AddNodeGroup(bgName, *bgOptions)
 				bg := cluster.NodeGroup(bgName)
 				bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameNamespace))
@@ -117,7 +117,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				}
 				ngOptions.PersistenceEnabled = persistence
 				ngOptions.PersistenceStorageClass = storageClass
-				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.PersistenceStorageRequest = storageRequest
 				ngOptions.BeeConfig = newDefaultBeeConfig()
 				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 				cluster.AddNodeGroup(ngName, *ngOptions)
@@ -165,7 +165,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				}
 				ngOptions.PersistenceEnabled = persistence
 				ngOptions.PersistenceStorageClass = storageClass
-				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.PersistenceStorageRequest = storageRequest
 				ngOptions.BeeConfig = newDefaultBeeConfig()
 				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 				cluster.AddNodeGroup(ngName, *ngOptions)

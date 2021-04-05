@@ -22,7 +22,7 @@ func addBootNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, 
 	}
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
-	gOptions.PersistanceStorageRequest = storageRequest
+	gOptions.PersistenceStorageRequest = storageRequest
 	cluster.AddNodeGroup(name, *gOptions)
 	g := cluster.NodeGroup(name)
 
@@ -56,7 +56,7 @@ func addNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, name
 	}
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
-	gOptions.PersistanceStorageRequest = storageRequest
+	gOptions.PersistenceStorageRequest = storageRequest
 	gOptions.BeeConfig = newDefaultBeeConfig()
 	gOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootNodeCount, namespace)
 	cluster.AddNodeGroup(name, *gOptions)
@@ -82,7 +82,7 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 	}
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
-	gOptions.PersistanceStorageRequest = storageRequest
+	gOptions.PersistenceStorageRequest = storageRequest
 	cluster.AddNodeGroup(name, *gOptions)
 	g := cluster.NodeGroup(name)
 	bSetup := setupBootnodes(bootNodeCount, namespace)
@@ -122,7 +122,7 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 	}
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
-	gOptions.PersistanceStorageRequest = storageRequest
+	gOptions.PersistenceStorageRequest = storageRequest
 	gOptions.BeeConfig = newDefaultBeeConfig()
 	gOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootNodeCount, namespace)
 	cluster.AddNodeGroup(name, *gOptions)
@@ -217,7 +217,7 @@ func newDefaultNodeGroupOptions() *bee.NodeGroupOptions {
 		},
 		PersistenceEnabled:        true,
 		PersistenceStorageClass:   "local-storage",
-		PersistanceStorageRequest: "34Gi",
+		PersistenceStorageRequest: "34Gi",
 		PodManagementPolicy:       "OrderedReady",
 		RestartPolicy:             "Always",
 		RequestCPU:                "750m",

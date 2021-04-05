@@ -42,7 +42,7 @@ type NodeGroupOptions struct {
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
 	PersistenceStorageClass   string
-	PersistanceStorageRequest string
+	PersistenceStorageRequest string
 	PodManagementPolicy       string
 	RestartPolicy             string
 	RequestCPU                string
@@ -296,7 +296,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		NodeSelector:              g.opts.NodeSelector,
 		PersistenceEnabled:        g.opts.PersistenceEnabled,
 		PersistenceStorageClass:   g.opts.PersistenceStorageClass,
-		PersistanceStorageRequest: g.opts.PersistanceStorageRequest,
+		PersistenceStorageRequest: g.opts.PersistenceStorageRequest,
 		PodManagementPolicy:       g.opts.PodManagementPolicy,
 		RestartPolicy:             g.opts.RestartPolicy,
 		RequestCPU:                g.opts.RequestCPU,

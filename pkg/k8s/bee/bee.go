@@ -338,7 +338,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 			VolumeClaimTemplates: setPersistentVolumeClaims(setPersistentVolumeClaimsOptions{
 				Enabled:        o.PersistenceEnabled,
 				StorageClass:   o.PersistenceStorageClass,
-				StorageRequest: o.PersistanceStorageRequest,
+				StorageRequest: o.PersistenceStorageRequest,
 			}),
 		},
 	}); err != nil {

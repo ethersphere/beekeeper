@@ -44,7 +44,7 @@ type CreateOptions struct {
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
 	PersistenceStorageClass   string
-	PersistanceStorageRequest string
+	PersistenceStorageRequest string
 	PodManagementPolicy       string
 	RestartPolicy             string
 	RequestCPU                string

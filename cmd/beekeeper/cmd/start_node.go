@@ -75,7 +75,7 @@ func (c *command) initAddStartNode() *cobra.Command {
 			}
 			ngOptions.PersistenceEnabled = persistence
 			ngOptions.PersistenceStorageClass = storageClass
-			ngOptions.PersistanceStorageRequest = storageRequest
+			ngOptions.PersistenceStorageRequest = storageRequest
 			cluster.AddNodeGroup(nodeGroupName, *ngOptions)
 			ng := cluster.NodeGroup(nodeGroupName)
 

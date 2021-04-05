@@ -78,7 +78,7 @@ and prints round-trip time (RTT) of each ping.`,
 				}
 				bgOptions.PersistenceEnabled = persistence
 				bgOptions.PersistenceStorageClass = storageClass
-				bgOptions.PersistanceStorageRequest = storageRequest
+				bgOptions.PersistenceStorageRequest = storageRequest
 				cluster.AddNodeGroup(bgName, *bgOptions)
 				bg := cluster.NodeGroup(bgName)
 				bSetup := setupBootnodes(bootnodeCount, c.config.GetString(optionNameNamespace))
@@ -119,7 +119,7 @@ and prints round-trip time (RTT) of each ping.`,
 				}
 				ngOptions.PersistenceEnabled = persistence
 				ngOptions.PersistenceStorageClass = storageClass
-				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.PersistenceStorageRequest = storageRequest
 				ngOptions.BeeConfig = newDefaultBeeConfig()
 				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 				cluster.AddNodeGroup(ngName, *ngOptions)
@@ -167,7 +167,7 @@ and prints round-trip time (RTT) of each ping.`,
 				}
 				ngOptions.PersistenceEnabled = persistence
 				ngOptions.PersistenceStorageClass = storageClass
-				ngOptions.PersistanceStorageRequest = storageRequest
+				ngOptions.PersistenceStorageRequest = storageRequest
 				ngOptions.BeeConfig = newDefaultBeeConfig()
 				ngOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootnodeCount, c.config.GetString(optionNameNamespace))
 				cluster.AddNodeGroup(ngName, *ngOptions)

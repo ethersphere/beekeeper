@@ -136,14 +136,10 @@ node-group-profiles:
   default:
     _file: ""
     _inherit: ""
-    image:
-      name: ethersphere/bee
-      tag: latest
-      pull-policy: IfNotPresent
-    clef-image:
-      name: ethersphere/clef
-      tag: latest
-      pull-policy: IfNotPresent
+    clef-image: ethersphere/clef:latest
+    clef-image-pull-policy: IfNotPresent
+    image: ethersphere/bee:latest
+    image-pull-policy: IfNotPresent
     ingress-annotations:
       kubernetes.io/ingress.class: "nginx-internal"
       nginx.ingress.kubernetes.io/affinity: "cookie"
@@ -163,27 +159,21 @@ node-group-profiles:
       app.kubernetes.io/version: "latest"
     node-selector: 
       node-group: "bee-staging"
-    persistence:
-      enabled: true
-      storage-class: "local-storage"
-      storage-request: "34Gi"
+    persistence-enabled: true
+    persistence-storage-class: "local-storage"
+    persistence-storage-request: "34Gi"
     pod-management-policy: "OrderedReady"
-    resources:
-      limit:
-        cpu: "1"
-        memory: 2Gi
-      request:
-        cpu: 750m
-        memory: 1Gi
+    resources-limit-cpu: "1"
+    resources-limit-memory: 2Gi
+    resources-request-cpu: 750m
+    resources-request-memory: 1Gi
     restart-policy: "Always"
     update-strategy: "RollingUpdate"
   light-node:
     _file: ""
     _inherit: default
-    image:
-      name: svetomir/bee
-      tag: latest
-      pull-policy: IfNotPresent
+    image: svetomir/bee:latest
+    image-pull-policy: IfNotPresent
 
 kubernetes:
   kubeconfig: "~/.kube/config"
