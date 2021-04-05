@@ -91,12 +91,12 @@ run:
     stages:
     timeout: 1h
 
-check-profiles:
+checks:
   ping:
     name: ping
-    timeout: 5m
     options:
       seed: 123
+    timeout: 5m
   ping-dynamic:
     name: ping
     timeout: 15m

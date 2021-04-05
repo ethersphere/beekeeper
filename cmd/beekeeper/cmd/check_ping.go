@@ -47,7 +47,7 @@ and prints round-trip time (RTT) of each ping.`,
 			}
 			buffer := 12
 
-			timeout := *cfg.CheckProfiles["ping"].Timeout
+			timeout := *cfg.Checks["ping"].Timeout
 			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), timeout)
 			defer checkCancel()
 

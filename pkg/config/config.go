@@ -10,17 +10,18 @@ import (
 )
 
 type Config struct {
-	Cluster    Cluster `yaml:"cluster"`
+	Cluster Cluster          `yaml:"cluster"`
+	Run     map[string]Run   `yaml:"run"`
+	Checks  map[string]Check `yaml:"checks"`
+	// profiles
+	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
+	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
+	// orchestrator
 	Kubernetes struct {
 		Enable     bool   `yaml:"enable"`
 		InCluster  bool   `yaml:"in-cluster"`
 		Kubeconfig string `yaml:"kubeconfig"`
 	} `yaml:"kubernetes"`
-	Run Run `yaml:"run"`
-	// profiles
-	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
-	CheckProfiles     map[string]CheckProfile     `yaml:"check-profiles"`
-	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
 }
 
 type Profile struct {
@@ -29,19 +30,21 @@ type Profile struct {
 }
 
 type Run struct {
-	Checks  []string      `yaml:"checks"`
-	Seed    int64         `yaml:"seed"`
+	Checks []string `yaml:"checks"`
+	Seed   int64    `yaml:"seed"`
+	Stages [][]struct {
+		NodeGroup string `yaml:"node-group"`
+		Add       int    `yaml:"add"`
+		Start     int    `yaml:"start"`
+		Stop      int    `yaml:"stop"`
+		Delete    int    `yaml:"delete"`
+	} `yaml:"stages"`
 	Timeout time.Duration `yaml:"timeout"`
 }
 
 type BeeProfile struct {
 	Profile `yaml:",inline"`
 	Bee     `yaml:",inline"`
-}
-
-type CheckProfile struct {
-	Profile `yaml:",inline"`
-	Check   `yaml:",inline"`
 }
 
 type NodeGroupProfile struct {

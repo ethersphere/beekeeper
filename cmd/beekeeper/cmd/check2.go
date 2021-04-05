@@ -16,13 +16,13 @@ type pingOptions struct {
 
 type Check struct {
 	Constructor func() check.Check
-	NewOptions  func(cfg *config.Config, checkProfile config.CheckProfile) (interface{}, error)
+	NewOptions  func(cfg *config.Config, checkProfile config.Check) (interface{}, error)
 }
 
 var Checks = map[string]Check{
 	"ping": {
 		Constructor: ping.NewPing,
-		NewOptions: func(cfg *config.Config, checkProfile config.CheckProfile) (interface{}, error) {
+		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
 			o := new(pingOptions)
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
@@ -54,8 +54,8 @@ func (c *command) initCheck2Cmd() (err error) {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.Read("config.yaml")
 
-			for _, checkName := range cfg.Run.Checks {
-				checkProfile, ok := cfg.CheckProfiles[checkName]
+			for _, checkName := range cfg.Run["default"].Checks {
+				checkProfile, ok := cfg.Checks[checkName]
 				if !ok {
 					return fmt.Errorf("check %s doesn't exist", checkName)
 				}
