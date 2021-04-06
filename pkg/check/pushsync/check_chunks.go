@@ -45,7 +45,7 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			time.Sleep(2 * time.Second)
+			time.Sleep(o.RetryDelay)
 			synced, err := ng.NodeClient(closestName).HasChunk(ctx, ref)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
