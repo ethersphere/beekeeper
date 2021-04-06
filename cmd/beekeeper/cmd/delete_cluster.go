@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +25,8 @@ func (c *command) initDeleteCluster() *cobra.Command {
 		Short: "Delete Bee cluster",
 		Long:  `Delete Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			// cfg := config.Read("config.yaml")
-			return fmt.Errorf("test")
+			cfg := config.Read("config.yaml")
+			return deleteCluster(cmd.Context(), cfg)
 		},
 		PreRunE: c.deletePreRunE,
 	}

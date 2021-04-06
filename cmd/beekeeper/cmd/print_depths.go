@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -13,35 +13,23 @@ func (c *command) initPrintDepths() *cobra.Command {
 		Short: "Print kademlia depths",
 		Long:  `Print list of Kademlia depths for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				Namespace:           c.config.GetString(optionNameNamespace),
-				DisableNamespace:    disableNamespace,
-			})
-
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup("nodes", *ngOptions)
-			ng := cluster.NodeGroup("nodes")
-
-			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
-				if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
-					return fmt.Errorf("adding node bee-%d: %s", i, err)
-				}
+			cfg := config.Read("config.yaml")
+			cluster, err := setupCluster(cmd.Context(), cfg, false)
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			topologies, err := ng.Topologies(cmd.Context())
+			topologies, err := cluster.Topologies(cmd.Context())
 			if err != nil {
 				return err
 			}
 			fmt.Println(topologies)
 
-			for n, t := range topologies {
-				fmt.Printf("Node %s. overlay: %s depth: %d\n", n, t.Overlay, t.Depth)
+			for ng, nt := range topologies {
+				fmt.Printf("Printing %s node group's topologies\n", ng)
+				for n, t := range nt {
+					fmt.Printf("Node %s. overlay: %s depth: %d\n", n, t.Overlay, t.Depth)
+				}
 			}
 
 			return
