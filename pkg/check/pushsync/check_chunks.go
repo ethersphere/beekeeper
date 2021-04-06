@@ -33,7 +33,9 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			ref, err := ng.NodeClient(nodeName).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			uploader := ng.NodeClient(nodeName)
+
+			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -55,7 +57,12 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 
 			fmt.Printf("Node %s. Chunk %d found in the closest node %s Chunk: %s\n", nodeName, j, closestAddress.String(), ref.String())
 
-			skipPeers := []swarm.Address{closestAddress}
+			uploaderAddr, err := uploader.Overlay(ctx)
+			if err != nil {
+				return err
+			}
+
+			skipPeers := []swarm.Address{closestAddress, uploaderAddr}
 			// chunk should be replicated at least once either during forwarding or after storing
 			for range overlays {
 				name, address, err := chunk.ClosestNodeFromMap(overlays, skipPeers...)
