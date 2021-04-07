@@ -12,10 +12,10 @@ import (
 )
 
 // CheckChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func CheckChunks(c *bee.Cluster, o Options) (err error) {
+func CheckChunks(c *bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
-	fmt.Printf("Seed: %d\n", o.Seed)
+	fmt.Printf("seed: %d\n", o.Seed)
 
 	ng := c.NodeGroup(o.NodeGroup)
 	overlays, err := ng.Overlays(ctx)
@@ -40,10 +40,13 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
+			fmt.Printf("uploaded chunk %s to node %s\n", ref, nodeName)
+
 			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
+			fmt.Printf("closest node %s overlay %s\n", closestName, closestAddress)
 
 			time.Sleep(o.RetryDelay)
 			synced, err := ng.NodeClient(closestName).HasChunk(ctx, ref)
@@ -51,11 +54,10 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			if !synced {
-				fmt.Printf("Node %s. Chunk %d NOT found in the closest node %s Chunk: %s\n", nodeName, j, closestAddress.String(), ref.String())
-				return errPushSync
+				return fmt.Errorf("node %s chunk %s not found in the closest node %s\n", nodeName, ref, closestAddress)
 			}
 
-			fmt.Printf("Node %s. Chunk %d found in the closest node %s Chunk: %s\n", nodeName, j, closestAddress.String(), ref.String())
+			fmt.Printf("node %s chunk %s found in the closest node %s\n", nodeName, ref, closestAddress)
 
 			uploaderAddr, err := uploader.Overlay(ctx)
 			if err != nil {
@@ -75,15 +77,14 @@ func CheckChunks(c *bee.Cluster, o Options) (err error) {
 					continue
 				}
 				if synced {
-					fmt.Printf("Node %s. Chunk %d was replicated to node %s Chunk: %s\n", name, j, address.String(), ref.String())
+					fmt.Printf("node %s chunk %s was replicated to node %s\n", name, ref, address)
 					continue testCases
 				}
 			}
 
-			fmt.Printf("Node %s. Chunk %d NOT replicated to a node\n", nodeName, j)
-			return errPushSync
+			return fmt.Errorf("node %s chunk %s not replicated\n", nodeName, ref)
 		}
 	}
 
-	return
+	return nil
 }
