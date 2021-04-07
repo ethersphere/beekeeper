@@ -40,7 +40,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			fmt.Printf("uploaded chunk %s to node %s\n", ref, nodeName)
+			fmt.Printf("uploaded chunk %s to node %s\n", ref.String(), nodeName)
 
 			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
@@ -54,10 +54,10 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			if !synced {
-				return fmt.Errorf("node %s chunk %s not found in the closest node %s\n", nodeName, ref, closestAddress)
+				return fmt.Errorf("node %s chunk %s not found in the closest node %s\n", nodeName, ref.String(), closestAddress)
 			}
 
-			fmt.Printf("node %s chunk %s found in the closest node %s\n", nodeName, ref, closestAddress)
+			fmt.Printf("node %s chunk %s found in the closest node %s\n", nodeName, ref.String(), closestAddress)
 
 			uploaderAddr, err := uploader.Overlay(ctx)
 			if err != nil {
@@ -77,12 +77,12 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 					continue
 				}
 				if synced {
-					fmt.Printf("node %s chunk %s was replicated to node %s\n", name, ref, address)
+					fmt.Printf("node %s chunk %s was replicated to node %s\n", name, ref.String(), address.String())
 					continue testCases
 				}
 			}
 
-			return fmt.Errorf("node %s chunk %s not replicated\n", nodeName, ref)
+			return fmt.Errorf("node %s chunk %s not replicated\n", nodeName, ref.String())
 		}
 	}
 
