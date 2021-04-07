@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	Cluster Cluster          `yaml:"cluster"`
+	Cluster Cluster          `yaml:"cluster"` // TODO: add multi-cluster-support
 	Run     map[string]Run   `yaml:"run"`
 	Checks  map[string]Check `yaml:"checks"`
 	// profiles

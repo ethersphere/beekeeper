@@ -1,4 +1,5 @@
-cluster: 
+cluster:
+  # DEFAULT
   name: bee
   namespace: beekeeper
   disable-namespace: false
@@ -33,18 +34,38 @@ cluster:
     bee:
       bee-config: default
       config: default
-      count: 3
+      count: 5
       mode: node
     drone:
       bee-config: default
       config: default
-      count: 3
+      count: 5
       mode: node
   # stray:
   #   count: 1
   #   bee-config: default
   #   config: default
   #   mode: standalone
+  # HELM
+  # name: bee
+  # namespace: svetomir
+  # disable-namespace: false
+  # api:
+  #   domain: staging.internal
+  #   hostname-pattern: "%s"
+  #   insecure-tls: true
+  #   scheme: https
+  # debug-api:
+  #   domain: staging.internal
+  #   hostname-pattern: "%s-debug"
+  #   insecure-tls: true
+  #   scheme: https
+  # node-groups:
+  #   bee:
+  #     bee-config: default
+  #     config: default
+  #     count: 15
+  #     mode: node
 
 run:
   default:
@@ -96,7 +117,7 @@ checks:
   kademlia:
     name: kademlia
     options:
-      dynamic: true
+      dynamic: false
     timeout: 5m
   ping:
     name: ping
@@ -156,9 +177,9 @@ node-group-profiles:
     _file: ""
     _inherit: ""
     clef-image: ethersphere/clef:latest
-    clef-image-pull-policy: IfNotPresent
+    clef-image-pull-policy: Always
     image: ethersphere/bee:latest
-    image-pull-policy: IfNotPresent
+    image-pull-policy: Always
     ingress-annotations:
       kubernetes.io/ingress.class: "nginx-internal"
       nginx.ingress.kubernetes.io/affinity: "cookie"
