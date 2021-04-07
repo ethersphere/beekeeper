@@ -65,7 +65,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
-			fmt.Printf("uploaded chunk %s to node %s\n", addr, nodeName)
+			fmt.Printf("uploaded chunk %s to node %s\n", addr.String(), nodeName)
 
 			uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), addr.String()).Set(d0.Seconds())
@@ -82,7 +82,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 			for {
 				checkRetryCount++
 				if checkRetryCount > o.Retries {
-					return fmt.Errorf("exceeded number of retires")
+					return fmt.Errorf("exceeded number of retries")
 				}
 
 				time.Sleep(o.RetryDelay)
@@ -92,12 +92,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 				}
 				if !synced {
 					notSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					fmt.Printf("node %s overlay %s chunk %s not found on the closest node. retrying...\n", closestName, overlays[closestName], addr)
+					fmt.Printf("node %s overlay %s chunk %s not found on the closest node. retrying...\n", closestName, overlays[closestName], addr.String())
 					continue
 				}
 
 				syncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("node %s overlay %s chunk %d found on the closest node.\n", closestName, overlays[closestName], addr)
+				fmt.Printf("node %s overlay %s chunk %s found on the closest node.\n", closestName, overlays[closestName], addr.String())
 
 				// check succeeded
 				break
