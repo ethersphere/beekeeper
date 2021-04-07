@@ -39,7 +39,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return err
 	}
-	fmt.Println("dynamic", o.Dynamic)
+
 	if o.Dynamic {
 		return checkKademliaD(topologies)
 	}
