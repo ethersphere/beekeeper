@@ -31,10 +31,10 @@ type Options struct {
 var errPushSync = errors.New("push sync")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
-	fmt.Printf("Seed: %d\n", o.Seed)
+	fmt.Printf("seed: %d\n", o.Seed)
 
 	pusher.Collector(uploadedCounter)
 	pusher.Collector(uploadTimeGauge)
@@ -65,6 +65,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
+			fmt.Printf("uploaded chunk %s to node %s\n", addr, nodeName)
 
 			uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), addr.String()).Set(d0.Seconds())
@@ -74,13 +75,14 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
+			fmt.Printf("closest node %s overlay %s\n", closestName, closestAddress)
 
 			checkRetryCount := 0
 
 			for {
 				checkRetryCount++
 				if checkRetryCount > o.Retries {
-					return fmt.Errorf("exceeded number of retires: %w", errPushSync)
+					return fmt.Errorf("exceeded number of retires")
 				}
 
 				time.Sleep(o.RetryDelay)
@@ -90,12 +92,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 				}
 				if !synced {
 					notSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					fmt.Printf("Node %s. Chunk %d not found on the closest node. Node: %s Chunk: %s Closest node %s: %s\n", nodeName, j, overlays[nodeName].String(), addr.String(), closestName, closestAddress.String())
+					fmt.Printf("node %s overlay %s chunk %s not found on the closest node. retrying...\n", closestName, overlays[closestName], addr)
 					continue
 				}
 
 				syncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("Node %s. Chunk %d found on the closest node. Node: %s Chunk: %s Closest node %s: %s\n", nodeName, j, overlays[nodeName].String(), addr.String(), closestName, closestAddress.String())
+				fmt.Printf("node %s overlay %s chunk %d found on the closest node.\n", closestName, overlays[closestName], addr)
 
 				// check succeeded
 				break
@@ -103,13 +105,13 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 			if pushMetrics {
 				if err := pusher.Push(); err != nil {
-					fmt.Printf("node %s: %v\n", nodeName, err)
+					return fmt.Errorf("node %s: %v\n", nodeName, err)
 				}
 			}
 		}
 	}
 
-	return
+	return nil
 }
 
 type chunkStreamMsg struct {
