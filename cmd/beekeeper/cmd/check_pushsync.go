@@ -74,6 +74,7 @@ and checks if chunks are synced to their closest nodes.`,
 					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
+					RetryDelay:      c.config.GetDuration(optionNameRetryDelay),
 					Seed:            seed,
 				})
 			}

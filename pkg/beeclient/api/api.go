@@ -33,6 +33,8 @@ type Client struct {
 	Dirs    *DirsService
 	Pinning *PinningService
 	Tags    *TagsService
+	PSS     *PSSService
+	SOC     *SOCService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -63,6 +65,8 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.Dirs = (*DirsService)(&c.service)
 	c.Pinning = (*PinningService)(&c.service)
 	c.Tags = (*TagsService)(&c.service)
+	c.PSS = (*PSSService)(&c.service)
+	c.SOC = (*SOCService)(&c.service)
 	return c
 }
 
