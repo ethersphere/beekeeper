@@ -9,37 +9,9 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
-
-var (
-	rttGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "beekeeper",
-			Subsystem: "check_pingpong",
-			Name:      "rtt_duration_seconds",
-			Help:      "Ping round-trip time duration Gauge",
-		},
-		[]string{"node", "peer"},
-	)
-	rttHistogram = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Namespace: "beekeeper",
-			Subsystem: "check_pingpong",
-			Name:      "rtt_seconds",
-			Help:      "Ping round-trip time duration Histogram",
-			Buckets:   prometheus.LinearBuckets(0, 0.003, 10),
-		},
-	)
-)
-
-// Options represents pingpong check options
-type Options struct {
-	MetricsPusher *push.Pusher
-	Seed          int64
-}
 
 // compile check whether Ping implements interface
 var _ check.Check = (*Ping)(nil)
@@ -52,28 +24,25 @@ func NewPing() check.Check {
 	return &Ping{}
 }
 
+// Options represents ping check options
+type Options struct {
+	MetricsPusher *push.Pusher
+	Seed          int64
+}
+
 // Run executes ping check
 func (p *Ping) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	fmt.Println("checking pingpong")
+	fmt.Println("checking ping")
 
 	opts, ok := o.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-	if err := CheckD(ctx, cluster, opts); err != nil {
-		return err
-	}
 
-	fmt.Println("pingpong check completed successfully")
-	return
-}
-
-// CheckD executes ping from all nodes to all other nodes in the cluster
-func CheckD(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(rttGauge)
-		o.MetricsPusher.Collector(rttHistogram)
-		o.MetricsPusher.Format(expfmt.FmtText)
+	if opts.MetricsPusher != nil {
+		opts.MetricsPusher.Collector(rttGauge)
+		opts.MetricsPusher.Collector(rttHistogram)
+		opts.MetricsPusher.Format(expfmt.FmtText)
 	}
 
 	nodeGroups := cluster.NodeGroups()
@@ -108,8 +77,8 @@ func CheckD(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 				rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
 				rttHistogram.Observe(rtt.Seconds())
 
-				if o.MetricsPusher != nil {
-					if err := o.MetricsPusher.Push(); err != nil {
+				if opts.MetricsPusher != nil {
+					if err := opts.MetricsPusher.Push(); err != nil {
 						fmt.Printf("node %s: %v\n", n.Name, err)
 					}
 				}
@@ -118,6 +87,7 @@ func CheckD(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 		}
 	}
 
+	fmt.Println("pingpong check completed successfully")
 	return
 }
 
