@@ -30,18 +30,17 @@ type Options struct {
 }
 
 // Run executes ping check
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	fmt.Println("checking ping")
-
-	opts, ok := o.(Options)
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	fmt.Println("running ping")
+	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 
-	if opts.MetricsPusher != nil {
-		opts.MetricsPusher.Collector(rttGauge)
-		opts.MetricsPusher.Collector(rttHistogram)
-		opts.MetricsPusher.Format(expfmt.FmtText)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(rttGauge)
+		o.MetricsPusher.Collector(rttHistogram)
+		o.MetricsPusher.Format(expfmt.FmtText)
 	}
 
 	nodeGroups := cluster.NodeGroups()
@@ -76,8 +75,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (e
 				rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
 				rttHistogram.Observe(rtt.Seconds())
 
-				if opts.MetricsPusher != nil {
-					if err := opts.MetricsPusher.Push(); err != nil {
+				if o.MetricsPusher != nil {
+					if err := o.MetricsPusher.Push(); err != nil {
 						fmt.Printf("node %s: %v\n", n.Name, err)
 					}
 				}
