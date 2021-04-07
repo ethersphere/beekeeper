@@ -22,6 +22,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
@@ -34,8 +35,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts balances.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -48,8 +55,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts chunkrepair.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -62,8 +75,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts fileretrieval.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -76,8 +95,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts fullconnectivity.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -90,8 +115,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts gc.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -104,9 +135,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts kademlia.Options
-			if o.Seed != nil {
-				opts.Seed = *o.Seed
+			if o.Dynamic != nil {
+				opts.Dynamic = *o.Dynamic
 			}
+
 			return opts, nil
 		},
 	},
@@ -118,8 +150,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts localpinning.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -132,8 +170,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts localpinning.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -146,8 +190,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts localpinning.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -160,8 +210,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts manifest.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -174,8 +230,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			var opts peercount.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -188,7 +250,9 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts ping.Options
-			// setup metrics // TODO: improve Run["profile"] selection, resolve optionNamePushGateway
+			// TODO: improve Run["profile"] selection
+			// TODO: resolve optionNamePushGateway
+			// set metrics
 			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
@@ -205,8 +269,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts pss.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -219,8 +289,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts pullsync.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -233,8 +309,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts pushsync.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -247,8 +329,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts retrieval.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -261,8 +349,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts settlements.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -275,8 +369,14 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts soc.Options
-			if o.Seed != nil {
+			// TODO: improve Run["profile"] selection
+			// set seed
+			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Run["default"].Seed
+			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
+			} else { // randomly generated
+				opts.Seed = random.Int64()
 			}
 			return opts, nil
 		},
@@ -327,8 +427,7 @@ type gcOptions struct {
 }
 
 type kademliaOptions struct {
-	MetricsEnabled *bool  `yaml:"metrics-enabled"`
-	Seed           *int64 `yaml:"seed"`
+	Dynamic *bool `yaml:"dynamic"`
 }
 
 type localpinningOptions struct {

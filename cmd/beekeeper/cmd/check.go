@@ -63,7 +63,6 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.AddCommand(c.initCheckBalances())
 	cmd.AddCommand(c.initCheckFileRetrieval())
 	cmd.AddCommand(c.initCheckFullConnectivity())
-	cmd.AddCommand(c.initCheckKademlia())
 	cmd.AddCommand(c.initCheckGc())
 	cmd.AddCommand(c.initCheckLocalPinningChunk())
 	cmd.AddCommand(c.initCheckLocalPinningBytes())
