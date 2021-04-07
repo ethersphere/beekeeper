@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/pss"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 
@@ -26,26 +26,10 @@ func (c *command) initCheckPSS() *cobra.Command {
 It establishes a WebSocket connection to random recipient nodes, and 
 sends PSS messages to random nodes to check if WebSocket connections receive the data.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
-				APIDomain:           c.config.GetString(optionNameAPIDomain),
-				APIInsecureTLS:      insecureTLSAPI,
-				APIScheme:           c.config.GetString(optionNameAPIScheme),
-				DebugAPIDomain:      c.config.GetString(optionNameDebugAPIDomain),
-				DebugAPIInsecureTLS: insecureTLSDebugAPI,
-				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
-				Namespace:           c.config.GetString(optionNameNamespace),
-				DisableNamespace:    disableNamespace,
-			})
-
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup("nodes", *ngOptions)
-			ng := cluster.NodeGroup("nodes")
-
-			for i := 0; i < c.config.GetInt(optionNameNodeCount); i++ {
-				if err := ng.AddNode(fmt.Sprintf("bee-%d", i), bee.NodeOptions{}); err != nil {
-					return fmt.Errorf("adding node bee-%d: %s", i, err)
-				}
+			cfg := config.Read("config.yaml")
+			cluster, err := setupCluster(cmd.Context(), cfg, false)
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
 			var seed int64
@@ -58,7 +42,7 @@ sends PSS messages to random nodes to check if WebSocket connections receive the
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			return pss.Check(cluster, pss.Options{
-				NodeGroup:      "nodes",
+				NodeGroup:      "bee",
 				NodeCount:      c.config.GetInt(optionNameNodeCount),
 				Seed:           seed,
 				RequestTimeout: c.config.GetDuration(optionTimeout),
