@@ -15,10 +15,12 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/manifest"
 	"github.com/ethersphere/beekeeper/pkg/check/peercount"
 	"github.com/ethersphere/beekeeper/pkg/check/ping"
+	"github.com/ethersphere/beekeeper/pkg/check/pss"
 	"github.com/ethersphere/beekeeper/pkg/check/pullsync"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
 	"github.com/ethersphere/beekeeper/pkg/check/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
+	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/config"
 )
 
@@ -194,6 +196,20 @@ var Checks = map[string]Check{
 			return opts, nil
 		},
 	},
+	"pss": {
+		NewCheck: pss.NewCheck,
+		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+			o := new(pssOptions)
+			if err := checkProfile.Options.Decode(o); err != nil {
+				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
+			}
+			var opts pss.Options
+			if o.Seed != nil {
+				opts.Seed = *o.Seed
+			}
+			return opts, nil
+		},
+	},
 	"pullsync": {
 		NewCheck: pullsync.NewCheck,
 		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
@@ -244,6 +260,20 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts settlements.Options
+			if o.Seed != nil {
+				opts.Seed = *o.Seed
+			}
+			return opts, nil
+		},
+	},
+	"soc": {
+		NewCheck: soc.NewCheck,
+		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+			o := new(socOptions)
+			if err := checkProfile.Options.Decode(o); err != nil {
+				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
+			}
+			var opts soc.Options
 			if o.Seed != nil {
 				opts.Seed = *o.Seed
 			}
@@ -324,6 +354,14 @@ type pingOptions struct {
 	Seed           *int64 `yaml:"seed"`
 }
 
+type pssOptions struct {
+	NodeGroup      *string        `yaml:"node-group"`
+	NodeCount      *int           `yaml:"node-count"`
+	RequestTimeout *time.Duration `yaml:"request-timeout"`
+	AddressPrefix  *int           `yaml:"address-prefix"`
+	Seed           *int64         `yaml:"seed"`
+}
+
 type pullSyncOptions struct {
 	NodeGroup                  *string `yaml:"node-group"`
 	UploadNodeCount            *int    `yaml:"upload-node-count"`
@@ -359,4 +397,9 @@ type settlementsOptions struct {
 	Threshold          *int64  `yaml:"threshold"`
 	WaitBeforeDownload *int    `yaml:"wait-before-download"`
 	ExpectSettlements  *int    `yaml:"expect-settlements"`
+}
+
+type socOptions struct {
+	NodeGroup *string `yaml:"node-group"`
+	Seed      *int64  `yaml:"seed"`
 }

@@ -1,9 +1,6 @@
 package cmd
 
 import (
-
-	// "github.com/ethersphere/beekeeper/pkg/check"
-
 	"context"
 	"fmt"
 
