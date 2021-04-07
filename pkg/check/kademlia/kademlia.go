@@ -8,19 +8,36 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/check"
 )
+
+// compile check whether Check implements interface
+var _ check.Check = (*Check2)(nil)
+
+// TODO: rename to Check
+// Check instance
+type Check2 struct{}
+
+// NewCheck returns new check
+func NewCheck() check.Check {
+	return &Check2{}
+}
+
+// Options represents check options
+type Options struct {
+	DynamicActions []Actions
+	Seed           int64
+}
+
+func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
+	return
+}
 
 var (
 	errKadmeliaNotHealthy      = errors.New("kademlia not healthy")
 	errKadmeliaBinConnected    = errors.New("at least 1 connected peer is required in a bin which is shallower than depth")
 	errKadmeliaBinDisconnected = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
 )
-
-// Options represents kademlia check options
-type Options struct {
-	Seed           int64
-	DynamicActions []Actions
-}
 
 // Check executes Kademlia topology check on cluster
 func Check(ctx context.Context, cluster *bee.Cluster) error {

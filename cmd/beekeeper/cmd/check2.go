@@ -3,41 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/check"
-	"github.com/ethersphere/beekeeper/pkg/check/ping"
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
-
-type pingOptions struct {
-	MetricsEnabled *bool  `yaml:"metrics-enabled"`
-	Seed           *int64 `yaml:"seed"`
-}
-
-type Check struct {
-	Constructor func() check.Check
-	NewOptions  func(cfg *config.Config, checkProfile config.Check) (interface{}, error)
-}
-
-var Checks = map[string]Check{
-	"ping": {
-		Constructor: ping.NewPing,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
-			o := new(pingOptions)
-			if err := checkProfile.Options.Decode(o); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
-			}
-			var opts ping.Options
-			if o.Seed != nil {
-				opts.Seed = *o.Seed
-			}
-			if o.MetricsEnabled != nil && *o.MetricsEnabled {
-				// TODO: make pusher and set it to opts.MetricsPusher
-			}
-			return opts, nil
-		},
-	},
-}
 
 func (c *command) initCheck2Cmd() (err error) {
 	const (
@@ -75,7 +43,7 @@ func (c *command) initCheck2Cmd() (err error) {
 					return fmt.Errorf("creating check %s options: %w", checkProfile.Name, err)
 				}
 
-				if err := check.Constructor().Run(cmd.Context(), cluster, o); err != nil {
+				if err := check.NewCheck().Run(cmd.Context(), cluster, o); err != nil {
 					return fmt.Errorf("running check %s: %w", checkProfile.Name, err)
 				}
 			}

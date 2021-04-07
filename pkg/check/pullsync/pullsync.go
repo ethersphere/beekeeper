@@ -7,19 +7,36 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/random"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// Options represents pullsync check options
+// compile check whether Check implements interface
+var _ check.Check = (*Check2)(nil)
+
+// TODO: rename to Check
+// Check instance
+type Check2 struct{}
+
+// NewCheck returns new check
+func NewCheck() check.Check {
+	return &Check2{}
+}
+
+// Options represents check options
 type Options struct {
 	NodeGroup                  string
 	UploadNodeCount            int
 	ChunksPerNode              int
 	ReplicationFactorThreshold int
 	Seed                       int64
+}
+
+func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
+	return
 }
 
 var errPullSync = errors.New("pull sync")
@@ -118,7 +135,7 @@ func Check(c *bee.Cluster, o Options) (err error) {
 					fmt.Printf("Upload node %s. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s. Retrying...\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String(), n)
 				}
 				if !synced {
-					return fmt.Errorf("Upload node %s. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", nodeName, j, overlays[nodeName].String(), chunk.Address().String(), n)
+					return fmt.Errorf("upload node %s. Chunk %d not found on node. Upload node: %s Chunk: %s Pivot: %s", nodeName, j, overlays[nodeName].String(), chunk.Address().String(), n)
 				}
 			}
 

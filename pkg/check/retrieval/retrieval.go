@@ -9,17 +9,34 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
 
-// Options represents pushsync check options
+// compile check whether Check implements interface
+var _ check.Check = (*Check2)(nil)
+
+// TODO: rename to Check
+// Check instance
+type Check2 struct{}
+
+// NewCheck returns new check
+func NewCheck() check.Check {
+	return &Check2{}
+}
+
+// Options represents check options
 type Options struct {
 	NodeGroup       string
 	UploadNodeCount int
 	ChunksPerNode   int
 	Seed            int64
+}
+
+func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
+	return
 }
 
 var errRetrieval = errors.New("retrieval")

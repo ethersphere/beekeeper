@@ -13,25 +13,27 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
-// compile check whether Ping implements interface
-var _ check.Check = (*Ping)(nil)
+// compile check whether Check implements interface
+var _ check.Check = (*Check2)(nil)
 
-// Ping check
-type Ping struct{}
+// TODO: rename to Check
+// Check instance
+type Check2 struct{}
 
-// NewPing returns new ping check
-func NewPing() check.Check {
-	return &Ping{}
+// NewCheck returns new check
+func NewCheck() check.Check {
+	return &Check2{}
 }
 
-// Options represents ping check options
+// Options represents check options
 type Options struct {
 	MetricsPusher *push.Pusher
-	Seed          int64
+	// TODO: remove seed
+	Seed int64
 }
 
 // Run executes ping check
-func (p *Ping) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
+func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
 	fmt.Println("checking ping")
 
 	opts, ok := o.(Options)

@@ -9,11 +9,24 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-// Options represents balances check options
+// compile check whether Check implements interface
+var _ check.Check = (*Check2)(nil)
+
+// TODO: rename to Check
+// Check instance
+type Check2 struct{}
+
+// NewCheck returns new check
+func NewCheck() check.Check {
+	return &Check2{}
+}
+
+// Options represents check options
 type Options struct {
 	NodeGroup          string
 	UploadNodeCount    int
@@ -21,6 +34,10 @@ type Options struct {
 	FileSize           int64
 	Seed               int64
 	WaitBeforeDownload int
+}
+
+func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
+	return
 }
 
 // Check executes balances check
@@ -88,7 +105,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			return fmt.Errorf("node %s: %w", dNode, err)
 		}
 		if !bytes.Equal(file.Hash(), hash) {
-			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dNode].String(), file.Size(), size)
+			return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dNode].String(), file.Size(), size)
 		}
 		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dNode].String())
 

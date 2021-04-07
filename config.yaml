@@ -92,13 +92,20 @@ run:
     timeout: 1h
 
 checks:
+  kademlia:
+    name: kademlia
+    options:
+      seed: 
+    timeout: 5m
   ping:
     name: ping
     options:
-      seed: 123
+      seed: 
     timeout: 5m
   ping-dynamic:
     name: ping
+    options:
+      seed: 
     timeout: 15m
 
 bee-profiles:

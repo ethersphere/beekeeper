@@ -7,7 +7,31 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/prometheus/client_golang/prometheus/push"
 )
+
+// compile check whether Check implements interface
+var _ check.Check = (*Check2)(nil)
+
+// TODO: rename to Check
+// Check instance
+type Check2 struct{}
+
+// NewCheck returns new check
+func NewCheck() check.Check {
+	return &Check2{}
+}
+
+// Options represents check options
+type Options struct {
+	MetricsPusher *push.Pusher
+	Seed          int64
+}
+
+func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
+	return
+}
 
 var errFullConnectivity = errors.New("full connectivity")
 

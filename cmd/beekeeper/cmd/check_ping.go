@@ -51,7 +51,7 @@ and prints round-trip time (RTT) of each ping.`,
 			checkCtx, checkCancel := context.WithTimeout(cmd.Context(), timeout)
 			defer checkCancel()
 
-			checkPing := ping.NewPing()
+			checkPing := ping.NewCheck()
 			checkOptions := check.Options{
 				MetricsEnabled: c.config.GetBool(optionNamePushMetrics),
 				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), cfg.Cluster.Namespace),
