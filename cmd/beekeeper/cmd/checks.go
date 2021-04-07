@@ -22,6 +22,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 var Checks = map[string]Check{
@@ -187,11 +188,11 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts ping.Options
-			if o.Seed != nil {
-				opts.Seed = *o.Seed
-			}
-			if o.MetricsEnabled != nil && *o.MetricsEnabled {
-				// TODO: make pusher and set it to opts.MetricsPusher
+			// setup metrics // TODO: improve Run["profile"] selection, resolve optionNamePushGateway
+			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			}
 			return opts, nil
 		},
@@ -350,8 +351,7 @@ type peercountOptions struct {
 }
 
 type pingOptions struct {
-	MetricsEnabled *bool  `yaml:"metrics-enabled"`
-	Seed           *int64 `yaml:"seed"`
+	MetricsEnabled *bool `yaml:"metrics-enabled"`
 }
 
 type pssOptions struct {

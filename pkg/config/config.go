@@ -30,9 +30,10 @@ type Profile struct {
 }
 
 type Run struct {
-	Checks []string `yaml:"checks"`
-	Seed   int64    `yaml:"seed"`
-	Stages [][]struct {
+	Checks         []string `yaml:"checks"`
+	MetricsEnabled bool     `yaml:"metrics-enabled"`
+	Seed           int64    `yaml:"seed"`
+	Stages         [][]struct {
 		NodeGroup string `yaml:"node-group"`
 		Add       int    `yaml:"add"`
 		Start     int    `yaml:"start"`

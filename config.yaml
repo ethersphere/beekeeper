@@ -49,6 +49,7 @@ cluster:
 run:
   default:
     checks: [ping]
+    metrics-enabled: 
     seed: 
     # stages:
     #   -
@@ -100,12 +101,12 @@ checks:
   ping:
     name: ping
     options:
-      seed: 
+      metrics-enabled: 
     timeout: 5m
   ping-dynamic:
     name: ping
     options:
-      seed: 
+      metrics-enabled: 
     timeout: 15m
 
 bee-profiles:

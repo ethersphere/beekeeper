@@ -14,26 +14,23 @@ import (
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
 	MetricsPusher *push.Pusher
-	// TODO: remove seed
-	Seed int64
 }
 
 // Run executes ping check
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
 	fmt.Println("checking ping")
 
 	opts, ok := o.(Options)
