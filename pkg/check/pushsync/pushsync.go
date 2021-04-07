@@ -97,7 +97,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 				}
 
 				syncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("node %s overlay %s chunk %d found on the closest node.\n", closestName, overlays[closestName], addr)
+				fmt.Printf("node %s overlay %s chunk %s found on the closest node.\n", closestName, overlays[closestName], addr)
 
 				// check succeeded
 				break
