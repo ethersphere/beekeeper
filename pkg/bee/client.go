@@ -466,9 +466,9 @@ func (c *Client) UploadFile(ctx context.Context, f *File, pin bool) (err error) 
 }
 
 // UploadFileWithTag uploads file with tag to the node
-func (c *Client) UploadFileWithTag(ctx context.Context, f *File, pin bool, tagUID uint32) (err error) {
+func (c *Client) UploadFileWithTag(ctx context.Context, f *File, pin bool, tagUid uint32) (err error) {
 	h := fileHasher()
-	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, tagUID)
+	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, tagUid)
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
