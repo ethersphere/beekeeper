@@ -172,10 +172,10 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 }
 
 // requestWithHeader handles the HTTP request response cycle.
-func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (resp *http.Response, err error) {
+func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (err error) {
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	req = req.WithContext(ctx)
 
@@ -184,18 +184,19 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
-		return r, err
+		return err
 	}
 
 	if err = responseErrorHandler(r); err != nil {
-		return r, err
+		return err
 	}
 
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		return r, json.NewDecoder(r.Body).Decode(&v)
+		json.NewDecoder(r.Body).Decode(&v)
+		return err
 	}
 
-	return r, err
+	return err
 }
 
 // drain discards all of the remaining data from the reader and closes it,
