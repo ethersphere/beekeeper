@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/stress"
 	"golang.org/x/sync/errgroup"
@@ -86,7 +87,18 @@ func (u *Upload) Run(ctx context.Context, cluster *bee.Cluster, o stress.Options
 						return ctx.Err()
 					}
 
-					if err := n.UploadFile(ctx, &file, false); err != nil {
+					// add some buffer to ensure depth is enough
+					depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+					batchID, err := n.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+					if err != nil {
+						return fmt.Errorf("created batched id %w", err)
+					}
+
+					fmt.Printf("created batched id %s", batchID)
+
+					time.Sleep(o.PostageWait)
+
+					if err := n.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 						fmt.Printf("error: uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)
 						continue
 					}

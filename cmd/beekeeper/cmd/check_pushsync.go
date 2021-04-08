@@ -80,6 +80,8 @@ and checks if chunks are synced to their closest nodes.`,
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					Seed:            seed,
+					PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
+					PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
 				})
 			}
 
@@ -90,6 +92,8 @@ and checks if chunks are synced to their closest nodes.`,
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					RetryDelay:      c.config.GetDuration(optionNameRetryDelay),
 					Seed:            seed,
+					PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
+					PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
 				})
 			}
 
@@ -106,6 +110,8 @@ and checks if chunks are synced to their closest nodes.`,
 					Retries:         c.config.GetInt(optionNameRetries),
 					RetryDelay:      retryDelayDuration,
 					Seed:            seed,
+					PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
+					PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
 				})
 			}
 
@@ -117,6 +123,8 @@ and checks if chunks are synced to their closest nodes.`,
 				Retries:         c.config.GetInt(optionNameRetries),
 				RetryDelay:      retryDelayDuration,
 				Seed:            seed,
+				PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,

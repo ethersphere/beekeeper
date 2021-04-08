@@ -63,6 +63,8 @@ sends PSS messages to random nodes to check if WebSocket connections receive the
 				Seed:           seed,
 				RequestTimeout: c.config.GetDuration(optionTimeout),
 				AddressPrefix:  c.config.GetInt(optionAddrPrefix),
+				PostageAmount:  c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:    c.config.GetDuration(optionNamePostageBatchhWait),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,

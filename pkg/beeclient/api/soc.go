@@ -17,10 +17,12 @@ type SocResponse struct {
 }
 
 // Sends a PSS message to a recipienct with a specific topic
-func (p *SOCService) UploadSOC(ctx context.Context, owner, ID, signature string, data io.Reader) (*SocResponse, error) {
+func (p *SOCService) UploadSOC(ctx context.Context, owner, ID, signature string, data io.Reader, batchID string) (*SocResponse, error) {
 
+	h := http.Header{}
+	h.Add(postageStampBatchHeader, batchID)
 	url := fmt.Sprintf("/%s/soc/%s/%s?sig=%s", apiVersion, owner, ID, signature)
 
 	resp := SocResponse{}
-	return &resp, p.client.request(ctx, http.MethodPost, url, data, &resp)
+	return &resp, p.client.requestWithHeader(ctx, http.MethodPost, url, h, data, &resp)
 }

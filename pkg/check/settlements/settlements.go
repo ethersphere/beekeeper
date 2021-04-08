@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
@@ -23,6 +24,8 @@ type Options struct {
 	Threshold          int64
 	WaitBeforeDownload int
 	ExpectSettlements  bool
+	PostageAmount      int64
+	PostageWait        time.Duration
 }
 
 // Check executes settlements check
@@ -59,7 +62,21 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		uIndex := rnd.Intn(c.Size())
 		uNode := sortedNodes[uIndex]
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
-		if err := ng.NodeClient(uNode).UploadFile(ctx, &file, false); err != nil {
+
+		client := ng.NodeClient(uNode)
+
+		// add some buffer to ensure depth is enough
+		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+		if err != nil {
+			return fmt.Errorf("node %s: created batched id %w", uNode, err)
+		}
+
+		fmt.Printf("node %s: created batched id %s\n", uNode, batchID)
+
+		time.Sleep(o.PostageWait)
+
+		if err := ng.NodeClient(uNode).UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("node %s: %w", uNode, err)
 		}
 		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())

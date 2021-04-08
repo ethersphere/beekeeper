@@ -22,6 +22,8 @@ type Options struct {
 	NodeGroup              string
 	NumberOfChunksToRepair int
 	Seed                   int64
+	PostageAmount          int64
+	PostageWait            time.Duration
 }
 
 const (
@@ -57,8 +59,17 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			return err
 		}
 
+		batchID, err := nodeA.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		if err != nil {
+			return fmt.Errorf("created batched id %w", err)
+		}
+
+		fmt.Printf("created batched id %s", batchID)
+
+		time.Sleep(o.PostageWait)
+
 		// upload the chunk in nodeA
-		ref, err := nodeA.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+		ref, err := nodeA.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 		if err != nil {
 			return err
 		}

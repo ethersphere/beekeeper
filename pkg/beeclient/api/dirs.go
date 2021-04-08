@@ -23,11 +23,12 @@ type DirsUploadResponse struct {
 }
 
 // Upload uploads TAR collection to the node
-func (s *DirsService) Upload(ctx context.Context, data io.Reader, size int64) (resp DirsUploadResponse, err error) {
+func (s *DirsService) Upload(ctx context.Context, data io.Reader, size int64, o UploadOptions) (resp DirsUploadResponse, err error) {
 	header := make(http.Header)
 	header.Set("Content-Type", "application/x-tar")
 	header.Set("Content-Length", strconv.FormatInt(size, 10))
 	header.Set("swarm-collection", "True")
+	header.Set(postageStampBatchHeader, o.BatchID)
 
 	err = s.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz", header, data, &resp)
 

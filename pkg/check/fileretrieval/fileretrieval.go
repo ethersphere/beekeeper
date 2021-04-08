@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -21,6 +22,8 @@ type Options struct {
 	FileName        string
 	FileSize        int64
 	Seed            int64
+	PostageAmount   int64
+	PostageWait     time.Duration
 }
 
 var errFileRetrieval = errors.New("file retrieval")
@@ -55,8 +58,20 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		for j := 0; j < o.FilesPerNode; j++ {
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
+			client := ng.NodeClient(nodeName)
+
+			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+			batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+			if err != nil {
+				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+			}
+
+			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+			time.Sleep(o.PostageWait)
+
 			t0 := time.Now()
-			if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
+			if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
@@ -126,8 +141,20 @@ func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool)
 		for j := 0; j < o.FilesPerNode; j++ {
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
+			client := ng.NodeClient(nodeName)
+
+			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+			batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+			if err != nil {
+				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+			}
+
+			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+			time.Sleep(o.PostageWait)
+
 			t0 := time.Now()
-			if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
+			if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)

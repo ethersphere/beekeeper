@@ -331,22 +331,21 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 }
 
 // CreatePostageBatchs returns the batchID of a batch of postage stamps
-func (c *Client) CreatePostageBatch(ctx context.Context, amount int, depth uint64, label string) ([]byte, error) {
-	resp, err := c.api.Postage.CreatePostageBatch(ctx, amount, depth, label)
-	if err != nil {
-		return nil, err
+func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
+	if depth < MinimumBatchDepth {
+		depth = MinimumBatchDepth
 	}
-	return resp.BatchID, nil
+	return c.api.Postage.CreatePostageBatch(ctx, amount, depth, label)
 }
 
 // SendPSSMessage triggers a PSS message with a topic and recipient address
-func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, publicKey string, topic string, prefix int, data []byte) error {
-	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, prefix, bytes.NewReader(data))
+func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, publicKey string, topic string, prefix int, data []byte, batchID string) error {
+	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, prefix, bytes.NewReader(data), batchID)
 }
 
 // UploadSOC uploads a single owner chunk to a node with a E
-func (c *Client) UploadSOC(ctx context.Context, owner, ID, signature string, data []byte) (swarm.Address, error) {
-	resp, err := c.api.SOC.UploadSOC(ctx, owner, ID, signature, bytes.NewReader(data))
+func (c *Client) UploadSOC(ctx context.Context, owner, ID, signature string, data []byte, batchID string) (swarm.Address, error) {
+	resp, err := c.api.SOC.UploadSOC(ctx, owner, ID, signature, bytes.NewReader(data), batchID)
 	if err != nil {
 		return swarm.ZeroAddress, err
 	}
@@ -492,23 +491,9 @@ func (c *Client) UploadChunk(ctx context.Context, data []byte, o api.UploadOptio
 }
 
 // UploadFile uploads file to the node
-func (c *Client) UploadFile(ctx context.Context, f *File, pin bool) (err error) {
+func (c *Client) UploadFile(ctx context.Context, f *File, o api.UploadOptions) (err error) {
 	h := fileHasher()
-	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, 0)
-	if err != nil {
-		return fmt.Errorf("upload file: %w", err)
-	}
-
-	f.address = r.Reference
-	f.hash = h.Sum(nil)
-
-	return
-}
-
-// UploadFileWithTag uploads file with tag to the node
-func (c *Client) UploadFileWithTag(ctx context.Context, f *File, pin bool, tagUid uint32) (err error) {
-	h := fileHasher()
-	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), pin, tagUid)
+	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), o)
 	if err != nil {
 		return fmt.Errorf("upload file: %w", err)
 	}
@@ -520,9 +505,9 @@ func (c *Client) UploadFileWithTag(ctx context.Context, f *File, pin bool, tagUi
 }
 
 // UploadCollection uploads TAR collection bytes to the node
-func (c *Client) UploadCollection(ctx context.Context, f *File) (err error) {
+func (c *Client) UploadCollection(ctx context.Context, f *File, o api.UploadOptions) (err error) {
 	h := fileHasher()
-	r, err := c.api.Dirs.Upload(ctx, io.TeeReader(f.DataReader(), h), f.Size())
+	r, err := c.api.Dirs.Upload(ctx, io.TeeReader(f.DataReader(), h), f.Size(), o)
 	if err != nil {
 		return fmt.Errorf("upload collection: %w", err)
 	}

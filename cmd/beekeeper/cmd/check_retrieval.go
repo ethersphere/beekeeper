@@ -65,6 +65,8 @@ and attempts retrieval of those chunks from the last node in the cluster.`,
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Seed:            seed,
+				PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,

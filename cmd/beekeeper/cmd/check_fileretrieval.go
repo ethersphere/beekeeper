@@ -76,6 +76,8 @@ and attempts retrieval of those files from the last node in the cluster.`,
 					FileName:        c.config.GetString(optionNameFileName),
 					FileSize:        fileSize,
 					Seed:            seed,
+					PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
+					PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
 				}, pusher, c.config.GetBool(optionNamePushMetrics))
 			}
 
@@ -86,6 +88,8 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				FileName:        c.config.GetString(optionNameFileName),
 				FileSize:        fileSize,
 				Seed:            seed,
+				PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,

@@ -58,6 +58,8 @@ func (c *command) initCheckGc() *cobra.Command {
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
 				Wait:             c.config.GetInt(optionNameWaitBeforeCheck),
 				Seed:             seed,
+				PostageAmount:    c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:      c.config.GetDuration(optionNamePostageBatchhWait),
 			})
 		},
 		PreRunE: c.checkPreRunE,

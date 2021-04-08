@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
@@ -13,6 +14,7 @@ import (
 func (c *command) initCheckSOC() *cobra.Command {
 	const (
 		optionNameSeed = "seed"
+		optionTimeout  = "timeout"
 	)
 
 	cmd := &cobra.Command{
@@ -45,13 +47,17 @@ func (c *command) initCheckSOC() *cobra.Command {
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			return soc.Check(cluster, soc.Options{
-				NodeGroup: "nodes",
+				NodeGroup:      "nodes",
+				PostageAmount:  c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:    c.config.GetDuration(optionNamePostageBatchhWait),
+				RequestTimeout: c.config.GetDuration(optionTimeout),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for choosing random nodes; if not set, will be random")
+	cmd.Flags().Duration(optionTimeout, time.Minute*5, "timeout duration for soc check")
 
 	return cmd
 }

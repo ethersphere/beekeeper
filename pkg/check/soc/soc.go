@@ -18,7 +18,10 @@ import (
 
 // Options represents SOC check options
 type Options struct {
-	NodeGroup string
+	NodeGroup      string
+	RequestTimeout time.Duration
+	PostageAmount  int64
+	PostageWait    time.Duration
 }
 
 // Check sends a SOC chunk and retrieves with the address.
@@ -62,7 +65,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
 	defer cancel()
 
 	nodeName := sortedNodes[0]
@@ -72,20 +75,33 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
 
+	batchID, err := node.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+	if err != nil {
+		return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+	}
+
+	fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+	time.Sleep(o.PostageWait)
+
 	fmt.Printf("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
 	fmt.Printf("soc: owner %s\n", owner)
 	fmt.Printf("soc: id %s\n", id)
 	fmt.Printf("soc: sig %s\n", sig)
 
-	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data())
+	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data(), batchID)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("soc: chunk uploaded to node %s\n", nodeName)
 
 	retrieved, err := node.DownloadChunk(ctx, ref, "")
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("soc: chunk retrieved from node %s\n", nodeName)
 
 	if !bytes.Equal(retrieved, chunkData) {
 		return errors.New("soc: retrieved chunk data does NOT match soc chunk")
