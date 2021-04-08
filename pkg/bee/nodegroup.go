@@ -37,16 +37,16 @@ type NodeGroupOptions struct {
 	IngressAnnotations        map[string]string
 	IngressDebugAnnotations   map[string]string
 	Labels                    map[string]string
-	LimitCPU                  string
-	LimitMemory               string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
 	PersistenceStorageClass   string
 	PersistenceStorageRequest string
 	PodManagementPolicy       string
 	RestartPolicy             string
-	RequestCPU                string
-	RequestMemory             string
+	ResourcesLimitCPU         string
+	ResourcesLimitMemory      string
+	ResourcesRequestCPU       string
+	ResourcesRequestMemory    string
 	UpdateStrategy            string
 }
 
@@ -291,16 +291,16 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		IngressDebugHost:          g.cluster.ingressDebugHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 n.libP2PKey,
-		LimitCPU:                  g.opts.LimitCPU,
-		LimitMemory:               g.opts.LimitMemory,
 		NodeSelector:              g.opts.NodeSelector,
 		PersistenceEnabled:        g.opts.PersistenceEnabled,
 		PersistenceStorageClass:   g.opts.PersistenceStorageClass,
 		PersistenceStorageRequest: g.opts.PersistenceStorageRequest,
 		PodManagementPolicy:       g.opts.PodManagementPolicy,
 		RestartPolicy:             g.opts.RestartPolicy,
-		RequestCPU:                g.opts.RequestCPU,
-		RequestMemory:             g.opts.RequestMemory,
+		ResourcesLimitCPU:         g.opts.ResourcesLimitCPU,
+		ResourcesLimitMemory:      g.opts.ResourcesLimitMemory,
+		ResourcesRequestCPU:       g.opts.ResourcesRequestCPU,
+		ResourcesRequestMemory:    g.opts.ResourcesRequestMemory,
 		Selector:                  labels,
 		SwarmKey:                  n.swarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,

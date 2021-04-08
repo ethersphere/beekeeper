@@ -32,8 +32,6 @@ type CreateOptions struct {
 	ClefKey                   string
 	ClefPassword              string
 	Labels                    map[string]string
-	LimitCPU                  string
-	LimitMemory               string
 	Image                     string
 	ImagePullPolicy           string
 	IngressAnnotations        map[string]string
@@ -47,8 +45,10 @@ type CreateOptions struct {
 	PersistenceStorageRequest string
 	PodManagementPolicy       string
 	RestartPolicy             string
-	RequestCPU                string
-	RequestMemory             string
+	ResourcesLimitCPU         string
+	ResourcesLimitMemory      string
+	ResourcesRequestCPU       string
+	ResourcesRequestMemory    string
 	Selector                  map[string]string
 	SwarmKey                  string
 	UpdateStrategy            string

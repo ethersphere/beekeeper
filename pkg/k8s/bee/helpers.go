@@ -88,23 +88,23 @@ echo 'bee initialization done';`},
 }
 
 type setContainersOptions struct {
-	Name                string
-	Image               string
-	ImagePullPolicy     string
-	LimitCPU            string
-	LimitMemory         string
-	RequestCPU          string
-	RequestMemory       string
-	PortAPI             int32
-	PortDebug           int32
-	PortP2P             int32
-	PersistenceEnabled  bool
-	ClefEnabled         bool
-	ClefImage           string
-	ClefImagePullPolicy string
-	ClefPassword        string
-	LibP2PEnabled       bool
-	SwarmEnabled        bool
+	Name                   string
+	Image                  string
+	ImagePullPolicy        string
+	PortAPI                int32
+	PortDebug              int32
+	PortP2P                int32
+	PersistenceEnabled     bool
+	ResourcesLimitCPU      string
+	ResourcesLimitMemory   string
+	ResourcesRequestCPU    string
+	ResourcesRequestMemory string
+	ClefEnabled            bool
+	ClefImage              string
+	ClefImagePullPolicy    string
+	ClefPassword           string
+	LibP2PEnabled          bool
+	SwarmEnabled           bool
 }
 
 func setContainers(o setContainersOptions) (c containers.Containers) {
@@ -130,22 +130,28 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 				Protocol:      "TCP",
 			},
 		},
-		LivenessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{Handler: containers.HTTPGetHandler{
-			Path: "/health",
-			Port: "debug",
-		}}},
-		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{Handler: containers.HTTPGetHandler{
-			Path: "/readiness",
-			Port: "debug",
-		}}},
+		LivenessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
+			InitialDelaySeconds: 5,
+			Handler: containers.HTTPGetHandler{
+				Path: "/health",
+				Port: "debug",
+			},
+		}},
+		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
+			InitialDelaySeconds: 5,
+			Handler: containers.HTTPGetHandler{
+				Path: "/readiness",
+				Port: "debug",
+			},
+		}},
 		Resources: containers.Resources{
 			Limit: containers.Limit{
-				CPU:    o.LimitCPU,
-				Memory: o.LimitMemory,
+				CPU:    o.ResourcesLimitCPU,
+				Memory: o.ResourcesLimitMemory,
 			},
 			Request: containers.Request{
-				CPU:    o.RequestCPU,
-				Memory: o.RequestMemory,
+				CPU:    o.ResourcesRequestCPU,
+				Memory: o.ResourcesRequestMemory,
 			},
 		},
 		SecurityContext: containers.SecurityContext{

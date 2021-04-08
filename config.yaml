@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [kademlia]
+    checks: [ping]
     metrics-enabled: 
     seed: 
     # stages:
