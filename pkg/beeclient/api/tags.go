@@ -79,7 +79,7 @@ func (p *TagsService) WaitSync(ctx context.Context, tagUID uint32) (err error) {
 			return err
 		case <-ctx.Done():
 			return ctx.Err()
-		}	
+		}
 	}
 
 }
