@@ -14,7 +14,6 @@ import (
 
 // Options represents pingpong check options
 type Options struct {
-	DynamicActions []Actions
 	MetricsEnabled bool
 	MetricsPusher  *push.Pusher
 	Seed           int64
