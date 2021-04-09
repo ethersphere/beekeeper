@@ -14,8 +14,7 @@ import (
 // remoteChunksFound uploads some chunks to one node, pins them on another
 // node (which does not have them locally), and then check that they are now
 // available locally pinned on that node.
-func remoteChunksFound(c *bee.Cluster, o Options) error {
-	ctx := context.Background()
+func remoteChunksFound(ctx context.Context, c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 

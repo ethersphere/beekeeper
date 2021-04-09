@@ -13,8 +13,7 @@ import (
 )
 
 // chunkFound uploads a single chunk to a node, pins it, then uploads a lot of other chunks to see that it still there
-func chunkFound(c *bee.Cluster, o Options) error {
-	ctx := context.Background()
+func chunkFound(ctx context.Context, c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 

@@ -40,11 +40,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	switch o.Mode {
 	case "pin-chunk":
-		return chunkFound(cluster, o)
+		return chunkFound(ctx, cluster, o)
 	case "pin-bytes":
-		return bytesFound(cluster, o)
+		return bytesFound(ctx, cluster, o)
 	case "pin-remote":
-		return remoteChunksFound(cluster, o)
+		return remoteChunksFound(ctx, cluster, o)
 	default:
 		return fmt.Errorf("mode %s node implemented", o.Mode)
 	}
