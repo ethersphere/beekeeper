@@ -245,6 +245,26 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			if o.Mode != nil {
+				opts.Mode = *o.Mode
+			} else {
+				opts.Mode = "pin-chunk"
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.StoreSize != nil {
+				opts.StoreSize = *o.StoreSize
+			} else {
+				opts.StoreSize = 1000 // DB capacity in chunks
+			}
+			if o.StoreSizeDivisor != nil {
+				opts.StoreSizeDivisor = *o.StoreSizeDivisor
+			} else {
+				opts.StoreSizeDivisor = 3 // divide store size by which value when uploading bytes
+			}
 			return opts, nil
 		},
 	},
@@ -265,6 +285,21 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.StoreSize != nil {
+				opts.StoreSize = *o.StoreSize
+			} else {
+				opts.StoreSize = 1000 // DB capacity in chunks
+			}
+			if o.StoreSizeDivisor != nil {
+				opts.StoreSizeDivisor = *o.StoreSizeDivisor
+			} else {
+				opts.StoreSizeDivisor = 3 // divide store size by which value when uploading bytes
+			}
 			return opts, nil
 		},
 	},
@@ -284,6 +319,21 @@ var Checks = map[string]Check{
 				opts.Seed = *o.Seed
 			} else { // randomly generated
 				opts.Seed = random.Int64()
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.StoreSize != nil {
+				opts.StoreSize = *o.StoreSize
+			} else {
+				opts.StoreSize = 1000 // DB capacity in chunks
+			}
+			if o.StoreSizeDivisor != nil {
+				opts.StoreSizeDivisor = *o.StoreSizeDivisor
+			} else {
+				opts.StoreSizeDivisor = 3 // divide store size by which value when uploading bytes
 			}
 			return opts, nil
 		},
@@ -515,10 +565,11 @@ type kademliaOptions struct {
 }
 
 type localpinningOptions struct {
+	Mode             *string `yaml:"mode"`
 	NodeGroup        *string `yaml:"node-group"`
+	Seed             *int64  `yaml:"seed"`
 	StoreSize        *int    `yaml:"store-size"`
 	StoreSizeDivisor *int    `yaml:"store-size-divisor"`
-	Seed             *int64  `yaml:"seed"`
 }
 
 type manifestOptions struct {

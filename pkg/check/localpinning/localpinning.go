@@ -3,6 +3,7 @@ package localpinning
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	"github.com/ethersphere/bee/pkg/file/pipeline/builder"
 	"github.com/ethersphere/bee/pkg/storage"
@@ -12,27 +13,41 @@ import (
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
-	NodeGroup        string
-	StoreSize        int // size of the node's localstore in chunks
-	StoreSizeDivisor int // divide store size by how much when uploading bytes
+	Mode             string
+	NodeGroup        string // TODO: support multi node group cluster
+	StoreSize        int    // size of the node's localstore in chunks
+	StoreSizeDivisor int    // divide store size by how much when uploading bytes
 	Seed             int64
 }
 
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	switch o.Mode {
+	case "pin-chunk":
+		return chunkFound(cluster, o)
+	case "pin-bytes":
+		return bytesFound(cluster, o)
+	case "pin-remote":
+		return remoteChunksFound(cluster, o)
+	default:
+		return fmt.Errorf("mode node implemented")
+	}
 }
 
 func addresses(buf []byte) ([]swarm.Address, error) {

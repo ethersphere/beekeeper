@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [gc]
+    checks: [local-pinning-remote]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -125,6 +125,30 @@ checks:
     name: kademlia
     options:
       dynamic: false
+    timeout: 5m
+  local-pinning-chunk:
+    name: local-pinning
+    options:
+      mode: pin-chunk
+      node-group: bee
+      store-size: 1000
+      store-size-divisor: 3
+    timeout: 5m
+  local-pinning-bytes:
+    name: local-pinning
+    options:
+      mode: pin-bytes
+      node-group: bee
+      store-size: 1000
+      store-size-divisor: 3
+    timeout: 5m
+  local-pinning-remote:
+    name: local-pinning
+    options:
+      mode: pin-remote
+      node-group: bee
+      store-size: 1000
+      store-size-divisor: 3
     timeout: 5m
   kademlia-dynamic:
     name: kademlia

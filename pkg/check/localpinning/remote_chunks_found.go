@@ -11,10 +11,10 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// CheckRemoteChunksFound uploads some chunks to one node, pins them on another
+// remoteChunksFound uploads some chunks to one node, pins them on another
 // node (which does not have them locally), and then check that they are now
 // available locally pinned on that node.
-func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
+func remoteChunksFound(c *bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -103,7 +103,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		}
 
 		if len(addrs) != chunksCountAfterPin {
-			return fmt.Errorf("Node %s: has %d chunks (expected %d)", name, chunksCountAfterPin, len(addrs))
+			return fmt.Errorf("node %s: has %d chunks (expected %d)", name, chunksCountAfterPin, len(addrs))
 		}
 
 		fmt.Printf("Node %s: has %d chunks (expected %d)\n", name, chunksCountAfterPin, len(addrs))

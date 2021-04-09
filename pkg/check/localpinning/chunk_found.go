@@ -12,8 +12,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// CheckChunkFound uploads a single chunk to a node, pins it, then uploads a lot of other chunks to see that it still there
-func CheckChunkFound(c *bee.Cluster, o Options) error {
+// chunkFound uploads a single chunk to a node, pins it, then uploads a lot of other chunks to see that it still there
+func chunkFound(c *bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
