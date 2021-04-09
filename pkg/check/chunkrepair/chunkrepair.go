@@ -19,50 +19,41 @@ import (
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
-	NodeGroup              string
+	MetricsPusher          *push.Pusher
+	NodeGroup              string // TODO: support multi node group cluster
 	NumberOfChunksToRepair int
 	Seed                   int64
 }
 
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
-}
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
 
-const (
-	maxIterations    = 10
-	minNodesRequired = 3
-)
-
-var (
-	errLessNodesForTest = errors.New("node count is less than the minimum count required")
-)
-
-// Check ...
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	pusher.Collector(repairedCounter)
-	pusher.Collector(repairedTimeGauge)
-	pusher.Collector(repairedTimeHistogram)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(repairedCounter)
+		o.MetricsPusher.Collector(repairedTimeGauge)
+		o.MetricsPusher.Collector(repairedTimeHistogram)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
-	pusher.Format(expfmt.FmtText)
-
-	ng := c.NodeGroup(o.NodeGroup)
+	ng := cluster.NodeGroup(o.NodeGroup)
 	for i := 0; i < o.NumberOfChunksToRepair; i++ {
 		// Pick node A, B, C and a chunk which is closest to B
 		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, ng, rnds[i])
@@ -91,6 +82,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			// call just checks if the chunk is accessible from nodeB
 			present, err := nodeB.HasChunk(ctx, ref)
 			if err != nil {
+				fmt.Printf("error: checking if nodeB has chunk: %v\n", err)
 				// give time for the chunk to reach its destination
 				time.Sleep(100 * time.Millisecond)
 				count++
@@ -100,6 +92,9 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			if present {
 				break
 			}
+
+			time.Sleep(100 * time.Millisecond)
+			count++
 		}
 
 		// download the chunk from nodeC
@@ -160,14 +155,24 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			break
 		}
 
-		if pushMetrics {
-			if err := pusher.Push(); err != nil {
+		if o.MetricsPusher != nil {
+			if err := o.MetricsPusher.Push(); err != nil {
 				fmt.Printf("chunk %d: %s\n", i, err)
 			}
 		}
 	}
+
 	return nil
 }
+
+const (
+	maxIterations    = 10
+	minNodesRequired = 3
+)
+
+var (
+	errLessNodesForTest = errors.New("node count is less than the minimum count required")
+)
 
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match

@@ -92,6 +92,23 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			// TODO: resolve optionNamePushGateway
+			// set metrics
+			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.NumberOfChunksToRepair != nil {
+				opts.NumberOfChunksToRepair = *o.NumberOfChunksToRepair
+			} else {
+				opts.NumberOfChunksToRepair = 1
+			}
 			return opts, nil
 		},
 	},
@@ -427,6 +444,7 @@ type balancesOptions struct {
 }
 
 type chunkRepairOptions struct {
+	MetricsEnabled         *bool   `yaml:"metrics-enabled"`
 	NodeGroup              *string `yaml:"node-group"`
 	NumberOfChunksToRepair *int    `yaml:"number-of-chunks-to-repair"`
 	Seed                   *int64  `yaml:"seed"`
