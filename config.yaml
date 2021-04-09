@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [local-pinning-remote]
+    checks: [manifest]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -126,6 +126,11 @@ checks:
     options:
       dynamic: false
     timeout: 5m
+  kademlia-dynamic:
+    name: kademlia
+    options:
+      dynamic: true
+    timeout: 5m
   local-pinning-chunk:
     name: local-pinning
     options:
@@ -150,10 +155,12 @@ checks:
       store-size: 1000
       store-size-divisor: 3
     timeout: 5m
-  kademlia-dynamic:
-    name: kademlia
+  manifest:
+    name: manifest
     options:
-      dynamic: true
+      files-in-collection: 10
+      max-pathname-length: 64
+      node-group: bee
     timeout: 5m
   ping:
     name: ping

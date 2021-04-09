@@ -285,6 +285,21 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			if o.FilesInCollection != nil {
+				opts.FilesInCollection = *o.FilesInCollection
+			} else {
+				opts.FilesInCollection = 10 // number of files to upload in single collection
+			}
+			if o.MaxPathnameLength != nil {
+				opts.MaxPathnameLength = *o.MaxPathnameLength
+			} else {
+				opts.MaxPathnameLength = 64 // number of files to upload in single collection
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
 			return opts, nil
 		},
 	},
@@ -503,9 +518,9 @@ type localpinningOptions struct {
 }
 
 type manifestOptions struct {
-	NodeGroup         *string `yaml:"node-group"`
 	FilesInCollection *int    `yaml:"files-in-collection"`
-	MaxPathNameLength *int32  `yaml:"max-path-name-length"`
+	MaxPathnameLength *int32  `yaml:"max-pathname-length"`
+	NodeGroup         *string `yaml:"node-group"`
 	Seed              *int64  `yaml:"seed"`
 }
 

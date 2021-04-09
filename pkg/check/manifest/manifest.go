@@ -17,39 +17,37 @@ import (
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
-	NodeGroup         string
 	FilesInCollection int
 	MaxPathnameLength int32
+	NodeGroup         string // TODO: support multi node group cluster
 	Seed              int64
-}
-
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
 }
 
 var errManifest = errors.New("manifest data mismatch")
 
-// Check executes manifest check
-func Check(c *bee.Cluster, o Options) error {
-	ctx := context.Background()
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
 	rnd := random.PseudoGenerator(o.Seed)
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
+	ng := cluster.NodeGroup(o.NodeGroup)
 	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
