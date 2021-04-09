@@ -170,6 +170,11 @@ checks:
     options:
       metrics-enabled: 
     timeout: 5m
+  pingpong:
+    name: ping
+    options:
+      metrics-enabled: 
+    timeout: 5m
   ping-dynamic:
     name: ping
     options:
