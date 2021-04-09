@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -18,48 +16,62 @@ import (
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
-	NodeGroup       string
-	UploadNodeCount int
 	ChunksPerNode   int
-	FilesPerNode    int
 	FileSize        int64
+	FilesPerNode    int
+	MetricsPusher   *push.Pusher
+	Mode            string
+	NodeGroup       string // TODO: support multi node group cluster
 	Retries         int
 	RetryDelay      time.Duration
 	Seed            int64
+	UploadNodeCount int
 }
 
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	switch o.Mode {
+	case "chunks":
+		return checkChunks(ctx, cluster, o)
+	case "files":
+		return checkFiles(ctx, cluster, o)
+	default:
+		return defaultCheck(ctx, cluster, o)
+	}
 }
 
 var errPushSync = errors.New("push sync")
 
-// Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {
-	ctx := context.Background()
+// defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
+func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
+	fmt.Println("running pushsync")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	pusher.Collector(uploadedCounter)
-	pusher.Collector(uploadTimeGauge)
-	pusher.Collector(uploadTimeHistogram)
-	pusher.Collector(syncedCounter)
-	pusher.Collector(notSyncedCounter)
-
-	pusher.Format(expfmt.FmtText)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(uploadedCounter)
+		o.MetricsPusher.Collector(uploadTimeGauge)
+		o.MetricsPusher.Collector(uploadTimeHistogram)
+		o.MetricsPusher.Collector(syncedCounter)
+		o.MetricsPusher.Collector(notSyncedCounter)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
 	ng := c.NodeGroup(o.NodeGroup)
 	overlays, err := ng.Overlays(ctx)
@@ -120,54 +132,13 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 				break
 			}
 
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
-					return fmt.Errorf("node %s: %v\n", nodeName, err)
+			if o.MetricsPusher != nil {
+				if err := o.MetricsPusher.Push(); err != nil {
+					return fmt.Errorf("node %s: %v", nodeName, err)
 				}
 			}
 		}
 	}
 
 	return nil
-}
-
-type chunkStreamMsg struct {
-	Chunk bee.Chunk
-	Error error
-}
-
-func chunkStream(ctx context.Context, node *bee.Client, rnd *rand.Rand, count int) <-chan chunkStreamMsg {
-	chunkStream := make(chan chunkStreamMsg)
-
-	var wg sync.WaitGroup
-	for i := 0; i < count; i++ {
-		wg.Add(1)
-		go func(n *bee.Client, i int) {
-			defer wg.Done()
-			chunk, err := bee.NewRandomChunk(rnd)
-			if err != nil {
-				chunkStream <- chunkStreamMsg{Error: err}
-				return
-			}
-
-			ref, err := n.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
-			if err != nil {
-				chunkStream <- chunkStreamMsg{Error: err}
-				return
-			}
-			if !ref.Equal(chunk.Address()) {
-				err := fmt.Errorf("uploaded chunk address mismatch. have %s want %s", ref.String(), chunk.Address().String())
-				chunkStream <- chunkStreamMsg{Error: err}
-				return
-			}
-			chunkStream <- chunkStreamMsg{Chunk: chunk}
-		}(node, i)
-	}
-
-	go func() {
-		wg.Wait()
-		close(chunkStream)
-	}()
-
-	return chunkStream
 }

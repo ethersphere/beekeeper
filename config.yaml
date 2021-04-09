@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [pullsync]
+    checks: [pushsync]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -185,6 +185,40 @@ checks:
       chunks-per-node: 1
       node-group: bee
       replication-factor-threshold: 2
+      upload-node-count: 1
+    timeout: 5m
+  pushsync:
+    name: pushsync
+    options:
+      chunks-per-node: 1
+      metrics-enabled:
+      mode: default
+      node-group: bee
+      retries: 5
+      retry-delay: 1s
+      upload-node-count: 1
+    timeout: 5m
+  pushsync-chunks:
+    name: pushsync
+    options:
+      chunks-per-node: 1
+      metrics-enabled:
+      mode: chunks
+      node-group: bee
+      retries: 5
+      retry-delay: 1s
+      upload-node-count: 1
+    timeout: 5m
+  pushsync-files:
+    name: pushsync
+    options:
+      file-size: 1048576 # 1mb = 1*1024*1024
+      files-per-node: 1
+      metrics-enabled:
+      mode: files
+      node-group: bee
+      retries: 5
+      retry-delay: 1s
       upload-node-count: 1
     timeout: 5m
 

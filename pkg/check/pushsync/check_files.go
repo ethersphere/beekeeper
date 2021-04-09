@@ -9,9 +9,9 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// CheckFiles uploads given files on cluster and verifies expected tag state
-func CheckFiles(c *bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
+// checkFiles uploads given files on cluster and verifies expected tag state
+func checkFiles(ctx context.Context, c *bee.Cluster, o Options) (err error) {
+	fmt.Println("running pushsync (files mode)")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 

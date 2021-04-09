@@ -432,6 +432,53 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			// TODO: resolve optionNamePushGateway
+			// set metrics
+			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			}
+			if o.ChunksPerNode != nil {
+				opts.ChunksPerNode = *o.ChunksPerNode
+			} else {
+				opts.ChunksPerNode = 1 // number of chunks to upload per node
+			}
+			if o.FileSize != nil {
+				opts.FileSize = *o.FileSize
+			} else {
+				opts.FileSize = 1 * 1024 * 1024 // 1mb
+			}
+			if o.FilesPerNode != nil {
+				opts.FilesPerNode = *o.FilesPerNode
+			} else {
+				opts.FilesPerNode = 1
+			}
+			if o.Mode != nil {
+				opts.Mode = *o.Mode
+			} else {
+				opts.Mode = "default"
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.Retries != nil {
+				opts.Retries = *o.Retries
+			} else {
+				opts.Retries = 5 // number of reties on problems
+			}
+			if o.RetryDelay != nil {
+				opts.RetryDelay = *o.RetryDelay
+			} else {
+				opts.RetryDelay = 1 * time.Second // retry delay duration
+			}
+			if o.UploadNodeCount != nil {
+				opts.UploadNodeCount = *o.UploadNodeCount
+			} else {
+				opts.UploadNodeCount = 1
+			}
 			return opts, nil
 		},
 	},
@@ -579,14 +626,16 @@ type pullSyncOptions struct {
 }
 
 type pushSyncOptions struct {
-	NodeGroup       *string        `yaml:"node-group"`
-	UploadNodeCount *int           `yaml:"upload-node-count"`
 	ChunksPerNode   *int           `yaml:"chunks-per-node"`
-	FilesPerNode    *int           `yaml:"files-per-node"`
 	FileSize        *int64         `yaml:"file-size"`
+	FilesPerNode    *int           `yaml:"files-per-node"`
+	MetricsEnabled  *bool          `yaml:"metrics-enabled"`
+	Mode            *string        `yaml:"mode"`
+	NodeGroup       *string        `yaml:"node-group"`
 	Retries         *int           `yaml:"retries"`
 	RetryDelay      *time.Duration `yaml:"retry-delay"`
 	Seed            *int64         `yaml:"seed"`
+	UploadNodeCount *int           `yaml:"upload-node-count"`
 }
 
 type retrievalOptions struct {
