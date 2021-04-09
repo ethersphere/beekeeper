@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +24,7 @@ const (
 	optionNameNodeCount               = "node-count"
 	optionNamePushGateway             = "push-gateway"
 	optionNamePushMetrics             = "push-metrics"
+	optionNameStartCluster            = "start-cluster"
 )
 
 var (
@@ -29,6 +33,7 @@ var (
 	insecureTLSAPI      bool
 	insecureTLSDebugAPI bool
 	pushMetrics         bool
+	startCluster        bool
 )
 
 func (c *command) initCheckCmd() (err error) {
@@ -36,7 +41,35 @@ func (c *command) initCheckCmd() (err error) {
 		Use:   "check",
 		Short: "Run tests on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return cmd.Help()
+			cfg := config.Read("config.yaml")
+
+			for _, checkName := range cfg.Run["default"].Checks {
+				checkProfile, ok := cfg.Checks[checkName]
+				if !ok {
+					return fmt.Errorf("check %s doesn't exist", checkName)
+				}
+
+				check, ok := Checks[checkProfile.Name]
+				if !ok {
+					return fmt.Errorf("check %s not implemented", checkProfile.Name)
+				}
+
+				cluster, err := setupCluster(cmd.Context(), cfg, startCluster)
+				if err != nil {
+					return fmt.Errorf("cluster setup: %w", err)
+				}
+
+				o, err := check.NewOptions(cfg, checkProfile)
+				if err != nil {
+					return fmt.Errorf("creating check %s options: %w", checkProfile.Name, err)
+				}
+
+				if err := check.NewCheck().Run(cmd.Context(), cluster, o); err != nil {
+					return fmt.Errorf("running check %s: %w", checkProfile.Name, err)
+				}
+			}
+
+			return nil
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return c.config.BindPFlags(cmd.Flags())
@@ -59,6 +92,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&pushMetrics, optionNamePushMetrics, false, "push metrics to pushgateway")
 	cmd.PersistentFlags().BoolVar(&inCluster, optionNameInCluster, false, "run Beekeeper in Kubernetes cluster")
 	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
+	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
 
 	c.root.AddCommand(cmd)
 	return nil
