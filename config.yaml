@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [pss]
+    checks: [pingpong]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -165,21 +165,11 @@ checks:
   peer-count:
     name: peer-count
     timeout: 5m
-  ping:
-    name: ping
-    options:
-      metrics-enabled: 
-    timeout: 5m
   pingpong:
-    name: ping
+    name: pingpong
     options:
       metrics-enabled: 
     timeout: 5m
-  ping-dynamic:
-    name: ping
-    options:
-      metrics-enabled: 
-    timeout: 15m
   pss:
     name: pss
     options:

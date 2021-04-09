@@ -14,7 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/localpinning"
 	"github.com/ethersphere/beekeeper/pkg/check/manifest"
 	"github.com/ethersphere/beekeeper/pkg/check/peercount"
-	"github.com/ethersphere/beekeeper/pkg/check/ping"
+	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
 	"github.com/ethersphere/beekeeper/pkg/check/pss"
 	"github.com/ethersphere/beekeeper/pkg/check/pullsync"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
@@ -309,14 +309,14 @@ var Checks = map[string]Check{
 			return nil, nil
 		},
 	},
-	"ping": {
-		NewCheck: ping.NewCheck,
+	"pingpong": {
+		NewCheck: pingpong.NewCheck,
 		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
 			o := new(pingOptions)
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
-			var opts ping.Options
+			var opts pingpong.Options
 			// TODO: improve Run["profile"] selection
 			// TODO: resolve optionNamePushGateway
 			// set metrics
