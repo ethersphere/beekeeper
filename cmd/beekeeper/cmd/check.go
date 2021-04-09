@@ -60,7 +60,6 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&inCluster, optionNameInCluster, false, "run Beekeeper in Kubernetes cluster")
 	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
 
-	cmd.AddCommand(c.initCheckPeerCount())
 	cmd.AddCommand(c.initCheckPingPong())
 	cmd.AddCommand(c.initCheckPullSync())
 	cmd.AddCommand(c.initCheckPushSync())

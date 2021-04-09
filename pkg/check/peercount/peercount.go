@@ -9,15 +9,14 @@ import (
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
@@ -26,14 +25,7 @@ type Options struct {
 	Seed           int64
 }
 
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
-}
-
-// Check executes peer count check on cluster
-func Check(cluster *bee.Cluster) (err error) {
-	ctx := context.Background()
-
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err

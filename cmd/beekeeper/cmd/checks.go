@@ -303,24 +303,10 @@ var Checks = map[string]Check{
 			return opts, nil
 		},
 	},
-	"peercount": {
+	"peer-count": {
 		NewCheck: peercount.NewCheck,
 		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
-			o := new(peercountOptions)
-			if err := checkProfile.Options.Decode(o); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
-			}
-			var opts peercount.Options
-			// TODO: improve Run["profile"] selection
-			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Run["default"].Seed
-			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
-				opts.Seed = *o.Seed
-			} else { // randomly generated
-				opts.Seed = random.Int64()
-			}
-			return opts, nil
+			return nil, nil
 		},
 	},
 	"ping": {
@@ -522,11 +508,6 @@ type manifestOptions struct {
 	MaxPathnameLength *int32  `yaml:"max-pathname-length"`
 	NodeGroup         *string `yaml:"node-group"`
 	Seed              *int64  `yaml:"seed"`
-}
-
-type peercountOptions struct {
-	MetricsEnabled *bool  `yaml:"metrics-enabled"`
-	Seed           *int64 `yaml:"seed"`
 }
 
 type pingOptions struct {

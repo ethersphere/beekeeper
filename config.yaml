@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [manifest]
+    checks: [peer-count]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -161,6 +161,9 @@ checks:
       files-in-collection: 10
       max-pathname-length: 64
       node-group: bee
+    timeout: 5m
+  peer-count:
+    name: peer-count
     timeout: 5m
   ping:
     name: ping
