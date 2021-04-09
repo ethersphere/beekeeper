@@ -38,6 +38,7 @@ type Options struct {
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	fmt.Println("running chunk repair")
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

@@ -129,6 +129,41 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			// TODO: resolve optionNamePushGateway
+			// set metrics
+			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			}
+			if o.FileName != nil {
+				opts.FileName = *o.FileName
+			} else {
+				opts.FileName = "file-retrieval"
+			}
+			if o.FileSize != nil {
+				opts.FileSize = *o.FileSize
+			} else {
+				opts.FileSize = 1 * 1024 * 1024 // 1mb
+			}
+			if o.FilesPerNode != nil {
+				opts.FilesPerNode = *o.FilesPerNode
+			} else {
+				opts.FilesPerNode = 1
+			}
+			if o.Full != nil {
+				opts.Full = *o.Full
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.UploadNodeCount != nil {
+				opts.UploadNodeCount = *o.UploadNodeCount
+			} else {
+				opts.UploadNodeCount = 1
+			}
 			return opts, nil
 		},
 	},
@@ -451,12 +486,13 @@ type chunkRepairOptions struct {
 }
 
 type fileRetrievalOptions struct {
-	NodeGroup       *string `yaml:"node-group"`
-	UploadNodeCount *int    `yaml:"upload-node-count"`
-	FilesPerNode    *int    `yaml:"files-per-node"`
 	FileName        *string `yaml:"file-name"`
 	FileSize        *int64  `yaml:"file-size"`
+	FilesPerNode    *int    `yaml:"files-per-node"`
+	Full            *bool   `yaml:"full"`
 	MetricsEnabled  *bool   `yaml:"metrics-enabled"`
+	NodeGroup       *string `yaml:"node-group"`
+	UploadNodeCount *int    `yaml:"upload-node-count"`
 	Seed            *int64  `yaml:"seed"`
 }
 
