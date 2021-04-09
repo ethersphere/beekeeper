@@ -190,6 +190,26 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.StoreSize != nil {
+				opts.StoreSize = *o.StoreSize
+			} else {
+				opts.StoreSize = 1000 // DB capacity in chunks
+			}
+			if o.StoreSizeDivisor != nil {
+				opts.StoreSizeDivisor = *o.StoreSizeDivisor
+			} else {
+				opts.StoreSizeDivisor = 3 // divide store size by which value when uploading bytes
+			}
+			if o.Wait != nil {
+				opts.Wait = *o.Wait
+			} else {
+				opts.Wait = 5 // wait before check
+			}
 			return opts, nil
 		},
 	},
@@ -484,9 +504,9 @@ type fileRetrievalOptions struct {
 
 type gcOptions struct {
 	NodeGroup        *string `yaml:"node-group"`
+	Seed             *int64  `yaml:"seed"`
 	StoreSize        *int    `yaml:"store-size"`
 	StoreSizeDivisor *int    `yaml:"store-size-divisor"`
-	Seed             *int64  `yaml:"seed"`
 	Wait             *int    `yaml:"wait"`
 }
 

@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [full-connectivity]
+    checks: [gc]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -112,6 +112,14 @@ checks:
     timeout: 5m
   full-connectivity:
     name: full-connectivity
+    timeout: 5m
+  gc:
+    name: gc
+    options:
+      node-group: bee
+      store-size: 1000
+      store-size-divisor: 3
+      wait: 5
     timeout: 5m
   kademlia:
     name: kademlia
