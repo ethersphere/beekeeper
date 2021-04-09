@@ -36,16 +36,16 @@ type Options struct {
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
-	fmt.Println("running balances")
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 
 	if o.DryRun {
-		fmt.Println("dry run activated")
-		return dryRun(cluster, o)
+		fmt.Println("running balances (dry mode)")
+		return dryRun(ctx, cluster, o)
 	}
+	fmt.Println("running balances")
 
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
@@ -140,9 +140,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 }
 
 // dryRun executes balances validation check without files uploading/downloading
-func dryRun(cluster *bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
-
+func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 	ng := cluster.NodeGroup(o.NodeGroup)
 	overlays, err := ng.Overlays(ctx)
 	if err != nil {
