@@ -180,6 +180,7 @@ node-group-profiles:
     clef-image-pull-policy: Always
     image: ethersphere/bee:latest
     image-pull-policy: Always
+    image-pull-secrets: [regcred]
     ingress-annotations:
       kubernetes.io/ingress.class: "nginx-internal"
       nginx.ingress.kubernetes.io/affinity: "cookie"

@@ -34,6 +34,7 @@ type NodeGroupOptions struct {
 	BeeConfig                 *k8s.Config
 	Image                     string
 	ImagePullPolicy           string
+	ImagePullSecrets          []string
 	IngressAnnotations        map[string]string
 	IngressDebugAnnotations   map[string]string
 	Labels                    map[string]string
@@ -285,6 +286,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		ClefPassword:              n.clefPassword,
 		Image:                     g.opts.Image,
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
+		ImagePullSecrets:          g.opts.ImagePullSecrets,
 		IngressAnnotations:        g.opts.IngressAnnotations,
 		IngressHost:               g.cluster.ingressHost(name),
 		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,

@@ -34,6 +34,7 @@ type CreateOptions struct {
 	Labels                    map[string]string
 	Image                     string
 	ImagePullPolicy           string
+	ImagePullSecrets          []string
 	IngressAnnotations        map[string]string
 	IngressHost               string
 	IngressDebugAnnotations   map[string]string

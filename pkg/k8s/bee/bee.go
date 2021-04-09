@@ -95,8 +95,9 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 	// service account
 	svcAccount := o.Name
 	if err := c.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
-		Annotations: o.Annotations,
-		Labels:      o.Labels,
+		Annotations:      o.Annotations,
+		Labels:           o.Labels,
+		ImagePullSecrets: o.ImagePullSecrets,
 	}); err != nil {
 		return fmt.Errorf("set serviceaccount in namespace %s: %w", o.Namespace, err)
 	}

@@ -12,6 +12,7 @@ type NodeGroup struct {
 	ClefImagePullPolicy       *string            `yaml:"clef-image-pull-policy"`
 	Image                     *string            `yaml:"image"`
 	ImagePullPolicy           *string            `yaml:"image-pull-policy"`
+	ImagePullSecrets          *[]string          `yaml:"image-pull-secrets"`
 	IngressAnnotations        *map[string]string `yaml:"ingress-annotations"`
 	IngressDebugAnnotations   *map[string]string `yaml:"ingress-debug-annotations"`
 	Labels                    *map[string]string `yaml:"labels"`
