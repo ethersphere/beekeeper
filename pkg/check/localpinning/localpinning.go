@@ -46,7 +46,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	case "pin-remote":
 		return remoteChunksFound(cluster, o)
 	default:
-		return fmt.Errorf("mode node implemented")
+		return fmt.Errorf("mode %s node implemented", o.Mode)
 	}
 }
 
