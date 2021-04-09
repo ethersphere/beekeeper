@@ -82,7 +82,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			// call just checks if the chunk is accessible from nodeB
 			present, err := nodeB.HasChunk(ctx, ref)
 			if err != nil {
-				fmt.Printf("error: checking if nodeB has chunk: %v\n", err)
 				// give time for the chunk to reach its destination
 				time.Sleep(100 * time.Millisecond)
 				count++
@@ -92,9 +91,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			if present {
 				break
 			}
-
-			time.Sleep(100 * time.Millisecond)
-			count++
 		}
 
 		// download the chunk from nodeC
