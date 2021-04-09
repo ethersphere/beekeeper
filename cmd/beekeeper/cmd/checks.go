@@ -26,6 +26,124 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
+type Check struct {
+	NewCheck   func() check.Check
+	NewOptions func(cfg *config.Config, checkProfile config.Check) (interface{}, error)
+}
+
+type balancesOptions struct {
+	DryRun             *bool   `yaml:"dry-run"`
+	FileName           *string `yaml:"file-name"`
+	FileSize           *int64  `yaml:"file-size"`
+	NodeGroup          *string `yaml:"node-group"`
+	Seed               *int64  `yaml:"seed"`
+	UploadNodeCount    *int    `yaml:"upload-node-count"`
+	WaitBeforeDownload *int    `yaml:"wait-before-download"`
+}
+
+type chunkRepairOptions struct {
+	MetricsEnabled         *bool   `yaml:"metrics-enabled"`
+	NodeGroup              *string `yaml:"node-group"`
+	NumberOfChunksToRepair *int    `yaml:"number-of-chunks-to-repair"`
+	Seed                   *int64  `yaml:"seed"`
+}
+
+type fileRetrievalOptions struct {
+	FileName        *string `yaml:"file-name"`
+	FileSize        *int64  `yaml:"file-size"`
+	FilesPerNode    *int    `yaml:"files-per-node"`
+	Full            *bool   `yaml:"full"`
+	MetricsEnabled  *bool   `yaml:"metrics-enabled"`
+	NodeGroup       *string `yaml:"node-group"`
+	UploadNodeCount *int    `yaml:"upload-node-count"`
+	Seed            *int64  `yaml:"seed"`
+}
+
+type gcOptions struct {
+	NodeGroup        *string `yaml:"node-group"`
+	Seed             *int64  `yaml:"seed"`
+	StoreSize        *int    `yaml:"store-size"`
+	StoreSizeDivisor *int    `yaml:"store-size-divisor"`
+	Wait             *int    `yaml:"wait"`
+}
+
+type kademliaOptions struct {
+	Dynamic *bool `yaml:"dynamic"`
+}
+
+type localpinningOptions struct {
+	Mode             *string `yaml:"mode"`
+	NodeGroup        *string `yaml:"node-group"`
+	Seed             *int64  `yaml:"seed"`
+	StoreSize        *int    `yaml:"store-size"`
+	StoreSizeDivisor *int    `yaml:"store-size-divisor"`
+}
+
+type manifestOptions struct {
+	FilesInCollection *int    `yaml:"files-in-collection"`
+	MaxPathnameLength *int32  `yaml:"max-pathname-length"`
+	NodeGroup         *string `yaml:"node-group"`
+	Seed              *int64  `yaml:"seed"`
+}
+
+type pingOptions struct {
+	MetricsEnabled *bool `yaml:"metrics-enabled"`
+}
+
+type pssOptions struct {
+	AddressPrefix  *int           `yaml:"address-prefix"`
+	MetricsEnabled *bool          `yaml:"metrics-enabled"`
+	NodeCount      *int           `yaml:"node-count"`
+	NodeGroup      *string        `yaml:"node-group"`
+	RequestTimeout *time.Duration `yaml:"request-timeout"`
+	Seed           *int64         `yaml:"seed"`
+}
+
+type pullSyncOptions struct {
+	ChunksPerNode              *int    `yaml:"chunks-per-node"`
+	NodeGroup                  *string `yaml:"node-group"`
+	ReplicationFactorThreshold *int    `yaml:"replication-factor-threshold"`
+	Seed                       *int64  `yaml:"seed"`
+	UploadNodeCount            *int    `yaml:"upload-node-count"`
+}
+
+type pushSyncOptions struct {
+	ChunksPerNode   *int           `yaml:"chunks-per-node"`
+	FileSize        *int64         `yaml:"file-size"`
+	FilesPerNode    *int           `yaml:"files-per-node"`
+	MetricsEnabled  *bool          `yaml:"metrics-enabled"`
+	Mode            *string        `yaml:"mode"`
+	NodeGroup       *string        `yaml:"node-group"`
+	Retries         *int           `yaml:"retries"`
+	RetryDelay      *time.Duration `yaml:"retry-delay"`
+	Seed            *int64         `yaml:"seed"`
+	UploadNodeCount *int           `yaml:"upload-node-count"`
+}
+
+type retrievalOptions struct {
+	ChunksPerNode   *int    `yaml:"chunks-per-node"`
+	MetricsEnabled  *bool   `yaml:"metrics-enabled"`
+	NodeGroup       *string `yaml:"node-group"`
+	Seed            *int64  `yaml:"seed"`
+	UploadNodeCount *int    `yaml:"upload-node-count"`
+}
+
+type settlementsOptions struct {
+	DryRun             *bool   `yaml:"dry-run"`
+	ExpectSettlements  *bool   `yaml:"expect-settlements"`
+	FileName           *string `yaml:"file-name"`
+	FileSize           *int64  `yaml:"file-size"`
+	NodeGroup          *string `yaml:"node-group"`
+	Seed               *int64  `yaml:"seed"`
+	Threshold          *int64  `yaml:"threshold"`
+	UploadNodeCount    *int    `yaml:"upload-node-count"`
+	WaitBeforeDownload *int    `yaml:"wait-before-download"`
+}
+
+type socOptions struct {
+	NodeGroup *string `yaml:"node-group"`
+}
+
 var Checks = map[string]Check{
 	"balances": {
 		NewCheck: balances.NewCheck,
@@ -598,122 +716,4 @@ var Checks = map[string]Check{
 			return opts, nil
 		},
 	},
-}
-
-type Check struct {
-	NewCheck   func() check.Check
-	NewOptions func(cfg *config.Config, checkProfile config.Check) (interface{}, error)
-}
-
-type balancesOptions struct {
-	DryRun             *bool   `yaml:"dry-run"`
-	FileName           *string `yaml:"file-name"`
-	FileSize           *int64  `yaml:"file-size"`
-	NodeGroup          *string `yaml:"node-group"`
-	Seed               *int64  `yaml:"seed"`
-	UploadNodeCount    *int    `yaml:"upload-node-count"`
-	WaitBeforeDownload *int    `yaml:"wait-before-download"`
-}
-
-type chunkRepairOptions struct {
-	MetricsEnabled         *bool   `yaml:"metrics-enabled"`
-	NodeGroup              *string `yaml:"node-group"`
-	NumberOfChunksToRepair *int    `yaml:"number-of-chunks-to-repair"`
-	Seed                   *int64  `yaml:"seed"`
-}
-
-type fileRetrievalOptions struct {
-	FileName        *string `yaml:"file-name"`
-	FileSize        *int64  `yaml:"file-size"`
-	FilesPerNode    *int    `yaml:"files-per-node"`
-	Full            *bool   `yaml:"full"`
-	MetricsEnabled  *bool   `yaml:"metrics-enabled"`
-	NodeGroup       *string `yaml:"node-group"`
-	UploadNodeCount *int    `yaml:"upload-node-count"`
-	Seed            *int64  `yaml:"seed"`
-}
-
-type gcOptions struct {
-	NodeGroup        *string `yaml:"node-group"`
-	Seed             *int64  `yaml:"seed"`
-	StoreSize        *int    `yaml:"store-size"`
-	StoreSizeDivisor *int    `yaml:"store-size-divisor"`
-	Wait             *int    `yaml:"wait"`
-}
-
-type kademliaOptions struct {
-	Dynamic *bool `yaml:"dynamic"`
-}
-
-type localpinningOptions struct {
-	Mode             *string `yaml:"mode"`
-	NodeGroup        *string `yaml:"node-group"`
-	Seed             *int64  `yaml:"seed"`
-	StoreSize        *int    `yaml:"store-size"`
-	StoreSizeDivisor *int    `yaml:"store-size-divisor"`
-}
-
-type manifestOptions struct {
-	FilesInCollection *int    `yaml:"files-in-collection"`
-	MaxPathnameLength *int32  `yaml:"max-pathname-length"`
-	NodeGroup         *string `yaml:"node-group"`
-	Seed              *int64  `yaml:"seed"`
-}
-
-type pingOptions struct {
-	MetricsEnabled *bool `yaml:"metrics-enabled"`
-}
-
-type pssOptions struct {
-	AddressPrefix  *int           `yaml:"address-prefix"`
-	MetricsEnabled *bool          `yaml:"metrics-enabled"`
-	NodeCount      *int           `yaml:"node-count"`
-	NodeGroup      *string        `yaml:"node-group"`
-	RequestTimeout *time.Duration `yaml:"request-timeout"`
-	Seed           *int64         `yaml:"seed"`
-}
-
-type pullSyncOptions struct {
-	ChunksPerNode              *int    `yaml:"chunks-per-node"`
-	NodeGroup                  *string `yaml:"node-group"`
-	ReplicationFactorThreshold *int    `yaml:"replication-factor-threshold"`
-	Seed                       *int64  `yaml:"seed"`
-	UploadNodeCount            *int    `yaml:"upload-node-count"`
-}
-
-type pushSyncOptions struct {
-	ChunksPerNode   *int           `yaml:"chunks-per-node"`
-	FileSize        *int64         `yaml:"file-size"`
-	FilesPerNode    *int           `yaml:"files-per-node"`
-	MetricsEnabled  *bool          `yaml:"metrics-enabled"`
-	Mode            *string        `yaml:"mode"`
-	NodeGroup       *string        `yaml:"node-group"`
-	Retries         *int           `yaml:"retries"`
-	RetryDelay      *time.Duration `yaml:"retry-delay"`
-	Seed            *int64         `yaml:"seed"`
-	UploadNodeCount *int           `yaml:"upload-node-count"`
-}
-
-type retrievalOptions struct {
-	ChunksPerNode   *int    `yaml:"chunks-per-node"`
-	MetricsEnabled  *bool   `yaml:"metrics-enabled"`
-	NodeGroup       *string `yaml:"node-group"`
-	Seed            *int64  `yaml:"seed"`
-	UploadNodeCount *int    `yaml:"upload-node-count"`
-}
-
-type settlementsOptions struct {
-	DryRun             *bool   `yaml:"dry-run"`
-	ExpectSettlements  *bool   `yaml:"expect-settlements"`
-	FileName           *string `yaml:"file-name"`
-	FileSize           *int64  `yaml:"file-size"`
-	NodeGroup          *string `yaml:"node-group"`
-	Seed               *int64  `yaml:"seed"`
-	Threshold          *int64  `yaml:"threshold"`
-	UploadNodeCount    *int    `yaml:"upload-node-count"`
-	WaitBeforeDownload *int    `yaml:"wait-before-download"`
-}
-
-type socOptions struct {
-	NodeGroup *string `yaml:"node-group"`
 }
