@@ -499,6 +499,28 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			// TODO: resolve optionNamePushGateway
+			// set metrics
+			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			}
+			if o.ChunksPerNode != nil {
+				opts.ChunksPerNode = *o.ChunksPerNode
+			} else {
+				opts.ChunksPerNode = 1 // number of chunks to upload per node
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.UploadNodeCount != nil {
+				opts.UploadNodeCount = *o.UploadNodeCount
+			} else {
+				opts.UploadNodeCount = 1
+			}
 			return opts, nil
 		},
 	},
@@ -639,10 +661,11 @@ type pushSyncOptions struct {
 }
 
 type retrievalOptions struct {
-	NodeGroup       *string `yaml:"node-group"`
-	UploadNodeCount *int    `yaml:"upload-node-count"`
 	ChunksPerNode   *int    `yaml:"chunks-per-node"`
+	MetricsEnabled  *bool   `yaml:"metrics-enabled"`
+	NodeGroup       *string `yaml:"node-group"`
 	Seed            *int64  `yaml:"seed"`
+	UploadNodeCount *int    `yaml:"upload-node-count"`
 }
 
 type settlementsOptions struct {

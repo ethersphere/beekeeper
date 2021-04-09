@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [pushsync]
+    checks: [retrieval]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -219,6 +219,14 @@ checks:
       node-group: bee
       retries: 5
       retry-delay: 1s
+      upload-node-count: 1
+    timeout: 5m
+  retrieval:
+    name: retrieval
+    options:
+      chunks-per-node: 1
+      metrics-enabled:
+      node-group: bee
       upload-node-count: 1
     timeout: 5m
 

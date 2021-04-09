@@ -16,49 +16,50 @@ import (
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
-	NodeGroup       string
-	UploadNodeCount int
 	ChunksPerNode   int
+	MetricsPusher   *push.Pusher
+	NodeGroup       string // TODO: support multi node group cluster
 	Seed            int64
-}
-
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
+	UploadNodeCount int
 }
 
 var errRetrieval = errors.New("retrieval")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	pusher.Collector(uploadedCounter)
-	pusher.Collector(uploadTimeGauge)
-	pusher.Collector(uploadTimeHistogram)
-	pusher.Collector(downloadedCounter)
-	pusher.Collector(downloadTimeGauge)
-	pusher.Collector(downloadTimeHistogram)
-	pusher.Collector(retrievedCounter)
-	pusher.Collector(notRetrievedCounter)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(uploadedCounter)
+		o.MetricsPusher.Collector(uploadTimeGauge)
+		o.MetricsPusher.Collector(uploadTimeHistogram)
+		o.MetricsPusher.Collector(downloadedCounter)
+		o.MetricsPusher.Collector(downloadTimeGauge)
+		o.MetricsPusher.Collector(downloadTimeHistogram)
+		o.MetricsPusher.Collector(retrievedCounter)
+		o.MetricsPusher.Collector(notRetrievedCounter)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
-	pusher.Format(expfmt.FmtText)
-
-	ng := c.NodeGroup(o.NodeGroup)
+	ng := cluster.NodeGroup(o.NodeGroup)
 	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
@@ -108,8 +109,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String())
 
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
+			if o.MetricsPusher != nil {
+				if err := o.MetricsPusher.Push(); err != nil {
 					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}
