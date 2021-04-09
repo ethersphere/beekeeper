@@ -345,6 +345,33 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			// TODO: resolve optionNamePushGateway
+			// set metrics
+			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			}
+			if o.AddressPrefix != nil {
+				opts.AddressPrefix = *o.AddressPrefix
+			} else {
+				opts.AddressPrefix = 1 // public address prefix bytes count
+			}
+			if o.NodeCount != nil { // TODO: check what this option represent
+				opts.NodeCount = *o.NodeCount
+			} else {
+				opts.NodeCount = 1
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.RequestTimeout != nil {
+				opts.RequestTimeout = *o.RequestTimeout
+			} else {
+				opts.RequestTimeout = 5 * time.Minute
+			}
 			return opts, nil
 		},
 	},
@@ -515,10 +542,11 @@ type pingOptions struct {
 }
 
 type pssOptions struct {
-	NodeGroup      *string        `yaml:"node-group"`
-	NodeCount      *int           `yaml:"node-count"`
-	RequestTimeout *time.Duration `yaml:"request-timeout"`
 	AddressPrefix  *int           `yaml:"address-prefix"`
+	MetricsEnabled *bool          `yaml:"metrics-enabled"`
+	NodeCount      *int           `yaml:"node-count"`
+	NodeGroup      *string        `yaml:"node-group"`
+	RequestTimeout *time.Duration `yaml:"request-timeout"`
 	Seed           *int64         `yaml:"seed"`
 }
 

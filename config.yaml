@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [peer-count]
+    checks: [pss]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -180,6 +180,15 @@ checks:
     options:
       metrics-enabled: 
     timeout: 15m
+  pss:
+    name: pss
+    options:
+      address-prefix: 10
+      metrics-enabled:
+      node-count: 3
+      node-group: bee
+      request-timeout: 5m
+    timeout: 5m
 
 bee-profiles:
   default:

@@ -16,45 +16,40 @@ import (
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
-	NodeGroup      string
-	NodeCount      int
-	RequestTimeout time.Duration
 	AddressPrefix  int
+	MetricsPusher  *push.Pusher
+	NodeCount      int
+	NodeGroup      string // TODO: support multi node group cluster
+	RequestTimeout time.Duration
 	Seed           int64
 }
 
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
-}
-
-var (
-	errDataMismatch        = errors.New("pss: data sent and received are not equal")
-	errWebsocketConnection = errors.New("pss: websocket connection terminated with an error")
-)
-
-// Check sends a PSS message to random nodes while receiving them on the other end
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
 
 	testData := []byte("Hello Swarm :)")
 	testTopic := "test"
 	testCount := o.NodeCount / 2
 
-	pusher.Collector(sendAndReceiveGauge)
-
-	ng := c.NodeGroup(o.NodeGroup)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(sendAndReceiveGauge)
+	}
+	ng := cluster.NodeGroup(o.NodeGroup)
 	sortedNodes := ng.NodesSorted()
 
 	set := randomDoubleSet(o.Seed, testCount, o.NodeCount)
@@ -112,8 +107,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			return err
 		}
 
-		if pushMetrics {
-			if err := pusher.Push(); err != nil {
+		if o.MetricsPusher != nil {
+			if err := o.MetricsPusher.Push(); err != nil {
 				fmt.Printf("pss: push gauge: %v\n", err)
 			}
 		}
@@ -121,6 +116,11 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	return nil
 }
+
+var (
+	errDataMismatch        = errors.New("pss: data sent and received are not equal")
+	errWebsocketConnection = errors.New("pss: websocket connection terminated with an error")
+)
 
 func randomDoubleSet(seed int64, count int, max int) [][]int {
 
