@@ -482,11 +482,6 @@ type fileRetrievalOptions struct {
 	Seed            *int64  `yaml:"seed"`
 }
 
-type fullConnectivityOptions struct {
-	MetricsEnabled *bool  `yaml:"metrics-enabled"`
-	Seed           *int64 `yaml:"seed"`
-}
-
 type gcOptions struct {
 	NodeGroup        *string `yaml:"node-group"`
 	StoreSize        *int    `yaml:"store-size"`
