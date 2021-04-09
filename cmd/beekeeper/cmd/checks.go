@@ -170,21 +170,7 @@ var Checks = map[string]Check{
 	"full-connectivity": {
 		NewCheck: fullconnectivity.NewCheck,
 		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
-			o := new(fullConnectivityOptions)
-			if err := checkProfile.Options.Decode(o); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
-			}
-			var opts fullconnectivity.Options
-			// TODO: improve Run["profile"] selection
-			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Run["default"].Seed
-			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
-				opts.Seed = *o.Seed
-			} else { // randomly generated
-				opts.Seed = random.Int64()
-			}
-			return opts, nil
+			return nil, nil
 		},
 	},
 	"gc": {
