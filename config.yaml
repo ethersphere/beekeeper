@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [retrieval]
+    checks: [settlements]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -228,6 +228,18 @@ checks:
       metrics-enabled:
       node-group: bee
       upload-node-count: 1
+    timeout: 5m
+  settlements:
+    name: settlements
+    options:
+      dry-run: false
+      expect-settlements: true
+      file-name: settlements
+      file-size: 1048576 # 1mb = 1*1024*1024
+      node-group: bee
+      threshold: 10000000000000
+      upload-node-count: 3
+      wait-before-downloading: 5 # seconds
     timeout: 5m
 
 bee-profiles:

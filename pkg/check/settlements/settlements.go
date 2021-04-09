@@ -11,44 +11,48 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
-	NodeGroup          string
-	UploadNodeCount    int
+	DryRun             bool
+	ExpectSettlements  bool
 	FileName           string
 	FileSize           int64
+	NodeGroup          string // TODO: support multi node group cluster
 	Seed               int64
 	Threshold          int64
+	UploadNodeCount    int
 	WaitBeforeDownload int
-	ExpectSettlements  bool
 }
 
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
-}
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
 
-// Check executes settlements check
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+	if o.DryRun {
+		fmt.Println("running settlements (dry mode)")
+		return dryRun(ctx, cluster, o)
+	}
+	fmt.Println("running settlements")
+
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
+	ng := cluster.NodeGroup(o.NodeGroup)
 	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
@@ -73,7 +77,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	for i := 0; i < o.UploadNodeCount; i++ {
 		var settlementsHappened = false
 		// upload file to random node
-		uIndex := rnd.Intn(c.Size())
+		uIndex := rnd.Intn(cluster.Size())
 		uNode := sortedNodes[uIndex]
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
 		if err := ng.NodeClient(uNode).UploadFile(ctx, &file, false); err != nil {
@@ -112,14 +116,14 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
 		// download file from random node
-		dIndex := randomIndex(rnd, c.Size(), uIndex)
+		dIndex := randomIndex(rnd, cluster.Size(), uIndex)
 		dNode := sortedNodes[dIndex]
 		size, hash, err := ng.NodeClient(dNode).DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %s: %w", dNode, err)
 		}
 		if !bytes.Equal(file.Hash(), hash) {
-			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dNode].String(), file.Size(), size)
+			return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dNode].String(), file.Size(), size)
 		}
 		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dNode].String())
 
@@ -161,11 +165,9 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	return
 }
 
-// DryRunCheck executes settlements validation check without files uploading/downloading
-func DryRunCheck(c *bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
-
-	ng := c.NodeGroup(o.NodeGroup)
+// dryRun executes settlements validation check without files uploading/downloading
+func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+	ng := cluster.NodeGroup(o.NodeGroup)
 	overlays, err := ng.Overlays(ctx)
 	if err != nil {
 		return err
