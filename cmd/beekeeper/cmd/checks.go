@@ -44,6 +44,34 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			if o.DryRun != nil {
+				opts.DryRun = *o.DryRun
+			}
+			if o.FileName != nil {
+				opts.FileName = *o.FileName
+			} else {
+				opts.FileName = "balances"
+			}
+			if o.FileSize != nil {
+				opts.FileSize = *o.FileSize
+			} else {
+				opts.FileSize = 1 * 1024 * 1024 // 1mb
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.UploadNodeCount != nil {
+				opts.UploadNodeCount = *o.UploadNodeCount
+			} else {
+				opts.UploadNodeCount = 1
+			}
+			if o.WaitBeforeDownload != nil {
+				opts.WaitBeforeDownload = *o.WaitBeforeDownload
+			} else {
+				opts.WaitBeforeDownload = 5 // seconds
+			}
 			return opts, nil
 		},
 	},
@@ -389,11 +417,12 @@ type Check struct {
 }
 
 type balancesOptions struct {
-	NodeGroup          *string `yaml:"node-group"`
-	UploadNodeCount    *int    `yaml:"upload-node-count"`
+	DryRun             *bool   `yaml:"dry-run"`
 	FileName           *string `yaml:"file-name"`
 	FileSize           *int64  `yaml:"file-size"`
+	NodeGroup          *string `yaml:"node-group"`
 	Seed               *int64  `yaml:"seed"`
+	UploadNodeCount    *int    `yaml:"upload-node-count"`
 	WaitBeforeDownload *int    `yaml:"wait-before-download"`
 }
 

@@ -34,12 +34,12 @@ cluster:
     bee:
       bee-config: default
       config: default
-      count: 5
+      count: 3
       mode: node
     drone:
       bee-config: default
       config: default
-      count: 5
+      count: 3
       mode: node
   # stray:
   #   count: 1
@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [ping]
+    checks: [balances]
     metrics-enabled: 
     seed: 
     # stages:
@@ -114,10 +114,25 @@ run:
     timeout: 1h
 
 checks:
+  balances:
+    name: balances
+    options:
+      dry-run: false
+      file-name: tmp
+      file-size: 1048576 # 1mb = 1*1024*1024
+      node-group: bee
+      upload-node-count: 3
+      wait-before-downloading: 5 # seconds
+    timeout: 5m
   kademlia:
     name: kademlia
     options:
       dynamic: false
+    timeout: 5m
+  kademlia-dynamic:
+    name: kademlia
+    options:
+      dynamic: true
     timeout: 5m
   ping:
     name: ping
