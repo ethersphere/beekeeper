@@ -392,6 +392,26 @@ var Checks = map[string]Check{
 			} else { // randomly generated
 				opts.Seed = random.Int64()
 			}
+			if o.ChunksPerNode != nil {
+				opts.ChunksPerNode = *o.ChunksPerNode
+			} else {
+				opts.ChunksPerNode = 1 // number of chunks to upload per node
+			}
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
+			}
+			if o.ReplicationFactorThreshold != nil {
+				opts.ReplicationFactorThreshold = *o.ReplicationFactorThreshold
+			} else {
+				opts.ReplicationFactorThreshold = 2 // minimal replication factor per chunk
+			}
+			if o.UploadNodeCount != nil {
+				opts.UploadNodeCount = *o.UploadNodeCount
+			} else {
+				opts.UploadNodeCount = 1
+			}
 			return opts, nil
 		},
 	},
@@ -551,11 +571,11 @@ type pssOptions struct {
 }
 
 type pullSyncOptions struct {
-	NodeGroup                  *string `yaml:"node-group"`
-	UploadNodeCount            *int    `yaml:"upload-node-count"`
 	ChunksPerNode              *int    `yaml:"chunks-per-node"`
+	NodeGroup                  *string `yaml:"node-group"`
 	ReplicationFactorThreshold *int    `yaml:"replication-factor-threshold"`
 	Seed                       *int64  `yaml:"seed"`
+	UploadNodeCount            *int    `yaml:"upload-node-count"`
 }
 
 type pushSyncOptions struct {

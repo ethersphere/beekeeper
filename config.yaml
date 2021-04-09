@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [pingpong]
+    checks: [pullsync]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -178,6 +178,14 @@ checks:
       node-count: 3
       node-group: bee
       request-timeout: 5m
+    timeout: 5m
+  pullsync:
+    name: pullsync
+    options:
+      chunks-per-node: 1
+      node-group: bee
+      replication-factor-threshold: 2
+      upload-node-count: 1
     timeout: 5m
 
 bee-profiles:
