@@ -60,29 +60,6 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&inCluster, optionNameInCluster, false, "run Beekeeper in Kubernetes cluster")
 	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
 
-	cmd.AddCommand(c.initCheckSOC())
-
 	c.root.AddCommand(cmd)
 	return nil
-}
-
-func (c *command) checkPreRunE(cmd *cobra.Command, args []string) (err error) {
-	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
-		if err = cmd.MarkFlagRequired(optionNameNamespace); err != nil {
-			return
-		}
-	}
-	if err = c.config.BindPFlags(cmd.Flags()); err != nil {
-		return
-	}
-	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
-		return cmd.Help()
-	}
-
-	if c.config.GetBool(optionNameInsecureTLS) {
-		insecureTLSAPI = true
-		insecureTLSDebugAPI = true
-	}
-
-	return
 }

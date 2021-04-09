@@ -69,7 +69,7 @@ cluster:
 
 run:
   default:
-    checks: [settlements]
+    checks: [soc]
     metrics-enabled: 
     seed: 
     # stages: default
@@ -240,6 +240,11 @@ checks:
       threshold: 10000000000000
       upload-node-count: 3
       wait-before-downloading: 5 # seconds
+    timeout: 5m
+  soc:
+    name: soc
+    options:
+      node-group: bee
     timeout: 5m
 
 bee-profiles:

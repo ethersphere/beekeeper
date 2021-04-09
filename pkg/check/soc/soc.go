@@ -14,37 +14,33 @@ import (
 	"github.com/ethersphere/bee/pkg/soc"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check2)(nil)
+var _ check.Check = (*Check)(nil)
 
-// TODO: rename to Check
 // Check instance
-type Check2 struct{}
+type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() check.Check {
-	return &Check2{}
+	return &Check{}
 }
 
 // Options represents check options
 type Options struct {
-	NodeGroup string
-	Seed      int64
+	NodeGroup string // TODO: support multi node group cluster
 }
 
-func (c *Check2) Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error) {
-	return
-}
-
-// Check sends a SOC chunk and retrieves with the address.
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
 
 	payload := []byte("Hello Swarm :)")
 
-	ng := c.NodeGroup(o.NodeGroup)
+	ng := cluster.NodeGroup(o.NodeGroup)
 	sortedNodes := ng.NodesSorted()
 
 	privKey, err := crypto.GenerateSecp256k1Key()
@@ -80,7 +76,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
 	nodeName := sortedNodes[0]

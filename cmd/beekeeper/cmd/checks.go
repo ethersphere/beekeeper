@@ -590,14 +590,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s optiosns: %w", checkProfile.Name, err)
 			}
 			var opts soc.Options
-			// TODO: improve Run["profile"] selection
-			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Run["default"].Seed
-			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
-				opts.Seed = *o.Seed
-			} else { // randomly generated
-				opts.Seed = random.Int64()
+			if o.NodeGroup != nil {
+				opts.NodeGroup = *o.NodeGroup
+			} else {
+				opts.NodeGroup = "bee"
 			}
 			return opts, nil
 		},
@@ -720,5 +716,4 @@ type settlementsOptions struct {
 
 type socOptions struct {
 	NodeGroup *string `yaml:"node-group"`
-	Seed      *int64  `yaml:"seed"`
 }
