@@ -330,6 +330,15 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 	}, nil
 }
 
+// CreatePostageBatchs returns the batchID of a batch of postage stamps
+func (c *Client) CreatePostageBatch(ctx context.Context, amount int, depth uint64, label string) ([]byte, error) {
+	resp, err := c.api.Postage.CreatePostageBatch(ctx, amount, depth, label)
+	if err != nil {
+		return nil, err
+	}
+	return resp.BatchID, nil
+}
+
 // SendPSSMessage triggers a PSS message with a topic and recipient address
 func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, publicKey string, topic string, prefix int, data []byte) error {
 	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, prefix, bytes.NewReader(data))
