@@ -15,7 +15,7 @@ type FilesService service
 
 // Download downloads data from the node
 func (f *FilesService) Download(ctx context.Context, a swarm.Address) (resp io.ReadCloser, err error) {
-	return f.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/files/"+a.String(), nil, nil)
+	return f.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bzz/"+a.String(), nil, nil)
 }
 
 // FilesUploadResponse represents Upload's response
@@ -35,6 +35,6 @@ func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, 
 		header.Set("Swarm-Tag-Uid", strconv.FormatUint(uint64(tagUID), 10))
 	}
 
-	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/files?"+url.QueryEscape("name="+name), header, data, &resp)
+	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz?"+url.QueryEscape("name="+name), header, data, &resp)
 	return
 }
