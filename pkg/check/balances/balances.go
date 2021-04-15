@@ -13,6 +13,27 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
+// Options represents check options
+type Options struct {
+	DryRun             bool
+	FileName           string
+	FileSize           int64
+	NodeGroup          string // TODO: support multi node group cluster
+	Seed               int64
+	UploadNodeCount    int
+	WaitBeforeDownload int // seconds
+}
+
+var DefaultOptions = Options{
+	DryRun:             false,
+	FileName:           "balances",
+	FileSize:           1 * 1024 * 1024, // 1mb,
+	NodeGroup:          "bee",
+	Seed:               random.Int64(),
+	UploadNodeCount:    1,
+	WaitBeforeDownload: 5,
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -22,17 +43,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	DryRun             bool
-	FileName           string
-	FileSize           int64
-	NodeGroup          string // TODO: support multi node group cluster
-	Seed               int64
-	UploadNodeCount    int
-	WaitBeforeDownload int
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {

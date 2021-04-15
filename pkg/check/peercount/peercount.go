@@ -19,12 +19,6 @@ func NewCheck() check.Check {
 	return &Check{}
 }
 
-// Options represents check options
-type Options struct {
-	MetricsEnabled bool
-	Seed           int64
-}
-
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {

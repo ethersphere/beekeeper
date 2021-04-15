@@ -10,7 +10,25 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/random"
 )
+
+// Options represents check options
+type Options struct {
+	Mode             string
+	NodeGroup        string // TODO: support multi node group cluster
+	StoreSize        int    // size of the node's localstore in chunks
+	StoreSizeDivisor int    // divide store size by how much when uploading bytes
+	Seed             int64
+}
+
+var DefaultOptions = Options{
+	Mode:             "pin-chunk",
+	NodeGroup:        "bee",
+	Seed:             random.Int64(),
+	StoreSize:        1000,
+	StoreSizeDivisor: 3,
+}
 
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
@@ -21,15 +39,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	Mode             string
-	NodeGroup        string // TODO: support multi node group cluster
-	StoreSize        int    // size of the node's localstore in chunks
-	StoreSizeDivisor int    // divide store size by how much when uploading bytes
-	Seed             int64
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {

@@ -15,6 +15,23 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
+// Options represents check options
+type Options struct {
+	ChunksPerNode   int // number of chunks to upload per node
+	MetricsPusher   *push.Pusher
+	NodeGroup       string // TODO: support multi node group cluster
+	Seed            int64
+	UploadNodeCount int
+}
+
+var DefaultOptions = Options{
+	ChunksPerNode:   1,
+	MetricsPusher:   nil,
+	NodeGroup:       "bee",
+	Seed:            random.Int64(),
+	UploadNodeCount: 1,
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -24,15 +41,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	ChunksPerNode   int
-	MetricsPusher   *push.Pusher
-	NodeGroup       string // TODO: support multi node group cluster
-	Seed            int64
-	UploadNodeCount int
 }
 
 var errRetrieval = errors.New("retrieval")

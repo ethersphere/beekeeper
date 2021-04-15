@@ -13,6 +13,23 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
+// Options represents check options
+type Options struct {
+	Seed             int64
+	NodeGroup        string // TODO: support multi node group cluster
+	StoreSize        int    // size of the node's localstore in chunks
+	StoreSizeDivisor int    // divide store size by how much when uploading bytes
+	Wait             int    // wait before check
+}
+
+var DefaultOptions = Options{
+	NodeGroup:        "bee",
+	Seed:             random.Int64(),
+	StoreSize:        1000,
+	StoreSizeDivisor: 3,
+	Wait:             5,
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -22,15 +39,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	Seed             int64
-	NodeGroup        string // TODO: support multi node group cluster
-	StoreSize        int    // size of the node's localstore in chunks
-	StoreSizeDivisor int    // divide store size by how much when uploading bytes
-	Wait             int
 }
 
 // Run uploads a single chunk to a node, then uploads a lot of other chunks to see that it has been purged with gc

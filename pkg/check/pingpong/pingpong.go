@@ -13,6 +13,15 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
+// Options represents check options
+type Options struct {
+	MetricsPusher *push.Pusher
+}
+
+var DefaultOptions = Options{
+	MetricsPusher: nil,
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -22,11 +31,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	MetricsPusher *push.Pusher
 }
 
 // Run executes ping check

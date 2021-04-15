@@ -18,6 +18,21 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
+// Options represents check options
+type Options struct {
+	MetricsPusher          *push.Pusher
+	NodeGroup              string // TODO: support multi node group cluster
+	NumberOfChunksToRepair int
+	Seed                   int64
+}
+
+var DefaultOptions = Options{
+	MetricsPusher:          nil,
+	NodeGroup:              "bee",
+	NumberOfChunksToRepair: 1,
+	Seed:                   random.Int64(),
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -27,14 +42,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	MetricsPusher          *push.Pusher
-	NodeGroup              string // TODO: support multi node group cluster
-	NumberOfChunksToRepair int
-	Seed                   int64
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {

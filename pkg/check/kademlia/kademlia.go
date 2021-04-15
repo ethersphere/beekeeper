@@ -12,6 +12,15 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check"
 )
 
+// Options represents check options
+type Options struct {
+	Dynamic bool
+}
+
+var DefaultOptions = Options{
+	Dynamic: false,
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -21,11 +30,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	Dynamic bool
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {

@@ -15,6 +15,25 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
+// Options represents check options
+type Options struct {
+	AddressPrefix  int // public address prefix bytes count
+	MetricsPusher  *push.Pusher
+	NodeCount      int
+	NodeGroup      string // TODO: support multi node group cluster
+	RequestTimeout time.Duration
+	Seed           int64
+}
+
+var DefaultOptions = Options{
+	AddressPrefix:  1,
+	MetricsPusher:  nil,
+	NodeCount:      1,
+	NodeGroup:      "bee",
+	RequestTimeout: 5 * time.Minute,
+	Seed:           random.Int64(),
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -24,16 +43,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	AddressPrefix  int
-	MetricsPusher  *push.Pusher
-	NodeCount      int
-	NodeGroup      string // TODO: support multi node group cluster
-	RequestTimeout time.Duration
-	Seed           int64
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {

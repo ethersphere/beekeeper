@@ -14,6 +14,23 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
+// Options represents check options
+type Options struct {
+	ChunksPerNode              int    // number of chunks to upload per node
+	NodeGroup                  string // TODO: support multi node group cluster
+	ReplicationFactorThreshold int    // minimal replication factor per chunk
+	Seed                       int64
+	UploadNodeCount            int
+}
+
+var DefaultOptions = Options{
+	ChunksPerNode:              1,
+	NodeGroup:                  "bee",
+	ReplicationFactorThreshold: 2,
+	Seed:                       random.Int64(),
+	UploadNodeCount:            1,
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -23,15 +40,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	ChunksPerNode              int
-	NodeGroup                  string // TODO: support multi node group cluster
-	ReplicationFactorThreshold int
-	Seed                       int64
-	UploadNodeCount            int
 }
 
 var errPullSync = errors.New("pull sync")

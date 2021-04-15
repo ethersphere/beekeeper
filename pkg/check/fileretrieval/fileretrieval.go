@@ -14,17 +14,6 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
-// compile check whether Check implements interface
-var _ check.Check = (*Check)(nil)
-
-// Check instance
-type Check struct{}
-
-// NewCheck returns new check
-func NewCheck() check.Check {
-	return &Check{}
-}
-
 // Options represents check options
 type Options struct {
 	FilesPerNode    int
@@ -35,6 +24,27 @@ type Options struct {
 	NodeGroup       string // TODO: support multi node group cluster
 	UploadNodeCount int
 	Seed            int64
+}
+
+var DefaultOptions = Options{
+	FileName:        "file-retrieval",
+	FileSize:        1 * 1024 * 1024, // 1mb
+	FilesPerNode:    1,
+	MetricsPusher:   nil,
+	NodeGroup:       "bee",
+	Seed:            random.Int64(),
+	UploadNodeCount: 1,
+}
+
+// compile check whether Check implements interface
+var _ check.Check = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() check.Check {
+	return &Check{}
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {

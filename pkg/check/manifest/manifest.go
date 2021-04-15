@@ -16,6 +16,21 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
+// Options represents check options
+type Options struct {
+	FilesInCollection int // number of files to upload in single collection
+	MaxPathnameLength int32
+	NodeGroup         string // TODO: support multi node group cluster
+	Seed              int64
+}
+
+var DefaultOptions = Options{
+	FilesInCollection: 10,
+	MaxPathnameLength: 64,
+	NodeGroup:         "bee",
+	Seed:              random.Int64(),
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -25,14 +40,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	FilesInCollection int
-	MaxPathnameLength int32
-	NodeGroup         string // TODO: support multi node group cluster
-	Seed              int64
 }
 
 var errManifest = errors.New("manifest data mismatch")

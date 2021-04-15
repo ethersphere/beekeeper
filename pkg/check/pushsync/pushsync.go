@@ -15,6 +15,33 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
+// Options represents check options
+type Options struct {
+	ChunksPerNode   int // number of chunks to upload per node
+	FileSize        int64
+	FilesPerNode    int
+	MetricsPusher   *push.Pusher
+	Mode            string
+	NodeGroup       string        // TODO: support multi node group cluster
+	Retries         int           // number of reties on problems
+	RetryDelay      time.Duration // retry delay duration
+	Seed            int64
+	UploadNodeCount int
+}
+
+var DefaultOptions = Options{
+	ChunksPerNode:   1,
+	FileSize:        1 * 1024 * 1024, // 1mb
+	FilesPerNode:    1,
+	MetricsPusher:   nil,
+	Mode:            "default",
+	NodeGroup:       "bee",
+	Retries:         5,
+	RetryDelay:      1 * time.Second,
+	Seed:            random.Int64(),
+	UploadNodeCount: 1,
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -24,20 +51,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	ChunksPerNode   int
-	FileSize        int64
-	FilesPerNode    int
-	MetricsPusher   *push.Pusher
-	Mode            string
-	NodeGroup       string // TODO: support multi node group cluster
-	Retries         int
-	RetryDelay      time.Duration
-	Seed            int64
-	UploadNodeCount int
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {

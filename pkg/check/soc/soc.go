@@ -16,6 +16,15 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check"
 )
 
+// Options represents check options
+type Options struct {
+	NodeGroup string // TODO: support multi node group cluster
+}
+
+var DefaultOptions = Options{
+	NodeGroup: "bee",
+}
+
 // compile check whether Check implements interface
 var _ check.Check = (*Check)(nil)
 
@@ -25,11 +34,6 @@ type Check struct{}
 // NewCheck returns new check
 func NewCheck() check.Check {
 	return &Check{}
-}
-
-// Options represents check options
-type Options struct {
-	NodeGroup string // TODO: support multi node group cluster
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
