@@ -36,6 +36,7 @@ type CreateOptions struct {
 	LimitMemory               string
 	Image                     string
 	ImagePullPolicy           string
+	ImagePullSecrets          []string
 	IngressAnnotations        map[string]string
 	IngressHost               string
 	IngressDebugAnnotations   map[string]string

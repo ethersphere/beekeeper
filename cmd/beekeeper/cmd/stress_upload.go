@@ -21,6 +21,7 @@ func (c *command) initStressUpload() *cobra.Command {
 		optionNameBootnodeCount            = "bootnode-count"
 		optionNameNodeCount                = "node-count"
 		optionNameImage                    = "bee-image"
+		optionNameImagePullSecrets         = "image-pull-secrets"
 		optionNameFullNode                 = "full-node"
 		optionNamePersistence              = "persistence"
 		optionNameStorageClass             = "storage-class"
@@ -43,6 +44,7 @@ func (c *command) initStressUpload() *cobra.Command {
 		startCluster             bool
 		dynamic                  bool
 		clusterName              string
+		imagePullSecrets         []string
 		bootnodeCount            int
 		nodeCount                int
 		image                    string
@@ -87,7 +89,7 @@ func (c *command) initStressUpload() *cobra.Command {
 				bgName := "bootnode"
 				bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer bCancel()
-				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence); err != nil {
 					return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
 				}
 
@@ -95,7 +97,7 @@ func (c *command) initStressUpload() *cobra.Command {
 				ngName := "bee"
 				nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence, fullNode); err != nil {
+				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, fullNode); err != nil {
 					return fmt.Errorf("starting node group %s: %w", ngName, err)
 				}
 
@@ -103,7 +105,7 @@ func (c *command) initStressUpload() *cobra.Command {
 					addNgName := "drone"
 					addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 					defer addNCancel()
-					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, additionalPersistence, additionalFullNode); err != nil {
+					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, imagePullSecrets, additionalPersistence, additionalFullNode); err != nil {
 						return fmt.Errorf("starting node group %s: %w", addNgName, err)
 					}
 				}
@@ -167,6 +169,7 @@ func (c *command) initStressUpload() *cobra.Command {
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
 	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "stress on dynamic cluster")
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
+	cmd.Flags().StringArrayVar(&imagePullSecrets, optionNameImagePullSecrets, []string{"regcred"}, "image pull secrets")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 1, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
 	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")

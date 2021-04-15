@@ -18,6 +18,7 @@ func (c *command) initCheckPing() *cobra.Command {
 		optionNameStartCluster             = "start-cluster"
 		optionNameDynamic                  = "dynamic"
 		optionNameClusterName              = "cluster-name"
+		optionNameImagePullSecrets         = "image-pull-secrets"
 		optionNameBootnodeCount            = "bootnode-count"
 		optionNameNodeCount                = "node-count"
 		optionNameImage                    = "bee-image"
@@ -38,6 +39,7 @@ func (c *command) initCheckPing() *cobra.Command {
 		startCluster             bool
 		dynamic                  bool
 		clusterName              string
+		imagePullSecrets         []string
 		bootnodeCount            int
 		nodeCount                int
 		image                    string
@@ -82,7 +84,7 @@ and prints round-trip time (RTT) of each ping.`,
 				bgName := "bootnode"
 				bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer bCancel()
-				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence); err != nil {
 					return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
 				}
 
@@ -90,7 +92,7 @@ and prints round-trip time (RTT) of each ping.`,
 				ngName := "bee"
 				nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence, fullNode); err != nil {
+				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, fullNode); err != nil {
 					return fmt.Errorf("starting node group %s: %w", ngName, err)
 				}
 
@@ -98,7 +100,7 @@ and prints round-trip time (RTT) of each ping.`,
 					addNgName := "drone"
 					addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 					defer addNCancel()
-					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, additionalPersistence, additionalFullNode); err != nil {
+					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, imagePullSecrets, additionalPersistence, additionalFullNode); err != nil {
 						return fmt.Errorf("starting node group %s: %w", addNgName, err)
 					}
 				}
@@ -150,6 +152,7 @@ and prints round-trip time (RTT) of each ping.`,
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
 	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "check on dynamic cluster")
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
+	cmd.Flags().StringArrayVar(&imagePullSecrets, optionNameImagePullSecrets, []string{"regcred"}, "image pull secrets")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
 	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")

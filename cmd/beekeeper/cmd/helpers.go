@@ -71,9 +71,10 @@ func addNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, name
 	return
 }
 
-func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
+func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, imagePullSecrets []string, persistence bool) (err error) {
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
+	gOptions.ImagePullSecrets = imagePullSecrets
 	gOptions.Labels = map[string]string{
 		"app.kubernetes.io/component": "node",
 		"app.kubernetes.io/part-of":   name,
@@ -111,9 +112,10 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 	return
 }
 
-func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence, fullNode bool) (err error) {
+func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, imagePullSecrets []string, persistence, fullNode bool) (err error) {
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
+	gOptions.ImagePullSecrets = imagePullSecrets
 	gOptions.Labels = map[string]string{
 		"app.kubernetes.io/component": "node",
 		"app.kubernetes.io/part-of":   name,
@@ -188,9 +190,10 @@ func newDefaultBeeConfig() *k8s.Config {
 func newDefaultNodeGroupOptions() *bee.NodeGroupOptions {
 	return &bee.NodeGroupOptions{
 		ClefImage:           "ethersphere/clef:latest",
-		ClefImagePullPolicy: "IfNotPresent",
+		ClefImagePullPolicy: "Always",
 		Image:               "ethersphere/bee:latest",
-		ImagePullPolicy:     "IfNotPresent",
+		ImagePullPolicy:     "Always",
+		ImagePullSecrets:    []string{"regcred"},
 		IngressAnnotations: map[string]string{
 			"kubernetes.io/ingress.class":                        "nginx-internal",
 			"nginx.ingress.kubernetes.io/affinity":               "cookie",
