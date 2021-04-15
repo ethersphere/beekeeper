@@ -88,7 +88,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			return fmt.Errorf("node %s: %w", nodeName, err)
 		}
 		if !bytes.Equal(file.Hash(), hash) {
-			return fmt.Errorf("File %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlay.String(), file.Size(), size)
+			return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlay.String(), file.Size(), size)
 		}
 		fmt.Printf("File %s downloaded successfully from node \"%s\"(%s)\n", file.Address().String(), nodeName, overlay.String())
 
