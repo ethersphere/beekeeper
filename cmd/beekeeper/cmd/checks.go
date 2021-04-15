@@ -47,10 +47,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := balances.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // set globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
@@ -88,16 +88,16 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := chunkrepair.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // set globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // set globaly
+			if o.MetricsEnabled == nil && cfg.RunProfiles[cfg.Execute].MetricsEnabled { // set globaly
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
@@ -128,16 +128,16 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := fileretrieval.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // set globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // set globaly
+			if o.MetricsEnabled == nil && cfg.RunProfiles[cfg.Execute].MetricsEnabled { // set globaly
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
@@ -183,10 +183,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := gc.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // set globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
@@ -236,10 +236,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := localpinning.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}
@@ -271,10 +271,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := manifest.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // set globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
@@ -306,10 +306,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := pingpong.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // set globaly
+			if o.MetricsEnabled == nil && cfg.RunProfiles[cfg.Execute].MetricsEnabled { // set globaly
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
@@ -332,16 +332,16 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := pss.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // set globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // set globaly
+			if o.MetricsEnabled == nil && cfg.RunProfiles[cfg.Execute].MetricsEnabled { // set globaly
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
@@ -375,10 +375,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := pullsync.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // set globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
@@ -416,16 +416,16 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := pushsync.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
+			if o.MetricsEnabled == nil && cfg.RunProfiles[cfg.Execute].MetricsEnabled { // enabled globaly
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
@@ -471,16 +471,16 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := retrieval.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Run["default"].MetricsEnabled { // enabled globaly
+			if o.MetricsEnabled == nil && cfg.RunProfiles[cfg.Execute].MetricsEnabled { // enabled globaly
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
@@ -515,10 +515,10 @@ var Checks = map[string]Check{
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := settlements.DefaultOptions
-			// TODO: improve Run["profile"] selection
+
 			// set seed
-			if o.Seed == nil && cfg.Run["default"].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Run["default"].Seed
+			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}

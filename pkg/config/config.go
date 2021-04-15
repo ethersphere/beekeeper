@@ -11,11 +11,12 @@ import (
 
 type Config struct {
 	Cluster Cluster          `yaml:"cluster"` // TODO: add multi-cluster-support
-	Run     map[string]Run   `yaml:"run"`
 	Checks  map[string]Check `yaml:"checks"`
+	Execute string           `yaml:"execute"`
 	// profiles
 	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
 	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
+	RunProfiles       map[string]RunProfile       `yaml:"run-profiles"`
 	// orchestrator
 	Kubernetes struct {
 		Enable     bool   `yaml:"enable"`
@@ -29,7 +30,17 @@ type Profile struct {
 	Inherit string `yaml:"_inherit"`
 }
 
-type Run struct {
+type BeeProfile struct {
+	Profile `yaml:",inline"`
+	Bee     `yaml:",inline"`
+}
+
+type NodeGroupProfile struct {
+	Profile   `yaml:",inline"`
+	NodeGroup `yaml:",inline"`
+}
+
+type RunProfile struct {
 	Checks         []string `yaml:"checks"`
 	MetricsEnabled bool     `yaml:"metrics-enabled"`
 	Seed           int64    `yaml:"seed"`
@@ -41,16 +52,6 @@ type Run struct {
 		Delete    int    `yaml:"delete"`
 	} `yaml:"stages"`
 	Timeout time.Duration `yaml:"timeout"`
-}
-
-type BeeProfile struct {
-	Profile `yaml:",inline"`
-	Bee     `yaml:",inline"`
-}
-
-type NodeGroupProfile struct {
-	Profile   `yaml:",inline"`
-	NodeGroup `yaml:",inline"`
 }
 
 func (c *Config) Merge() {

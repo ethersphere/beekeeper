@@ -43,7 +43,7 @@ func (c *command) initCheckCmd() (err error) {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.Read("config.yaml")
 
-			for _, checkName := range cfg.Run["default"].Checks {
+			for _, checkName := range cfg.RunProfiles[cfg.Execute].Checks {
 				checkProfile, ok := cfg.Checks[checkName]
 				if !ok {
 					return fmt.Errorf("check %s doesn't exist", checkName)

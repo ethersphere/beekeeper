@@ -67,19 +67,7 @@ cluster:
       count: 15
       mode: node
 
-run:
-  default:
-    checks: [soc]
-    metrics-enabled: 
-    seed: 
-    # stages: default
-    timeout: 1h
-  static:
-    checks: [ping, kademlia]
-    metrics-enabled: 
-    seed: 
-    # stages: static
-    timeout: 1h
+execute: default
 
 checks:
   balances:
@@ -332,6 +320,20 @@ node-group-profiles:
     _inherit: default
     image: svetomir/bee:latest
     image-pull-policy: IfNotPresent
+
+run-profiles:
+  default:
+    checks: [soc]
+    metrics-enabled: 
+    seed: 
+    # stages: default
+    timeout: 1h
+  static:
+    checks: [ping, kademlia]
+    metrics-enabled: 
+    seed: 
+    # stages: static
+    timeout: 1h
 
 stages:
   static:
