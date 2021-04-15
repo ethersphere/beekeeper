@@ -121,7 +121,7 @@ and prints round-trip time (RTT) of each ping.`,
 				MetricsPusher:  push.New(c.config.GetString(optionNamePushGateway), namespace),
 			}
 
-			return check.RunConcurrently(checkCtx, cluster, checkPing, checkOptions, checkStages, buffer, seed)
+			return check.RunConcurrently(checkCtx, cluster, checkPing, checkOptions, []check.Stage{}, buffer, seed)
 		},
 		PreRunE: c.checkPreRunE,
 	}
