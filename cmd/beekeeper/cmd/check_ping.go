@@ -15,28 +15,32 @@ import (
 
 func (c *command) initCheckPing() *cobra.Command {
 	const (
-		optionNameStartCluster   = "start-cluster"
-		optionNameDynamic        = "dynamic"
-		optionNameClusterName    = "cluster-name"
-		optionNameBootnodeCount  = "bootnode-count"
-		optionNameNodeCount      = "node-count"
-		optionNameImage          = "bee-image"
-		optionNameSeed           = "seed"
-		optionNamePersistence    = "persistence"
-		optionNameStorageClass   = "storage-class"
-		optionNameStorageRequest = "storage-request"
+		optionNameStartCluster        = "start-cluster"
+		optionNameDynamic             = "dynamic"
+		optionNameClusterName         = "cluster-name"
+		optionNameBootnodeCount       = "bootnode-count"
+		optionNameNodeCount           = "node-count"
+		optionNameAdditionalNodeCount = "additional-node-count"
+		optionNameImage               = "bee-image"
+		optionNameAdditionalImage     = "additional-bee-image"
+		optionNameSeed                = "seed"
+		optionNamePersistence         = "persistence"
+		optionNameStorageClass        = "storage-class"
+		optionNameStorageRequest      = "storage-request"
 	)
 
 	var (
-		startCluster   bool
-		dynamic        bool
-		clusterName    string
-		bootnodeCount  int
-		nodeCount      int
-		image          string
-		persistence    bool
-		storageClass   string
-		storageRequest string
+		startCluster        bool
+		dynamic             bool
+		clusterName         string
+		bootnodeCount       int
+		nodeCount           int
+		additionalNodeCount int
+		image               string
+		additionalImage     string
+		persistence         bool
+		storageClass        string
+		storageRequest      string
 	)
 
 	cmd := &cobra.Command{
@@ -72,7 +76,7 @@ and prints round-trip time (RTT) of each ping.`,
 					return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
 				}
 
-				// bee node group
+				// node groups
 				ngName := "bee"
 				nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer nCancel()
@@ -80,14 +84,14 @@ and prints round-trip time (RTT) of each ping.`,
 					return fmt.Errorf("starting node group %s: %w", ngName, err)
 				}
 
-				// drone node group
-				ngName = "drone"
-				nCtx, nCancel = context.WithTimeout(cmd.Context(), 10*time.Minute)
-				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
-					return fmt.Errorf("starting node group %s: %w", ngName, err)
+				if additionalNodeCount > 0 {
+					addNgName := "drone"
+					addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
+					defer addNCancel()
+					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, storageClass, storageRequest, persistence); err != nil {
+						return fmt.Errorf("starting node group %s: %w", addNgName, err)
+					}
 				}
-
 			} else {
 				// bootnodes group
 				if bootnodeCount > 0 {
@@ -132,7 +136,9 @@ and prints round-trip time (RTT) of each ping.`,
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
+	cmd.Flags().IntVar(&additionalNodeCount, optionNameAdditionalNodeCount, 0, "number of nodes in additional node group")
 	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
+	cmd.Flags().StringVar(&additionalImage, optionNameAdditionalImage, "ethersphere/bee-netem:latest", "Bee Docker image in additional node group")
 	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
