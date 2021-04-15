@@ -20,6 +20,7 @@ data-dir: {{.DataDir}}
 db-capacity: {{.DBCapacity}}
 debug-api-addr: {{.DebugAPIAddr}}
 debug-api-enable: {{.DebugAPIEnable}}
+full-node: {{.FullNode}}
 gateway-mode: {{.GatewayMode}}
 global-pinning-enable: {{.GlobalPinningEnabled}}
 nat-addr: {{.NATAddr}}

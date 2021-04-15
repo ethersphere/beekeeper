@@ -111,7 +111,7 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 	return
 }
 
-func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
+func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence, fullNode bool) (err error) {
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
 	gOptions.Labels = map[string]string{
@@ -124,6 +124,7 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 	gOptions.PersistanceStorageRequest = storageRequest
 	gOptions.BeeConfig = newDefaultBeeConfig()
 	gOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootNodeCount, namespace)
+	gOptions.BeeConfig.FullNode = fullNode
 	cluster.AddNodeGroup(name, *gOptions)
 	g := cluster.NodeGroup(name)
 
@@ -155,6 +156,7 @@ func newDefaultBeeConfig() *k8s.Config {
 		DBCapacity:           5000000,
 		DebugAPIAddr:         ":1635",
 		DebugAPIEnable:       true,
+		FullNode:             true,
 		GatewayMode:          false,
 		GlobalPinningEnabled: true,
 		NATAddr:              "",
