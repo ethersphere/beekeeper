@@ -41,12 +41,13 @@ func applyOptions(new, old interface{}) (err error) {
 	for i := 0; i < nv.NumField(); i++ {
 		if !nv.Field(i).IsNil() {
 			fieldName := nt.Field(i).Name
-			fieldValue := nv.Field(i).Elem()
-			fmt.Println("A", i, fieldName, nt.Field(i).Type, fieldValue)
+			filedType := nt.Field(i).Type
+			fieldValue := nv.FieldByName(fieldName).Elem()
+			fmt.Println("new", i, fieldName, filedType, fieldValue)
+			fv := ov.FieldByName(fieldName)
 			ft, ok := ot.FieldByName(fieldName)
-			if ok && nt.Field(i).Type.Elem().AssignableTo(ft.Type) {
-				fv := ov.FieldByName(fieldName)
-				fmt.Println("B", i, fieldName, ft.Type, fv)
+			if ok && filedType.Elem().AssignableTo(ft.Type) {
+				fmt.Println("set", i, fieldName, ft.Type, fv)
 				// fv.Set(fieldValue)
 			}
 		}
