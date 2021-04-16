@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/check"
@@ -30,6 +31,30 @@ type Check struct {
 	NewOptions func(cfg *config.Config, checkProfile config.Check) (interface{}, error)
 }
 
+func applyOptions(new, old interface{}) (err error) {
+	fmt.Println("applying options")
+	nv := reflect.ValueOf(new).Elem()
+	nt := reflect.TypeOf(new).Elem()
+	ov := reflect.ValueOf(old)
+	ot := reflect.TypeOf(old)
+
+	for i := 0; i < nv.NumField(); i++ {
+		if !nv.Field(i).IsNil() {
+			fieldName := nt.Field(i).Name
+			fieldValue := nv.Field(i).Elem()
+			fmt.Println("A", i, fieldName, nt.Field(i).Type, fieldValue)
+			ft, ok := ot.FieldByName(fieldName)
+			if ok && nt.Field(i).Type.Elem().AssignableTo(ft.Type) {
+				fv := ov.FieldByName(fieldName)
+				fmt.Println("B", i, fieldName, ft.Type, fv)
+				// fv.Set(fieldValue)
+			}
+		}
+	}
+
+	return
+}
+
 var Checks = map[string]Check{
 	"balances": {
 		NewCheck: balances.NewCheck,
@@ -54,23 +79,26 @@ var Checks = map[string]Check{
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
-			if o.DryRun != nil {
-				opts.DryRun = *o.DryRun
-			}
-			if o.FileName != nil {
-				opts.FileName = *o.FileName
-			}
-			if o.FileSize != nil {
-				opts.FileSize = *o.FileSize
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.UploadNodeCount != nil {
-				opts.UploadNodeCount = *o.UploadNodeCount
-			}
-			if o.WaitBeforeDownload != nil {
-				opts.WaitBeforeDownload = *o.WaitBeforeDownload
+			// if o.DryRun != nil {
+			// 	opts.DryRun = *o.DryRun
+			// }
+			// if o.FileName != nil {
+			// 	opts.FileName = *o.FileName
+			// }
+			// if o.FileSize != nil {
+			// 	opts.FileSize = *o.FileSize
+			// }
+			// if o.NodeGroup != nil {
+			// 	opts.NodeGroup = *o.NodeGroup
+			// }
+			// if o.UploadNodeCount != nil {
+			// 	opts.UploadNodeCount = *o.UploadNodeCount
+			// }
+			// if o.WaitBeforeDownload != nil {
+			// 	opts.WaitBeforeDownload = *o.WaitBeforeDownload
+			// }
+			if err := applyOptions(o, opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},

@@ -50,7 +50,9 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-
+	fmt.Println("DefaultOptions", DefaultOptions)
+	fmt.Println("AppliedOptions", o)
+	return
 	if o.DryRun {
 		fmt.Println("running balances (dry mode)")
 		return dryRun(ctx, cluster, o)
