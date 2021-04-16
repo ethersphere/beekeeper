@@ -16,7 +16,7 @@ type Config struct {
 	// profiles
 	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
 	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
-	RunProfiles       map[string]RunProfile       `yaml:"run-profiles"`
+	Playbooks         map[string]RunProfile       `yaml:"playbooks"`
 	// orchestrator
 	Kubernetes struct {
 		Enable     bool   `yaml:"enable"`

@@ -69,6 +69,48 @@ cluster:
 
 execute: default
 
+bee-profiles:
+  default:
+    _file: ""
+    _inherit: ""
+    api-addr: ":1633"
+    bootnodes: ""
+    clef-signer-enable: false
+    clef-signer-endpoint: ""
+    cors-allowed-origins: ""
+    data-dir: "/home/bee/.bee"
+    db-capacity: 5000000
+    debug-api-addr: ":1635"
+    debug-api-enable: true
+    gateway-mode: false
+    global-pinning-enabled: true
+    nat-addr: ""
+    network-id: 1987
+    p2p-addr: ":1634"
+    p2p-quic-enable: false
+    pwp-ws-enable: false
+    password: "beekeeper"
+    payment-early: 1000000000000
+    payment-threshold: 10000000000000
+    payment-tolerance: 50000000000000
+    postage-stamp-address: ""
+    price-oracle-address: ""
+    resolver-options: ""
+    standalone: false
+    swap-enable: false
+    swap-endpoint: "http://localhost:8545"
+    swap-factory-address: ""
+    swap-initial-deposit: 10000000000000000
+    tracing-enabled: false
+    tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
+    tracing-service-name: "bee"
+    verbosity: 5
+    welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
+  light-node:
+    _file: ""
+    _inherit: default
+    api-addr: ":1644"
+
 checks:
   balances:
     name: balances
@@ -235,48 +277,6 @@ checks:
       node-group: bee
     timeout: 5m
 
-bee-profiles:
-  default:
-    _file: ""
-    _inherit: ""
-    api-addr: ":1633"
-    bootnodes: ""
-    clef-signer-enable: false
-    clef-signer-endpoint: ""
-    cors-allowed-origins: ""
-    data-dir: "/home/bee/.bee"
-    db-capacity: 5000000
-    debug-api-addr: ":1635"
-    debug-api-enable: true
-    gateway-mode: false
-    global-pinning-enabled: true
-    nat-addr: ""
-    network-id: 1987
-    p2p-addr: ":1634"
-    p2p-quic-enable: false
-    pwp-ws-enable: false
-    password: "beekeeper"
-    payment-early: 1000000000000
-    payment-threshold: 10000000000000
-    payment-tolerance: 50000000000000
-    postage-stamp-address: ""
-    price-oracle-address: ""
-    resolver-options: ""
-    standalone: false
-    swap-enable: false
-    swap-endpoint: "http://localhost:8545"
-    swap-factory-address: ""
-    swap-initial-deposit: 10000000000000000
-    tracing-enabled: false
-    tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
-    tracing-service-name: "bee"
-    verbosity: 5
-    welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
-  light-node:
-    _file: ""
-    _inherit: default
-    api-addr: ":1644"
-
 node-group-profiles:
   default:
     _file: ""
@@ -321,7 +321,7 @@ node-group-profiles:
     image: svetomir/bee:latest
     image-pull-policy: IfNotPresent
 
-run-profiles:
+playbooks:
   default:
     checks: [balances]
     metrics-enabled: 
