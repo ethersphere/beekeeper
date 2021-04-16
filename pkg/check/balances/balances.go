@@ -24,14 +24,16 @@ type Options struct {
 	WaitBeforeDownload int // seconds
 }
 
-var DefaultOptions = Options{
-	DryRun:             false,
-	FileName:           "balances",
-	FileSize:           1 * 1024 * 1024, // 1mb,
-	NodeGroup:          "bee",
-	Seed:               random.Int64(),
-	UploadNodeCount:    1,
-	WaitBeforeDownload: 5,
+func NewDefaultOptions() Options {
+	return Options{
+		DryRun:             false,
+		FileName:           "balances",
+		FileSize:           1 * 1024 * 1024, // 1mb,
+		NodeGroup:          "bee",
+		Seed:               random.Int64(),
+		UploadNodeCount:    1,
+		WaitBeforeDownload: 5,
+	}
 }
 
 // compile check whether Check implements interface
@@ -50,7 +52,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-	fmt.Println("DefaultOptions", DefaultOptions)
+	fmt.Println("DefaultOptions", NewDefaultOptions())
 	fmt.Println("AppliedOptions", o)
 	return
 	if o.DryRun {

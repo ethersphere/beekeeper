@@ -35,7 +35,7 @@ func applyOptions(new, old interface{}) (err error) {
 	fmt.Println("applying options")
 	nv := reflect.ValueOf(new).Elem()
 	nt := reflect.TypeOf(new).Elem()
-	ov := reflect.ValueOf(old)
+	ov := reflect.ValueOf(&old)
 	ot := reflect.TypeOf(old)
 
 	for i := 0; i < nv.NumField(); i++ {
@@ -48,7 +48,7 @@ func applyOptions(new, old interface{}) (err error) {
 			ft, ok := ot.FieldByName(fieldName)
 			if ok && filedType.Elem().AssignableTo(ft.Type) {
 				fmt.Println("set", i, fieldName, ft.Type, fv)
-				// fv.Set(fieldValue)
+				fv.Set(fieldValue)
 			}
 		}
 	}
@@ -72,7 +72,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := balances.DefaultOptions
+			opts := balances.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
