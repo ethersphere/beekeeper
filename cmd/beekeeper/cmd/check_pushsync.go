@@ -189,7 +189,7 @@ and checks if chunks are synced to their closest nodes.`,
 
 			retryDelayDuration := c.config.GetDuration(optionNameRetryDelay)
 			return pushsync.Check(cluster, pushsync.Options{
-				NodeGroup:       "nodes",
+				NodeGroup:       "bee",
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Retries:         c.config.GetInt(optionNameRetries),

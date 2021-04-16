@@ -141,7 +141,7 @@ func (c *command) initCheckKademlia() *cobra.Command {
 				kActions := []kademlia.Actions{}
 				for i := 0; i < len(dynamicActions); i = i + 4 {
 					kActions = append(kActions, kademlia.Actions{
-						NodeGroup:   "nodes",
+						NodeGroup:   "bee",
 						AddCount:    dynamicActions[i],
 						DeleteCount: dynamicActions[i+1],
 						StartCount:  dynamicActions[i+2],

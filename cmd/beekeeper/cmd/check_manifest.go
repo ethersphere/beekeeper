@@ -134,7 +134,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 			}
 
 			return manifest.Check(cluster, manifest.Options{
-				NodeGroup:         "nodes",
+				NodeGroup:         "bee",
 				FilesInCollection: c.config.GetInt(optionNameFilesInCollection),
 				MaxPathnameLength: c.config.GetInt32(optionMaxPathnameLength),
 				Seed:              seed,

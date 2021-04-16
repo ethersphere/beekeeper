@@ -126,7 +126,7 @@ func (c *command) initCheckSOC() *cobra.Command {
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			return soc.Check(cluster, soc.Options{
-				NodeGroup: "nodes",
+				NodeGroup: "bee",
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,

@@ -151,7 +151,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 
 			if full {
 				return fileretrieval.CheckFull(cluster, fileretrieval.Options{
-					NodeGroup:       "nodes",
+					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
 					FileName:        c.config.GetString(optionNameFileName),
@@ -161,7 +161,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 			}
 
 			return fileretrieval.Check(cluster, fileretrieval.Options{
-				NodeGroup:       "nodes",
+				NodeGroup:       "bee",
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
 				FileName:        c.config.GetString(optionNameFileName),

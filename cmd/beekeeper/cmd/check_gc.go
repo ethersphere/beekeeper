@@ -134,7 +134,7 @@ func (c *command) initCheckGc() *cobra.Command {
 			}
 
 			return gc.CheckChunkNotFound(cluster, gc.Options{
-				NodeGroup:        "nodes",
+				NodeGroup:        "bee",
 				StoreSize:        c.config.GetInt(optionNameDbCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
 				Wait:             c.config.GetInt(optionNameWaitBeforeCheck),

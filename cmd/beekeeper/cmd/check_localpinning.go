@@ -133,7 +133,7 @@ func (c *command) initCheckLocalPinningChunk() *cobra.Command {
 			}
 
 			return localpinning.CheckChunkFound(cluster, localpinning.Options{
-				NodeGroup:        "nodes",
+				NodeGroup:        "bee",
 				StoreSize:        c.config.GetInt(optionNameDbCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
 				Seed:             seed,

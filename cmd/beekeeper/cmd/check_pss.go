@@ -138,7 +138,7 @@ sends PSS messages to random nodes to check if WebSocket connections receive the
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			return pss.Check(cluster, pss.Options{
-				NodeGroup:      "nodes",
+				NodeGroup:      "bee",
 				NodeCount:      c.config.GetInt(optionNameNodeCount),
 				Seed:           seed,
 				RequestTimeout: c.config.GetDuration(optionTimeout),

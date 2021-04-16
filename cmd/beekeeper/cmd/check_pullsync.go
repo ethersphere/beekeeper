@@ -139,7 +139,7 @@ func (c *command) initCheckPullSync() *cobra.Command {
 			}
 
 			return pullsync.Check(cluster, pullsync.Options{
-				NodeGroup:                  "nodes",
+				NodeGroup:                  "bee",
 				UploadNodeCount:            c.config.GetInt(optionNameUploadNodeCount),
 				ReplicationFactorThreshold: c.config.GetInt(optionNameReplicationFactor),
 				ChunksPerNode:              c.config.GetInt(optionNameChunksPerNode),
