@@ -26,14 +26,17 @@ type Options struct {
 	Seed            int64
 }
 
-var DefaultOptions = Options{
-	FileName:        "file-retrieval",
-	FileSize:        1 * 1024 * 1024, // 1mb
-	FilesPerNode:    1,
-	MetricsPusher:   nil,
-	NodeGroup:       "bee",
-	Seed:            random.Int64(),
-	UploadNodeCount: 1,
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		FileName:        "file-retrieval",
+		FileSize:        1 * 1024 * 1024, // 1mb
+		FilesPerNode:    1,
+		MetricsPusher:   nil,
+		NodeGroup:       "bee",
+		Seed:            random.Int64(),
+		UploadNodeCount: 1,
+	}
 }
 
 // compile check whether Check implements interface

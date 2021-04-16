@@ -53,7 +53,10 @@ func (c *command) initStressUpload() *cobra.Command {
 		Short: "Uploads data to all nodes in the cluster",
 		Long:  `Uploads data to all nodes in the cluster to ensure that the GC process is activated.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg := config.Read("config.yaml")
+			cfg, err := config.Read("config.yaml")
+			if err != nil {
+				return err
+			}
 			cluster, err := setupCluster(cmd.Context(), cfg, startCluster)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)

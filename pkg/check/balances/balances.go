@@ -24,6 +24,7 @@ type Options struct {
 	WaitBeforeDownload int // seconds
 }
 
+// NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
 		DryRun:             false,
@@ -52,8 +53,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-	fmt.Println("DefaultOptions", NewDefaultOptions())
-	fmt.Println("AppliedOptions", o)
+	fmt.Printf("DefaultOptions: %#v\n", NewDefaultOptions())
+	fmt.Printf("AppliedOptions: %#v\n", o)
 	return
 	if o.DryRun {
 		fmt.Println("running balances (dry mode)")

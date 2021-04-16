@@ -22,12 +22,15 @@ type Options struct {
 	Wait             int    // wait before check
 }
 
-var DefaultOptions = Options{
-	NodeGroup:        "bee",
-	Seed:             random.Int64(),
-	StoreSize:        1000,
-	StoreSizeDivisor: 3,
-	Wait:             5,
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		NodeGroup:        "bee",
+		Seed:             random.Int64(),
+		StoreSize:        1000,
+		StoreSizeDivisor: 3,
+		Wait:             5,
+	}
 }
 
 // compile check whether Check implements interface

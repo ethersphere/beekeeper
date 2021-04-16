@@ -17,8 +17,11 @@ type Options struct {
 	Dynamic bool
 }
 
-var DefaultOptions = Options{
-	Dynamic: false,
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		Dynamic: false,
+	}
 }
 
 // compile check whether Check implements interface

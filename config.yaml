@@ -325,7 +325,7 @@ run-profiles:
   default:
     checks: [balances]
     metrics-enabled: 
-    seed: 
+    seed: 123
     # stages: default
     timeout: 1h
   static:

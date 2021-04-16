@@ -41,7 +41,10 @@ func (c *command) initCheckCmd() (err error) {
 		Use:   "check",
 		Short: "Run tests on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg := config.Read("config.yaml")
+			cfg, err := config.Read("config.yaml")
+			if err != nil {
+				return err
+			}
 
 			for _, checkName := range cfg.RunProfiles[cfg.Execute].Checks {
 				checkProfile, ok := cfg.Checks[checkName]

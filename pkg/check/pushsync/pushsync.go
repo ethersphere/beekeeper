@@ -29,17 +29,20 @@ type Options struct {
 	UploadNodeCount int
 }
 
-var DefaultOptions = Options{
-	ChunksPerNode:   1,
-	FileSize:        1 * 1024 * 1024, // 1mb
-	FilesPerNode:    1,
-	MetricsPusher:   nil,
-	Mode:            "default",
-	NodeGroup:       "bee",
-	Retries:         5,
-	RetryDelay:      1 * time.Second,
-	Seed:            random.Int64(),
-	UploadNodeCount: 1,
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		ChunksPerNode:   1,
+		FileSize:        1 * 1024 * 1024, // 1mb
+		FilesPerNode:    1,
+		MetricsPusher:   nil,
+		Mode:            "default",
+		NodeGroup:       "bee",
+		Retries:         5,
+		RetryDelay:      1 * time.Second,
+		Seed:            random.Int64(),
+		UploadNodeCount: 1,
+	}
 }
 
 // compile check whether Check implements interface

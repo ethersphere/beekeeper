@@ -26,11 +26,14 @@ type Options struct {
 	Seed                   int64
 }
 
-var DefaultOptions = Options{
-	MetricsPusher:          nil,
-	NodeGroup:              "bee",
-	NumberOfChunksToRepair: 1,
-	Seed:                   random.Int64(),
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		MetricsPusher:          nil,
+		NodeGroup:              "bee",
+		NumberOfChunksToRepair: 1,
+		Seed:                   random.Int64(),
+	}
 }
 
 // compile check whether Check implements interface

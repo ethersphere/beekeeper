@@ -13,7 +13,10 @@ func (c *command) initPrintTopologies() *cobra.Command {
 		Short: "Print topologies",
 		Long:  `Print list of Kademlia topology for every node in a cluster`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg := config.Read("config.yaml")
+			cfg, err := config.Read("config.yaml")
+			if err != nil {
+				return err
+			}
 			cluster, err := setupCluster(cmd.Context(), cfg, false)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)

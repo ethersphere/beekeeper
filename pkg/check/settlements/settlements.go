@@ -26,16 +26,19 @@ type Options struct {
 	WaitBeforeDownload int // seconds to wait before downloading a file
 }
 
-var DefaultOptions = Options{
-	DryRun:             false,
-	ExpectSettlements:  true,
-	FileName:           "settlements",
-	FileSize:           1 * 1024 * 1024, // 1mb
-	NodeGroup:          "bee",
-	Seed:               random.Int64(),
-	Threshold:          10000000000000,
-	UploadNodeCount:    1,
-	WaitBeforeDownload: 5,
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		DryRun:             false,
+		ExpectSettlements:  true,
+		FileName:           "settlements",
+		FileSize:           1 * 1024 * 1024, // 1mb
+		NodeGroup:          "bee",
+		Seed:               random.Int64(),
+		Threshold:          10000000000000,
+		UploadNodeCount:    1,
+		WaitBeforeDownload: 5,
+	}
 }
 
 // compile check whether Check implements interface

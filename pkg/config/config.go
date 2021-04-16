@@ -1,8 +1,8 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
 	"reflect"
 	"time"
 
@@ -41,10 +41,9 @@ type NodeGroupProfile struct {
 }
 
 type RunProfile struct {
-	Checks         []string `yaml:"checks"`
-	MetricsEnabled bool     `yaml:"metrics-enabled"`
-	Seed           int64    `yaml:"seed"`
-	Stages         [][]struct {
+	Checks              []string `yaml:"checks"`
+	ChecksCommonOptions `yaml:",inline"`
+	Stages              [][]struct {
 		NodeGroup string `yaml:"node-group"`
 		Add       int    `yaml:"add"`
 		Start     int    `yaml:"start"`
@@ -54,7 +53,7 @@ type RunProfile struct {
 	Timeout time.Duration `yaml:"timeout"`
 }
 
-func (c *Config) Merge() {
+func (c *Config) Merge() (err error) {
 	// TODO: generalize to have 1 function supporting all types
 	// merge BeeProfiles
 	mergedBP := map[string]BeeProfile{}
@@ -62,7 +61,10 @@ func (c *Config) Merge() {
 		if len(v.Profile.Inherit) == 0 {
 			mergedBP[name] = v
 		} else {
-			parent := c.BeeProfiles[v.Profile.Inherit]
+			parent, ok := c.BeeProfiles[v.Profile.Inherit]
+			if !ok {
+				return fmt.Errorf("bee profile %s doesn't exist", v.Profile.Inherit)
+			}
 			p := reflect.ValueOf(&parent.Bee).Elem()
 			m := reflect.ValueOf(&v.Bee).Elem()
 			for i := 0; i < m.NumField(); i++ {
@@ -84,7 +86,10 @@ func (c *Config) Merge() {
 		if len(v.Profile.Inherit) == 0 {
 			mergedNGP[name] = v
 		} else {
-			parent := c.NodeGroupProfiles[v.Profile.Inherit]
+			parent, ok := c.NodeGroupProfiles[v.Profile.Inherit]
+			if !ok {
+				return fmt.Errorf("node group profile %s doesn't exist", v.Profile.Inherit)
+			}
 			p := reflect.ValueOf(&parent.NodeGroup).Elem()
 			m := reflect.ValueOf(&v.NodeGroup).Elem()
 			for i := 0; i < m.NumField(); i++ {
@@ -99,19 +104,23 @@ func (c *Config) Merge() {
 		}
 	}
 	c.NodeGroupProfiles = mergedNGP
+
+	return
 }
 
-func Read(file string) (c *Config) {
+func Read(file string) (c *Config, err error) {
 	yamlFile, err := ioutil.ReadFile(file)
 	if err != nil {
-		log.Printf("yamlFile.Get err   #%v ", err)
+		return nil, fmt.Errorf("yamlFile.Get err   %w ", err)
 	}
 
 	if err := yaml.Unmarshal(yamlFile, &c); err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		return nil, fmt.Errorf("unmarshal: %v", err)
 	}
 
-	c.Merge()
+	if err := c.Merge(); err != nil {
+		return nil, fmt.Errorf("merging config: %w", err)
+	}
 
 	return
 }

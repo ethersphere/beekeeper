@@ -21,8 +21,11 @@ type Options struct {
 	NodeGroup string // TODO: support multi node group cluster
 }
 
-var DefaultOptions = Options{
-	NodeGroup: "bee",
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		NodeGroup: "bee",
+	}
 }
 
 // compile check whether Check implements interface

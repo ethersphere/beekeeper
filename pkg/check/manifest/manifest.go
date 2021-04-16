@@ -24,11 +24,14 @@ type Options struct {
 	Seed              int64
 }
 
-var DefaultOptions = Options{
-	FilesInCollection: 10,
-	MaxPathnameLength: 64,
-	NodeGroup:         "bee",
-	Seed:              random.Int64(),
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		FilesInCollection: 10,
+		MaxPathnameLength: 64,
+		NodeGroup:         "bee",
+		Seed:              random.Int64(),
+	}
 }
 
 // compile check whether Check implements interface

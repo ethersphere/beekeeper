@@ -31,24 +31,20 @@ type Check struct {
 	NewOptions func(cfg *config.Config, checkProfile config.Check) (interface{}, error)
 }
 
-func applyOptions(new, old interface{}) (err error) {
-	fmt.Println("applying options")
-	nv := reflect.ValueOf(new).Elem()
-	nt := reflect.TypeOf(new).Elem()
-	ov := reflect.ValueOf(&old)
-	ot := reflect.TypeOf(old)
+func applyOptions(local, opts interface{}) (err error) {
+	lv := reflect.ValueOf(local).Elem()
+	lt := reflect.TypeOf(local).Elem()
+	ov := reflect.Indirect(reflect.ValueOf(opts).Elem())
+	ot := reflect.TypeOf(opts).Elem()
 
-	for i := 0; i < nv.NumField(); i++ {
-		if !nv.Field(i).IsNil() {
-			fieldName := nt.Field(i).Name
-			filedType := nt.Field(i).Type
-			fieldValue := nv.FieldByName(fieldName).Elem()
-			fmt.Println("new", i, fieldName, filedType, fieldValue)
-			fv := ov.FieldByName(fieldName)
+	for i := 0; i < lv.NumField(); i++ {
+		if !lv.Field(i).IsNil() {
+			fieldName := lt.Field(i).Name
+			filedType := lt.Field(i).Type
+			fieldValue := lv.FieldByName(fieldName).Elem()
 			ft, ok := ot.FieldByName(fieldName)
 			if ok && filedType.Elem().AssignableTo(ft.Type) {
-				fmt.Println("set", i, fieldName, ft.Type, fv)
-				fv.Set(fieldValue)
+				ov.FieldByName(fieldName).Set(fieldValue)
 			}
 		}
 	}
@@ -60,7 +56,7 @@ var Checks = map[string]Check{
 	"balances": {
 		NewCheck: balances.NewCheck,
 		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
-			o := new(struct {
+			checkOpts := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
 				FileName           *string `yaml:"file-name"`
 				FileSize           *int64  `yaml:"file-size"`
@@ -69,38 +65,15 @@ var Checks = map[string]Check{
 				UploadNodeCount    *int    `yaml:"upload-node-count"`
 				WaitBeforeDownload *int    `yaml:"wait-before-download"`
 			})
-			if err := checkProfile.Options.Decode(o); err != nil {
+			if err := checkProfile.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
 			opts := balances.NewDefaultOptions()
 
-			// set seed
-			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
-				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
-			} else if o.Seed != nil && *o.Seed > 0 { // set localy
-				opts.Seed = *o.Seed
-			}
-			// if o.DryRun != nil {
-			// 	opts.DryRun = *o.DryRun
-			// }
-			// if o.FileName != nil {
-			// 	opts.FileName = *o.FileName
-			// }
-			// if o.FileSize != nil {
-			// 	opts.FileSize = *o.FileSize
-			// }
-			// if o.NodeGroup != nil {
-			// 	opts.NodeGroup = *o.NodeGroup
-			// }
-			// if o.UploadNodeCount != nil {
-			// 	opts.UploadNodeCount = *o.UploadNodeCount
-			// }
-			// if o.WaitBeforeDownload != nil {
-			// 	opts.WaitBeforeDownload = *o.WaitBeforeDownload
-			// }
-			if err := applyOptions(o, opts); err != nil {
+			if err := applyOptions(checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
+
 			return opts, nil
 		},
 	},
@@ -116,7 +89,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := chunkrepair.DefaultOptions
+			opts := chunkrepair.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
@@ -131,11 +104,8 @@ var Checks = map[string]Check{
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.NumberOfChunksToRepair != nil {
-				opts.NumberOfChunksToRepair = *o.NumberOfChunksToRepair
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -156,7 +126,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := fileretrieval.DefaultOptions
+			opts := fileretrieval.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
@@ -171,23 +141,8 @@ var Checks = map[string]Check{
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			}
-			if o.FileName != nil {
-				opts.FileName = *o.FileName
-			}
-			if o.FileSize != nil {
-				opts.FileSize = *o.FileSize
-			}
-			if o.FilesPerNode != nil {
-				opts.FilesPerNode = *o.FilesPerNode
-			}
-			if o.Full != nil {
-				opts.Full = *o.Full
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.UploadNodeCount != nil {
-				opts.UploadNodeCount = *o.UploadNodeCount
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -211,7 +166,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := gc.DefaultOptions
+			opts := gc.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
@@ -219,17 +174,8 @@ var Checks = map[string]Check{
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.StoreSize != nil {
-				opts.StoreSize = *o.StoreSize
-			}
-			if o.StoreSizeDivisor != nil {
-				opts.StoreSizeDivisor = *o.StoreSizeDivisor
-			}
-			if o.Wait != nil {
-				opts.Wait = *o.Wait
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -243,9 +189,9 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := kademlia.DefaultOptions
-			if o.Dynamic != nil {
-				opts.Dynamic = *o.Dynamic
+			opts := kademlia.NewDefaultOptions()
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
 			return opts, nil
@@ -264,7 +210,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := localpinning.DefaultOptions
+			opts := localpinning.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // enabled globaly
@@ -272,17 +218,8 @@ var Checks = map[string]Check{
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}
-			if o.Mode != nil {
-				opts.Mode = *o.Mode
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.StoreSize != nil {
-				opts.StoreSize = *o.StoreSize
-			}
-			if o.StoreSizeDivisor != nil {
-				opts.StoreSizeDivisor = *o.StoreSizeDivisor
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -299,7 +236,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := manifest.DefaultOptions
+			opts := manifest.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
@@ -307,14 +244,8 @@ var Checks = map[string]Check{
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
-			if o.FilesInCollection != nil {
-				opts.FilesInCollection = *o.FilesInCollection
-			}
-			if o.MaxPathnameLength != nil {
-				opts.MaxPathnameLength = *o.MaxPathnameLength
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -334,7 +265,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := pingpong.DefaultOptions
+			opts := pingpong.NewDefaultOptions()
 
 			// TODO: resolve optionNamePushGateway
 			// set metrics
@@ -360,7 +291,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := pss.DefaultOptions
+			opts := pss.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
@@ -375,17 +306,8 @@ var Checks = map[string]Check{
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			}
-			if o.AddressPrefix != nil {
-				opts.AddressPrefix = *o.AddressPrefix
-			}
-			if o.NodeCount != nil { // TODO: check what this option represent
-				opts.NodeCount = *o.NodeCount
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.RequestTimeout != nil {
-				opts.RequestTimeout = *o.RequestTimeout
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -403,7 +325,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := pullsync.DefaultOptions
+			opts := pullsync.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // set globaly
@@ -411,17 +333,8 @@ var Checks = map[string]Check{
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
-			if o.ChunksPerNode != nil {
-				opts.ChunksPerNode = *o.ChunksPerNode
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.ReplicationFactorThreshold != nil {
-				opts.ReplicationFactorThreshold = *o.ReplicationFactorThreshold
-			}
-			if o.UploadNodeCount != nil {
-				opts.UploadNodeCount = *o.UploadNodeCount
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -444,7 +357,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := pushsync.DefaultOptions
+			opts := pushsync.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // enabled globaly
@@ -459,29 +372,8 @@ var Checks = map[string]Check{
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			}
-			if o.ChunksPerNode != nil {
-				opts.ChunksPerNode = *o.ChunksPerNode
-			}
-			if o.FileSize != nil {
-				opts.FileSize = *o.FileSize
-			}
-			if o.FilesPerNode != nil {
-				opts.FilesPerNode = *o.FilesPerNode
-			}
-			if o.Mode != nil {
-				opts.Mode = *o.Mode
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.Retries != nil {
-				opts.Retries = *o.Retries
-			}
-			if o.RetryDelay != nil {
-				opts.RetryDelay = *o.RetryDelay
-			}
-			if o.UploadNodeCount != nil {
-				opts.UploadNodeCount = *o.UploadNodeCount
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -499,7 +391,7 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := retrieval.DefaultOptions
+			opts := retrieval.NewDefaultOptions()
 
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // enabled globaly
@@ -514,14 +406,8 @@ var Checks = map[string]Check{
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
 				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
 			}
-			if o.ChunksPerNode != nil {
-				opts.ChunksPerNode = *o.ChunksPerNode
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.UploadNodeCount != nil {
-				opts.UploadNodeCount = *o.UploadNodeCount
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
 			return opts, nil
 		},
@@ -543,38 +429,18 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := settlements.DefaultOptions
 
+			opts := settlements.NewDefaultOptions()
 			// set seed
 			if o.Seed == nil && cfg.RunProfiles[cfg.Execute].Seed > 0 { // enabled globaly
 				opts.Seed = cfg.RunProfiles[cfg.Execute].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}
-			if o.DryRun != nil {
-				opts.DryRun = *o.DryRun
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
-			if o.ExpectSettlements != nil {
-				opts.ExpectSettlements = *o.ExpectSettlements
-			}
-			if o.FileName != nil {
-				opts.FileName = *o.FileName
-			}
-			if o.FileSize != nil {
-				opts.FileSize = *o.FileSize
-			}
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
-			}
-			if o.Threshold != nil {
-				opts.Threshold = *o.Threshold
-			}
-			if o.UploadNodeCount != nil {
-				opts.UploadNodeCount = *o.UploadNodeCount
-			}
-			if o.WaitBeforeDownload != nil {
-				opts.WaitBeforeDownload = *o.WaitBeforeDownload
-			}
+
 			return opts, nil
 		},
 	},
@@ -587,10 +453,12 @@ var Checks = map[string]Check{
 			if err := checkProfile.Options.Decode(o); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", checkProfile.Name, err)
 			}
-			opts := soc.DefaultOptions
-			if o.NodeGroup != nil {
-				opts.NodeGroup = *o.NodeGroup
+
+			opts := soc.NewDefaultOptions()
+			if err := applyOptions(o, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
 			}
+
 			return opts, nil
 		},
 	},

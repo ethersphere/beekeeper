@@ -18,8 +18,11 @@ type Options struct {
 	MetricsPusher *push.Pusher
 }
 
-var DefaultOptions = Options{
-	MetricsPusher: nil,
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		MetricsPusher: nil,
+	}
 }
 
 // compile check whether Check implements interface

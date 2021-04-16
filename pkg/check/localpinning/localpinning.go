@@ -22,12 +22,15 @@ type Options struct {
 	Seed             int64
 }
 
-var DefaultOptions = Options{
-	Mode:             "pin-chunk",
-	NodeGroup:        "bee",
-	Seed:             random.Int64(),
-	StoreSize:        1000,
-	StoreSizeDivisor: 3,
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		Mode:             "pin-chunk",
+		NodeGroup:        "bee",
+		Seed:             random.Int64(),
+		StoreSize:        1000,
+		StoreSizeDivisor: 3,
+	}
 }
 
 // compile check whether Check implements interface

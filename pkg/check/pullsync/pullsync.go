@@ -23,12 +23,15 @@ type Options struct {
 	UploadNodeCount            int
 }
 
-var DefaultOptions = Options{
-	ChunksPerNode:              1,
-	NodeGroup:                  "bee",
-	ReplicationFactorThreshold: 2,
-	Seed:                       random.Int64(),
-	UploadNodeCount:            1,
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		ChunksPerNode:              1,
+		NodeGroup:                  "bee",
+		ReplicationFactorThreshold: 2,
+		Seed:                       random.Int64(),
+		UploadNodeCount:            1,
+	}
 }
 
 // compile check whether Check implements interface

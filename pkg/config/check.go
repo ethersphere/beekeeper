@@ -11,3 +11,8 @@ type Check struct {
 	Options yaml.Node      `yaml:"options"`
 	Timeout *time.Duration `yaml:"timeout"`
 }
+
+type ChecksCommonOptions struct {
+	MetricsEnabled bool  `yaml:"metrics-enabled"`
+	Seed           int64 `yaml:"seed"`
+}
