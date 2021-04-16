@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
 )
@@ -61,6 +62,10 @@ func (c *command) initStartCluster() *cobra.Command {
 
 			namespace := c.config.GetString(optionNameNamespace)
 			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
+				Annotations: map[string]string{
+					"created-by":        createdBy,
+					"beekeeper/version": beekeeper.Version,
+				},
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),
@@ -68,8 +73,11 @@ func (c *command) initStartCluster() *cobra.Command {
 				DebugAPIInsecureTLS: insecureTLSDebugAPI,
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
 				K8SClient:           k8sClient,
-				Namespace:           namespace,
-				DisableNamespace:    disableNamespace,
+				Labels: map[string]string{
+					"app.kubernetes.io/managed-by": managedBy,
+					"app.kubernetes.io/name":       labelName,
+				},
+				Namespace: namespace,
 			})
 
 			// bootnodes group
