@@ -22,17 +22,17 @@ func (c *command) initCheckPing() *cobra.Command {
 		optionNameBootnodeCount            = "bootnode-count"
 		optionNameNodeCount                = "node-count"
 		optionNameImage                    = "bee-image"
-		optionNameFullNode                 = "full-node"
 		optionNamePersistence              = "persistence"
 		optionNameStorageClass             = "storage-class"
 		optionNameStorageRequest           = "storage-request"
+		optionNameSeed                     = "seed"
+		optionNameFullNode                 = "full-node"
 		optionNameAdditionalNodeCount      = "additional-node-count"
 		optionNameAdditionalImage          = "additional-bee-image"
 		optionNameAdditionalFullNode       = "additional-full-node"
 		optionNameAdditionalPersistence    = "additional-persistence"
 		optionNameAdditionalStorageClass   = "additional-storage-class"
 		optionNameAdditionalStorageRequest = "additional-storage-request"
-		optionNameSeed                     = "seed"
 	)
 
 	var (
@@ -43,10 +43,10 @@ func (c *command) initCheckPing() *cobra.Command {
 		bootnodeCount            int
 		nodeCount                int
 		image                    string
-		fullNode                 bool
 		persistence              bool
 		storageClass             string
 		storageRequest           string
+		fullNode                 bool
 		additionalNodeCount      int
 		additionalImage          string
 		additionalFullNode       bool
@@ -156,17 +156,17 @@ and prints round-trip time (RTT) of each ping.`,
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
 	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
-	cmd.PersistentFlags().BoolVar(&fullNode, optionNameFullNode, true, "start node in full mode")
 	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, true, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
+	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
+	cmd.PersistentFlags().BoolVar(&fullNode, optionNameFullNode, true, "start node in full mode")
 	cmd.Flags().IntVar(&additionalNodeCount, optionNameAdditionalNodeCount, 0, "number of nodes in additional node group")
 	cmd.Flags().StringVar(&additionalImage, optionNameAdditionalImage, "anatollupacescu/light-nodes:latest", "Bee Docker image in additional node group")
 	cmd.PersistentFlags().BoolVar(&additionalFullNode, optionNameAdditionalFullNode, false, "start node in full mode")
 	cmd.PersistentFlags().BoolVar(&additionalPersistence, optionNameAdditionalPersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&additionalStorageClass, optionNameAdditionalStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&additionalStorageRequest, optionNameAdditionalStorageRequest, "34Gi", "storage request")
-	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 
 	return cmd
 }

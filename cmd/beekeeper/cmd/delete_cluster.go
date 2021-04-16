@@ -9,17 +9,31 @@ import (
 
 func (c *command) initDeleteCluster() *cobra.Command {
 	const (
-		optionNameClusterName         = "cluster-name"
-		optionNameBootnodeCount       = "bootnode-count"
-		optionNameNodeCount           = "node-count"
-		optionNameAdditionalNodeCount = "additional-node-count"
+		optionNameClusterName              = "cluster-name"
+		optionNameBootnodeCount            = "bootnode-count"
+		optionNameNodeCount                = "node-count"
+		optionNameAdditionalNodeCount      = "additional-node-count"
+		optionNameImage                    = "bee-image"
+		optionNameAdditionalImage          = "additional-bee-image"
+		optionNameAdditionalFullNode       = "additional-full-node"
+		optionNameAdditionalPersistence    = "additional-persistence"
+		optionNameAdditionalStorageClass   = "additional-storage-class"
+		optionNameAdditionalStorageRequest = "additional-storage-request"
 	)
 
 	var (
-		clusterName         string
-		bootnodeCount       int
-		nodeCount           int
-		additionalNodeCount int
+		clusterName              string
+		bootnodeCount            int
+		nodeCount                int
+		additionalNodeCount      int
+		image                    string
+		persistence              bool
+		storageClass             string
+		storageRequest           string
+		additionalImage          string
+		additionalPersistence    bool
+		additionalStorageClass   string
+		additionalStorageRequest string
 	)
 
 	cmd := &cobra.Command{
@@ -42,41 +56,27 @@ func (c *command) initDeleteCluster() *cobra.Command {
 				DebugAPIScheme:      c.config.GetString(optionNameDebugAPIScheme),
 				K8SClient:           k8sClient,
 				Namespace:           namespace,
+				DisableNamespace:    disableNamespace,
 			})
 
+			// bootnodes group
+			if bootnodeCount > 0 {
+				bgName := "bootnode"
+				if err := addBootNodeGroup(cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+					return fmt.Errorf("adding bootnode group %s: %w", bgName, err)
+				}
+			}
+
 			// node groups
+			ngName := "bee"
+			if err := addNodeGroup(cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+				return fmt.Errorf("adding node group %s: %w", ngName, err)
+			}
+
 			if additionalNodeCount > 0 {
 				addNgName := "drone"
-				addNgOptions := newDefaultNodeGroupOptions()
-				cluster.AddNodeGroup(addNgName, *addNgOptions)
-				addNg := cluster.NodeGroup(addNgName)
-
-				for i := 0; i < additionalNodeCount; i++ {
-					if err := addNg.DeleteNode(cmd.Context(), fmt.Sprintf("drone-%d", i)); err != nil {
-						return fmt.Errorf("deleting drone-%d: %w", i, err)
-					}
-				}
-			}
-
-			ngName := "bee"
-			ngOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup(ngName, *ngOptions)
-			ng := cluster.NodeGroup(ngName)
-
-			for i := 0; i < nodeCount; i++ {
-				if err := ng.DeleteNode(cmd.Context(), fmt.Sprintf("bee-%d", i)); err != nil {
-					return fmt.Errorf("deleting bee-%d: %w", i, err)
-				}
-			}
-
-			// bootnodes group
-			bgName := "bootnodes"
-			bgOptions := newDefaultNodeGroupOptions()
-			cluster.AddNodeGroup(bgName, *bgOptions)
-			bg := cluster.NodeGroup(bgName)
-			for i := 0; i < bootnodeCount; i++ {
-				if err := bg.DeleteNode(cmd.Context(), fmt.Sprintf("bootnode-%d", i)); err != nil {
-					return fmt.Errorf("deleting bootnode-%d: %w", i, err)
+				if err := addNodeGroup(cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, additionalPersistence); err != nil {
+					return fmt.Errorf("starting node group %s: %w", addNgName, err)
 				}
 			}
 
@@ -85,10 +85,15 @@ func (c *command) initDeleteCluster() *cobra.Command {
 		PreRunE: c.deletePreRunE,
 	}
 
+	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
 	cmd.PersistentFlags().StringVar(&clusterName, optionNameClusterName, "bee", "cluster name")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 1, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
 	cmd.Flags().IntVar(&additionalNodeCount, optionNameAdditionalNodeCount, 0, "number of nodes in additional node group")
+	cmd.Flags().StringVar(&additionalImage, optionNameAdditionalImage, "anatollupacescu/light-nodes:latest", "Bee Docker image in additional node group")
+	cmd.PersistentFlags().BoolVar(&additionalPersistence, optionNameAdditionalPersistence, false, "use persistent storage")
+	cmd.PersistentFlags().StringVar(&additionalStorageClass, optionNameAdditionalStorageClass, "local-storage", "storage class name")
+	cmd.PersistentFlags().StringVar(&additionalStorageRequest, optionNameAdditionalStorageRequest, "34Gi", "storage request")
 
 	return cmd
 }
