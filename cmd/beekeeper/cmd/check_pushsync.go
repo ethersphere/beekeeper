@@ -154,7 +154,7 @@ and checks if chunks are synced to their closest nodes.`,
 
 			if concurrent {
 				return pushsync.CheckConcurrent(cluster, pushsync.Options{
-					NodeGroup:       "nodes",
+					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					Seed:            seed,
@@ -163,7 +163,7 @@ and checks if chunks are synced to their closest nodes.`,
 
 			if uploadChunks {
 				return pushsync.CheckChunks(cluster, pushsync.Options{
-					NodeGroup:       "nodes",
+					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					RetryDelay:      c.config.GetDuration(optionNameRetryDelay),
@@ -176,7 +176,7 @@ and checks if chunks are synced to their closest nodes.`,
 				retryDelayDuration := c.config.GetDuration(optionNameRetryDelay)
 
 				return pushsync.CheckFiles(cluster, pushsync.Options{
-					NodeGroup:       "nodes",
+					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),

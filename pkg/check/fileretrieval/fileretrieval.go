@@ -42,53 +42,54 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	pusher.Format(expfmt.FmtText)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
-	if err != nil {
-		return err
-	}
+	for _, ng := range c.NodeGroups() {
+		overlays, err := ng.Overlays(ctx)
+		if err != nil {
+			return err
+		}
 
-	sortedNodes := ng.NodesSorted()
-	lastNodeName := sortedNodes[len(sortedNodes)-1]
-	for i := 0; i < o.UploadNodeCount; i++ {
-		nodeName := sortedNodes[i]
-		for j := 0; j < o.FilesPerNode; j++ {
-			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
+		sortedNodes := ng.NodesSorted()
+		lastNodeName := sortedNodes[len(sortedNodes)-1]
+		for i := 0; i < o.UploadNodeCount; i++ {
+			nodeName := sortedNodes[i]
+			for j := 0; j < o.FilesPerNode; j++ {
+				file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
-			t0 := time.Now()
-			if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
-				return fmt.Errorf("node %s: %w", nodeName, err)
-			}
-			d0 := time.Since(t0)
+				t0 := time.Now()
+				if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
+					return fmt.Errorf("node %s: %w", nodeName, err)
+				}
+				d0 := time.Since(t0)
 
-			uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d0.Seconds())
-			uploadTimeHistogram.Observe(d0.Seconds())
+				uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d0.Seconds())
+				uploadTimeHistogram.Observe(d0.Seconds())
 
-			time.Sleep(1 * time.Second)
-			t1 := time.Now()
-			size, hash, err := ng.NodeClient(lastNodeName).DownloadFile(ctx, file.Address())
-			if err != nil {
-				return fmt.Errorf("node %s: %w", lastNodeName, err)
-			}
-			d1 := time.Since(t1)
+				time.Sleep(1 * time.Second)
+				t1 := time.Now()
+				size, hash, err := ng.NodeClient(lastNodeName).DownloadFile(ctx, file.Address())
+				if err != nil {
+					return fmt.Errorf("node %s: %w", lastNodeName, err)
+				}
+				d1 := time.Since(t1)
 
-			downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d1.Seconds())
-			downloadTimeHistogram.Observe(d1.Seconds())
+				downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d1.Seconds())
+				downloadTimeHistogram.Observe(d1.Seconds())
 
-			if !bytes.Equal(file.Hash(), hash) {
-				notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", nodeName, j, file.Size(), size, overlays[nodeName].String(), file.Address().String())
-				return errFileRetrieval
-			}
+				if !bytes.Equal(file.Hash(), hash) {
+					notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+					fmt.Printf("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", nodeName, j, file.Size(), size, overlays[nodeName].String(), file.Address().String())
+					return errFileRetrieval
+				}
 
-			retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s\n", nodeName, j, overlays[nodeName].String(), file.Address().String())
+				retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s\n", nodeName, j, overlays[nodeName].String(), file.Address().String())
 
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
-					fmt.Printf("node %s: %v\n", nodeName, err)
+				if pushMetrics {
+					if err := pusher.Push(); err != nil {
+						fmt.Printf("node %s: %v\n", nodeName, err)
+					}
 				}
 			}
 		}
@@ -114,61 +115,62 @@ func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool)
 
 	pusher.Format(expfmt.FmtText)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
-	if err != nil {
-		return err
-	}
+	for _, ng := range c.NodeGroups() {
+		overlays, err := ng.Overlays(ctx)
+		if err != nil {
+			return err
+		}
 
-	sortedNodes := ng.NodesSorted()
-	for i := 0; i < o.UploadNodeCount; i++ {
-		nodeName := sortedNodes[i]
-		for j := 0; j < o.FilesPerNode; j++ {
-			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
+		sortedNodes := ng.NodesSorted()
+		for i := 0; i < o.UploadNodeCount; i++ {
+			nodeName := sortedNodes[i]
+			for j := 0; j < o.FilesPerNode; j++ {
+				file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
-			t0 := time.Now()
-			if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
-				return fmt.Errorf("node %s: %w", nodeName, err)
-			}
-			d0 := time.Since(t0)
-
-			uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d0.Seconds())
-			uploadTimeHistogram.Observe(d0.Seconds())
-
-			time.Sleep(1 * time.Second)
-			nodesClients, err := ng.NodesClients(ctx)
-			if err != nil {
-				return fmt.Errorf("get nodes clients: %w", err)
-			}
-			for n, nc := range nodesClients {
-				if n == nodeName {
-					continue
+				t0 := time.Now()
+				if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
+					return fmt.Errorf("node %s: %w", nodeName, err)
 				}
+				d0 := time.Since(t0)
 
-				t1 := time.Now()
-				size, hash, err := nc.DownloadFile(ctx, file.Address())
+				uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d0.Seconds())
+				uploadTimeHistogram.Observe(d0.Seconds())
+
+				time.Sleep(1 * time.Second)
+				nodesClients, err := ng.NodesClients(ctx)
 				if err != nil {
-					return fmt.Errorf("node %s: %w", n, err)
+					return fmt.Errorf("get nodes clients: %w", err)
 				}
-				d1 := time.Since(t1)
+				for n, nc := range nodesClients {
+					if n == nodeName {
+						continue
+					}
 
-				downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d1.Seconds())
-				downloadTimeHistogram.Observe(d1.Seconds())
+					t1 := time.Now()
+					size, hash, err := nc.DownloadFile(ctx, file.Address())
+					if err != nil {
+						return fmt.Errorf("node %s: %w", n, err)
+					}
+					d1 := time.Since(t1)
 
-				if !bytes.Equal(file.Hash(), hash) {
-					notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					fmt.Printf("Node %s. File %d not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d Node: %s Download node: %s File: %s\n", nodeName, j, n, file.Size(), size, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
-					return errFileRetrieval
-				}
+					downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+					downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d1.Seconds())
+					downloadTimeHistogram.Observe(d1.Seconds())
 
-				retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("Node %s. File %d retrieved successfully from node %s. Node: %s Download node: %s File: %s\n", nodeName, j, n, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
+					if !bytes.Equal(file.Hash(), hash) {
+						notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+						fmt.Printf("Node %s. File %d not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d Node: %s Download node: %s File: %s\n", nodeName, j, n, file.Size(), size, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
+						return errFileRetrieval
+					}
 
-				if pushMetrics {
-					if err := pusher.Push(); err != nil {
-						fmt.Printf("node %s: %v\n", nodeName, err)
+					retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+					fmt.Printf("Node %s. File %d retrieved successfully from node %s. Node: %s Download node: %s File: %s\n", nodeName, j, n, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
+
+					if pushMetrics {
+						if err := pusher.Push(); err != nil {
+							fmt.Printf("node %s: %v\n", nodeName, err)
+						}
 					}
 				}
 			}
