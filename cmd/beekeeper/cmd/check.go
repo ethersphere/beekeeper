@@ -52,7 +52,7 @@ func (c *command) initCheckCmd() (err error) {
 					return fmt.Errorf("check %s doesn't exist", checkName)
 				}
 
-				check, ok := Checks[checkProfile.Name]
+				check, ok := config.Checks[checkProfile.Name]
 				if !ok {
 					return fmt.Errorf("check %s not implemented", checkProfile.Name)
 				}

@@ -1,4 +1,4 @@
-package cmd
+package config
 
 import (
 	"fmt"
@@ -22,13 +22,12 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
-	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 type Check struct {
 	NewCheck   func() check.Check
-	NewOptions func(cfg *config.Config, checkProfile config.Check) (interface{}, error)
+	NewOptions func(cfg *Config, checkProfile CheckCfg) (interface{}, error)
 }
 
 func applyOptions(local, opts interface{}) (err error) {
@@ -55,7 +54,7 @@ func applyOptions(local, opts interface{}) (err error) {
 var Checks = map[string]Check{
 	"balances": {
 		NewCheck: balances.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			checkOpts := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
 				FileName           *string `yaml:"file-name"`
@@ -79,7 +78,7 @@ var Checks = map[string]Check{
 	},
 	"chunk-repair": {
 		NewCheck: chunkrepair.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				MetricsEnabled         *bool   `yaml:"metrics-enabled"`
 				NodeGroup              *string `yaml:"node-group"`
@@ -112,7 +111,7 @@ var Checks = map[string]Check{
 	},
 	"file-retrieval": {
 		NewCheck: fileretrieval.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				FileName        *string `yaml:"file-name"`
 				FileSize        *int64  `yaml:"file-size"`
@@ -149,13 +148,13 @@ var Checks = map[string]Check{
 	},
 	"full-connectivity": {
 		NewCheck: fullconnectivity.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			return nil, nil
 		},
 	},
 	"gc": {
 		NewCheck: gc.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				NodeGroup        *string `yaml:"node-group"`
 				Seed             *int64  `yaml:"seed"`
@@ -182,7 +181,7 @@ var Checks = map[string]Check{
 	},
 	"kademlia": {
 		NewCheck: kademlia.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				Dynamic *bool `yaml:"dynamic"`
 			})
@@ -199,7 +198,7 @@ var Checks = map[string]Check{
 	},
 	"local-pinning": {
 		NewCheck: localpinning.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				Mode             *string `yaml:"mode"`
 				NodeGroup        *string `yaml:"node-group"`
@@ -226,7 +225,7 @@ var Checks = map[string]Check{
 	},
 	"manifest": {
 		NewCheck: manifest.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				FilesInCollection *int    `yaml:"files-in-collection"`
 				MaxPathnameLength *int32  `yaml:"max-pathname-length"`
@@ -252,13 +251,13 @@ var Checks = map[string]Check{
 	},
 	"peer-count": {
 		NewCheck: peercount.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			return nil, nil
 		},
 	},
 	"pingpong": {
 		NewCheck: pingpong.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				MetricsEnabled *bool `yaml:"metrics-enabled"`
 			})
@@ -279,7 +278,7 @@ var Checks = map[string]Check{
 	},
 	"pss": {
 		NewCheck: pss.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				AddressPrefix  *int           `yaml:"address-prefix"`
 				MetricsEnabled *bool          `yaml:"metrics-enabled"`
@@ -314,7 +313,7 @@ var Checks = map[string]Check{
 	},
 	"pullsync": {
 		NewCheck: pullsync.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				ChunksPerNode              *int    `yaml:"chunks-per-node"`
 				NodeGroup                  *string `yaml:"node-group"`
@@ -341,7 +340,7 @@ var Checks = map[string]Check{
 	},
 	"pushsync": {
 		NewCheck: pushsync.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
 				FileSize        *int64         `yaml:"file-size"`
@@ -380,7 +379,7 @@ var Checks = map[string]Check{
 	},
 	"retrieval": {
 		NewCheck: retrieval.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				ChunksPerNode   *int    `yaml:"chunks-per-node"`
 				MetricsEnabled  *bool   `yaml:"metrics-enabled"`
@@ -414,7 +413,7 @@ var Checks = map[string]Check{
 	},
 	"settlements": {
 		NewCheck: settlements.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
 				ExpectSettlements  *bool   `yaml:"expect-settlements"`
@@ -446,7 +445,7 @@ var Checks = map[string]Check{
 	},
 	"soc": {
 		NewCheck: soc.NewCheck,
-		NewOptions: func(cfg *config.Config, checkProfile config.Check) (interface{}, error) {
+		NewOptions: func(cfg *Config, checkProfile CheckCfg) (interface{}, error) {
 			o := new(struct {
 				NodeGroup *string `yaml:"node-group"`
 			})

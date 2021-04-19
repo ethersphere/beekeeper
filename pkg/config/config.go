@@ -10,9 +10,9 @@ import (
 )
 
 type Config struct {
-	Cluster Cluster          `yaml:"cluster"` // TODO: add multi-cluster-support
-	Checks  map[string]Check `yaml:"checks"`
-	Execute string           `yaml:"execute"`
+	Cluster Cluster             `yaml:"cluster"` // TODO: add multi-cluster-support
+	Checks  map[string]CheckCfg `yaml:"checks"`
+	Execute string              `yaml:"execute"`
 	// profiles
 	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
 	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
