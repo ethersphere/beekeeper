@@ -65,10 +65,10 @@ func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options
 
 			rnd := random.PseudoGenerator(seed)
 
-			for _, ng := range cluster.NodeGroups() {
-				if err := updateNodeGroup(ctx, ng, u.Actions, rnd, i); err != nil {
-					return err
-				}
+			ng := cluster.NodeGroup(u.NodeGroup)
+
+			if err := updateNodeGroup(ctx, ng, u.Actions, rnd, i); err != nil {
+				return err
 			}
 		}
 

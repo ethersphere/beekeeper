@@ -117,10 +117,9 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, stress Stress, o
 				}()
 
 				fmt.Printf("node group %s, add %d, delete %d, start %d, stop %d\n", u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
-				for _, ng := range cluster.NodeGroups() {
-					if err := updateNodeGroupConcurrently(stageCtx, ng, u.Actions, rnds[j], i, buffers[j]); err != nil {
-						return err
-					}
+				ng := cluster.NodeGroup(u.NodeGroup)
+				if err := updateNodeGroupConcurrently(stageCtx, ng, u.Actions, rnds[j], i, buffers[j]); err != nil {
+					return err
 				}
 
 				fmt.Printf("node group %s updated successfully\n", u.NodeGroup)
