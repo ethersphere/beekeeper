@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -178,19 +177,6 @@ func balancesHaveChanged(current, previous bee.NodeGroupBalances) {
 		}
 	}
 	fmt.Println("Balances have not changed")
-}
-
-// randomIndex finds random index <max and not equal to unallowed
-func randomIndex(rnd *rand.Rand, max int, unallowed int) (index int) {
-	found := false
-	for !found {
-		index = rnd.Intn(max)
-		if index != unallowed {
-			found = true
-		}
-	}
-
-	return
 }
 
 func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
