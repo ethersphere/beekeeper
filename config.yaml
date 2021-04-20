@@ -1,5 +1,5 @@
 execute:
-  cluster: default
+  cluster: helm
   playbook: default
 
 clusters:
@@ -70,6 +70,20 @@ clusters:
         config: default
         count: 15
         mode: node
+
+playbooks:
+  default:
+    checks: [pingpong]
+    metrics-enabled: 
+    seed: 123
+    # stages: default
+    timeout: 1h
+  static:
+    checks: [ping, kademlia]
+    metrics-enabled: 
+    seed: 
+    # stages: static
+    timeout: 1h
 
 bee-profiles:
   default:
@@ -322,20 +336,6 @@ node-group-profiles:
     _inherit: default
     image: svetomir/bee:latest
     image-pull-policy: IfNotPresent
-
-playbooks:
-  default:
-    checks: [pingpong]
-    metrics-enabled: 
-    seed: 123
-    # stages: default
-    timeout: 1h
-  static:
-    checks: [ping, kademlia]
-    metrics-enabled: 
-    seed: 
-    # stages: static
-    timeout: 1h
 
 stages:
   static:
