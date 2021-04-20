@@ -46,7 +46,7 @@ func (c *command) initCheckCmd() (err error) {
 				return err
 			}
 
-			for _, checkName := range cfg.Playbooks[cfg.Execute].Checks {
+			for _, checkName := range cfg.Playbooks[cfg.Execute.Playbook].Checks {
 				checkProfile, ok := cfg.Checks[checkName]
 				if !ok {
 					return fmt.Errorf("check %s doesn't exist", checkName)

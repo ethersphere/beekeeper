@@ -78,7 +78,7 @@ func (c *command) initStressUpload() *cobra.Command {
 			stressOptions := stress.Options{
 				FileSize:              round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024),
 				MetricsEnabled:        c.config.GetBool(optionNamePushMetrics),
-				MetricsPusher:         push.New(c.config.GetString(optionNamePushGateway), cfg.Cluster.Namespace),
+				MetricsPusher:         push.New(c.config.GetString(optionNamePushGateway), cfg.Clusters[cfg.Execute.Cluster].Namespace),
 				Retries:               c.config.GetInt(optionNameRetries),
 				RetryDelay:            c.config.GetDuration(optionNameRetryDelay),
 				Seed:                  seed,

@@ -91,17 +91,17 @@ var Checks = map[string]Check{
 			opts := chunkrepair.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // set globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // set globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute].MetricsEnabled { // set globaly
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute.Playbook].MetricsEnabled { // set globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			}
 			if err := applyOptions(o, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
@@ -128,17 +128,17 @@ var Checks = map[string]Check{
 			opts := fileretrieval.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // set globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // set globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute].MetricsEnabled { // set globaly
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute.Playbook].MetricsEnabled { // set globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			}
 			if err := applyOptions(o, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
@@ -168,8 +168,8 @@ var Checks = map[string]Check{
 			opts := gc.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // set globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // set globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
@@ -212,8 +212,8 @@ var Checks = map[string]Check{
 			opts := localpinning.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}
@@ -238,8 +238,8 @@ var Checks = map[string]Check{
 			opts := manifest.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // set globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // set globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
@@ -268,10 +268,10 @@ var Checks = map[string]Check{
 
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute].MetricsEnabled { // set globaly
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute.Playbook].MetricsEnabled { // set globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			}
 			return opts, nil
 		},
@@ -293,17 +293,17 @@ var Checks = map[string]Check{
 			opts := pss.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // set globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // set globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute].MetricsEnabled { // set globaly
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute.Playbook].MetricsEnabled { // set globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // set localy
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			}
 			if err := applyOptions(o, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
@@ -327,8 +327,8 @@ var Checks = map[string]Check{
 			opts := pullsync.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // set globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // set globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // set localy
 				opts.Seed = *o.Seed
 			}
@@ -359,17 +359,17 @@ var Checks = map[string]Check{
 			opts := pushsync.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute].MetricsEnabled { // enabled globaly
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute.Playbook].MetricsEnabled { // enabled globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			}
 			if err := applyOptions(o, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
@@ -393,17 +393,17 @@ var Checks = map[string]Check{
 			opts := retrieval.NewDefaultOptions()
 
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}
 			// TODO: resolve optionNamePushGateway
 			// set metrics
-			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute].MetricsEnabled { // enabled globaly
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+			if o.MetricsEnabled == nil && cfg.Playbooks[cfg.Execute.Playbook].MetricsEnabled { // enabled globaly
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			} else if o.MetricsEnabled != nil && *o.MetricsEnabled { // enabled localy
-				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Cluster.Namespace)
+				opts.MetricsPusher = push.New("optionNamePushGateway", cfg.Clusters[cfg.Execute.Cluster].Namespace)
 			}
 			if err := applyOptions(o, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
@@ -431,8 +431,8 @@ var Checks = map[string]Check{
 
 			opts := settlements.NewDefaultOptions()
 			// set seed
-			if o.Seed == nil && cfg.Playbooks[cfg.Execute].Seed > 0 { // enabled globaly
-				opts.Seed = cfg.Playbooks[cfg.Execute].Seed
+			if o.Seed == nil && cfg.Playbooks[cfg.Execute.Playbook].Seed > 0 { // enabled globaly
+				opts.Seed = cfg.Playbooks[cfg.Execute.Playbook].Seed
 			} else if o.Seed != nil && *o.Seed > 0 { // enabled localy
 				opts.Seed = *o.Seed
 			}

@@ -10,13 +10,16 @@ import (
 )
 
 type Config struct {
-	Cluster Cluster             `yaml:"cluster"` // TODO: add multi-cluster-support
-	Checks  map[string]CheckCfg `yaml:"checks"`
-	Execute string              `yaml:"execute"`
+	Execute struct {
+		Cluster  string `yaml:"cluster"`
+		Playbook string `yaml:"playbook"`
+	} `yaml:"execute"`
 	// profiles
 	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
+	Clusters          map[string]Cluster          `yaml:"clusters"`
+	Checks            map[string]CheckCfg         `yaml:"checks"`
 	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
-	Playbooks         map[string]RunProfile       `yaml:"playbooks"`
+	Playbooks         map[string]Playbook         `yaml:"playbooks"`
 	// orchestrator
 	Kubernetes struct {
 		Enable     bool   `yaml:"enable"`
@@ -40,7 +43,7 @@ type NodeGroupProfile struct {
 	NodeGroup `yaml:",inline"`
 }
 
-type RunProfile struct {
+type Playbook struct {
 	Checks              []string `yaml:"checks"`
 	ChecksCommonOptions `yaml:",inline"`
 	Stages              [][]struct {

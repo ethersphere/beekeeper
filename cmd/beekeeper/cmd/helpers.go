@@ -20,19 +20,19 @@ func deleteCluster(ctx context.Context, c *config.Config) (err error) {
 		}
 	}
 
-	cluster := bee.NewCluster(c.Cluster.Name, bee.ClusterOptions{
-		APIDomain:           c.Cluster.API.Domain,
-		APIInsecureTLS:      c.Cluster.API.InsecureTLS,
-		APIScheme:           c.Cluster.API.Scheme,
-		DebugAPIDomain:      c.Cluster.DebugAPI.Domain,
-		DebugAPIInsecureTLS: c.Cluster.DebugAPI.InsecureTLS,
-		DebugAPIScheme:      c.Cluster.DebugAPI.Scheme,
+	cluster := bee.NewCluster(c.Clusters[c.Execute.Cluster].Name, bee.ClusterOptions{
+		APIDomain:           c.Clusters[c.Execute.Cluster].API.Domain,
+		APIInsecureTLS:      c.Clusters[c.Execute.Cluster].API.InsecureTLS,
+		APIScheme:           c.Clusters[c.Execute.Cluster].API.Scheme,
+		DebugAPIDomain:      c.Clusters[c.Execute.Cluster].DebugAPI.Domain,
+		DebugAPIInsecureTLS: c.Clusters[c.Execute.Cluster].DebugAPI.InsecureTLS,
+		DebugAPIScheme:      c.Clusters[c.Execute.Cluster].DebugAPI.Scheme,
 		K8SClient:           k8sClient,
-		Namespace:           c.Cluster.Namespace,
-		DisableNamespace:    c.Cluster.DisableNamespace,
+		Namespace:           c.Clusters[c.Execute.Cluster].Namespace,
+		DisableNamespace:    c.Clusters[c.Execute.Cluster].DisableNamespace,
 	})
 
-	for ng, v := range c.Cluster.NodeGroups {
+	for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 		fmt.Printf("deleting %s node group\n", ng)
 		if v.Mode == "bootnode" {
 			// add node group to the cluster
@@ -75,21 +75,21 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		}
 	}
 
-	cluster = bee.NewCluster(c.Cluster.Name, bee.ClusterOptions{
-		APIDomain:           c.Cluster.API.Domain,
-		APIInsecureTLS:      c.Cluster.API.InsecureTLS,
-		APIScheme:           c.Cluster.API.Scheme,
-		DebugAPIDomain:      c.Cluster.DebugAPI.Domain,
-		DebugAPIInsecureTLS: c.Cluster.DebugAPI.InsecureTLS,
-		DebugAPIScheme:      c.Cluster.DebugAPI.Scheme,
+	cluster = bee.NewCluster(c.Clusters[c.Execute.Cluster].Name, bee.ClusterOptions{
+		APIDomain:           c.Clusters[c.Execute.Cluster].API.Domain,
+		APIInsecureTLS:      c.Clusters[c.Execute.Cluster].API.InsecureTLS,
+		APIScheme:           c.Clusters[c.Execute.Cluster].API.Scheme,
+		DebugAPIDomain:      c.Clusters[c.Execute.Cluster].DebugAPI.Domain,
+		DebugAPIInsecureTLS: c.Clusters[c.Execute.Cluster].DebugAPI.InsecureTLS,
+		DebugAPIScheme:      c.Clusters[c.Execute.Cluster].DebugAPI.Scheme,
 		K8SClient:           k8sClient,
-		Namespace:           c.Cluster.Namespace,
-		DisableNamespace:    c.Cluster.DisableNamespace,
+		Namespace:           c.Clusters[c.Execute.Cluster].Namespace,
+		DisableNamespace:    c.Clusters[c.Execute.Cluster].DisableNamespace,
 	})
 
 	if start {
 		bootnodes := ""
-		for ng, v := range c.Cluster.NodeGroups {
+		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
@@ -103,7 +103,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 					bProfile := c.BeeProfiles[v.BeeConfig]
 					bConfig := bProfile.Export()
 
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Cluster.Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
+					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Clusters[c.Execute.Cluster].Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					bOptions := bee.NodeOptions{
 						Config:       &bConfig,
@@ -124,7 +124,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 			}
 		}
 
-		for ng, v := range c.Cluster.NodeGroups {
+		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
@@ -153,7 +153,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		}
 	} else {
 		bootnodes := ""
-		for ng, v := range c.Cluster.NodeGroups {
+		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
@@ -166,7 +166,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 					bProfile := c.BeeProfiles[v.BeeConfig]
 					bConfig := bProfile.Export()
 
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Cluster.Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
+					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Clusters[c.Execute.Cluster].Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					bOptions := bee.NodeOptions{
 						Config:       &bConfig,
@@ -183,7 +183,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 			}
 		}
 
-		for ng, v := range c.Cluster.NodeGroups {
+		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
