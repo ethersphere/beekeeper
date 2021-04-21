@@ -25,71 +25,73 @@ type Options struct {
 func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {
 
 	payload := []byte("Hello Swarm :)")
+	sortedNodes := c.NodeNames()
 
-	for _, ng := range c.NodeGroups() {
-		sortedNodes := ng.NodesSorted()
+	privKey, err := crypto.GenerateSecp256k1Key()
+	if err != nil {
+		return err
+	}
+	signer := crypto.NewDefaultSigner(privKey)
 
-		privKey, err := crypto.GenerateSecp256k1Key()
-		if err != nil {
-			return err
-		}
-		signer := crypto.NewDefaultSigner(privKey)
+	ch, err := cac.New(payload)
+	if err != nil {
+		return err
+	}
 
-		ch, err := cac.New(payload)
-		if err != nil {
-			return err
-		}
+	idBytes, err := randomID()
+	if err != nil {
+		return err
+	}
+	sch, err := soc.New(idBytes, ch).Sign(signer)
+	if err != nil {
+		return err
+	}
 
-		idBytes, err := randomID()
-		if err != nil {
-			return err
-		}
-		sch, err := soc.New(idBytes, ch).Sign(signer)
-		if err != nil {
-			return err
-		}
+	chunkData := sch.Data()
+	signatureBytes := chunkData[soc.IdSize : soc.IdSize+soc.SignatureSize]
 
-		chunkData := sch.Data()
-		signatureBytes := chunkData[soc.IdSize : soc.IdSize+soc.SignatureSize]
+	publicKey, err := signer.PublicKey()
+	if err != nil {
+		return err
+	}
 
-		publicKey, err := signer.PublicKey()
-		if err != nil {
-			return err
-		}
+	ownerBytes, err := crypto.NewEthereumAddress(*publicKey)
+	if err != nil {
+		return err
+	}
 
-		ownerBytes, err := crypto.NewEthereumAddress(*publicKey)
-		if err != nil {
-			return err
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
+	nodeName := sortedNodes[0]
 
-		nodeName := sortedNodes[0]
-		node := ng.NodeClient(nodeName)
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	node := clients[nodeName]
 
-		owner := hex.EncodeToString(ownerBytes)
-		id := hex.EncodeToString(idBytes)
-		sig := hex.EncodeToString(signatureBytes)
+	owner := hex.EncodeToString(ownerBytes)
+	id := hex.EncodeToString(idBytes)
+	sig := hex.EncodeToString(signatureBytes)
 
-		fmt.Printf("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
-		fmt.Printf("soc: owner %s\n", owner)
-		fmt.Printf("soc: id %s\n", id)
-		fmt.Printf("soc: sig %s\n", sig)
+	fmt.Printf("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
+	fmt.Printf("soc: owner %s\n", owner)
+	fmt.Printf("soc: id %s\n", id)
+	fmt.Printf("soc: sig %s\n", sig)
 
-		ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data())
-		if err != nil {
-			return err
-		}
+	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data())
+	if err != nil {
+		return err
+	}
 
-		retrieved, err := node.DownloadChunk(ctx, ref, "")
-		if err != nil {
-			return err
-		}
+	retrieved, err := node.DownloadChunk(ctx, ref, "")
+	if err != nil {
+		return err
+	}
 
-		if !bytes.Equal(retrieved, chunkData) {
-			return errors.New("soc: retrieved chunk data does NOT match soc chunk")
-		}
+	if !bytes.Equal(retrieved, chunkData) {
+		return errors.New("soc: retrieved chunk data does NOT match soc chunk")
 	}
 
 	return nil

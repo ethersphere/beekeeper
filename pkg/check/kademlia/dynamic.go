@@ -38,97 +38,96 @@ func CheckDynamic(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 	}
 
 	for i, a := range o.DynamicActions {
-		for _, ng := range cluster.NodeGroups() {
-			fmt.Printf("Start dynamic action on node group: %s\n", ng.Name())
-			fmt.Printf("add %d nodes\n", a.AddCount)
-			fmt.Printf("delete %d nodes\n", a.DeleteCount)
-			fmt.Printf("start %d nodes\n", a.StartCount)
-			fmt.Printf("stop %d nodes\n", a.StopCount)
+		ng := cluster.NodeGroup(a.NodeGroup)
+		fmt.Printf("Start dynamic action on node group: %s\n", ng.Name())
+		fmt.Printf("add %d nodes\n", a.AddCount)
+		fmt.Printf("delete %d nodes\n", a.DeleteCount)
+		fmt.Printf("start %d nodes\n", a.StartCount)
+		fmt.Printf("stop %d nodes\n", a.StopCount)
 
-			// delete nodes
-			for j := 0; j < a.DeleteCount; j++ {
-				running, err := ng.RunningNodes(ctx)
-				if err != nil {
-					return fmt.Errorf("running nodes: %w", err)
-				}
-				if len(running) > 0 {
-					nName := running[rnd.Intn(len(running))]
-					overlay, err := ng.NodeClient(nName).Overlay(ctx)
-					if err != nil {
-						return fmt.Errorf("get node %s overlay: %w", nName, err)
-					}
-					if err := ng.DeleteNode(ctx, nName); err != nil {
-						return fmt.Errorf("delete node %s: %w", nName, err)
-					}
-					fmt.Printf("node %s (%s) is deleted\n", nName, overlay)
-				}
+		// delete nodes
+		for j := 0; j < a.DeleteCount; j++ {
+			running, err := ng.RunningNodes(ctx)
+			if err != nil {
+				return fmt.Errorf("running nodes: %w", err)
 			}
-
-			// start nodes
-			for j := 0; j < a.StartCount; j++ {
-				stopped, err := ng.StoppedNodes(ctx)
+			if len(running) > 0 {
+				nName := running[rnd.Intn(len(running))]
+				overlay, err := ng.NodeClient(nName).Overlay(ctx)
 				if err != nil {
-					return fmt.Errorf("stoped nodes: %w", err)
+					return fmt.Errorf("get node %s overlay: %w", nName, err)
 				}
-				if len(stopped) > 0 {
-					nName := stopped[rnd.Intn(len(stopped))]
-					if err := ng.StartNode(ctx, nName); err != nil {
-						return fmt.Errorf("start node %s: %w", nName, err)
-					}
-					overlay, err := ng.NodeClient(nName).Overlay(ctx)
-					if err != nil {
-						return fmt.Errorf("get node %s overlay: %w", nName, err)
-					}
-					fmt.Printf("node %s is started\n", nName)
-					fmt.Printf("node %s (%s) is started\n", nName, overlay)
+				if err := ng.DeleteNode(ctx, nName); err != nil {
+					return fmt.Errorf("delete node %s: %w", nName, err)
 				}
+				fmt.Printf("node %s (%s) is deleted\n", nName, overlay)
 			}
+		}
 
-			// stop nodes
-			for j := 0; j < a.StopCount; j++ {
-				running, err := ng.RunningNodes(ctx)
-				if err != nil {
-					return fmt.Errorf("running nodes: %w", err)
-				}
-				if len(running) > 0 {
-					nName := running[rnd.Intn(len(running))]
-					overlay, err := ng.NodeClient(nName).Overlay(ctx)
-					if err != nil {
-						return fmt.Errorf("get node %s overlay: %w", nName, err)
-					}
-					if err := ng.StopNode(ctx, nName); err != nil {
-						return fmt.Errorf("stop node %s: %w", nName, err)
-					}
-					fmt.Printf("node %s (%s) is stopped\n", nName, overlay)
-				}
+		// start nodes
+		for j := 0; j < a.StartCount; j++ {
+			stopped, err := ng.StoppedNodes(ctx)
+			if err != nil {
+				return fmt.Errorf("stoped nodes: %w", err)
 			}
-
-			// add nodes
-			for j := 0; j < a.AddCount; j++ {
-				nName := fmt.Sprintf("bee-i%dn%d", i, j)
-				if err := ng.AddStartNode(ctx, nName, bee.NodeOptions{}); err != nil {
-					return fmt.Errorf("add start node %s: %w", nName, err)
+			if len(stopped) > 0 {
+				nName := stopped[rnd.Intn(len(stopped))]
+				if err := ng.StartNode(ctx, nName); err != nil {
+					return fmt.Errorf("start node %s: %w", nName, err)
 				}
 				overlay, err := ng.NodeClient(nName).Overlay(ctx)
 				if err != nil {
 					return fmt.Errorf("get node %s overlay: %w", nName, err)
 				}
-				fmt.Printf("node %s (%s) is added\n", nName, overlay)
+				fmt.Printf("node %s is started\n", nName)
+				fmt.Printf("node %s (%s) is started\n", nName, overlay)
 			}
-
-			time.Sleep(5 * time.Second)
-
-			topologies, err := cluster.Topologies(ctx)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println("kademlia check running")
-			if err := checkKademliaD(topologies); err != nil {
-				return err
-			}
-			fmt.Println("kademlia check completed successfully")
 		}
+
+		// stop nodes
+		for j := 0; j < a.StopCount; j++ {
+			running, err := ng.RunningNodes(ctx)
+			if err != nil {
+				return fmt.Errorf("running nodes: %w", err)
+			}
+			if len(running) > 0 {
+				nName := running[rnd.Intn(len(running))]
+				overlay, err := ng.NodeClient(nName).Overlay(ctx)
+				if err != nil {
+					return fmt.Errorf("get node %s overlay: %w", nName, err)
+				}
+				if err := ng.StopNode(ctx, nName); err != nil {
+					return fmt.Errorf("stop node %s: %w", nName, err)
+				}
+				fmt.Printf("node %s (%s) is stopped\n", nName, overlay)
+			}
+		}
+
+		// add nodes
+		for j := 0; j < a.AddCount; j++ {
+			nName := fmt.Sprintf("bee-i%dn%d", i, j)
+			if err := ng.AddStartNode(ctx, nName, bee.NodeOptions{}); err != nil {
+				return fmt.Errorf("add start node %s: %w", nName, err)
+			}
+			overlay, err := ng.NodeClient(nName).Overlay(ctx)
+			if err != nil {
+				return fmt.Errorf("get node %s overlay: %w", nName, err)
+			}
+			fmt.Printf("node %s (%s) is added\n", nName, overlay)
+		}
+
+		time.Sleep(5 * time.Second)
+
+		topologies, err := cluster.Topologies(ctx)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("kademlia check running")
+		if err := checkKademliaD(topologies); err != nil {
+			return err
+		}
+		fmt.Println("kademlia check completed successfully")
 	}
 
 	return nil

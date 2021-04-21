@@ -37,68 +37,72 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	pusher.Collector(sendAndReceiveGauge)
 
-	for _, ng := range c.NodeGroups() {
-		sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 
-		set := randomDoubleSet(o.Seed, testCount, o.NodeCount)
+	set := randomDoubleSet(o.Seed, testCount, o.NodeCount)
 
-		for i := 0; i < len(set); i++ {
+	for i := 0; i < len(set); i++ {
 
-			fmt.Printf("pss: test %d of %d\n", i+1, testCount)
+		fmt.Printf("pss: test %d of %d\n", i+1, testCount)
 
-			ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
 
-			nodeAName := sortedNodes[set[i][0]]
-			nodeBName := sortedNodes[set[i][1]]
+		nodeAName := sortedNodes[set[i][0]]
+		nodeBName := sortedNodes[set[i][1]]
 
-			nodeA := ng.NodeClient(nodeAName)
-			nodeB := ng.NodeClient(nodeBName)
-
-			addrB, err := nodeB.Addresses(ctx)
-			if err != nil {
-				cancel()
-				return err
-			}
-
-			ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
-			if err != nil {
-				cancel()
-				return err
-			}
-
-			fmt.Printf("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
-
-			tStart := time.Now()
-			err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData)
-			if err != nil {
-				close()
-				cancel()
-				return err
-			}
-
-			msg, ok := <-ch
-			if ok {
-				if msg == string(testData) {
-					fmt.Println("pss: websocket connection received correct message")
-					sendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
-				} else {
-					err = errDataMismatch
-				}
-			} else {
-				err = errWebsocketConnection
-			}
-
+		clients, err := c.NodesClients(ctx)
+		if err != nil {
 			cancel()
+			return err
+		}
+
+		nodeA := clients[nodeAName]
+		nodeB := clients[nodeBName]
+
+		addrB, err := nodeB.Addresses(ctx)
+		if err != nil {
+			cancel()
+			return err
+		}
+
+		ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
+		if err != nil {
+			cancel()
+			return err
+		}
+
+		fmt.Printf("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
+
+		tStart := time.Now()
+		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData)
+		if err != nil {
 			close()
+			cancel()
+			return err
+		}
 
-			if err != nil {
-				return err
+		msg, ok := <-ch
+		if ok {
+			if msg == string(testData) {
+				fmt.Println("pss: websocket connection received correct message")
+				sendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
+			} else {
+				err = errDataMismatch
 			}
+		} else {
+			err = errWebsocketConnection
+		}
 
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
-					fmt.Printf("pss: push gauge: %v\n", err)
-				}
+		cancel()
+		close()
+
+		if err != nil {
+			return err
+		}
+
+		if pushMetrics {
+			if err := pusher.Push(); err != nil {
+				fmt.Printf("pss: push gauge: %v\n", err)
 			}
 		}
 	}

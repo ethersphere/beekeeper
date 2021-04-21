@@ -244,6 +244,33 @@ func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string
 	return ng, name, o
 }
 
+func (c *Cluster) FlattenOverlays(ctx context.Context, include ...string) (map[string]swarm.Address, error) {
+	o, err := c.Overlays(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]swarm.Address)
+	for _, ngo := range o {
+		for n, over := range ngo {
+			if len(include) > 0 && !containsName(include, n) {
+				continue
+			}
+			res[n] = over
+		}
+	}
+
+	return res, nil
+}
+
+func containsName(s []string, e string) bool {
+	for i := range s {
+		if s[i] == e {
+			return true
+		}
+	}
+	return false
+}
+
 // Overlays returns ClusterOverlays
 func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err error) {
 	overlays = make(ClusterOverlays)

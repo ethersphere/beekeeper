@@ -12,20 +12,22 @@ import (
 )
 
 // CheckChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func CheckChunks(c *bee.Cluster, o Options) error {
+func CheckLightChunks(c *bee.Cluster, o Options) error {
 	ctx := context.Background()
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx, "bee", "bootnode")
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
-	for i := 0; i < o.UploadNodeCount; i++ {
-		nodeName := sortedNodes[i]
+	drones := c.NodeGroup("drone")
+
+	for i, nodeName := range drones.NodesSorted() {
+		if i > o.UploadNodeCount {
+			break
+		}
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])
@@ -33,7 +35,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			uploader := ng.NodeClient(nodeName)
+			uploader := drones.NodeClient(nodeName)
 
 			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
@@ -41,7 +43,6 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 			}
 
 			fmt.Printf("uploaded chunk %s to node %s\n", ref.String(), nodeName)
-
 			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
@@ -49,22 +50,24 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 			fmt.Printf("closest node %s overlay %s\n", closestName, closestAddress)
 
 			time.Sleep(o.RetryDelay)
-			synced, err := ng.NodeClient(closestName).HasChunk(ctx, ref)
+
+			clients, err := c.NodesClients(ctx)
+			if err != nil {
+				return err
+			}
+			node := clients[closestName]
+
+			synced, err := node.HasChunk(ctx, ref)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			if !synced {
-				return fmt.Errorf("node %s chunk %s not found in the closest node %s\n", nodeName, ref.String(), closestAddress)
+				return fmt.Errorf("node %s chunk %s not found in the closest node %s", nodeName, ref.String(), closestAddress)
 			}
 
 			fmt.Printf("node %s chunk %s found in the closest node %s\n", nodeName, ref.String(), closestAddress)
 
-			uploaderAddr, err := uploader.Overlay(ctx)
-			if err != nil {
-				return err
-			}
-
-			skipPeers := []swarm.Address{closestAddress, uploaderAddr}
+			skipPeers := []swarm.Address{closestAddress}
 			// chunk should be replicated at least once either during forwarding or after storing
 			for range overlays {
 				name, address, err := chunk.ClosestNodeFromMap(overlays, skipPeers...)
@@ -72,7 +75,9 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				if err != nil {
 					continue
 				}
-				synced, err = ng.NodeClient(name).HasChunk(ctx, ref)
+				node := clients[name]
+
+				synced, err = node.HasChunk(ctx, ref)
 				if err != nil {
 					continue
 				}
@@ -82,7 +87,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				}
 			}
 
-			return fmt.Errorf("node %s chunk %s not replicated\n", nodeName, ref.String())
+			return fmt.Errorf("node %s chunk %s not replicated", nodeName, ref.String())
 		}
 	}
 

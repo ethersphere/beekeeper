@@ -14,18 +14,17 @@ func CheckConcurrent(c *bee.Cluster, o Options) (err error) {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	for _, ng := range c.NodeGroups() {
-		sortedNodes := ng.NodesSorted()
-		for i := 0; i < o.UploadNodeCount; i++ {
-			nodeName := sortedNodes[i]
+	ng := c.NodeGroup(o.NodeGroup)
+	sortedNodes := ng.NodesSorted()
+	for i := 0; i < o.UploadNodeCount; i++ {
+		nodeName := sortedNodes[i]
 
-			var chunkResults []chunkStreamMsg
-			for m := range chunkStream(ctx, ng.NodeClient(nodeName), rnds[i], o.ChunksPerNode) {
-				chunkResults = append(chunkResults, m)
-			}
-			for j, c := range chunkResults {
-				fmt.Println(i, j, c.Chunk.Size(), c.Error)
-			}
+		var chunkResults []chunkStreamMsg
+		for m := range chunkStream(ctx, ng.NodeClient(nodeName), rnds[i], o.ChunksPerNode) {
+			chunkResults = append(chunkResults, m)
+		}
+		for j, c := range chunkResults {
+			fmt.Println(i, j, c.Chunk.Size(), c.Error)
 		}
 	}
 

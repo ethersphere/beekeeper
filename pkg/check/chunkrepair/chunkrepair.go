@@ -45,108 +45,107 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	pusher.Format(expfmt.FmtText)
 
-	for _, ng := range c.NodeGroups() {
-		for i := 0; i < o.NumberOfChunksToRepair; i++ {
-			// Pick node A, B, C and a chunk which is closest to B
-			nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, ng, rnds[i])
+	ng := c.NodeGroup(o.NodeGroup)
+	for i := 0; i < o.NumberOfChunksToRepair; i++ {
+		// Pick node A, B, C and a chunk which is closest to B
+		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, ng, rnds[i])
+		if err != nil {
+			return err
+		}
+		addressA, err := nodeA.Overlay(ctx)
+		if err != nil {
+			return err
+		}
+
+		// upload the chunk in nodeA
+		ref, err := nodeA.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+		if err != nil {
+			return err
+		}
+
+		count := 0
+		for {
+			if count > maxIterations {
+				return fmt.Errorf("could not get chunk even after several attempts")
+			}
+
+			// check if the node is there in the local store of node B
+			// this does a get chunk instead of Has chunk, so the following
+			// call just checks if the chunk is accessible from nodeB
+			present, err := nodeB.HasChunk(ctx, ref)
 			if err != nil {
-				return err
+				// give time for the chunk to reach its destination
+				time.Sleep(100 * time.Millisecond)
+				count++
+				continue
 			}
-			addressA, err := nodeA.Overlay(ctx)
+
+			if present {
+				break
+			}
+		}
+
+		// download the chunk from nodeC
+		data1, err := nodeC.DownloadChunk(ctx, ref, "")
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(data1, chunk.Data()) {
+			return errors.New("chunk downloaded in NodeC does not have proper data")
+		}
+
+		// delete the chunk from all nodes. If the chunk from nodeA is not deleted,
+		// it is hard to simulate the chunk failure in small clusters. We would need a
+		// fairly large cluster then.
+		err = deleteChunkFromAllNodes(ctx, ng, chunk)
+		if err != nil {
+			return err
+		}
+
+		// trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair)
+		_, err = nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
+		errMessage := fmt.Sprintf("download chunk %s: try again later", chunk.Address().String())
+		if err != nil && err.Error() != errMessage { // return error, if chunk recovery is not started
+			return fmt.Errorf("chunk recovery not triggered: %w", err)
+		}
+
+		// by the time the NodeC creates a trojan chunk and asks NodeA to repair, upload the
+		// original chunk in nodeA and pin it
+		err = uploadAndPinChunkToNode(ctx, nodeA, chunk)
+		if err != nil {
+			return err
+		}
+
+		count = 0
+		t0 := time.Now()
+		for {
+			if count > maxIterations {
+				return fmt.Errorf("could not download even after several attempts")
+			}
+
+			// download again to see if the chunk is repaired
+			data3, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
 			if err != nil {
-				return err
+				count++
+				time.Sleep(1 * time.Second) // give sometime so that the repair happens
+				continue                    // if the download is not successful, try again
 			}
+			d0 := time.Since(t0)
 
-			// upload the chunk in nodeA
-			ref, err := nodeA.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
-			if err != nil {
-				return err
-			}
-
-			count := 0
-			for {
-				if count > maxIterations {
-					return fmt.Errorf("could not get chunk even after several attempts")
-				}
-
-				// check if the node is there in the local store of node B
-				// this does a get chunk instead of Has chunk, so the following
-				// call just checks if the chunk is accessible from nodeB
-				present, err := nodeB.HasChunk(ctx, ref)
-				if err != nil {
-					// give time for the chunk to reach its destination
-					time.Sleep(100 * time.Millisecond)
-					count++
-					continue
-				}
-
-				if present {
-					break
-				}
-			}
-
-			// download the chunk from nodeC
-			data1, err := nodeC.DownloadChunk(ctx, ref, "")
-			if err != nil {
-				return err
-			}
-			if !bytes.Equal(data1, chunk.Data()) {
+			if !bytes.Equal(data3, chunk.Data()) {
 				return errors.New("chunk downloaded in NodeC does not have proper data")
 			}
 
-			// delete the chunk from all nodes. If the chunk from nodeA is not deleted,
-			// it is hard to simulate the chunk failure in small clusters. We would need a
-			// fairly large cluster then.
-			err = deleteChunkFromAllNodes(ctx, ng, chunk)
-			if err != nil {
-				return err
-			}
+			fmt.Println("repaired chunk ", chunk.Address().String())
+			repairedCounter.WithLabelValues(addressA.String()).Inc()
+			repairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
+			repairedTimeHistogram.Observe(d0.Seconds())
+			break
+		}
 
-			// trigger downloading of the chunk from nodeC again (this time it should trigger chunk repair)
-			_, err = nodeC.DownloadChunk(ctx, chunk.Address(), addressA.String()[0:2])
-			errMessage := fmt.Sprintf("download chunk %s: try again later", chunk.Address().String())
-			if err != nil && err.Error() != errMessage { // return error, if chunk recovery is not started
-				return fmt.Errorf("chunk recovery not triggered: %w", err)
-			}
-
-			// by the time the NodeC creates a trojan chunk and asks NodeA to repair, upload the
-			// original chunk in nodeA and pin it
-			err = uploadAndPinChunkToNode(ctx, nodeA, chunk)
-			if err != nil {
-				return err
-			}
-
-			count = 0
-			t0 := time.Now()
-			for {
-				if count > maxIterations {
-					return fmt.Errorf("could not download even after several attempts")
-				}
-
-				// download again to see if the chunk is repaired
-				data3, err := nodeC.DownloadChunk(ctx, chunk.Address(), "")
-				if err != nil {
-					count++
-					time.Sleep(1 * time.Second) // give sometime so that the repair happens
-					continue                    // if the download is not successful, try again
-				}
-				d0 := time.Since(t0)
-
-				if !bytes.Equal(data3, chunk.Data()) {
-					return errors.New("chunk downloaded in NodeC does not have proper data")
-				}
-
-				fmt.Println("repaired chunk ", chunk.Address().String())
-				repairedCounter.WithLabelValues(addressA.String()).Inc()
-				repairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
-				repairedTimeHistogram.Observe(d0.Seconds())
-				break
-			}
-
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
-					fmt.Printf("chunk %d: %s\n", i, err)
-				}
+		if pushMetrics {
+			if err := pusher.Push(); err != nil {
+				fmt.Printf("chunk %d: %s\n", i, err)
 			}
 		}
 	}

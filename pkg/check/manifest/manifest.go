@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -32,54 +33,61 @@ func Check(c *bee.Cluster, o Options) error {
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	for _, ng := range c.NodeGroups() {
-		overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
+	if err != nil {
+		return err
+	}
+
+	files, err := generateFiles(rnd, o.FilesInCollection, o.MaxPathnameLength)
+	if err != nil {
+		return err
+	}
+
+	tarReader, err := tarFiles(files)
+	if err != nil {
+		return err
+	}
+
+	tarFile := bee.NewBufferFile("", tarReader)
+
+	sortedNodes := c.NodeNames()
+
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	node := clients[sortedNodes[0]]
+
+	if err := node.UploadCollection(ctx, &tarFile); err != nil {
+		return fmt.Errorf("node %d: %w", 0, err)
+	}
+
+	lastNode := sortedNodes[len(sortedNodes)-1]
+	try := 0
+
+DOWNLOAD:
+	time.Sleep(5 * time.Second)
+	try++
+	if try > 5 {
+		return errors.New("failed getting manifest files after too many retries")
+	}
+
+	for i, file := range files {
+		node := clients[lastNode]
+
+		size, hash, err := node.DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
-			return err
+			fmt.Printf("Node %s. Error retrieving file: %v\n", lastNode, err)
+			goto DOWNLOAD
 		}
 
-		files, err := generateFiles(rnd, o.FilesInCollection, o.MaxPathnameLength)
-		if err != nil {
-			return err
+		if !bytes.Equal(file.Hash(), hash) {
+			fmt.Printf("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s/%s\n", lastNode, i, file.Size(), size, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
+			return errManifest
 		}
 
-		tarReader, err := tarFiles(files)
-		if err != nil {
-			return err
-		}
-
-		tarFile := bee.NewBufferFile("", tarReader)
-
-		sortedNodes := ng.NodesSorted()
-		if err := ng.NodeClient(sortedNodes[0]).UploadCollection(ctx, &tarFile); err != nil {
-			return fmt.Errorf("node %d: %w", 0, err)
-		}
-
-		lastNode := sortedNodes[len(sortedNodes)-1]
-		try := 0
-
-	DOWNLOAD:
-		time.Sleep(5 * time.Second)
-		try++
-		if try > 5 {
-			return errors.New("failed getting manifest files after too many retries")
-		}
-
-		for i, file := range files {
-			size, hash, err := ng.NodeClient(lastNode).DownloadManifestFile(ctx, tarFile.Address(), file.Name())
-			if err != nil {
-				fmt.Printf("Node %s. Error retrieving file: %v\n", lastNode, err)
-				goto DOWNLOAD
-			}
-
-			if !bytes.Equal(file.Hash(), hash) {
-				fmt.Printf("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s/%s\n", lastNode, i, file.Size(), size, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
-				return errManifest
-			}
-
-			fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s/%s\n", lastNode, i, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
-			try = 0 // reset the retry counter for the next file
-		}
+		fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s/%s\n", lastNode, i, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
+		try = 0 // reset the retry counter for the next file
 	}
 
 	return nil
@@ -146,4 +154,14 @@ func tarFiles(files []bee.File) (*bytes.Buffer, error) {
 	}
 
 	return &buf, nil
+}
+
+func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
+	res := make(map[string]swarm.Address)
+	for _, ngo := range o {
+		for n, over := range ngo {
+			res[n] = over
+		}
+	}
+	return res
 }
