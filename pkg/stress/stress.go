@@ -64,10 +64,9 @@ func Run(ctx context.Context, cluster *bee.Cluster, stress Stress, options Optio
 			fmt.Printf("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 
 			rnd := random.PseudoGenerator(seed)
-			for _, ng := range cluster.NodeGroups() {
-				if err := updateNodeGroup(ctx, ng, u.Actions, rnd, i); err != nil {
-					return err
-				}
+			ng := cluster.NodeGroup(u.NodeGroup)
+			if err := updateNodeGroup(ctx, ng, u.Actions, rnd, i); err != nil {
+				return err
 			}
 		}
 

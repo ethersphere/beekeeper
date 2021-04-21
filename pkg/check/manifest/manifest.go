@@ -11,7 +11,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -154,14 +153,4 @@ func tarFiles(files []bee.File) (*bytes.Buffer, error) {
 	}
 
 	return &buf, nil
-}
-
-func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
-	res := make(map[string]swarm.Address)
-	for _, ngo := range o {
-		for n, over := range ngo {
-			res[n] = over
-		}
-	}
-	return res
 }

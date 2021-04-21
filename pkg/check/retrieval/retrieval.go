@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -110,14 +109,4 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	}
 
 	return
-}
-
-func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
-	res := make(map[string]swarm.Address)
-	for _, ngo := range o {
-		for n, over := range ngo {
-			res[n] = over
-		}
-	}
-	return res
 }
