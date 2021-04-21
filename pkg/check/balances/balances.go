@@ -31,7 +31,7 @@ func NewDefaultOptions() Options {
 		FileName:           "balances",
 		FileSize:           1 * 1024 * 1024, // 1mb,
 		NodeGroup:          "bee",
-		Seed:               random.Int64(),
+		Seed:               0,
 		UploadNodeCount:    1,
 		WaitBeforeDownload: 5,
 	}
@@ -53,9 +53,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-	fmt.Printf("DefaultOptions: %#v\n", NewDefaultOptions())
-	fmt.Printf("AppliedOptions: %#v\n", o)
-	return
+
 	if o.DryRun {
 		fmt.Println("running balances (dry mode)")
 		return dryRun(ctx, cluster, o)

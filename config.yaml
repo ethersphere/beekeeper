@@ -1,5 +1,5 @@
 execute:
-  cluster: helm
+  cluster: default
   playbook: default
 
 clusters:
@@ -73,15 +73,17 @@ clusters:
 
 playbooks:
   default:
-    checks: [pingpong]
-    metrics-enabled: 
-    seed: 123
+    checks: [chunk-repair]
+    checks-common-options:
+      metrics-enabled: false
+      seed: 1 # -1 for random
     # stages: default
     timeout: 1h
   static:
     checks: [ping, kademlia]
-    metrics-enabled: 
-    seed: 
+    checks-common-options:
+      metrics-enabled: 
+      seed: 
     # stages: static
     timeout: 1h
 
@@ -136,14 +138,15 @@ checks:
       file-size: 1048576 # 1mb = 1*1024*1024
       node-group: bee
       upload-node-count: 3
-      wait-before-downloading: 5 # seconds
+      wait-before-download: 5 # seconds
     timeout: 5m
   chunk-repair:
     name: chunk-repair
     options:
       node-group: bee
-      number-of-chunks: 1
-      metrics-enabled: 
+      number-of-chunks-to-repair: 1
+      metrics-enabled: true
+      seed: 2
     timeout: 5m
   file-retrieval:
     name: file-retrieval

@@ -44,8 +44,8 @@ type NodeGroupProfile struct {
 }
 
 type Playbook struct {
-	Checks              []string `yaml:"checks"`
-	ChecksCommonOptions `yaml:",inline"`
+	Checks              []string            `yaml:"checks"`
+	ChecksCommonOptions ChecksCommonOptions `yaml:"checks-common-options"`
 	Stages              [][]struct {
 		NodeGroup string `yaml:"node-group"`
 		Add       int    `yaml:"add"`
