@@ -174,6 +174,17 @@ func (c *Cluster) Nodes() map[string]*Node {
 	return n
 }
 
+// NodeNamess returns a list of node names in the cluster across all node groups
+func (c *Cluster) NodeNames() (names []string) {
+	for _, ng := range c.NodeGroups() {
+		for k := range ng.getNodes() {
+			names = append(names, k)
+		}
+	}
+
+	return
+}
+
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes
 func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) {
 	clients := make(map[string]*Client)

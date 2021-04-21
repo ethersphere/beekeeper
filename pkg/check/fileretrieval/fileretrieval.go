@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -42,54 +43,66 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	pusher.Format(expfmt.FmtText)
 
-	for _, ng := range c.NodeGroups() {
-		overlays, err := ng.Overlays(ctx)
-		if err != nil {
-			return err
-		}
+	overlays, err := c.Overlays(ctx)
+	if err != nil {
+		return err
+	}
 
-		sortedNodes := ng.NodesSorted()
-		lastNodeName := sortedNodes[len(sortedNodes)-1]
-		for i := 0; i < o.UploadNodeCount; i++ {
-			nodeName := sortedNodes[i]
-			for j := 0; j < o.FilesPerNode; j++ {
-				file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
+	flatOverlays := flattenOverlays(overlays)
 
-				t0 := time.Now()
-				if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
-					return fmt.Errorf("node %s: %w", nodeName, err)
-				}
-				d0 := time.Since(t0)
+	sortedNodes := c.NodeNames()
 
-				uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d0.Seconds())
-				uploadTimeHistogram.Observe(d0.Seconds())
+	lastNodeName := sortedNodes[len(sortedNodes)-1]
+	for i := 0; i < o.UploadNodeCount; i++ {
+		nodeName := sortedNodes[i]
+		for j := 0; j < o.FilesPerNode; j++ {
+			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
-				time.Sleep(1 * time.Second)
-				t1 := time.Now()
-				size, hash, err := ng.NodeClient(lastNodeName).DownloadFile(ctx, file.Address())
-				if err != nil {
-					return fmt.Errorf("node %s: %w", lastNodeName, err)
-				}
-				d1 := time.Since(t1)
+			t0 := time.Now()
 
-				downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), file.Address().String()).Set(d1.Seconds())
-				downloadTimeHistogram.Observe(d1.Seconds())
+			clients, err := c.NodesClients(ctx)
+			if err != nil {
+				return err
+			}
 
-				if !bytes.Equal(file.Hash(), hash) {
-					notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					fmt.Printf("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", nodeName, j, file.Size(), size, overlays[nodeName].String(), file.Address().String())
-					return errFileRetrieval
-				}
+			client := clients[nodeName]
+			if err := client.UploadFile(ctx, &file, false); err != nil {
+				return fmt.Errorf("node %s: %w", nodeName, err)
+			}
 
-				retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s\n", nodeName, j, overlays[nodeName].String(), file.Address().String())
+			d0 := time.Since(t0)
 
-				if pushMetrics {
-					if err := pusher.Push(); err != nil {
-						fmt.Printf("node %s: %v\n", nodeName, err)
-					}
+			uploadedCounter.WithLabelValues(flatOverlays[nodeName].String()).Inc()
+			uploadTimeGauge.WithLabelValues(flatOverlays[nodeName].String(), file.Address().String()).Set(d0.Seconds())
+			uploadTimeHistogram.Observe(d0.Seconds())
+
+			time.Sleep(1 * time.Second)
+			t1 := time.Now()
+
+			client = clients[lastNodeName]
+
+			size, hash, err := client.DownloadFile(ctx, file.Address())
+			if err != nil {
+				return fmt.Errorf("node %s: %w", lastNodeName, err)
+			}
+			d1 := time.Since(t1)
+
+			downloadedCounter.WithLabelValues(flatOverlays[nodeName].String()).Inc()
+			downloadTimeGauge.WithLabelValues(flatOverlays[nodeName].String(), file.Address().String()).Set(d1.Seconds())
+			downloadTimeHistogram.Observe(d1.Seconds())
+
+			if !bytes.Equal(file.Hash(), hash) {
+				notRetrievedCounter.WithLabelValues(flatOverlays[nodeName].String()).Inc()
+				fmt.Printf("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", nodeName, j, file.Size(), size, flatOverlays[nodeName].String(), file.Address().String())
+				return errFileRetrieval
+			}
+
+			retrievedCounter.WithLabelValues(flatOverlays[nodeName].String()).Inc()
+			fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s\n", nodeName, j, flatOverlays[nodeName].String(), file.Address().String())
+
+			if pushMetrics {
+				if err := pusher.Push(); err != nil {
+					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}
 		}
@@ -178,4 +191,14 @@ func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool)
 	}
 
 	return
+}
+
+func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
+	res := make(map[string]swarm.Address)
+	for _, ngo := range o {
+		for n, over := range ngo {
+			res[n] = over
+		}
+	}
+	return res
 }
