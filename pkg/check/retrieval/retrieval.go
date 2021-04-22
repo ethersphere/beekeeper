@@ -16,7 +16,6 @@ import (
 
 // Options represents pushsync check options
 type Options struct {
-	NodeGroup       string
 	UploadNodeCount int
 	ChunksPerNode   int
 	Seed            int64

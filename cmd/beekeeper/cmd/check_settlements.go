@@ -148,7 +148,6 @@ func (c *command) initCheckSettlements() *cobra.Command {
 
 			if dryRun {
 				return settlements.DryRunCheck(cluster, settlements.Options{
-					NodeGroup:          "bee",
 					UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
 					FileName:           c.config.GetString(optionNameFileName),
 					FileSize:           fileSize,
@@ -160,7 +159,6 @@ func (c *command) initCheckSettlements() *cobra.Command {
 			}
 
 			return settlements.Check(cluster, settlements.Options{
-				NodeGroup:          "bee",
 				UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
 				FileName:           c.config.GetString(optionNameFileName),
 				FileSize:           fileSize,

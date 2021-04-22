@@ -143,7 +143,6 @@ and attempts retrieval of those chunks from the last node in the cluster.`,
 			}
 
 			return retrieval.Check(cluster, retrieval.Options{
-				NodeGroup:       "bee",
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Seed:            seed,

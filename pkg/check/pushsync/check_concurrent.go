@@ -14,7 +14,7 @@ func CheckConcurrent(c *bee.Cluster, o Options) (err error) {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
+	ng := c.NodeGroup("skip")
 	sortedNodes := ng.NodesSorted()
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]

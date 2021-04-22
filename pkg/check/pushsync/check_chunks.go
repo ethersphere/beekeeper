@@ -17,13 +17,16 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
+	if err != nil {
+		return err
+	}
+	clients, err := c.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
 	testCases:
@@ -33,7 +36,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			uploader := ng.NodeClient(nodeName)
+			uploader := clients[nodeName]
 
 			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
@@ -49,7 +52,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 			fmt.Printf("closest node %s overlay %s\n", closestName, closestAddress)
 
 			time.Sleep(o.RetryDelay)
-			synced, err := ng.NodeClient(closestName).HasChunk(ctx, ref)
+			synced, err := clients[closestName].HasChunk(ctx, ref)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -72,7 +75,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				if err != nil {
 					continue
 				}
-				synced, err = ng.NodeClient(name).HasChunk(ctx, ref)
+				synced, err = clients[name].HasChunk(ctx, ref)
 				if err != nil {
 					continue
 				}

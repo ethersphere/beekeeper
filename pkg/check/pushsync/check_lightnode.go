@@ -25,7 +25,7 @@ func CheckLightChunks(c *bee.Cluster, o Options) error {
 	drones := c.NodeGroup("drone")
 
 	for i, nodeName := range drones.NodesSorted() {
-		if i > o.UploadNodeCount {
+		if i >= o.UploadNodeCount {
 			break
 		}
 	testCases:

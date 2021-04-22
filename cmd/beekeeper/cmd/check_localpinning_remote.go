@@ -133,7 +133,6 @@ func (c *command) initCheckLocalPinningRemote() *cobra.Command {
 			}
 
 			return localpinning.CheckRemoteChunksFound(cluster, localpinning.Options{
-				NodeGroup:        "bee",
 				StoreSize:        c.config.GetInt(optionNameDbCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
 				Seed:             seed,

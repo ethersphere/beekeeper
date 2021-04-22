@@ -135,9 +135,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
 			if dryRun {
-				return balances.DryRunCheck(cluster, balances.Options{
-					NodeGroup: "bee",
-				})
+				return balances.DryRunCheck(cluster, balances.Options{})
 			}
 
 			var seed int64
@@ -150,7 +148,6 @@ func (c *command) initCheckBalances() *cobra.Command {
 			fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
 
 			return balances.Check(cluster, balances.Options{
-				NodeGroup:          "bee",
 				UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
 				FileName:           c.config.GetString(optionNameFileName),
 				FileSize:           fileSize,

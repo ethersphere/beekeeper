@@ -19,8 +19,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
@@ -37,10 +36,17 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 	pivot := rnd.Intn(c.Size())
 	pivotNode := sortedNodes[pivot]
-	ref, err := ng.NodeClient(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
+
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	node := clients[pivotNode]
+
+	ref, err := node.UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
 	if err != nil {
 		return fmt.Errorf("node %s: upload bytes: %w", pivotNode, err)
 	}
@@ -56,7 +62,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 			continue
 		}
 
-		nodeClient := ng.NodeClient(name)
+		nodeClient := clients[name]
 
 		fmt.Printf("Node %s: removing expected chunks\n", name)
 
@@ -103,7 +109,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		}
 
 		if len(addrs) != chunksCountAfterPin {
-			return fmt.Errorf("Node %s: has %d chunks (expected %d)", name, chunksCountAfterPin, len(addrs))
+			return fmt.Errorf("node %s: has %d chunks (expected %d)", name, chunksCountAfterPin, len(addrs))
 		}
 
 		fmt.Printf("Node %s: has %d chunks (expected %d)\n", name, chunksCountAfterPin, len(addrs))
@@ -112,11 +118,8 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	// cleanup
 	for name, o := range overlays {
 		fmt.Printf("Node %s: unpinning chunks\n", o.String())
-
-		nodeClient := ng.NodeClient(name)
-
 		for _, a := range addrs {
-			err := nodeClient.UnpinChunk(ctx, a)
+			err := clients[name].UnpinChunk(ctx, a)
 			if err != nil {
 				return fmt.Errorf("cannot unpin chunk: %w", err)
 			}
@@ -125,11 +128,8 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 
 	for name, o := range overlays {
 		fmt.Printf("Node %s: removing chunks\n", o.String())
-
-		nodeClient := ng.NodeClient(name)
-
 		for _, a := range addrs {
-			err := nodeClient.RemoveChunk(ctx, a)
+			err := clients[name].RemoveChunk(ctx, a)
 			if err != nil {
 				return fmt.Errorf("cannot delete chunk: %w", err)
 			}

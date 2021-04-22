@@ -133,7 +133,6 @@ func (c *command) initCheckLocalPinningBytes() *cobra.Command {
 			}
 
 			return localpinning.CheckBytesFound(cluster, localpinning.Options{
-				NodeGroup:        "bee",
 				StoreSize:        c.config.GetInt(optionNameDbCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
 				Seed:             seed,

@@ -22,6 +22,7 @@ func (c *command) initCheckPushSync() *cobra.Command {
 		optionNameSeed                     = "seed"
 		optionNameConcurrent               = "concurrent"
 		optionNameUploadChunks             = "upload-chunks"
+		optionNameUploadLightChunks        = "upload-light-chunks"
 		optionNameUploadFiles              = "upload-files"
 		optionNameFileSize                 = "file-size"
 		optionNameRetries                  = "retries"
@@ -56,6 +57,7 @@ func (c *command) initCheckPushSync() *cobra.Command {
 		storageRequest           string
 		concurrent               bool
 		uploadChunks             bool
+		uploadLightChunks        bool
 		uploadFiles              bool
 		fullNode                 bool
 		additionalNodeCount      int
@@ -154,7 +156,6 @@ and checks if chunks are synced to their closest nodes.`,
 
 			if concurrent {
 				return pushsync.CheckConcurrent(cluster, pushsync.Options{
-					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					Seed:            seed,
@@ -163,7 +164,15 @@ and checks if chunks are synced to their closest nodes.`,
 
 			if uploadChunks {
 				return pushsync.CheckChunks(cluster, pushsync.Options{
-					NodeGroup:       "bee",
+					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
+					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
+					RetryDelay:      c.config.GetDuration(optionNameRetryDelay),
+					Seed:            seed,
+				})
+			}
+
+			if uploadLightChunks {
+				return pushsync.CheckLightChunks(cluster, pushsync.Options{
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					RetryDelay:      c.config.GetDuration(optionNameRetryDelay),
@@ -176,7 +185,6 @@ and checks if chunks are synced to their closest nodes.`,
 				retryDelayDuration := c.config.GetDuration(optionNameRetryDelay)
 
 				return pushsync.CheckFiles(cluster, pushsync.Options{
-					NodeGroup:       "bee",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
@@ -189,7 +197,6 @@ and checks if chunks are synced to their closest nodes.`,
 
 			retryDelayDuration := c.config.GetDuration(optionNameRetryDelay)
 			return pushsync.Check(cluster, pushsync.Options{
-				NodeGroup:       "bee",
 				UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 				ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 				Retries:         c.config.GetInt(optionNameRetries),
@@ -206,6 +213,7 @@ and checks if chunks are synced to their closest nodes.`,
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
 	cmd.Flags().BoolVar(&concurrent, optionNameConcurrent, false, "upload concurrently")
 	cmd.Flags().BoolVar(&uploadChunks, optionNameUploadChunks, false, "upload chunks")
+	cmd.Flags().BoolVar(&uploadLightChunks, optionNameUploadLightChunks, false, "upload chunks to light nodes")
 	cmd.Flags().BoolVar(&uploadFiles, optionNameUploadFiles, false, "upload files")
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int(optionNameRetries, 5, "number of reties on problems")

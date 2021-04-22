@@ -15,13 +15,16 @@ func CheckFiles(c *bee.Cluster, o Options) (err error) {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
+	if err != nil {
+		return err
+	}
+	clients, err := c.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
 		for j := 0; j < o.FilesPerNode; j++ {
@@ -29,14 +32,14 @@ func CheckFiles(c *bee.Cluster, o Options) (err error) {
 			fileSize := o.FileSize + int64(j)
 			file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d-%d", "file", i, j), fileSize)
 
-			tagResponse, err := ng.NodeClient(nodeName).CreateTag(ctx)
+			tagResponse, err := clients[nodeName].CreateTag(ctx)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
 			tagUID := tagResponse.Uid
 
-			if err := ng.NodeClient(nodeName).UploadFileWithTag(ctx, &file, false, tagUID); err != nil {
+			if err := clients[nodeName].UploadFileWithTag(ctx, &file, false, tagUID); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
@@ -52,7 +55,7 @@ func CheckFiles(c *bee.Cluster, o Options) (err error) {
 
 				time.Sleep(o.RetryDelay)
 
-				afterUploadTagResponse, err := ng.NodeClient(nodeName).GetTag(ctx, tagUID)
+				afterUploadTagResponse, err := clients[nodeName].GetTag(ctx, tagUID)
 				if err != nil {
 					return fmt.Errorf("node %s: %w", nodeName, err)
 				}

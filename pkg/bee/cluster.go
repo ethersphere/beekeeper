@@ -120,6 +120,24 @@ func (c *Cluster) Balances(ctx context.Context) (balances ClusterBalances, err e
 	return
 }
 
+// FlattenBalances returns aggregated NodeGroupBalances
+func (c *Cluster) FlattenBalances(ctx context.Context) (balances NodeGroupBalances, err error) {
+	b, err := c.Balances(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	balances = make(NodeGroupBalances)
+
+	for _, v := range b {
+		for n, bal := range v {
+			balances[n] = bal
+		}
+	}
+
+	return
+}
+
 // GlobalReplicationFactor returns the total number of nodes in the cluster that contain given chunk
 func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
 	for k, v := range c.nodeGroups {
@@ -244,33 +262,6 @@ func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string
 	return ng, name, o
 }
 
-func (c *Cluster) FlattenOverlays(ctx context.Context, include ...string) (map[string]swarm.Address, error) {
-	o, err := c.Overlays(ctx)
-	if err != nil {
-		return nil, err
-	}
-	res := make(map[string]swarm.Address)
-	for _, ngo := range o {
-		for n, over := range ngo {
-			if len(include) > 0 && !containsName(include, n) {
-				continue
-			}
-			res[n] = over
-		}
-	}
-
-	return res, nil
-}
-
-func containsName(s []string, e string) bool {
-	for i := range s {
-		if s[i] == e {
-			return true
-		}
-	}
-	return false
-}
-
 // Overlays returns ClusterOverlays
 func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err error) {
 	overlays = make(ClusterOverlays)
@@ -285,6 +276,34 @@ func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err e
 	}
 
 	return
+}
+
+// Overlays returns aggregated ClusterOverlays
+func (c *Cluster) FlattenOverlays(ctx context.Context, include ...string) (map[string]swarm.Address, error) {
+	o, err := c.Overlays(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]swarm.Address)
+	for ngn, ngo := range o {
+		if len(include) > 0 && !containsName(include, ngn) {
+			continue
+		}
+		for n, over := range ngo {
+			res[n] = over
+		}
+	}
+
+	return res, nil
+}
+
+func containsName(s []string, e string) bool {
+	for i := range s {
+		if s[i] == e {
+			return true
+		}
+	}
+	return false
 }
 
 // ClusterPeers represents peers of all nodes in the cluster
@@ -325,6 +344,24 @@ func (c *Cluster) Settlements(ctx context.Context) (settlements ClusterSettlemen
 	return
 }
 
+// FlattenSettlements returns aggregated NodeGroupSettlements
+func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error) {
+	s, err := c.Settlements(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	settlements = make(NodeGroupSettlements)
+
+	for _, v := range s {
+		for n, set := range v {
+			settlements[n] = set
+		}
+	}
+
+	return
+}
+
 // Size returns size of the cluster
 func (c *Cluster) Size() (size int) {
 	for _, ng := range c.nodeGroups {
@@ -347,6 +384,24 @@ func (c *Cluster) Topologies(ctx context.Context) (topologies ClusterTopologies,
 		}
 
 		topologies[k] = t
+	}
+
+	return
+}
+
+// Topologies returns ClusterTopologies
+func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]Topology, err error) {
+	top, err := c.Topologies(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	topologies = make(map[string]Topology)
+
+	for _, v := range top {
+		for n, over := range v {
+			topologies[n] = over
+		}
 	}
 
 	return

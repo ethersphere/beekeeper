@@ -18,13 +18,12 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 	pivot := rnd.Intn(c.Size())
 	pivotNode := sortedNodes[pivot]
 	chunk, err := bee.NewRandomChunk(rnd)
@@ -32,7 +31,13 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	ref, err := ng.NodeClient(pivotNode).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: true})
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	node := clients[pivotNode]
+
+	ref, err := node.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: true})
 	if err != nil {
 		return fmt.Errorf("node %s: %w", pivotNode, err)
 	}
@@ -46,7 +51,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
 		}
-		if _, err := ng.NodeClient(pivotNode).UploadBytes(ctx, b, api.UploadOptions{Pin: false}); err != nil {
+		if _, err := node.UploadBytes(ctx, b, api.UploadOptions{Pin: false}); err != nil {
 			return fmt.Errorf("node %s: %w", pivotNode, err)
 		}
 		fmt.Printf("node %s: uploaded %d bytes.\n", pivotNode, len(b))
@@ -55,7 +60,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 	// allow nodes to sync and do some GC
 	time.Sleep(5 * time.Second)
 
-	has, err := ng.NodeClient(pivotNode).HasChunk(ctx, chunk.Address())
+	has, err := node.HasChunk(ctx, chunk.Address())
 	if err != nil {
 		return fmt.Errorf("node has chunk: %w", err)
 	}
@@ -64,7 +69,7 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 	}
 
 	// cleanup
-	if err := ng.NodeClient(pivotNode).UnpinChunk(ctx, chunk.Address()); err != nil {
+	if err := node.UnpinChunk(ctx, chunk.Address()); err != nil {
 		return fmt.Errorf("unpin chunk: %w", err)
 	}
 

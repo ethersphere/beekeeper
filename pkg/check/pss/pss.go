@@ -16,7 +16,6 @@ import (
 
 // Options represents PSS check options
 type Options struct {
-	NodeGroup      string
 	NodeCount      int
 	RequestTimeout time.Duration
 	AddressPrefix  int

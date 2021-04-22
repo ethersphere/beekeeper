@@ -17,9 +17,7 @@ import (
 )
 
 // Options represents SOC check options
-type Options struct {
-	NodeGroup string
-}
+type Options struct{}
 
 // Check sends a SOC chunk and retrieves with the address.
 func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {

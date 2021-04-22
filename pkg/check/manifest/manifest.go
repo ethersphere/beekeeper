@@ -17,7 +17,6 @@ import (
 
 // Options represents manifest options
 type Options struct {
-	NodeGroup         string
 	FilesInCollection int
 	MaxPathnameLength int32
 	Seed              int64
