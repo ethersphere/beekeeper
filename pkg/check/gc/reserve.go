@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"time"
-
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -37,8 +36,8 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 	fmt.Printf("node %s\n", node.Name())
 
 	const (
-		lowAmonut int64 = 1
-		higAmount int64 = 3
+		loAmount = 1
+		hiAmount = 3
 	)
 
 	client := node.Client()
@@ -57,11 +56,11 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 	depth := capacityToDepth(origState.Radius, origState.Available)
 
 	// STEP 1: create low value batch that covers the size of the reserve and upload chunk as much as the size of the cache
-	batch, err := client.CreatePostageBatch(ctx, lowAmonut, depth, "test-label")
+	batchID, err := client.CreatePostageBatch(ctx, loAmount, depth, "test-label")
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
-	fmt.Printf("created batch id %s with depth %d and amount %d\n", batch, depth, higAmount)
+	fmt.Printf("created batch id %s with depth %d and amount %d\n", batchID, depth, hiAmount)
 	time.Sleep(o.PostageWait)
 
 	state, err := node.Client().ReserveState(ctx)
@@ -70,32 +69,39 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 	}
 	fmt.Println("reservestate:", state)
 
-	lowValueChunks := chunkBatch(rnd, overlay, int64(o.CacheSize), origState.Radius)
+	pinnedChunk := bee.GenerateRandomChunkAt(rnd, overlay, 0)
+	_, err = client.UploadChunk(ctx, pinnedChunk.Data(), api.UploadOptions{Pin: true, BatchID: batchID})
+	if err != nil {
+		return fmt.Errorf("unable to upload chunk: %w", err)
+	}
+	fmt.Printf("uploaded pinned chunk %q\n", pinnedChunk.Address())
+
+	lowValueChunks := chunkBatch(rnd, overlay, o.CacheSize, origState.Radius)
 	for _, c := range lowValueChunks {
-		_, err := node.Client().UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batch})
+		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
 		if err != nil {
 			return fmt.Errorf("low value chunk: %w", err)
 		}
 	}
-	fmt.Printf("Uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), depth, lowAmonut, origState.Radius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), depth, loAmount, origState.Radius)
 
 	// upload higher radius chunks that should not be garbage collected
 	higherRadius := origState.Radius + 1
-	higherRadiusChunkCount := int64(float64(o.CacheSize) * 0.1)
+	higherRadiusChunkCount := int(float64(o.CacheSize) * 0.1)
 	lowValueHigherRadiusChunks := chunkBatch(rnd, overlay, higherRadiusChunkCount, higherRadius)
 	for _, c := range lowValueHigherRadiusChunks {
-		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batch}); err != nil {
+		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("low value chunk: %w", err)
 		}
 	}
-	fmt.Printf("Uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, lowAmonut, higherRadius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, loAmount, higherRadius)
 
-	// STEP 2: create high value batch thats covers the size of the reserve which should trigger the garbage collection of the low value batch
-	highValueBatch, err := client.CreatePostageBatch(ctx, higAmount, depth, "test-label")
+	// STEP 2: create high value batch that covers the size of the reserve which should trigger the garbage collection of the low value batch
+	highValueBatch, err := client.CreatePostageBatch(ctx, hiAmount, depth, "test-label")
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
-	fmt.Printf("created batch id %s with depth %d and amount %d\n", highValueBatch, depth, higAmount)
+	fmt.Printf("created batch id %s with depth %d and amount %d\n", highValueBatch, depth, hiAmount)
 	time.Sleep(o.PostageWait)
 
 	state, err = node.Client().ReserveState(ctx)
@@ -139,20 +145,28 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 		return fmt.Errorf("low value higher radius chunks were gc'd. Retrieved: %d, gc'd count: %d", hasCount, len(lowValueHigherRadiusChunks)-hasCount)
 	}
 
+	has, err := client.HasChunk(ctx, pinnedChunk.Address())
+	if err != nil {
+		return fmt.Errorf("unable to check pinned chunk %q: %w", pinnedChunk.Address(), err)
+	}
+	if !has {
+		return fmt.Errorf("expected node pin for uploaded chunk %q", pinnedChunk.Address())
+	}
+
 	// STEP 3: Upload chunks with high value batch, then create a low value batch, and confirm no chunks were garbage collected
-	highValueChunks := chunkBatch(rnd, overlay, int64(o.CacheSize), state.Radius)
+	highValueChunks := chunkBatch(rnd, overlay, o.CacheSize, state.Radius)
 	for _, c := range highValueChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: highValueBatch}); err != nil {
 			return fmt.Errorf("high value chunks: %w", err)
 		}
 	}
-	fmt.Printf("Uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), depth, higAmount, state.Radius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), depth, hiAmount, state.Radius)
 
-	batch, err = client.CreatePostageBatch(ctx, lowAmonut, depth-1, "test-label")
+	batchID, err = client.CreatePostageBatch(ctx, loAmount, depth-1, "test-label")
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
-	fmt.Printf("created batch id %s with depth %d and amount %d\n", batch, depth, higAmount)
+	fmt.Printf("created batch id %s with depth %d and amount %d\n", batchID, depth, hiAmount)
 	time.Sleep(o.PostageWait)
 
 	state, err = client.ReserveState(ctx)
@@ -178,6 +192,43 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 		return fmt.Errorf("high value chunks were gc'd. Retrieved: %d,  gc'd count: %d", hasCount, len(highValueChunks)-hasCount)
 	}
 
+	pinned, err := client.GetPins(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to get pins: %w", err)
+	}
+	if len(pinned) != 1 {
+		return fmt.Errorf("unexpected pin count %d", len(pinned))
+	}
+	pinnedRef := pinned[0]
+
+	if !pinnedChunk.Address().Equal(pinnedRef) {
+		return fmt.Errorf("chunk %q is not pinned", pinnedChunk.Address())
+	}
+
+	if have, err := client.GetPinnedRootHash(ctx, pinnedRef); err != nil {
+		return fmt.Errorf("unable to get pinned root hash: %w", err)
+	} else if !have.Equal(pinnedRef) {
+		return fmt.Errorf("address mismatch: have %q; want %q", have, pinnedRef)
+	}
+
+	if err := client.UnpinRootHash(ctx, pinnedRef); err != nil {
+		return fmt.Errorf("cannot unpin chunk: %w", err)
+	}
+
+	if have, err := client.GetPinnedRootHash(ctx, pinnedRef); err != nil {
+		return fmt.Errorf("unable to get pinned root hash: %w", err)
+	} else if !have.Equal(swarm.ZeroAddress) {
+		return fmt.Errorf("address mismatch: have %q; want none", have)
+	}
+
+	pinned, err = client.GetPins(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to get pins: %w", err)
+	}
+	if len(pinned) > 0 {
+		return errors.New("pin count is greater than zero")
+	}
+
 	return nil
 }
 
@@ -190,13 +241,10 @@ func capacityToDepth(radius uint8, available int64) uint64 {
 	return uint64(depth) + 1
 }
 
-func chunkBatch(rnd *rand.Rand, target swarm.Address, count int64, po uint8) []swarm.Chunk {
-
-	ret := make([]swarm.Chunk, 0, count)
-
-	for i := int64(0); i < count; i++ {
-		ret = append(ret, bee.GenerateRandomChunkAt(rnd, target, po))
+func chunkBatch(rnd *rand.Rand, target swarm.Address, count int, po uint8) []swarm.Chunk {
+	chunks := make([]swarm.Chunk, count)
+	for i := range chunks {
+		chunks[i] = bee.GenerateRandomChunkAt(rnd, target, po)
 	}
-
-	return ret
+	return chunks
 }

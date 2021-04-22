@@ -245,7 +245,7 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.C
 		return err
 	}
 
-	return node.PinChunk(ctx, ref)
+	return node.PinRootHash(ctx, ref)
 }
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
