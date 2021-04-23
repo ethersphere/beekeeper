@@ -3,6 +3,7 @@ package bee
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/url"
 	"sort"
 
@@ -162,8 +163,75 @@ func (c *Cluster) NodeGroup(name string) *NodeGroup {
 	return c.nodeGroups[name]
 }
 
+// Nodes returns map of nodes in the cluster
+func (c *Cluster) Nodes() map[string]*Node {
+	n := make(map[string]*Node)
+	for _, ng := range c.NodeGroups() {
+		for k, v := range ng.getNodes() {
+			n[k] = v
+		}
+	}
+	return n
+}
+
+// NodesClients returns map of node's clients in the cluster excluding stopped nodes
+func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) {
+	clients := make(map[string]*Client)
+	for _, ng := range c.NodeGroups() {
+		ngc, err := ng.NodesClients(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("nodes clients: %w", err)
+		}
+		for n, client := range ngc {
+			clients[n] = client
+		}
+	}
+	return clients, nil
+}
+
+// NodesClientsAll returns map of node's clients in the cluster
+func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*Client, error) {
+	clients := make(map[string]*Client)
+	for _, ng := range c.NodeGroups() {
+		for n, client := range ng.NodesClientsAll(ctx) {
+			clients[n] = client
+		}
+	}
+	return clients, nil
+}
+
 // ClusterOverlays represents overlay addresses of all nodes in the cluster
 type ClusterOverlays map[string]NodeGroupOverlays
+
+// RandomOverlay returns a random overlay from a random NodeGroup
+func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string, overlay swarm.Address) {
+	i := r.Intn(len(c))
+	var (
+		ng, name string
+		ngo      NodeGroupOverlays
+		o        swarm.Address
+	)
+	for n, v := range c {
+		if i == 0 {
+			ng = n
+			ngo = v
+			break
+		}
+		i--
+	}
+
+	i = r.Intn(len(ngo))
+
+	for n, v := range ngo {
+		if i == 0 {
+			name = n
+			o = v
+			break
+		}
+		i--
+	}
+	return ng, name, o
+}
 
 // Overlays returns ClusterOverlays
 func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err error) {

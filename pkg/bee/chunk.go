@@ -2,6 +2,7 @@ package bee
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"hash"
 	"math/rand"
@@ -101,7 +102,7 @@ func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err e
 }
 
 // ClosestNodeFromMap returns chunk's closest node of a given map of nodes
-func (c *Chunk) ClosestNodeFromMap(nodes map[string]swarm.Address) (closestName string, closestAddress swarm.Address, err error) {
+func (c *Chunk) ClosestNodeFromMap(nodes map[string]swarm.Address, skipNodes ...swarm.Address) (closestName string, closestAddress swarm.Address, err error) {
 	for k, v := range nodes {
 		fmt.Println(k, v)
 	}
@@ -111,25 +112,34 @@ func (c *Chunk) ClosestNodeFromMap(nodes map[string]swarm.Address) (closestName 
 		names = append(names, k)
 		addresses = append(addresses, v)
 	}
-	closestName = names[0]
-	closestAddress = addresses[0]
 
-	for i, a := range addresses[1:] {
-		dcmp, err := swarm.DistanceCmp(c.Address().Bytes(), closestAddress.Bytes(), a.Bytes())
+next:
+	for i, a := range addresses {
+
+		for _, skip := range skipNodes {
+			if a.Equal(skip) {
+				continue next
+			}
+		}
+
+		if closestAddress.IsZero() {
+			closestName = names[i]
+			closestAddress = a
+			continue
+		}
+
+		dcmp, err := swarm.DistanceCmp(c.Address().Bytes(), a.Bytes(), closestAddress.Bytes())
 		if err != nil {
 			return "", swarm.Address{}, fmt.Errorf("find closest node: %w", err)
 		}
-		switch dcmp {
-		case 0:
-			// do nothing
-		case -1:
-			// current node is closer
-			closestName = names[i+1]
+		if dcmp == 1 {
+			closestName = names[i]
 			closestAddress = a
-		case 1:
-			// closest is already closer to chunk
-			// do nothing
 		}
+	}
+
+	if closestAddress.IsZero() {
+		return "", swarm.Address{}, errors.New("closest node not found")
 	}
 
 	return

@@ -117,7 +117,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 				{
 					Name:       "api",
 					Protocol:   "TCP",
-					Port:       portHTTP,
+					Port:       portAPI,
 					TargetPort: "api",
 				},
 			},
@@ -135,10 +135,6 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
-			Backend: ingress.Backend{
-				ServiceName: apiSvc,
-				ServicePort: "api",
-			},
 			Rules: ingress.Rules{{
 				Host: o.IngressHost,
 				Paths: ingress.Paths{{
@@ -187,10 +183,6 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
-			Backend: ingress.Backend{
-				ServiceName: debugSvc,
-				ServicePort: "debug",
-			},
 			Rules: ingress.Rules{{
 				Host: o.IngressDebugHost,
 				Paths: ingress.Paths{{
