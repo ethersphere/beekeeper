@@ -389,6 +389,7 @@ type Topology struct {
 	NnLowWatermark int
 	Depth          int
 	Bins           map[string]Bin
+	LightNodes     Bin
 }
 
 // Bin represents Kademlia bin
@@ -433,6 +434,13 @@ func (c *Client) Topology(ctx context.Context) (topology Topology, err error) {
 				Population:        b.Population,
 			}
 		}
+	}
+
+	topology.LightNodes = Bin{
+		ConnectedPeers:    t.LightNodes.ConnectedPeers,
+		DisconnectedPeers: t.LightNodes.DisconnectedPeers,
+		Connected:         t.LightNodes.Connected,
+		Population:        t.LightNodes.Population,
 	}
 
 	return
