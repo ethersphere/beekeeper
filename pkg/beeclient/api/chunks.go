@@ -33,6 +33,7 @@ func (c *ChunksService) Upload(ctx context.Context, data []byte, o UploadOptions
 	if o.Pin {
 		h.Add("Swarm-Pin", "true")
 	}
+	h.Add(postageStampBatchHeader, o.BatchID)
 	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks", h, bytes.NewReader(data), &resp)
 	return resp, err
 }

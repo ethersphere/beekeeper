@@ -56,6 +56,8 @@ func (c *command) initCheckLocalPinningChunk() *cobra.Command {
 				StoreSize:        c.config.GetInt(optionNameDbCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
 				Seed:             seed,
+				PostageAmount:    c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:      c.config.GetDuration(optionNamePostageBatchhWait),
 			})
 		},
 		PreRunE: c.checkPreRunE,

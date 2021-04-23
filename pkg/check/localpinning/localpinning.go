@@ -3,6 +3,7 @@ package localpinning
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/file/pipeline/builder"
 	"github.com/ethersphere/bee/pkg/storage"
@@ -15,6 +16,8 @@ type Options struct {
 	StoreSize        int // size of the node's localstore in chunks
 	StoreSizeDivisor int // divide store size by how much when uploading bytes
 	Seed             int64
+	PostageAmount    int64
+	PostageWait      time.Duration
 }
 
 func addresses(buf []byte) ([]swarm.Address, error) {

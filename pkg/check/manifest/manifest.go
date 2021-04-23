@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -21,6 +22,8 @@ type Options struct {
 	FilesInCollection int
 	MaxPathnameLength int32
 	Seed              int64
+	PostageAmount     int64
+	PostageWait       time.Duration
 }
 
 var errManifest = errors.New("manifest data mismatch")
@@ -49,9 +52,24 @@ func Check(c *bee.Cluster, o Options) error {
 	}
 
 	tarFile := bee.NewBufferFile("", tarReader)
-
 	sortedNodes := ng.NodesSorted()
-	if err := ng.NodeClient(sortedNodes[0]).UploadCollection(ctx, &tarFile); err != nil {
+
+	node := sortedNodes[0]
+
+	client := ng.NodeClient(sortedNodes[0])
+
+	// add some buffer to ensure depth is enough
+	depth := 2 + bee.EstimatePostageBatchDepth(tarFile.Size())
+	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+	if err != nil {
+		return fmt.Errorf("node %s: created batched id %w", node, err)
+	}
+
+	fmt.Printf("node %s: created batched id %s\n", node, batchID)
+
+	time.Sleep(o.PostageWait)
+
+	if err := client.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
 	}
 

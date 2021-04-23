@@ -62,6 +62,8 @@ func (c *command) initCheckPullSync() *cobra.Command {
 				ReplicationFactorThreshold: c.config.GetInt(optionNameReplicationFactor),
 				ChunksPerNode:              c.config.GetInt(optionNameChunksPerNode),
 				Seed:                       seed,
+				PostageAmount:              c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:                c.config.GetDuration(optionNamePostageBatchhWait),
 			})
 		},
 		PreRunE: c.checkPreRunE,

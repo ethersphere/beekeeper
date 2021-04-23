@@ -25,7 +25,20 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 
 	sortedNodes := ng.NodesSorted()
 	for i := 0; i < o.UploadNodeCount; i++ {
+
 		nodeName := sortedNodes[i]
+
+		uploader := ng.NodeClient(nodeName)
+
+		batchID, err := uploader.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		if err != nil {
+			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+		}
+
+		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+		time.Sleep(o.PostageWait)
+
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])
@@ -33,9 +46,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			uploader := ng.NodeClient(nodeName)
-
-			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -54,7 +65,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			if !synced {
-				return fmt.Errorf("node %s chunk %s not found in the closest node %s\n", nodeName, ref.String(), closestAddress)
+				return fmt.Errorf("node %s chunk %s not found in the closest node %s", nodeName, ref.String(), closestAddress)
 			}
 
 			fmt.Printf("node %s chunk %s found in the closest node %s\n", nodeName, ref.String(), closestAddress)
@@ -82,7 +93,7 @@ func CheckChunks(c *bee.Cluster, o Options) error {
 				}
 			}
 
-			return fmt.Errorf("node %s chunk %s not replicated\n", nodeName, ref.String())
+			return fmt.Errorf("node %s chunk %s not replicated", nodeName, ref.String())
 		}
 	}
 

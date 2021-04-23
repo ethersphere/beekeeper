@@ -144,6 +144,8 @@ func (c *command) initCheckBalances() *cobra.Command {
 				FileSize:           fileSize,
 				Seed:               seed,
 				WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
+				PostageAmount:      c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:        c.config.GetDuration(optionNamePostageBatchhWait),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,

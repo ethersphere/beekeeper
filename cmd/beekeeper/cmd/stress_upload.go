@@ -142,6 +142,8 @@ func (c *command) initStressUpload() *cobra.Command {
 				Seed:                  seed,
 				Timeout:               c.config.GetDuration(optionNameTimeout),
 				UploadNodesPercentage: uploadNodesPercentage,
+				PostageAmount:         c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:           c.config.GetDuration(optionNamePostageBatchhWait),
 			}
 
 			dynamicStages := []stress.Stage{}

@@ -56,6 +56,8 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				FilesInCollection: c.config.GetInt(optionNameFilesInCollection),
 				MaxPathnameLength: c.config.GetInt32(optionMaxPathnameLength),
 				Seed:              seed,
+				PostageAmount:     c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:       c.config.GetDuration(optionNamePostageBatchhWait),
 			})
 
 		},

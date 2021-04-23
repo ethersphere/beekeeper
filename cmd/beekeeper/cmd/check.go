@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +23,8 @@ const (
 	optionNameNodeCount               = "node-count"
 	optionNamePushGateway             = "push-gateway"
 	optionNamePushMetrics             = "push-metrics"
+	optionNamePostageAmount           = "postage-amount"
+	optionNamePostageBatchhWait       = "postage-batch-wait"
 )
 
 var (
@@ -59,6 +63,8 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&pushMetrics, optionNamePushMetrics, false, "push metrics to pushgateway")
 	cmd.PersistentFlags().BoolVar(&inCluster, optionNameInCluster, false, "run Beekeeper in Kubernetes cluster")
 	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
+	cmd.PersistentFlags().Int64(optionNamePostageAmount, 1, "postage stamp amount")
+	cmd.PersistentFlags().Duration(optionNamePostageBatchhWait, time.Second*10, "time to wait for batch to be mined") // 4 blocks * 2 seconds (w/ some offset) per block
 
 	cmd.AddCommand(c.initCheckBalances())
 	cmd.AddCommand(c.initCheckFileRetrieval())

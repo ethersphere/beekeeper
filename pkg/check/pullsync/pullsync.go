@@ -20,6 +20,8 @@ type Options struct {
 	ChunksPerNode              int
 	ReplicationFactorThreshold int
 	Seed                       int64
+	PostageAmount              int64
+	PostageWait                time.Duration
 }
 
 var errPullSync = errors.New("pull sync")
@@ -47,7 +49,19 @@ func Check(c *bee.Cluster, o Options) (err error) {
 
 	sortedNodes := ng.NodesSorted()
 	for i := 0; i < o.UploadNodeCount; i++ {
+
 		nodeName := sortedNodes[i]
+		client := ng.NodeClient(nodeName)
+
+		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		if err != nil {
+			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+		}
+
+		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+		time.Sleep(o.PostageWait)
+
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (
 				chunk bee.Chunk
@@ -60,7 +74,8 @@ func Check(c *bee.Cluster, o Options) (err error) {
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			addr, err := ng.NodeClient(nodeName).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+
+			addr, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}

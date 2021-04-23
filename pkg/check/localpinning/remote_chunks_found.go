@@ -25,8 +25,8 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	size := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
-	buf := make([]byte, size)
+	buffSize := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
+	buf := make([]byte, buffSize)
 	_, err = rnd.Read(buf)
 	if err != nil {
 		return fmt.Errorf("rand buffer: %w", err)
@@ -40,12 +40,26 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	sortedNodes := ng.NodesSorted()
 	pivot := rnd.Intn(c.Size())
 	pivotNode := sortedNodes[pivot]
-	ref, err := ng.NodeClient(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
+
+	uploadClient := ng.NodeClient(pivotNode)
+
+	// add some buffer to depth
+	depth := 2 + bee.EstimatePostageBatchDepth(int64(buffSize))
+	batchID, err := uploadClient.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+	if err != nil {
+		return fmt.Errorf("node %s: created batched id %w", pivotNode, err)
+	}
+
+	fmt.Printf("node %s: created batched id %s\n", pivotNode, batchID)
+
+	time.Sleep(o.PostageWait)
+
+	ref, err := uploadClient.UploadBytes(ctx, buf, api.UploadOptions{Pin: true, BatchID: batchID})
 	if err != nil {
 		return fmt.Errorf("node %s: upload bytes: %w", pivotNode, err)
 	}
 
-	fmt.Printf("uploaded and pinned %d bytes (%d chunks) with hash %s to node %s: %s\n", size, len(addrs), ref.String(), pivotNode, overlays[pivotNode].String())
+	fmt.Printf("uploaded and pinned %d bytes (%d chunks) with hash %s to node %s: %s\n", buffSize, len(addrs), ref.String(), pivotNode, overlays[pivotNode].String())
 
 	// allow the nodes to sync and do some GC
 	time.Sleep(15 * time.Second)
@@ -103,7 +117,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		}
 
 		if len(addrs) != chunksCountAfterPin {
-			return fmt.Errorf("Node %s: has %d chunks (expected %d)", name, chunksCountAfterPin, len(addrs))
+			return fmt.Errorf("node %s: has %d chunks (expected %d)", name, chunksCountAfterPin, len(addrs))
 		}
 
 		fmt.Printf("Node %s: has %d chunks (expected %d)\n", name, chunksCountAfterPin, len(addrs))

@@ -24,8 +24,8 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	size := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
-	buf := make([]byte, size)
+	buffSize := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
+	buf := make([]byte, buffSize)
 	_, err = rnd.Read(buf)
 	if err != nil {
 		return fmt.Errorf("rand buffer: %w", err)
@@ -39,12 +39,26 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 	sortedNodes := ng.NodesSorted()
 	pivot := rnd.Intn(c.Size())
 	pivotNode := sortedNodes[pivot]
-	ref, err := ng.NodeClient(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: true})
+
+	client := ng.NodeClient(pivotNode)
+
+	// add some depth buffer
+	depth := 3 + bee.EstimatePostageBatchDepth(int64(buffSize*(o.StoreSizeDivisor)))
+	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+	if err != nil {
+		return fmt.Errorf("node %s: created batched id %w", pivotNode, err)
+	}
+
+	fmt.Printf("node %s: created batched id %s\n", pivotNode, batchID)
+
+	time.Sleep(o.PostageWait)
+
+	ref, err := client.UploadBytes(ctx, buf, api.UploadOptions{Pin: true, BatchID: batchID})
 	if err != nil {
 		return fmt.Errorf("node %s: upload bytes: %w", pivotNode, err)
 	}
 
-	fmt.Printf("uploaded and pinned %d bytes with hash %s to node %s: %s\n", size, ref.String(), pivotNode, overlays[pivotNode].String())
+	fmt.Printf("uploaded and pinned %d bytes with hash %s to node %s: %s\n", buffSize, ref.String(), pivotNode, overlays[pivotNode].String())
 
 	for i := 0; i < o.StoreSizeDivisor; i++ {
 		_, err := rnd.Read(buf)
@@ -53,12 +67,12 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 		}
 
 		// upload without pinning
-		a, err := ng.NodeClient(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: false})
+		a, err := ng.NodeClient(pivotNode).UploadBytes(ctx, buf, api.UploadOptions{Pin: false, BatchID: batchID})
 		if err != nil {
 			return fmt.Errorf("node %s: upload bytes: %w", pivotNode, err)
 		}
 
-		fmt.Printf("uploaded %d unpinned bytes successfully, hash %s\n", size, a.String())
+		fmt.Printf("uploaded %d unpinned bytes successfully, hash %s\n", buffSize, a.String())
 	}
 
 	// allow the nodes to sync and do some GC

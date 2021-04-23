@@ -63,6 +63,8 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 				NodeGroup:              "nodes",
 				NumberOfChunksToRepair: c.config.GetInt(optionNumberOfChunks),
 				Seed:                   seed,
+				PostageAmount:          c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:            c.config.GetDuration(optionNamePostageBatchhWait),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 
 		},

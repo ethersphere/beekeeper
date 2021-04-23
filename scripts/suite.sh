@@ -72,6 +72,11 @@ _manifest() {
     "${BEEKEEPER_BIN}" check manifest --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
 }
 
+_fileretrieval() {
+    echo "*** FILERETRIEVAL ***"
+    "${BEEKEEPER_BIN}" check fileretrieval --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
+}
+
 _localpinning() {
     echo "*** LOCALPINNING ***"
     "${BEEKEEPER_BIN}" check localpinning --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
@@ -143,6 +148,11 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
                 ACTION="manifest"
                 shift
             ;;
+#/   fileretrieval         run fileretrieval test
+            fileretrieval)
+                ACTION="fileretrieval"
+                shift
+            ;;
 #/
 #/ Options:
 #/   -n, --namespace name set namespace (default is bee)
@@ -202,5 +212,8 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
     fi
     if [[ $ACTION == "localpinning" ]]; then
         _localpinning
+    fi
+    if [[ $ACTION == "fileretrieval" ]]; then
+        _fileretrieval
     fi
 fi

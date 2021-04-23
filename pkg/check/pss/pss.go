@@ -21,6 +21,8 @@ type Options struct {
 	RequestTimeout time.Duration
 	AddressPrefix  int
 	Seed           int64
+	PostageAmount  int64
+	PostageWait    time.Duration
 }
 
 var (
@@ -60,6 +62,16 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			return err
 		}
 
+		batchID, err := nodeA.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		if err != nil {
+			cancel()
+			return fmt.Errorf("node %s: created batched id %w", nodeAName, err)
+		}
+
+		fmt.Printf("node %s: created batched id %s\n", nodeAName, batchID)
+
+		time.Sleep(o.PostageWait)
+
 		ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
 		if err != nil {
 			cancel()
@@ -69,7 +81,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		fmt.Printf("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
 
 		tStart := time.Now()
-		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData)
+		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
 		if err != nil {
 			close()
 			cancel()

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
@@ -20,6 +21,8 @@ type Options struct {
 	FileSize           int64
 	Seed               int64
 	WaitBeforeDownload int
+	PostageAmount      int64
+	PostageWait        time.Duration
 }
 
 // Check executes balances check
@@ -50,9 +53,24 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	var previousBalances bee.NodeGroupBalances
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload file to random node
+
 		ng, nodeName, overlay := overlays.Random(rnd)
+
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
-		if err := c.NodeGroups()[ng].NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
+		client := c.NodeGroups()[ng].NodeClient(nodeName)
+
+		// add some buffer to ensure depth is enough
+		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+		if err != nil {
+			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+		}
+
+		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+		time.Sleep(o.PostageWait)
+
+		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("node %s: %w", nodeName, err)
 		}
 		fmt.Printf("File %s uploaded successfully to node \"%s\" (%s)\n", file.Address().String(), nodeName, overlay.String())

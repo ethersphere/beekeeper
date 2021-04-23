@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -29,14 +30,27 @@ func CheckFiles(c *bee.Cluster, o Options) (err error) {
 			fileSize := o.FileSize + int64(j)
 			file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d-%d", "file", i, j), fileSize)
 
-			tagResponse, err := ng.NodeClient(nodeName).CreateTag(ctx)
+			client := ng.NodeClient(nodeName)
+
+			tagResponse, err := client.CreateTag(ctx)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
 			tagUID := tagResponse.Uid
 
-			if err := ng.NodeClient(nodeName).UploadFileWithTag(ctx, &file, false, tagUID); err != nil {
+			// add some buffer to ensure depth is enough
+			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+			batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+			if err != nil {
+				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+			}
+
+			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+			time.Sleep(o.PostageWait)
+
+			if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID, Tag: tagUID}); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 

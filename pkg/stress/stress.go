@@ -27,6 +27,8 @@ type Options struct {
 	Seed                  int64
 	Timeout               time.Duration
 	UploadNodesPercentage int
+	PostageAmount         int64
+	PostageWait           time.Duration
 }
 
 // Stage define stages for updating Bee

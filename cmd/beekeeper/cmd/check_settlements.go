@@ -87,6 +87,8 @@ func (c *command) initCheckSettlements() *cobra.Command {
 				Threshold:          c.config.GetInt64(optionNameThreshold),
 				WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
 				ExpectSettlements:  c.config.GetBool(optionNameExpectSettlements),
+				PostageAmount:      c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:        c.config.GetDuration(optionNamePostageBatchhWait),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
