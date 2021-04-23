@@ -198,10 +198,11 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	}
 
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		return json.NewDecoder(r.Body).Decode(&v)
+		_ = json.NewDecoder(r.Body).Decode(&v)
+		return err
 	}
 
-	return
+	return err
 }
 
 // drain discards all of the remaining data from the reader and closes it,
@@ -291,4 +292,5 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 
 type UploadOptions struct {
 	Pin bool
+	Tag uint32
 }
