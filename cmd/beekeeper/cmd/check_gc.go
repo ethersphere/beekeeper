@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/check/gc"
@@ -16,6 +17,12 @@ func (c *command) initCheckGc() *cobra.Command {
 		optionNameDivisor         = "capacity-divisor"
 		optionNameSeed            = "seed"
 		optionNameWaitBeforeCheck = "wait"
+		optionReserve             = "reserve"
+		optionReserveSize         = "reserve-size"
+	)
+
+	var (
+		runReserve bool
 	)
 
 	cmd := &cobra.Command{
@@ -52,11 +59,24 @@ func (c *command) initCheckGc() *cobra.Command {
 				seed = random.Int64()
 			}
 
+			if runReserve {
+				return gc.CheckReserve(cluster, gc.Options{
+					NodeGroup:        "nodes",
+					StoreSize:        c.config.GetInt(optionNameDbCapacity),
+					StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
+					Wait:             c.config.GetDuration(optionNameWaitBeforeCheck),
+					Seed:             seed,
+					PostageAmount:    c.config.GetInt64(optionNamePostageAmount),
+					PostageWait:      c.config.GetDuration(optionNamePostageBatchhWait),
+					ReserveSize:      c.config.GetInt(optionReserveSize),
+				})
+			}
+
 			return gc.CheckChunkNotFound(cluster, gc.Options{
 				NodeGroup:        "nodes",
 				StoreSize:        c.config.GetInt(optionNameDbCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
-				Wait:             c.config.GetInt(optionNameWaitBeforeCheck),
+				Wait:             c.config.GetDuration(optionNameWaitBeforeCheck),
 				Seed:             seed,
 				PostageAmount:    c.config.GetInt64(optionNamePostageAmount),
 				PostageWait:      c.config.GetDuration(optionNamePostageBatchhWait),
@@ -68,7 +88,9 @@ func (c *command) initCheckGc() *cobra.Command {
 	cmd.Flags().Int(optionNameDbCapacity, 1000, "DB capacity in chunks")
 	cmd.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
-	cmd.Flags().IntP(optionNameWaitBeforeCheck, "w", 5, "wait before check")
+	cmd.Flags().Duration(optionNameWaitBeforeCheck, time.Second*5, "wait before check")
+	cmd.Flags().BoolVar(&runReserve, optionReserve, true, "run reserve check")
+	cmd.Flags().Int(optionReserveSize, 1024, "reserve size of the node")
 
 	return cmd
 }

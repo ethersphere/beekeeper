@@ -7,6 +7,7 @@ import (
 	"hash"
 	"math/rand"
 
+	"github.com/ethersphere/bee/pkg/cac"
 	"github.com/ethersphere/bee/pkg/swarm"
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
 	"golang.org/x/crypto/sha3"
@@ -147,4 +148,16 @@ next:
 
 func chunkHahser() hash.Hash {
 	return sha3.NewLegacyKeccak256()
+}
+
+// GenerateRandomChunkAt generates a chunk with address of proximity order po wrt target.
+func GenerateRandomChunkAt(rnd *rand.Rand, target swarm.Address, po uint8) swarm.Chunk {
+	data := make([]byte, swarm.ChunkSize)
+	for {
+		_, _ = rnd.Read(data)
+		chunk, _ := cac.New(data)
+		if swarm.Proximity(chunk.Address().Bytes(), target.Bytes()) == po {
+			return chunk
+		}
+	}
 }

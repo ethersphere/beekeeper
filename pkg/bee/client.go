@@ -338,6 +338,11 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	return c.api.Postage.CreatePostageBatch(ctx, amount, depth, label)
 }
 
+// CreatePostageBatchs returns the batchID of a batch of postage stamps
+func (c *Client) ReserveState(ctx context.Context) (debugapi.ReserveState, error) {
+	return c.debug.Postage.Reservestate(ctx)
+}
+
 // SendPSSMessage triggers a PSS message with a topic and recipient address
 func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, publicKey string, topic string, prefix int, data []byte, batchID string) error {
 	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, prefix, bytes.NewReader(data), batchID)
