@@ -152,18 +152,17 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 func DryRunCheck(c *bee.Cluster, o Options) (err error) {
 	ctx := context.Background()
 
-	ng := c.NodeGroup("skip")
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	balances, err := ng.Balances(ctx)
+	balances, err := c.FlattenBalances(ctx)
 	if err != nil {
 		return err
 	}
 
-	settlements, err := ng.Settlements(ctx)
+	settlements, err := c.FlattenSettlements(ctx)
 	if err != nil {
 		return err
 	}

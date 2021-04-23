@@ -131,6 +131,9 @@ func (c *Cluster) FlattenBalances(ctx context.Context) (balances NodeGroupBalanc
 
 	for _, v := range b {
 		for n, bal := range v {
+			if _, found := balances[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
 			balances[n] = bal
 		}
 	}
@@ -278,18 +281,23 @@ func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err e
 	return
 }
 
-// Overlays returns aggregated ClusterOverlays
+// FlattenOverlays returns aggregated ClusterOverlays
 func (c *Cluster) FlattenOverlays(ctx context.Context, include ...string) (map[string]swarm.Address, error) {
 	o, err := c.Overlays(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	res := make(map[string]swarm.Address)
+
 	for ngn, ngo := range o {
 		if len(include) > 0 && !containsName(include, ngn) {
 			continue
 		}
 		for n, over := range ngo {
+			if _, found := res[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
 			res[n] = over
 		}
 	}
@@ -355,6 +363,9 @@ func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements NodeGroup
 
 	for _, v := range s {
 		for n, set := range v {
+			if _, found := settlements[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
 			settlements[n] = set
 		}
 	}
@@ -389,7 +400,7 @@ func (c *Cluster) Topologies(ctx context.Context) (topologies ClusterTopologies,
 	return
 }
 
-// Topologies returns ClusterTopologies
+// FlattenTopologies returns an aggregate of Topologies
 func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]Topology, err error) {
 	top, err := c.Topologies(ctx)
 	if err != nil {
@@ -400,6 +411,9 @@ func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]
 
 	for _, v := range top {
 		for n, over := range v {
+			if _, found := topologies[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
 			topologies[n] = over
 		}
 	}
