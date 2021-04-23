@@ -22,9 +22,9 @@ func CheckLightChunks(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	drones := c.NodeGroup("drone")
+	lightnodes := c.NodeGroup("drone")
 
-	for i, nodeName := range drones.NodesSorted() {
+	for i, nodeName := range lightnodes.NodesSorted() {
 		if i >= o.UploadNodeCount {
 			break
 		}
@@ -35,7 +35,7 @@ func CheckLightChunks(c *bee.Cluster, o Options) error {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			uploader := drones.NodeClient(nodeName)
+			uploader := lightnodes.NodeClient(nodeName)
 
 			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
