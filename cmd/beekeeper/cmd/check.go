@@ -18,7 +18,7 @@ func (c *command) initCheckCmd() (err error) {
 				return err
 			}
 
-			cluster, ok := cfg.Clusters[cfg.Execute.Cluster]
+			clusterOptions, ok := cfg.Clusters[cfg.Execute.Cluster]
 			if !ok {
 				return fmt.Errorf("cluster %s not defined", cfg.Execute.Cluster)
 			}
@@ -30,8 +30,13 @@ func (c *command) initCheckCmd() (err error) {
 
 			globalCheckConfig := config.GlobalCheckConfig{
 				MetricsEnabled: playbook.ChecksGlobalConfig.MetricsEnabled,
-				MetricsPusher:  push.New("beekeeper", cluster.Namespace),
+				MetricsPusher:  push.New("beekeeper", clusterOptions.Namespace),
 				Seed:           playbook.ChecksGlobalConfig.Seed,
+			}
+
+			cluster, err := setupCluster(cmd.Context(), cfg, startCluster)
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
 			}
 
 			for _, checkName := range playbook.Checks {
@@ -43,11 +48,6 @@ func (c *command) initCheckCmd() (err error) {
 				check, ok := config.Checks[checkProfile.Name]
 				if !ok {
 					return fmt.Errorf("check %s not implemented", checkProfile.Name)
-				}
-
-				cluster, err := setupCluster(cmd.Context(), cfg, startCluster)
-				if err != nil {
-					return fmt.Errorf("cluster setup: %w", err)
 				}
 
 				o, err := check.NewOptions(checkProfile, globalCheckConfig)
