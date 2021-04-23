@@ -18,7 +18,6 @@ import (
 
 // Options represents SOC check options
 type Options struct {
-	NodeGroup      string
 	RequestTimeout time.Duration
 	PostageAmount  int64
 	PostageWait    time.Duration
@@ -28,9 +27,7 @@ type Options struct {
 func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {
 
 	payload := []byte("Hello Swarm :)")
-
-	ng := c.NodeGroup(o.NodeGroup)
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
@@ -69,7 +66,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 	defer cancel()
 
 	nodeName := sortedNodes[0]
-	node := ng.NodeClient(nodeName)
+
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	node := clients[nodeName]
 
 	owner := hex.EncodeToString(ownerBytes)
 	id := hex.EncodeToString(idBytes)

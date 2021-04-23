@@ -16,7 +16,6 @@ import (
 
 // Options represents PSS check options
 type Options struct {
-	NodeGroup      string
 	NodeCount      int
 	RequestTimeout time.Duration
 	AddressPrefix  int
@@ -39,8 +38,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	pusher.Collector(sendAndReceiveGauge)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 
 	set := randomDoubleSet(o.Seed, testCount, o.NodeCount)
 
@@ -53,8 +51,14 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		nodeAName := sortedNodes[set[i][0]]
 		nodeBName := sortedNodes[set[i][1]]
 
-		nodeA := ng.NodeClient(nodeAName)
-		nodeB := ng.NodeClient(nodeBName)
+		clients, err := c.NodesClients(ctx)
+		if err != nil {
+			cancel()
+			return err
+		}
+
+		nodeA := clients[nodeAName]
+		nodeB := clients[nodeBName]
 
 		addrB, err := nodeB.Addresses(ctx)
 		if err != nil {

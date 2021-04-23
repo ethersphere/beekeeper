@@ -12,30 +12,42 @@ import (
 
 func (c *command) initStartCluster() *cobra.Command {
 	const (
-		createdBy                     = "beekeeper"
-		labelName                     = "bee"
-		managedBy                     = "beekeeper"
-		optionNameClusterName         = "cluster-name"
-		optionNameImage               = "bee-image"
-		optionNameAdditionalImage     = "additional-bee-image"
-		optionNameBootnodeCount       = "bootnode-count"
-		optionNameNodeCount           = "node-count"
-		optionNameAdditionalNodeCount = "additional-node-count"
-		optionNamePersistence         = "persistence"
-		optionNameStorageClass        = "storage-class"
-		optionNameStorageRequest      = "storage-request"
+		createdBy                          = "beekeeper"
+		labelName                          = "bee"
+		managedBy                          = "beekeeper"
+		optionNameClusterName              = "cluster-name"
+		optionNameImagePullSecrets         = "image-pull-secrets"
+		optionNameBootnodeCount            = "bootnode-count"
+		optionNameNodeCount                = "node-count"
+		optionNameImage                    = "bee-image"
+		optionNameFullNode                 = "full-node"
+		optionNamePersistence              = "persistence"
+		optionNameStorageClass             = "storage-class"
+		optionNameStorageRequest           = "storage-request"
+		optionNameAdditionalNodeCount      = "additional-node-count"
+		optionNameAdditionalImage          = "additional-bee-image"
+		optionNameAdditionalFullNode       = "additional-full-node"
+		optionNameAdditionalPersistence    = "additional-persistence"
+		optionNameAdditionalStorageClass   = "additional-storage-class"
+		optionNameAdditionalStorageRequest = "additional-storage-request"
 	)
 
 	var (
-		clusterName         string
-		image               string
-		additionalImage     string
-		bootnodeCount       int
-		nodeCount           int
-		additionalNodeCount int
-		persistence         bool
-		storageClass        string
-		storageRequest      string
+		clusterName              string
+		imagePullSecrets         []string
+		bootnodeCount            int
+		nodeCount                int
+		image                    string
+		fullNode                 bool
+		persistence              bool
+		storageClass             string
+		storageRequest           string
+		additionalNodeCount      int
+		additionalImage          string
+		additionalFullNode       bool
+		additionalPersistence    bool
+		additionalStorageClass   string
+		additionalStorageRequest string
 	)
 
 	cmd := &cobra.Command{
@@ -72,7 +84,7 @@ func (c *command) initStartCluster() *cobra.Command {
 			bgName := "bootnode"
 			bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 			defer bCancel()
-			if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+			if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence); err != nil {
 				return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
 			}
 
@@ -80,7 +92,7 @@ func (c *command) initStartCluster() *cobra.Command {
 			ngName := "bee"
 			nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 			defer nCancel()
-			if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+			if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, fullNode); err != nil {
 				return fmt.Errorf("starting node group %s: %w", ngName, err)
 			}
 
@@ -88,7 +100,7 @@ func (c *command) initStartCluster() *cobra.Command {
 				addNgName := "drone"
 				addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer addNCancel()
-				if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, storageClass, storageRequest, persistence); err != nil {
+				if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, imagePullSecrets, additionalPersistence, additionalFullNode); err != nil {
 					return fmt.Errorf("starting node group %s: %w", addNgName, err)
 				}
 			}
@@ -99,14 +111,20 @@ func (c *command) initStartCluster() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
-	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
-	cmd.Flags().StringVar(&additionalImage, optionNameAdditionalImage, "ethersphere/bee-netem:latest", "Bee Docker image in additional node group")
+	cmd.Flags().StringArrayVar(&imagePullSecrets, optionNameImagePullSecrets, []string{"regcred"}, "image pull secrets")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 1, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
-	cmd.Flags().IntVar(&additionalNodeCount, optionNameAdditionalNodeCount, 0, "number of nodes in additional node group")
-	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
+	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
+	cmd.PersistentFlags().BoolVar(&fullNode, optionNameFullNode, true, "start node in full mode")
+	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, true, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
+	cmd.Flags().IntVar(&additionalNodeCount, optionNameAdditionalNodeCount, 0, "number of nodes in additional node group")
+	cmd.Flags().StringVar(&additionalImage, optionNameAdditionalImage, "ethersphere/bee:latest", "Bee Docker image in additional node group")
+	cmd.PersistentFlags().BoolVar(&additionalFullNode, optionNameAdditionalFullNode, false, "start node in full mode")
+	cmd.PersistentFlags().BoolVar(&additionalPersistence, optionNameAdditionalPersistence, false, "use persistent storage")
+	cmd.PersistentFlags().StringVar(&additionalStorageClass, optionNameAdditionalStorageClass, "local-storage", "storage class name")
+	cmd.PersistentFlags().StringVar(&additionalStorageRequest, optionNameAdditionalStorageRequest, "34Gi", "storage request")
 
 	return cmd
 }

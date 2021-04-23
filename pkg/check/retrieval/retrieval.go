@@ -16,7 +16,6 @@ import (
 
 // Options represents pushsync check options
 type Options struct {
-	NodeGroup       string
 	UploadNodeCount int
 	ChunksPerNode   int
 	Seed            int64
@@ -43,18 +42,20 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	pusher.Format(expfmt.FmtText)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
-
-	sortedNodes := ng.NodesSorted()
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	sortedNodes := c.NodeNames()
 	lastNodeName := sortedNodes[len(sortedNodes)-1]
 	for i := 0; i < o.UploadNodeCount; i++ {
 
 		nodeName := sortedNodes[i]
-		client := ng.NodeClient(nodeName)
+		client := clients[nodeName]
 
 		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
 		if err != nil {
@@ -83,7 +84,10 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			t1 := time.Now()
-			data, err := ng.NodeClient(lastNodeName).DownloadChunk(ctx, ref, "")
+
+			client = clients[lastNodeName]
+
+			data, err := client.DownloadChunk(ctx, ref, "")
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastNodeName, err)
 			}
