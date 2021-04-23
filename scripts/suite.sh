@@ -43,7 +43,12 @@ _balances() {
 
 _settlements() {
     echo "*** SETTLEMENTS ***"
-    "${BEEKEEPER_BIN}" check settlements --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count 10
+    "${BEEKEEPER_BIN}" check settlements --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" -t 50000000000 --upload-node-count "${REPLICA}" --expect-settlements=false
+}
+
+_cashout() {
+    echo "*** CASHOUT ***"
+    "${BEEKEEPER_BIN}" check cashout --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
 }
 
 _pushsync() {
@@ -123,6 +128,12 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
                 ACTION="settlements"
                 shift
             ;;
+            
+#/   cashout      run cashout test
+            cashout)
+                ACTION="cashout"
+                shift
+            ;;
 #/   pushsync         run pushsync test
             pushsync)
                 ACTION="pushsync"
@@ -194,6 +205,9 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
     fi
     if [[ $ACTION == "settlements" ]] || [[ $ACTION == "all" ]]; then
         _settlements
+    fi
+    if [[ $ACTION == "cashout" ]] || [[ $ACTION == "all" ]]; then
+        _cashout
     fi
     if [[ $ACTION == "pushsync" ]] || [[ $ACTION == "all" ]]; then
         _pushsync
