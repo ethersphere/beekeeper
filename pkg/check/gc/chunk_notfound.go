@@ -21,6 +21,7 @@ type Options struct {
 	Wait             time.Duration
 	PostageAmount    int64
 	PostageWait      time.Duration
+	ReserveSize      int
 }
 
 // CheckChunkNotFound uploads a single chunk to a node, then uploads a lot of other chunks to see that it has been purged with gc

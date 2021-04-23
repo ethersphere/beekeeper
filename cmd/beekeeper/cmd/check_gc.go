@@ -18,6 +18,7 @@ func (c *command) initCheckGc() *cobra.Command {
 		optionNameSeed            = "seed"
 		optionNameWaitBeforeCheck = "wait"
 		optionReserve             = "reserve"
+		optionReserveSize         = "reserve-size"
 	)
 
 	var (
@@ -67,6 +68,7 @@ func (c *command) initCheckGc() *cobra.Command {
 					Seed:             seed,
 					PostageAmount:    c.config.GetInt64(optionNamePostageAmount),
 					PostageWait:      c.config.GetDuration(optionNamePostageBatchhWait),
+					ReserveSize:      c.config.GetInt(optionReserveSize),
 				})
 			}
 
@@ -87,7 +89,8 @@ func (c *command) initCheckGc() *cobra.Command {
 	cmd.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().Duration(optionNameWaitBeforeCheck, time.Second*5, "wait before check")
-	cmd.Flags().BoolVar(&runReserve, optionReserve, false, "run reserve check")
+	cmd.Flags().BoolVar(&runReserve, optionReserve, true, "run reserve check")
+	cmd.Flags().Int(optionReserveSize, 1024, "reserve size of the node")
 
 	return cmd
 }
