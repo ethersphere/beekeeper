@@ -192,7 +192,7 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	}
 
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		json.NewDecoder(r.Body).Decode(&v)
+		_ = json.NewDecoder(r.Body).Decode(&v)
 		return err
 	}
 
