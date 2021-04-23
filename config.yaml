@@ -74,14 +74,14 @@ clusters:
 playbooks:
   default:
     checks: [chunk-repair]
-    checks-common-options:
-      metrics-enabled: false
-      seed: 1 # -1 for random
+    checks-global-config:
+      metrics-enabled: 
+      seed: -1 # -1 for random
     # stages: default
     timeout: 1h
   static:
     checks: [ping, kademlia]
-    checks-common-options:
+    checks-global-config:
       metrics-enabled: 
       seed: 
     # stages: static
@@ -145,8 +145,8 @@ checks:
     options:
       node-group: bee
       number-of-chunks-to-repair: 1
-      metrics-enabled: true
-      seed: 2
+      metrics-enabled: 
+      seed: 
     timeout: 5m
   file-retrieval:
     name: file-retrieval

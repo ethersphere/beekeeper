@@ -36,7 +36,7 @@ func deleteCluster(ctx context.Context, c *config.Config) (err error) {
 		fmt.Printf("deleting %s node group\n", ng)
 		if v.Mode == "bootnode" {
 			// add node group to the cluster
-			gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
+			gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
 			cluster.AddNodeGroup(ng, gProfile.Export())
 
 			// delete nodes from the node group
@@ -49,7 +49,7 @@ func deleteCluster(ctx context.Context, c *config.Config) (err error) {
 			}
 		} else {
 			// add node group to the cluster
-			gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
+			gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
 			cluster.AddNodeGroup(ng, gProfile.Export())
 
 			// delete nodes from the node group
@@ -92,7 +92,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
-				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
+				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
 				cluster.AddNodeGroup(ng, gProfile.Export())
 
 				// start nodes in the node group
@@ -127,7 +127,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
-				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
+				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
 				gOptions := gProfile.Export()
 				nProfile := c.BeeProfiles[v.BeeConfig]
 				nConfig := nProfile.Export()
@@ -156,7 +156,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
-				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
+				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
 				cluster.AddNodeGroup(ng, gProfile.Export())
 
 				// add nodes to the node group
@@ -186,7 +186,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
-				gProfile := c.NodeGroupProfiles[v.Config].NodeGroup
+				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
 				gOptions := gProfile.Export()
 				nProfile := c.BeeProfiles[v.BeeConfig]
 				nConfig := nProfile.Export()

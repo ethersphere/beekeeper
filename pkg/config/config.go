@@ -14,14 +14,56 @@ type Config struct {
 		Cluster  string `yaml:"cluster"`
 		Playbook string `yaml:"playbook"`
 	} `yaml:"execute"`
-	// profiles
+	Clusters map[string]struct {
+		Name             string `yaml:"name"`
+		Namespace        string `yaml:"namespace"`
+		DisableNamespace bool   `yaml:"disable-namespace"`
+		API              struct {
+			Domain          string `yaml:"domain"`
+			HostnamePattern string `yaml:"hostname-pattern"`
+			InsecureTLS     bool   `yaml:"insecure-tls"`
+			Scheme          string `yaml:"scheme"`
+		} `yaml:"api"`
+		DebugAPI struct {
+			Domain          string `yaml:"domain"`
+			HostnamePattern string `yaml:"hostname-pattern"`
+			InsecureTLS     bool   `yaml:"insecure-tls"`
+			Scheme          string `yaml:"scheme"`
+		} `yaml:"debug-api"`
+		NodeGroups map[string]struct {
+			Mode      string `yaml:"mode"`
+			BeeConfig string `yaml:"bee-config"`
+			Config    string `yaml:"config"`
+			Count     int    `yaml:"count"`
+			Nodes     []struct {
+				Name         string `yaml:"name"`
+				Bootnodes    string `yaml:"bootnodes"`
+				ClefKey      string `yaml:"clef-key"`
+				ClefPassword string `yaml:"clef-password"`
+				LibP2PKey    string `yaml:"libp2p-key"`
+				SwarmKey     string `yaml:"swarm-key"`
+			} `yaml:"nodes"`
+		} `yaml:"node-groups"`
+	} `yaml:"clusters"`
+	Playbooks map[string]struct {
+		Checks             []string `yaml:"checks"`
+		ChecksGlobalConfig struct {
+			MetricsEnabled bool  `yaml:"metrics-enabled"`
+			Seed           int64 `yaml:"seed"`
+		} `yaml:"checks-global-config"`
+		Stages [][]struct {
+			NodeGroup string `yaml:"node-group"`
+			Add       int    `yaml:"add"`
+			Start     int    `yaml:"start"`
+			Stop      int    `yaml:"stop"`
+			Delete    int    `yaml:"delete"`
+		} `yaml:"stages"`
+		Timeout time.Duration `yaml:"timeout"`
+	} `yaml:"playbooks"`
 	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
-	Clusters          map[string]Cluster          `yaml:"clusters"`
-	Checks            map[string]CheckCfg         `yaml:"checks"`
 	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
-	Playbooks         map[string]Playbook         `yaml:"playbooks"`
-	// orchestrator
-	Kubernetes struct {
+	Checks            map[string]CheckConfig      `yaml:"checks"`
+	Kubernetes        struct {
 		Enable     bool   `yaml:"enable"`
 		InCluster  bool   `yaml:"in-cluster"`
 		Kubeconfig string `yaml:"kubeconfig"`
@@ -34,30 +76,22 @@ type Profile struct {
 }
 
 type BeeProfile struct {
-	Profile `yaml:",inline"`
-	Bee     `yaml:",inline"`
+	Profile   `yaml:",inline"`
+	BeeConfig `yaml:",inline"`
 }
 
 type NodeGroupProfile struct {
-	Profile   `yaml:",inline"`
-	NodeGroup `yaml:",inline"`
+	Profile         `yaml:",inline"`
+	NodeGroupConfig `yaml:",inline"`
 }
 
-type Playbook struct {
-	Checks              []string            `yaml:"checks"`
-	ChecksCommonOptions ChecksCommonOptions `yaml:"checks-common-options"`
-	Stages              [][]struct {
-		NodeGroup string `yaml:"node-group"`
-		Add       int    `yaml:"add"`
-		Start     int    `yaml:"start"`
-		Stop      int    `yaml:"stop"`
-		Delete    int    `yaml:"delete"`
-	} `yaml:"stages"`
-	Timeout time.Duration `yaml:"timeout"`
+type CheckConfig struct {
+	Name    string         `yaml:"name"`
+	Options yaml.Node      `yaml:"options"`
+	Timeout *time.Duration `yaml:"timeout"`
 }
 
 func (c *Config) Merge() (err error) {
-	// TODO: generalize to have 1 function supporting all types
 	// merge BeeProfiles
 	mergedBP := map[string]BeeProfile{}
 	for name, v := range c.BeeProfiles {
@@ -68,16 +102,16 @@ func (c *Config) Merge() (err error) {
 			if !ok {
 				return fmt.Errorf("bee profile %s doesn't exist", v.Profile.Inherit)
 			}
-			p := reflect.ValueOf(&parent.Bee).Elem()
-			m := reflect.ValueOf(&v.Bee).Elem()
+			p := reflect.ValueOf(&parent.BeeConfig).Elem()
+			m := reflect.ValueOf(&v.BeeConfig).Elem()
 			for i := 0; i < m.NumField(); i++ {
 				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
 					m.Field(i).Set(p.Field(i))
 				}
 			}
 			mergedBP[name] = BeeProfile{
-				Profile: v.Profile,
-				Bee:     m.Interface().(Bee),
+				Profile:   v.Profile,
+				BeeConfig: m.Interface().(BeeConfig),
 			}
 		}
 	}
@@ -93,16 +127,16 @@ func (c *Config) Merge() (err error) {
 			if !ok {
 				return fmt.Errorf("node group profile %s doesn't exist", v.Profile.Inherit)
 			}
-			p := reflect.ValueOf(&parent.NodeGroup).Elem()
-			m := reflect.ValueOf(&v.NodeGroup).Elem()
+			p := reflect.ValueOf(&parent.NodeGroupConfig).Elem()
+			m := reflect.ValueOf(&v.NodeGroupConfig).Elem()
 			for i := 0; i < m.NumField(); i++ {
 				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
 					m.Field(i).Set(p.Field(i))
 				}
 			}
 			mergedNGP[name] = NodeGroupProfile{
-				Profile:   v.Profile,
-				NodeGroup: m.Interface().(NodeGroup),
+				Profile:         v.Profile,
+				NodeGroupConfig: m.Interface().(NodeGroupConfig),
 			}
 		}
 	}

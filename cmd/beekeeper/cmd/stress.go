@@ -4,6 +4,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	optionNameAPIScheme               = "api-scheme"
+	optionNameAPIHostnamePattern      = "api-hostnames"
+	optionNameAPIDomain               = "api-domain"
+	optionNameAPIInsecureTLS          = "api-insecure-tls"
+	optionNameDebugAPIScheme          = "debug-api-scheme"
+	optionNameDebugAPIHostnamePattern = "debug-api-hostnames"
+	optionNameDebugAPIDomain          = "debug-api-domain"
+	optionNameDebugAPIInsecureTLS     = "debug-api-insecure-tls"
+	optionNameDisableNamespace        = "disable-namespace"
+	optionNameInsecureTLS             = "insecure-tls"
+	optionNameInCluster               = "in-cluster"
+	optionNameKubeconfig              = "kubeconfig"
+	optionNameNamespace               = "namespace"
+	optionNameNodeCount               = "node-count"
+	optionNamePushGateway             = "push-gateway"
+	optionNamePushMetrics             = "push-metrics"
+	optionNameStartCluster            = "start-cluster"
+)
+
+var (
+	disableNamespace    bool
+	inCluster           bool
+	insecureTLSAPI      bool
+	insecureTLSDebugAPI bool
+	pushMetrics         bool
+	startCluster        bool
+)
+
 func (c *command) initStressCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "stress",

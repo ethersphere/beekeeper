@@ -6,7 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-type NodeGroup struct {
+type NodeGroupConfig struct {
 	Annotations               *map[string]string `yaml:"annotations"`
 	ClefImage                 *string            `yaml:"clef-image"`
 	ClefImagePullPolicy       *string            `yaml:"clef-image-pull-policy"`
@@ -29,7 +29,7 @@ type NodeGroup struct {
 	UpdateStrategy            *string            `yaml:"update-strategy"`
 }
 
-func (n *NodeGroup) Export() (o bee.NodeGroupOptions) {
+func (n *NodeGroupConfig) Export() (o bee.NodeGroupOptions) {
 	localVal := reflect.ValueOf(n).Elem()
 	localType := reflect.TypeOf(n).Elem()
 	remoteVal := reflect.ValueOf(&o).Elem()

@@ -6,7 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
-type Bee struct {
+type BeeConfig struct {
 	APIAddr              *string `yaml:"api-addr"`
 	Bootnodes            *string `yaml:"bootnodes"`
 	ClefSignerEnable     *bool   `yaml:"clef-signer-enable"`
@@ -42,7 +42,7 @@ type Bee struct {
 	WelcomeMessage       *string `yaml:"welcome-message"`
 }
 
-func (b *Bee) Export() (o k8s.Config) {
+func (b *BeeConfig) Export() (o k8s.Config) {
 	localVal := reflect.ValueOf(b).Elem()
 	localType := reflect.TypeOf(b).Elem()
 	remoteVal := reflect.ValueOf(&o).Elem()
