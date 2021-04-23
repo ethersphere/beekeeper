@@ -25,7 +25,7 @@ func CheckBytesFound(c *bee.Cluster, o Options) error {
 	}
 
 	buffSize := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize // size in bytes
-	buf := make([]byte, (o.StoreSize/o.StoreSizeDivisor)*swarm.ChunkSize)
+	buf := make([]byte, buffSize)
 	_, err = rnd.Read(buf)
 	if err != nil {
 		return fmt.Errorf("rand buffer: %w", err)
