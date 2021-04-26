@@ -133,7 +133,7 @@ and attempts retrieval of those chunks from the last node in the cluster.`,
 				}
 			}
 
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pusher := push.New(c.config.GetString(optionNamePushGateway), namespace)
 
 			var seed int64
 			if cmd.Flags().Changed("seed") {

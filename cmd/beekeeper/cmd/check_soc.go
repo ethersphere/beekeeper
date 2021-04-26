@@ -124,7 +124,7 @@ func (c *command) initCheckSOC() *cobra.Command {
 				}
 			}
 
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pusher := push.New(c.config.GetString(optionNamePushGateway), namespace)
 
 			return soc.Check(cluster, soc.Options{
 				PostageAmount:  c.config.GetInt64(optionNamePostageAmount),

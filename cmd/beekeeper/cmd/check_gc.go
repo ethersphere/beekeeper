@@ -168,7 +168,6 @@ func (c *command) initCheckGc() *cobra.Command {
 	cmd.Flags().Duration(optionNameWaitBeforeCheck, time.Second*5, "wait before check")
 	cmd.Flags().BoolVar(&runReserve, optionReserve, true, "run reserve check")
 	cmd.Flags().Int(optionReserveSize, 1024, "reserve size of the node")
-	cmd.Flags().IntP(optionNameWaitBeforeCheck, "w", 5, "wait before check")
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")

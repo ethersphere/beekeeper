@@ -151,7 +151,7 @@ and checks if chunks are synced to their closest nodes.`,
 				seed = random.Int64()
 			}
 
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pusher := push.New(c.config.GetString(optionNamePushGateway), namespace)
 
 			if uploadChunks {
 				return pushsync.CheckChunks(cluster, pushsync.Options{

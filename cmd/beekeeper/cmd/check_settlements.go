@@ -135,7 +135,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 				}
 			}
 
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pusher := push.New(c.config.GetString(optionNamePushGateway), namespace)
 
 			var seed int64
 			if cmd.Flags().Changed("seed") {

@@ -128,7 +128,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 				}
 			}
 
-			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
+			pusher := push.New(c.config.GetString(optionNamePushGateway), namespace)
 
 			var seed int64
 			if cmd.Flags().Changed("seed") {
