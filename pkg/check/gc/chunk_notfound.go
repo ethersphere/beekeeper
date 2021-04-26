@@ -30,15 +30,12 @@ func CheckChunkNotFound(c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	node := c.RandomNode(rnd)
+	overlay, err := node.Client().Overlay(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("node %s: get overlay: %w", node.Name(), err)
 	}
 
-	sortedNodes := ng.NodesSorted()
-	pivot := rnd.Intn(ng.Size())
-	pivotNode := sortedNodes[pivot]
 	chunk, err := bee.NewRandomChunk(rnd)
 	if err != nil {
 		return err
@@ -46,23 +43,21 @@ func CheckChunkNotFound(c *bee.Cluster, o Options) error {
 
 	buffSize := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize
 
-	client := ng.NodeClient(pivotNode)
-
 	depth := 3 + bee.EstimatePostageBatchDepth(int64(buffSize*o.StoreSizeDivisor))
-	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+	batchID, err := node.Client().CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
 	if err != nil {
-		return fmt.Errorf("node %s: created batched id %w", pivotNode, err)
+		return fmt.Errorf("node %s: created batched id %w", node.Name(), err)
 	}
 
-	fmt.Printf("node %s: created batched id %s\n", pivotNode, batchID)
+	fmt.Printf("node %s: created batched id %s\n", node.Name(), batchID)
 
 	time.Sleep(o.PostageWait)
 
-	ref, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
+	ref, err := node.Client().UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 	if err != nil {
-		return fmt.Errorf("node %s: %w", pivotNode, err)
+		return fmt.Errorf("node %s: %w", node.Name(), err)
 	}
-	fmt.Printf("uploaded chunk %s (%d bytes) to node %s: %s\n", ref.String(), len(chunk.Data()), pivotNode, overlays[pivotNode].String())
+	fmt.Printf("uploaded chunk %s (%d bytes) to node %s: %s\n", ref.String(), len(chunk.Data()), node.Name(), overlay.String())
 
 	b := make([]byte, buffSize)
 
@@ -71,16 +66,16 @@ func CheckChunkNotFound(c *bee.Cluster, o Options) error {
 		if err != nil {
 			return fmt.Errorf("rand read: %w", err)
 		}
-		if _, err := client.UploadBytes(ctx, b, api.UploadOptions{BatchID: batchID}); err != nil {
-			return fmt.Errorf("node %s: %w", pivotNode, err)
+		if _, err := node.Client().UploadBytes(ctx, b, api.UploadOptions{BatchID: batchID}); err != nil {
+			return fmt.Errorf("node %s: %w", node.Name(), err)
 		}
-		fmt.Printf("node %s: uploaded %d bytes.\n", pivotNode, len(b))
+		fmt.Printf("node %s: uploaded %d bytes.\n", node.Name(), len(b))
 	}
 
 	// allow time for syncing and GC
 	time.Sleep(o.Wait)
 
-	has, err := client.HasChunk(ctx, ref)
+	has, err := node.Client().HasChunk(ctx, ref)
 	if err != nil {
 		return fmt.Errorf("gc: %w", err)
 	}

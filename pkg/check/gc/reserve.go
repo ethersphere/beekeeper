@@ -20,31 +20,30 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Println("gc: reserve check")
 	fmt.Printf("Seed: %d\n", o.Seed)
-	ng := c.NodeGroup(o.NodeGroup)
-	pivotNode := ng.NodesSorted()[rnd.Intn(ng.Size())]
-	client := ng.NodeClient(pivotNode)
-	fmt.Printf("node %s\n", pivotNode)
 
-	adrs, err := client.Addresses(ctx)
+	node := c.RandomNode(rnd)
+	fmt.Printf("node %s\n", node.Name())
+
+	adrs, err := node.Client().Addresses(ctx)
 	if err != nil {
 		return err
 	}
 
-	origState, err := client.ReserveState(ctx)
+	origState, err := node.Client().ReserveState(ctx)
 	if err != nil {
 		return fmt.Errorf("reservestate: %w", err)
 	}
 	fmt.Println("reservestate:", origState)
 
 	depth := capacityToDepth(origState.Radius, origState.Available)
-	batch, err := client.CreatePostageBatch(ctx, 1, depth, "test-label")
+	batch, err := node.Client().CreatePostageBatch(ctx, 1, depth, "test-label")
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
 	fmt.Printf("created batch with depth %d and amount %d\n", depth, 1)
 	time.Sleep(time.Second * 5)
 
-	state, err := client.ReserveState(ctx)
+	state, err := node.Client().ReserveState(ctx)
 	if err != nil {
 		return fmt.Errorf("reservestate: %w", err)
 	}
@@ -52,7 +51,7 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 
 	lowValueChunks := chunkBatch(rnd, adrs.Overlay, int64(o.StoreSize), origState.Radius)
 	for _, c := range lowValueChunks {
-		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batch})
+		_, err := node.Client().UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batch})
 		if err != nil {
 			return fmt.Errorf("low value chunk: %w", err)
 		}
@@ -60,14 +59,14 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 	fmt.Printf("Uploaded %d chunks with batch depth %d\n", len(lowValueChunks), depth)
 
 	// now create batch with higher value
-	_, err = client.CreatePostageBatch(ctx, 2, depth, "test-label")
+	_, err = node.Client().CreatePostageBatch(ctx, 2, depth, "test-label")
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
 	fmt.Printf("created batch with depth %d and amount %d\n", depth, 2)
 	time.Sleep(time.Second * 5)
 
-	state, err = client.ReserveState(ctx)
+	state, err = node.Client().ReserveState(ctx)
 	if err != nil {
 		return fmt.Errorf("reservestate: %w", err)
 	}
@@ -75,7 +74,7 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 
 	hasCounter := 0
 	for _, c := range lowValueChunks {
-		has, _ := client.HasChunk(ctx, c.Address())
+		has, _ := node.Client().HasChunk(ctx, c.Address())
 		if has {
 			hasCounter++
 		}

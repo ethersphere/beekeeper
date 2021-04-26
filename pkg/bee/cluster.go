@@ -268,6 +268,17 @@ func (c *Cluster) Peers(ctx context.Context) (peers ClusterPeers, err error) {
 	return
 }
 
+func (c *Cluster) RandomNode(r *rand.Rand) *Node {
+	nodes := []*Node{}
+	for _, ng := range c.NodeGroups() {
+		for _, v := range ng.getNodes() {
+			nodes = append(nodes, v)
+		}
+	}
+
+	return nodes[r.Intn(len(nodes))]
+}
+
 // ClusterSettlements represents settlements of all nodes in the cluster
 type ClusterSettlements map[string]NodeGroupSettlements
 
