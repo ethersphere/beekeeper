@@ -28,9 +28,7 @@ func (c *command) initCheckPushSync() *cobra.Command {
 	)
 
 	var (
-		concurrent   bool
 		uploadChunks bool
-		uploadFiles  bool
 	)
 
 	cmd := &cobra.Command{
