@@ -74,41 +74,12 @@ and checks if chunks are synced to their closest nodes.`,
 
 			pusher := push.New(c.config.GetString(optionNamePushGateway), c.config.GetString(optionNameNamespace))
 
-			if concurrent {
-				return pushsync.CheckConcurrent(cluster, pushsync.Options{
-					NodeGroup:       "nodes",
-					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
-					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
-					Seed:            seed,
-					PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
-					PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
-				})
-			}
-
 			if uploadChunks {
 				return pushsync.CheckChunks(cluster, pushsync.Options{
 					NodeGroup:       "nodes",
 					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
 					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
 					RetryDelay:      c.config.GetDuration(optionNameRetryDelay),
-					Seed:            seed,
-					PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
-					PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
-				})
-			}
-
-			if uploadFiles {
-				fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
-				retryDelayDuration := c.config.GetDuration(optionNameRetryDelay)
-
-				return pushsync.CheckFiles(cluster, pushsync.Options{
-					NodeGroup:       "nodes",
-					UploadNodeCount: c.config.GetInt(optionNameUploadNodeCount),
-					ChunksPerNode:   c.config.GetInt(optionNameChunksPerNode),
-					FilesPerNode:    c.config.GetInt(optionNameFilesPerNode),
-					FileSize:        fileSize,
-					Retries:         c.config.GetInt(optionNameRetries),
-					RetryDelay:      retryDelayDuration,
 					Seed:            seed,
 					PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
 					PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
@@ -134,9 +105,7 @@ and checks if chunks are synced to their closest nodes.`,
 	cmd.Flags().IntP(optionNameChunksPerNode, "p", 1, "number of data to upload per node")
 	cmd.Flags().IntP(optionNameFilesPerNode, "f", 1, "number of files to upload per node")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating chunks; if not set, will be random")
-	cmd.Flags().BoolVar(&concurrent, optionNameConcurrent, false, "upload concurrently")
 	cmd.Flags().BoolVar(&uploadChunks, optionNameUploadChunks, false, "upload chunks")
-	cmd.Flags().BoolVar(&uploadFiles, optionNameUploadFiles, false, "upload files")
 	cmd.Flags().Float64(optionNameFileSize, 1, "file size in MB")
 	cmd.Flags().Int(optionNameRetries, 5, "number of reties on problems")
 	cmd.Flags().Duration(optionNameRetryDelay, time.Second, "retry delay duration")
