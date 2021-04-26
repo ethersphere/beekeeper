@@ -2,7 +2,6 @@ package pushsync
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -27,8 +26,6 @@ type Options struct {
 	PostageAmount   int64
 	PostageWait     time.Duration
 }
-
-var errPushSync = errors.New("push sync")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
 func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {
