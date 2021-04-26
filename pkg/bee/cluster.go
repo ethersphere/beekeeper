@@ -268,15 +268,24 @@ func (c *Cluster) Peers(ctx context.Context) (peers ClusterPeers, err error) {
 	return
 }
 
-func (c *Cluster) RandomNode(r *rand.Rand) *Node {
+// RandomNode returns random running node from a cluster
+func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node *Node, err error) {
 	nodes := []*Node{}
 	for _, ng := range c.NodeGroups() {
+		stopped, err := ng.StoppedNodes(ctx)
+		if err != nil && err != k8s.ErrNotSet {
+			return nil, fmt.Errorf("stopped nodes: %w", err)
+		}
+
 		for _, v := range ng.getNodes() {
+			if contains(stopped, v.name) {
+				continue
+			}
 			nodes = append(nodes, v)
 		}
 	}
 
-	return nodes[r.Intn(len(nodes))]
+	return nodes[r.Intn(len(nodes))], nil
 }
 
 // ClusterSettlements represents settlements of all nodes in the cluster

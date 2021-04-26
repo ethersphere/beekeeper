@@ -30,7 +30,10 @@ func CheckChunkNotFound(c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	node := c.RandomNode(rnd)
+	node, err := c.RandomNode(ctx, rnd)
+	if err != nil {
+		return fmt.Errorf("random node: %w", err)
+	}
 	overlay, err := node.Client().Overlay(ctx)
 	if err != nil {
 		return fmt.Errorf("node %s: get overlay: %w", node.Name(), err)

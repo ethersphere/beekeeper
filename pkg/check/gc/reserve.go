@@ -21,7 +21,10 @@ func CheckReserve(c *bee.Cluster, o Options) error {
 	fmt.Println("gc: reserve check")
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	node := c.RandomNode(rnd)
+	node, err := c.RandomNode(ctx, rnd)
+	if err != nil {
+		return fmt.Errorf("random node: %w", err)
+	}
 	fmt.Printf("node %s\n", node.Name())
 
 	adrs, err := node.Client().Addresses(ctx)
