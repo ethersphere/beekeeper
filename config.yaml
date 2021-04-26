@@ -1,7 +1,3 @@
-execute:
-  cluster: default
-  playbook: default
-
 clusters:
   default:
     name: bee
@@ -70,22 +66,6 @@ clusters:
         config: default
         count: 15
         mode: node
-
-playbooks:
-  default:
-    checks: [pingpong, kademlia]
-    checks-global-config:
-      metrics-enabled: 
-      seed: -1 # -1 for random
-    # stages: default
-    timeout: 1h
-  static:
-    checks: [ping, kademlia]
-    checks-global-config:
-      metrics-enabled: 
-      seed: 
-    # stages: static
-    timeout: 1h
 
 bee-profiles:
   default:
@@ -294,6 +274,18 @@ checks:
     name: soc
     options:
       node-group: bee
+    timeout: 5m
+
+simulations:
+  upload:
+    name: upload
+    options:
+      file-size: 1048576 # 1mb = 1*1024*1024
+      retries: 5
+      retry-delay: 1s
+      seed: 
+      timeout: 5m
+      upload-node-percentage: 50
     timeout: 5m
 
 node-group-profiles:

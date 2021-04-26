@@ -1,4 +1,4 @@
-package stress
+package simulate
 
 import (
 	"context"
@@ -8,25 +8,12 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 	"golang.org/x/sync/errgroup"
 )
 
-// Stress defines Bee stress
-type Stress interface {
-	Run(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
-}
-
-// Options for Bee stress
-type Options struct {
-	FileSize              int64
-	MetricsEnabled        bool
-	MetricsPusher         *push.Pusher
-	Retries               int
-	RetryDelay            time.Duration
-	Seed                  int64
-	Timeout               time.Duration
-	UploadNodesPercentage int
+// Simulation defines Bee simulation
+type Simulation interface {
+	Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error)
 }
 
 // Stage define stages for updating Bee
@@ -46,11 +33,11 @@ type Actions struct {
 	DeleteCount int
 }
 
-// Run runs stress against the cluster
-func Run(ctx context.Context, cluster *bee.Cluster, stress Stress, options Options, stages []Stage, seed int64) (err error) {
+// Run runs simulation against the cluster
+func Run(ctx context.Context, cluster *bee.Cluster, simulation Simulation, options interface{}, stages []Stage, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	if err := stress.Run(ctx, cluster, options); err != nil {
+	if err := simulation.Run(ctx, cluster, options); err != nil {
 		return err
 	}
 
@@ -75,7 +62,7 @@ func Run(ctx context.Context, cluster *bee.Cluster, stress Stress, options Optio
 			time.Sleep(60 * time.Second)
 		}
 
-		if err := stress.Run(ctx, cluster, options); err != nil {
+		if err := simulation.Run(ctx, cluster, options); err != nil {
 			return err
 		}
 	}
@@ -83,11 +70,11 @@ func Run(ctx context.Context, cluster *bee.Cluster, stress Stress, options Optio
 	return
 }
 
-// RunConcurrently runs stress against the cluster, cluster updates are executed concurrently
-func RunConcurrently(ctx context.Context, cluster *bee.Cluster, stress Stress, options Options, stages []Stage, buffer int, seed int64) (err error) {
+// RunConcurrently runs simulation against the cluster, cluster updates are executed concurrently
+func RunConcurrently(ctx context.Context, cluster *bee.Cluster, simulation Simulation, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	if err := stress.Run(ctx, cluster, options); err != nil {
+	if err := simulation.Run(ctx, cluster, options); err != nil {
 		return err
 	}
 
@@ -135,7 +122,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, stress Stress, o
 			time.Sleep(60 * time.Second)
 		}
 
-		if err := stress.Run(ctx, cluster, options); err != nil {
+		if err := simulation.Run(ctx, cluster, options); err != nil {
 			return err
 		}
 	}

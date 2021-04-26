@@ -7,11 +7,10 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
-	"github.com/ethersphere/beekeeper/pkg/stress"
 	"golang.org/x/sync/errgroup"
 )
 
-func deleteCluster(ctx context.Context, c *config.Config) (err error) {
+func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (err error) {
 	var k8sClient *k8s.Client
 	if c.Kubernetes.Enable {
 		k8sClient, err = setK8SClient(c.Kubernetes.Kubeconfig, c.Kubernetes.InCluster)
@@ -20,19 +19,19 @@ func deleteCluster(ctx context.Context, c *config.Config) (err error) {
 		}
 	}
 
-	cluster := bee.NewCluster(c.Clusters[c.Execute.Cluster].Name, bee.ClusterOptions{
-		APIDomain:           c.Clusters[c.Execute.Cluster].API.Domain,
-		APIInsecureTLS:      c.Clusters[c.Execute.Cluster].API.InsecureTLS,
-		APIScheme:           c.Clusters[c.Execute.Cluster].API.Scheme,
-		DebugAPIDomain:      c.Clusters[c.Execute.Cluster].DebugAPI.Domain,
-		DebugAPIInsecureTLS: c.Clusters[c.Execute.Cluster].DebugAPI.InsecureTLS,
-		DebugAPIScheme:      c.Clusters[c.Execute.Cluster].DebugAPI.Scheme,
+	cluster := bee.NewCluster(c.Clusters[clusterName].Name, bee.ClusterOptions{
+		APIDomain:           c.Clusters[clusterName].API.Domain,
+		APIInsecureTLS:      c.Clusters[clusterName].API.InsecureTLS,
+		APIScheme:           c.Clusters[clusterName].API.Scheme,
+		DebugAPIDomain:      c.Clusters[clusterName].DebugAPI.Domain,
+		DebugAPIInsecureTLS: c.Clusters[clusterName].DebugAPI.InsecureTLS,
+		DebugAPIScheme:      c.Clusters[clusterName].DebugAPI.Scheme,
 		K8SClient:           k8sClient,
-		Namespace:           c.Clusters[c.Execute.Cluster].Namespace,
-		DisableNamespace:    c.Clusters[c.Execute.Cluster].DisableNamespace,
+		Namespace:           c.Clusters[clusterName].Namespace,
+		DisableNamespace:    c.Clusters[clusterName].DisableNamespace,
 	})
 
-	for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
+	for ng, v := range c.Clusters[clusterName].NodeGroups {
 		fmt.Printf("deleting %s node group\n", ng)
 		if v.Mode == "bootnode" {
 			// add node group to the cluster
@@ -66,7 +65,7 @@ func deleteCluster(ctx context.Context, c *config.Config) (err error) {
 	return
 }
 
-func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *bee.Cluster, err error) {
+func setupCluster(ctx context.Context, clusterName string, c *config.Config, start bool) (cluster *bee.Cluster, err error) {
 	var k8sClient *k8s.Client
 	if c.Kubernetes.Enable {
 		k8sClient, err = setK8SClient(c.Kubernetes.Kubeconfig, c.Kubernetes.InCluster)
@@ -75,21 +74,21 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		}
 	}
 
-	cluster = bee.NewCluster(c.Clusters[c.Execute.Cluster].Name, bee.ClusterOptions{
-		APIDomain:           c.Clusters[c.Execute.Cluster].API.Domain,
-		APIInsecureTLS:      c.Clusters[c.Execute.Cluster].API.InsecureTLS,
-		APIScheme:           c.Clusters[c.Execute.Cluster].API.Scheme,
-		DebugAPIDomain:      c.Clusters[c.Execute.Cluster].DebugAPI.Domain,
-		DebugAPIInsecureTLS: c.Clusters[c.Execute.Cluster].DebugAPI.InsecureTLS,
-		DebugAPIScheme:      c.Clusters[c.Execute.Cluster].DebugAPI.Scheme,
+	cluster = bee.NewCluster(c.Clusters[clusterName].Name, bee.ClusterOptions{
+		APIDomain:           c.Clusters[clusterName].API.Domain,
+		APIInsecureTLS:      c.Clusters[clusterName].API.InsecureTLS,
+		APIScheme:           c.Clusters[clusterName].API.Scheme,
+		DebugAPIDomain:      c.Clusters[clusterName].DebugAPI.Domain,
+		DebugAPIInsecureTLS: c.Clusters[clusterName].DebugAPI.InsecureTLS,
+		DebugAPIScheme:      c.Clusters[clusterName].DebugAPI.Scheme,
 		K8SClient:           k8sClient,
-		Namespace:           c.Clusters[c.Execute.Cluster].Namespace,
-		DisableNamespace:    c.Clusters[c.Execute.Cluster].DisableNamespace,
+		Namespace:           c.Clusters[clusterName].Namespace,
+		DisableNamespace:    c.Clusters[clusterName].DisableNamespace,
 	})
 
 	if start {
 		bootnodes := ""
-		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
+		for ng, v := range c.Clusters[clusterName].NodeGroups {
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
@@ -103,7 +102,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 					bProfile := c.BeeProfiles[v.BeeConfig]
 					bConfig := bProfile.Export()
 
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Clusters[c.Execute.Cluster].Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
+					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Clusters[clusterName].Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					bOptions := bee.NodeOptions{
 						Config:       &bConfig,
@@ -124,7 +123,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 			}
 		}
 
-		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
+		for ng, v := range c.Clusters[clusterName].NodeGroups {
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
@@ -153,7 +152,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 		}
 	} else {
 		bootnodes := ""
-		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
+		for ng, v := range c.Clusters[clusterName].NodeGroups {
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
@@ -166,7 +165,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 					bProfile := c.BeeProfiles[v.BeeConfig]
 					bConfig := bProfile.Export()
 
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Clusters[c.Execute.Cluster].Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
+					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Clusters[clusterName].Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					bOptions := bee.NodeOptions{
 						Config:       &bConfig,
@@ -183,7 +182,7 @@ func setupCluster(ctx context.Context, c *config.Config, start bool) (cluster *b
 			}
 		}
 
-		for ng, v := range c.Clusters[c.Execute.Cluster].NodeGroups {
+		for ng, v := range c.Clusters[clusterName].NodeGroups {
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
@@ -219,67 +218,4 @@ func setK8SClient(kubeconfig string, inCluster bool) (c *k8s.Client, err error) 
 	}
 
 	return c, nil
-}
-
-var stressStages = []stress.Stage{
-	[]stress.Update{
-		{
-			NodeGroup: "bee",
-			Actions: stress.Actions{
-				AddCount:    2,
-				StartCount:  0,
-				StopCount:   1,
-				DeleteCount: 3,
-			},
-		},
-		{
-			NodeGroup: "drone",
-			Actions: stress.Actions{
-				AddCount:    4,
-				StartCount:  0,
-				StopCount:   3,
-				DeleteCount: 1,
-			},
-		},
-	},
-	[]stress.Update{
-		{
-			NodeGroup: "bee",
-			Actions: stress.Actions{
-				AddCount:    3,
-				StartCount:  1,
-				StopCount:   1,
-				DeleteCount: 3,
-			},
-		},
-		{
-			NodeGroup: "drone",
-			Actions: stress.Actions{
-				AddCount:    2,
-				StartCount:  1,
-				StopCount:   2,
-				DeleteCount: 1,
-			},
-		},
-	},
-	[]stress.Update{
-		{
-			NodeGroup: "bee",
-			Actions: stress.Actions{
-				AddCount:    4,
-				StartCount:  1,
-				StopCount:   3,
-				DeleteCount: 1,
-			},
-		},
-		{
-			NodeGroup: "drone",
-			Actions: stress.Actions{
-				AddCount:    3,
-				StartCount:  1,
-				StopCount:   2,
-				DeleteCount: 1,
-			},
-		},
-	},
 }

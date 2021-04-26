@@ -8,25 +8,12 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 	"golang.org/x/sync/errgroup"
 )
 
 // Check defines Bee check
 type Check interface {
 	Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error)
-}
-
-// Options for Bee checks
-type Options struct {
-	FilesPerNode          int
-	FileSize              int64
-	MetricsEnabled        bool
-	MetricsPusher         *push.Pusher
-	Retries               int
-	RetryDelay            time.Duration
-	Seed                  int64
-	UploadNodesPercentage int
 }
 
 // Stage define stages for updating Bee
@@ -47,7 +34,7 @@ type Actions struct {
 }
 
 // Run runs check against the cluster
-func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options, stages []Stage, seed int64) (err error) {
+func Run(ctx context.Context, cluster *bee.Cluster, check Check, options interface{}, stages []Stage, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
 	if err := check.Run(ctx, cluster, options); err != nil {
@@ -84,7 +71,7 @@ func Run(ctx context.Context, cluster *bee.Cluster, check Check, options Options
 }
 
 // RunConcurrently runs check against the cluster, cluster updates are executed concurrently
-func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, options Options, stages []Stage, buffer int, seed int64) (err error) {
+func RunConcurrently(ctx context.Context, cluster *bee.Cluster, check Check, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
 	if err := check.Run(ctx, cluster, options); err != nil {

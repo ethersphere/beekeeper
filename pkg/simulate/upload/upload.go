@@ -11,23 +11,55 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/ethersphere/beekeeper/pkg/stress"
+	"github.com/ethersphere/beekeeper/pkg/simulate"
 	"golang.org/x/sync/errgroup"
 )
 
-// compile stress whether Upload implements interface
-var _ stress.Stress = (*Upload)(nil)
+// Options represents simulation options
+type Options struct {
+	FileSize             int64
+	Retries              int
+	RetryDelay           time.Duration
+	Seed                 int64
+	Timeout              time.Duration
+	UploadNodePercentage int
+}
 
-// UploadStress stress
-type Upload struct{}
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		FileSize:             1,
+		Retries:              5,
+		RetryDelay:           1 * time.Second,
+		Seed:                 0,
+		Timeout:              5 * time.Minute,
+		UploadNodePercentage: 50,
+	}
+}
 
-// NewUploadStress returns new ping stress
-func NewUpload() *Upload {
-	return &Upload{}
+// compile simulation whether Upload implements interface
+var _ simulate.Simulation = (*Simulation)(nil)
+
+// Simulation instance
+type Simulation struct{}
+
+// NewSimulation returns new upload simulation
+func NewSimulation() simulate.Simulation {
+	return &Simulation{}
 }
 
 // Run executes upload stress
-func (u *Upload) Run(ctx context.Context, cluster *bee.Cluster, o stress.Options) (err error) {
+func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	fmt.Println("running upload simulation")
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	if o.UploadNodePercentage < 0 || o.UploadNodePercentage > 100 {
+		return fmt.Errorf("upload-nodes-percentage must be number between 0 and 100")
+	}
+
 	concurrency := 100
 
 	clients, err := cluster.NodesClients(ctx)
@@ -40,7 +72,7 @@ func (u *Upload) Run(ctx context.Context, cluster *bee.Cluster, o stress.Options
 		nodeNames = append(nodeNames, k)
 	}
 	sort.Strings(nodeNames)
-	nodeCount := int(math.Round(float64(len(clients)*o.UploadNodesPercentage) / 100))
+	nodeCount := int(math.Round(float64(len(clients)*o.UploadNodePercentage) / 100))
 	rnd := random.PseudoGenerator(o.Seed)
 	picked := randomPick(rnd, nodeNames, nodeCount)
 

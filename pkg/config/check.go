@@ -55,7 +55,7 @@ var Checks = map[string]Check{
 			}
 			opts := balances.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -76,7 +76,7 @@ var Checks = map[string]Check{
 			}
 			opts := chunkrepair.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -101,7 +101,7 @@ var Checks = map[string]Check{
 			}
 			opts := fileretrieval.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -129,7 +129,7 @@ var Checks = map[string]Check{
 			}
 			opts := gc.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -147,7 +147,7 @@ var Checks = map[string]Check{
 			}
 			opts := kademlia.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -169,7 +169,7 @@ var Checks = map[string]Check{
 			}
 			opts := localpinning.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -190,7 +190,7 @@ var Checks = map[string]Check{
 			}
 			opts := manifest.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -214,7 +214,7 @@ var Checks = map[string]Check{
 			}
 			opts := pingpong.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -237,7 +237,7 @@ var Checks = map[string]Check{
 			}
 			opts := pss.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -259,7 +259,7 @@ var Checks = map[string]Check{
 			}
 			opts := pullsync.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -286,7 +286,7 @@ var Checks = map[string]Check{
 			}
 			opts := pushsync.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -308,7 +308,7 @@ var Checks = map[string]Check{
 			}
 			opts := retrieval.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -334,7 +334,7 @@ var Checks = map[string]Check{
 			}
 			opts := settlements.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -352,7 +352,7 @@ var Checks = map[string]Check{
 			}
 			opts := soc.NewDefaultOptions()
 
-			if err := applyConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(GlobalCheckConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -361,7 +361,7 @@ var Checks = map[string]Check{
 	},
 }
 
-func applyConfig(global GlobalCheckConfig, local, opts interface{}) (err error) {
+func applyCheckConfig(global GlobalCheckConfig, local, opts interface{}) (err error) {
 	lv := reflect.ValueOf(local).Elem()
 	lt := reflect.TypeOf(local).Elem()
 	ov := reflect.Indirect(reflect.ValueOf(opts).Elem())

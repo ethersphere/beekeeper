@@ -10,10 +10,6 @@ import (
 )
 
 type Config struct {
-	Execute struct {
-		Cluster  string `yaml:"cluster"`
-		Playbook string `yaml:"playbook"`
-	} `yaml:"execute"`
 	Clusters map[string]struct {
 		Name             string `yaml:"name"`
 		Namespace        string `yaml:"namespace"`
@@ -45,24 +41,10 @@ type Config struct {
 			} `yaml:"nodes"`
 		} `yaml:"node-groups"`
 	} `yaml:"clusters"`
-	Playbooks map[string]struct {
-		Checks             []string `yaml:"checks"`
-		ChecksGlobalConfig struct {
-			MetricsEnabled bool  `yaml:"metrics-enabled"`
-			Seed           int64 `yaml:"seed"`
-		} `yaml:"checks-global-config"`
-		Stages [][]struct {
-			NodeGroup string `yaml:"node-group"`
-			Add       int    `yaml:"add"`
-			Start     int    `yaml:"start"`
-			Stop      int    `yaml:"stop"`
-			Delete    int    `yaml:"delete"`
-		} `yaml:"stages"`
-		Timeout time.Duration `yaml:"timeout"`
-	} `yaml:"playbooks"`
 	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
 	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
 	Checks            map[string]CheckConfig      `yaml:"checks"`
+	Simulations       map[string]SimulationConfig `yaml:"simulations"`
 	Kubernetes        struct {
 		Enable     bool   `yaml:"enable"`
 		InCluster  bool   `yaml:"in-cluster"`
@@ -86,6 +68,12 @@ type NodeGroupProfile struct {
 }
 
 type CheckConfig struct {
+	Name    string         `yaml:"name"`
+	Options yaml.Node      `yaml:"options"`
+	Timeout *time.Duration `yaml:"timeout"`
+}
+
+type SimulationConfig struct {
 	Name    string         `yaml:"name"`
 	Options yaml.Node      `yaml:"options"`
 	Timeout *time.Duration `yaml:"timeout"`
