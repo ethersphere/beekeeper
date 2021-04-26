@@ -73,7 +73,7 @@ clusters:
 
 playbooks:
   default:
-    checks: [chunk-repair]
+    checks: [pingpong, kademlia]
     checks-global-config:
       metrics-enabled: 
       seed: -1 # -1 for random
