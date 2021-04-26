@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -126,45 +124,4 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 	}
 
 	return nil
-}
-
-type chunkStreamMsg struct {
-	Chunk bee.Chunk
-	Error error
-}
-
-func chunkStream(ctx context.Context, node *bee.Client, rnd *rand.Rand, count int) <-chan chunkStreamMsg {
-	chunkStream := make(chan chunkStreamMsg)
-
-	var wg sync.WaitGroup
-	for i := 0; i < count; i++ {
-		wg.Add(1)
-		go func(n *bee.Client, i int) {
-			defer wg.Done()
-			chunk, err := bee.NewRandomChunk(rnd)
-			if err != nil {
-				chunkStream <- chunkStreamMsg{Error: err}
-				return
-			}
-
-			ref, err := n.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
-			if err != nil {
-				chunkStream <- chunkStreamMsg{Error: err}
-				return
-			}
-			if !ref.Equal(chunk.Address()) {
-				err := fmt.Errorf("uploaded chunk address mismatch. have %s want %s", ref.String(), chunk.Address().String())
-				chunkStream <- chunkStreamMsg{Error: err}
-				return
-			}
-			chunkStream <- chunkStreamMsg{Chunk: chunk}
-		}(node, i)
-	}
-
-	go func() {
-		wg.Wait()
-		close(chunkStream)
-	}()
-
-	return chunkStream
 }
