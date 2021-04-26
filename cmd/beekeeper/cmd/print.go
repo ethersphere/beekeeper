@@ -4,7 +4,43 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	optionNameAPIScheme               = "api-scheme"
+	optionNameAPIHostnamePattern      = "api-hostnames"
+	optionNameAPIDomain               = "api-domain"
+	optionNameAPIInsecureTLS          = "api-insecure-tls"
+	optionNameDebugAPIScheme          = "debug-api-scheme"
+	optionNameDebugAPIHostnamePattern = "debug-api-hostnames"
+	optionNameDebugAPIDomain          = "debug-api-domain"
+	optionNameDebugAPIInsecureTLS     = "debug-api-insecure-tls"
+	optionNameDisableNamespace        = "disable-namespace"
+	optionNameInsecureTLS             = "insecure-tls"
+	optionNameInCluster               = "in-cluster"
+	optionNameKubeconfig              = "kubeconfig"
+	optionNameNamespace               = "namespace"
+	optionNameNodeCount               = "node-count"
+	optionNamePushGateway             = "push-gateway"
+	optionNamePushMetrics             = "push-metrics"
+	optionNameStartCluster            = "start-cluster"
+)
+
+var (
+	disableNamespace    bool
+	inCluster           bool
+	insecureTLSAPI      bool
+	insecureTLSDebugAPI bool
+	pushMetrics         bool
+	startCluster        bool
+)
+
 func (c *command) initPrintCmd() (err error) {
+	const (
+		optionNameClusterName = "cluster-name"
+	)
+	var (
+		clusterName string
+	)
+
 	cmd := &cobra.Command{
 		Use:   "print",
 		Short: "Print Bee cluster info",
@@ -16,6 +52,7 @@ func (c *command) initPrintCmd() (err error) {
 		},
 	}
 
+	cmd.PersistentFlags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
 	cmd.PersistentFlags().String(optionNameAPIScheme, "https", "API scheme")
 	cmd.PersistentFlags().String(optionNameAPIHostnamePattern, "bee-%d", "API hostname pattern")
 	cmd.PersistentFlags().String(optionNameAPIDomain, "staging.internal", "API DNS domain")

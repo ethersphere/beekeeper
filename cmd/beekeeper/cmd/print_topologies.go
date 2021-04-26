@@ -8,6 +8,13 @@ import (
 )
 
 func (c *command) initPrintTopologies() *cobra.Command {
+	const (
+		optionNameClusterName = "cluster-name"
+	)
+	var (
+		clusterName string
+	)
+
 	return &cobra.Command{
 		Use:   "topologies",
 		Short: "Print topologies",
@@ -17,7 +24,7 @@ func (c *command) initPrintTopologies() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cluster, err := setupCluster(cmd.Context(), cfg, false)
+			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, false)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}

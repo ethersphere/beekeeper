@@ -67,7 +67,7 @@ func newCommand(opts ...option) (c *command, err error) {
 		return nil, err
 	}
 
-	if err := c.initStressCmd(); err != nil {
+	if err := c.initSimulateCmd(); err != nil {
 		return nil, err
 	}
 
