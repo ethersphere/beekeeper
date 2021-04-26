@@ -10,6 +10,12 @@ import (
 )
 
 func (c *command) initCreateNamespace() *cobra.Command {
+	const (
+		optionNameInCluster  = "in-cluster"
+		optionNameKubeconfig = "kubeconfig"
+		optionNameNamespace  = "namespace"
+	)
+
 	return &cobra.Command{
 		Use:   "namespace",
 		Short: "Create Kubernetes namespace",

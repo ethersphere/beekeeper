@@ -5,6 +5,12 @@ import (
 )
 
 func (c *command) initCreateCmd() (err error) {
+	const (
+		optionNameInCluster  = "in-cluster"
+		optionNameKubeconfig = "kubeconfig"
+		optionNameNamespace  = "namespace"
+	)
+
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create Bee",

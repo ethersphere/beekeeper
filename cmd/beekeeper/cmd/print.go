@@ -1,100 +1,157 @@
 package cmd
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
-)
-
-const (
-	optionNameAPIScheme               = "api-scheme"
-	optionNameAPIHostnamePattern      = "api-hostnames"
-	optionNameAPIDomain               = "api-domain"
-	optionNameAPIInsecureTLS          = "api-insecure-tls"
-	optionNameDebugAPIScheme          = "debug-api-scheme"
-	optionNameDebugAPIHostnamePattern = "debug-api-hostnames"
-	optionNameDebugAPIDomain          = "debug-api-domain"
-	optionNameDebugAPIInsecureTLS     = "debug-api-insecure-tls"
-	optionNameDisableNamespace        = "disable-namespace"
-	optionNameInsecureTLS             = "insecure-tls"
-	optionNameInCluster               = "in-cluster"
-	optionNameKubeconfig              = "kubeconfig"
-	optionNameNamespace               = "namespace"
-	optionNameNodeCount               = "node-count"
-	optionNamePushGateway             = "push-gateway"
-	optionNamePushMetrics             = "push-metrics"
-	optionNameStartCluster            = "start-cluster"
-)
-
-var (
-	disableNamespace    bool
-	inCluster           bool
-	insecureTLSAPI      bool
-	insecureTLSDebugAPI bool
-	pushMetrics         bool
-	startCluster        bool
 )
 
 func (c *command) initPrintCmd() (err error) {
 	const (
 		optionNameClusterName = "cluster-name"
+		// optionNameTimeout        = "timeout"
 	)
+
 	var (
 		clusterName string
+		// timeout time.Duration
 	)
 
 	cmd := &cobra.Command{
 		Use:   "print",
-		Short: "Print Bee cluster info",
+		Short: "Print Bee cluster info: addresses, depths, overlays, peers, topologies",
+		Args: func(cmd *cobra.Command, args []string) error {
+			for k := range printFuncs {
+				if k == args[0] {
+					return nil
+				}
+			}
+
+			return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
+		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return cmd.Help()
+			cfg, err := config.Read("config.yaml")
+			if err != nil {
+				return err
+			}
+
+			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, false)
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
+			}
+
+			f, ok := printFuncs[args[0]]
+			if !ok {
+				return fmt.Errorf("printing %s not implemented", args[0])
+			}
+
+			return f(cmd.Context(), cluster)
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return c.config.BindPFlags(cmd.Flags())
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
-	cmd.PersistentFlags().String(optionNameAPIScheme, "https", "API scheme")
-	cmd.PersistentFlags().String(optionNameAPIHostnamePattern, "bee-%d", "API hostname pattern")
-	cmd.PersistentFlags().String(optionNameAPIDomain, "staging.internal", "API DNS domain")
-	cmd.PersistentFlags().BoolVar(&insecureTLSAPI, optionNameAPIInsecureTLS, false, "skips TLS verification for API")
-	cmd.PersistentFlags().String(optionNameDebugAPIScheme, "https", "debug API scheme")
-	cmd.PersistentFlags().String(optionNameDebugAPIHostnamePattern, "bee-%d-debug", "debug API hostname pattern")
-	cmd.PersistentFlags().String(optionNameDebugAPIDomain, "staging.internal", "debug API DNS domain")
-	cmd.PersistentFlags().BoolVar(&insecureTLSDebugAPI, optionNameDebugAPIInsecureTLS, false, "skips TLS verification for debug API")
-	cmd.PersistentFlags().BoolVar(&disableNamespace, optionNameDisableNamespace, false, "disable Kubernetes namespace")
-	cmd.PersistentFlags().Bool(optionNameInsecureTLS, false, "skips TLS verification for both API and debug API")
-	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace, must be set or disabled")
-	cmd.PersistentFlags().IntP(optionNameNodeCount, "c", 1, "node count")
-	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
-
-	cmd.AddCommand(c.initPrintAddresses())
-	cmd.AddCommand(c.initPrintOverlay())
-	cmd.AddCommand(c.initPrintPeers())
-	cmd.AddCommand(c.initPrintTopologies())
-	cmd.AddCommand(c.initPrintDepths())
+	cmd.PersistentFlags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
 
 	c.root.AddCommand(cmd)
 
 	return nil
 }
 
-func (c *command) printPreRunE(cmd *cobra.Command, args []string) (err error) {
-	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
-		if err = cmd.MarkFlagRequired(optionNameNamespace); err != nil {
+var (
+	printFuncs = map[string]func(ctx context.Context, cluster *bee.Cluster) (err error){
+		"addresses": func(ctx context.Context, cluster *bee.Cluster) (err error) {
+			addresses, err := cluster.Addresses(ctx)
+			if err != nil {
+				return err
+			}
+
+			for ng, na := range addresses {
+				fmt.Printf("Printing %s node group's addresses\n", ng)
+				for n, a := range na {
+					fmt.Printf("Node %s. ethereum: %s\n", n, a.Ethereum)
+					fmt.Printf("Node %s. public key: %s\n", n, a.PublicKey)
+					fmt.Printf("Node %s. overlay: %s\n", n, a.Overlay)
+					for _, u := range a.Underlay {
+						fmt.Printf("Node %s. underlay: %s\n", n, u)
+					}
+				}
+			}
+
 			return
-		}
-	}
-	if err = c.config.BindPFlags(cmd.Flags()); err != nil {
-		return
-	}
-	if !disableNamespace && len(c.config.GetString(optionNameNamespace)) == 0 {
-		return cmd.Help()
-	}
+		},
+		"depths": func(ctx context.Context, cluster *bee.Cluster) (err error) {
+			topologies, err := cluster.Topologies(ctx)
+			if err != nil {
+				return err
+			}
+			fmt.Println(topologies)
 
-	if c.config.GetBool(optionNameInsecureTLS) {
-		insecureTLSAPI = true
-		insecureTLSDebugAPI = true
-	}
+			for ng, nt := range topologies {
+				fmt.Printf("Printing %s node group's topologies\n", ng)
+				for n, t := range nt {
+					fmt.Printf("Node %s. overlay: %s depth: %d\n", n, t.Overlay, t.Depth)
+				}
+			}
 
-	return
-}
+			return
+		},
+		"overlays": func(ctx context.Context, cluster *bee.Cluster) (err error) {
+			overlays, err := cluster.Overlays(ctx)
+			if err != nil {
+				return err
+			}
+
+			for ng, no := range overlays {
+				fmt.Printf("Printing %s node group's overlays\n", ng)
+				for n, o := range no {
+					fmt.Printf("Node %s. %s\n", n, o.String())
+				}
+			}
+
+			return
+		},
+		"peers": func(ctx context.Context, cluster *bee.Cluster) (err error) {
+			peers, err := cluster.Peers(ctx)
+			if err != nil {
+				return err
+			}
+
+			for ng, np := range peers {
+				fmt.Printf("Printing %s node group's peers\n", ng)
+				for n, a := range np {
+					for _, p := range a {
+						fmt.Printf("Node %s. %s\n", n, p)
+					}
+				}
+			}
+			return
+		},
+		"topologies": func(ctx context.Context, cluster *bee.Cluster) (err error) {
+			topologies, err := cluster.Topologies(ctx)
+			if err != nil {
+				return err
+			}
+
+			for ng, nt := range topologies {
+				fmt.Printf("Printing %s node group's topologies\n", ng)
+				for n, t := range nt {
+					fmt.Printf("Node %s. overlay: %s\n", n, t.Overlay)
+					fmt.Printf("Node %s. population: %d\n", n, t.Population)
+					fmt.Printf("Node %s. connected: %d\n", n, t.Connected)
+					fmt.Printf("Node %s. depth: %d\n", n, t.Depth)
+					fmt.Printf("Node %s. nnLowWatermark: %d\n", n, t.NnLowWatermark)
+					for k, v := range t.Bins {
+						fmt.Printf("Node %s. %s %+v\n", n, k, v)
+					}
+				}
+			}
+
+			return
+		},
+	}
+)

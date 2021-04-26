@@ -11,6 +11,7 @@ import (
 func (c *command) initCheckCmd() (err error) {
 	const (
 		optionNameClusterName    = "cluster-name"
+		optionNameStartCluster   = "start-cluster"
 		optionNameChecks         = "checks"
 		optionNameMetricsEnabled = "metrics-enabled"
 		optionNameSeed           = "seed"
@@ -20,6 +21,7 @@ func (c *command) initCheckCmd() (err error) {
 
 	var (
 		clusterName    string
+		startCluster   bool
 		checks         []string
 		metricsEnabled bool
 		seed           int64
@@ -81,6 +83,7 @@ func (c *command) initCheckCmd() (err error) {
 	}
 
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
+	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start cluster")
 	cmd.Flags().StringArrayVar(&checks, optionNameChecks, []string{"pingpong"}, "checks")
 	cmd.Flags().BoolVar(&metricsEnabled, optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64Var(&seed, optionNameSeed, 0, "seed")
