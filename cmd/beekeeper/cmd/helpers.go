@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/stress"
 	"golang.org/x/sync/errgroup"
@@ -72,9 +71,10 @@ func addNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, name
 	return
 }
 
-func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
+func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, imagePullSecrets []string, persistence bool) (err error) {
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
+	gOptions.ImagePullSecrets = imagePullSecrets
 	gOptions.Labels = map[string]string{
 		"app.kubernetes.io/component": "node",
 		"app.kubernetes.io/part-of":   name,
@@ -112,9 +112,10 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 	return
 }
 
-func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
+func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, imagePullSecrets []string, persistence, fullNode bool) (err error) {
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
+	gOptions.ImagePullSecrets = imagePullSecrets
 	gOptions.Labels = map[string]string{
 		"app.kubernetes.io/component": "node",
 		"app.kubernetes.io/part-of":   name,
@@ -125,6 +126,7 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 	gOptions.PersistanceStorageRequest = storageRequest
 	gOptions.BeeConfig = newDefaultBeeConfig()
 	gOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootNodeCount, namespace)
+	gOptions.BeeConfig.FullNode = fullNode
 	cluster.AddNodeGroup(name, *gOptions)
 	g := cluster.NodeGroup(name)
 
@@ -156,6 +158,7 @@ func newDefaultBeeConfig() *k8s.Config {
 		DBCapacity:           5000000,
 		DebugAPIAddr:         ":1635",
 		DebugAPIEnable:       true,
+		FullNode:             true,
 		GatewayMode:          false,
 		GlobalPinningEnabled: true,
 		NATAddr:              "",
@@ -187,9 +190,10 @@ func newDefaultBeeConfig() *k8s.Config {
 func newDefaultNodeGroupOptions() *bee.NodeGroupOptions {
 	return &bee.NodeGroupOptions{
 		ClefImage:           "ethersphere/clef:latest",
-		ClefImagePullPolicy: "IfNotPresent",
+		ClefImagePullPolicy: "Always",
 		Image:               "ethersphere/bee:latest",
-		ImagePullPolicy:     "IfNotPresent",
+		ImagePullPolicy:     "Always",
+		ImagePullSecrets:    []string{"regcred"},
 		IngressAnnotations: map[string]string{
 			"kubernetes.io/ingress.class":                        "nginx-internal",
 			"nginx.ingress.kubernetes.io/affinity":               "cookie",
@@ -282,69 +286,6 @@ func setK8SClient(kubeconfig string, inCluster bool) (c *k8s.Client, err error) 
 	}
 
 	return c, nil
-}
-
-var checkStages = []check.Stage{
-	[]check.Update{
-		{
-			NodeGroup: "bee",
-			Actions: check.Actions{
-				AddCount:    2,
-				StartCount:  0,
-				StopCount:   1,
-				DeleteCount: 3,
-			},
-		},
-		{
-			NodeGroup: "drone",
-			Actions: check.Actions{
-				AddCount:    4,
-				StartCount:  0,
-				StopCount:   3,
-				DeleteCount: 1,
-			},
-		},
-	},
-	[]check.Update{
-		{
-			NodeGroup: "bee",
-			Actions: check.Actions{
-				AddCount:    3,
-				StartCount:  1,
-				StopCount:   1,
-				DeleteCount: 3,
-			},
-		},
-		{
-			NodeGroup: "drone",
-			Actions: check.Actions{
-				AddCount:    2,
-				StartCount:  1,
-				StopCount:   2,
-				DeleteCount: 1,
-			},
-		},
-	},
-	[]check.Update{
-		{
-			NodeGroup: "bee",
-			Actions: check.Actions{
-				AddCount:    4,
-				StartCount:  1,
-				StopCount:   3,
-				DeleteCount: 1,
-			},
-		},
-		{
-			NodeGroup: "drone",
-			Actions: check.Actions{
-				AddCount:    3,
-				StartCount:  1,
-				StopCount:   2,
-				DeleteCount: 1,
-			},
-		},
-	},
 }
 
 var stressStages = []stress.Stage{

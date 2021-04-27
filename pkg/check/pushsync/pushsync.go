@@ -15,7 +15,6 @@ import (
 
 // Options represents pushsync check options
 type Options struct {
-	NodeGroup       string
 	UploadNodeCount int
 	ChunksPerNode   int
 	FilesPerNode    int
@@ -41,17 +40,21 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 
 	pusher.Format(expfmt.FmtText)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+
+	sortedNodes := c.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
 
 		nodeName := sortedNodes[i]
-		client := ng.NodeClient(nodeName)
+		client := clients[nodeName]
 
 		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
 		if err != nil {
@@ -95,7 +98,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 				}
 
 				time.Sleep(o.RetryDelay)
-				synced, err := ng.NodeClient(closestName).HasChunk(ctx, addr)
+				node := clients[closestName]
+				synced, err := node.HasChunk(ctx, addr)
 				if err != nil {
 					return fmt.Errorf("node %s: %w", nodeName, err)
 				}

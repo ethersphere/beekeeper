@@ -15,38 +15,50 @@ import (
 
 func (c *command) initCheckBalances() *cobra.Command {
 	const (
-		optionNameUploadNodeCount     = "upload-node-count"
-		optionNameFileName            = "file-name"
-		optionNameFileSize            = "file-size"
-		optionNameSeed                = "seed"
-		optionNameDryRun              = "dry-run"
-		optionNameWaitBeforeDownload  = "wait-before-download"
-		optionNameStartCluster        = "start-cluster"
-		optionNameDynamic             = "dynamic"
-		optionNameClusterName         = "cluster-name"
-		optionNameBootnodeCount       = "bootnode-count"
-		optionNameNodeCount           = "node-count"
-		optionNameImage               = "bee-image"
-		optionNameAdditionalImage     = "additional-bee-image"
-		optionNameAdditionalNodeCount = "additional-node-count"
-		optionNamePersistence         = "persistence"
-		optionNameStorageClass        = "storage-class"
-		optionNameStorageRequest      = "storage-request"
+		optionNameUploadNodeCount          = "upload-node-count"
+		optionNameFileName                 = "file-name"
+		optionNameFileSize                 = "file-size"
+		optionNameSeed                     = "seed"
+		optionNameDryRun                   = "dry-run"
+		optionNameWaitBeforeDownload       = "wait-before-download"
+		optionNameStartCluster             = "start-cluster"
+		optionNameClusterName              = "cluster-name"
+		optionNameBootnodeCount            = "bootnode-count"
+		optionNameNodeCount                = "node-count"
+		optionNameImage                    = "bee-image"
+		optionNamePersistence              = "persistence"
+		optionNameStorageClass             = "storage-class"
+		optionNameStorageRequest           = "storage-request"
+		optionNameFullNode                 = "full-node"
+		optionNameAdditionalNodeCount      = "additional-node-count"
+		optionNameAdditionalImage          = "additional-bee-image"
+		optionNameAdditionalFullNode       = "additional-full-node"
+		optionNameAdditionalPersistence    = "additional-persistence"
+		optionNameAdditionalStorageClass   = "additional-storage-class"
+		optionNameAdditionalStorageRequest = "additional-storage-request"
+		optionNameFilesInCollection        = "files-in-collection"
+		optionMaxPathnameLength            = "maximum-pathname-length"
+		optionNameImagePullSecrets         = "image-pull-secrets"
 	)
 
 	var (
-		dryRun              bool
-		startCluster        bool
-		dynamic             bool
-		clusterName         string
-		bootnodeCount       int
-		nodeCount           int
-		additionalNodeCount int
-		image               string
-		additionalImage     string
-		persistence         bool
-		storageClass        string
-		storageRequest      string
+		imagePullSecrets         []string
+		startCluster             bool
+		clusterName              string
+		bootnodeCount            int
+		nodeCount                int
+		image                    string
+		dryRun                   bool
+		persistence              bool
+		storageClass             string
+		storageRequest           string
+		fullNode                 bool
+		additionalNodeCount      int
+		additionalImage          string
+		additionalFullNode       bool
+		additionalPersistence    bool
+		additionalStorageClass   string
+		additionalStorageRequest string
 	)
 
 	cmd := &cobra.Command{
@@ -60,7 +72,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 			}
 
 			namespace := c.config.GetString(optionNameNamespace)
-			cluster := bee.NewCluster("bee", bee.ClusterOptions{
+			cluster := bee.NewCluster(clusterName, bee.ClusterOptions{
 				APIDomain:           c.config.GetString(optionNameAPIDomain),
 				APIInsecureTLS:      insecureTLSAPI,
 				APIScheme:           c.config.GetString(optionNameAPIScheme),
@@ -77,7 +89,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 				bgName := "bootnode"
 				bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer bCancel()
-				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence); err != nil {
 					return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
 				}
 
@@ -85,7 +97,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 				ngName := "bee"
 				nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
+				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, fullNode); err != nil {
 					return fmt.Errorf("starting node group %s: %w", ngName, err)
 				}
 
@@ -93,7 +105,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 					addNgName := "drone"
 					addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 					defer addNCancel()
-					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, storageClass, storageRequest, persistence); err != nil {
+					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, imagePullSecrets, additionalPersistence, additionalFullNode); err != nil {
 						return fmt.Errorf("starting node group %s: %w", addNgName, err)
 					}
 				}
@@ -106,7 +118,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 					}
 				}
 
-				// nodes group
+				// node groups
 				ngName := "bee"
 				if err := addNodeGroup(cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, persistence); err != nil {
 					return fmt.Errorf("adding node group %s: %w", ngName, err)
@@ -114,7 +126,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 
 				if additionalNodeCount > 0 {
 					addNgName := "drone"
-					if err := addNodeGroup(cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, storageClass, storageRequest, persistence); err != nil {
+					if err := addNodeGroup(cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, additionalPersistence); err != nil {
 						return fmt.Errorf("starting node group %s: %w", addNgName, err)
 					}
 				}
@@ -123,9 +135,7 @@ func (c *command) initCheckBalances() *cobra.Command {
 			pusher := push.New(c.config.GetString(optionNamePushGateway), namespace)
 
 			if dryRun {
-				return balances.DryRunCheck(cluster, balances.Options{
-					NodeGroup: "bee",
-				})
+				return balances.DryRunCheck(cluster, balances.Options{})
 			}
 
 			var seed int64
@@ -138,7 +148,6 @@ func (c *command) initCheckBalances() *cobra.Command {
 			fileSize := round(c.config.GetFloat64(optionNameFileSize) * 1024 * 1024)
 
 			return balances.Check(cluster, balances.Options{
-				NodeGroup:          "bee",
 				UploadNodeCount:    c.config.GetInt(optionNameUploadNodeCount),
 				FileName:           c.config.GetString(optionNameFileName),
 				FileSize:           fileSize,
@@ -158,16 +167,23 @@ func (c *command) initCheckBalances() *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, optionNameDryRun, false, "don't upload and download files, just validate")
 	cmd.Flags().IntP(optionNameWaitBeforeDownload, "w", 5, "wait before downloading a file [s]")
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
-	cmd.Flags().BoolVar(&dynamic, optionNameDynamic, false, "check on dynamic cluster")
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
 	cmd.Flags().IntVarP(&bootnodeCount, optionNameBootnodeCount, "b", 0, "number of bootnodes")
 	cmd.Flags().IntVarP(&nodeCount, optionNameNodeCount, "c", 1, "number of nodes")
-	cmd.Flags().IntVar(&additionalNodeCount, optionNameAdditionalNodeCount, 0, "number of nodes in additional node group")
 	cmd.Flags().StringVar(&image, optionNameImage, "ethersphere/bee:latest", "Bee Docker image")
-	cmd.Flags().StringVar(&additionalImage, optionNameAdditionalImage, "ethersphere/bee-netem:latest", "Bee Docker image in additional node group")
 	cmd.PersistentFlags().BoolVar(&persistence, optionNamePersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&storageClass, optionNameStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&storageRequest, optionNameStorageRequest, "34Gi", "storage request")
+	cmd.Flags().StringArrayVar(&imagePullSecrets, optionNameImagePullSecrets, []string{"regcred"}, "image pull secrets")
+	cmd.PersistentFlags().BoolVar(&fullNode, optionNameFullNode, true, "start node in full mode")
+	cmd.Flags().IntVar(&additionalNodeCount, optionNameAdditionalNodeCount, 0, "number of nodes in additional node group")
+	cmd.Flags().StringVar(&additionalImage, optionNameAdditionalImage, "ethersphere/bee:latest", "Bee Docker image in additional node group")
+	cmd.PersistentFlags().BoolVar(&additionalFullNode, optionNameAdditionalFullNode, false, "start node in full mode")
+	cmd.PersistentFlags().BoolVar(&additionalPersistence, optionNameAdditionalPersistence, false, "use persistent storage")
+	cmd.PersistentFlags().StringVar(&additionalStorageClass, optionNameAdditionalStorageClass, "local-storage", "storage class name")
+	cmd.PersistentFlags().StringVar(&additionalStorageRequest, optionNameAdditionalStorageRequest, "34Gi", "storage request")
+	cmd.Flags().Int(optionNameFilesInCollection, 10, "number of files to upload in single collection")
+	cmd.Flags().Int32(optionMaxPathnameLength, 64, "maximum pathname length for files")
 
 	return cmd
 }

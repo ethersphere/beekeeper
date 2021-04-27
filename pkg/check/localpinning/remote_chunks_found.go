@@ -19,8 +19,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
@@ -37,11 +36,15 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 	pivot := rnd.Intn(c.Size())
 	pivotNode := sortedNodes[pivot]
 
-	uploadClient := ng.NodeClient(pivotNode)
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	uploadClient := clients[pivotNode]
 
 	// add some buffer to depth
 	depth := 2 + bee.EstimatePostageBatchDepth(int64(buffSize))
@@ -70,7 +73,7 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 			continue
 		}
 
-		nodeClient := ng.NodeClient(name)
+		nodeClient := clients[name]
 
 		fmt.Printf("Node %s: removing expected chunks\n", name)
 
@@ -126,11 +129,8 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 	// cleanup
 	for name, o := range overlays {
 		fmt.Printf("Node %s: unpinning chunks\n", o.String())
-
-		nodeClient := ng.NodeClient(name)
-
 		for _, a := range addrs {
-			err := nodeClient.UnpinChunk(ctx, a)
+			err := clients[name].UnpinChunk(ctx, a)
 			if err != nil {
 				return fmt.Errorf("cannot unpin chunk: %w", err)
 			}
@@ -139,11 +139,8 @@ func CheckRemoteChunksFound(c *bee.Cluster, o Options) error {
 
 	for name, o := range overlays {
 		fmt.Printf("Node %s: removing chunks\n", o.String())
-
-		nodeClient := ng.NodeClient(name)
-
 		for _, a := range addrs {
-			err := nodeClient.RemoveChunk(ctx, a)
+			err := clients[name].RemoveChunk(ctx, a)
 			if err != nil {
 				return fmt.Errorf("cannot delete chunk: %w", err)
 			}

@@ -18,13 +18,12 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := c.NodeNames()
 	pivot := rnd.Intn(c.Size())
 	pivotNode := sortedNodes[pivot]
 	chunk, err := bee.NewRandomChunk(rnd)
@@ -34,7 +33,11 @@ func CheckChunkFound(c *bee.Cluster, o Options) error {
 
 	buffSize := (o.StoreSize / o.StoreSizeDivisor) * swarm.ChunkSize
 
-	client := ng.NodeClient(pivotNode)
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	client := clients[pivotNode]
 
 	// add some depth buffer
 	depth := 3 + bee.EstimatePostageBatchDepth(int64(buffSize*o.StoreSizeDivisor))

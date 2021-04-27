@@ -194,7 +194,7 @@ and prints round-trip time (RTT) of each ping.`,
 				dActions := []pingpong.Actions{}
 				for i := 0; i < len(dynamicActions); i = i + 4 {
 					dActions = append(dActions, pingpong.Actions{
-						NodeGroup:   "nodes",
+						NodeGroup:   "bee",
 						AddCount:    dynamicActions[i],
 						DeleteCount: dynamicActions[i+1],
 						StartCount:  dynamicActions[i+2],

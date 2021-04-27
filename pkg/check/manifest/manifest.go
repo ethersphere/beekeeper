@@ -18,7 +18,6 @@ import (
 
 // Options represents manifest options
 type Options struct {
-	NodeGroup         string
 	FilesInCollection int
 	MaxPathnameLength int32
 	Seed              int64
@@ -35,8 +34,7 @@ func Check(c *bee.Cluster, o Options) error {
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
@@ -52,11 +50,15 @@ func Check(c *bee.Cluster, o Options) error {
 	}
 
 	tarFile := bee.NewBufferFile("", tarReader)
-	sortedNodes := ng.NodesSorted()
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
 
+	sortedNodes := c.NodeNames()
 	node := sortedNodes[0]
 
-	client := ng.NodeClient(sortedNodes[0])
+	client := clients[node]
 
 	// add some buffer to ensure depth is enough
 	depth := 2 + bee.EstimatePostageBatchDepth(tarFile.Size())
@@ -84,7 +86,9 @@ DOWNLOAD:
 	}
 
 	for i, file := range files {
-		size, hash, err := ng.NodeClient(lastNode).DownloadManifestFile(ctx, tarFile.Address(), file.Name())
+		node := clients[lastNode]
+
+		size, hash, err := node.DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
 			fmt.Printf("Node %s. Error retrieving file: %v\n", lastNode, err)
 			goto DOWNLOAD
