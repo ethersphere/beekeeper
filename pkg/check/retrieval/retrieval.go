@@ -85,9 +85,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 			t1 := time.Now()
 
-			client = clients[lastNodeName]
-
-			data, err := client.DownloadChunk(ctx, ref, "")
+			data, err := clients[lastNodeName].DownloadChunk(ctx, ref, "")
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastNodeName, err)
 			}
