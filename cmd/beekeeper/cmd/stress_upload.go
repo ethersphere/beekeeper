@@ -48,6 +48,8 @@ func (c *command) initStressUpload() *cobra.Command {
 		optionNameSwapEndpoint       = "swap-endpoint"
 		optionNameSwapFactoryAddress = "swap-factory-address"
 		optionNameSwapInitialDeposit = "swap-initial-deposit"
+		optionNameNodeSelector       = "node-selector"
+		optionNameIngressClass       = "ingress-class"
 	)
 
 	var (
@@ -79,6 +81,8 @@ func (c *command) initStressUpload() *cobra.Command {
 		swapEndpoint       string
 		swapFactoryAddress string
 		swapInitialDeposit uint64
+		nodeSelector       string
+		ingressClass       string
 	)
 
 	cmd := &cobra.Command{
@@ -104,7 +108,7 @@ func (c *command) initStressUpload() *cobra.Command {
 				DisableNamespace:    disableNamespace,
 			})
 
-			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit)
+			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
 
 			if startCluster {
 				// bootnodes group
@@ -223,6 +227,8 @@ func (c *command) initStressUpload() *cobra.Command {
 	cmd.Flags().StringVar(&swapEndpoint, optionNameSwapEndpoint, "ws://geth-swap.geth:8546", "swap endpoint")
 	cmd.Flags().StringVar(&swapFactoryAddress, optionNameSwapFactoryAddress, "0x657241f4494a2f15ba75346e691d753a978c72df", "swap factory address")
 	cmd.Flags().Uint64Var(&swapInitialDeposit, optionNameSwapInitialDeposit, 500000000000000000, "swap initial deposit")
+	cmd.Flags().StringVar(&nodeSelector, optionNameNodeSelector, "bee-staging", "node selector")
+	cmd.Flags().StringVar(&ingressClass, optionNameIngressClass, "nginx-internal", "ingress class")
 
 	return cmd
 }

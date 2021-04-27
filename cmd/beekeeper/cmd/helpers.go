@@ -83,6 +83,9 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
 	gOptions.PersistanceStorageRequest = storageRequest
+	gOptions.NodeSelector["node-group"] = o.NodeSelector
+	gOptions.IngressAnnotations["kubernetes.io/ingress.class"] = o.IngressClass
+	gOptions.IngressDebugAnnotations["kubernetes.io/ingress.class"] = o.IngressClass
 	cluster.AddNodeGroup(name, *gOptions)
 	g := cluster.NodeGroup(name)
 	bSetup := setupBootnodes(bootNodeCount, namespace)
@@ -135,6 +138,9 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
 	gOptions.PersistanceStorageRequest = storageRequest
+	gOptions.NodeSelector["node-group"] = o.NodeSelector
+	gOptions.IngressAnnotations["kubernetes.io/ingress.class"] = o.IngressClass
+	gOptions.IngressDebugAnnotations["kubernetes.io/ingress.class"] = o.IngressClass
 	gOptions.BeeConfig = newDefaultBeeConfig()
 	gOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootNodeCount, namespace)
 	gOptions.BeeConfig.FullNode = fullNode
@@ -179,9 +185,11 @@ type cicdOptions struct {
 	SwapEndpoint       string
 	SwapFactoryAddress string
 	SwapInitialDeposit uint64
+	NodeSelector       string
+	IngressClass       string
 }
 
-func newCICDOptions(clefSignerEnable bool, dbCapacity uint64, paymentEarly uint64, paymentThreshold uint64, paymentTolerance uint64, swapEnable bool, swapEndpoint string, swapFactoryAddress string, swapInitialDeposit uint64) cicdOptions {
+func newCICDOptions(clefSignerEnable bool, dbCapacity uint64, paymentEarly uint64, paymentThreshold uint64, paymentTolerance uint64, swapEnable bool, swapEndpoint string, swapFactoryAddress string, swapInitialDeposit uint64, nodeSelector string, ingressClass string) cicdOptions {
 	return cicdOptions{
 		ClefSignerEnable:   clefSignerEnable,
 		DBCapacity:         dbCapacity,
@@ -192,6 +200,8 @@ func newCICDOptions(clefSignerEnable bool, dbCapacity uint64, paymentEarly uint6
 		SwapEndpoint:       swapEndpoint,
 		SwapFactoryAddress: swapFactoryAddress,
 		SwapInitialDeposit: swapInitialDeposit,
+		NodeSelector:       nodeSelector,
+		IngressClass:       ingressClass,
 	}
 }
 
