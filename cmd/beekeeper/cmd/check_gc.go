@@ -39,7 +39,6 @@ func (c *command) initCheckGc() *cobra.Command {
 	)
 
 	var (
-		runReserve               bool
 		imagePullSecrets         []string
 		startCluster             bool
 		clusterName              string
@@ -138,37 +137,20 @@ func (c *command) initCheckGc() *cobra.Command {
 				seed = random.Int64()
 			}
 
-			if runReserve {
-				return gc.CheckReserve(cluster, gc.Options{
-					NodeGroup:        "nodes",
-					StoreSize:        c.config.GetInt(optionNameDbCapacity),
-					StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
-					Wait:             c.config.GetDuration(optionNameWaitBeforeCheck),
-					Seed:             seed,
-					PostageAmount:    c.config.GetInt64(optionNamePostageAmount),
-					PostageWait:      c.config.GetDuration(optionNamePostageBatchhWait),
-					ReserveSize:      c.config.GetInt(optionReserveSize),
-				})
-			}
-
-			return gc.CheckChunkNotFound(cluster, gc.Options{
-				NodeGroup:        "bee",
-				StoreSize:        c.config.GetInt(optionNameDbCapacity),
-				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
-				Wait:             c.config.GetDuration(optionNameWaitBeforeCheck),
-				Seed:             seed,
-				PostageAmount:    c.config.GetInt64(optionNamePostageAmount),
-				PostageWait:      c.config.GetDuration(optionNamePostageBatchhWait),
+			return gc.CheckReserve(cluster, gc.Options{
+				NodeGroup:     "nodes",
+				CacheSize:     c.config.GetInt(optionNameCacheCapacity),
+				Seed:          seed,
+				PostageAmount: c.config.GetInt64(optionNamePostageAmount),
+				PostageWait:   c.config.GetDuration(optionNamePostageBatchhWait),
+				ReserveSize:   c.config.GetInt(optionReserveSize),
 			})
+
 		},
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmd.Flags().Int(optionNameDbCapacity, 1000, "DB capacity in chunks")
-	cmd.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
-	cmd.Flags().Duration(optionNameWaitBeforeCheck, time.Second*5, "wait before check")
-	cmd.Flags().BoolVar(&runReserve, optionReserve, true, "run reserve check")
 	cmd.Flags().Int(optionReserveSize, 1024, "reserve size of the node")
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")
