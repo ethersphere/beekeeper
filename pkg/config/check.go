@@ -26,21 +26,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-type GlobalCheckConfig struct {
+type CheckGlobalConfig struct {
 	MetricsEnabled bool
 	MetricsPusher  *push.Pusher
 	Seed           int64
 }
 
+// TODO: consider CheckClass, CheckKind, CheckType, etc.
 type Check struct {
 	NewAction  func() beekeeper.Action
-	NewOptions func(CheckConfig, GlobalCheckConfig) (interface{}, error)
+	NewOptions func(CheckConfig, CheckGlobalConfig) (interface{}, error)
 }
 
 var Checks = map[string]Check{
 	"balances": {
 		NewAction: balances.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
 				FileName           *string `yaml:"file-name"`
@@ -55,7 +56,7 @@ var Checks = map[string]Check{
 			}
 			opts := balances.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -64,7 +65,7 @@ var Checks = map[string]Check{
 	},
 	"chunk-repair": {
 		NewAction: chunkrepair.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				MetricsEnabled         *bool   `yaml:"metrics-enabled"`
 				NodeGroup              *string `yaml:"node-group"`
@@ -76,7 +77,7 @@ var Checks = map[string]Check{
 			}
 			opts := chunkrepair.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -85,7 +86,7 @@ var Checks = map[string]Check{
 	},
 	"file-retrieval": {
 		NewAction: fileretrieval.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				FileName        *string `yaml:"file-name"`
 				FileSize        *int64  `yaml:"file-size"`
@@ -101,7 +102,7 @@ var Checks = map[string]Check{
 			}
 			opts := fileretrieval.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -110,13 +111,13 @@ var Checks = map[string]Check{
 	},
 	"full-connectivity": {
 		NewAction: fullconnectivity.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			return nil, nil
 		},
 	},
 	"gc": {
 		NewAction: gc.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				NodeGroup        *string `yaml:"node-group"`
 				Seed             *int64  `yaml:"seed"`
@@ -129,7 +130,7 @@ var Checks = map[string]Check{
 			}
 			opts := gc.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -138,7 +139,7 @@ var Checks = map[string]Check{
 	},
 	"kademlia": {
 		NewAction: kademlia.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				Dynamic *bool `yaml:"dynamic"`
 			})
@@ -147,7 +148,7 @@ var Checks = map[string]Check{
 			}
 			opts := kademlia.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -156,7 +157,7 @@ var Checks = map[string]Check{
 	},
 	"local-pinning": {
 		NewAction: localpinning.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				Mode             *string `yaml:"mode"`
 				NodeGroup        *string `yaml:"node-group"`
@@ -169,7 +170,7 @@ var Checks = map[string]Check{
 			}
 			opts := localpinning.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -178,7 +179,7 @@ var Checks = map[string]Check{
 	},
 	"manifest": {
 		NewAction: manifest.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				FilesInCollection *int    `yaml:"files-in-collection"`
 				MaxPathnameLength *int32  `yaml:"max-pathname-length"`
@@ -190,7 +191,7 @@ var Checks = map[string]Check{
 			}
 			opts := manifest.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -199,13 +200,13 @@ var Checks = map[string]Check{
 	},
 	"peer-count": {
 		NewAction: peercount.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			return nil, nil
 		},
 	},
 	"pingpong": {
 		NewAction: pingpong.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				MetricsEnabled *bool `yaml:"metrics-enabled"`
 			})
@@ -214,7 +215,7 @@ var Checks = map[string]Check{
 			}
 			opts := pingpong.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -223,7 +224,7 @@ var Checks = map[string]Check{
 	},
 	"pss": {
 		NewAction: pss.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				AddressPrefix  *int           `yaml:"address-prefix"`
 				MetricsEnabled *bool          `yaml:"metrics-enabled"`
@@ -237,7 +238,7 @@ var Checks = map[string]Check{
 			}
 			opts := pss.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -246,7 +247,7 @@ var Checks = map[string]Check{
 	},
 	"pullsync": {
 		NewAction: pullsync.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode              *int    `yaml:"chunks-per-node"`
 				NodeGroup                  *string `yaml:"node-group"`
@@ -259,7 +260,7 @@ var Checks = map[string]Check{
 			}
 			opts := pullsync.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -268,7 +269,7 @@ var Checks = map[string]Check{
 	},
 	"pushsync": {
 		NewAction: pushsync.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
 				FileSize        *int64         `yaml:"file-size"`
@@ -286,7 +287,7 @@ var Checks = map[string]Check{
 			}
 			opts := pushsync.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -295,7 +296,7 @@ var Checks = map[string]Check{
 	},
 	"retrieval": {
 		NewAction: retrieval.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int    `yaml:"chunks-per-node"`
 				MetricsEnabled  *bool   `yaml:"metrics-enabled"`
@@ -308,7 +309,7 @@ var Checks = map[string]Check{
 			}
 			opts := retrieval.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -317,7 +318,7 @@ var Checks = map[string]Check{
 	},
 	"settlements": {
 		NewAction: settlements.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
 				ExpectSettlements  *bool   `yaml:"expect-settlements"`
@@ -334,7 +335,7 @@ var Checks = map[string]Check{
 			}
 			opts := settlements.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -343,7 +344,7 @@ var Checks = map[string]Check{
 	},
 	"soc": {
 		NewAction: soc.NewCheck,
-		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
+		NewOptions: func(checkConfig CheckConfig, checkGlobalConfig CheckGlobalConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				NodeGroup *string `yaml:"node-group"`
 			})
@@ -352,7 +353,7 @@ var Checks = map[string]Check{
 			}
 			opts := soc.NewDefaultOptions()
 
-			if err := applyCheckConfig(globalCheckConfig, checkOpts, &opts); err != nil {
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -361,7 +362,7 @@ var Checks = map[string]Check{
 	},
 }
 
-func applyCheckConfig(global GlobalCheckConfig, local, opts interface{}) (err error) {
+func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err error) {
 	lv := reflect.ValueOf(local).Elem()
 	lt := reflect.TypeOf(local).Elem()
 	ov := reflect.Indirect(reflect.ValueOf(opts).Elem())

@@ -21,7 +21,7 @@ func (c *command) initSimulateCmd() (err error) {
 
 	var (
 		clusterName    string
-		creaateCluster bool
+		createCluster  bool
 		simulations    []string
 		metricsEnabled bool
 		seed           int64
@@ -43,35 +43,35 @@ func (c *command) initSimulateCmd() (err error) {
 				return fmt.Errorf("cluster %s not defined", clusterName)
 			}
 
-			globalSimulationConfig := config.GlobalSimulationConfig{
+			simulationGlobalConfig := config.SimulationGlobalConfig{
 				MetricsEnabled: metricsEnabled,
 				MetricsPusher:  push.New("beekeeper", cfgCluster.Namespace),
 				Seed:           seed,
 			}
 
-			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, creaateCluster)
+			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, createCluster)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			for _, simulation := range simulations {
-				cfgSimulation, ok := cfg.Simulations[simulation]
+			for _, simulationName := range simulations {
+				simulationConfig, ok := cfg.SimulationConfigs[simulationName]
 				if !ok {
-					return fmt.Errorf("simulation %s doesn't exist", simulation)
+					return fmt.Errorf("simulation %s doesn't exist", simulationName)
 				}
 
-				simulation, ok := config.Simulations[cfgSimulation.Name]
+				simulation, ok := config.Simulations[simulationConfig.Name]
 				if !ok {
-					return fmt.Errorf("simulation %s not implemented", cfgSimulation.Name)
+					return fmt.Errorf("simulation %s not implemented", simulationConfig.Name)
 				}
 
-				o, err := simulation.NewOptions(cfgSimulation, globalSimulationConfig)
+				o, err := simulation.NewOptions(simulationConfig, simulationGlobalConfig)
 				if err != nil {
-					return fmt.Errorf("creating simulation %s options: %w", cfgSimulation.Name, err)
+					return fmt.Errorf("creating simulation %s options: %w", simulationConfig.Name, err)
 				}
 
 				if err := simulation.NewAction().Run(cmd.Context(), cluster, o); err != nil {
-					return fmt.Errorf("running simulation %s: %w", cfgSimulation.Name, err)
+					return fmt.Errorf("running simulation %s: %w", simulationConfig.Name, err)
 				}
 			}
 
@@ -83,7 +83,7 @@ func (c *command) initSimulateCmd() (err error) {
 	}
 
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
-	cmd.Flags().BoolVar(&creaateCluster, optionNameCreateCluster, false, "start cluster")
+	cmd.Flags().BoolVar(&createCluster, optionNameCreateCluster, false, "start cluster")
 	cmd.Flags().StringArrayVar(&simulations, optionNameSimulations, []string{"upload"}, "simulations")
 	cmd.Flags().BoolVar(&metricsEnabled, optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64Var(&seed, optionNameSeed, 0, "seed")

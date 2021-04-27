@@ -43,7 +43,7 @@ func (c *command) initCheckCmd() (err error) {
 				return fmt.Errorf("cluster %s not defined", clusterName)
 			}
 
-			globalCheckConfig := config.GlobalCheckConfig{
+			checkGlobalConfig := config.CheckGlobalConfig{
 				MetricsEnabled: metricsEnabled,
 				MetricsPusher:  push.New("beekeeper", cfgCluster.Namespace),
 				Seed:           seed,
@@ -55,23 +55,23 @@ func (c *command) initCheckCmd() (err error) {
 			}
 
 			for _, checkName := range checks {
-				cfgCheck, ok := cfg.Checks[checkName]
+				checkConfig, ok := cfg.CheckConfigs[checkName]
 				if !ok {
 					return fmt.Errorf("check %s doesn't exist", checkName)
 				}
 
-				check, ok := config.Checks[cfgCheck.Name]
+				check, ok := config.Checks[checkConfig.Name]
 				if !ok {
-					return fmt.Errorf("check %s not implemented", cfgCheck.Name)
+					return fmt.Errorf("check %s not implemented", checkConfig.Name)
 				}
 
-				o, err := check.NewOptions(cfgCheck, globalCheckConfig)
+				o, err := check.NewOptions(checkConfig, checkGlobalConfig)
 				if err != nil {
-					return fmt.Errorf("creating check %s options: %w", cfgCheck.Name, err)
+					return fmt.Errorf("creating check %s options: %w", checkConfig.Name, err)
 				}
 
 				if err := check.NewAction().Run(cmd.Context(), cluster, o); err != nil {
-					return fmt.Errorf("running check %s: %w", cfgCheck.Name, err)
+					return fmt.Errorf("running check %s: %w", checkConfig.Name, err)
 				}
 			}
 

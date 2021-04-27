@@ -43,8 +43,8 @@ type Config struct {
 	} `yaml:"clusters"`
 	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
 	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
-	Checks            map[string]CheckConfig      `yaml:"checks"`
-	Simulations       map[string]SimulationConfig `yaml:"simulations"`
+	CheckConfigs      map[string]CheckConfig      `yaml:"checks"`
+	SimulationConfigs map[string]SimulationConfig `yaml:"simulations"`
 	Kubernetes        struct {
 		Enable     bool   `yaml:"enable"`
 		InCluster  bool   `yaml:"in-cluster"`

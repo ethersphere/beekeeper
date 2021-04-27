@@ -11,21 +11,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-type GlobalSimulationConfig struct {
+type SimulationGlobalConfig struct {
 	MetricsEnabled bool
 	MetricsPusher  *push.Pusher
 	Seed           int64
 }
 
+// TODO: consider SimulationClass, SimulationKind, SimulationType, etc.
 type Simulation struct {
 	NewAction  func() beekeeper.Action
-	NewOptions func(SimulationConfig, GlobalSimulationConfig) (interface{}, error)
+	NewOptions func(SimulationConfig, SimulationGlobalConfig) (interface{}, error)
 }
 
 var Simulations = map[string]Simulation{
 	"upload": {
 		NewAction: upload.NewSimulation,
-		NewOptions: func(simulationConfig SimulationConfig, globalSimulationConfig GlobalSimulationConfig) (interface{}, error) {
+		NewOptions: func(simulationConfig SimulationConfig, simulationGlobalConfig SimulationGlobalConfig) (interface{}, error) {
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
 				Retries              *int           `yaml:"retries"`
@@ -39,7 +40,7 @@ var Simulations = map[string]Simulation{
 			}
 			opts := upload.NewDefaultOptions()
 
-			if err := applySimulationConfig(globalSimulationConfig, simulationOpts, &opts); err != nil {
+			if err := applySimulationConfig(simulationGlobalConfig, simulationOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
@@ -48,7 +49,7 @@ var Simulations = map[string]Simulation{
 	},
 }
 
-func applySimulationConfig(global GlobalSimulationConfig, local, opts interface{}) (err error) {
+func applySimulationConfig(global SimulationGlobalConfig, local, opts interface{}) (err error) {
 	lv := reflect.ValueOf(local).Elem()
 	lt := reflect.TypeOf(local).Elem()
 	ov := reflect.Indirect(reflect.ValueOf(opts).Elem())
