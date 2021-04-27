@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// TODO: add option to delete storage too
 func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (err error) {
 	var k8sClient *k8s.Client
 	if c.Kubernetes.Enable {
@@ -19,23 +20,31 @@ func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (e
 		}
 	}
 
-	cluster := bee.NewCluster(c.Clusters[clusterName].Name, bee.ClusterOptions{
-		APIDomain:           c.Clusters[clusterName].API.Domain,
-		APIInsecureTLS:      c.Clusters[clusterName].API.InsecureTLS,
-		APIScheme:           c.Clusters[clusterName].API.Scheme,
-		DebugAPIDomain:      c.Clusters[clusterName].DebugAPI.Domain,
-		DebugAPIInsecureTLS: c.Clusters[clusterName].DebugAPI.InsecureTLS,
-		DebugAPIScheme:      c.Clusters[clusterName].DebugAPI.Scheme,
+	clusterConfig, ok := c.Clusters[clusterName]
+	if !ok {
+		return fmt.Errorf("cluster %s not defined", clusterName)
+	}
+	cluster := bee.NewCluster(clusterConfig.Name, bee.ClusterOptions{
+		APIDomain:           clusterConfig.API.Domain,
+		APIInsecureTLS:      clusterConfig.API.InsecureTLS,
+		APIScheme:           clusterConfig.API.Scheme,
+		DebugAPIDomain:      clusterConfig.DebugAPI.Domain,
+		DebugAPIInsecureTLS: clusterConfig.DebugAPI.InsecureTLS,
+		DebugAPIScheme:      clusterConfig.DebugAPI.Scheme,
 		K8SClient:           k8sClient,
-		Namespace:           c.Clusters[clusterName].Namespace,
-		DisableNamespace:    c.Clusters[clusterName].DisableNamespace,
+		Namespace:           clusterConfig.Namespace,
+		DisableNamespace:    clusterConfig.DisableNamespace,
 	})
 
-	for ng, v := range c.Clusters[clusterName].NodeGroups {
+	for ng, v := range clusterConfig.NodeGroups {
 		fmt.Printf("deleting %s node group\n", ng)
+		ngp, ok := c.NodeGroupProfiles[v.Config]
+		if !ok {
+			return fmt.Errorf("node group profile %s not defined", v.Config)
+		}
 		if v.Mode == "bootnode" {
 			// add node group to the cluster
-			gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
+			gProfile := ngp.NodeGroupConfig
 			cluster.AddNodeGroup(ng, gProfile.Export())
 
 			// delete nodes from the node group
@@ -48,7 +57,7 @@ func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (e
 			}
 		} else {
 			// add node group to the cluster
-			gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
+			gProfile := ngp.NodeGroupConfig
 			cluster.AddNodeGroup(ng, gProfile.Export())
 
 			// delete nodes from the node group
@@ -74,24 +83,32 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 		}
 	}
 
-	cluster = bee.NewCluster(c.Clusters[clusterName].Name, bee.ClusterOptions{
-		APIDomain:           c.Clusters[clusterName].API.Domain,
-		APIInsecureTLS:      c.Clusters[clusterName].API.InsecureTLS,
-		APIScheme:           c.Clusters[clusterName].API.Scheme,
-		DebugAPIDomain:      c.Clusters[clusterName].DebugAPI.Domain,
-		DebugAPIInsecureTLS: c.Clusters[clusterName].DebugAPI.InsecureTLS,
-		DebugAPIScheme:      c.Clusters[clusterName].DebugAPI.Scheme,
+	clusterConfig, ok := c.Clusters[clusterName]
+	if !ok {
+		return nil, fmt.Errorf("cluster %s not defined", clusterName)
+	}
+	cluster = bee.NewCluster(clusterConfig.Name, bee.ClusterOptions{
+		APIDomain:           clusterConfig.API.Domain,
+		APIInsecureTLS:      clusterConfig.API.InsecureTLS,
+		APIScheme:           clusterConfig.API.Scheme,
+		DebugAPIDomain:      clusterConfig.DebugAPI.Domain,
+		DebugAPIInsecureTLS: clusterConfig.DebugAPI.InsecureTLS,
+		DebugAPIScheme:      clusterConfig.DebugAPI.Scheme,
 		K8SClient:           k8sClient,
-		Namespace:           c.Clusters[clusterName].Namespace,
-		DisableNamespace:    c.Clusters[clusterName].DisableNamespace,
+		Namespace:           clusterConfig.Namespace,
+		DisableNamespace:    clusterConfig.DisableNamespace,
 	})
 
 	if start {
 		bootnodes := ""
-		for ng, v := range c.Clusters[clusterName].NodeGroups {
+		for ng, v := range clusterConfig.NodeGroups {
+			ngp, ok := c.NodeGroupProfiles[v.Config]
+			if !ok {
+				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
+			}
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
-				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
+				gProfile := ngp.NodeGroupConfig
 				cluster.AddNodeGroup(ng, gProfile.Export())
 
 				// start nodes in the node group
@@ -99,10 +116,13 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 				errGroup := new(errgroup.Group)
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := v.Nodes[i].Name
-					bProfile := c.BeeProfiles[v.BeeConfig]
+					bProfile, ok := c.BeeProfiles[v.BeeConfig]
+					if !ok {
+						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
+					}
 					bConfig := bProfile.Export()
 
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Clusters[clusterName].Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
+					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					bOptions := bee.NodeOptions{
 						Config:       &bConfig,
@@ -123,12 +143,19 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 			}
 		}
 
-		for ng, v := range c.Clusters[clusterName].NodeGroups {
+		for ng, v := range clusterConfig.NodeGroups {
+			ngp, ok := c.NodeGroupProfiles[v.Config]
+			if !ok {
+				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
+			}
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
-				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
+				gProfile := ngp.NodeGroupConfig
 				gOptions := gProfile.Export()
-				nProfile := c.BeeProfiles[v.BeeConfig]
+				nProfile, ok := c.BeeProfiles[v.BeeConfig]
+				if !ok {
+					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
+				}
 				nConfig := nProfile.Export()
 				nConfig.Bootnodes = bootnodes
 				gOptions.BeeConfig = &nConfig
@@ -152,20 +179,27 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 		}
 	} else {
 		bootnodes := ""
-		for ng, v := range c.Clusters[clusterName].NodeGroups {
+		for ng, v := range clusterConfig.NodeGroups {
+			ngp, ok := c.NodeGroupProfiles[v.Config]
+			if !ok {
+				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
+			}
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
-				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
+				gProfile := ngp.NodeGroupConfig
 				cluster.AddNodeGroup(ng, gProfile.Export())
 
 				// add nodes to the node group
 				g := cluster.NodeGroup(ng)
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := v.Nodes[i].Name
-					bProfile := c.BeeProfiles[v.BeeConfig]
+					bProfile, ok := c.BeeProfiles[v.BeeConfig]
+					if !ok {
+						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
+					}
 					bConfig := bProfile.Export()
 
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, c.Clusters[clusterName].Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
+					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					bOptions := bee.NodeOptions{
 						Config:       &bConfig,
@@ -182,12 +216,19 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 			}
 		}
 
-		for ng, v := range c.Clusters[clusterName].NodeGroups {
+		for ng, v := range clusterConfig.NodeGroups {
+			ngp, ok := c.NodeGroupProfiles[v.Config]
+			if !ok {
+				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
+			}
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
-				gProfile := c.NodeGroupProfiles[v.Config].NodeGroupConfig
+				gProfile := ngp.NodeGroupConfig
 				gOptions := gProfile.Export()
-				nProfile := c.BeeProfiles[v.BeeConfig]
+				nProfile, ok := c.BeeProfiles[v.BeeConfig]
+				if !ok {
+					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
+				}
 				nConfig := nProfile.Export()
 				nConfig.Bootnodes = bootnodes
 				gOptions.BeeConfig = &nConfig

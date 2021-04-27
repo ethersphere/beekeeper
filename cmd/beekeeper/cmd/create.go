@@ -5,15 +5,9 @@ import (
 )
 
 func (c *command) initCreateCmd() (err error) {
-	const (
-		optionNameInCluster  = "in-cluster"
-		optionNameKubeconfig = "kubeconfig"
-		optionNameNamespace  = "namespace"
-	)
-
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create Bee",
+		Short: "Create Bee infrastructure",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},
@@ -22,21 +16,10 @@ func (c *command) initCreateCmd() (err error) {
 		},
 	}
 
-	cmd.PersistentFlags().Bool(optionNameInCluster, false, "run Beekeeper in cluster")
-	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
-	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "beekeeper", "kubernetes namespace")
-
-	cmd.AddCommand(c.initCreateNamespace())
+	cmd.AddCommand(c.initCreateK8SNamespace())
+	cmd.AddCommand(c.initCreateBeeCluster())
 
 	c.root.AddCommand(cmd)
 
 	return nil
-}
-
-func (c *command) createPreRunE(cmd *cobra.Command, args []string) (err error) {
-	if err = c.config.BindPFlags(cmd.Flags()); err != nil {
-		return
-	}
-
-	return
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initStartCmd() (err error) {
+func (c *command) initCreateBeeCluster() *cobra.Command {
 	const (
 		optionNameClusterName = "cluster-name"
 		// optionNameTimeout        = "timeout"
@@ -19,8 +19,9 @@ func (c *command) initStartCmd() (err error) {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "start",
-		Short: "Start Bee",
+		Use:   "bee-cluster",
+		Short: "Create Bee cluster",
+		Long:  `Create Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg, err := config.Read("config.yaml")
 			if err != nil {
@@ -34,14 +35,9 @@ func (c *command) initStartCmd() (err error) {
 
 			return
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
-		},
 	}
 
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
 
-	c.root.AddCommand(cmd)
-
-	return nil
+	return cmd
 }
