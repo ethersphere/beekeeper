@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
-	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/beekeeper/pkg/runner"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -35,13 +35,13 @@ func NewDefaultOptions() Options {
 }
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check)(nil)
+var _ runner.Action = (*Check)(nil)
 
 // Check instance
 type Check struct{}
 
 // NewCheck returns new check
-func NewCheck() check.Check {
+func NewCheck() runner.Action {
 	return &Check{}
 }
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/check"
+	"github.com/ethersphere/beekeeper/pkg/runner"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
@@ -26,13 +26,13 @@ func NewDefaultOptions() Options {
 }
 
 // compile check whether Check implements interface
-var _ check.Check = (*Check)(nil)
+var _ runner.Action = (*Check)(nil)
 
 // Check instance
 type Check struct{}
 
 // NewCheck returns new check
-func NewCheck() check.Check {
+func NewCheck() runner.Action {
 	return &Check{}
 }
 

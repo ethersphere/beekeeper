@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/chunkrepair"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
@@ -23,6 +22,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/beekeeper/pkg/runner"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
@@ -33,7 +33,7 @@ type GlobalCheckConfig struct {
 }
 
 type Check struct {
-	NewCheck   func() check.Check
+	NewCheck   func() runner.Action
 	NewOptions func(checkConfig CheckConfig, GlobalCheckConfig GlobalCheckConfig) (interface{}, error)
 }
 

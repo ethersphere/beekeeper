@@ -1,4 +1,4 @@
-package simulate
+package runner
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Simulation defines Bee simulation
-type Simulation interface {
+// Action defines Beekeeper Action
+type Action interface {
 	Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error)
 }
 
@@ -33,11 +33,11 @@ type Actions struct {
 	DeleteCount int
 }
 
-// Run runs simulation against the cluster
-func Run(ctx context.Context, cluster *bee.Cluster, simulation Simulation, options interface{}, stages []Stage, seed int64) (err error) {
+// Run runs check against the cluster
+func Run(ctx context.Context, cluster *bee.Cluster, action Action, options interface{}, stages []Stage, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	if err := simulation.Run(ctx, cluster, options); err != nil {
+	if err := action.Run(ctx, cluster, options); err != nil {
 		return err
 	}
 
@@ -62,7 +62,7 @@ func Run(ctx context.Context, cluster *bee.Cluster, simulation Simulation, optio
 			time.Sleep(60 * time.Second)
 		}
 
-		if err := simulation.Run(ctx, cluster, options); err != nil {
+		if err := action.Run(ctx, cluster, options); err != nil {
 			return err
 		}
 	}
@@ -70,11 +70,11 @@ func Run(ctx context.Context, cluster *bee.Cluster, simulation Simulation, optio
 	return
 }
 
-// RunConcurrently runs simulation against the cluster, cluster updates are executed concurrently
-func RunConcurrently(ctx context.Context, cluster *bee.Cluster, simulation Simulation, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
+// RunConcurrently runs check against the cluster, cluster updates are executed concurrently
+func RunConcurrently(ctx context.Context, cluster *bee.Cluster, action Action, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	if err := simulation.Run(ctx, cluster, options); err != nil {
+	if err := action.Run(ctx, cluster, options); err != nil {
 		return err
 	}
 
@@ -85,8 +85,6 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, simulation Simul
 
 		stageGroup := new(errgroup.Group)
 		stageSemaphore := make(chan struct{}, buffer)
-		stageCtx, stageCancel := context.WithTimeout(ctx, 20*time.Minute)
-		defer stageCancel()
 
 		waitDeleted := false
 		for j, u := range s {
@@ -104,7 +102,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, simulation Simul
 
 				fmt.Printf("node group %s, add %d, delete %d, start %d, stop %d\n", u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 				ng := cluster.NodeGroup(u.NodeGroup)
-				if err := updateNodeGroupConcurrently(stageCtx, ng, u.Actions, rnds[j], i, buffers[j]); err != nil {
+				if err := updateNodeGroupConcurrently(ctx, ng, u.Actions, rnds[j], i, buffers[j]); err != nil {
 					return err
 				}
 
@@ -122,7 +120,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, simulation Simul
 			time.Sleep(60 * time.Second)
 		}
 
-		if err := simulation.Run(ctx, cluster, options); err != nil {
+		if err := action.Run(ctx, cluster, options); err != nil {
 			return err
 		}
 	}
