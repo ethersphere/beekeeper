@@ -80,12 +80,14 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 				DisableNamespace:    disableNamespace,
 			})
 
+			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit)
+
 			if startCluster {
 				// bootnodes group
 				bgName := "bootnode"
 				bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer bCancel()
-				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence); err != nil {
+				if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, cicd); err != nil {
 					return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
 				}
 
@@ -93,7 +95,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 				ngName := "bee"
 				nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer nCancel()
-				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, fullNode); err != nil {
+				if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, fullNode, cicd); err != nil {
 					return fmt.Errorf("starting node group %s: %w", ngName, err)
 				}
 
@@ -101,7 +103,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 					addNgName := "drone"
 					addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 					defer addNCancel()
-					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, imagePullSecrets, additionalPersistence, additionalFullNode); err != nil {
+					if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, imagePullSecrets, additionalPersistence, additionalFullNode, cicd); err != nil {
 						return fmt.Errorf("starting node group %s: %w", addNgName, err)
 					}
 				}

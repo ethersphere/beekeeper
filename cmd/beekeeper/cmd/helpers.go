@@ -71,7 +71,7 @@ func addNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, name
 	return
 }
 
-func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, imagePullSecrets []string, persistence bool) (err error) {
+func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, imagePullSecrets []string, persistence bool, o cicdOptions) (err error) {
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
 	gOptions.ImagePullSecrets = imagePullSecrets
@@ -91,6 +91,17 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 	for i := 0; i < bootNodeCount; i++ {
 		bConfig := newDefaultBeeConfig()
 		bConfig.Bootnodes = bSetup[i].Bootnodes
+		// CICD Options
+		bConfig.ClefSignerEnable = o.ClefSignerEnable
+		bConfig.DBCapacity = o.DBCapacity
+		bConfig.PaymentEarly = o.PaymentEarly
+		bConfig.PaymentThreshold = o.PaymentThreshold
+		bConfig.PaymentTolerance = o.PaymentTolerance
+		bConfig.SwapEnable = o.SwapEnable
+		bConfig.SwapEndpoint = o.SwapEndpoint
+		bConfig.SwapFactoryAddress = o.SwapFactoryAddress
+		bConfig.SwapInitialDeposit = o.SwapInitialDeposit
+
 		bName := fmt.Sprintf("bootnode-%d", i)
 		bOptions := bee.NodeOptions{
 			Config:       bConfig,
@@ -112,7 +123,7 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 	return
 }
 
-func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, imagePullSecrets []string, persistence, fullNode bool) (err error) {
+func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, imagePullSecrets []string, persistence, fullNode bool, o cicdOptions) (err error) {
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
 	gOptions.ImagePullSecrets = imagePullSecrets
@@ -127,6 +138,16 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 	gOptions.BeeConfig = newDefaultBeeConfig()
 	gOptions.BeeConfig.Bootnodes = setupBootnodesDNS(bootNodeCount, namespace)
 	gOptions.BeeConfig.FullNode = fullNode
+	// CICD Options
+	gOptions.BeeConfig.ClefSignerEnable = o.ClefSignerEnable
+	gOptions.BeeConfig.DBCapacity = o.DBCapacity
+	gOptions.BeeConfig.PaymentEarly = o.PaymentEarly
+	gOptions.BeeConfig.PaymentThreshold = o.PaymentThreshold
+	gOptions.BeeConfig.PaymentTolerance = o.PaymentTolerance
+	gOptions.BeeConfig.SwapEnable = o.SwapEnable
+	gOptions.BeeConfig.SwapEndpoint = o.SwapEndpoint
+	gOptions.BeeConfig.SwapFactoryAddress = o.SwapFactoryAddress
+	gOptions.BeeConfig.SwapInitialDeposit = o.SwapInitialDeposit
 	cluster.AddNodeGroup(name, *gOptions)
 	g := cluster.NodeGroup(name)
 
@@ -144,6 +165,34 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 	}
 	fmt.Printf("%s nodes started\n", name)
 	return
+}
+
+// quick fix for CICD until new config is merged
+// TODO: remove after new config
+type cicdOptions struct {
+	ClefSignerEnable   bool
+	DBCapacity         uint64
+	PaymentEarly       uint64
+	PaymentThreshold   uint64
+	PaymentTolerance   uint64
+	SwapEnable         bool
+	SwapEndpoint       string
+	SwapFactoryAddress string
+	SwapInitialDeposit uint64
+}
+
+func newCICDOptions(clefSignerEnable bool, dbCapacity uint64, paymentEarly uint64, paymentThreshold uint64, paymentTolerance uint64, swapEnable bool, swapEndpoint string, swapFactoryAddress string, swapInitialDeposit uint64) cicdOptions {
+	return cicdOptions{
+		ClefSignerEnable:   clefSignerEnable,
+		DBCapacity:         dbCapacity,
+		PaymentEarly:       paymentEarly,
+		PaymentThreshold:   paymentThreshold,
+		PaymentTolerance:   paymentTolerance,
+		SwapEnable:         swapEnable,
+		SwapEndpoint:       swapEndpoint,
+		SwapFactoryAddress: swapFactoryAddress,
+		SwapInitialDeposit: swapInitialDeposit,
+	}
 }
 
 // newDefaultBeeConfig returns default Bee node configuration
@@ -167,9 +216,9 @@ func newDefaultBeeConfig() *k8s.Config {
 		P2PQUICEnable:        false,
 		P2PWSEnable:          false,
 		Password:             "beekeeper",
-		PaymentEarly:         1000000000000,
-		PaymentThreshold:     10000000000000,
-		PaymentTolerance:     50000000000000,
+		PaymentEarly:         100000000000,
+		PaymentThreshold:     1000000000000,
+		PaymentTolerance:     100000000000,
 		PostageStampAddress:  "",
 		PriceOracleAddress:   "",
 		ResolverOptions:      "",
@@ -177,7 +226,7 @@ func newDefaultBeeConfig() *k8s.Config {
 		SwapEnable:           false,
 		SwapEndpoint:         "http://localhost:8545",
 		SwapFactoryAddress:   "",
-		SwapInitialDeposit:   10000000000000000,
+		SwapInitialDeposit:   500000000000000000,
 		TracingEnabled:       false,
 		TracingEndpoint:      "jaeger-operator-jaeger-agent.observability:6831",
 		TracingServiceName:   "bee",

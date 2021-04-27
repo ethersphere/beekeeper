@@ -10,6 +10,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	// CICD options
+	optionNameClefSignerEnable   = "clef-signer-enable"
+	optionNameDBCapacity         = "db-capacity"
+	optionNamePaymentEarly       = "payment-early"
+	optionNamePaymentThreshold   = "payment-threshold"
+	optionNamePaymentTolerance   = "payment-tolerance"
+	optionNameSwapEnable         = "swap-enable"
+	optionNameSwapEndpoint       = "swap-endpoint"
+	optionNameSwapFactoryAddress = "swap-factory-address"
+	optionNameSwapInitialDeposit = "swap-initial-deposit"
+)
+
+var (
+	// CICD options
+	clefSignerEnable   bool
+	dbCapacity         uint64
+	paymentEarly       uint64
+	paymentThreshold   uint64
+	paymentTolerance   uint64
+	swapEnable         bool
+	swapEndpoint       string
+	swapFactoryAddress string
+	swapInitialDeposit uint64
+)
+
 func (c *command) initStartCluster() *cobra.Command {
 	const (
 		createdBy                          = "beekeeper"
@@ -80,11 +106,13 @@ func (c *command) initStartCluster() *cobra.Command {
 				Namespace: namespace,
 			})
 
+			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit)
+
 			// bootnodes group
 			bgName := "bootnode"
 			bCtx, bCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 			defer bCancel()
-			if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence); err != nil {
+			if err := startBootNodeGroup(bCtx, cluster, bootnodeCount, nodeCount, bgName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, cicd); err != nil {
 				return fmt.Errorf("starting bootnode group %s: %w", bgName, err)
 			}
 
@@ -92,7 +120,7 @@ func (c *command) initStartCluster() *cobra.Command {
 			ngName := "bee"
 			nCtx, nCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 			defer nCancel()
-			if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, fullNode); err != nil {
+			if err := startNodeGroup(nCtx, cluster, bootnodeCount, nodeCount, ngName, namespace, image, storageClass, storageRequest, imagePullSecrets, persistence, fullNode, cicd); err != nil {
 				return fmt.Errorf("starting node group %s: %w", ngName, err)
 			}
 
@@ -100,7 +128,7 @@ func (c *command) initStartCluster() *cobra.Command {
 				addNgName := "drone"
 				addNCtx, addNCancel := context.WithTimeout(cmd.Context(), 10*time.Minute)
 				defer addNCancel()
-				if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, imagePullSecrets, additionalPersistence, additionalFullNode); err != nil {
+				if err := startNodeGroup(addNCtx, cluster, bootnodeCount, additionalNodeCount, addNgName, namespace, additionalImage, additionalStorageClass, additionalStorageRequest, imagePullSecrets, additionalPersistence, additionalFullNode, cicd); err != nil {
 					return fmt.Errorf("starting node group %s: %w", addNgName, err)
 				}
 			}
@@ -125,6 +153,16 @@ func (c *command) initStartCluster() *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&additionalPersistence, optionNameAdditionalPersistence, false, "use persistent storage")
 	cmd.PersistentFlags().StringVar(&additionalStorageClass, optionNameAdditionalStorageClass, "local-storage", "storage class name")
 	cmd.PersistentFlags().StringVar(&additionalStorageRequest, optionNameAdditionalStorageRequest, "34Gi", "storage request")
+	// CICD options
+	cmd.Flags().BoolVar(&clefSignerEnable, optionNameClefSignerEnable, false, "enable Clef signer")
+	cmd.Flags().Uint64Var(&dbCapacity, optionNameDBCapacity, 5000000, "DB capacity")
+	cmd.Flags().Uint64Var(&paymentEarly, optionNamePaymentEarly, 100000000000, "payment early")
+	cmd.Flags().Uint64Var(&paymentThreshold, optionNamePaymentThreshold, 1000000000000, "payment threshold")
+	cmd.Flags().Uint64Var(&paymentTolerance, optionNamePaymentTolerance, 100000000000, "payment tolerance")
+	cmd.Flags().BoolVar(&swapEnable, optionNameSwapEnable, false, "enable swap")
+	cmd.Flags().StringVar(&swapEndpoint, optionNameSwapEndpoint, "ws://geth-swap.geth:8546", "swap endpoint")
+	cmd.Flags().StringVar(&swapFactoryAddress, optionNameSwapFactoryAddress, "0x657241f4494a2f15ba75346e691d753a978c72df", "swap factory address")
+	cmd.Flags().Uint64Var(&swapInitialDeposit, optionNameSwapInitialDeposit, 500000000000000000, "swap initial deposit")
 
 	return cmd
 }
