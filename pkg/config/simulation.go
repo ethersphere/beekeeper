@@ -19,13 +19,13 @@ type GlobalSimulationConfig struct {
 
 type Simulation struct {
 	NewSimulation func() beekeeper.Action
-	NewOptions    func(simulationConfig SimulationConfig, GlobalSimulationConfig GlobalSimulationConfig) (interface{}, error)
+	NewOptions    func(SimulationConfig, GlobalSimulationConfig) (interface{}, error)
 }
 
 var Simulations = map[string]Simulation{
 	"upload": {
 		NewSimulation: upload.NewSimulation,
-		NewOptions: func(simulationConfig SimulationConfig, GlobalSimulationConfig GlobalSimulationConfig) (interface{}, error) {
+		NewOptions: func(simulationConfig SimulationConfig, globalSimulationConfig GlobalSimulationConfig) (interface{}, error) {
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
 				Retries              *int           `yaml:"retries"`
@@ -39,7 +39,7 @@ var Simulations = map[string]Simulation{
 			}
 			opts := upload.NewDefaultOptions()
 
-			if err := applySimulationConfig(GlobalSimulationConfig, simulationOpts, &opts); err != nil {
+			if err := applySimulationConfig(globalSimulationConfig, simulationOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
