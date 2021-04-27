@@ -54,10 +54,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("invalid options type")
 	}
 
-	fmt.Printf("DefaultOptions: %#v\n", NewDefaultOptions())
-	fmt.Printf("AppliedOptions: %#v\n", o)
-	return
-
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
