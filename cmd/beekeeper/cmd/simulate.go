@@ -11,7 +11,7 @@ import (
 func (c *command) initSimulateCmd() (err error) {
 	const (
 		optionNameClusterName    = "cluster-name"
-		optionNameStartCluster   = "start-cluster"
+		optionNameCreateCluster  = "create-cluster"
 		optionNameSimulations    = "simulations"
 		optionNameMetricsEnabled = "metrics-enabled"
 		optionNameSeed           = "seed"
@@ -21,7 +21,7 @@ func (c *command) initSimulateCmd() (err error) {
 
 	var (
 		clusterName    string
-		startCluster   bool
+		creaateCluster bool
 		simulations    []string
 		metricsEnabled bool
 		seed           int64
@@ -38,40 +38,40 @@ func (c *command) initSimulateCmd() (err error) {
 				return err
 			}
 
-			clusterOptions, ok := cfg.Clusters[clusterName]
+			cfgCluster, ok := cfg.Clusters[clusterName]
 			if !ok {
 				return fmt.Errorf("cluster %s not defined", clusterName)
 			}
 
 			globalSimulationConfig := config.GlobalSimulationConfig{
 				MetricsEnabled: metricsEnabled,
-				MetricsPusher:  push.New("beekeeper", clusterOptions.Namespace),
+				MetricsPusher:  push.New("beekeeper", cfgCluster.Namespace),
 				Seed:           seed,
 			}
 
-			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, startCluster)
+			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, creaateCluster)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
 			for _, simulation := range simulations {
-				simulationProfile, ok := cfg.Simulations[simulation]
+				cfgSimulation, ok := cfg.Simulations[simulation]
 				if !ok {
 					return fmt.Errorf("simulation %s doesn't exist", simulation)
 				}
 
-				simulation, ok := config.Simulations[simulationProfile.Name]
+				simulation, ok := config.Simulations[cfgSimulation.Name]
 				if !ok {
-					return fmt.Errorf("simulation %s not implemented", simulationProfile.Name)
+					return fmt.Errorf("simulation %s not implemented", cfgSimulation.Name)
 				}
 
-				o, err := simulation.NewOptions(simulationProfile, globalSimulationConfig)
+				o, err := simulation.NewOptions(cfgSimulation, globalSimulationConfig)
 				if err != nil {
-					return fmt.Errorf("creating simulation %s options: %w", simulationProfile.Name, err)
+					return fmt.Errorf("creating simulation %s options: %w", cfgSimulation.Name, err)
 				}
 
-				if err := simulation.NewSimulation().Run(cmd.Context(), cluster, o); err != nil {
-					return fmt.Errorf("running simulation %s: %w", simulationProfile.Name, err)
+				if err := simulation.NewAction().Run(cmd.Context(), cluster, o); err != nil {
+					return fmt.Errorf("running simulation %s: %w", cfgSimulation.Name, err)
 				}
 			}
 
@@ -83,7 +83,7 @@ func (c *command) initSimulateCmd() (err error) {
 	}
 
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
-	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start cluster")
+	cmd.Flags().BoolVar(&creaateCluster, optionNameCreateCluster, false, "start cluster")
 	cmd.Flags().StringArrayVar(&simulations, optionNameSimulations, []string{"upload"}, "simulations")
 	cmd.Flags().BoolVar(&metricsEnabled, optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64Var(&seed, optionNameSeed, 0, "seed")

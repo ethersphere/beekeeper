@@ -11,7 +11,7 @@ import (
 func (c *command) initCheckCmd() (err error) {
 	const (
 		optionNameClusterName    = "cluster-name"
-		optionNameStartCluster   = "start-cluster"
+		optionNameCreateCluster  = "create-cluster"
 		optionNameChecks         = "checks"
 		optionNameMetricsEnabled = "metrics-enabled"
 		optionNameSeed           = "seed"
@@ -21,7 +21,7 @@ func (c *command) initCheckCmd() (err error) {
 
 	var (
 		clusterName    string
-		startCluster   bool
+		creaateCluster bool
 		checks         []string
 		metricsEnabled bool
 		seed           int64
@@ -38,40 +38,40 @@ func (c *command) initCheckCmd() (err error) {
 				return err
 			}
 
-			clusterOptions, ok := cfg.Clusters[clusterName]
+			cfgCluster, ok := cfg.Clusters[clusterName]
 			if !ok {
 				return fmt.Errorf("cluster %s not defined", clusterName)
 			}
 
 			globalCheckConfig := config.GlobalCheckConfig{
 				MetricsEnabled: metricsEnabled,
-				MetricsPusher:  push.New("beekeeper", clusterOptions.Namespace),
+				MetricsPusher:  push.New("beekeeper", cfgCluster.Namespace),
 				Seed:           seed,
 			}
 
-			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, startCluster)
+			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, creaateCluster)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
 			for _, checkName := range checks {
-				checkProfile, ok := cfg.Checks[checkName]
+				cfgCheck, ok := cfg.Checks[checkName]
 				if !ok {
 					return fmt.Errorf("check %s doesn't exist", checkName)
 				}
 
-				check, ok := config.Checks[checkProfile.Name]
+				check, ok := config.Checks[cfgCheck.Name]
 				if !ok {
-					return fmt.Errorf("check %s not implemented", checkProfile.Name)
+					return fmt.Errorf("check %s not implemented", cfgCheck.Name)
 				}
 
-				o, err := check.NewOptions(checkProfile, globalCheckConfig)
+				o, err := check.NewOptions(cfgCheck, globalCheckConfig)
 				if err != nil {
-					return fmt.Errorf("creating check %s options: %w", checkProfile.Name, err)
+					return fmt.Errorf("creating check %s options: %w", cfgCheck.Name, err)
 				}
 
-				if err := check.NewCheck().Run(cmd.Context(), cluster, o); err != nil {
-					return fmt.Errorf("running check %s: %w", checkProfile.Name, err)
+				if err := check.NewAction().Run(cmd.Context(), cluster, o); err != nil {
+					return fmt.Errorf("running check %s: %w", cfgCheck.Name, err)
 				}
 			}
 
@@ -83,7 +83,7 @@ func (c *command) initCheckCmd() (err error) {
 	}
 
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
-	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start cluster")
+	cmd.Flags().BoolVar(&creaateCluster, optionNameCreateCluster, false, "start cluster")
 	cmd.Flags().StringArrayVar(&checks, optionNameChecks, []string{"pingpong"}, "checks")
 	cmd.Flags().BoolVar(&metricsEnabled, optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64Var(&seed, optionNameSeed, 0, "seed")

@@ -33,13 +33,13 @@ type GlobalCheckConfig struct {
 }
 
 type Check struct {
-	NewCheck   func() beekeeper.Action
+	NewAction  func() beekeeper.Action
 	NewOptions func(CheckConfig, GlobalCheckConfig) (interface{}, error)
 }
 
 var Checks = map[string]Check{
 	"balances": {
-		NewCheck: balances.NewCheck,
+		NewAction: balances.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
@@ -63,7 +63,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"chunk-repair": {
-		NewCheck: chunkrepair.NewCheck,
+		NewAction: chunkrepair.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				MetricsEnabled         *bool   `yaml:"metrics-enabled"`
@@ -84,7 +84,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"file-retrieval": {
-		NewCheck: fileretrieval.NewCheck,
+		NewAction: fileretrieval.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				FileName        *string `yaml:"file-name"`
@@ -109,13 +109,13 @@ var Checks = map[string]Check{
 		},
 	},
 	"full-connectivity": {
-		NewCheck: fullconnectivity.NewCheck,
+		NewAction: fullconnectivity.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			return nil, nil
 		},
 	},
 	"gc": {
-		NewCheck: gc.NewCheck,
+		NewAction: gc.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				NodeGroup        *string `yaml:"node-group"`
@@ -137,7 +137,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"kademlia": {
-		NewCheck: kademlia.NewCheck,
+		NewAction: kademlia.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				Dynamic *bool `yaml:"dynamic"`
@@ -155,7 +155,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"local-pinning": {
-		NewCheck: localpinning.NewCheck,
+		NewAction: localpinning.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				Mode             *string `yaml:"mode"`
@@ -177,7 +177,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"manifest": {
-		NewCheck: manifest.NewCheck,
+		NewAction: manifest.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				FilesInCollection *int    `yaml:"files-in-collection"`
@@ -198,13 +198,13 @@ var Checks = map[string]Check{
 		},
 	},
 	"peer-count": {
-		NewCheck: peercount.NewCheck,
+		NewAction: peercount.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			return nil, nil
 		},
 	},
 	"pingpong": {
-		NewCheck: pingpong.NewCheck,
+		NewAction: pingpong.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				MetricsEnabled *bool `yaml:"metrics-enabled"`
@@ -222,7 +222,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"pss": {
-		NewCheck: pss.NewCheck,
+		NewAction: pss.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				AddressPrefix  *int           `yaml:"address-prefix"`
@@ -245,7 +245,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"pullsync": {
-		NewCheck: pullsync.NewCheck,
+		NewAction: pullsync.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode              *int    `yaml:"chunks-per-node"`
@@ -267,7 +267,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"pushsync": {
-		NewCheck: pushsync.NewCheck,
+		NewAction: pushsync.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
@@ -294,7 +294,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"retrieval": {
-		NewCheck: retrieval.NewCheck,
+		NewAction: retrieval.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int    `yaml:"chunks-per-node"`
@@ -316,7 +316,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"settlements": {
-		NewCheck: settlements.NewCheck,
+		NewAction: settlements.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
@@ -342,7 +342,7 @@ var Checks = map[string]Check{
 		},
 	},
 	"soc": {
-		NewCheck: soc.NewCheck,
+		NewAction: soc.NewCheck,
 		NewOptions: func(checkConfig CheckConfig, globalCheckConfig GlobalCheckConfig) (interface{}, error) {
 			checkOpts := new(struct {
 				NodeGroup *string `yaml:"node-group"`

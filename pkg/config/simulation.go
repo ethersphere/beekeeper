@@ -18,13 +18,13 @@ type GlobalSimulationConfig struct {
 }
 
 type Simulation struct {
-	NewSimulation func() beekeeper.Action
-	NewOptions    func(SimulationConfig, GlobalSimulationConfig) (interface{}, error)
+	NewAction  func() beekeeper.Action
+	NewOptions func(SimulationConfig, GlobalSimulationConfig) (interface{}, error)
 }
 
 var Simulations = map[string]Simulation{
 	"upload": {
-		NewSimulation: upload.NewSimulation,
+		NewAction: upload.NewSimulation,
 		NewOptions: func(simulationConfig SimulationConfig, globalSimulationConfig GlobalSimulationConfig) (interface{}, error) {
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
