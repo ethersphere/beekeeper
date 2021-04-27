@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/ethersphere/beekeeper/pkg/runner"
 	"github.com/ethersphere/beekeeper/pkg/simulate/upload"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
@@ -18,7 +18,7 @@ type GlobalSimulationConfig struct {
 }
 
 type Simulation struct {
-	NewSimulation func() runner.Action
+	NewSimulation func() beekeeper.Action
 	NewOptions    func(simulationConfig SimulationConfig, GlobalSimulationConfig GlobalSimulationConfig) (interface{}, error)
 }
 

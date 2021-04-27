@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/ethersphere/beekeeper/pkg/runner"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -38,13 +38,13 @@ func NewDefaultOptions() Options {
 }
 
 // compile simulation whether Upload implements interface
-var _ runner.Action = (*Simulation)(nil)
+var _ beekeeper.Action = (*Simulation)(nil)
 
 // Simulation instance
 type Simulation struct{}
 
 // NewSimulation returns new upload simulation
-func NewSimulation() runner.Action {
+func NewSimulation() beekeeper.Action {
 	return &Simulation{}
 }
 

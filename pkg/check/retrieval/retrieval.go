@@ -9,8 +9,8 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/ethersphere/beekeeper/pkg/runner"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
@@ -36,13 +36,13 @@ func NewDefaultOptions() Options {
 }
 
 // compile check whether Check implements interface
-var _ runner.Action = (*Check)(nil)
+var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
 type Check struct{}
 
 // NewCheck returns new check
-func NewCheck() runner.Action {
+func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 

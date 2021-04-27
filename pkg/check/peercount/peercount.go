@@ -5,17 +5,17 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/runner"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 )
 
 // compile check whether Check implements interface
-var _ runner.Action = (*Check)(nil)
+var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
 type Check struct{}
 
 // NewCheck returns new check
-func NewCheck() runner.Action {
+func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 

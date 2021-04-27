@@ -1,4 +1,4 @@
-package runner
+package beekeeper
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Action defines Beekeeper Action
+// Action defines Beekeeper Action's interface
 type Action interface {
 	Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error)
 }
