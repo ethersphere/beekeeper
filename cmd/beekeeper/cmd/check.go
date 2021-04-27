@@ -75,6 +75,8 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().StringVar(&swapEndpoint, optionNameSwapEndpoint, "ws://geth-swap.geth:8546", "swap endpoint")
 	cmd.PersistentFlags().StringVar(&swapFactoryAddress, optionNameSwapFactoryAddress, "0x657241f4494a2f15ba75346e691d753a978c72df", "swap factory address")
 	cmd.PersistentFlags().Uint64Var(&swapInitialDeposit, optionNameSwapInitialDeposit, 500000000000000000, "swap initial deposit")
+	cmd.PersistentFlags().StringVar(&nodeSelector, optionNameNodeSelector, "bee-staging", "node selector")
+	cmd.PersistentFlags().StringVar(&ingressClass, optionNameIngressClass, "nginx-internal", "ingress class")
 
 	cmd.AddCommand(c.initCheckBalances())
 	cmd.AddCommand(c.initCheckFileRetrieval())

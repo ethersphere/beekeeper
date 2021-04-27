@@ -87,7 +87,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 				DisableNamespace:    disableNamespace,
 			})
 
-			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit)
+			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
 
 			if startCluster {
 				// bootnodes group
