@@ -21,7 +21,7 @@ func (c *command) initCheckCmd() (err error) {
 
 	var (
 		clusterName    string
-		creaateCluster bool
+		createCluster  bool
 		checks         []string
 		metricsEnabled bool
 		seed           int64
@@ -49,7 +49,7 @@ func (c *command) initCheckCmd() (err error) {
 				Seed:           seed,
 			}
 
-			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, creaateCluster)
+			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, createCluster)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
@@ -83,7 +83,7 @@ func (c *command) initCheckCmd() (err error) {
 	}
 
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
-	cmd.Flags().BoolVar(&creaateCluster, optionNameCreateCluster, false, "start cluster")
+	cmd.Flags().BoolVar(&createCluster, optionNameCreateCluster, false, "start cluster")
 	cmd.Flags().StringArrayVar(&checks, optionNameChecks, []string{"pingpong"}, "checks")
 	cmd.Flags().BoolVar(&metricsEnabled, optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64Var(&seed, optionNameSeed, 0, "seed")
