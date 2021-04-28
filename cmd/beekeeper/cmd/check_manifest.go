@@ -141,6 +141,7 @@ and attempts retrieval of those files from the last node in the cluster.`,
 				Seed:              seed,
 				PostageAmount:     c.config.GetInt64(optionNamePostageAmount),
 				PostageWait:       c.config.GetDuration(optionNamePostageBatchhWait),
+				PostageDepth:      c.config.GetUint64(optionNamePostageDepth),
 			})
 
 		},

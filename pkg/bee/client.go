@@ -331,7 +331,7 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 	}, nil
 }
 
-// CreatePostageBatchs returns the batchID of a batch of postage stamps
+// CreatePostageBatch returns the batchID of a batch of postage stamps
 func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
 	if depth < MinimumBatchDepth {
 		depth = MinimumBatchDepth
@@ -339,7 +339,29 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	return c.api.Postage.CreatePostageBatch(ctx, amount, depth, label)
 }
 
-// CreatePostageBatchs returns the batchID of a batch of postage stamps
+func (c *Client) GetOrCreateBatch(ctx context.Context, depth uint64, sleep time.Duration) (string, error) {
+	batches, err := c.PostageBatches(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("got batches", batches)
+
+	if len(batches) != 0 {
+		return batches[0].BatchID, nil
+	}
+
+	b, err := c.CreatePostageBatch(ctx, 1, depth, "test-label")
+	time.Sleep(sleep)
+	return b, err
+}
+
+// PostageBatches returns the list of batches of node
+func (c *Client) PostageBatches(ctx context.Context) ([]api.PostageStampResponse, error) {
+	return c.api.Postage.PostageBatches(ctx)
+}
+
+// ReserveState returns reserve radius, available capacity, inner and outer radiuses
 func (c *Client) ReserveState(ctx context.Context) (debugapi.ReserveState, error) {
 	return c.debug.Postage.Reservestate(ctx)
 }

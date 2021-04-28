@@ -131,6 +131,7 @@ func (c *command) initCheckSOC() *cobra.Command {
 			return soc.Check(cluster, soc.Options{
 				PostageAmount:  c.config.GetInt64(optionNamePostageAmount),
 				PostageWait:    c.config.GetDuration(optionNamePostageBatchhWait),
+				PostageDepth:   c.config.GetUint64(optionNamePostageDepth),
 				RequestTimeout: c.config.GetDuration(optionTimeout),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},

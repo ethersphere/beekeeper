@@ -23,6 +23,7 @@ type Options struct {
 	Seed              int64
 	PostageAmount     int64
 	PostageWait       time.Duration
+	PostageDepth      uint64
 }
 
 var errManifest = errors.New("manifest data mismatch")
@@ -60,16 +61,11 @@ func Check(c *bee.Cluster, o Options) error {
 
 	client := clients[node]
 
-	// add some buffer to ensure depth is enough
-	depth := 2 + bee.EstimatePostageBatchDepth(tarFile.Size())
-	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+	batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
 	if err != nil {
-		return fmt.Errorf("node %s: created batched id %w", node, err)
+		return fmt.Errorf("node %s: batch id %w", node, err)
 	}
-
-	fmt.Printf("node %s: created batched id %s\n", node, batchID)
-
-	time.Sleep(o.PostageWait)
+	fmt.Printf("node %s: batch id %s\n", node, batchID)
 
 	if err := client.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)

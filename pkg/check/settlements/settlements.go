@@ -21,10 +21,11 @@ type Options struct {
 	FileSize           int64
 	Seed               int64
 	Threshold          int64
-	WaitBeforeDownload int
+	WaitBeforeDownload time.Duration
 	ExpectSettlements  bool
 	PostageAmount      int64
 	PostageWait        time.Duration
+	PostageDepth       uint64
 }
 
 // Check executes settlements check
@@ -69,16 +70,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 		client := clients[uNode]
 
-		// add some buffer to ensure depth is enough
-		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+		fmt.Println("node", uNode)
+		batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
 		if err != nil {
-			return fmt.Errorf("node %s: created batched id %w", uNode, err)
+			return fmt.Errorf("node %s: batch id %w", uNode, err)
 		}
-
-		fmt.Printf("node %s: created batched id %s\n", uNode, batchID)
-
-		time.Sleep(o.PostageWait)
+		fmt.Printf("node %s: batch id %s\n", uNode, batchID)
 
 		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("node %s: %w", uNode, err)
@@ -114,7 +111,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			break
 		}
 
-		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
+		time.Sleep(o.WaitBeforeDownload)
 		// download file from random node
 		dIndex := randomIndex(rnd, c.Size(), uIndex)
 		dNode := sortedNodes[dIndex]

@@ -24,6 +24,7 @@ type Options struct {
 	Seed            int64
 	PostageAmount   int64
 	PostageWait     time.Duration
+	PostageDepth    uint64
 }
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
@@ -56,14 +57,11 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 		nodeName := sortedNodes[i]
 		client := clients[nodeName]
 
-		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
 		if err != nil {
-			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
-
-		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-
-		time.Sleep(o.PostageWait)
+		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])

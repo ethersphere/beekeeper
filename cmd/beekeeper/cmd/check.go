@@ -24,7 +24,8 @@ const (
 	optionNamePushGateway             = "push-gateway"
 	optionNamePushMetrics             = "push-metrics"
 	optionNamePostageAmount           = "postage-amount"
-	optionNamePostageBatchhWait       = "postage-batch-wait"
+	optionNamePostageDepth            = "postage-depth"
+	optionNamePostageBatchhWait       = "postage-wait"
 	optionNameCacheCapacity           = "cache-capacity"
 )
 
@@ -79,6 +80,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().StringVar(&ingressClass, optionNameIngressClass, "nginx-internal", "ingress class")
 	cmd.PersistentFlags().Duration(optionNamePostageBatchhWait, time.Second*5, "time to wait for batch to be mined")
 	cmd.PersistentFlags().Int(optionNameCacheCapacity, 1000, "cache capacity in chunks")
+	cmd.PersistentFlags().Uint64(optionNamePostageDepth, 16, "default depth for postage batches")
 
 	cmd.AddCommand(c.initCheckBalances())
 	cmd.AddCommand(c.initCheckFileRetrieval())
