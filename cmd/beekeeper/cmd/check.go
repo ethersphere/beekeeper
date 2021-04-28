@@ -25,6 +25,7 @@ const (
 	optionNamePushMetrics             = "push-metrics"
 	optionNamePostageAmount           = "postage-amount"
 	optionNamePostageBatchhWait       = "postage-batch-wait"
+	optionNameCacheCapacity           = "cache-capacity"
 )
 
 var (
@@ -64,7 +65,6 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().BoolVar(&inCluster, optionNameInCluster, false, "run Beekeeper in Kubernetes cluster")
 	cmd.PersistentFlags().String(optionNameKubeconfig, "", "kubernetes config file")
 	cmd.PersistentFlags().Int64(optionNamePostageAmount, 1, "postage stamp amount")
-	cmd.PersistentFlags().Duration(optionNamePostageBatchhWait, time.Second*10, "time to wait for batch to be mined") // 4 blocks * 2 seconds (w/ some offset) per block
 	// CICD options
 	cmd.PersistentFlags().BoolVar(&clefSignerEnable, optionNameClefSignerEnable, false, "enable Clef signer")
 	cmd.PersistentFlags().Uint64Var(&dbCapacity, optionNameDBCapacity, 5000000, "DB capacity")
@@ -77,6 +77,8 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().Uint64Var(&swapInitialDeposit, optionNameSwapInitialDeposit, 500000000000000000, "swap initial deposit")
 	cmd.PersistentFlags().StringVar(&nodeSelector, optionNameNodeSelector, "bee-staging", "node selector")
 	cmd.PersistentFlags().StringVar(&ingressClass, optionNameIngressClass, "nginx-internal", "ingress class")
+	cmd.PersistentFlags().Duration(optionNamePostageBatchhWait, time.Second*5, "time to wait for batch to be mined")
+	cmd.PersistentFlags().Int(optionNameCacheCapacity, 1000, "cache capacity in chunks")
 
 	cmd.AddCommand(c.initCheckBalances())
 	cmd.AddCommand(c.initCheckFileRetrieval())

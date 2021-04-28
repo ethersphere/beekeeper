@@ -135,7 +135,7 @@ func (c *command) initCheckLocalPinningBytes() *cobra.Command {
 			}
 
 			return localpinning.CheckBytesFound(cluster, localpinning.Options{
-				StoreSize:        c.config.GetInt(optionNameDbCapacity),
+				StoreSize:        c.config.GetInt(optionNameCacheCapacity),
 				StoreSizeDivisor: c.config.GetInt(optionNameDivisor),
 				Seed:             seed,
 				PostageAmount:    c.config.GetInt64(optionNamePostageAmount),
@@ -145,7 +145,6 @@ func (c *command) initCheckLocalPinningBytes() *cobra.Command {
 		PreRunE: c.checkPreRunE,
 	}
 
-	cmdBytes.Flags().Int(optionNameDbCapacity, 1000, "DB capacity in chunks")
 	cmdBytes.Flags().Int(optionNameDivisor, 3, "divide store size by which value when uploading bytes")
 	cmdBytes.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmdBytes.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
