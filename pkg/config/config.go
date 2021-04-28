@@ -56,7 +56,7 @@ type Inherit struct {
 }
 
 func (c *Config) Merge() (err error) {
-	// merge BeeProfiles
+	// merge BeeConfigs
 	mergedBP := map[string]BeeConfig{}
 	for name, v := range c.BeeConfigs {
 		if len(v.ParrentName) == 0 {
@@ -78,7 +78,7 @@ func (c *Config) Merge() (err error) {
 	}
 	c.BeeConfigs = mergedBP
 
-	// merge NodeGroupProfiles
+	// merge NodeGroupConfigs
 	mergedNGP := map[string]NodeGroupConfig{}
 	for name, v := range c.NodeGroupConfigs {
 		if len(v.ParrentName) == 0 {
