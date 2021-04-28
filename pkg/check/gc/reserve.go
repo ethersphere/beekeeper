@@ -17,7 +17,6 @@ import (
 
 // Options represents gc check options
 type Options struct {
-	NodeGroup     string
 	CacheSize     int // size of the node's localstore in chunks
 	Seed          int64
 	PostageAmount int64

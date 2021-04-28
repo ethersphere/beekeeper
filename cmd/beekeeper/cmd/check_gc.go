@@ -138,7 +138,6 @@ func (c *command) initCheckGc() *cobra.Command {
 			}
 
 			return gc.CheckReserve(cluster, gc.Options{
-				NodeGroup:     "nodes",
 				CacheSize:     c.config.GetInt(optionNameCacheCapacity),
 				Seed:          seed,
 				PostageAmount: c.config.GetInt64(optionNamePostageAmount),
