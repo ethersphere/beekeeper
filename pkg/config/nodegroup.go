@@ -7,6 +7,9 @@ import (
 )
 
 type NodeGroupConfig struct {
+	// parrent to inherit settings from
+	*Inherit `yaml:",inline"`
+	// node group configuration
 	Annotations               *map[string]string `yaml:"annotations"`
 	ClefImage                 *string            `yaml:"clef-image"`
 	ClefImagePullPolicy       *string            `yaml:"clef-image-pull-policy"`

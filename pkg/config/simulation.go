@@ -9,6 +9,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/simulate/upload"
 	"github.com/prometheus/client_golang/prometheus/push"
+	"gopkg.in/yaml.v3"
 )
 
 type SimulationGlobalConfig struct {
@@ -17,16 +18,21 @@ type SimulationGlobalConfig struct {
 	Seed           int64
 }
 
-// TODO: consider SimulationClass, SimulationKind, SimulationType, etc.
-type Simulation struct {
-	NewAction  func() beekeeper.Action
-	NewOptions func(SimulationConfig, SimulationGlobalConfig) (interface{}, error)
+type SimulationConfig struct {
+	Options yaml.Node      `yaml:"options"`
+	Timeout *time.Duration `yaml:"timeout"`
+	Type    string         `yaml:"type"`
 }
 
-var Simulations = map[string]Simulation{
+type SimulationType struct {
+	NewAction  func() beekeeper.Action
+	NewOptions func(SimulationGlobalConfig, SimulationConfig) (interface{}, error)
+}
+
+var Simulations = map[string]SimulationType{
 	"upload": {
 		NewAction: upload.NewSimulation,
-		NewOptions: func(simulationConfig SimulationConfig, simulationGlobalConfig SimulationGlobalConfig) (interface{}, error) {
+		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulationConfig SimulationConfig) (interface{}, error) {
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
 				Retries              *int           `yaml:"retries"`
@@ -36,7 +42,7 @@ var Simulations = map[string]Simulation{
 				UploadNodePercentage *int           `yaml:"upload-node-percentage"`
 			})
 			if err := simulationConfig.Options.Decode(simulationOpts); err != nil {
-				return nil, fmt.Errorf("decoding simulation %s options: %w", simulationConfig.Name, err)
+				return nil, fmt.Errorf("decoding simulation %s options: %w", simulationConfig.Type, err)
 			}
 			opts := upload.NewDefaultOptions()
 

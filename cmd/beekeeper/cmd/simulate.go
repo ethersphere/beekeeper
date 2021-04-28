@@ -60,18 +60,18 @@ func (c *command) initSimulateCmd() (err error) {
 					return fmt.Errorf("simulation %s doesn't exist", simulationName)
 				}
 
-				simulation, ok := config.Simulations[simulationConfig.Name]
+				simulation, ok := config.Simulations[simulationConfig.Type]
 				if !ok {
-					return fmt.Errorf("simulation %s not implemented", simulationConfig.Name)
+					return fmt.Errorf("simulation %s not implemented", simulationConfig.Type)
 				}
 
-				o, err := simulation.NewOptions(simulationConfig, simulationGlobalConfig)
+				o, err := simulation.NewOptions(simulationGlobalConfig, simulationConfig)
 				if err != nil {
-					return fmt.Errorf("creating simulation %s options: %w", simulationConfig.Name, err)
+					return fmt.Errorf("creating simulation %s options: %w", simulationConfig.Type, err)
 				}
 
 				if err := simulation.NewAction().Run(cmd.Context(), cluster, o); err != nil {
-					return fmt.Errorf("running simulation %s: %w", simulationConfig.Name, err)
+					return fmt.Errorf("running simulation %s: %w", simulationConfig.Type, err)
 				}
 			}
 

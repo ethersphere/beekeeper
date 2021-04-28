@@ -60,18 +60,18 @@ func (c *command) initCheckCmd() (err error) {
 					return fmt.Errorf("check %s doesn't exist", checkName)
 				}
 
-				check, ok := config.Checks[checkConfig.Name]
+				check, ok := config.Checks[checkConfig.Type]
 				if !ok {
-					return fmt.Errorf("check %s not implemented", checkConfig.Name)
+					return fmt.Errorf("check %s not implemented", checkConfig.Type)
 				}
 
-				o, err := check.NewOptions(checkConfig, checkGlobalConfig)
+				o, err := check.NewOptions(checkGlobalConfig, checkConfig)
 				if err != nil {
-					return fmt.Errorf("creating check %s options: %w", checkConfig.Name, err)
+					return fmt.Errorf("creating check %s options: %w", checkConfig.Type, err)
 				}
 
 				if err := check.NewAction().Run(cmd.Context(), cluster, o); err != nil {
-					return fmt.Errorf("running check %s: %w", checkConfig.Name, err)
+					return fmt.Errorf("running check %s: %w", checkConfig.Type, err)
 				}
 			}
 

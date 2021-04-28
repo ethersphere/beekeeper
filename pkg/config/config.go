@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -41,10 +40,10 @@ type Config struct {
 			} `yaml:"nodes"`
 		} `yaml:"node-groups"`
 	} `yaml:"clusters"`
-	BeeProfiles       map[string]BeeProfile       `yaml:"bee-profiles"`
-	NodeGroupProfiles map[string]NodeGroupProfile `yaml:"node-group-profiles"`
-	CheckConfigs      map[string]CheckConfig      `yaml:"checks"`
-	SimulationConfigs map[string]SimulationConfig `yaml:"simulations"`
+	BeeConfigs        map[string]BeeConfig        `yaml:"bee-configs"`
+	CheckConfigs      map[string]CheckConfig      `yaml:"check-configs"`
+	NodeGroupConfigs  map[string]NodeGroupConfig  `yaml:"node-group-configs"`
+	SimulationConfigs map[string]SimulationConfig `yaml:"simulation-configs"`
 	Kubernetes        struct {
 		Enable     bool   `yaml:"enable"`
 		InCluster  bool   `yaml:"in-cluster"`
@@ -52,83 +51,54 @@ type Config struct {
 	} `yaml:"kubernetes"`
 }
 
-type Profile struct {
-	File    string `yaml:"_file"`
-	Inherit string `yaml:"_inherit"`
-}
-
-type BeeProfile struct {
-	Profile   `yaml:",inline"`
-	BeeConfig `yaml:",inline"`
-}
-
-type NodeGroupProfile struct {
-	Profile         `yaml:",inline"`
-	NodeGroupConfig `yaml:",inline"`
-}
-
-type CheckConfig struct {
-	Name    string         `yaml:"name"`
-	Options yaml.Node      `yaml:"options"`
-	Timeout *time.Duration `yaml:"timeout"`
-}
-
-type SimulationConfig struct {
-	Name    string         `yaml:"name"`
-	Options yaml.Node      `yaml:"options"`
-	Timeout *time.Duration `yaml:"timeout"`
+type Inherit struct {
+	ParrentName string `yaml:"_inherit"`
 }
 
 func (c *Config) Merge() (err error) {
 	// merge BeeProfiles
-	mergedBP := map[string]BeeProfile{}
-	for name, v := range c.BeeProfiles {
-		if len(v.Profile.Inherit) == 0 {
+	mergedBP := map[string]BeeConfig{}
+	for name, v := range c.BeeConfigs {
+		if len(v.ParrentName) == 0 {
 			mergedBP[name] = v
 		} else {
-			parent, ok := c.BeeProfiles[v.Profile.Inherit]
+			parent, ok := c.BeeConfigs[v.ParrentName]
 			if !ok {
-				return fmt.Errorf("bee profile %s doesn't exist", v.Profile.Inherit)
+				return fmt.Errorf("bee profile %s doesn't exist", v.ParrentName)
 			}
-			p := reflect.ValueOf(&parent.BeeConfig).Elem()
-			m := reflect.ValueOf(&v.BeeConfig).Elem()
+			p := reflect.ValueOf(&parent).Elem()
+			m := reflect.ValueOf(&v).Elem()
 			for i := 0; i < m.NumField(); i++ {
 				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
 					m.Field(i).Set(p.Field(i))
 				}
 			}
-			mergedBP[name] = BeeProfile{
-				Profile:   v.Profile,
-				BeeConfig: m.Interface().(BeeConfig),
-			}
+			mergedBP[name] = m.Interface().(BeeConfig)
 		}
 	}
-	c.BeeProfiles = mergedBP
+	c.BeeConfigs = mergedBP
 
 	// merge NodeGroupProfiles
-	mergedNGP := map[string]NodeGroupProfile{}
-	for name, v := range c.NodeGroupProfiles {
-		if len(v.Profile.Inherit) == 0 {
+	mergedNGP := map[string]NodeGroupConfig{}
+	for name, v := range c.NodeGroupConfigs {
+		if len(v.ParrentName) == 0 {
 			mergedNGP[name] = v
 		} else {
-			parent, ok := c.NodeGroupProfiles[v.Profile.Inherit]
+			parent, ok := c.NodeGroupConfigs[v.ParrentName]
 			if !ok {
-				return fmt.Errorf("node group profile %s doesn't exist", v.Profile.Inherit)
+				return fmt.Errorf("node group profile %s doesn't exist", v.ParrentName)
 			}
-			p := reflect.ValueOf(&parent.NodeGroupConfig).Elem()
-			m := reflect.ValueOf(&v.NodeGroupConfig).Elem()
+			p := reflect.ValueOf(&parent).Elem()
+			m := reflect.ValueOf(&v).Elem()
 			for i := 0; i < m.NumField(); i++ {
 				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
 					m.Field(i).Set(p.Field(i))
 				}
 			}
-			mergedNGP[name] = NodeGroupProfile{
-				Profile:         v.Profile,
-				NodeGroupConfig: m.Interface().(NodeGroupConfig),
-			}
+			mergedNGP[name] = m.Interface().(NodeGroupConfig)
 		}
 	}
-	c.NodeGroupProfiles = mergedNGP
+	c.NodeGroupConfigs = mergedNGP
 
 	return
 }

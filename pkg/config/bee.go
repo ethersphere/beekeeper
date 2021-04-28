@@ -7,6 +7,9 @@ import (
 )
 
 type BeeConfig struct {
+	// parrent to inherit settings from
+	*Inherit `yaml:",inline"`
+	// Bee configuration
 	APIAddr              *string `yaml:"api-addr"`
 	Bootnodes            *string `yaml:"bootnodes"`
 	ClefSignerEnable     *bool   `yaml:"clef-signer-enable"`

@@ -38,14 +38,13 @@ func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (e
 
 	for ng, v := range clusterConfig.NodeGroups {
 		fmt.Printf("deleting %s node group\n", ng)
-		ngp, ok := c.NodeGroupProfiles[v.Config]
+		ngConfig, ok := c.NodeGroupConfigs[v.Config]
 		if !ok {
 			return fmt.Errorf("node group profile %s not defined", v.Config)
 		}
 		if v.Mode == "bootnode" {
 			// add node group to the cluster
-			gProfile := ngp.NodeGroupConfig
-			cluster.AddNodeGroup(ng, gProfile.Export())
+			cluster.AddNodeGroup(ng, ngConfig.Export())
 
 			// delete nodes from the node group
 			g := cluster.NodeGroup(ng)
@@ -57,8 +56,7 @@ func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (e
 			}
 		} else {
 			// add node group to the cluster
-			gProfile := ngp.NodeGroupConfig
-			cluster.AddNodeGroup(ng, gProfile.Export())
+			cluster.AddNodeGroup(ng, ngConfig.Export())
 
 			// delete nodes from the node group
 			g := cluster.NodeGroup(ng)
@@ -102,25 +100,24 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 	if start {
 		bootnodes := ""
 		for ng, v := range clusterConfig.NodeGroups {
-			ngp, ok := c.NodeGroupProfiles[v.Config]
+			ngConfig, ok := c.NodeGroupConfigs[v.Config]
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
-				gProfile := ngp.NodeGroupConfig
-				cluster.AddNodeGroup(ng, gProfile.Export())
+				cluster.AddNodeGroup(ng, ngConfig.Export())
 
 				// start nodes in the node group
 				g := cluster.NodeGroup(ng)
 				errGroup := new(errgroup.Group)
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := v.Nodes[i].Name
-					bProfile, ok := c.BeeProfiles[v.BeeConfig]
+					beeConfig, ok := c.BeeConfigs[v.BeeConfig]
 					if !ok {
 						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 					}
-					bConfig := bProfile.Export()
+					bConfig := beeConfig.Export()
 
 					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
@@ -144,15 +141,14 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 		}
 
 		for ng, v := range clusterConfig.NodeGroups {
-			ngp, ok := c.NodeGroupProfiles[v.Config]
+			ngConfig, ok := c.NodeGroupConfigs[v.Config]
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
-				gProfile := ngp.NodeGroupConfig
-				gOptions := gProfile.Export()
-				nProfile, ok := c.BeeProfiles[v.BeeConfig]
+				gOptions := ngConfig.Export()
+				nProfile, ok := c.BeeConfigs[v.BeeConfig]
 				if !ok {
 					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 				}
@@ -180,24 +176,23 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 	} else {
 		bootnodes := ""
 		for ng, v := range clusterConfig.NodeGroups {
-			ngp, ok := c.NodeGroupProfiles[v.Config]
+			ngConfig, ok := c.NodeGroupConfigs[v.Config]
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
 			if v.Mode == "bootnode" {
 				// add node group to the cluster
-				gProfile := ngp.NodeGroupConfig
-				cluster.AddNodeGroup(ng, gProfile.Export())
+				cluster.AddNodeGroup(ng, ngConfig.Export())
 
 				// add nodes to the node group
 				g := cluster.NodeGroup(ng)
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := v.Nodes[i].Name
-					bProfile, ok := c.BeeProfiles[v.BeeConfig]
+					beeConfig, ok := c.BeeConfigs[v.BeeConfig]
 					if !ok {
 						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 					}
-					bConfig := bProfile.Export()
+					bConfig := beeConfig.Export()
 
 					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
@@ -217,15 +212,14 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 		}
 
 		for ng, v := range clusterConfig.NodeGroups {
-			ngp, ok := c.NodeGroupProfiles[v.Config]
+			ngConfig, ok := c.NodeGroupConfigs[v.Config]
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
-				gProfile := ngp.NodeGroupConfig
-				gOptions := gProfile.Export()
-				nProfile, ok := c.BeeProfiles[v.BeeConfig]
+				gOptions := ngConfig.Export()
+				nProfile, ok := c.BeeConfigs[v.BeeConfig]
 				if !ok {
 					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 				}

@@ -67,9 +67,8 @@ clusters:
         count: 15
         mode: node
 
-bee-profiles:
+bee-configs:
   default:
-    _file: ""
     _inherit: ""
     api-addr: ":1633"
     bootnodes: ""
@@ -105,13 +104,11 @@ bee-profiles:
     verbosity: 5
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
   light-node:
-    _file: ""
     _inherit: default
     api-addr: ":1644"
 
-checks:
+check-configs:
   balances:
-    name: balances
     options:
       dry-run: false
       file-name: balances
@@ -120,16 +117,16 @@ checks:
       upload-node-count: 3
       wait-before-download: 5 # seconds
     timeout: 5m
+    type: balances
   chunk-repair:
-    name: chunk-repair
     options:
       node-group: bee
       number-of-chunks-to-repair: 1
       metrics-enabled: 
       seed: 
     timeout: 5m
+    type: chunk-repair
   file-retrieval:
-    name: file-retrieval
     options:
       file-name: file-retrieval
       file-size: 1048576 # 1mb = 1*1024*1024
@@ -139,68 +136,68 @@ checks:
       upload-node-count: 3
       metrics-enabled: 
     timeout: 5m
+    type: file-retrieval
   full-connectivity:
-    name: full-connectivity
     timeout: 5m
+    type: full-connectivity
   gc:
-    name: gc
     options:
       node-group: bee
       store-size: 1000
       store-size-divisor: 3
       wait: 5
     timeout: 5m
+    type: gc
   kademlia:
-    name: kademlia
     options:
       dynamic: false
     timeout: 5m
+    type: kademlia
   kademlia-dynamic:
-    name: kademlia
     options:
       dynamic: true
     timeout: 5m
+    type: kademlia
   local-pinning-chunk:
-    name: local-pinning
     options:
       mode: pin-chunk
       node-group: bee
       store-size: 1000
       store-size-divisor: 3
     timeout: 5m
+    type: local-pinning
   local-pinning-bytes:
-    name: local-pinning
     options:
       mode: pin-bytes
       node-group: bee
       store-size: 1000
       store-size-divisor: 3
     timeout: 5m
+    type: local-pinning
   local-pinning-remote:
-    name: local-pinning
     options:
       mode: pin-remote
       node-group: bee
       store-size: 1000
       store-size-divisor: 3
     timeout: 5m
+    type: local-pinning
   manifest:
-    name: manifest
     options:
       files-in-collection: 10
       max-pathname-length: 64
       node-group: bee
     timeout: 5m
+    type: manifest
   peer-count:
-    name: peer-count
     timeout: 5m
+    type: peer-count
   pingpong:
-    name: pingpong
     options:
       metrics-enabled: 
     timeout: 5m
+    type: pingpong
   pss:
-    name: pss
     options:
       address-prefix: 10
       metrics-enabled:
@@ -208,16 +205,16 @@ checks:
       node-group: bee
       request-timeout: 5m
     timeout: 5m
+    type: pss
   pullsync:
-    name: pullsync
     options:
       chunks-per-node: 1
       node-group: bee
       replication-factor-threshold: 2
       upload-node-count: 1
     timeout: 5m
+    type: pullsync
   pushsync:
-    name: pushsync
     options:
       chunks-per-node: 1
       metrics-enabled:
@@ -227,8 +224,8 @@ checks:
       retry-delay: 1s
       upload-node-count: 1
     timeout: 5m
+    type: pushsync
   pushsync-chunks:
-    name: pushsync
     options:
       chunks-per-node: 1
       metrics-enabled:
@@ -238,8 +235,8 @@ checks:
       retry-delay: 1s
       upload-node-count: 1
     timeout: 5m
+    type: pushsync
   pushsync-files:
-    name: pushsync
     options:
       file-size: 1048576 # 1mb = 1*1024*1024
       files-per-node: 1
@@ -250,16 +247,16 @@ checks:
       retry-delay: 1s
       upload-node-count: 1
     timeout: 5m
+    type: pushsync
   retrieval:
-    name: retrieval
     options:
       chunks-per-node: 1
       metrics-enabled:
       node-group: bee
       upload-node-count: 1
     timeout: 5m
+    type: retrieval
   settlements:
-    name: settlements
     options:
       dry-run: false
       expect-settlements: true
@@ -270,27 +267,15 @@ checks:
       upload-node-count: 3
       wait-before-downloading: 5 # seconds
     timeout: 5m
+    type: settlements
   soc:
-    name: soc
     options:
       node-group: bee
     timeout: 5m
+    type: soc
 
-simulations:
-  upload:
-    name: upload
-    options:
-      file-size: 1048576 # 1mb = 1*1024*1024
-      retries: 5
-      retry-delay: 1s
-      seed: 
-      timeout: 5m
-      upload-node-percentage: 50
-    timeout: 5m
-
-node-group-profiles:
+node-group-configs:
   default:
-    _file: ""
     _inherit: ""
     clef-image: ethersphere/clef:latest
     clef-image-pull-policy: Always
@@ -327,10 +312,21 @@ node-group-profiles:
     restart-policy: "Always"
     update-strategy: "RollingUpdate"
   light-node:
-    _file: ""
     _inherit: default
     image: svetomir/bee:latest
     image-pull-policy: IfNotPresent
+
+simulation-configs:
+  upload:
+    options:
+      file-size: 1048576 # 1mb = 1*1024*1024
+      retries: 5
+      retry-delay: 1s
+      seed: 
+      timeout: 5m
+      upload-node-percentage: 50
+    timeout: 5m
+    type: upload
 
 stages:
   static:
