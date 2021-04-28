@@ -31,9 +31,9 @@ func (c *command) initSimulateCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "simulate",
-		Short: "Run simulation on a Bee cluster",
+		Short: "Run simulations on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config.yaml")
+			cfg, err := config.Read("config/config.yaml")
 			if err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func (c *command) initSimulateCmd() (err error) {
 			}
 
 			for _, simulationName := range simulations {
-				simulationConfig, ok := cfg.SimulationConfigs[simulationName]
+				simulationConfig, ok := cfg.Simulations[simulationName]
 				if !ok {
 					return fmt.Errorf("simulation %s doesn't exist", simulationName)
 				}
@@ -67,18 +67,15 @@ func (c *command) initSimulateCmd() (err error) {
 
 				o, err := simulation.NewOptions(simulationGlobalConfig, simulationConfig)
 				if err != nil {
-					return fmt.Errorf("creating simulation %s options: %w", simulationConfig.Type, err)
+					return fmt.Errorf("creating simulation %s options: %w", simulationName, err)
 				}
 
 				if err := simulation.NewAction().Run(cmd.Context(), cluster, o); err != nil {
-					return fmt.Errorf("running simulation %s: %w", simulationConfig.Type, err)
+					return fmt.Errorf("running simulation %s: %w", simulationName, err)
 				}
 			}
 
 			return nil
-		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
 		},
 	}
 

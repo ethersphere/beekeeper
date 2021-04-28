@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/config"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/spf13/cobra"
 )
 
@@ -21,18 +19,8 @@ func (c *command) initCreateK8SNamespace() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			name := args[0]
-			cfg, err := config.Read("config.yaml")
-			if err != nil {
-				return err
-			}
 
-			var k8sClient *k8s.Client
-			if cfg.Kubernetes.Enable {
-				k8sClient, err = setK8SClient(cfg.Kubernetes.Kubeconfig, cfg.Kubernetes.InCluster)
-				if err != nil {
-					return fmt.Errorf("kubernetes client: %w", err)
-				}
-			}
+			// TODO: move to preRun
 			if k8sClient == nil {
 				return fmt.Errorf("k8s client not created")
 			}

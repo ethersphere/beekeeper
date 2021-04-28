@@ -33,7 +33,7 @@ func (c *command) initCheckCmd() (err error) {
 		Use:   "check",
 		Short: "Run tests on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config.yaml")
+			cfg, err := config.Read("config/config.yaml")
 			if err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func (c *command) initCheckCmd() (err error) {
 			}
 
 			for _, checkName := range checks {
-				checkConfig, ok := cfg.CheckConfigs[checkName]
+				checkConfig, ok := cfg.Checks[checkName]
 				if !ok {
 					return fmt.Errorf("check %s doesn't exist", checkName)
 				}
@@ -67,18 +67,15 @@ func (c *command) initCheckCmd() (err error) {
 
 				o, err := check.NewOptions(checkGlobalConfig, checkConfig)
 				if err != nil {
-					return fmt.Errorf("creating check %s options: %w", checkConfig.Type, err)
+					return fmt.Errorf("creating check %s options: %w", checkName, err)
 				}
 
 				if err := check.NewAction().Run(cmd.Context(), cluster, o); err != nil {
-					return fmt.Errorf("running check %s: %w", checkConfig.Type, err)
+					return fmt.Errorf("running check %s: %w", checkName, err)
 				}
 			}
 
 			return nil
-		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
 		},
 	}
 

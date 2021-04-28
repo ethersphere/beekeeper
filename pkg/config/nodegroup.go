@@ -6,7 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-type NodeGroupConfig struct {
+type NodeGroup struct {
 	// parrent to inherit settings from
 	*Inherit `yaml:",inline"`
 	// node group configuration
@@ -32,7 +32,7 @@ type NodeGroupConfig struct {
 	UpdateStrategy            *string            `yaml:"update-strategy"`
 }
 
-func (n *NodeGroupConfig) Export() (o bee.NodeGroupOptions) {
+func (n *NodeGroup) Export() (o bee.NodeGroupOptions) {
 	localVal := reflect.ValueOf(n).Elem()
 	localType := reflect.TypeOf(n).Elem()
 	remoteVal := reflect.ValueOf(&o).Elem()

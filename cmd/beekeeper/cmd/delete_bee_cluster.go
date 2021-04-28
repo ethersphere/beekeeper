@@ -21,7 +21,7 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 		Short: "Delete Bee cluster",
 		Long:  `Delete Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config.yaml")
+			cfg, err := config.Read("config/config.yaml")
 			if err != nil {
 				return err
 			}

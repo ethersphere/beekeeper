@@ -6,21 +6,12 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/config"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"golang.org/x/sync/errgroup"
 )
 
 // TODO: add option to delete storage too
-func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (err error) {
-	var k8sClient *k8s.Client
-	if c.Kubernetes.Enable {
-		k8sClient, err = setK8SClient(c.Kubernetes.Kubeconfig, c.Kubernetes.InCluster)
-		if err != nil {
-			return fmt.Errorf("kubernetes client: %w", err)
-		}
-	}
-
-	clusterConfig, ok := c.Clusters[clusterName]
+func deleteCluster(ctx context.Context, clusterName string, cfg *config.Config) (err error) {
+	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return fmt.Errorf("cluster %s not defined", clusterName)
 	}
@@ -38,7 +29,7 @@ func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (e
 
 	for ng, v := range clusterConfig.NodeGroups {
 		fmt.Printf("deleting %s node group\n", ng)
-		ngConfig, ok := c.NodeGroupConfigs[v.Config]
+		ngConfig, ok := cfg.NodeGroups[v.Config]
 		if !ok {
 			return fmt.Errorf("node group profile %s not defined", v.Config)
 		}
@@ -72,16 +63,8 @@ func deleteCluster(ctx context.Context, clusterName string, c *config.Config) (e
 	return
 }
 
-func setupCluster(ctx context.Context, clusterName string, c *config.Config, start bool) (cluster *bee.Cluster, err error) {
-	var k8sClient *k8s.Client
-	if c.Kubernetes.Enable {
-		k8sClient, err = setK8SClient(c.Kubernetes.Kubeconfig, c.Kubernetes.InCluster)
-		if err != nil {
-			return nil, fmt.Errorf("kubernetes client: %w", err)
-		}
-	}
-
-	clusterConfig, ok := c.Clusters[clusterName]
+func setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster *bee.Cluster, err error) {
+	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
 	}
@@ -100,7 +83,7 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 	if start {
 		bootnodes := ""
 		for ng, v := range clusterConfig.NodeGroups {
-			ngConfig, ok := c.NodeGroupConfigs[v.Config]
+			ngConfig, ok := cfg.NodeGroups[v.Config]
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
@@ -113,7 +96,7 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 				errGroup := new(errgroup.Group)
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := v.Nodes[i].Name
-					beeConfig, ok := c.BeeConfigs[v.BeeConfig]
+					beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
 					if !ok {
 						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 					}
@@ -141,14 +124,14 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 		}
 
 		for ng, v := range clusterConfig.NodeGroups {
-			ngConfig, ok := c.NodeGroupConfigs[v.Config]
+			ngConfig, ok := cfg.NodeGroups[v.Config]
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				gOptions := ngConfig.Export()
-				nProfile, ok := c.BeeConfigs[v.BeeConfig]
+				nProfile, ok := cfg.BeeConfigs[v.BeeConfig]
 				if !ok {
 					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 				}
@@ -176,7 +159,7 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 	} else {
 		bootnodes := ""
 		for ng, v := range clusterConfig.NodeGroups {
-			ngConfig, ok := c.NodeGroupConfigs[v.Config]
+			ngConfig, ok := cfg.NodeGroups[v.Config]
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
@@ -188,7 +171,7 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 				g := cluster.NodeGroup(ng)
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := v.Nodes[i].Name
-					beeConfig, ok := c.BeeConfigs[v.BeeConfig]
+					beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
 					if !ok {
 						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 					}
@@ -212,14 +195,14 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 		}
 
 		for ng, v := range clusterConfig.NodeGroups {
-			ngConfig, ok := c.NodeGroupConfigs[v.Config]
+			ngConfig, ok := cfg.NodeGroups[v.Config]
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
 			if v.Mode != "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				gOptions := ngConfig.Export()
-				nProfile, ok := c.BeeConfigs[v.BeeConfig]
+				nProfile, ok := cfg.BeeConfigs[v.BeeConfig]
 				if !ok {
 					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 				}
@@ -242,15 +225,4 @@ func setupCluster(ctx context.Context, clusterName string, c *config.Config, sta
 	}
 
 	return
-}
-
-func setK8SClient(kubeconfig string, inCluster bool) (c *k8s.Client, err error) {
-	if c, err = k8s.NewClient(&k8s.ClientOptions{
-		InCluster:      inCluster,
-		KubeconfigPath: kubeconfig,
-	}); err != nil && err != k8s.ErrKubeconfigNotSet {
-		return nil, fmt.Errorf("creating Kubernetes client: %w", err)
-	}
-
-	return c, nil
 }

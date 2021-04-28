@@ -67,6 +67,44 @@ clusters:
         count: 15
         mode: node
 
+node-groups:
+  default:
+    _inherit: ""
+    clef-image: ethersphere/clef:latest
+    clef-image-pull-policy: Always
+    image: ethersphere/bee:0.5.3
+    image-pull-policy: Always
+    image-pull-secrets: [regcred]
+    ingress-annotations:
+      kubernetes.io/ingress.class: "nginx-internal"
+      nginx.ingress.kubernetes.io/affinity: "cookie"
+      nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
+      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
+      nginx.ingress.kubernetes.io/session-cookie-path: "default"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    ingress-debug-annotations:
+      kubernetes.io/ingress.class: "nginx-internal"
+    labels:
+      app.kubernetes.io/component: "node"
+      app.kubernetes.io/part-of: "bee"
+      app.kubernetes.io/version: "latest"
+    node-selector: 
+      node-group: "bee-staging"
+    persistence-enabled: true
+    persistence-storage-class: "local-storage"
+    persistence-storage-request: "34Gi"
+    pod-management-policy: "OrderedReady"
+    resources-limit-cpu: "1"
+    resources-limit-memory: 2Gi
+    resources-request-cpu: 750m
+    resources-request-memory: 1Gi
+    restart-policy: "Always"
+    update-strategy: "RollingUpdate"
+
 bee-configs:
   default:
     _inherit: ""
@@ -103,11 +141,8 @@ bee-configs:
     tracing-service-name: "bee"
     verbosity: 5
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
-  light-node:
-    _inherit: default
-    api-addr: ":1644"
 
-check-configs:
+checks:
   balances:
     options:
       dry-run: false
@@ -274,49 +309,7 @@ check-configs:
     timeout: 5m
     type: soc
 
-node-group-configs:
-  default:
-    _inherit: ""
-    clef-image: ethersphere/clef:latest
-    clef-image-pull-policy: Always
-    image: ethersphere/bee:latest
-    image-pull-policy: Always
-    image-pull-secrets: [regcred]
-    ingress-annotations:
-      kubernetes.io/ingress.class: "nginx-internal"
-      nginx.ingress.kubernetes.io/affinity: "cookie"
-      nginx.ingress.kubernetes.io/affinity-mode: "persistent"
-      nginx.ingress.kubernetes.io/proxy-body-size: "0"
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
-      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
-      nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
-      nginx.ingress.kubernetes.io/session-cookie-path: "default"
-      nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    ingress-debug-annotations:
-      kubernetes.io/ingress.class: "nginx-internal"
-    labels:
-      app.kubernetes.io/component: "node"
-      app.kubernetes.io/part-of: "bee"
-      app.kubernetes.io/version: "latest"
-    node-selector: 
-      node-group: "bee-staging"
-    persistence-enabled: true
-    persistence-storage-class: "local-storage"
-    persistence-storage-request: "34Gi"
-    pod-management-policy: "OrderedReady"
-    resources-limit-cpu: "1"
-    resources-limit-memory: 2Gi
-    resources-request-cpu: 750m
-    resources-request-memory: 1Gi
-    restart-policy: "Always"
-    update-strategy: "RollingUpdate"
-  light-node:
-    _inherit: default
-    image: svetomir/bee:latest
-    image-pull-policy: IfNotPresent
-
-simulation-configs:
+simulations:
   upload:
     options:
       file-size: 1048576 # 1mb = 1*1024*1024
@@ -364,8 +357,3 @@ stages:
         start: 1
         stop: 2
         delete: 1
-
-kubernetes:
-  enable: true
-  in-cluster: false
-  kubeconfig: "~/.kube/config"

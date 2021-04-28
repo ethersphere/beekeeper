@@ -1,0 +1,10 @@
+bee-configs:
+  light-node:
+    _inherit: default
+    api-addr: ":1644"
+
+node-group-configs:
+  light-node:
+    _inherit: default
+    image: svetomir/bee:latest
+    image-pull-policy: IfNotPresent

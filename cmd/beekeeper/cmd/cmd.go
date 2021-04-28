@@ -2,13 +2,17 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var k8sClient *k8s.Client
 
 func init() {
 	cobra.EnableCommandSorting = true
@@ -118,7 +122,11 @@ func (c *command) initConfig() (err error) {
 			return err
 		}
 	}
+
 	c.config = config
+
+	c.setK8S()
+
 	return nil
 }
 
@@ -132,4 +140,17 @@ func (c *command) setHomeDir() (err error) {
 	}
 	c.homeDir = dir
 	return nil
+}
+
+func (c *command) setK8S() (err error) {
+	if c.config.GetBool("enable-k8s") {
+		if k8sClient, err = k8s.NewClient(&k8s.ClientOptions{
+			InCluster:      c.config.GetBool("in-cluster"),
+			KubeconfigPath: c.config.GetString("kubeconfig"),
+		}); err != nil && err != k8s.ErrKubeconfigNotSet {
+			return fmt.Errorf("creating Kubernetes client: %w", err)
+		}
+	}
+
+	return
 }

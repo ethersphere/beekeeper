@@ -12,13 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type SimulationGlobalConfig struct {
-	MetricsEnabled bool
-	MetricsPusher  *push.Pusher
-	Seed           int64
-}
-
-type SimulationConfig struct {
+type Simulation struct {
 	Options yaml.Node      `yaml:"options"`
 	Timeout *time.Duration `yaml:"timeout"`
 	Type    string         `yaml:"type"`
@@ -26,13 +20,19 @@ type SimulationConfig struct {
 
 type SimulationType struct {
 	NewAction  func() beekeeper.Action
-	NewOptions func(SimulationGlobalConfig, SimulationConfig) (interface{}, error)
+	NewOptions func(SimulationGlobalConfig, Simulation) (interface{}, error)
+}
+
+type SimulationGlobalConfig struct {
+	MetricsEnabled bool
+	MetricsPusher  *push.Pusher
+	Seed           int64
 }
 
 var Simulations = map[string]SimulationType{
 	"upload": {
 		NewAction: upload.NewSimulation,
-		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulationConfig SimulationConfig) (interface{}, error) {
+		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
 				Retries              *int           `yaml:"retries"`
@@ -41,8 +41,8 @@ var Simulations = map[string]SimulationType{
 				Timeout              *time.Duration `yaml:"timeout"`
 				UploadNodePercentage *int           `yaml:"upload-node-percentage"`
 			})
-			if err := simulationConfig.Options.Decode(simulationOpts); err != nil {
-				return nil, fmt.Errorf("decoding simulation %s options: %w", simulationConfig.Type, err)
+			if err := simulation.Options.Decode(simulationOpts); err != nil {
+				return nil, fmt.Errorf("decoding simulation %s options: %w", simulation.Type, err)
 			}
 			opts := upload.NewDefaultOptions()
 

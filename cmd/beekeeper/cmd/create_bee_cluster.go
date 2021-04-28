@@ -23,7 +23,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 		Short: "Create Bee cluster",
 		Long:  `Create Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config.yaml")
+			cfg, err := config.Read("config/config.yaml")
 			if err != nil {
 				return err
 			}

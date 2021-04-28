@@ -27,13 +27,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type CheckGlobalConfig struct {
-	MetricsEnabled bool
-	MetricsPusher  *push.Pusher
-	Seed           int64
-}
-
-type CheckConfig struct {
+type Check struct {
 	Options yaml.Node      `yaml:"options"`
 	Timeout *time.Duration `yaml:"timeout"`
 	Type    string         `yaml:"type"`
@@ -41,13 +35,19 @@ type CheckConfig struct {
 
 type CheckType struct {
 	NewAction  func() beekeeper.Action
-	NewOptions func(CheckGlobalConfig, CheckConfig) (interface{}, error)
+	NewOptions func(CheckGlobalConfig, Check) (interface{}, error)
+}
+
+type CheckGlobalConfig struct {
+	MetricsEnabled bool
+	MetricsPusher  *push.Pusher
+	Seed           int64
 }
 
 var Checks = map[string]CheckType{
 	"balances": {
 		NewAction: balances.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
 				FileName           *string `yaml:"file-name"`
@@ -57,8 +57,8 @@ var Checks = map[string]CheckType{
 				UploadNodeCount    *int    `yaml:"upload-node-count"`
 				WaitBeforeDownload *int    `yaml:"wait-before-download"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := balances.NewDefaultOptions()
 
@@ -71,15 +71,15 @@ var Checks = map[string]CheckType{
 	},
 	"chunk-repair": {
 		NewAction: chunkrepair.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				MetricsEnabled         *bool   `yaml:"metrics-enabled"`
 				NodeGroup              *string `yaml:"node-group"`
 				NumberOfChunksToRepair *int    `yaml:"number-of-chunks-to-repair"`
 				Seed                   *int64  `yaml:"seed"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := chunkrepair.NewDefaultOptions()
 
@@ -92,7 +92,7 @@ var Checks = map[string]CheckType{
 	},
 	"file-retrieval": {
 		NewAction: fileretrieval.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				FileName        *string `yaml:"file-name"`
 				FileSize        *int64  `yaml:"file-size"`
@@ -103,8 +103,8 @@ var Checks = map[string]CheckType{
 				Seed            *int64  `yaml:"seed"`
 				UploadNodeCount *int    `yaml:"upload-node-count"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := fileretrieval.NewDefaultOptions()
 
@@ -117,13 +117,13 @@ var Checks = map[string]CheckType{
 	},
 	"full-connectivity": {
 		NewAction: fullconnectivity.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			return nil, nil
 		},
 	},
 	"gc": {
 		NewAction: gc.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				NodeGroup        *string `yaml:"node-group"`
 				Seed             *int64  `yaml:"seed"`
@@ -131,8 +131,8 @@ var Checks = map[string]CheckType{
 				StoreSizeDivisor *int    `yaml:"store-size-divisor"`
 				Wait             *int    `yaml:"wait"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := gc.NewDefaultOptions()
 
@@ -145,12 +145,12 @@ var Checks = map[string]CheckType{
 	},
 	"kademlia": {
 		NewAction: kademlia.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				Dynamic *bool `yaml:"dynamic"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := kademlia.NewDefaultOptions()
 
@@ -163,7 +163,7 @@ var Checks = map[string]CheckType{
 	},
 	"local-pinning": {
 		NewAction: localpinning.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				Mode             *string `yaml:"mode"`
 				NodeGroup        *string `yaml:"node-group"`
@@ -171,8 +171,8 @@ var Checks = map[string]CheckType{
 				StoreSize        *int    `yaml:"store-size"`
 				StoreSizeDivisor *int    `yaml:"store-size-divisor"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := localpinning.NewDefaultOptions()
 
@@ -185,15 +185,15 @@ var Checks = map[string]CheckType{
 	},
 	"manifest": {
 		NewAction: manifest.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				FilesInCollection *int    `yaml:"files-in-collection"`
 				MaxPathnameLength *int32  `yaml:"max-pathname-length"`
 				NodeGroup         *string `yaml:"node-group"`
 				Seed              *int64  `yaml:"seed"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := manifest.NewDefaultOptions()
 
@@ -206,18 +206,18 @@ var Checks = map[string]CheckType{
 	},
 	"peer-count": {
 		NewAction: peercount.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			return nil, nil
 		},
 	},
 	"pingpong": {
 		NewAction: pingpong.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				MetricsEnabled *bool `yaml:"metrics-enabled"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := pingpong.NewDefaultOptions()
 
@@ -230,7 +230,7 @@ var Checks = map[string]CheckType{
 	},
 	"pss": {
 		NewAction: pss.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				AddressPrefix  *int           `yaml:"address-prefix"`
 				MetricsEnabled *bool          `yaml:"metrics-enabled"`
@@ -239,8 +239,8 @@ var Checks = map[string]CheckType{
 				RequestTimeout *time.Duration `yaml:"request-timeout"`
 				Seed           *int64         `yaml:"seed"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := pss.NewDefaultOptions()
 
@@ -253,7 +253,7 @@ var Checks = map[string]CheckType{
 	},
 	"pullsync": {
 		NewAction: pullsync.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode              *int    `yaml:"chunks-per-node"`
 				NodeGroup                  *string `yaml:"node-group"`
@@ -261,8 +261,8 @@ var Checks = map[string]CheckType{
 				Seed                       *int64  `yaml:"seed"`
 				UploadNodeCount            *int    `yaml:"upload-node-count"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := pullsync.NewDefaultOptions()
 
@@ -275,7 +275,7 @@ var Checks = map[string]CheckType{
 	},
 	"pushsync": {
 		NewAction: pushsync.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
 				FileSize        *int64         `yaml:"file-size"`
@@ -288,8 +288,8 @@ var Checks = map[string]CheckType{
 				Seed            *int64         `yaml:"seed"`
 				UploadNodeCount *int           `yaml:"upload-node-count"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := pushsync.NewDefaultOptions()
 
@@ -302,7 +302,7 @@ var Checks = map[string]CheckType{
 	},
 	"retrieval": {
 		NewAction: retrieval.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int    `yaml:"chunks-per-node"`
 				MetricsEnabled  *bool   `yaml:"metrics-enabled"`
@@ -310,8 +310,8 @@ var Checks = map[string]CheckType{
 				Seed            *int64  `yaml:"seed"`
 				UploadNodeCount *int    `yaml:"upload-node-count"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := retrieval.NewDefaultOptions()
 
@@ -324,7 +324,7 @@ var Checks = map[string]CheckType{
 	},
 	"settlements": {
 		NewAction: settlements.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				DryRun             *bool   `yaml:"dry-run"`
 				ExpectSettlements  *bool   `yaml:"expect-settlements"`
@@ -336,8 +336,8 @@ var Checks = map[string]CheckType{
 				UploadNodeCount    *int    `yaml:"upload-node-count"`
 				WaitBeforeDownload *int    `yaml:"wait-before-download"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := settlements.NewDefaultOptions()
 
@@ -350,12 +350,12 @@ var Checks = map[string]CheckType{
 	},
 	"soc": {
 		NewAction: soc.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, checkConfig CheckConfig) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				NodeGroup *string `yaml:"node-group"`
 			})
-			if err := checkConfig.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", checkConfig.Type, err)
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := soc.NewDefaultOptions()
 

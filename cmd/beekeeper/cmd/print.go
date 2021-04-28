@@ -22,7 +22,8 @@ func (c *command) initPrintCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "print",
-		Short: "Print Bee cluster info: addresses, depths, overlays, peers, topologies",
+		Short: "Print information about a Bee cluster",
+		Long:  `Print information about a Bee cluster: addresses, depths, overlays, peers, topologies`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			for k := range printFuncs {
 				if k == args[0] {
@@ -33,7 +34,7 @@ func (c *command) initPrintCmd() (err error) {
 			return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config.yaml")
+			cfg, err := config.Read("config/config.yaml")
 			if err != nil {
 				return err
 			}
@@ -49,9 +50,6 @@ func (c *command) initPrintCmd() (err error) {
 			}
 
 			return f(cmd.Context(), cluster)
-		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
 		},
 	}
 
