@@ -1,22 +1,18 @@
 package config
 
 type Cluster struct {
-	Name             string `yaml:"name"`
-	Namespace        string `yaml:"namespace"`
-	DisableNamespace bool   `yaml:"disable-namespace"`
-	API              struct {
-		Domain          string `yaml:"domain"`
-		HostnamePattern string `yaml:"hostname-pattern"`
-		InsecureTLS     bool   `yaml:"insecure-tls"`
-		Scheme          string `yaml:"scheme"`
-	} `yaml:"api"`
-	DebugAPI struct {
-		Domain          string `yaml:"domain"`
-		HostnamePattern string `yaml:"hostname-pattern"`
-		InsecureTLS     bool   `yaml:"insecure-tls"`
-		Scheme          string `yaml:"scheme"`
-	} `yaml:"debug-api"`
-	NodeGroups map[string]struct {
+	Name                    string `yaml:"name"`
+	Namespace               string `yaml:"namespace"`
+	DisableNamespace        bool   `yaml:"disable-namespace"`
+	APIDomain               string `yaml:"api-domain"`
+	APIHostnamePattern      string `yaml:"api-hostname-pattern"`
+	APIInsecureTLS          bool   `yaml:"api-insecure-tls"`
+	APIScheme               string `yaml:"api-scheme"`
+	DebugAPIDomain          string `yaml:"debug-api-domain"`
+	DebugAPIHostnamePattern string `yaml:"debug-api-hostname-pattern"`
+	DebugAPIInsecureTLS     bool   `yaml:"debug-api-insecure-tls"`
+	DebugAPIScheme          string `yaml:"debug-api-scheme"`
+	NodeGroups              map[string]struct {
 		Mode      string `yaml:"mode"`
 		BeeConfig string `yaml:"bee-config"`
 		Config    string `yaml:"config"`

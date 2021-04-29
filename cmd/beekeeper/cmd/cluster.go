@@ -15,13 +15,14 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	if !ok {
 		return fmt.Errorf("cluster %s not defined", clusterName)
 	}
+
 	cluster := bee.NewCluster(clusterConfig.Name, bee.ClusterOptions{
-		APIDomain:           clusterConfig.API.Domain,
-		APIInsecureTLS:      clusterConfig.API.InsecureTLS,
-		APIScheme:           clusterConfig.API.Scheme,
-		DebugAPIDomain:      clusterConfig.DebugAPI.Domain,
-		DebugAPIInsecureTLS: clusterConfig.DebugAPI.InsecureTLS,
-		DebugAPIScheme:      clusterConfig.DebugAPI.Scheme,
+		APIDomain:           clusterConfig.APIDomain,
+		APIInsecureTLS:      clusterConfig.APIInsecureTLS,
+		APIScheme:           clusterConfig.APIScheme,
+		DebugAPIDomain:      clusterConfig.DebugAPIDomain,
+		DebugAPIInsecureTLS: clusterConfig.DebugAPIInsecureTLS,
+		DebugAPIScheme:      clusterConfig.DebugAPIScheme,
 		K8SClient:           c.k8sClient,
 		Namespace:           clusterConfig.Namespace,
 		DisableNamespace:    clusterConfig.DisableNamespace,
@@ -68,13 +69,14 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
 	}
+
 	cluster = bee.NewCluster(clusterConfig.Name, bee.ClusterOptions{
-		APIDomain:           clusterConfig.API.Domain,
-		APIInsecureTLS:      clusterConfig.API.InsecureTLS,
-		APIScheme:           clusterConfig.API.Scheme,
-		DebugAPIDomain:      clusterConfig.DebugAPI.Domain,
-		DebugAPIInsecureTLS: clusterConfig.DebugAPI.InsecureTLS,
-		DebugAPIScheme:      clusterConfig.DebugAPI.Scheme,
+		APIDomain:           clusterConfig.APIDomain,
+		APIInsecureTLS:      clusterConfig.APIInsecureTLS,
+		APIScheme:           clusterConfig.APIScheme,
+		DebugAPIDomain:      clusterConfig.DebugAPIDomain,
+		DebugAPIInsecureTLS: clusterConfig.DebugAPIInsecureTLS,
+		DebugAPIScheme:      clusterConfig.DebugAPIScheme,
 		K8SClient:           c.k8sClient,
 		Namespace:           clusterConfig.Namespace,
 		DisableNamespace:    clusterConfig.DisableNamespace,
