@@ -12,17 +12,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-var k8sClient *k8s.Client
-
 func init() {
 	cobra.EnableCommandSorting = true
 }
 
 type command struct {
-	root    *cobra.Command
-	config  *viper.Viper
-	cfgFile string
-	homeDir string
+	root      *cobra.Command
+	config    *viper.Viper
+	cfgFile   string
+	homeDir   string
+	k8sClient *k8s.Client
 }
 
 type option func(*command)
@@ -144,7 +143,7 @@ func (c *command) setHomeDir() (err error) {
 
 func (c *command) setK8S() (err error) {
 	if c.config.GetBool("enable-k8s") {
-		if k8sClient, err = k8s.NewClient(&k8s.ClientOptions{
+		if c.k8sClient, err = k8s.NewClient(&k8s.ClientOptions{
 			InCluster:      c.config.GetBool("in-cluster"),
 			KubeconfigPath: c.config.GetString("kubeconfig"),
 		}); err != nil && err != k8s.ErrKubeconfigNotSet {

@@ -49,7 +49,7 @@ func (c *command) initSimulateCmd() (err error) {
 				Seed:           seed,
 			}
 
-			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, createCluster)
+			cluster, err := c.setupCluster(cmd.Context(), clusterName, cfg, createCluster)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}

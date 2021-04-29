@@ -28,7 +28,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 				return err
 			}
 
-			_, err = setupCluster(cmd.Context(), clusterName, cfg, true)
+			_, err = c.setupCluster(cmd.Context(), clusterName, cfg, true)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}

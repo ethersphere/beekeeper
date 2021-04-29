@@ -26,7 +26,7 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 				return err
 			}
 
-			return deleteCluster(cmd.Context(), clusterName, cfg)
+			return c.deleteCluster(cmd.Context(), clusterName, cfg)
 		},
 	}
 

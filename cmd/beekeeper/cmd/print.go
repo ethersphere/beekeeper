@@ -39,7 +39,7 @@ func (c *command) initPrintCmd() (err error) {
 				return err
 			}
 
-			cluster, err := setupCluster(cmd.Context(), clusterName, cfg, false)
+			cluster, err := c.setupCluster(cmd.Context(), clusterName, cfg, false)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}

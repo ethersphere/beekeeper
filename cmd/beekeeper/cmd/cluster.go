@@ -10,7 +10,7 @@ import (
 )
 
 // TODO: add option to delete storage too
-func deleteCluster(ctx context.Context, clusterName string, cfg *config.Config) (err error) {
+func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config) (err error) {
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return fmt.Errorf("cluster %s not defined", clusterName)
@@ -22,7 +22,7 @@ func deleteCluster(ctx context.Context, clusterName string, cfg *config.Config) 
 		DebugAPIDomain:      clusterConfig.DebugAPI.Domain,
 		DebugAPIInsecureTLS: clusterConfig.DebugAPI.InsecureTLS,
 		DebugAPIScheme:      clusterConfig.DebugAPI.Scheme,
-		K8SClient:           k8sClient,
+		K8SClient:           c.k8sClient,
 		Namespace:           clusterConfig.Namespace,
 		DisableNamespace:    clusterConfig.DisableNamespace,
 	})
@@ -63,7 +63,7 @@ func deleteCluster(ctx context.Context, clusterName string, cfg *config.Config) 
 	return
 }
 
-func setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster *bee.Cluster, err error) {
+func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster *bee.Cluster, err error) {
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
@@ -75,7 +75,7 @@ func setupCluster(ctx context.Context, clusterName string, cfg *config.Config, s
 		DebugAPIDomain:      clusterConfig.DebugAPI.Domain,
 		DebugAPIInsecureTLS: clusterConfig.DebugAPI.InsecureTLS,
 		DebugAPIScheme:      clusterConfig.DebugAPI.Scheme,
-		K8SClient:           k8sClient,
+		K8SClient:           c.k8sClient,
 		Namespace:           clusterConfig.Namespace,
 		DisableNamespace:    clusterConfig.DisableNamespace,
 	})

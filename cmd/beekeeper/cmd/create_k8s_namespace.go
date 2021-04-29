@@ -21,11 +21,11 @@ func (c *command) initCreateK8SNamespace() *cobra.Command {
 			name := args[0]
 
 			// TODO: move to preRun
-			if k8sClient == nil {
+			if c.k8sClient == nil {
 				return fmt.Errorf("k8s client not created")
 			}
 
-			if err = k8sClient.Namespace.Create(cmd.Context(), name); err != nil {
+			if err = c.k8sClient.Namespace.Create(cmd.Context(), name); err != nil {
 				return fmt.Errorf("create namespace %s: %w", name, err)
 			}
 
