@@ -49,10 +49,11 @@ func addBootNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, 
 func addNodeGroup(cluster *bee.Cluster, bootNodeCount, nodeCount int, name, namespace, image, storageClass, storageRequest string, persistence bool) (err error) {
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
+	imageSplit := strings.Split(image, ":")
 	gOptions.Labels = map[string]string{
 		"app.kubernetes.io/component": "node",
 		"app.kubernetes.io/part-of":   name,
-		"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+		"app.kubernetes.io/version":   imageSplit[len(imageSplit)-1],
 	}
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
@@ -76,10 +77,11 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
 	gOptions.ImagePullSecrets = imagePullSecrets
+	imageSplit := strings.Split(image, ":")
 	gOptions.Labels = map[string]string{
 		"app.kubernetes.io/component": "node",
 		"app.kubernetes.io/part-of":   name,
-		"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+		"app.kubernetes.io/version":   imageSplit[len(imageSplit)-1],
 	}
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
@@ -131,10 +133,11 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 	gOptions := newDefaultNodeGroupOptions()
 	gOptions.Image = image
 	gOptions.ImagePullSecrets = imagePullSecrets
+	imageSplit := strings.Split(image, ":")
 	gOptions.Labels = map[string]string{
 		"app.kubernetes.io/component": "node",
 		"app.kubernetes.io/part-of":   name,
-		"app.kubernetes.io/version":   strings.Split(image, ":")[1],
+		"app.kubernetes.io/version":   imageSplit[len(imageSplit)-1],
 	}
 	gOptions.PersistenceEnabled = persistence
 	gOptions.PersistenceStorageClass = storageClass
