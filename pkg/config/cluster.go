@@ -1,6 +1,9 @@
 package config
 
 type Cluster struct {
+	// parrent to inherit settings from
+	*Inherit `yaml:",inline"`
+	// Cluster configuration
 	Name                    string `yaml:"name"`
 	Namespace               string `yaml:"namespace"`
 	DisableNamespace        bool   `yaml:"disable-namespace"`
