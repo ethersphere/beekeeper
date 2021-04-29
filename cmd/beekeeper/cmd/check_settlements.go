@@ -155,7 +155,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 					FileSize:           fileSize,
 					Seed:               seed,
 					Threshold:          c.config.GetInt64(optionNameThreshold),
-					WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
+					WaitBeforeDownload: c.config.GetDuration(optionNameWaitBeforeDownload),
 					ExpectSettlements:  c.config.GetBool(optionNameExpectSettlements),
 				})
 			}
@@ -166,10 +166,11 @@ func (c *command) initCheckSettlements() *cobra.Command {
 				FileSize:           fileSize,
 				Seed:               seed,
 				Threshold:          c.config.GetInt64(optionNameThreshold),
-				WaitBeforeDownload: c.config.GetInt(optionNameWaitBeforeDownload),
+				WaitBeforeDownload: c.config.GetDuration(optionNameWaitBeforeDownload),
 				ExpectSettlements:  c.config.GetBool(optionNameExpectSettlements),
 				PostageAmount:      c.config.GetInt64(optionNamePostageAmount),
 				PostageWait:        c.config.GetDuration(optionNamePostageBatchhWait),
+				PostageDepth:       c.config.GetUint64(optionNamePostageDepth),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
@@ -181,7 +182,7 @@ func (c *command) initCheckSettlements() *cobra.Command {
 	cmd.Flags().Int64P(optionNameSeed, "s", 0, "seed for generating files; if not set, will be random")
 	cmd.Flags().Int64P(optionNameThreshold, "t", 10000000000000, "balances treshold")
 	cmd.Flags().BoolVar(&dryRun, optionNameDryRun, false, "don't upload and download files, just validate")
-	cmd.Flags().IntP(optionNameWaitBeforeDownload, "w", 5, "wait before downloading a file [s]")
+	cmd.Flags().Duration(optionNameWaitBeforeDownload, 5*time.Second, "wait before downloading a file [s]")
 	cmd.Flags().BoolVar(&expectSettlements, optionNameExpectSettlements, true, "expects settlements happening during settlements check")
 	cmd.Flags().BoolVar(&startCluster, optionNameStartCluster, false, "start new cluster")
 	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "beekeeper", "cluster name")

@@ -87,16 +87,11 @@ func (u *Upload) Run(ctx context.Context, cluster *bee.Cluster, o stress.Options
 						return ctx.Err()
 					}
 
-					// add some buffer to ensure depth is enough
-					depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-					batchID, err := n.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+					batchID, err := n.GetOrCreateBatch(ctx, 16, o.PostageWait)
 					if err != nil {
-						return fmt.Errorf("created batched id %w", err)
+						return fmt.Errorf("node %s: batch id %w", p, err)
 					}
-
-					fmt.Printf("created batched id %s", batchID)
-
-					time.Sleep(o.PostageWait)
+					fmt.Printf("node %s: batch id %s\n", p, batchID)
 
 					if err := n.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 						fmt.Printf("error: uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)

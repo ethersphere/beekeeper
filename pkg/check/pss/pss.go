@@ -22,6 +22,7 @@ type Options struct {
 	Seed           int64
 	PostageAmount  int64
 	PostageWait    time.Duration
+	PostageDepth   uint64
 }
 
 var (
@@ -66,15 +67,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			return err
 		}
 
-		batchID, err := nodeA.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		batchID, err := nodeA.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
 		if err != nil {
 			cancel()
-			return fmt.Errorf("node %s: created batched id %w", nodeAName, err)
+			return fmt.Errorf("node %s: batched id %w", nodeAName, err)
 		}
-
-		fmt.Printf("node %s: created batched id %s\n", nodeAName, batchID)
-
-		time.Sleep(o.PostageWait)
+		fmt.Printf("node %s: batched id %s\n", nodeAName, batchID)
 
 		ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
 		if err != nil {

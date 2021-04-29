@@ -172,6 +172,7 @@ and checks if chunks are synced to their closest nodes.`,
 					Seed:            seed,
 					PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
 					PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
+					PostageDepth:    c.config.GetUint64(optionNamePostageDepth),
 				})
 			}
 
@@ -184,6 +185,7 @@ and checks if chunks are synced to their closest nodes.`,
 				Seed:            seed,
 				PostageAmount:   c.config.GetInt64(optionNamePostageAmount),
 				PostageWait:     c.config.GetDuration(optionNamePostageBatchhWait),
+				PostageDepth:    c.config.GetUint64(optionNamePostageDepth),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,

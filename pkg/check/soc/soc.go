@@ -21,6 +21,7 @@ type Options struct {
 	RequestTimeout time.Duration
 	PostageAmount  int64
 	PostageWait    time.Duration
+	PostageDepth   uint64
 }
 
 // Check sends a SOC chunk and retrieves with the address.
@@ -77,14 +78,11 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
 
-	batchID, err := node.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+	batchID, err := node.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
 	if err != nil {
-		return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}
-
-	fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-
-	time.Sleep(o.PostageWait)
+	fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
 
 	fmt.Printf("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
 	fmt.Printf("soc: owner %s\n", owner)

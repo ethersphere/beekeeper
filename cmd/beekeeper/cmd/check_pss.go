@@ -146,6 +146,7 @@ sends PSS messages to random nodes to check if WebSocket connections receive the
 				AddressPrefix:  c.config.GetInt(optionAddrPrefix),
 				PostageAmount:  c.config.GetInt64(optionNamePostageAmount),
 				PostageWait:    c.config.GetDuration(optionNamePostageBatchhWait),
+				PostageDepth:   c.config.GetUint64(optionNamePostageDepth),
 			}, pusher, c.config.GetBool(optionNamePushMetrics))
 		},
 		PreRunE: c.checkPreRunE,
