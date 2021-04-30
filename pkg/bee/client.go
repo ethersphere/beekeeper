@@ -208,56 +208,25 @@ func (c *Client) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 	return
 }
 
-// PinBytes returns true/false if bytes pinning is successful
-func (c *Client) PinBytes(ctx context.Context, a swarm.Address) error {
-	return c.api.Pinning.PinBytes(ctx, a)
+// PinRootHash pins root hash of given reference.
+func (c *Client) PinRootHash(ctx context.Context, ref swarm.Address) error {
+	return c.api.Pinning.PinRootHash(ctx, ref)
 }
 
-// PinChunk returns true/false if chunk pinning is successful
-func (c *Client) PinChunk(ctx context.Context, a swarm.Address) error {
-	return c.api.Pinning.PinChunk(ctx, a)
+// UnpinRootHash unpins root hash of given reference.
+func (c *Client) UnpinRootHash(ctx context.Context, ref swarm.Address) error {
+	return c.api.Pinning.UnpinRootHash(ctx, ref)
 }
 
-// PinnedChunk represents pinned chunk
-type PinnedChunk struct {
-	Address    swarm.Address
-	PinCounter int
+// GetPinnedRootHash determines if the root hash of
+// given reference is pinned by returning its reference.
+func (c *Client) GetPinnedRootHash(ctx context.Context, ref swarm.Address) (swarm.Address, error) {
+	return c.api.Pinning.GetPinnedRootHash(ctx, ref)
 }
 
-// PinnedChunk returns pinned chunk
-func (c *Client) PinnedChunk(ctx context.Context, a swarm.Address) (PinnedChunk, error) {
-	p, err := c.api.Pinning.PinnedChunk(ctx, a)
-	if err != nil {
-		return PinnedChunk{}, fmt.Errorf("get pinned chunk: %w", err)
-	}
-
-	return PinnedChunk{
-		Address:    p.Address,
-		PinCounter: p.PinCounter,
-	}, nil
-}
-
-// PinnedChunks represents pinned chunks
-type PinnedChunks struct {
-	Chunks []PinnedChunk
-}
-
-// PinnedChunks returns pinned chunks
-func (c *Client) PinnedChunks(ctx context.Context) (PinnedChunks, error) {
-	p, err := c.api.Pinning.PinnedChunks(ctx)
-	if err != nil {
-		return PinnedChunks{}, fmt.Errorf("get pinned chunks: %w", err)
-	}
-
-	r := PinnedChunks{}
-	for _, c := range p.Chunks {
-		r.Chunks = append(r.Chunks, PinnedChunk{
-			Address:    c.Address,
-			PinCounter: c.PinCounter,
-		})
-	}
-
-	return r, nil
+// GetPins returns all references of pinned root hashes.
+func (c *Client) GetPins(ctx context.Context) ([]swarm.Address, error) {
+	return c.api.Pinning.GetPins(ctx)
 }
 
 // Ping pings other node
@@ -555,11 +524,6 @@ func (c *Client) Underlay(ctx context.Context) ([]string, error) {
 	}
 
 	return a.Underlay, nil
-}
-
-// UnpinChunk returns true/false if chunk unpinning is successful
-func (c *Client) UnpinChunk(ctx context.Context, a swarm.Address) error {
-	return c.api.Pinning.UnpinChunk(ctx, a)
 }
 
 // UploadBytes uploads bytes to the node
