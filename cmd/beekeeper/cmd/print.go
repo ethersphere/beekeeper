@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -29,12 +28,7 @@ func (c *command) initPrintCmd() (err error) {
 			return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config/config.yaml")
-			if err != nil {
-				return err
-			}
-
-			cluster, err := c.setupCluster(cmd.Context(), c.config.GetString(optionNameClusterName), cfg, false)
+			cluster, err := c.setupCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, false)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
@@ -47,7 +41,7 @@ func (c *command) initPrintCmd() (err error) {
 			return f(cmd.Context(), cluster)
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
+			return c.globalConfig.BindPFlags(cmd.Flags())
 		},
 	}
 

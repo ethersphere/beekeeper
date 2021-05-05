@@ -20,7 +20,7 @@ type Inherit struct {
 	ParrentName string `yaml:"_inherit"`
 }
 
-func (c *Config) Merge() (err error) {
+func (c *Config) merge() (err error) {
 	// merge BeeConfigs
 	mergedBC := map[string]BeeConfig{}
 	for name, v := range c.BeeConfigs {
@@ -90,19 +90,71 @@ func (c *Config) Merge() (err error) {
 	return
 }
 
-func Read(file string) (c *Config, err error) {
-	yamlFile, err := ioutil.ReadFile(file)
+func ReadDir(configDir string) (*Config, error) {
+	yamlFiles, err := ioutil.ReadDir(configDir)
 	if err != nil {
-		return nil, fmt.Errorf("yamlFile.Get err   %w ", err)
+		return nil, fmt.Errorf("reading config dir: %w", err)
 	}
 
-	if err := yaml.Unmarshal(yamlFile, &c); err != nil {
-		return nil, fmt.Errorf("unmarshal: %v", err)
+	c := Config{
+		Clusters:    make(map[string]Cluster),
+		NodeGroups:  make(map[string]NodeGroup),
+		BeeConfigs:  make(map[string]BeeConfig),
+		Checks:      make(map[string]Check),
+		Simulations: make(map[string]Simulation),
 	}
 
-	if err := c.Merge(); err != nil {
+	for _, file := range yamlFiles {
+		yamlFile, err := ioutil.ReadFile(configDir + "/" + file.Name())
+		if err != nil {
+			return nil, fmt.Errorf("reading yaml file %s: %w ", file.Name(), err)
+		}
+
+		var tmp *Config
+		if err := yaml.Unmarshal(yamlFile, &tmp); err != nil {
+			return nil, fmt.Errorf("unmarshaling yaml file %s: %w", file.Name(), err)
+		}
+
+		// join Clusters
+		for k, v := range tmp.Clusters {
+			_, ok := c.Clusters[k]
+			if !ok {
+				c.Clusters[k] = v
+			}
+		}
+		// join NodeGroups
+		for k, v := range tmp.NodeGroups {
+			_, ok := c.NodeGroups[k]
+			if !ok {
+				c.NodeGroups[k] = v
+			}
+		}
+		// join BeeConfigs
+		for k, v := range tmp.BeeConfigs {
+			_, ok := c.BeeConfigs[k]
+			if !ok {
+				c.BeeConfigs[k] = v
+			}
+		}
+		// join Checks
+		for k, v := range tmp.Checks {
+			_, ok := c.Checks[k]
+			if !ok {
+				c.Checks[k] = v
+			}
+		}
+		// join Simulations
+		for k, v := range tmp.Simulations {
+			_, ok := c.Simulations[k]
+			if !ok {
+				c.Simulations[k] = v
+			}
+		}
+	}
+
+	if err := c.merge(); err != nil {
 		return nil, fmt.Errorf("merging config: %w", err)
 	}
 
-	return
+	return &c, nil
 }

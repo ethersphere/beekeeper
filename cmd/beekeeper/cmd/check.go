@@ -23,29 +23,24 @@ func (c *command) initCheckCmd() (err error) {
 		Use:   "check",
 		Short: "Run tests on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config/config.yaml")
-			if err != nil {
-				return err
-			}
-
-			cfgCluster, ok := cfg.Clusters[c.config.GetString(optionNameClusterName)]
+			cfgCluster, ok := c.config.Clusters[c.globalConfig.GetString(optionNameClusterName)]
 			if !ok {
-				return fmt.Errorf("cluster %s not defined", c.config.GetString(optionNameClusterName))
+				return fmt.Errorf("cluster %s not defined", c.globalConfig.GetString(optionNameClusterName))
 			}
 
 			checkGlobalConfig := config.CheckGlobalConfig{
-				MetricsEnabled: c.config.GetBool(optionNameMetricsEnabled),
+				MetricsEnabled: c.globalConfig.GetBool(optionNameMetricsEnabled),
 				MetricsPusher:  push.New("beekeeper", cfgCluster.GetNamespace()),
-				Seed:           c.config.GetInt64(optionNameSeed),
+				Seed:           c.globalConfig.GetInt64(optionNameSeed),
 			}
 
-			cluster, err := c.setupCluster(cmd.Context(), c.config.GetString(optionNameClusterName), cfg, c.config.GetBool(optionNameCreateCluster))
+			cluster, err := c.setupCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameCreateCluster))
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			for _, checkName := range c.config.GetStringSlice(optionNameChecks) {
-				checkConfig, ok := cfg.Checks[checkName]
+			for _, checkName := range c.globalConfig.GetStringSlice(optionNameChecks) {
+				checkConfig, ok := c.config.Checks[checkName]
 				if !ok {
 					return fmt.Errorf("check %s doesn't exist", checkName)
 				}
@@ -68,7 +63,7 @@ func (c *command) initCheckCmd() (err error) {
 			return nil
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
+			return c.globalConfig.BindPFlags(cmd.Flags())
 		},
 	}
 

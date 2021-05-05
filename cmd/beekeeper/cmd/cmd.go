@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -17,10 +18,15 @@ func init() {
 }
 
 type command struct {
-	root      *cobra.Command
-	config    *viper.Viper
-	cfgFile   string
-	homeDir   string
+	// global configuration
+	root             *cobra.Command
+	globalConfig     *viper.Viper
+	globalConfigFile string
+	homeDir          string
+	// configuration
+	config    *config.Config
+	configDir string
+	// kubernetes client
 	k8sClient *k8s.Client
 }
 
@@ -90,41 +96,50 @@ func Execute() (err error) {
 
 func (c *command) initGlobalFlags() {
 	globalFlags := c.root.PersistentFlags()
-	globalFlags.StringVar(&c.cfgFile, "config", "", "config file (default is $HOME/.beekeeper.yaml)")
+	globalFlags.StringVar(&c.globalConfigFile, "config", "", "config file (default is $HOME/.beekeeper.yaml)")
 }
 
 func (c *command) initConfig() (err error) {
-	config := viper.New()
-	configName := ".beekeeper"
-	if c.cfgFile != "" {
+	// set global configuration
+	cfg := viper.New()
+	cfgName := ".beekeeper"
+	if c.globalConfigFile != "" {
 		// Use config file from the flag.
-		config.SetConfigFile(c.cfgFile)
+		cfg.SetConfigFile(c.globalConfigFile)
 	} else {
 		// Search config in home directory with name ".beekeeper" (without extension).
-		config.AddConfigPath(c.homeDir)
-		config.SetConfigName(configName)
+		cfg.AddConfigPath(c.homeDir)
+		cfg.SetConfigName(cfgName)
 	}
 
-	// Environment
-	config.SetEnvPrefix("beekeeper")
-	config.AutomaticEnv() // read in environment variables that match
-	config.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	// environment
+	cfg.SetEnvPrefix("beekeeper")
+	cfg.AutomaticEnv() // read in environment variables that match
+	cfg.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 
-	if c.homeDir != "" && c.cfgFile == "" {
-		c.cfgFile = filepath.Join(c.homeDir, configName+".yaml")
+	if c.homeDir != "" && c.globalConfigFile == "" {
+		c.globalConfigFile = filepath.Join(c.homeDir, cfgName+".yaml")
 	}
 
-	// If a config file is found, read it in.
-	if err := config.ReadInConfig(); err != nil {
+	// if a config file is found, read it in.
+	if err := cfg.ReadInConfig(); err != nil {
 		var e viper.ConfigFileNotFoundError
 		if !errors.As(err, &e) {
 			return err
 		}
 	}
 
-	c.config = config
+	c.globalConfig = cfg
 
+	// set Kubernetes client
 	c.setK8S()
+
+	// set configuration
+	c.setConfigDir()
+	c.config, err = config.ReadDir(c.configDir)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -141,11 +156,23 @@ func (c *command) setHomeDir() (err error) {
 	return nil
 }
 
+func (c *command) setConfigDir() (err error) {
+	if c.configDir != "" {
+		return
+	}
+	dir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	c.configDir = dir + "/config"
+	return nil
+}
+
 func (c *command) setK8S() (err error) {
-	if c.config.GetBool("enable-k8s") {
+	if c.globalConfig.GetBool("enable-k8s") {
 		if c.k8sClient, err = k8s.NewClient(&k8s.ClientOptions{
-			InCluster:      c.config.GetBool("in-cluster"),
-			KubeconfigPath: c.config.GetString("kubeconfig"),
+			InCluster:      c.globalConfig.GetBool("in-cluster"),
+			KubeconfigPath: c.globalConfig.GetString("kubeconfig"),
 		}); err != nil && err != k8s.ErrKubeconfigNotSet {
 			return fmt.Errorf("creating Kubernetes client: %w", err)
 		}

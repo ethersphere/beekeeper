@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -18,12 +17,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 		Short: "Create Bee cluster",
 		Long:  `Create Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config/config.yaml")
-			if err != nil {
-				return err
-			}
-
-			_, err = c.setupCluster(cmd.Context(), c.config.GetString(optionNameClusterName), cfg, true)
+			_, err = c.setupCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, true)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
@@ -31,7 +25,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 			return
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
+			return c.globalConfig.BindPFlags(cmd.Flags())
 		},
 	}
 

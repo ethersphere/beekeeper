@@ -23,29 +23,24 @@ func (c *command) initSimulateCmd() (err error) {
 		Use:   "simulate",
 		Short: "Run simulations on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg, err := config.Read("config/config.yaml")
-			if err != nil {
-				return err
-			}
-
-			cfgCluster, ok := cfg.Clusters[c.config.GetString(optionNameClusterName)]
+			cfgCluster, ok := c.config.Clusters[c.globalConfig.GetString(optionNameClusterName)]
 			if !ok {
-				return fmt.Errorf("cluster %s not defined", c.config.GetString(optionNameClusterName))
+				return fmt.Errorf("cluster %s not defined", c.globalConfig.GetString(optionNameClusterName))
 			}
 
 			simulationGlobalConfig := config.SimulationGlobalConfig{
-				MetricsEnabled: c.config.GetBool(optionNameMetricsEnabled),
+				MetricsEnabled: c.globalConfig.GetBool(optionNameMetricsEnabled),
 				MetricsPusher:  push.New("beekeeper", *cfgCluster.Namespace),
-				Seed:           c.config.GetInt64(optionNameSeed),
+				Seed:           c.globalConfig.GetInt64(optionNameSeed),
 			}
 
-			cluster, err := c.setupCluster(cmd.Context(), c.config.GetString(optionNameClusterName), cfg, c.config.GetBool(optionNameCreateCluster))
+			cluster, err := c.setupCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameCreateCluster))
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			for _, simulationName := range c.config.GetStringSlice(optionNameSimulations) {
-				simulationConfig, ok := cfg.Simulations[simulationName]
+			for _, simulationName := range c.globalConfig.GetStringSlice(optionNameSimulations) {
+				simulationConfig, ok := c.config.Simulations[simulationName]
 				if !ok {
 					return fmt.Errorf("simulation %s doesn't exist", simulationName)
 				}
@@ -68,7 +63,7 @@ func (c *command) initSimulateCmd() (err error) {
 			return nil
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.config.BindPFlags(cmd.Flags())
+			return c.globalConfig.BindPFlags(cmd.Flags())
 		},
 	}
 
