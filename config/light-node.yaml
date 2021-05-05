@@ -1,10 +1,11 @@
 bee-configs:
   light-node:
     _inherit: default
-    api-addr: ":1644"
+    full-node: false
 
-node-group-configs:
+node-groups:
   light-node:
     _inherit: default
-    image: svetomir/bee:latest
+    image: ethersphere/bee:0.5.3
     image-pull-policy: IfNotPresent
+    persistence-enabled: false

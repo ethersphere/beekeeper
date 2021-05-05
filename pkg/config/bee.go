@@ -19,6 +19,7 @@ type BeeConfig struct {
 	DBCapacity           *uint64 `yaml:"db-capacity"`
 	DebugAPIAddr         *string `yaml:"debug-api-addr"`
 	DebugAPIEnable       *bool   `yaml:"debug-api-enable"`
+	FullNode             *bool   `yaml:"full-node"`
 	GatewayMode          *bool   `yaml:"gateway-mode"`
 	GlobalPinningEnabled *bool   `yaml:"global-pinning-enabled"`
 	NATAddr              *string `yaml:"nat-addr"`

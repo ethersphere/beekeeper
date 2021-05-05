@@ -66,6 +66,7 @@ type Config struct {
 	DBCapacity           uint64 // db capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
 	DebugAPIAddr         string // debug HTTP API listen address
 	DebugAPIEnable       bool   // enable debug HTTP API
+	FullNode             bool   // cause the node to start in full mode
 	GatewayMode          bool   // disable a set of sensitive features in the api
 	GlobalPinningEnabled bool   // enable global pinning
 	NATAddr              string // NAT exposed address
