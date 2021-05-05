@@ -15,11 +15,6 @@ func (c *command) initPrintCmd() (err error) {
 		// optionNameTimeout        = "timeout"
 	)
 
-	var (
-		clusterName string
-		// timeout time.Duration
-	)
-
 	cmd := &cobra.Command{
 		Use:   "print",
 		Short: "Print information about a Bee cluster",
@@ -39,7 +34,7 @@ func (c *command) initPrintCmd() (err error) {
 				return err
 			}
 
-			cluster, err := c.setupCluster(cmd.Context(), clusterName, cfg, false)
+			cluster, err := c.setupCluster(cmd.Context(), c.config.GetString(optionNameClusterName), cfg, false)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
@@ -51,9 +46,12 @@ func (c *command) initPrintCmd() (err error) {
 
 			return f(cmd.Context(), cluster)
 		},
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return c.config.BindPFlags(cmd.Flags())
+		},
 	}
 
-	cmd.PersistentFlags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
+	cmd.PersistentFlags().String(optionNameClusterName, "default", "cluster name")
 
 	c.root.AddCommand(cmd)
 

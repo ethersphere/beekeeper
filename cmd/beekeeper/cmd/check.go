@@ -19,16 +19,6 @@ func (c *command) initCheckCmd() (err error) {
 		// optionNameTimeout        = "timeout"
 	)
 
-	var (
-		clusterName    string
-		createCluster  bool
-		checks         []string
-		metricsEnabled bool
-		seed           int64
-		// stages string
-		// timeout time.Duration
-	)
-
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "Run tests on a Bee cluster",
@@ -38,23 +28,23 @@ func (c *command) initCheckCmd() (err error) {
 				return err
 			}
 
-			cfgCluster, ok := cfg.Clusters[clusterName]
+			cfgCluster, ok := cfg.Clusters[c.config.GetString(optionNameClusterName)]
 			if !ok {
-				return fmt.Errorf("cluster %s not defined", clusterName)
+				return fmt.Errorf("cluster %s not defined", c.config.GetString(optionNameClusterName))
 			}
 
 			checkGlobalConfig := config.CheckGlobalConfig{
-				MetricsEnabled: metricsEnabled,
+				MetricsEnabled: c.config.GetBool(optionNameMetricsEnabled),
 				MetricsPusher:  push.New("beekeeper", cfgCluster.Namespace),
-				Seed:           seed,
+				Seed:           c.config.GetInt64(optionNameSeed),
 			}
 
-			cluster, err := c.setupCluster(cmd.Context(), clusterName, cfg, createCluster)
+			cluster, err := c.setupCluster(cmd.Context(), c.config.GetString(optionNameClusterName), cfg, c.config.GetBool(optionNameCreateCluster))
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
-			for _, checkName := range checks {
+			for _, checkName := range c.config.GetStringSlice(optionNameChecks) {
 				checkConfig, ok := cfg.Checks[checkName]
 				if !ok {
 					return fmt.Errorf("check %s doesn't exist", checkName)
@@ -77,13 +67,16 @@ func (c *command) initCheckCmd() (err error) {
 
 			return nil
 		},
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return c.config.BindPFlags(cmd.Flags())
+		},
 	}
 
-	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
-	cmd.Flags().BoolVar(&createCluster, optionNameCreateCluster, false, "start cluster")
-	cmd.Flags().StringArrayVar(&checks, optionNameChecks, []string{"pingpong"}, "checks")
-	cmd.Flags().BoolVar(&metricsEnabled, optionNameMetricsEnabled, false, "enable metrics")
-	cmd.Flags().Int64Var(&seed, optionNameSeed, 0, "seed")
+	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().Bool(optionNameCreateCluster, false, "start cluster")
+	cmd.Flags().StringArray(optionNameChecks, []string{"pingpong"}, "checks")
+	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
+	cmd.Flags().Int64(optionNameSeed, 0, "seed")
 
 	c.root.AddCommand(cmd)
 

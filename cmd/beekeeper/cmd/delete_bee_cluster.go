@@ -11,11 +11,6 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 		// optionNameTimeout        = "timeout"
 	)
 
-	var (
-		clusterName string
-		// timeout time.Duration
-	)
-
 	cmd := &cobra.Command{
 		Use:   "bee-cluster",
 		Short: "Delete Bee cluster",
@@ -26,11 +21,16 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 				return err
 			}
 
-			return c.deleteCluster(cmd.Context(), clusterName, cfg)
+			return c.deleteCluster(cmd.Context(), c.config.GetString(optionNameClusterName), cfg)
+		},
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return c.config.BindPFlags(cmd.Flags())
 		},
 	}
 
-	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
+	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+
+	c.root.AddCommand(cmd)
 
 	return cmd
 }

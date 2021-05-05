@@ -13,11 +13,6 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 		// optionNameTimeout        = "timeout"
 	)
 
-	var (
-		clusterName string
-		// timeout time.Duration
-	)
-
 	cmd := &cobra.Command{
 		Use:   "bee-cluster",
 		Short: "Create Bee cluster",
@@ -28,16 +23,21 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 				return err
 			}
 
-			_, err = c.setupCluster(cmd.Context(), clusterName, cfg, true)
+			_, err = c.setupCluster(cmd.Context(), c.config.GetString(optionNameClusterName), cfg, true)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
 			return
 		},
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return c.config.BindPFlags(cmd.Flags())
+		},
 	}
 
-	cmd.Flags().StringVar(&clusterName, optionNameClusterName, "default", "cluster name")
+	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+
+	c.root.AddCommand(cmd)
 
 	return cmd
 }
