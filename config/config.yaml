@@ -38,23 +38,6 @@ clusters:
         config: light-node
         count: 3
         mode: node
-  helm:
-    _inherit: ""
-    name: bee
-    namespace: svetomir
-    disable-namespace: false
-    api-domain: staging.internal
-    api-insecure-tls: true
-    api-scheme: https
-    debug-api-domain: staging.internal
-    debug-api-insecure-tls: true
-    debug-api-scheme: https
-    node-groups:
-      bee:
-        bee-config: default
-        config: default
-        count: 15
-        mode: node
 
 node-groups:
   default:
