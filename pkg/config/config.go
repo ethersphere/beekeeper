@@ -22,10 +22,10 @@ type Inherit struct {
 
 func (c *Config) Merge() (err error) {
 	// merge BeeConfigs
-	mergedBP := map[string]BeeConfig{}
+	mergedBC := map[string]BeeConfig{}
 	for name, v := range c.BeeConfigs {
 		if len(v.ParrentName) == 0 {
-			mergedBP[name] = v
+			mergedBC[name] = v
 		} else {
 			parent, ok := c.BeeConfigs[v.ParrentName]
 			if !ok {
@@ -38,16 +38,16 @@ func (c *Config) Merge() (err error) {
 					m.Field(i).Set(p.Field(i))
 				}
 			}
-			mergedBP[name] = m.Interface().(BeeConfig)
+			mergedBC[name] = m.Interface().(BeeConfig)
 		}
 	}
-	c.BeeConfigs = mergedBP
+	c.BeeConfigs = mergedBC
 
 	// merge NodeGroups
-	mergedNGP := map[string]NodeGroup{}
+	mergedNG := map[string]NodeGroup{}
 	for name, v := range c.NodeGroups {
 		if len(v.ParrentName) == 0 {
-			mergedNGP[name] = v
+			mergedNG[name] = v
 		} else {
 			parent, ok := c.NodeGroups[v.ParrentName]
 			if !ok {
@@ -60,10 +60,32 @@ func (c *Config) Merge() (err error) {
 					m.Field(i).Set(p.Field(i))
 				}
 			}
-			mergedNGP[name] = m.Interface().(NodeGroup)
+			mergedNG[name] = m.Interface().(NodeGroup)
 		}
 	}
-	c.NodeGroups = mergedNGP
+	c.NodeGroups = mergedNG
+
+	// merge clusters
+	mergedC := map[string]Cluster{}
+	for name, v := range c.Clusters {
+		if len(v.ParrentName) == 0 {
+			mergedC[name] = v
+		} else {
+			parent, ok := c.Clusters[v.ParrentName]
+			if !ok {
+				return fmt.Errorf("bee profile %s doesn't exist", v.ParrentName)
+			}
+			p := reflect.ValueOf(&parent).Elem()
+			m := reflect.ValueOf(&v).Elem()
+			for i := 0; i < m.NumField(); i++ {
+				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
+					m.Field(i).Set(p.Field(i))
+				}
+			}
+			mergedC[name] = m.Interface().(Cluster)
+		}
+	}
+	c.Clusters = mergedC
 
 	return
 }

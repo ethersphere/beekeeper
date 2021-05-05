@@ -5,11 +5,9 @@ clusters:
     namespace: beekeeper
     disable-namespace: false
     api-domain: staging.internal
-    api-hostname-pattern: "%s"
     api-insecure-tls: true
     api-scheme: https
     debug-api-domain: staging.internal
-    debug-api-hostname-pattern: "%s-debug"
     debug-api-insecure-tls: true
     debug-api-scheme: https
     node-groups:
@@ -40,22 +38,15 @@ clusters:
         config: default
         count: 3
         mode: node
-    # stray:
-    #   count: 1
-    #   bee-config: default
-    #   config: default
-    #   mode: standalone
   helm:
     _inherit: ""
     name: bee
     namespace: svetomir
     disable-namespace: false
     api-domain: staging.internal
-    api-hostname-pattern: "%s"
     api-insecure-tls: true
     api-scheme: https
     debug-api-domain: staging.internal
-    debug-api-hostname-pattern: "%s-debug"
     debug-api-insecure-tls: true
     debug-api-scheme: https
     node-groups:

@@ -35,7 +35,7 @@ func (c *command) initSimulateCmd() (err error) {
 
 			simulationGlobalConfig := config.SimulationGlobalConfig{
 				MetricsEnabled: c.config.GetBool(optionNameMetricsEnabled),
-				MetricsPusher:  push.New("beekeeper", cfgCluster.Namespace),
+				MetricsPusher:  push.New("beekeeper", *cfgCluster.Namespace),
 				Seed:           c.config.GetInt64(optionNameSeed),
 			}
 

@@ -35,7 +35,7 @@ func (c *command) initCheckCmd() (err error) {
 
 			checkGlobalConfig := config.CheckGlobalConfig{
 				MetricsEnabled: c.config.GetBool(optionNameMetricsEnabled),
-				MetricsPusher:  push.New("beekeeper", cfgCluster.Namespace),
+				MetricsPusher:  push.New("beekeeper", cfgCluster.GetNamespace()),
 				Seed:           c.config.GetInt64(optionNameSeed),
 			}
 
