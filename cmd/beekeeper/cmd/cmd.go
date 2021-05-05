@@ -49,8 +49,13 @@ func newCommand(opts ...option) (c *command, err error) {
 		o(c)
 	}
 
-	// Find home directory.
+	// find home directory
 	if err := c.setHomeDir(); err != nil {
+		return nil, err
+	}
+
+	// find config directory
+	if err := c.setConfigDir(); err != nil {
 		return nil, err
 	}
 
@@ -135,7 +140,6 @@ func (c *command) initConfig() (err error) {
 	c.setK8S()
 
 	// set configuration
-	c.setConfigDir()
 	c.config, err = config.ReadDir(c.configDir)
 	if err != nil {
 		return err
