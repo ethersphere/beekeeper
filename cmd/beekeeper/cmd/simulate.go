@@ -74,7 +74,7 @@ func (c *command) initSimulateCmd() (err error) {
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "start cluster")
-	cmd.Flags().StringArray(optionNameSimulations, []string{"upload"}, "simulations")
+	cmd.Flags().StringSlice(optionNameSimulations, []string{"upload"}, "simulations")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64(optionNameSeed, 0, "seed")
 

@@ -90,7 +90,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					}
 					bConfig := beeConfig.Export()
 
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
+					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					bOptions := bee.NodeOptions{
 						Config:       &bConfig,
@@ -165,7 +165,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					}
 					bConfig := beeConfig.Export()
 
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.Namespace) // TODO: improve bootnode management, support more than 2 bootnodes
+					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					bOptions := bee.NodeOptions{
 						Config:       &bConfig,
