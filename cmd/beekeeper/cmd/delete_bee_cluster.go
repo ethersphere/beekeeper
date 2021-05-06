@@ -7,7 +7,8 @@ import (
 func (c *command) initDeleteBeeCluster() *cobra.Command {
 	const (
 		optionNameClusterName = "cluster-name"
-		// optionNameTimeout        = "timeout"
+		optionNameWithStorage = "with-storage"
+		// TODO: optionNameTimeout        = "timeout"
 	)
 
 	cmd := &cobra.Command{
@@ -15,7 +16,7 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 		Short: "Delete Bee cluster",
 		Long:  `Delete Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return c.deleteCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config)
+			return c.deleteCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameWithStorage))
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return c.globalConfig.BindPFlags(cmd.Flags())
@@ -23,6 +24,7 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().Bool(optionNameWithStorage, false, "delete storage")
 
 	c.root.AddCommand(cmd)
 

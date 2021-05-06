@@ -11,7 +11,7 @@ import (
 func (c *command) initPrintCmd() (err error) {
 	const (
 		optionNameClusterName = "cluster-name"
-		// optionNameTimeout        = "timeout"
+		// TODO: optionNameTimeout        = "timeout"
 	)
 
 	cmd := &cobra.Command{

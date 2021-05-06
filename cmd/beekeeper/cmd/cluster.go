@@ -9,8 +9,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// TODO: add option to delete storage too
-func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config) (err error) {
+func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config, deleteStorage bool) (err error) {
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return fmt.Errorf("cluster %s not defined", clusterName)
@@ -39,6 +38,13 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 				if err := g.DeleteNode(ctx, nName); err != nil {
 					return fmt.Errorf("deleting node %s from the node group %s", nName, ng)
 				}
+
+				if deleteStorage && *ngConfig.PersistenceEnabled {
+					pvcName := fmt.Sprintf("data-%s-0", nName)
+					if err := c.k8sClient.PVC.Delete(ctx, pvcName, clusterOptions.Namespace); err != nil {
+						return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
+					}
+				}
 			}
 		} else {
 			// register node group
@@ -50,6 +56,13 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 				nName := fmt.Sprintf("%s-%d", ng, i)
 				if err := g.DeleteNode(ctx, nName); err != nil {
 					return fmt.Errorf("deleting node %s from the node group %s", nName, ng)
+				}
+
+				if deleteStorage && *ngConfig.PersistenceEnabled {
+					pvcName := fmt.Sprintf("data-%s-0", nName)
+					if err := c.k8sClient.PVC.Delete(ctx, pvcName, clusterOptions.Namespace); err != nil {
+						return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
+					}
 				}
 			}
 		}

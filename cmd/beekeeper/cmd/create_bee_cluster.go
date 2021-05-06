@@ -9,7 +9,7 @@ import (
 func (c *command) initCreateBeeCluster() *cobra.Command {
 	const (
 		optionNameClusterName = "cluster-name"
-		// optionNameTimeout        = "timeout"
+		// TODO: optionNameTimeout        = "timeout"
 	)
 
 	cmd := &cobra.Command{
