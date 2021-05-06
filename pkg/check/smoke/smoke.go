@@ -13,11 +13,13 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
+// TODO: remove need for node group, use whole cluster instead
+
 // Options represents smoke test options
 type Options struct {
-	Bytes           int    // how many bytes to upload each time
-	NodeGroup       string // TODO: remove need for node group
-	Runs            int    // how many runs to do
+	Bytes           int // how many bytes to upload each time
+	NodeGroup       string
+	Runs            int // how many runs to do
 	Seed            int64
 	Timeout         time.Duration
 	UploadNodeCount int

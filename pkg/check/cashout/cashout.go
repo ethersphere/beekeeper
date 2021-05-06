@@ -12,9 +12,11 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 )
 
+// TODO: remove need for node group, use whole cluster instead
+
 // Options represents settlements check options
 type Options struct {
-	NodeGroup string // TODO: remove neeed for nodegroup
+	NodeGroup string
 }
 
 // NewDefaultOptions returns new default options

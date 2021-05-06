@@ -18,10 +18,12 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
+// TODO: remove need for node group, use whole cluster instead
+
 // Options represents check options
 type Options struct {
 	MetricsPusher          *push.Pusher
-	NodeGroup              string // TODO: support multi node group cluster
+	NodeGroup              string
 	NumberOfChunksToRepair int
 	PostageAmount          int64
 	PostageWait            time.Duration
