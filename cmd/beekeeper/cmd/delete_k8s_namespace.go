@@ -20,17 +20,18 @@ func (c *command) initDeleteK8SNamespace() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			name := args[0]
 
-			// TODO: move to preRun
-			if c.k8sClient == nil {
-				return fmt.Errorf("k8s client not created")
-			}
-
 			if err = c.k8sClient.Namespace.Delete(cmd.Context(), name); err != nil {
 				return fmt.Errorf("delete namespace %s: %w", name, err)
 			}
 
 			fmt.Printf("namespace %s deleted\n", name)
 			return
+		},
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if c.k8sClient == nil {
+				return fmt.Errorf("k8s client not created")
+			}
+			return nil
 		},
 	}
 
