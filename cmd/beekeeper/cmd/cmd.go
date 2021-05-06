@@ -134,10 +134,15 @@ func (c *command) initConfig() (err error) {
 	c.globalConfig = cfg
 
 	// set Kubernetes client
-	c.setK8S()
+	if err := c.setK8S(); err != nil {
+		return err
+	}
 
 	// bind flag for configuration directory
-	cfg.BindPFlag(optionNameConfigDir, c.root.PersistentFlags().Lookup(optionNameConfigDir))
+	if err := cfg.BindPFlag(optionNameConfigDir, c.root.PersistentFlags().Lookup(optionNameConfigDir)); err != nil {
+		return err
+	}
+
 	// read configuration directory
 	c.config, err = config.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
 	if err != nil {
