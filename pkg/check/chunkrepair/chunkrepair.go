@@ -23,9 +23,9 @@ type Options struct {
 	MetricsPusher          *push.Pusher
 	NodeGroup              string // TODO: support multi node group cluster
 	NumberOfChunksToRepair int
-	Seed                   int64
 	PostageAmount          int64
 	PostageWait            time.Duration
+	Seed                   int64
 }
 
 // NewDefaultOptions returns new default options
@@ -34,6 +34,8 @@ func NewDefaultOptions() Options {
 		MetricsPusher:          nil,
 		NodeGroup:              "bee",
 		NumberOfChunksToRepair: 1,
+		PostageAmount:          1,
+		PostageWait:            5 * time.Second,
 		Seed:                   0,
 	}
 }

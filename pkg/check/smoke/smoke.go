@@ -30,7 +30,7 @@ func NewDefaultOptions() Options {
 		NodeGroup:       "bee",
 		Runs:            1,
 		Seed:            0,
-		Timeout:         0,
+		Timeout:         1 * time.Second,
 		UploadNodeCount: 1,
 	}
 }

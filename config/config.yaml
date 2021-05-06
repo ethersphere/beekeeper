@@ -124,7 +124,7 @@ checks:
       postage-amount: 1
       postage-wait: 5s
       upload-node-count: 3
-      wait-before-download: 5 # seconds
+      wait-before-download: 5s
     timeout: 5m
     type: balances
   cashout:
@@ -134,9 +134,11 @@ checks:
     type: cashout
   chunk-repair:
     options:
+      metrics-enabled: 
       node-group: bee
       number-of-chunks-to-repair: 1
-      metrics-enabled: 
+      postage-amount: 1
+      postage-wait: 5s
       seed: 
     timeout: 5m
     type: chunk-repair
@@ -158,7 +160,6 @@ checks:
     options:
       cache-size: 1000
       postage-amount: 1
-      postage-depth: 16
       postage-wait: 5s
       reserve-size: 1024
     timeout: 5m
@@ -273,7 +274,7 @@ checks:
       bytes: 0
       node-group: bee
       runs: 1
-      timeout: 0
+      timeout: 0s
       upload-node-count: 1
     timeout: 5m
     type: smoke

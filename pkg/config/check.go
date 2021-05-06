@@ -93,10 +93,12 @@ var Checks = map[string]CheckType{
 		NewAction: chunkrepair.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				MetricsEnabled         *bool   `yaml:"metrics-enabled"`
-				NodeGroup              *string `yaml:"node-group"`
-				NumberOfChunksToRepair *int    `yaml:"number-of-chunks-to-repair"`
-				Seed                   *int64  `yaml:"seed"`
+				MetricsEnabled         *bool          `yaml:"metrics-enabled"`
+				NodeGroup              *string        `yaml:"node-group"`
+				NumberOfChunksToRepair *int           `yaml:"number-of-chunks-to-repair"`
+				PostageAmount          *int64         `yaml:"postage-amount"`
+				PostageWait            *time.Duration `yaml:"postage-wait"`
+				Seed                   *int64         `yaml:"seed"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

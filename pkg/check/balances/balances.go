@@ -22,7 +22,7 @@ type Options struct {
 	PostageWait        time.Duration
 	Seed               int64
 	UploadNodeCount    int
-	WaitBeforeDownload int // seconds
+	WaitBeforeDownload time.Duration
 }
 
 // NewDefaultOptions returns new default options
@@ -35,7 +35,7 @@ func NewDefaultOptions() Options {
 		PostageWait:        5 * time.Second,
 		Seed:               0,
 		UploadNodeCount:    1,
-		WaitBeforeDownload: 5,
+		WaitBeforeDownload: 5 * time.Second,
 	}
 }
 
@@ -132,7 +132,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			break
 		}
 
-		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
+		time.Sleep(o.WaitBeforeDownload)
 		// download file from random node
 		ng, nodeName, overlay = overlays.Random(rnd)
 		size, hash, err := cluster.NodeGroups()[ng].NodeClient(nodeName).DownloadFile(ctx, file.Address())

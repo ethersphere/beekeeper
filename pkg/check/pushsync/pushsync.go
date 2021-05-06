@@ -20,8 +20,8 @@ type Options struct {
 	MetricsPusher   *push.Pusher
 	Mode            string
 	PostageAmount   int64
-	PostageWait     time.Duration
 	PostageDepth    uint64
+	PostageWait     time.Duration
 	Retries         int           // number of reties on problems
 	RetryDelay      time.Duration // retry delay duration
 	Seed            int64
