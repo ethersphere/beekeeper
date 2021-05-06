@@ -21,6 +21,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 
 	cluster := bee.NewCluster(clusterConfig.GetName(), clusterOptions)
 
+	// delete node groups
 	for ng, v := range clusterConfig.GetNodeGroups() {
 		fmt.Printf("deleting %s node group\n", ng)
 		ngConfig, ok := cfg.NodeGroups[v.Config]
@@ -28,7 +29,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			return fmt.Errorf("node group profile %s not defined", v.Config)
 		}
 		if v.Mode == "bootnode" { // TODO: implement standalone mode
-			// add node group to the cluster
+			// register node group
 			cluster.AddNodeGroup(ng, ngConfig.Export())
 
 			// delete nodes from the node group
@@ -40,7 +41,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 				}
 			}
 		} else {
-			// add node group to the cluster
+			// register node group
 			cluster.AddNodeGroup(ng, ngConfig.Export())
 
 			// delete nodes from the node group
@@ -151,7 +152,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 			if !ok {
 				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
 			}
-			if v.Mode == "bootnode" {
+			if v.Mode == "bootnode" { // TODO: support standalone nodes
 				// add node group to the cluster
 				cluster.AddNodeGroup(ng, ngConfig.Export())
 
