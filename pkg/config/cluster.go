@@ -6,6 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
+// Cluster represents cluster configuration
 type Cluster struct {
 	// parrent to inherit settings from
 	*Inherit `yaml:",inline"`
@@ -22,6 +23,7 @@ type Cluster struct {
 	NodeGroups          *ClusterNodeGroup `yaml:"node-groups"`
 }
 
+// ClusterNodeGroup represents NodeGroup in the Cluster
 type ClusterNodeGroup map[string]struct {
 	Mode      string `yaml:"mode"`
 	BeeConfig string `yaml:"bee-config"`
@@ -37,6 +39,7 @@ type ClusterNodeGroup map[string]struct {
 	} `yaml:"nodes"`
 }
 
+// Export exports Cluster to bee.ClusterOptions, skipping all other extra fields
 func (c *Cluster) Export() (o bee.ClusterOptions) {
 	localVal := reflect.ValueOf(c).Elem()
 	localType := reflect.TypeOf(c).Elem()
@@ -58,6 +61,7 @@ func (c *Cluster) Export() (o bee.ClusterOptions) {
 	return remoteVal.Interface().(bee.ClusterOptions)
 }
 
+// GetName returns cluster name
 func (c *Cluster) GetName() string {
 	if c.Name == nil {
 		return "noname"
@@ -65,6 +69,7 @@ func (c *Cluster) GetName() string {
 	return *c.Name
 }
 
+// GetNamespace returns cluster namespace
 func (c *Cluster) GetNamespace() string {
 	if c.Name == nil {
 		return "nonamespace"
@@ -72,6 +77,7 @@ func (c *Cluster) GetNamespace() string {
 	return *c.Namespace
 }
 
+// GetNodeGroups returns cluster node groups
 func (c *Cluster) GetNodeGroups() ClusterNodeGroup {
 	if c.NodeGroups == nil {
 		return nil

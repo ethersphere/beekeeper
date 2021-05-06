@@ -28,23 +28,27 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Check represents check configuration
 type Check struct {
 	Options yaml.Node      `yaml:"options"`
 	Timeout *time.Duration `yaml:"timeout"`
 	Type    string         `yaml:"type"`
 }
 
+// CheckType is used for linking beekeeper actions with check and it's proper options
 type CheckType struct {
-	NewAction  func() beekeeper.Action
-	NewOptions func(CheckGlobalConfig, Check) (interface{}, error)
+	NewAction  func() beekeeper.Action                             // links check with beekeeper action
+	NewOptions func(CheckGlobalConfig, Check) (interface{}, error) // check options
 }
 
+// CheckGlobalConfig represents global configs for all checks
 type CheckGlobalConfig struct {
 	MetricsEnabled bool
 	MetricsPusher  *push.Pusher
 	Seed           int64
 }
 
+// Checks represents all available check types
 var Checks = map[string]CheckType{
 	"balances": {
 		NewAction: balances.NewCheck,
@@ -405,6 +409,7 @@ var Checks = map[string]CheckType{
 	},
 }
 
+// applyCheckConfig merges given, global and default check options
 func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err error) {
 	lv := reflect.ValueOf(local).Elem()
 	lt := reflect.TypeOf(local).Elem()

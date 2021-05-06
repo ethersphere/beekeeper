@@ -12,23 +12,27 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Simulation represents simulation configuration
 type Simulation struct {
 	Options yaml.Node      `yaml:"options"`
 	Timeout *time.Duration `yaml:"timeout"`
 	Type    string         `yaml:"type"`
 }
 
+// SimulationType is used for linking beekeeper actions with simulation and it's proper options
 type SimulationType struct {
 	NewAction  func() beekeeper.Action
 	NewOptions func(SimulationGlobalConfig, Simulation) (interface{}, error)
 }
 
+// SimulationGlobalConfig represents global configs for all simulations
 type SimulationGlobalConfig struct {
 	MetricsEnabled bool
 	MetricsPusher  *push.Pusher
 	Seed           int64
 }
 
+// Checks represents all available simulation types
 var Simulations = map[string]SimulationType{
 	"upload": {
 		NewAction: upload.NewSimulation,
@@ -56,6 +60,7 @@ var Simulations = map[string]SimulationType{
 	},
 }
 
+// applySimulationConfig merges given, global and default simulation options
 func applySimulationConfig(global SimulationGlobalConfig, local, opts interface{}) (err error) {
 	lv := reflect.ValueOf(local).Elem()
 	lt := reflect.TypeOf(local).Elem()

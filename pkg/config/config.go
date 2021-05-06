@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Config represents Beekeeper's configuration read from files
 type Config struct {
 	Clusters    map[string]Cluster    `yaml:"clusters"`
 	NodeGroups  map[string]NodeGroup  `yaml:"node-groups"`
@@ -17,10 +18,12 @@ type Config struct {
 	Simulations map[string]Simulation `yaml:"simulations"`
 }
 
+// Inherit is struct used for implementing inheritance in Config objects
 type Inherit struct {
 	ParrentName string `yaml:"_inherit"`
 }
 
+// merge combines Config objects using inheritance
 func (c *Config) merge() (err error) {
 	// merge BeeConfigs
 	mergedBC := map[string]BeeConfig{}
@@ -91,7 +94,9 @@ func (c *Config) merge() (err error) {
 	return
 }
 
+// ReadDir reads given directory for YAML files and unmarshals them into Config
 func ReadDir(configDir string) (*Config, error) {
+	// read all files from the directory
 	yamlFiles, err := ioutil.ReadDir(configDir)
 	if err != nil {
 		return nil, fmt.Errorf("reading config dir: %w", err)
@@ -162,6 +167,7 @@ func ReadDir(configDir string) (*Config, error) {
 		}
 	}
 
+	// merge for inheritance
 	if err := c.merge(); err != nil {
 		return nil, fmt.Errorf("merging config: %w", err)
 	}

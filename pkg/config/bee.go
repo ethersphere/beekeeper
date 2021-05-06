@@ -6,6 +6,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
+// BeeConfig represents Bee configuration
 type BeeConfig struct {
 	// parrent to inherit settings from
 	*Inherit `yaml:",inline"`
@@ -46,6 +47,7 @@ type BeeConfig struct {
 	WelcomeMessage       *string `yaml:"welcome-message"`
 }
 
+// Export exports BeeConfig to k8s.Config
 func (b *BeeConfig) Export() (o k8s.Config) {
 	localVal := reflect.ValueOf(b).Elem()
 	localType := reflect.TypeOf(b).Elem()
