@@ -32,11 +32,54 @@ func (p *TagsService) CreateTag(ctx context.Context) (resp TagResponse, err erro
 	return
 }
 
-// GetTag creates new tag
+// GetTag gets a new tag
 func (p *TagsService) GetTag(ctx context.Context, tagUID uint32) (resp TagResponse, err error) {
 
 	tag := strconv.FormatUint(uint64(tagUID), 10)
 
 	err = p.client.requestJSON(ctx, http.MethodGet, "/tags/"+tag, nil, &resp)
-	return
+
+	return resp, err
+}
+
+func (p *TagsService) WaitSync(ctx context.Context, tagUID uint32) (err error) {
+
+	c := make(chan bool)
+	e := make(chan error)
+	defer close(c)
+	defer close(e)
+	go func(ctx context.Context, c chan bool, e chan error) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				tr, err := p.GetTag(ctx, tagUID)
+
+				if err != nil {
+					e <- err
+					return
+				}
+
+				if tr.Synced >= tr.Total {
+					c <- true
+					return
+				}
+
+				time.Sleep(1000 * time.Millisecond)
+			}
+		}
+	}(ctx, c, e)
+
+	for {
+		select {
+		case <-c:
+			return
+		case err := <-e:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
 }

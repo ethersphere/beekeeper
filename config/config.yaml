@@ -121,11 +121,17 @@ checks:
       dry-run: false
       file-name: balances
       file-size: 1048576 # 1mb = 1*1024*1024
-      node-group: bee
+      postage-amount: 1
+      postage-wait: 5s
       upload-node-count: 3
       wait-before-download: 5 # seconds
     timeout: 5m
     type: balances
+  cashout:
+    options:
+      node-group: bee
+    timeout: 5m
+    type: cashout
   chunk-repair:
     options:
       node-group: bee
@@ -140,9 +146,9 @@ checks:
       file-size: 1048576 # 1mb = 1*1024*1024
       files-per-node: 1
       full: false
-      node-group: bee
+      postage-amount: 1
+      postage-wait: 5s
       upload-node-count: 3
-      metrics-enabled: 
     timeout: 5m
     type: file-retrieval
   full-connectivity:
@@ -150,10 +156,11 @@ checks:
     type: full-connectivity
   gc:
     options:
-      node-group: bee
-      store-size: 1000
-      store-size-divisor: 3
-      wait: 5
+      cache-size: 1000
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      reserve-size: 1024
     timeout: 5m
     type: gc
   kademlia:
@@ -161,40 +168,13 @@ checks:
       dynamic: false
     timeout: 5m
     type: kademlia
-  kademlia-dynamic:
-    options:
-      dynamic: true
-    timeout: 5m
-    type: kademlia
-  local-pinning-chunk:
-    options:
-      mode: pin-chunk
-      node-group: bee
-      store-size: 1000
-      store-size-divisor: 3
-    timeout: 5m
-    type: local-pinning
-  local-pinning-bytes:
-    options:
-      mode: pin-bytes
-      node-group: bee
-      store-size: 1000
-      store-size-divisor: 3
-    timeout: 5m
-    type: local-pinning
-  local-pinning-remote:
-    options:
-      mode: pin-remote
-      node-group: bee
-      store-size: 1000
-      store-size-divisor: 3
-    timeout: 5m
-    type: local-pinning
   manifest:
     options:
       files-in-collection: 10
       max-pathname-length: 64
-      node-group: bee
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
     timeout: 5m
     type: manifest
   peer-count:
@@ -210,14 +190,17 @@ checks:
       address-prefix: 10
       metrics-enabled:
       node-count: 3
-      node-group: bee
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
       request-timeout: 5m
     timeout: 5m
     type: pss
   pullsync:
     options:
       chunks-per-node: 1
-      node-group: bee
+      postage-amount: 1
+      postage-wait: 5s
       replication-factor-threshold: 2
       upload-node-count: 1
     timeout: 5m
@@ -227,7 +210,9 @@ checks:
       chunks-per-node: 1
       metrics-enabled:
       mode: default
-      node-group: bee
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
       retries: 5
       retry-delay: 1s
       upload-node-count: 1
@@ -238,19 +223,22 @@ checks:
       chunks-per-node: 1
       metrics-enabled:
       mode: chunks
-      node-group: bee
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
       retries: 5
       retry-delay: 1s
       upload-node-count: 1
     timeout: 5m
     type: pushsync
-  pushsync-files:
+  pushsync-light-chunks:
     options:
-      file-size: 1048576 # 1mb = 1*1024*1024
-      files-per-node: 1
+      chunks-per-node: 1
       metrics-enabled:
-      mode: files
-      node-group: bee
+      mode: light-chunks
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
       retries: 5
       retry-delay: 1s
       upload-node-count: 1
@@ -260,7 +248,9 @@ checks:
     options:
       chunks-per-node: 1
       metrics-enabled:
-      node-group: bee
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
       upload-node-count: 1
     timeout: 5m
     type: retrieval
@@ -270,15 +260,29 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 1048576 # 1mb = 1*1024*1024
-      node-group: bee
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
       threshold: 10000000000000
       upload-node-count: 3
-      wait-before-downloading: 5 # seconds
+      wait-before-downloading: 5s
     timeout: 5m
     type: settlements
+  smoke:
+    options:
+      bytes: 0
+      node-group: bee
+      runs: 1
+      timeout: 0
+      upload-node-count: 1
+    timeout: 5m
+    type: smoke
   soc:
     options:
-      node-group: bee
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      request-timeout: 5m
     timeout: 5m
     type: soc
 
@@ -286,6 +290,7 @@ simulations:
   upload:
     options:
       file-size: 1048576 # 1mb = 1*1024*1024
+      postage-wait: 5s
       retries: 5
       retry-delay: 1s
       seed: 

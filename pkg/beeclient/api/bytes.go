@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 )
@@ -28,6 +29,10 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 	if o.Pin {
 		h.Add("Swarm-Pin", "true")
 	}
+	if o.Tag != 0 {
+		h.Add("Swarm-Tag", strconv.FormatUint(uint64(o.Tag), 10))
+	}
+	h.Add(postageStampBatchHeader, o.BatchID)
 	err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
 	return resp, err
 }

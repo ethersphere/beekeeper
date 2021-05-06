@@ -35,6 +35,7 @@ var Simulations = map[string]SimulationType{
 		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
+				PostageWait          *time.Duration `yaml:"postage-wait"`
 				Retries              *int           `yaml:"retries"`
 				RetryDelay           *time.Duration `yaml:"retry-delay"`
 				Seed                 *int64         `yaml:"seed"`

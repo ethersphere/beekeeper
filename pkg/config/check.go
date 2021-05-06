@@ -7,12 +7,12 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
+	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/chunkrepair"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 	"github.com/ethersphere/beekeeper/pkg/check/gc"
 	"github.com/ethersphere/beekeeper/pkg/check/kademlia"
-	"github.com/ethersphere/beekeeper/pkg/check/localpinning"
 	"github.com/ethersphere/beekeeper/pkg/check/manifest"
 	"github.com/ethersphere/beekeeper/pkg/check/peercount"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
@@ -21,6 +21,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
 	"github.com/ethersphere/beekeeper/pkg/check/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
+	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -49,18 +50,37 @@ var Checks = map[string]CheckType{
 		NewAction: balances.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				DryRun             *bool   `yaml:"dry-run"`
-				FileName           *string `yaml:"file-name"`
-				FileSize           *int64  `yaml:"file-size"`
-				NodeGroup          *string `yaml:"node-group"`
-				Seed               *int64  `yaml:"seed"`
-				UploadNodeCount    *int    `yaml:"upload-node-count"`
-				WaitBeforeDownload *int    `yaml:"wait-before-download"`
+				DryRun             *bool          `yaml:"dry-run"`
+				FileName           *string        `yaml:"file-name"`
+				FileSize           *int64         `yaml:"file-size"`
+				PostageAmount      *int64         `yaml:"postage-amount"`
+				PostageWait        *time.Duration `yaml:"postage-wait"`
+				Seed               *int64         `yaml:"seed"`
+				UploadNodeCount    *int           `yaml:"upload-node-count"`
+				WaitBeforeDownload *int           `yaml:"wait-before-download"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := balances.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"cashout": {
+		NewAction: cashout.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				NodeGroup *string `yaml:"node-group"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := cashout.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
@@ -94,14 +114,16 @@ var Checks = map[string]CheckType{
 		NewAction: fileretrieval.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				FileName        *string `yaml:"file-name"`
-				FileSize        *int64  `yaml:"file-size"`
-				FilesPerNode    *int    `yaml:"files-per-node"`
-				Full            *bool   `yaml:"full"`
-				MetricsEnabled  *bool   `yaml:"metrics-enabled"`
-				NodeGroup       *string `yaml:"node-group"`
-				Seed            *int64  `yaml:"seed"`
-				UploadNodeCount *int    `yaml:"upload-node-count"`
+				FileName        *string        `yaml:"file-name"`
+				FileSize        *int64         `yaml:"file-size"`
+				FilesPerNode    *int           `yaml:"files-per-node"`
+				Full            *bool          `yaml:"full"`
+				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
+				NodeGroup       *string        `yaml:"node-group"`
+				PostageAmount   *int64         `yaml:"postage-amount"`
+				PostageWait     *time.Duration `yaml:"postage-wait"`
+				Seed            *int64         `yaml:"seed"`
+				UploadNodeCount *int           `yaml:"upload-node-count"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -125,11 +147,11 @@ var Checks = map[string]CheckType{
 		NewAction: gc.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				NodeGroup        *string `yaml:"node-group"`
-				Seed             *int64  `yaml:"seed"`
-				StoreSize        *int    `yaml:"store-size"`
-				StoreSizeDivisor *int    `yaml:"store-size-divisor"`
-				Wait             *int    `yaml:"wait"`
+				CacheSize     *int           `yaml:"cache-size"`
+				Seed          *int64         `yaml:"seed"`
+				PostageAmount *int64         `yaml:"postage-amount"`
+				PostageWait   *time.Duration `yaml:"postage-wait"`
+				ReserveSize   *int           `yaml:"reserve-size"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -161,36 +183,16 @@ var Checks = map[string]CheckType{
 			return opts, nil
 		},
 	},
-	"local-pinning": {
-		NewAction: localpinning.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
-			checkOpts := new(struct {
-				Mode             *string `yaml:"mode"`
-				NodeGroup        *string `yaml:"node-group"`
-				Seed             *int64  `yaml:"seed"`
-				StoreSize        *int    `yaml:"store-size"`
-				StoreSizeDivisor *int    `yaml:"store-size-divisor"`
-			})
-			if err := check.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
-			}
-			opts := localpinning.NewDefaultOptions()
-
-			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
-				return nil, fmt.Errorf("applying options: %w", err)
-			}
-
-			return opts, nil
-		},
-	},
 	"manifest": {
 		NewAction: manifest.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				FilesInCollection *int    `yaml:"files-in-collection"`
-				MaxPathnameLength *int32  `yaml:"max-pathname-length"`
-				NodeGroup         *string `yaml:"node-group"`
-				Seed              *int64  `yaml:"seed"`
+				FilesInCollection *int           `yaml:"files-in-collection"`
+				MaxPathnameLength *int32         `yaml:"max-pathname-length"`
+				PostageAmount     *int64         `yaml:"postage-amount"`
+				PostageDepth      *uint64        `yaml:"postage-depth"`
+				PostageWait       *time.Duration `yaml:"postage-wait"`
+				Seed              *int64         `yaml:"seed"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -235,7 +237,9 @@ var Checks = map[string]CheckType{
 				AddressPrefix  *int           `yaml:"address-prefix"`
 				MetricsEnabled *bool          `yaml:"metrics-enabled"`
 				NodeCount      *int           `yaml:"node-count"`
-				NodeGroup      *string        `yaml:"node-group"`
+				PostageAmount  *int64         `yaml:"postage-amount"`
+				PostageDepth   *uint64        `yaml:"postage-depth"`
+				PostageWait    *time.Duration `yaml:"postage-wait"`
 				RequestTimeout *time.Duration `yaml:"request-timeout"`
 				Seed           *int64         `yaml:"seed"`
 			})
@@ -255,11 +259,12 @@ var Checks = map[string]CheckType{
 		NewAction: pullsync.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				ChunksPerNode              *int    `yaml:"chunks-per-node"`
-				NodeGroup                  *string `yaml:"node-group"`
-				ReplicationFactorThreshold *int    `yaml:"replication-factor-threshold"`
-				Seed                       *int64  `yaml:"seed"`
-				UploadNodeCount            *int    `yaml:"upload-node-count"`
+				ChunksPerNode              *int           `yaml:"chunks-per-node"`
+				PostageAmount              *int64         `yaml:"postage-amount"`
+				PostageWait                *time.Duration `yaml:"postage-wait"`
+				ReplicationFactorThreshold *int           `yaml:"replication-factor-threshold"`
+				Seed                       *int64         `yaml:"seed"`
+				UploadNodeCount            *int           `yaml:"upload-node-count"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -278,11 +283,11 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
-				FileSize        *int64         `yaml:"file-size"`
-				FilesPerNode    *int           `yaml:"files-per-node"`
 				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
 				Mode            *string        `yaml:"mode"`
-				NodeGroup       *string        `yaml:"node-group"`
+				PostageAmount   *int64         `yaml:"postage-amount"`
+				PostageDepth    *uint64        `yaml:"postage-depth"`
+				PostageWait     *time.Duration `yaml:"postage-wait"`
 				Retries         *int           `yaml:"retries"`
 				RetryDelay      *time.Duration `yaml:"retry-delay"`
 				Seed            *int64         `yaml:"seed"`
@@ -304,11 +309,13 @@ var Checks = map[string]CheckType{
 		NewAction: retrieval.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				ChunksPerNode   *int    `yaml:"chunks-per-node"`
-				MetricsEnabled  *bool   `yaml:"metrics-enabled"`
-				NodeGroup       *string `yaml:"node-group"`
-				Seed            *int64  `yaml:"seed"`
-				UploadNodeCount *int    `yaml:"upload-node-count"`
+				ChunksPerNode   *int           `yaml:"chunks-per-node"`
+				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
+				PostageAmount   *int64         `yaml:"postage-amount"`
+				PostageDepth    *uint64        `yaml:"postage-depth"`
+				PostageWait     *time.Duration `yaml:"postage-wait"`
+				Seed            *int64         `yaml:"seed"`
+				UploadNodeCount *int           `yaml:"upload-node-count"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -326,15 +333,17 @@ var Checks = map[string]CheckType{
 		NewAction: settlements.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				DryRun             *bool   `yaml:"dry-run"`
-				ExpectSettlements  *bool   `yaml:"expect-settlements"`
-				FileName           *string `yaml:"file-name"`
-				FileSize           *int64  `yaml:"file-size"`
-				NodeGroup          *string `yaml:"node-group"`
-				Seed               *int64  `yaml:"seed"`
-				Threshold          *int64  `yaml:"threshold"`
-				UploadNodeCount    *int    `yaml:"upload-node-count"`
-				WaitBeforeDownload *int    `yaml:"wait-before-download"`
+				DryRun             *bool          `yaml:"dry-run"`
+				ExpectSettlements  *bool          `yaml:"expect-settlements"`
+				FileName           *string        `yaml:"file-name"`
+				FileSize           *int64         `yaml:"file-size"`
+				PostageAmount      *int64         `yaml:"postage-amount"`
+				PostageDepth       *uint64        `yaml:"postage-depth"`
+				PostageWait        *time.Duration `yaml:"postage-wait"`
+				Seed               *int64         `yaml:"seed"`
+				Threshold          *int64         `yaml:"threshold"`
+				UploadNodeCount    *int           `yaml:"upload-node-count"`
+				WaitBeforeDownload *int           `yaml:"wait-before-download"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -348,11 +357,37 @@ var Checks = map[string]CheckType{
 			return opts, nil
 		},
 	},
+	"smoke": {
+		NewAction: smoke.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				Bytes           *int           `yaml:"bytes"`
+				NodeGroup       *string        `yaml:"node-group"`
+				Runs            *int           `yaml:"runs"`
+				Seed            *int64         `yaml:"seed"`
+				Timeout         *time.Duration `yaml:"timeout"`
+				UploadNodeCount *int           `yaml:"upload-node-count"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := smoke.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
 	"soc": {
 		NewAction: soc.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				NodeGroup *string `yaml:"node-group"`
+				PostageAmount  *int64         `yaml:"postage-amount"`
+				PostageDepth   *uint64        `yaml:"postage-depth"`
+				PostageWait    *time.Duration `yaml:"postage-wait"`
+				RequestTimeout *time.Duration `yaml:"request-timeout"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

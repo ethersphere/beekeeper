@@ -12,15 +12,18 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // Options represents check options
 type Options struct {
-	FilesInCollection int // number of files to upload in single collection
+	FilesInCollection int
 	MaxPathnameLength int32
-	NodeGroup         string // TODO: support multi node group cluster
+	PostageAmount     int64
+	PostageWait       time.Duration
+	PostageDepth      uint64
 	Seed              int64
 }
 
@@ -29,8 +32,10 @@ func NewDefaultOptions() Options {
 	return Options{
 		FilesInCollection: 10,
 		MaxPathnameLength: 64,
-		NodeGroup:         "bee",
-		Seed:              random.Int64(),
+		PostageAmount:     1,
+		PostageDepth:      16,
+		PostageWait:       5 * time.Second,
+		Seed:              0,
 	}
 }
 
@@ -57,8 +62,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := cluster.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
@@ -74,9 +78,23 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	tarFile := bee.NewBufferFile("", tarReader)
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
 
-	sortedNodes := ng.NodesSorted()
-	if err := ng.NodeClient(sortedNodes[0]).UploadCollection(ctx, &tarFile); err != nil {
+	sortedNodes := cluster.NodeNames()
+	node := sortedNodes[0]
+
+	client := clients[node]
+
+	batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+	if err != nil {
+		return fmt.Errorf("node %s: batch id %w", node, err)
+	}
+	fmt.Printf("node %s: batch id %s\n", node, batchID)
+
+	if err := client.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
 	}
 
@@ -91,7 +109,9 @@ DOWNLOAD:
 	}
 
 	for i, file := range files {
-		size, hash, err := ng.NodeClient(lastNode).DownloadManifestFile(ctx, tarFile.Address(), file.Name())
+		node := clients[lastNode]
+
+		size, hash, err := node.DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
 			fmt.Printf("Node %s. Error retrieving file: %v\n", lastNode, err)
 			goto DOWNLOAD

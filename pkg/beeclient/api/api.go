@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	apiVersion  = "v1"
-	contentType = "application/json; charset=utf-8"
+	apiVersion              = "v1"
+	contentType             = "application/json; charset=utf-8"
+	postageStampBatchHeader = "Swarm-Postage-Batch-Id"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -35,6 +36,7 @@ type Client struct {
 	Tags    *TagsService
 	PSS     *PSSService
 	SOC     *SOCService
+	Postage *PostageService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -67,6 +69,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.Tags = (*TagsService)(&c.service)
 	c.PSS = (*PSSService)(&c.service)
 	c.SOC = (*SOCService)(&c.service)
+	c.Postage = (*PostageService)(&c.service)
 	return c
 }
 
@@ -196,10 +199,11 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	}
 
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		return json.NewDecoder(r.Body).Decode(&v)
+		_ = json.NewDecoder(r.Body).Decode(&v)
+		return err
 	}
 
-	return
+	return err
 }
 
 // drain discards all of the remaining data from the reader and closes it,
@@ -288,5 +292,7 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 type UploadOptions struct {
-	Pin bool
+	Pin     bool
+	Tag     uint32
+	BatchID string
 }

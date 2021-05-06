@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -19,11 +20,13 @@ type Options struct {
 	ExpectSettlements  bool
 	FileName           string
 	FileSize           int64
-	NodeGroup          string // TODO: support multi node group cluster
+	PostageAmount      int64
+	PostageDepth       uint64
+	PostageWait        time.Duration
 	Seed               int64
 	Threshold          int64 // balances treshold
 	UploadNodeCount    int
-	WaitBeforeDownload int // seconds to wait before downloading a file
+	WaitBeforeDownload time.Duration // seconds to wait before downloading a file
 }
 
 // NewDefaultOptions returns new default options
@@ -33,11 +36,13 @@ func NewDefaultOptions() Options {
 		ExpectSettlements:  true,
 		FileName:           "settlements",
 		FileSize:           1 * 1024 * 1024, // 1mb
-		NodeGroup:          "bee",
-		Seed:               random.Int64(),
+		PostageAmount:      1,
+		PostageDepth:       16,
+		PostageWait:        5 * time.Second,
+		Seed:               0,
 		Threshold:          10000000000000,
 		UploadNodeCount:    1,
-		WaitBeforeDownload: 5,
+		WaitBeforeDownload: 5 * time.Second,
 	}
 }
 
@@ -67,18 +72,17 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := cluster.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Initial settlement validation
-	balances, err := ng.Balances(ctx)
+	balances, err := cluster.FlattenBalances(ctx)
 	if err != nil {
 		return err
 	}
-	settlements, err := ng.Settlements(ctx)
+	settlements, err := cluster.FlattenSettlements(ctx)
 	if err != nil {
 		return err
 	}
@@ -88,14 +92,30 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	fmt.Println("Settlements are valid")
 
 	var previousSettlements map[string]map[string]bee.SentReceived
-	sortedNodes := ng.NodesSorted()
+
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+
+	sortedNodes := cluster.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
 		var settlementsHappened = false
 		// upload file to random node
 		uIndex := rnd.Intn(cluster.Size())
 		uNode := sortedNodes[uIndex]
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
-		if err := ng.NodeClient(uNode).UploadFile(ctx, &file, false); err != nil {
+
+		client := clients[uNode]
+
+		fmt.Println("node", uNode)
+		batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+		if err != nil {
+			return fmt.Errorf("node %s: batch id %w", uNode, err)
+		}
+		fmt.Printf("node %s: batch id %s\n", uNode, batchID)
+
+		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("node %s: %w", uNode, err)
 		}
 		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())
@@ -105,12 +125,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = ng.Balances(ctx)
+			balances, err = cluster.FlattenBalances(ctx)
 			if err != nil {
 				return err
 			}
 
-			settlements, err = ng.Settlements(ctx)
+			settlements, err = cluster.FlattenSettlements(ctx)
 			if err != nil {
 				return err
 			}
@@ -129,11 +149,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			break
 		}
 
-		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
+		time.Sleep(o.WaitBeforeDownload)
 		// download file from random node
 		dIndex := randomIndex(rnd, cluster.Size(), uIndex)
 		dNode := sortedNodes[dIndex]
-		size, hash, err := ng.NodeClient(dNode).DownloadFile(ctx, file.Address())
+		size, hash, err := clients[dNode].DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %s: %w", dNode, err)
 		}
@@ -147,12 +167,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = ng.Balances(ctx)
+			balances, err = cluster.FlattenBalances(ctx)
 			if err != nil {
 				return err
 			}
 
-			settlements, err = ng.Settlements(ctx)
+			settlements, err = cluster.FlattenSettlements(ctx)
 			if err != nil {
 				return err
 			}
@@ -182,18 +202,17 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 // dryRun executes settlements validation check without files uploading/downloading
 func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
-	ng := cluster.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	balances, err := ng.Balances(ctx)
+	balances, err := cluster.FlattenBalances(ctx)
 	if err != nil {
 		return err
 	}
 
-	settlements, err := ng.Settlements(ctx)
+	settlements, err := cluster.FlattenSettlements(ctx)
 	if err != nil {
 		return err
 	}

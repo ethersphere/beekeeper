@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"golang.org/x/sync/errgroup"
@@ -18,6 +19,7 @@ import (
 // Options represents simulation options
 type Options struct {
 	FileSize             int64
+	PostageWait          time.Duration
 	Retries              int
 	RetryDelay           time.Duration
 	Seed                 int64
@@ -29,6 +31,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		FileSize:             1,
+		PostageWait:          5 * time.Second,
 		Retries:              5,
 		RetryDelay:           1 * time.Second,
 		Seed:                 0,
@@ -118,7 +121,13 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 						return ctx.Err()
 					}
 
-					if err := n.UploadFile(ctx, &file, false); err != nil {
+					batchID, err := n.GetOrCreateBatch(ctx, 16, o.PostageWait)
+					if err != nil {
+						return fmt.Errorf("node %s: batch id %w", p, err)
+					}
+					fmt.Printf("node %s: batch id %s\n", p, batchID)
+
+					if err := n.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 						fmt.Printf("error: uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)
 						continue
 					}

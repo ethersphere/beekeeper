@@ -3,6 +3,7 @@ package bee
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/url"
 	"sort"
 
@@ -119,6 +120,27 @@ func (c *Cluster) Balances(ctx context.Context) (balances ClusterBalances, err e
 	return
 }
 
+// FlattenBalances returns aggregated NodeGroupBalances
+func (c *Cluster) FlattenBalances(ctx context.Context) (balances NodeGroupBalances, err error) {
+	b, err := c.Balances(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	balances = make(NodeGroupBalances)
+
+	for _, v := range b {
+		for n, bal := range v {
+			if _, found := balances[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
+			balances[n] = bal
+		}
+	}
+
+	return
+}
+
 // GlobalReplicationFactor returns the total number of nodes in the cluster that contain given chunk
 func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
 	for k, v := range c.nodeGroups {
@@ -173,6 +195,17 @@ func (c *Cluster) Nodes() map[string]*Node {
 	return n
 }
 
+// NodeNamess returns a list of node names in the cluster across all node groups
+func (c *Cluster) NodeNames() (names []string) {
+	for _, ng := range c.NodeGroups() {
+		for k := range ng.getNodes() {
+			names = append(names, k)
+		}
+	}
+
+	return
+}
+
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes
 func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) {
 	clients := make(map[string]*Client)
@@ -202,6 +235,36 @@ func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*Client, erro
 // ClusterOverlays represents overlay addresses of all nodes in the cluster
 type ClusterOverlays map[string]NodeGroupOverlays
 
+// RandomOverlay returns a random overlay from a random NodeGroup
+func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string, overlay swarm.Address) {
+	i := r.Intn(len(c))
+	var (
+		ng, name string
+		ngo      NodeGroupOverlays
+		o        swarm.Address
+	)
+	for n, v := range c {
+		if i == 0 {
+			ng = n
+			ngo = v
+			break
+		}
+		i--
+	}
+
+	i = r.Intn(len(ngo))
+
+	for n, v := range ngo {
+		if i == 0 {
+			name = n
+			o = v
+			break
+		}
+		i--
+	}
+	return ng, name, o
+}
+
 // Overlays returns ClusterOverlays
 func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err error) {
 	overlays = make(ClusterOverlays)
@@ -216,6 +279,39 @@ func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err e
 	}
 
 	return
+}
+
+// FlattenOverlays returns aggregated ClusterOverlays
+func (c *Cluster) FlattenOverlays(ctx context.Context, include ...string) (map[string]swarm.Address, error) {
+	o, err := c.Overlays(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string]swarm.Address)
+
+	for ngn, ngo := range o {
+		if len(include) > 0 && !containsName(include, ngn) {
+			continue
+		}
+		for n, over := range ngo {
+			if _, found := res[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
+			res[n] = over
+		}
+	}
+
+	return res, nil
+}
+
+func containsName(s []string, e string) bool {
+	for i := range s {
+		if s[i] == e {
+			return true
+		}
+	}
+	return false
 }
 
 // ClusterPeers represents peers of all nodes in the cluster
@@ -237,6 +333,26 @@ func (c *Cluster) Peers(ctx context.Context) (peers ClusterPeers, err error) {
 	return
 }
 
+// RandomNode returns random running node from a cluster
+func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node *Node, err error) {
+	nodes := []*Node{}
+	for _, ng := range c.NodeGroups() {
+		stopped, err := ng.StoppedNodes(ctx)
+		if err != nil && err != k8s.ErrNotSet {
+			return nil, fmt.Errorf("stopped nodes: %w", err)
+		}
+
+		for _, v := range ng.getNodes() {
+			if contains(stopped, v.name) {
+				continue
+			}
+			nodes = append(nodes, v)
+		}
+	}
+
+	return nodes[r.Intn(len(nodes))], nil
+}
+
 // ClusterSettlements represents settlements of all nodes in the cluster
 type ClusterSettlements map[string]NodeGroupSettlements
 
@@ -251,6 +367,27 @@ func (c *Cluster) Settlements(ctx context.Context) (settlements ClusterSettlemen
 		}
 
 		settlements[k] = s
+	}
+
+	return
+}
+
+// FlattenSettlements returns aggregated NodeGroupSettlements
+func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error) {
+	s, err := c.Settlements(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	settlements = make(NodeGroupSettlements)
+
+	for _, v := range s {
+		for n, set := range v {
+			if _, found := settlements[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
+			settlements[n] = set
+		}
 	}
 
 	return
@@ -278,6 +415,27 @@ func (c *Cluster) Topologies(ctx context.Context) (topologies ClusterTopologies,
 		}
 
 		topologies[k] = t
+	}
+
+	return
+}
+
+// FlattenTopologies returns an aggregate of Topologies
+func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]Topology, err error) {
+	top, err := c.Topologies(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	topologies = make(map[string]Topology)
+
+	for _, v := range top {
+		for n, over := range v {
+			if _, found := topologies[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
+			topologies[n] = over
+		}
 	}
 
 	return

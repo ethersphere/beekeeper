@@ -2,7 +2,6 @@ package pushsync
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -17,12 +16,12 @@ import (
 
 // Options represents check options
 type Options struct {
-	ChunksPerNode   int // number of chunks to upload per node
-	FileSize        int64
-	FilesPerNode    int
+	ChunksPerNode   int
 	MetricsPusher   *push.Pusher
 	Mode            string
-	NodeGroup       string        // TODO: support multi node group cluster
+	PostageAmount   int64
+	PostageWait     time.Duration
+	PostageDepth    uint64
 	Retries         int           // number of reties on problems
 	RetryDelay      time.Duration // retry delay duration
 	Seed            int64
@@ -33,11 +32,11 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
-		FileSize:        1 * 1024 * 1024, // 1mb
-		FilesPerNode:    1,
 		MetricsPusher:   nil,
 		Mode:            "default",
-		NodeGroup:       "bee",
+		PostageAmount:   1,
+		PostageDepth:    16,
+		PostageWait:     5 * time.Second,
 		Retries:         5,
 		RetryDelay:      1 * time.Second,
 		Seed:            random.Int64(),
@@ -65,14 +64,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	switch o.Mode {
 	case "chunks":
 		return checkChunks(ctx, cluster, o)
-	case "files":
-		return checkFiles(ctx, cluster, o)
+	case "light-chunks":
+		return checkLightChunks(ctx, cluster, o)
 	default:
 		return defaultCheck(ctx, cluster, o)
 	}
 }
-
-var errPushSync = errors.New("push sync")
 
 // defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
 func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
@@ -89,15 +86,28 @@ func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
 		o.MetricsPusher.Format(expfmt.FmtText)
 	}
 
-	ng := c.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	clients, err := c.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+
+	sortedNodes := c.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
+
 		nodeName := sortedNodes[i]
+		client := clients[nodeName]
+
+		batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+		if err != nil {
+			return fmt.Errorf("node %s: batch id %w", nodeName, err)
+		}
+		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])
 			if err != nil {
@@ -105,7 +115,7 @@ func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
 			}
 
 			t0 := time.Now()
-			addr, err := ng.NodeClient(nodeName).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			addr, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false, BatchID: batchID})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -131,7 +141,8 @@ func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
 				}
 
 				time.Sleep(o.RetryDelay)
-				synced, err := ng.NodeClient(closestName).HasChunk(ctx, addr)
+				node := clients[closestName]
+				synced, err := node.HasChunk(ctx, addr)
 				if err != nil {
 					return fmt.Errorf("node %s: %w", nodeName, err)
 				}

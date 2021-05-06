@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -16,14 +17,15 @@ import (
 
 // Options represents check options
 type Options struct {
-	FilesPerNode    int
 	FileName        string
 	FileSize        int64
+	FilesPerNode    int
 	Full            bool
 	MetricsPusher   *push.Pusher
-	NodeGroup       string // TODO: support multi node group cluster
-	UploadNodeCount int
+	PostageAmount   int64
+	PostageWait     time.Duration
 	Seed            int64
+	UploadNodeCount int
 }
 
 // NewDefaultOptions returns new default options
@@ -32,9 +34,11 @@ func NewDefaultOptions() Options {
 		FileName:        "file-retrieval",
 		FileSize:        1 * 1024 * 1024, // 1mb
 		FilesPerNode:    1,
+		Full:            false,
 		MetricsPusher:   nil,
-		NodeGroup:       "bee",
-		Seed:            random.Int64(),
+		PostageAmount:   1,
+		PostageWait:     5 * time.Second,
+		Seed:            0,
 		UploadNodeCount: 1,
 	}
 }
@@ -84,23 +88,40 @@ func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 		o.MetricsPusher.Format(expfmt.FmtText)
 	}
 
-	ng := cluster.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+
+	sortedNodes := cluster.NodeNames()
 	lastNodeName := sortedNodes[len(sortedNodes)-1]
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
 		for j := 0; j < o.FilesPerNode; j++ {
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
+			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+			if err != nil {
+				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+			}
+
+			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+			time.Sleep(o.PostageWait)
+
 			t0 := time.Now()
-			if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
+
+			client := clients[nodeName]
+			if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
+
 			d0 := time.Since(t0)
 
 			uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
@@ -109,7 +130,10 @@ func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 
 			time.Sleep(1 * time.Second)
 			t1 := time.Now()
-			size, hash, err := ng.NodeClient(lastNodeName).DownloadFile(ctx, file.Address())
+
+			client = clients[lastNodeName]
+
+			size, hash, err := client.DownloadFile(ctx, file.Address())
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastNodeName, err)
 			}
@@ -158,20 +182,35 @@ func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 		o.MetricsPusher.Format(expfmt.FmtText)
 	}
 
-	ng := cluster.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := cluster.NodeNames()
+
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
 		for j := 0; j < o.FilesPerNode; j++ {
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
+			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+			if err != nil {
+				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+			}
+
+			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+			time.Sleep(o.PostageWait)
+
 			t0 := time.Now()
-			if err := ng.NodeClient(nodeName).UploadFile(ctx, &file, false); err != nil {
+			if err := clients[nodeName].UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
@@ -181,11 +220,7 @@ func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			time.Sleep(1 * time.Second)
-			nodesClients, err := ng.NodesClients(ctx)
-			if err != nil {
-				return fmt.Errorf("get nodes clients: %w", err)
-			}
-			for n, nc := range nodesClients {
+			for n, nc := range clients {
 				if n == nodeName {
 					continue
 				}

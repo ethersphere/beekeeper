@@ -16,9 +16,10 @@ import (
 
 // Options represents check options
 type Options struct {
-	ChunksPerNode              int    // number of chunks to upload per node
-	NodeGroup                  string // TODO: support multi node group cluster
-	ReplicationFactorThreshold int    // minimal replication factor per chunk
+	ChunksPerNode              int // number of chunks to upload per node
+	PostageAmount              int64
+	PostageWait                time.Duration
+	ReplicationFactorThreshold int // minimal replication factor per chunk
 	Seed                       int64
 	UploadNodeCount            int
 }
@@ -27,7 +28,8 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:              1,
-		NodeGroup:                  "bee",
+		PostageAmount:              1,
+		PostageWait:                5 * time.Second,
 		ReplicationFactorThreshold: 2,
 		Seed:                       random.Int64(),
 		UploadNodeCount:            1,
@@ -60,20 +62,36 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	ng := cluster.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	topologies, err := ng.Topologies(ctx)
+	topologies, err := cluster.FlattenTopologies(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := ng.NodesSorted()
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+
+	sortedNodes := cluster.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
+
 		nodeName := sortedNodes[i]
+		client := clients[nodeName]
+
+		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		if err != nil {
+			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
+		}
+
+		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
+
+		time.Sleep(o.PostageWait)
+
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (
 				chunk bee.Chunk
@@ -86,7 +104,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			addr, err := ng.NodeClient(nodeName).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+
+			addr, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -99,20 +118,28 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			}
 			fmt.Printf("Upload node %s. Chunk: %d. Closest: %s %s\n", nodeName, j, closestName, closestAddress.String())
 
-			topology, err := ng.NodeClient(closestName).Topology(ctx)
+			topology, err := clients[closestName].Topology(ctx)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", closestName, err)
 			}
 			for _, v := range topology.Bins {
 				for _, peer := range v.ConnectedPeers {
 					peer := peer
-					pidx := findName(overlays, peer)
+					pidx, found := findName(overlays, peer)
+					if !found {
+						return fmt.Errorf("1: not found in overlays: %v", peer)
+					}
 					pivotTopology := topologies[pidx]
 					pivotDepth := pivotTopology.Depth
 					if pivotPo := int(swarm.Proximity(addr.Bytes(), peer.Bytes())); pivotPo >= pivotDepth {
 						// chunk within replicating node depth
-						if len(findName(replicatingNodes, peer)) == 0 {
-							replicatingNodes[findName(overlays, peer)] = peer
+						_, found := findName(replicatingNodes, peer)
+						if !found {
+							oName, found := findName(overlays, peer)
+							if !found {
+								return fmt.Errorf("2: not found in overlays: %v", peer)
+							}
+							replicatingNodes[oName] = peer
 							nnRep++
 						}
 					}
@@ -126,7 +153,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 			fmt.Printf("Chunk should be on %d nodes. %d within depth\n", len(replicatingNodes), nnRep)
 			for _, n := range replicatingNodes {
-				ni := findName(overlays, n)
+				ni, found := findName(overlays, n)
+				if !found {
+					return fmt.Errorf("not found: %v", n)
+				}
+
 				var (
 					synced bool
 					err    error
@@ -134,7 +165,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 				for t := 1; t < 5; t++ {
 					time.Sleep(2 * time.Duration(t) * time.Second)
-					synced, err = ng.NodeClient(ni).HasChunk(ctx, chunk.Address())
+					synced, err = clients[ni].HasChunk(ctx, chunk.Address())
 					if err != nil {
 						return fmt.Errorf("node %s: %w", ni, err)
 					}
@@ -168,12 +199,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 }
 
 // findName returns node name of a given swarm.Address in a given set of swarm.Addresses, or "" if not found
-func findName(nodes map[string]swarm.Address, addr swarm.Address) string {
+func findName(nodes map[string]swarm.Address, addr swarm.Address) (string, bool) {
 	for n, a := range nodes {
 		if addr.Equal(a) {
-			return n
+			return n, true
 		}
 	}
 
-	return ""
+	return "", false
 }

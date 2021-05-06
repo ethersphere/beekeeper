@@ -19,7 +19,9 @@ import (
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
 	MetricsPusher   *push.Pusher
-	NodeGroup       string // TODO: support multi node group cluster
+	PostageAmount   int64
+	PostageDepth    uint64
+	PostageWait     time.Duration
 	Seed            int64
 	UploadNodeCount int
 }
@@ -29,7 +31,9 @@ func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
 		MetricsPusher:   nil,
-		NodeGroup:       "bee",
+		PostageAmount:   1,
+		PostageDepth:    16,
+		PostageWait:     5 * time.Second,
 		Seed:            random.Int64(),
 		UploadNodeCount: 1,
 	}
@@ -70,16 +74,27 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		o.MetricsPusher.Format(expfmt.FmtText)
 	}
 
-	ng := cluster.NodeGroup(o.NodeGroup)
-	overlays, err := ng.Overlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
-
-	sortedNodes := ng.NodesSorted()
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	sortedNodes := cluster.NodeNames()
 	lastNodeName := sortedNodes[len(sortedNodes)-1]
 	for i := 0; i < o.UploadNodeCount; i++ {
+
 		nodeName := sortedNodes[i]
+		client := clients[nodeName]
+
+		batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+		if err != nil {
+			return fmt.Errorf("node %s: batch id %w", nodeName, err)
+		}
+		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])
 			if err != nil {
@@ -87,7 +102,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			}
 
 			t0 := time.Now()
-			ref, err := ng.NodeClient(nodeName).UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			ref, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -98,7 +113,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			t1 := time.Now()
-			data, err := ng.NodeClient(lastNodeName).DownloadChunk(ctx, ref, "")
+
+			data, err := clients[lastNodeName].DownloadChunk(ctx, ref, "")
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastNodeName, err)
 			}

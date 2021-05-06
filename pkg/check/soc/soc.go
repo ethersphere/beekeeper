@@ -18,13 +18,19 @@ import (
 
 // Options represents check options
 type Options struct {
-	NodeGroup string // TODO: support multi node group cluster
+	PostageAmount  int64
+	PostageDepth   uint64
+	PostageWait    time.Duration
+	RequestTimeout time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		NodeGroup: "bee",
+		PostageAmount:  1,
+		PostageDepth:   16,
+		PostageWait:    5 * time.Second,
+		RequestTimeout: 5 * time.Minute,
 	}
 }
 
@@ -46,9 +52,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	payload := []byte("Hello Swarm :)")
-
-	ng := cluster.NodeGroup(o.NodeGroup)
-	sortedNodes := ng.NodesSorted()
+	sortedNodes := cluster.NodeNames()
 
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
@@ -83,30 +87,45 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, o.RequestTimeout)
 	defer cancel()
 
 	nodeName := sortedNodes[0]
-	node := ng.NodeClient(nodeName)
+
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+	node := clients[nodeName]
 
 	owner := hex.EncodeToString(ownerBytes)
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
+
+	batchID, err := node.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+	if err != nil {
+		return fmt.Errorf("node %s: batch id %w", nodeName, err)
+	}
+	fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
 
 	fmt.Printf("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
 	fmt.Printf("soc: owner %s\n", owner)
 	fmt.Printf("soc: id %s\n", id)
 	fmt.Printf("soc: sig %s\n", sig)
 
-	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data())
+	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data(), batchID)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("soc: chunk uploaded to node %s\n", nodeName)
 
 	retrieved, err := node.DownloadChunk(ctx, ref, "")
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("soc: chunk retrieved from node %s\n", nodeName)
 
 	if !bytes.Equal(retrieved, chunkData) {
 		return errors.New("soc: retrieved chunk data does NOT match soc chunk")

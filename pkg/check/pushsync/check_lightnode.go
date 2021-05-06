@@ -12,33 +12,21 @@ import (
 )
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
-	fmt.Println("running pushsync (chunks mode)")
+func checkLightChunks(ctx context.Context, cluster *bee.Cluster, o Options) error {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	overlays, err := c.FlattenOverlays(ctx)
-	if err != nil {
-		return err
-	}
-	clients, err := c.NodesClients(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx, "bee", "bootnode")
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := c.NodeNames()
-	for i := 0; i < o.UploadNodeCount; i++ {
+	lightnodes := cluster.NodeGroup("drone")
 
-		nodeName := sortedNodes[i]
-
-		uploader := clients[nodeName]
-
-		batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
-		if err != nil {
-			return fmt.Errorf("node %s: batch id %w", nodeName, err)
+	for i, nodeName := range lightnodes.NodesSorted() {
+		if i >= o.UploadNodeCount {
+			break
 		}
-		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
-
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])
@@ -46,13 +34,14 @@ func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
+			uploader := lightnodes.NodeClient(nodeName)
+
+			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
 			fmt.Printf("uploaded chunk %s to node %s\n", ref.String(), nodeName)
-
 			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
@@ -60,7 +49,14 @@ func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
 			fmt.Printf("closest node %s overlay %s\n", closestName, closestAddress)
 
 			time.Sleep(o.RetryDelay)
-			synced, err := clients[closestName].HasChunk(ctx, ref)
+
+			clients, err := cluster.NodesClients(ctx)
+			if err != nil {
+				return err
+			}
+			node := clients[closestName]
+
+			synced, err := node.HasChunk(ctx, ref)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -70,12 +66,7 @@ func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
 
 			fmt.Printf("node %s chunk %s found in the closest node %s\n", nodeName, ref.String(), closestAddress)
 
-			uploaderAddr, err := uploader.Overlay(ctx)
-			if err != nil {
-				return err
-			}
-
-			skipPeers := []swarm.Address{closestAddress, uploaderAddr}
+			skipPeers := []swarm.Address{closestAddress}
 			// chunk should be replicated at least once either during forwarding or after storing
 			for range overlays {
 				name, address, err := chunk.ClosestNodeFromMap(overlays, skipPeers...)
@@ -83,7 +74,9 @@ func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
 				if err != nil {
 					continue
 				}
-				synced, err = clients[name].HasChunk(ctx, ref)
+				node := clients[name]
+
+				synced, err = node.HasChunk(ctx, ref)
 				if err != nil {
 					continue
 				}

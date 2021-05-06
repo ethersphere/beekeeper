@@ -17,10 +17,12 @@ import (
 
 // Options represents check options
 type Options struct {
-	AddressPrefix  int // public address prefix bytes count
+	AddressPrefix  int
 	MetricsPusher  *push.Pusher
 	NodeCount      int
-	NodeGroup      string // TODO: support multi node group cluster
+	PostageAmount  int64
+	PostageDepth   uint64
+	PostageWait    time.Duration
 	RequestTimeout time.Duration
 	Seed           int64
 }
@@ -31,7 +33,9 @@ func NewDefaultOptions() Options {
 		AddressPrefix:  1,
 		MetricsPusher:  nil,
 		NodeCount:      1,
-		NodeGroup:      "bee",
+		PostageAmount:  1,
+		PostageDepth:   16,
+		PostageWait:    5 * time.Second,
 		RequestTimeout: 5 * time.Minute,
 		Seed:           random.Int64(),
 	}
@@ -58,11 +62,9 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	testTopic := "test"
 	testCount := o.NodeCount / 2
 
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(sendAndReceiveGauge)
-	}
-	ng := cluster.NodeGroup(o.NodeGroup)
-	sortedNodes := ng.NodesSorted()
+	o.MetricsPusher.Collector(sendAndReceiveGauge)
+
+	sortedNodes := cluster.NodeNames()
 
 	set := randomDoubleSet(o.Seed, testCount, o.NodeCount)
 
@@ -75,14 +77,27 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		nodeAName := sortedNodes[set[i][0]]
 		nodeBName := sortedNodes[set[i][1]]
 
-		nodeA := ng.NodeClient(nodeAName)
-		nodeB := ng.NodeClient(nodeBName)
+		clients, err := cluster.NodesClients(ctx)
+		if err != nil {
+			cancel()
+			return err
+		}
+
+		nodeA := clients[nodeAName]
+		nodeB := clients[nodeBName]
 
 		addrB, err := nodeB.Addresses(ctx)
 		if err != nil {
 			cancel()
 			return err
 		}
+
+		batchID, err := nodeA.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+		if err != nil {
+			cancel()
+			return fmt.Errorf("node %s: batched id %w", nodeAName, err)
+		}
+		fmt.Printf("node %s: batched id %s\n", nodeAName, batchID)
 
 		ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
 		if err != nil {
@@ -93,7 +108,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		fmt.Printf("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
 
 		tStart := time.Now()
-		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData)
+		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
 		if err != nil {
 			close()
 			cancel()
