@@ -58,7 +58,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	if o.DryRun {
 		fmt.Println("running balances (dry mode)")
-		return DryRunCheck(ctx, cluster, o)
+		return dryRun(ctx, cluster, o)
 	}
 	fmt.Println("running balances")
 
@@ -171,8 +171,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	return
 }
 
-// DryRunCheck executes balances validation check without files uploading/downloading
-func DryRunCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+// dryRun executes balances validation check without files uploading/downloading
+func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
