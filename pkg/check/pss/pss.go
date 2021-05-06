@@ -62,7 +62,9 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	testTopic := "test"
 	testCount := o.NodeCount / 2
 
-	o.MetricsPusher.Collector(sendAndReceiveGauge)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(sendAndReceiveGauge)
+	}
 
 	sortedNodes := cluster.NodeNames()
 
