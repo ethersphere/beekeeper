@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const optionNameConfigDir = "config-dir"
+
 func init() {
 	cobra.EnableCommandSorting = true
 }
@@ -24,8 +26,7 @@ type command struct {
 	globalConfigFile string
 	homeDir          string
 	// configuration
-	config    *config.Config
-	configDir string
+	config *config.Config
 	// kubernetes client
 	k8sClient *k8s.Client
 }
@@ -51,11 +52,6 @@ func newCommand(opts ...option) (c *command, err error) {
 
 	// find home directory
 	if err := c.setHomeDir(); err != nil {
-		return nil, err
-	}
-
-	// find config directory
-	if err := c.setConfigDir(); err != nil {
 		return nil, err
 	}
 
@@ -102,6 +98,7 @@ func Execute() (err error) {
 func (c *command) initGlobalFlags() {
 	globalFlags := c.root.PersistentFlags()
 	globalFlags.StringVar(&c.globalConfigFile, "config", "", "config file (default is $HOME/.beekeeper.yaml)")
+	globalFlags.String(optionNameConfigDir, filepath.Join(c.homeDir, "/.beekeeper/"), "config directory (default is $HOME/.beekeeper/)")
 }
 
 func (c *command) initConfig() (err error) {
@@ -139,8 +136,10 @@ func (c *command) initConfig() (err error) {
 	// set Kubernetes client
 	c.setK8S()
 
-	// set configuration
-	c.config, err = config.ReadDir(c.configDir)
+	// bind flag for configuration directory
+	cfg.BindPFlag(optionNameConfigDir, c.root.PersistentFlags().Lookup(optionNameConfigDir))
+	// read configuration directory
+	c.config, err = config.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
 	if err != nil {
 		return err
 	}
@@ -157,18 +156,6 @@ func (c *command) setHomeDir() (err error) {
 		return err
 	}
 	c.homeDir = dir
-	return nil
-}
-
-func (c *command) setConfigDir() (err error) {
-	if c.configDir != "" {
-		return
-	}
-	dir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	c.configDir = dir + "/config"
 	return nil
 }
 

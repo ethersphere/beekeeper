@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"reflect"
 
 	"gopkg.in/yaml.v3"
@@ -105,7 +106,16 @@ func ReadDir(configDir string) (*Config, error) {
 	}
 
 	for _, file := range yamlFiles {
-		yamlFile, err := ioutil.ReadFile(configDir + "/" + file.Name())
+		// check if file is YAML
+		fullPath := filepath.Join(configDir + "/" + file.Name())
+		fileExt := filepath.Ext(fullPath)
+		if fileExt != ".yaml" && fileExt != ".yml" {
+			fmt.Printf("skipping file (not .yml nor .yaml): %s", fullPath)
+			continue
+		}
+
+		// read file
+		yamlFile, err := ioutil.ReadFile(fullPath)
 		if err != nil {
 			return nil, fmt.Errorf("reading yaml file %s: %w ", file.Name(), err)
 		}
