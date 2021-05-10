@@ -409,7 +409,7 @@ var Checks = map[string]CheckType{
 	},
 }
 
-// applyCheckConfig merges given, global and default check options
+// applyCheckConfig merges global and local options into default options
 func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err error) {
 	lv := reflect.ValueOf(local).Elem()
 	lt := reflect.TypeOf(local).Elem()
