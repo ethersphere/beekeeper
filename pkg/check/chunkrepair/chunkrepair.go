@@ -20,6 +20,15 @@ import (
 
 // TODO: remove need for node group, use whole cluster instead
 
+const (
+	maxIterations    = 10
+	minNodesRequired = 3
+)
+
+var (
+	errLessNodesForTest = errors.New("node count is less than the minimum count required")
+)
+
 // Options represents check options
 type Options struct {
 	MetricsPusher          *push.Pusher
@@ -186,15 +195,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	return nil
 }
-
-const (
-	maxIterations    = 10
-	minNodesRequired = 3
-)
-
-var (
-	errLessNodesForTest = errors.New("node count is less than the minimum count required")
-)
 
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match
