@@ -8,7 +8,7 @@ import (
 
 // NodeGroup represents node group configuration
 type NodeGroup struct {
-	// parrent to inherit settings from
+	// parent to inherit settings from
 	*Inherit `yaml:",inline"`
 	// node group configuration
 	Annotations               *map[string]string `yaml:"annotations"`

@@ -20,7 +20,7 @@ type Config struct {
 
 // Inherit is struct used for implementing inheritance in Config objects
 type Inherit struct {
-	ParrentName string `yaml:"_inherit"`
+	ParentName string `yaml:"_inherit"`
 }
 
 // merge combines Config objects using inheritance
@@ -28,12 +28,12 @@ func (c *Config) merge() (err error) {
 	// merge BeeConfigs
 	mergedBC := map[string]BeeConfig{}
 	for name, v := range c.BeeConfigs {
-		if len(v.ParrentName) == 0 {
+		if len(v.ParentName) == 0 {
 			mergedBC[name] = v
 		} else {
-			parent, ok := c.BeeConfigs[v.ParrentName]
+			parent, ok := c.BeeConfigs[v.ParentName]
 			if !ok {
-				return fmt.Errorf("bee profile %s doesn't exist", v.ParrentName)
+				return fmt.Errorf("bee profile %s doesn't exist", v.ParentName)
 			}
 			p := reflect.ValueOf(&parent).Elem()
 			m := reflect.ValueOf(&v).Elem()
@@ -50,12 +50,12 @@ func (c *Config) merge() (err error) {
 	// merge NodeGroups
 	mergedNG := map[string]NodeGroup{}
 	for name, v := range c.NodeGroups {
-		if len(v.ParrentName) == 0 {
+		if len(v.ParentName) == 0 {
 			mergedNG[name] = v
 		} else {
-			parent, ok := c.NodeGroups[v.ParrentName]
+			parent, ok := c.NodeGroups[v.ParentName]
 			if !ok {
-				return fmt.Errorf("node group profile %s doesn't exist", v.ParrentName)
+				return fmt.Errorf("node group profile %s doesn't exist", v.ParentName)
 			}
 			p := reflect.ValueOf(&parent).Elem()
 			m := reflect.ValueOf(&v).Elem()
@@ -72,12 +72,12 @@ func (c *Config) merge() (err error) {
 	// merge clusters
 	mergedC := map[string]Cluster{}
 	for name, v := range c.Clusters {
-		if len(v.ParrentName) == 0 {
+		if len(v.ParentName) == 0 {
 			mergedC[name] = v
 		} else {
-			parent, ok := c.Clusters[v.ParrentName]
+			parent, ok := c.Clusters[v.ParentName]
 			if !ok {
-				return fmt.Errorf("bee profile %s doesn't exist", v.ParrentName)
+				return fmt.Errorf("bee profile %s doesn't exist", v.ParentName)
 			}
 			p := reflect.ValueOf(&parent).Elem()
 			m := reflect.ValueOf(&v).Elem()

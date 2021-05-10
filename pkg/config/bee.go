@@ -8,7 +8,7 @@ import (
 
 // BeeConfig represents Bee configuration
 type BeeConfig struct {
-	// parrent to inherit settings from
+	// parent to inherit settings from
 	*Inherit `yaml:",inline"`
 	// Bee configuration
 	APIAddr              *string `yaml:"api-addr"`
