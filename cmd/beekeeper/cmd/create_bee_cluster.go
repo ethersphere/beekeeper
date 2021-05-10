@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -18,11 +16,8 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 		Long:  `Create Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			_, err = c.setupCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, true)
-			if err != nil {
-				return fmt.Errorf("cluster setup: %w", err)
-			}
 
-			return
+			return err
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return c.globalConfig.BindPFlags(cmd.Flags())
