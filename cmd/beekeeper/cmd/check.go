@@ -79,7 +79,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.Flags().Bool(optionNameCreateCluster, false, "start cluster")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
-	cmd.Flags().Int64(optionNameSeed, 0, "seed, -1 for random")
+	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")
 
 	c.root.AddCommand(cmd)
 
