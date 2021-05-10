@@ -26,7 +26,5 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
 
-	c.root.AddCommand(cmd)
-
 	return cmd
 }

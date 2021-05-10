@@ -26,7 +26,5 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
 	cmd.Flags().Bool(optionNameWithStorage, false, "delete storage")
 
-	c.root.AddCommand(cmd)
-
 	return cmd
 }
