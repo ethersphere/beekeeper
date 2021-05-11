@@ -18,7 +18,9 @@ type NodeGroup struct {
 	ImagePullPolicy           *string            `yaml:"image-pull-policy"`
 	ImagePullSecrets          *[]string          `yaml:"image-pull-secrets"`
 	IngressAnnotations        *map[string]string `yaml:"ingress-annotations"`
+	IngressClass              *string            `yaml:"ingress-class"`
 	IngressDebugAnnotations   *map[string]string `yaml:"ingress-debug-annotations"`
+	IngressDebugClass         *string            `yaml:"ingress-debug-class"`
 	Labels                    *map[string]string `yaml:"labels"`
 	NodeSelector              *map[string]string `yaml:"node-selector"`
 	PersistenceEnabled        *bool              `yaml:"persistence-enabled"`

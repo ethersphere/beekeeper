@@ -354,28 +354,31 @@ func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.Per
 }
 
 type setBeeNodePortOptions struct {
-	Name       string
-	Protocol   string
-	TargetPort string
-	Port       int32
-	NodePort   int32
+	AppProtocol string
+	Name        string
+	Protocol    string
+	TargetPort  string
+	Port        int32
+	NodePort    int32
 }
 
 func setBeeNodePort(o setBeeNodePortOptions) (ports service.Ports) {
 	if o.NodePort > 0 {
 		return service.Ports{{
-			Name:       "p2p",
-			Protocol:   "TCP",
-			Port:       o.Port,
-			TargetPort: "p2p",
-			Nodeport:   o.NodePort,
+			AppProtocol: "TCP",
+			Name:        "p2p",
+			Protocol:    "TCP",
+			Port:        o.Port,
+			TargetPort:  "p2p",
+			Nodeport:    o.NodePort,
 		}}
 	}
 	return service.Ports{{
-		Name:       "p2p",
-		Protocol:   "TCP",
-		Port:       o.Port,
-		TargetPort: "p2p",
+		AppProtocol: "TCP",
+		Name:        "p2p",
+		Protocol:    "TCP",
+		Port:        o.Port,
+		TargetPort:  "p2p",
 	}}
 }
 

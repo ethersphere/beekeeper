@@ -36,8 +36,10 @@ type CreateOptions struct {
 	ImagePullPolicy           string
 	ImagePullSecrets          []string
 	IngressAnnotations        map[string]string
+	IngressClass              string
 	IngressHost               string
 	IngressDebugAnnotations   map[string]string
+	IngressDebugClass         string
 	IngressDebugHost          string
 	LibP2PKey                 string
 	NodeSelector              map[string]string

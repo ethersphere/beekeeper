@@ -36,7 +36,9 @@ type NodeGroupOptions struct {
 	ImagePullPolicy           string
 	ImagePullSecrets          []string
 	IngressAnnotations        map[string]string
+	IngressClass              string
 	IngressDebugAnnotations   map[string]string
+	IngressDebugClass         string
 	Labels                    map[string]string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
@@ -288,8 +290,10 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
 		ImagePullSecrets:          g.opts.ImagePullSecrets,
 		IngressAnnotations:        g.opts.IngressAnnotations,
+		IngressClass:              g.opts.IngressClass,
 		IngressHost:               g.cluster.ingressHost(name),
 		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
+		IngressDebugClass:         g.opts.IngressDebugClass,
 		IngressDebugHost:          g.cluster.ingressDebugHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 n.libP2PKey,
