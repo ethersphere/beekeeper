@@ -99,7 +99,7 @@ func startBootNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount
 		bConfig.Bootnodes = bSetup[i].Bootnodes
 		// CICD Options
 		bConfig.ClefSignerEnable = o.ClefSignerEnable
-		bConfig.DBCapacity = o.DBCapacity
+		bConfig.CacheCapacity = o.CacheCapacity
 		bConfig.PaymentEarly = o.PaymentEarly
 		bConfig.PaymentThreshold = o.PaymentThreshold
 		bConfig.PaymentTolerance = o.PaymentTolerance
@@ -150,7 +150,7 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 	gOptions.BeeConfig.FullNode = fullNode
 	// CICD Options
 	gOptions.BeeConfig.ClefSignerEnable = o.ClefSignerEnable
-	gOptions.BeeConfig.DBCapacity = o.DBCapacity
+	gOptions.BeeConfig.CacheCapacity = o.CacheCapacity
 	gOptions.BeeConfig.PaymentEarly = o.PaymentEarly
 	gOptions.BeeConfig.PaymentThreshold = o.PaymentThreshold
 	gOptions.BeeConfig.PaymentTolerance = o.PaymentTolerance
@@ -181,7 +181,7 @@ func startNodeGroup(ctx context.Context, cluster *bee.Cluster, bootNodeCount, no
 // TODO: remove after new config
 type cicdOptions struct {
 	ClefSignerEnable   bool
-	DBCapacity         uint64
+	CacheCapacity      uint64
 	PaymentEarly       uint64
 	PaymentThreshold   uint64
 	PaymentTolerance   uint64
@@ -193,10 +193,10 @@ type cicdOptions struct {
 	IngressClass       string
 }
 
-func newCICDOptions(clefSignerEnable bool, dbCapacity uint64, paymentEarly uint64, paymentThreshold uint64, paymentTolerance uint64, swapEnable bool, swapEndpoint string, swapFactoryAddress string, swapInitialDeposit uint64, nodeSelector string, ingressClass string) cicdOptions {
+func newCICDOptions(clefSignerEnable bool, cacheCapacity uint64, paymentEarly uint64, paymentThreshold uint64, paymentTolerance uint64, swapEnable bool, swapEndpoint string, swapFactoryAddress string, swapInitialDeposit uint64, nodeSelector string, ingressClass string) cicdOptions {
 	return cicdOptions{
 		ClefSignerEnable:   clefSignerEnable,
-		DBCapacity:         dbCapacity,
+		CacheCapacity:      cacheCapacity,
 		PaymentEarly:       paymentEarly,
 		PaymentThreshold:   paymentThreshold,
 		PaymentTolerance:   paymentTolerance,
@@ -218,7 +218,7 @@ func newDefaultBeeConfig() *k8s.Config {
 		ClefSignerEndpoint:   "",
 		CORSAllowedOrigins:   "",
 		DataDir:              "/home/bee/.bee",
-		DBCapacity:           5000000,
+		CacheCapacity:        1000000,
 		DebugAPIAddr:         ":1635",
 		DebugAPIEnable:       true,
 		FullNode:             true,

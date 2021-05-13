@@ -80,7 +80,7 @@ and attempts repairing of those chunks for the other nodes in the cluster.`,
 				DisableNamespace:    disableNamespace,
 			})
 
-			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
+			cicd := newCICDOptions(clefSignerEnable, cacheCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
 
 			if startCluster {
 				// bootnodes group

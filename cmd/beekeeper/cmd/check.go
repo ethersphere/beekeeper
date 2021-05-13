@@ -68,7 +68,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.PersistentFlags().Int64(optionNamePostageAmount, 1, "postage stamp amount")
 	// CICD options
 	cmd.PersistentFlags().BoolVar(&clefSignerEnable, optionNameClefSignerEnable, false, "enable Clef signer")
-	cmd.PersistentFlags().Uint64Var(&dbCapacity, optionNameDBCapacity, 5000000, "DB capacity")
+	cmd.PersistentFlags().Uint64Var(&cacheCapacity, optionNameCacheCapacity, 1000000, "Cache capacity")
 	cmd.PersistentFlags().Uint64Var(&paymentEarly, optionNamePaymentEarly, 100000000000, "payment early")
 	cmd.PersistentFlags().Uint64Var(&paymentThreshold, optionNamePaymentThreshold, 1000000000000, "payment threshold")
 	cmd.PersistentFlags().Uint64Var(&paymentTolerance, optionNamePaymentTolerance, 100000000000, "payment tolerance")

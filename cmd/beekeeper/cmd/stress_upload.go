@@ -40,7 +40,7 @@ func (c *command) initStressUpload() *cobra.Command {
 		optionNameRetryDelay               = "retry-delay"
 		// CICD options
 		optionNameClefSignerEnable   = "clef-signer-enable"
-		optionNameDBCapacity         = "db-capacity"
+		optionNameCacheCapacity      = "cache-capacity"
 		optionNamePaymentEarly       = "payment-early"
 		optionNamePaymentThreshold   = "payment-threshold"
 		optionNamePaymentTolerance   = "payment-tolerance"
@@ -73,7 +73,7 @@ func (c *command) initStressUpload() *cobra.Command {
 		uploadNodesPercentage    int
 		// CICD options
 		clefSignerEnable   bool
-		dbCapacity         uint64
+		cacheCapacity      uint64
 		paymentEarly       uint64
 		paymentThreshold   uint64
 		paymentTolerance   uint64
@@ -108,7 +108,7 @@ func (c *command) initStressUpload() *cobra.Command {
 				DisableNamespace:    disableNamespace,
 			})
 
-			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
+			cicd := newCICDOptions(clefSignerEnable, cacheCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
 
 			if startCluster {
 				// bootnodes group
@@ -219,7 +219,7 @@ func (c *command) initStressUpload() *cobra.Command {
 	cmd.Flags().Duration(optionNameRetryDelay, time.Second, "retry delay duration")
 	// CICD options
 	cmd.Flags().BoolVar(&clefSignerEnable, optionNameClefSignerEnable, false, "enable Clef signer")
-	cmd.Flags().Uint64Var(&dbCapacity, optionNameDBCapacity, 5000000, "DB capacity")
+	cmd.Flags().Uint64Var(&cacheCapacity, optionNameCacheCapacity, 1000000, "Cache capacity")
 	cmd.Flags().Uint64Var(&paymentEarly, optionNamePaymentEarly, 100000000000, "payment early")
 	cmd.Flags().Uint64Var(&paymentThreshold, optionNamePaymentThreshold, 1000000000000, "payment threshold")
 	cmd.Flags().Uint64Var(&paymentTolerance, optionNamePaymentTolerance, 100000000000, "payment tolerance")

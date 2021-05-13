@@ -17,7 +17,7 @@ clef-signer-enable: {{.ClefSignerEnable}}
 clef-signer-endpoint: {{.ClefSignerEndpoint}}
 cors-allowed-origins: {{.CORSAllowedOrigins}}
 data-dir: {{.DataDir}}
-db-capacity: {{.DBCapacity}}
+cache-capacity: {{.CacheCapacity}}
 debug-api-addr: {{.DebugAPIAddr}}
 debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}

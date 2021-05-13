@@ -13,7 +13,6 @@ import (
 const (
 	// CICD options
 	optionNameClefSignerEnable   = "clef-signer-enable"
-	optionNameDBCapacity         = "db-capacity"
 	optionNamePaymentEarly       = "payment-early"
 	optionNamePaymentThreshold   = "payment-threshold"
 	optionNamePaymentTolerance   = "payment-tolerance"
@@ -28,7 +27,7 @@ const (
 var (
 	// CICD options
 	clefSignerEnable   bool
-	dbCapacity         uint64
+	cacheCapacity      uint64
 	paymentEarly       uint64
 	paymentThreshold   uint64
 	paymentTolerance   uint64
@@ -110,7 +109,7 @@ func (c *command) initStartCluster() *cobra.Command {
 				Namespace: namespace,
 			})
 
-			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
+			cicd := newCICDOptions(clefSignerEnable, cacheCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
 
 			// bootnodes group
 			bgName := "bootnode"
@@ -159,7 +158,7 @@ func (c *command) initStartCluster() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&additionalStorageRequest, optionNameAdditionalStorageRequest, "34Gi", "storage request")
 	// CICD options
 	cmd.Flags().BoolVar(&clefSignerEnable, optionNameClefSignerEnable, false, "enable Clef signer")
-	cmd.Flags().Uint64Var(&dbCapacity, optionNameDBCapacity, 5000000, "DB capacity")
+	cmd.Flags().Uint64Var(&cacheCapacity, optionNameCacheCapacity, 1000000, "Cache capacity")
 	cmd.Flags().Uint64Var(&paymentEarly, optionNamePaymentEarly, 100000000000, "payment early")
 	cmd.Flags().Uint64Var(&paymentThreshold, optionNamePaymentThreshold, 1000000000000, "payment threshold")
 	cmd.Flags().Uint64Var(&paymentTolerance, optionNamePaymentTolerance, 100000000000, "payment tolerance")

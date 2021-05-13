@@ -14,7 +14,6 @@ import (
 
 func (c *command) initCheckGc() *cobra.Command {
 	const (
-		optionNameDbCapacity               = "db-capacity"
 		optionNameDivisor                  = "capacity-divisor"
 		optionNameSeed                     = "seed"
 		optionNameWaitBeforeCheck          = "wait"
@@ -80,7 +79,7 @@ func (c *command) initCheckGc() *cobra.Command {
 				DisableNamespace:    disableNamespace,
 			})
 
-			cicd := newCICDOptions(clefSignerEnable, dbCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
+			cicd := newCICDOptions(clefSignerEnable, cacheCapacity, paymentEarly, paymentThreshold, paymentTolerance, swapEnable, swapEndpoint, swapFactoryAddress, swapInitialDeposit, nodeSelector, ingressClass)
 
 			if startCluster {
 				// bootnodes group
