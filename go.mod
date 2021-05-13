@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible // indirect
+	github.com/ethereum/go-ethereum v1.9.23 // indirect
 	github.com/ethersphere/bee v0.5.3
 	github.com/ethersphere/bmt v0.1.4
 	github.com/gorilla/websocket v1.4.2

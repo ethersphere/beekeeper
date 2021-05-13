@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s/notset"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
 // Cluster represents cluster of Bee nodes
@@ -24,6 +25,7 @@ type Cluster struct {
 	debugAPIInsecureTLS bool
 	debugAPIScheme      string
 	k8s                 *k8s.Client
+	swap                *swap.Service
 	labels              map[string]string
 	namespace           string
 	disableNamespace    bool                  // do not use namespace for node hostnames
@@ -40,6 +42,7 @@ type ClusterOptions struct {
 	DebugAPIInsecureTLS bool
 	DebugAPIScheme      string
 	K8SClient           *k8s.Client
+	Swap                *swap.Service
 	Labels              map[string]string
 	Namespace           string
 	DisableNamespace    bool
@@ -57,6 +60,7 @@ func NewCluster(name string, o ClusterOptions) *Cluster {
 		debugAPIInsecureTLS: o.DebugAPIInsecureTLS,
 		debugAPIScheme:      o.DebugAPIScheme,
 		k8s:                 o.K8SClient,
+		swap:                o.Swap,
 		labels:              o.Labels,
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,

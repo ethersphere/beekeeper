@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,6 +30,8 @@ type command struct {
 	config *config.Config
 	// kubernetes client
 	k8sClient *k8s.Client
+	// swap service
+	swapService *swap.Service
 }
 
 type option func(*command)
@@ -138,6 +141,11 @@ func (c *command) initConfig() (err error) {
 		return err
 	}
 
+	// set Swap tool
+	if err := c.setSwap(); err != nil {
+		return err
+	}
+
 	// bind flag for configuration directory
 	if err := cfg.BindPFlag(optionNameConfigDir, c.root.PersistentFlags().Lookup(optionNameConfigDir)); err != nil {
 		return err
@@ -174,5 +182,13 @@ func (c *command) setK8S() (err error) {
 		}
 	}
 
+	return
+}
+
+func (c *command) setSwap() (err error) {
+	c.swapService, err = swap.NewService(c.globalConfig.GetString("swap-backend"), c.globalConfig.GetString("swap-private-key-hex"), c.globalConfig.GetString("swap-token-address"))
+	if err != nil {
+		return fmt.Errorf("creating swap tool: %w", err)
+	}
 	return
 }
