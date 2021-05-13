@@ -3,7 +3,7 @@ module github.com/ethersphere/beekeeper
 go 1.16
 
 require (
-	github.com/ethereum/go-ethereum v1.10.3
+	github.com/ethereum/go-ethereum v1.9.23
 	github.com/ethersphere/bee v0.5.3
 	github.com/ethersphere/bmt v0.1.4
 	github.com/ethersphere/sw3-bindings/v2 v2.1.0
