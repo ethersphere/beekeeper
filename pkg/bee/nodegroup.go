@@ -328,8 +328,8 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 		break
 	}
 	fmt.Printf("%s etherum address: %s\n", name, a.Ethereum)
-
-	return g.cluster.swap.Fund(ctx, name)
+	// return g.cluster.swap.Fund(ctx, name)
+	return nil
 }
 
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
