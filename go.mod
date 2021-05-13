@@ -7,16 +7,17 @@ require (
 	github.com/ethersphere/bee v0.5.3
 	github.com/ethersphere/bmt v0.1.4
 	github.com/gorilla/websocket v1.4.2
-	github.com/imdario/mergo v0.3.8 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/common v0.10.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	google.golang.org/appengine v1.6.5 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
+	helm.sh/helm/v3 v3.2.4
 	k8s.io/api v0.18.3
 	k8s.io/apimachinery v0.18.3
 	k8s.io/client-go v0.18.3
+	rsc.io/letsencrypt v0.0.3 // indirect
 )

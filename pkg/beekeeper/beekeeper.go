@@ -158,7 +158,7 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 
 	// add nodes
 	for _, n := range toAdd {
-		if err := ng.AddStartNode(ctx, n, bee.NodeOptions{}); err != nil {
+		if err := ng.SetupNode(ctx, n, bee.NodeOptions{}); err != nil {
 			return fmt.Errorf("add start node %s: %w", n, err)
 		}
 		overlay, err := ng.NodeClient(n).Overlay(ctx)
@@ -247,7 +247,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 				<-updateSemaphore
 			}()
 
-			if err := ng.AddStartNode(ctx, n, bee.NodeOptions{}); err != nil {
+			if err := ng.SetupNode(ctx, n, bee.NodeOptions{}); err != nil {
 				return fmt.Errorf("add start node %s: %w", n, err)
 			}
 			overlay, err := ng.NodeClient(n).Overlay(ctx)

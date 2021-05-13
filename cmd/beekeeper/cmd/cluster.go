@@ -115,7 +115,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					}
 
 					errGroup.Go(func() error {
-						return g.AddStartNode(ctx, nName, bOptions)
+						return g.SetupNode(ctx, nName, bOptions)
 					})
 				}
 
@@ -149,7 +149,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					nName := fmt.Sprintf("%s-%d", ng, i)
 
 					errGroup.Go(func() error {
-						return g.AddStartNode(ctx, nName, bee.NodeOptions{})
+						return g.SetupNode(ctx, nName, bee.NodeOptions{})
 					})
 				}
 

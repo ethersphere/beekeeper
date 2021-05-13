@@ -11,7 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
-const nodeReadyTimeout = 3 * time.Second
+const nodeRetryTimeout = 3 * time.Second
 
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
@@ -100,23 +100,6 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 	})
 
 	g.addNode(n)
-
-	return
-}
-
-// AddStartNode adds new node in the node group and starts it in the k8s cluster
-func (g *NodeGroup) AddStartNode(ctx context.Context, name string, o NodeOptions) (err error) {
-	if err := g.AddNode(name, o); err != nil {
-		return fmt.Errorf("add node %s: %w", name, err)
-	}
-
-	if err := g.CreateNode(ctx, name); err != nil {
-		return fmt.Errorf("create node %s in k8s: %w", name, err)
-	}
-
-	if err := g.StartNode(ctx, name); err != nil {
-		return fmt.Errorf("start node %s in k8s: %w", name, err)
-	}
 
 	return
 }
@@ -326,6 +309,27 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	g.deleteNode(name)
 
 	return
+}
+
+// Fund adds funds to the node
+func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
+	var a Addresses
+	retries := 5
+	for retries > 0 {
+		a, err = g.NodeClient(name).Addresses(ctx)
+		if err != nil {
+			retries--
+			if retries == -1 {
+				return fmt.Errorf("get %s address: %w", name, err)
+			}
+			time.Sleep(nodeRetryTimeout)
+			continue
+		}
+		break
+	}
+	fmt.Printf("%s etherum address: %s\n", name, a.Ethereum)
+
+	return nil
 }
 
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
@@ -608,6 +612,27 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 	return
 }
 
+// SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions) (err error) {
+	if err := g.AddNode(name, o); err != nil {
+		return fmt.Errorf("add node %s: %w", name, err)
+	}
+
+	if err := g.CreateNode(ctx, name); err != nil {
+		return fmt.Errorf("create node %s in k8s: %w", name, err)
+	}
+
+	if err := g.StartNode(ctx, name); err != nil {
+		return fmt.Errorf("start node %s in k8s: %w", name, err)
+	}
+
+	if err := g.Fund(ctx, name); err != nil {
+		return fmt.Errorf("fund node %s: %w", name, err)
+	}
+
+	return
+}
+
 // NodeGroupSettlements represents settlements of all nodes in the node group
 type NodeGroupSettlements map[string]map[string]SentReceived
 
@@ -719,7 +744,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		}
 
 		fmt.Printf("%s is not ready yet\n", name)
-		time.Sleep(nodeReadyTimeout)
+		time.Sleep(nodeRetryTimeout)
 	}
 }
 
@@ -742,7 +767,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		}
 
 		fmt.Printf("%s is not stopped yet\n", name)
-		time.Sleep(nodeReadyTimeout)
+		time.Sleep(nodeRetryTimeout)
 	}
 }
 
