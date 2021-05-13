@@ -188,7 +188,7 @@ func (c *command) setK8S() (err error) {
 func (c *command) setSwapService() (err error) {
 	c.swapService, err = swap.NewService(c.globalConfig.GetString("bzz-backend"), c.globalConfig.GetString("bzz-private-key"), c.globalConfig.GetString("bzz-token-address"))
 	if err != nil {
-		return fmt.Errorf("creating swap tool: %w", err)
+		return fmt.Errorf("creating swap service: %w", err)
 	}
 	return
 }
