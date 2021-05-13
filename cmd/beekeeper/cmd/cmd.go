@@ -141,8 +141,8 @@ func (c *command) initConfig() (err error) {
 		return err
 	}
 
-	// set Swap tool
-	if err := c.setSwap(); err != nil {
+	// set Swap service
+	if err := c.setSwapService(); err != nil {
 		return err
 	}
 
@@ -185,8 +185,8 @@ func (c *command) setK8S() (err error) {
 	return
 }
 
-func (c *command) setSwap() (err error) {
-	c.swapService, err = swap.NewService(c.globalConfig.GetString("swap-backend"), c.globalConfig.GetString("swap-private-key-hex"), c.globalConfig.GetString("swap-token-address"))
+func (c *command) setSwapService() (err error) {
+	c.swapService, err = swap.NewService(c.globalConfig.GetString("bzz-backend"), c.globalConfig.GetString("bzz-private-key"), c.globalConfig.GetString("bzz-token-address"))
 	if err != nil {
 		return fmt.Errorf("creating swap tool: %w", err)
 	}
