@@ -319,7 +319,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 		a, err = g.NodeClient(name).Addresses(ctx)
 		if err != nil {
 			retries--
-			if retries == -1 {
+			if retries == 0 {
 				return fmt.Errorf("get %s address: %w", name, err)
 			}
 			time.Sleep(nodeRetryTimeout)
@@ -328,8 +328,9 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 		break
 	}
 	fmt.Printf("%s etherum address: %s\n", name, a.Ethereum)
-	// return g.cluster.swap.Fund(ctx, name)
-	return nil
+
+	// return g.cluster.swap.Fund(ctx, ethDeposit, tokenDeposit, a.Ethereum)
+	return
 }
 
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
