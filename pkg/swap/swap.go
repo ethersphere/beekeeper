@@ -52,7 +52,7 @@ func NewService(backend string, privateKeyHex string, tokenAddress string) (s *S
 		return nil, err
 	}
 	logger := logging.New(os.Stdout, logrus.TraceLevel) // TODO: check this
-	chainID := big.NewInt(4386)                         // TODO: check this
+	chainID := big.NewInt(0)                            // TODO: check this
 	transactionService, err := transaction.NewService(logger, client, signer, store, chainID)
 	if err != nil {
 		return nil, err
