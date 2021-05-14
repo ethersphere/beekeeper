@@ -6,6 +6,7 @@ require (
 	github.com/ethereum/go-ethereum v1.9.23
 	github.com/ethersphere/bee v0.5.3
 	github.com/ethersphere/bmt v0.1.4
+	github.com/ethersphere/go-sw3-abi v0.4.0 // indirect
 	github.com/ethersphere/sw3-bindings/v2 v2.1.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/prometheus/client_golang v1.10.0

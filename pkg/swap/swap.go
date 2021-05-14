@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -15,17 +14,16 @@ import (
 	"github.com/ethersphere/bee/pkg/logging"
 	"github.com/ethersphere/bee/pkg/settlement/swap/transaction"
 	statestore "github.com/ethersphere/bee/pkg/statestore/mock"
-	"github.com/ethersphere/sw3-bindings/v2/simpleswapfactory"
+	"github.com/ethersphere/go-sw3-abi/sw3abi"
 	"github.com/sirupsen/logrus"
 )
 
 type Service struct {
-	sender               common.Address
-	transactionService   transaction.Service
-	backend              *ethclient.Client
-	tokenAddress         common.Address
-	erc20ABI             abi.ABI
-	simpleSwapFactoryABI abi.ABI
+	backend            *ethclient.Client
+	erc20ABI           abi.ABI
+	sender             common.Address
+	tokenAddress       common.Address
+	transactionService transaction.Service
 }
 
 func NewService(backend string, privateKeyHex string, tokenAddress string) (s *Service, err error) {
@@ -58,23 +56,14 @@ func NewService(backend string, privateKeyHex string, tokenAddress string) (s *S
 		return nil, err
 	}
 
-	erc20ABI, err := abi.JSON(strings.NewReader(simpleswapfactory.ERC20ABI))
-	if err != nil {
-		return nil, err
-	}
-
-	simpleSwapFactoryABI, err := abi.JSON(strings.NewReader(simpleswapfactory.SimpleSwapFactoryABI))
-	if err != nil {
-		return nil, err
-	}
+	erc20ABI := transaction.ParseABIUnchecked(sw3abi.ERC20ABIv0_3_1)
 
 	return &Service{
-		backend:              client,
-		transactionService:   transactionService,
-		tokenAddress:         common.HexToAddress(tokenAddress),
-		erc20ABI:             erc20ABI,
-		simpleSwapFactoryABI: simpleSwapFactoryABI,
-		sender:               sender,
+		backend:            client,
+		erc20ABI:           erc20ABI,
+		sender:             sender,
+		tokenAddress:       common.HexToAddress(tokenAddress),
+		transactionService: transactionService,
 	}, nil
 }
 

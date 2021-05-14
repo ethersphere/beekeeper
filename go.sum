@@ -210,6 +210,8 @@ github.com/ethersphere/bee v0.5.3 h1:/CbqmFwUYuketq3lfb+3waEi9pM3rQyEVMu3yBHoRrE
 github.com/ethersphere/bee v0.5.3/go.mod h1:VYxqKlm0jveiqdPWwzinMFnWVwPBvOxQaLJ8qyHrU1A=
 github.com/ethersphere/bmt v0.1.4 h1:+rkWYNtMgDx6bkNqGdWu+U9DgGI1rRZplpSW3YhBr1Q=
 github.com/ethersphere/bmt v0.1.4/go.mod h1:Yd8ft1U69WDuHevZc/rwPxUv1rzPSMpMnS6xbU53aY8=
+github.com/ethersphere/go-sw3-abi v0.4.0 h1:T3ANY+ktWrPAwe2U0tZi+DILpkHzto5ym/XwV/Bbz8g=
+github.com/ethersphere/go-sw3-abi v0.4.0/go.mod h1:BmpsvJ8idQZdYEtWnvxA8POYQ8Rl/NhyCdF0zLMOOJU=
 github.com/ethersphere/langos v1.0.0/go.mod h1:dlcN2j4O8sQ+BlCaxeBu43bgr4RQ+inJ+pHwLeZg5Tw=
 github.com/ethersphere/manifest v0.3.6/go.mod h1:frSxQFT67hQvmTN5CBtgVuqHzGQpg0V0oIIm/B3Am+U=
 github.com/ethersphere/sw3-bindings/v2 v2.1.0 h1:QefDtzU94UelICMPXWr7m52E2oj6r018Yc0XLoCWOxw=
