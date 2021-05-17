@@ -106,7 +106,7 @@ func (c *Client) Balance(ctx context.Context, a swarm.Address) (resp Balance, er
 	}
 
 	return Balance{
-		Balance: b.Balance,
+		Balance: b.Balance.Int64(),
 		Peer:    b.Peer,
 	}, nil
 }
@@ -125,7 +125,7 @@ func (c *Client) Balances(ctx context.Context) (resp Balances, err error) {
 
 	for _, b := range r.Balances {
 		resp.Balances = append(resp.Balances, Balance{
-			Balance: b.Balance,
+			Balance: b.Balance.Int64(),
 			Peer:    b.Peer,
 		})
 	}
@@ -282,8 +282,8 @@ func (c *Client) RemoveChunk(ctx context.Context, a swarm.Address) error {
 // Settlement represents node's settlement with peer
 type Settlement struct {
 	Peer     string
-	Received int
-	Sent     int
+	Received int64
+	Sent     int64
 }
 
 // Settlement returns node's settlement with a given peer
@@ -295,8 +295,8 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 
 	return Settlement{
 		Peer:     b.Peer,
-		Received: b.Received,
-		Sent:     b.Sent,
+		Received: b.Received.Int.Int64(),
+		Sent:     b.Sent.Int.Int64(),
 	}, nil
 }
 
@@ -353,8 +353,8 @@ func (c *Client) UploadSOC(ctx context.Context, owner, ID, signature string, dat
 // Settlements represents Settlements's response
 type Settlements struct {
 	Settlements   []Settlement
-	TotalReceived int
-	TotalSent     int
+	TotalReceived int64
+	TotalSent     int64
 }
 
 // Settlements returns node's settlements
@@ -367,12 +367,12 @@ func (c *Client) Settlements(ctx context.Context) (resp Settlements, err error) 
 	for _, b := range r.Settlements {
 		resp.Settlements = append(resp.Settlements, Settlement{
 			Peer:     b.Peer,
-			Received: b.Received,
-			Sent:     b.Sent,
+			Received: b.Received.Int64(),
+			Sent:     b.Sent.Int64(),
 		})
 	}
-	resp.TotalReceived = r.TotalReceived
-	resp.TotalSent = r.TotalSent
+	resp.TotalReceived = r.TotalReceived.Int64()
+	resp.TotalSent = r.TotalSent.Int64()
 
 	return
 }
@@ -407,7 +407,7 @@ func (c *Client) CashoutStatus(ctx context.Context, a swarm.Address) (resp Casho
 	if r.Result != nil {
 		cashoutStatusResult = &CashoutStatusResult{
 			Recipient:  r.Result.Recipient,
-			LastPayout: r.Result.LastPayout,
+			LastPayout: r.Result.LastPayout.Int,
 			Bounced:    r.Result.Bounced,
 		}
 	}
@@ -417,11 +417,11 @@ func (c *Client) CashoutStatus(ctx context.Context, a swarm.Address) (resp Casho
 		Cheque: &Cheque{
 			Beneficiary: r.Cheque.Beneficiary,
 			Chequebook:  r.Cheque.Chequebook,
-			Payout:      r.Cheque.Payout,
+			Payout:      r.Cheque.Payout.Int,
 		},
 		TransactionHash: r.TransactionHash,
 		Result:          cashoutStatusResult,
-		UncashedAmount:  r.UncashedAmount,
+		UncashedAmount:  r.UncashedAmount.Int,
 	}, nil
 }
 
@@ -446,8 +446,8 @@ func (c *Client) ChequebookBalance(ctx context.Context) (resp ChequebookBalanceR
 	}
 
 	return ChequebookBalanceResponse{
-		TotalBalance:     r.TotalBalance,
-		AvailableBalance: r.AvailableBalance,
+		TotalBalance:     r.TotalBalance.Int,
+		AvailableBalance: r.AvailableBalance.Int,
 	}, nil
 }
 
