@@ -329,7 +329,9 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 	}
 	fmt.Printf("%s etherum address: %s\n", name, a.Ethereum)
 
-	// return g.cluster.swap.Fund(ctx, ethDeposit, tokenDeposit, a.Ethereum)
+	// ethDeposit, _ := new(big.Int).SetString("10000000000000000", 10)
+	// bzzDeposit, _ := new(big.Int).SetString("100000000000000000", 10)
+	// return g.cluster.swap.Fund(ctx, ethDeposit, bzzDeposit, a.Ethereum)
 	return
 }
 
@@ -627,9 +629,9 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions) (
 		return fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	if err := g.Fund(ctx, name); err != nil {
-		return fmt.Errorf("fund node %s: %w", name, err)
-	}
+	// if err := g.Fund(ctx, name); err != nil {
+	// 	return fmt.Errorf("fund node %s: %w", name, err)
+	// }
 
 	return
 }

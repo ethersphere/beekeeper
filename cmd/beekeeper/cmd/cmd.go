@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
-	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -31,7 +30,7 @@ type command struct {
 	// kubernetes client
 	k8sClient *k8s.Client
 	// swap service
-	swapService *swap.Service
+	// swapClient *swap.Client
 }
 
 type option func(*command)
@@ -69,6 +68,10 @@ func newCommand(opts ...option) (c *command, err error) {
 	}
 
 	if err := c.initDeleteCmd(); err != nil {
+		return nil, err
+	}
+
+	if err := c.initFundCmd(); err != nil {
 		return nil, err
 	}
 
@@ -186,9 +189,9 @@ func (c *command) setK8S() (err error) {
 }
 
 func (c *command) setSwapService() (err error) {
-	c.swapService, err = swap.NewService(c.globalConfig.GetString("bzz-backend"), c.globalConfig.GetString("bzz-private-key"), c.globalConfig.GetString("bzz-token-address"))
-	if err != nil {
-		return fmt.Errorf("creating swap service: %w", err)
-	}
+	// c.swapService, err = swap.NewService(c.globalConfig.GetString("bzz-backend"), c.globalConfig.GetString("bzz-private-key"), c.globalConfig.GetString("bzz-token-address"))
+	// if err != nil {
+	// 	return fmt.Errorf("creating swap service: %w", err)
+	// }
 	return
 }

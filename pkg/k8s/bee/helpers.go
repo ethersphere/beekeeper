@@ -13,6 +13,7 @@ import (
 const (
 	configTemplate = `api-addr: {{.APIAddr}}
 bootnode: {{.Bootnodes}}
+block-time: {{ .BlockTime }}
 clef-signer-enable: {{.ClefSignerEnable}}
 clef-signer-endpoint: {{.ClefSignerEndpoint}}
 cors-allowed-origins: {{.CORSAllowedOrigins}}
@@ -39,6 +40,7 @@ standalone: {{.Standalone}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
 swap-factory-address: {{.SwapFactoryAddress}}
+swap-legacy-factory-addresses: {{.SwapLegacyFactoryAddresses}}
 swap-initial-deposit: {{.SwapInitialDeposit}}
 tracing-enable: {{.TracingEnabled}}
 tracing-endpoint: {{.TracingEndpoint}}
@@ -141,7 +143,8 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
 			InitialDelaySeconds: 5,
 			Handler: containers.HTTPGetHandler{
-				Path: "/readiness",
+				// Path: "/readiness",
+				Path: "/health",
 				Port: "debug",
 			},
 		}},
