@@ -62,11 +62,16 @@ type Config struct {
 	APIAddr                    string // HTTP API listen address
 	BlockTime                  uint64 // chain block time
 	Bootnodes                  string // initial nodes to connect to
+	BootnodeMode               bool   // cause the node to always accept incoming connections
 	CacheCapacity              uint64 // cache capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
 	ClefSignerEnable           bool   // enable clef signer
 	ClefSignerEndpoint         string // clef signer endpoint
 	CORSAllowedOrigins         string // origins with CORS headers enabled
 	DataDir                    string // data directory
+	DbOpenFilesLimit           int    // number of open files allowed by database
+	DbBlockCacheCapacity       int    // size of block cache of the database in bytes
+	DbWriteBufferSize          int    // size of the database write buffer in bytes
+	DbDisableSeeksCompaction   bool   // disables DB compactions triggered by seeks
 	DebugAPIAddr               string // debug HTTP API listen address
 	DebugAPIEnable             bool   // enable debug HTTP API
 	FullNode                   bool   // cause the node to start in full mode

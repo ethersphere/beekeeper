@@ -15,7 +15,7 @@ clusters:
     node-groups:
       bootnode:
         mode: bootnode
-        bee-config: default
+        bee-config: bootnode
         config: default
         nodes:  
         - name: bootnode-0
@@ -89,11 +89,16 @@ bee-configs:
     api-addr: ":1633"
     block-time: 1
     bootnodes: ""
-    cache-capacity: 5000000
+    bootnode-mode: false
+    cache-capacity: 1000000
     clef-signer-enable: false
     clef-signer-endpoint: ""
     cors-allowed-origins: ""
     data-dir: "/home/bee/.bee"
+    db-open-files-limit: 200
+    db-block-cache-capacity: 33554432
+    db-write-buffer-size: 33554432
+    db-disable-seeks-compaction: false
     debug-api-addr: ":1635"
     debug-api-enable: true
     full-node: true
@@ -103,7 +108,7 @@ bee-configs:
     network-id: 1987
     p2p-addr: ":1634"
     p2p-quic-enable: false
-    pwp-ws-enable: false
+    p2p-ws-enable: false
     password: "beekeeper"
     payment-early: 1000000000000
     payment-threshold: 10000000000000
@@ -122,6 +127,9 @@ bee-configs:
     tracing-service-name: "bee"
     verbosity: 5
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
+  bootnode:
+    _inherit: "default"
+    bootnode-mode: true
 
 # checks defines checks Beekeeper can execute against the cluster
 # type filed allows defining same check with different names and options 

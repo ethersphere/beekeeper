@@ -12,13 +12,18 @@ import (
 
 const (
 	configTemplate = `api-addr: {{.APIAddr}}
-bootnode: {{.Bootnodes}}
 block-time: {{ .BlockTime }}
+bootnode: {{.Bootnodes}}
+bootnode-mode: {{.BootnodeMode}}
 cache-capacity: {{.CacheCapacity}}
 clef-signer-enable: {{.ClefSignerEnable}}
 clef-signer-endpoint: {{.ClefSignerEndpoint}}
 cors-allowed-origins: {{.CORSAllowedOrigins}}
 data-dir: {{.DataDir}}
+db-open-files-limit: {{.DbOpenFilesLimit}}
+db-block-cache-capacity: {{.DbBlockCacheCapacity}}
+db-write-buffer-size: {{.DbWriteBufferSize}}
+db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
 debug-api-addr: {{.DebugAPIAddr}}
 debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}
