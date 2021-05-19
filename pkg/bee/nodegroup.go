@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
 const nodeRetryTimeout = 3 * time.Second
@@ -329,12 +330,18 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 		break
 	}
 
-	// TODO TODO TODO
-	ethDeposit, _ := new(big.Int).SetString("1000000000000000000", 10)
-	bzzDeposit, _ := new(big.Int).SetString("1000000000000000000", 10)
+	ethDeposit, ok := new(big.Int).SetString(swap.EthDepost, 10)
+	if !ok {
+		return fmt.Errorf("converting eth deposit to big.Int: %w", err)
+	}
 
 	if err := g.cluster.swap.SendETH(ctx, a.Ethereum, ethDeposit); err != nil {
 		return fmt.Errorf("send eth: %w", err)
+	}
+
+	bzzDeposit, ok := new(big.Int).SetString(swap.BzzDeposit, 10)
+	if !ok {
+		return fmt.Errorf("converting bzz deposit to big.Int: %w", err)
 	}
 
 	if err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, bzzDeposit); err != nil {

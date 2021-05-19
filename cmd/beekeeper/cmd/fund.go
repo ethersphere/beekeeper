@@ -34,11 +34,20 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 			defer cancel()
 
 			for _, a := range c.globalConfig.GetStringSlice(optionNameAddresses) {
-				ethDeposit, _ := new(big.Int).SetString(c.globalConfig.GetString(optionNameEthDeposit), 10)
+				ethDeposit, ok := new(big.Int).SetString(c.globalConfig.GetString(optionNameEthDeposit), 10)
+				if !ok {
+					return fmt.Errorf("converting eth deposit to big.Int: %w", err)
+				}
+
 				if err := c.swapClient.SendETH(ctx, a, ethDeposit); err != nil {
 					return fmt.Errorf("send eth: %w", err)
 				}
-				bzzDeposit, _ := new(big.Int).SetString(c.globalConfig.GetString(optionNameBzzDeposit), 10)
+
+				bzzDeposit, ok := new(big.Int).SetString(c.globalConfig.GetString(optionNameBzzDeposit), 10)
+				if !ok {
+					return fmt.Errorf("converting bzz deposit to big.Int: %w", err)
+				}
+
 				if err := c.swapClient.SendBZZ(ctx, a, bzzDeposit); err != nil {
 					return fmt.Errorf("deposit bzz: %w", err)
 				}

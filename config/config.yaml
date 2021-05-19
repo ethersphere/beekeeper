@@ -30,16 +30,16 @@ clusters:
           # clef-password: clefbeesecret
           libp2p-key: '{"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f688ddcdfe88acbebef2037c68030b1a0a367a561333e5c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","crypto":{"cipher":"aes-128-ctr","ciphertext":"0d0ff25e9b03292e622c5a09ec00c2acb7ff5882f02dd2f00a26ac6d3292a434","cipherparams":{"iv":"cd4082caf63320b306fe885796ba224f"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a4d63d56c539eb3eff2a235090127486722fa2c836cf735d50d673b730cebc3f"},"mac":"aad40da9c1e742e2b01bb8f76ba99ace97ccb0539cea40e31eb6b9bb64a3f36a"},"version":3}'
           swarm-key: '{"address":"ebe269e07161c68a942a3a7fce6b4ed66867d6f0","crypto":{"cipher":"aes-128-ctr","ciphertext":"06b550c35b46099aea8f6c9f799497d34bd5ebc13af79c7cdb2a1037227544ad","cipherparams":{"iv":"fa088e69b1849e40f190a5f69f0555f8"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"42b4f2815c0042d02eed916a7a74ecdc005f1f7eae0cfb5837c15f469df9ddba"},"mac":"23e3d0594ab94587258a33cc521edbde009b887a6f117ed7a3422d1c95123568"},"version":3}'
-      # bee:
-      #   bee-config: default
-      #   config: default
-      #   count: 3
-      #   mode: node
-      # light:
-      #   bee-config: light-node
-      #   config: light-node
-      #   count: 3
-      #   mode: node
+      bee:
+        bee-config: default
+        config: default
+        count: 3
+        mode: node
+      light:
+        bee-config: light-node
+        config: light-node
+        count: 3
+        mode: node
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
