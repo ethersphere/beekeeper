@@ -13,15 +13,19 @@ var _ Client = (*GethClient)(nil)
 
 // GethClient manages communication with the Geth node
 type GethClient struct {
+	bzzDeposit      string
 	bzzTokenAddress string
 	ethAccount      string
+	ethDeposit      string
 	httpClient      *http.Client // HTTP client must handle authentication implicitly
 }
 
 // GethClientOptions holds optional parameters for the GethClient
 type GethClientOptions struct {
+	BzzDeposit      string
 	BzzTokenAddress string
 	EthAccount      string
+	EthDeposit      string
 	HTTPClient      *http.Client
 }
 
@@ -35,6 +39,10 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 		o.HTTPClient = new(http.Client)
 	}
 
+	if len(o.BzzDeposit) == 0 {
+		o.BzzDeposit = BzzDeposit
+	}
+
 	if len(o.BzzTokenAddress) == 0 {
 		o.BzzTokenAddress = BzzTokenAddress
 	}
@@ -43,9 +51,15 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 		o.EthAccount = EthAccount
 	}
 
+	if len(o.EthDeposit) == 0 {
+		o.EthDeposit = EthDepost
+	}
+
 	c = &GethClient{
+		bzzDeposit:      o.BzzDeposit,
 		bzzTokenAddress: o.BzzTokenAddress,
 		ethAccount:      o.EthAccount,
+		ethDeposit:      o.EthDeposit,
 		httpClient:      httpClientWithTransport(baseURL, o.HTTPClient),
 	}
 
@@ -69,7 +83,7 @@ type ethRequestParams struct {
 }
 
 // sendETH makes ETH deposit
-func (g *GethClient) SendETH(ctx context.Context, to string, ammount int64) (err error) {
+func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("get accounts: %w", err)
@@ -103,7 +117,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount int64) (err
 }
 
 // sendBZZ makes BZZ token deposit
-func (g *GethClient) SendBZZ(ctx context.Context, ammount int64) (err error) {
+func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount *big.Int) (err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("get accounts: %w", err)
@@ -120,7 +134,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, ammount int64) (err error) {
 		Params: []ethRequestParams{{
 			From: g.ethAccount,
 			To:   g.bzzTokenAddress,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", g.bzzTokenAddress[2:]) + fmt.Sprintf("%064x", big.NewInt(ammount)),
+			Data: "0x40c10f19" + fmt.Sprintf("%064s", to[2:]) + fmt.Sprintf("%064x", ammount),
 		}},
 	}
 

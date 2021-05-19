@@ -3,6 +3,7 @@ package bee
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -328,14 +329,15 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 		break
 	}
 
-	// ethDeposit, _ := new(big.Int).SetString("1000000000000000000", 10)
-	// bzzDeposit, _ := new(big.Int).SetString("1000000000000000000", 10)
-	// TODO: ....
-	if err := g.cluster.swap.SendETH(ctx, a.Ethereum, 1000000000000000000); err != nil {
+	// TODO TODO TODO
+	ethDeposit, _ := new(big.Int).SetString("1000000000000000000", 10)
+	bzzDeposit, _ := new(big.Int).SetString("1000000000000000000", 10)
+
+	if err := g.cluster.swap.SendETH(ctx, a.Ethereum, ethDeposit); err != nil {
 		return fmt.Errorf("send eth: %w", err)
 	}
 
-	if err := g.cluster.swap.SendBZZ(ctx, 1000000000000000000); err != nil {
+	if err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, bzzDeposit); err != nil {
 		return fmt.Errorf("deposit bzz: %w", err)
 	}
 
@@ -636,9 +638,9 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions) (
 		return fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	// if err := g.Fund(ctx, name); err != nil {
-	// 	return fmt.Errorf("fund node %s: %w", name, err)
-	// }
+	if err := g.Fund(ctx, name); err != nil {
+		return fmt.Errorf("fund node %s: %w", name, err)
+	}
 
 	return
 }
