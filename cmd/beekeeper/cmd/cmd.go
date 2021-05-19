@@ -197,7 +197,10 @@ func (c *command) setSwapClient() (err error) {
 			return fmt.Errorf("parsing Geth URL: %w", err)
 		}
 
-		c.swapClient = swap.NewGethClient(gethUrl, nil)
+		c.swapClient = swap.NewGethClient(gethUrl, &swap.GethClientOptions{
+			BzzTokenAddress: c.globalConfig.GetString("bzz-token-address"),
+			EthAccount:      c.globalConfig.GetString("eth-account"),
+		})
 	}
 
 	return

@@ -330,12 +330,12 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 
 	// ethDeposit, _ := new(big.Int).SetString("1000000000000000000", 10)
 	// bzzDeposit, _ := new(big.Int).SetString("1000000000000000000", 10)
-
-	if err := g.cluster.swap.SendETH(ctx, "0x62cab2b3b55f341f10348720ca18063cdb779ad5", a.Ethereum, 1000000000000000000); err != nil {
+	// TODO: ....
+	if err := g.cluster.swap.SendETH(ctx, a.Ethereum, 1000000000000000000); err != nil {
 		return fmt.Errorf("send eth: %w", err)
 	}
 
-	if err := g.cluster.swap.SendBZZ(ctx, "0x62cab2b3b55f341f10348720ca18063cdb779ad5", "0x6aab14fe9cccd64a502d23842d916eb5321c26e7", 1000000000000000000); err != nil {
+	if err := g.cluster.swap.SendBZZ(ctx, 1000000000000000000); err != nil {
 		return fmt.Errorf("deposit bzz: %w", err)
 	}
 
@@ -636,9 +636,9 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions) (
 		return fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	if err := g.Fund(ctx, name); err != nil {
-		return fmt.Errorf("fund node %s: %w", name, err)
-	}
+	// if err := g.Fund(ctx, name); err != nil {
+	// 	return fmt.Errorf("fund node %s: %w", name, err)
+	// }
 
 	return
 }

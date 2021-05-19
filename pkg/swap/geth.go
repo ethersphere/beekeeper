@@ -13,12 +13,16 @@ var _ Client = (*GethClient)(nil)
 
 // GethClient manages communication with the Geth node
 type GethClient struct {
-	httpClient *http.Client // HTTP client must handle authentication implicitly
+	bzzTokenAddress string
+	ethAccount      string
+	httpClient      *http.Client // HTTP client must handle authentication implicitly
 }
 
 // GethClientOptions holds optional parameters for the GethClient
 type GethClientOptions struct {
-	HTTPClient *http.Client
+	BzzTokenAddress string
+	EthAccount      string
+	HTTPClient      *http.Client
 }
 
 // NewClient constructs a new Client.
@@ -31,8 +35,18 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 		o.HTTPClient = new(http.Client)
 	}
 
+	if len(o.BzzTokenAddress) == 0 {
+		o.BzzTokenAddress = BzzTokenAddress
+	}
+
+	if len(o.EthAccount) == 0 {
+		o.EthAccount = EthAccount
+	}
+
 	c = &GethClient{
-		httpClient: httpClientWithTransport(baseURL, o.HTTPClient),
+		bzzTokenAddress: o.BzzTokenAddress,
+		ethAccount:      o.EthAccount,
+		httpClient:      httpClientWithTransport(baseURL, o.HTTPClient),
 	}
 
 	return
@@ -55,14 +69,14 @@ type ethRequestParams struct {
 }
 
 // sendETH makes ETH deposit
-func (g *GethClient) SendETH(ctx context.Context, from, to string, ammount int64) (err error) {
+func (g *GethClient) SendETH(ctx context.Context, to string, ammount int64) (err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("get accounts: %w", err)
 	}
 
-	if !contains(ethAccounts, from) {
-		return fmt.Errorf("eth account %s not found", from)
+	if !contains(ethAccounts, g.ethAccount) {
+		return fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
 
 	req := ethRequest{
@@ -70,7 +84,7 @@ func (g *GethClient) SendETH(ctx context.Context, from, to string, ammount int64
 		JsonRPC: "1.0",
 		Method:  "eth_sendTransaction",
 		Params: []ethRequestParams{{
-			From:  from,
+			From:  g.ethAccount,
 			To:    to,
 			Value: "0x" + fmt.Sprintf("%x", ammount),
 		}},
@@ -84,19 +98,19 @@ func (g *GethClient) SendETH(ctx context.Context, from, to string, ammount int64
 
 	err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp)
 
-	fmt.Printf("transaction %s from %s to %s ETH %d\n", resp.Result, from, to, ammount)
+	fmt.Printf("transaction %s from %s to %s ETH %d\n", resp.Result, g.ethAccount, to, ammount)
 	return
 }
 
 // sendBZZ makes BZZ token deposit
-func (g *GethClient) SendBZZ(ctx context.Context, from, to string, ammount int64) (err error) {
+func (g *GethClient) SendBZZ(ctx context.Context, ammount int64) (err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("get accounts: %w", err)
 	}
 
-	if !contains(ethAccounts, from) {
-		return fmt.Errorf("eth account %s not found", from)
+	if !contains(ethAccounts, g.ethAccount) {
+		return fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
 
 	req := ethRequest{
@@ -104,9 +118,9 @@ func (g *GethClient) SendBZZ(ctx context.Context, from, to string, ammount int64
 		JsonRPC: "1.0",
 		Method:  "eth_sendTransaction",
 		Params: []ethRequestParams{{
-			From: from,
-			To:   to,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", to[2:]) + fmt.Sprintf("%064x", big.NewInt(ammount)),
+			From: g.ethAccount,
+			To:   g.bzzTokenAddress,
+			Data: "0x40c10f19" + fmt.Sprintf("%064s", g.bzzTokenAddress[2:]) + fmt.Sprintf("%064x", big.NewInt(ammount)),
 		}},
 	}
 
@@ -118,7 +132,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, from, to string, ammount int64
 
 	err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp)
 
-	fmt.Printf("transaction %s from %s to %s BZZ %d\n", resp.Result, from, to, ammount)
+	fmt.Printf("transaction %s from %s to %s BZZ %d\n", resp.Result, g.ethAccount, g.bzzTokenAddress, ammount)
 	return
 }
 
