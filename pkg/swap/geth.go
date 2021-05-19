@@ -16,7 +16,6 @@ import (
 	"github.com/ethersphere/beekeeper"
 )
 
-const tokenAddress = "0x6aab14fe9cccd64a502d23842d916eb5321c26e7"
 const contentType = "application/json; charset=utf-8"
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -76,18 +75,26 @@ func httpClientWithTransport(baseURL *url.URL, c *http.Client) *http.Client {
 	return c
 }
 
-func (g *GethClient) Fund(ctx context.Context, address string, ethDeposit, bzzDeposit int64) (err error) {
+func (g *GethClient) Fund(ctx context.Context, address string, ethAccount, bzzTokenAddress string, ethDeposit, bzzDeposit int64) (err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("get accounts: %w", err)
 	}
 
-	if err := g.sendETH(ctx, ethAccounts[0], address, ethDeposit); err != nil {
-		return fmt.Errorf("send eth: %w", err)
+	if !contains(ethAccounts, ethAccount) {
+		return fmt.Errorf("eth account %s not found", ethAccount)
 	}
 
-	if err := g.sendBZZ(ctx, ethAccounts[0], tokenAddress, bzzDeposit); err != nil {
-		return fmt.Errorf("deposit bzz: %w", err)
+	if ethDeposit > 0 {
+		if err := g.sendETH(ctx, ethAccount, address, ethDeposit); err != nil {
+			return fmt.Errorf("send eth: %w", err)
+		}
+	}
+
+	if bzzDeposit > 0 {
+		if err := g.sendBZZ(ctx, ethAccount, bzzTokenAddress, bzzDeposit); err != nil {
+			return fmt.Errorf("deposit bzz: %w", err)
+		}
 	}
 
 	return
@@ -308,4 +315,14 @@ type roundTripperFunc func(*http.Request) (*http.Response, error)
 // RoundTrip calls f(r).
 func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return f(r)
+}
+
+func contains(list []string, find string) bool {
+	for _, v := range list {
+		if v == find {
+			return true
+		}
+	}
+
+	return false
 }
