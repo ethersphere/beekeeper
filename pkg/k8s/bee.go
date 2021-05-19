@@ -62,11 +62,11 @@ type Config struct {
 	APIAddr                    string // HTTP API listen address
 	BlockTime                  uint64 // chain block time
 	Bootnodes                  string // initial nodes to connect to
+	CacheCapacity              uint64 // cache capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
 	ClefSignerEnable           bool   // enable clef signer
 	ClefSignerEndpoint         string // clef signer endpoint
 	CORSAllowedOrigins         string // origins with CORS headers enabled
 	DataDir                    string // data directory
-	DBCapacity                 uint64 // db capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
 	DebugAPIAddr               string // debug HTTP API listen address
 	DebugAPIEnable             bool   // enable debug HTTP API
 	FullNode                   bool   // cause the node to start in full mode

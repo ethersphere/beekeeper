@@ -76,7 +76,7 @@ func httpClientWithTransport(baseURL *url.URL, c *http.Client) *http.Client {
 	return c
 }
 
-func (g *GethClient) Fund(ctx context.Context, address string, ethDeposit, bzzDeposit int) (err error) {
+func (g *GethClient) Fund(ctx context.Context, address string, ethDeposit, bzzDeposit int64) (err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("get accounts: %w", err)
@@ -132,7 +132,7 @@ func (g *GethClient) ethAccounts(ctx context.Context) (a []string, err error) {
 }
 
 // sendETH makes ETH deposit
-func (g *GethClient) sendETH(ctx context.Context, from, to string, ammount int) (err error) {
+func (g *GethClient) sendETH(ctx context.Context, from, to string, ammount int64) (err error) {
 	req := ethRequest{
 		ID:      "0",
 		JsonRPC: "1.0",
@@ -157,7 +157,7 @@ func (g *GethClient) sendETH(ctx context.Context, from, to string, ammount int) 
 }
 
 // sendBZZ makes BZZ token deposit
-func (g *GethClient) sendBZZ(ctx context.Context, from, to string, ammount int) (err error) {
+func (g *GethClient) sendBZZ(ctx context.Context, from, to string, ammount int64) (err error) {
 	req := ethRequest{
 		ID:      "0",
 		JsonRPC: "1.0",
@@ -165,7 +165,7 @@ func (g *GethClient) sendBZZ(ctx context.Context, from, to string, ammount int) 
 		Params: []ethRequestParams{{
 			From: from,
 			To:   to,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", to[2:]) + fmt.Sprintf("%064x", big.NewInt(int64(ammount))),
+			Data: "0x40c10f19" + fmt.Sprintf("%064s", to[2:]) + fmt.Sprintf("%064x", big.NewInt(ammount)),
 		}},
 	}
 

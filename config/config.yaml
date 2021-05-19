@@ -87,13 +87,13 @@ bee-configs:
   default:
     _inherit: ""
     api-addr: ":1633"
-    block-time: 15
+    block-time: 1
     bootnodes: ""
+    cache-capacity: 5000000
     clef-signer-enable: false
     clef-signer-endpoint: ""
     cors-allowed-origins: ""
     data-dir: "/home/bee/.bee"
-    db-capacity: 5000000
     debug-api-addr: ":1635"
     debug-api-enable: true
     full-node: true
@@ -108,17 +108,16 @@ bee-configs:
     payment-early: 1000000000000
     payment-threshold: 10000000000000
     payment-tolerance: 50000000000000
-    postage-stamp-address: ""
-    price-oracle-address: ""
+    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
+    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: ""
     standalone: false
     swap-enable: true
-    # swap-endpoint: "http://geth-geth-swap:8545"
     swap-endpoint: "ws://geth-geth-swap:8546"
     swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
     swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
     swap-initial-deposit: 500000000000000000
-    tracing-enabled: false
+    tracing-enabled: true
     tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
     tracing-service-name: "bee"
     verbosity: 5

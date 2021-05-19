@@ -14,11 +14,11 @@ type BeeConfig struct {
 	APIAddr                    *string `yaml:"api-addr"`
 	BlockTime                  *uint64 `yaml:"block-time"`
 	Bootnodes                  *string `yaml:"bootnodes"`
+	CacheCapacity              *uint64 `yaml:"cache-capacity"`
 	ClefSignerEnable           *bool   `yaml:"clef-signer-enable"`
 	ClefSignerEndpoint         *string `yaml:"clef-signer-endpoint"`
 	CORSAllowedOrigins         *string `yaml:"cors-allowed-origins"`
 	DataDir                    *string `yaml:"data-dir"`
-	DBCapacity                 *uint64 `yaml:"db-capacity"`
 	DebugAPIAddr               *string `yaml:"debug-api-addr"`
 	DebugAPIEnable             *bool   `yaml:"debug-api-enable"`
 	FullNode                   *bool   `yaml:"full-node"`

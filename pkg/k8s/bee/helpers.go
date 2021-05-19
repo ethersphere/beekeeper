@@ -14,11 +14,11 @@ const (
 	configTemplate = `api-addr: {{.APIAddr}}
 bootnode: {{.Bootnodes}}
 block-time: {{ .BlockTime }}
+cache-capacity: {{.CacheCapacity}}
 clef-signer-enable: {{.ClefSignerEnable}}
 clef-signer-endpoint: {{.ClefSignerEndpoint}}
 cors-allowed-origins: {{.CORSAllowedOrigins}}
 data-dir: {{.DataDir}}
-db-capacity: {{.DBCapacity}}
 debug-api-addr: {{.DebugAPIAddr}}
 debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}
