@@ -3,10 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/spf13/cobra"
 )
 
@@ -31,19 +29,16 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 				return fmt.Errorf("bee node Ethereum addresses not provided")
 			}
 
-			gethUrl, err := url.Parse(c.globalConfig.GetString(optionNameGethURL))
-			if err != nil {
-				return fmt.Errorf("parsing Geth URL: %w", err)
-			}
-
-			geth := swap.NewGethClient(gethUrl, nil)
-
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
 			for _, a := range c.globalConfig.GetStringSlice(optionNameAddresses) {
-				if err := geth.Fund(ctx, a, c.globalConfig.GetString(optionNameEthAccount), c.globalConfig.GetString(optionNameBzzTokenAddress), c.globalConfig.GetInt64(optionNameEthDeposit), c.globalConfig.GetInt64(optionNameBzzDeposit)); err != nil {
-					return fmt.Errorf("funding Ethereum address %s: %w", a, err)
+				if err := c.swapClient.SendETH(ctx, c.globalConfig.GetString(optionNameEthAccount), a, c.globalConfig.GetInt64(optionNameEthDeposit)); err != nil {
+					return fmt.Errorf("send eth: %w", err)
+				}
+
+				if err := c.swapClient.SendBZZ(ctx, c.globalConfig.GetString(optionNameEthAccount), c.globalConfig.GetString(optionNameBzzTokenAddress), c.globalConfig.GetInt64(optionNameBzzDeposit)); err != nil {
+					return fmt.Errorf("deposit bzz: %w", err)
 				}
 			}
 

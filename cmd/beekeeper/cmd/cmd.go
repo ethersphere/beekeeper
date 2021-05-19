@@ -3,12 +3,14 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,8 +31,8 @@ type command struct {
 	config *config.Config
 	// kubernetes client
 	k8sClient *k8s.Client
-	// swap service
-	// swapClient *swap.Client
+	// swap client
+	swapClient swap.Client
 }
 
 type option func(*command)
@@ -144,8 +146,8 @@ func (c *command) initConfig() (err error) {
 		return err
 	}
 
-	// set Swap service
-	if err := c.setSwapService(); err != nil {
+	// set Swap client
+	if err := c.setSwapClient(); err != nil {
 		return err
 	}
 
@@ -188,10 +190,15 @@ func (c *command) setK8S() (err error) {
 	return
 }
 
-func (c *command) setSwapService() (err error) {
-	// c.swapService, err = swap.NewService(c.globalConfig.GetString("bzz-backend"), c.globalConfig.GetString("bzz-private-key"), c.globalConfig.GetString("bzz-token-address"))
-	// if err != nil {
-	// 	return fmt.Errorf("creating swap service: %w", err)
-	// }
+func (c *command) setSwapClient() (err error) {
+	if len(c.globalConfig.GetString("geth-url")) > 0 {
+		gethUrl, err := url.Parse(c.globalConfig.GetString("geth-url"))
+		if err != nil {
+			return fmt.Errorf("parsing Geth URL: %w", err)
+		}
+
+		c.swapClient = swap.NewGethClient(gethUrl, nil)
+	}
+
 	return
 }

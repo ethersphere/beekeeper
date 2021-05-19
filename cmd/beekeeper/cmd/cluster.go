@@ -17,7 +17,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 
 	clusterOptions := clusterConfig.Export()
 	clusterOptions.K8SClient = c.k8sClient
-	// clusterOptions.Swap = c.swapService
+	clusterOptions.SwapClient = c.swapClient
 
 	cluster := bee.NewCluster(clusterConfig.GetName(), clusterOptions)
 
@@ -80,7 +80,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	clusterOptions := clusterConfig.Export()
 	clusterOptions.K8SClient = c.k8sClient
-	// clusterOptions.Swap = c.swapService
+	clusterOptions.SwapClient = c.swapClient
 
 	cluster = bee.NewCluster(clusterConfig.GetName(), clusterOptions)
 
