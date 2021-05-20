@@ -7,5 +7,5 @@ node-groups:
   light-node:
     _inherit: default
     image: ethersphere/bee:latest
-    image-pull-policy: IfNotPresent
+    image-pull-policy: Always
     persistence-enabled: false
