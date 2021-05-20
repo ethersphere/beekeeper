@@ -33,12 +33,12 @@ clusters:
       bee:
         bee-config: default
         config: default
-        count: 3
+        count: 5
         mode: node
       light:
         bee-config: light-node
         config: light-node
-        count: 3
+        count: 5
         mode: node
 
 # node-groups defines node groups that can be registered in the cluster
