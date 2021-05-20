@@ -6,10 +6,10 @@ clusters:
     name: bee
     namespace: beekeeper
     disable-namespace: false
-    api-domain: staging.internal
+    api-domain: test.internal
     api-insecure-tls: true
     api-scheme: https
-    debug-api-domain: staging.internal
+    debug-api-domain: test.internal
     debug-api-insecure-tls: true
     debug-api-scheme: https
     node-groups:
@@ -52,7 +52,6 @@ node-groups:
     image-pull-policy: Always
     image-pull-secrets: [regcred]
     ingress-annotations:
-      kubernetes.io/ingress.class: "nginx-internal"
       nginx.ingress.kubernetes.io/affinity: "cookie"
       nginx.ingress.kubernetes.io/affinity-mode: "persistent"
       nginx.ingress.kubernetes.io/proxy-body-size: "0"
@@ -62,14 +61,14 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    ingress-debug-annotations:
-      kubernetes.io/ingress.class: "nginx-internal"
+    ingress-class: "nginx-internal"
+    ingress-debug-class: "nginx-internal"
     labels:
       app.kubernetes.io/component: "node"
       app.kubernetes.io/part-of: "bee"
       app.kubernetes.io/version: "latest"
     node-selector: 
-      node-group: "bee-staging"
+      node-group: "private"
     persistence-enabled: false
     persistence-storage-class: "local-storage"
     persistence-storage-request: "34Gi"
