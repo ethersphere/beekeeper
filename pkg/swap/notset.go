@@ -9,6 +9,9 @@ import (
 // ErrNotSet represents error when Swap client is not set
 var ErrNotSet = errors.New("swap client not set")
 
+// compile check whether NotSet implements Swap interface
+var _ Client = (*NotSet)(nil)
+
 type NotSet struct{}
 
 // sendETH makes ETH deposit
