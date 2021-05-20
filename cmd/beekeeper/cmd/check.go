@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -15,14 +17,18 @@ func (c *command) initCheckCmd() (err error) {
 		optionNameChecks         = "checks"
 		optionNameMetricsEnabled = "metrics-enabled"
 		optionNameSeed           = "seed"
+		optionNameTimeout        = "timeout"
 		// TODO: optionNameStages         = "stages"
-		// TODO: optionNameTimeout        = "timeout"
+
 	)
 
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "Run tests on a Bee cluster",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
+			defer cancel()
+
 			// set cluster config
 			cfgCluster, ok := c.config.Clusters[c.globalConfig.GetString(optionNameClusterName)]
 			if !ok {
@@ -30,7 +36,7 @@ func (c *command) initCheckCmd() (err error) {
 			}
 
 			// setup cluster
-			cluster, err := c.setupCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameCreateCluster))
+			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameCreateCluster))
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
@@ -63,7 +69,7 @@ func (c *command) initCheckCmd() (err error) {
 				}
 
 				// run check
-				if err := check.NewAction().Run(cmd.Context(), cluster, o); err != nil {
+				if err := check.NewAction().Run(ctx, cluster, o); err != nil {
 					return fmt.Errorf("running check %s: %w", checkName, err)
 				}
 			}
@@ -78,6 +84,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")
+	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
 
 	c.root.AddCommand(cmd)
 

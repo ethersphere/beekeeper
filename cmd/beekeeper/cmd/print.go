@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
@@ -11,7 +12,7 @@ import (
 func (c *command) initPrintCmd() (err error) {
 	const (
 		optionNameClusterName = "cluster-name"
-		// TODO: optionNameTimeout        = "timeout"
+		optionNameTimeout     = "timeout"
 	)
 
 	cmd := &cobra.Command{
@@ -28,7 +29,10 @@ func (c *command) initPrintCmd() (err error) {
 			return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cluster, err := c.setupCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, false)
+			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
+			defer cancel()
+
+			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, false)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
@@ -38,12 +42,13 @@ func (c *command) initPrintCmd() (err error) {
 				return fmt.Errorf("printing %s not implemented", args[0])
 			}
 
-			return f(cmd.Context(), cluster)
+			return f(ctx, cluster)
 		},
 		PreRunE: c.preRunE,
 	}
 
 	cmd.PersistentFlags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().Duration(optionNameTimeout, 15*time.Minute, "timeout")
 
 	c.root.AddCommand(cmd)
 
