@@ -19,9 +19,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 
 			return err
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.globalConfig.BindPFlags(cmd.Flags())
-		},
+		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")

@@ -28,8 +28,11 @@ func (c *command) initCreateK8SNamespace() *cobra.Command {
 			return
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := c.setK8S(); err != nil {
+				return err
+			}
 			if c.k8sClient == nil {
-				return fmt.Errorf("k8s client not created")
+				return fmt.Errorf("k8s client not set")
 			}
 			return nil
 		},

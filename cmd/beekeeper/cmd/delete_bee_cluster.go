@@ -18,9 +18,7 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.deleteCluster(cmd.Context(), c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameWithStorage))
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.globalConfig.BindPFlags(cmd.Flags())
-		},
+		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")

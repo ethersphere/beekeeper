@@ -40,9 +40,7 @@ func (c *command) initPrintCmd() (err error) {
 
 			return f(cmd.Context(), cluster)
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.globalConfig.BindPFlags(cmd.Flags())
-		},
+		PreRunE: c.preRunE,
 	}
 
 	cmd.PersistentFlags().String(optionNameClusterName, "default", "cluster name")

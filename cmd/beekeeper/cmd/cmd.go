@@ -141,16 +141,6 @@ func (c *command) initConfig() (err error) {
 
 	c.globalConfig = cfg
 
-	// set Kubernetes client
-	if err := c.setK8S(); err != nil {
-		return err
-	}
-
-	// set Swap client
-	if err := c.setSwapClient(); err != nil {
-		return err
-	}
-
 	// bind flag for configuration directory
 	if err := cfg.BindPFlag(optionNameConfigDir, c.root.PersistentFlags().Lookup(optionNameConfigDir)); err != nil {
 		return err
@@ -174,6 +164,21 @@ func (c *command) setHomeDir() (err error) {
 		return err
 	}
 	c.homeDir = dir
+	return nil
+}
+
+func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
+	if err := c.globalConfig.BindPFlags(cmd.Flags()); err != nil {
+		return err
+	}
+	// set Kubernetes client
+	if err := c.setK8S(); err != nil {
+		return err
+	}
+	// set Swap client
+	if err := c.setSwapClient(); err != nil {
+		return err
+	}
 	return nil
 }
 

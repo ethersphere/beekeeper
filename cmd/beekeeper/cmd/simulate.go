@@ -70,9 +70,7 @@ func (c *command) initSimulateCmd() (err error) {
 
 			return nil
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.globalConfig.BindPFlags(cmd.Flags())
-		},
+		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")

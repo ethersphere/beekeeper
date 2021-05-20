@@ -59,9 +59,7 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 
 			return nil
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return c.globalConfig.BindPFlags(cmd.Flags())
-		},
+		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().StringSlice(optionNameAddresses, nil, "Bee node Ethereum addresses (must start with 0x)")
