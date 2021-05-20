@@ -201,6 +201,8 @@ func (c *command) setSwapClient() (err error) {
 			BzzTokenAddress: c.globalConfig.GetString("bzz-token-address"),
 			EthAccount:      c.globalConfig.GetString("eth-account"),
 		})
+	} else {
+		c.swapClient = &swap.NotSet{}
 	}
 
 	return
