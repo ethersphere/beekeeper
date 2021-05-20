@@ -334,18 +334,36 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 	if !ok {
 		return fmt.Errorf("converting eth deposit to big.Int: %w", err)
 	}
-
-	if err := g.cluster.swap.SendETH(ctx, a.Ethereum, ethDeposit); err != nil {
-		return fmt.Errorf("send eth: %w", err)
+	retries = 5
+	for retries > 0 {
+		err = g.cluster.swap.SendETH(ctx, a.Ethereum, ethDeposit)
+		if err != nil {
+			retries--
+			if retries == 0 {
+				return fmt.Errorf("send eth: %w", err)
+			}
+			time.Sleep(nodeRetryTimeout)
+			continue
+		}
+		break
 	}
 
 	bzzDeposit, ok := new(big.Int).SetString(swap.BzzDeposit, 10)
 	if !ok {
 		return fmt.Errorf("converting bzz deposit to big.Int: %w", err)
 	}
-
-	if err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, bzzDeposit); err != nil {
-		return fmt.Errorf("deposit bzz: %w", err)
+	retries = 5
+	for retries > 0 {
+		err = g.cluster.swap.SendBZZ(ctx, a.Ethereum, bzzDeposit)
+		if err != nil {
+			retries--
+			if retries == 0 {
+				return fmt.Errorf("send eth: %w", err)
+			}
+			time.Sleep(nodeRetryTimeout)
+			continue
+		}
+		break
 	}
 
 	return
