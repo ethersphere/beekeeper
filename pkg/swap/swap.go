@@ -14,6 +14,6 @@ const (
 
 // Swap defines Swap interface
 type Client interface {
-	SendETH(ctx context.Context, to string, ammount *big.Int) (err error)
-	SendBZZ(ctx context.Context, to string, ammount *big.Int) (err error)
+	SendETH(ctx context.Context, to string, ammount *big.Int) (tx string, err error)
+	SendBZZ(ctx context.Context, to string, ammount *big.Int) (tx string, err error)
 }

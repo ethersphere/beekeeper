@@ -39,18 +39,22 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 					return fmt.Errorf("converting eth deposit to big.Int: %w", err)
 				}
 
-				if err := c.swapClient.SendETH(ctx, a, ethDeposit); err != nil {
+				tx, err := c.swapClient.SendETH(ctx, a, ethDeposit)
+				if err != nil {
 					return fmt.Errorf("send eth: %w", err)
 				}
+				fmt.Printf("%s funded with %s ETH, transaction: %s\n", a, ethDeposit, tx)
 
 				bzzDeposit, ok := new(big.Int).SetString(c.globalConfig.GetString(optionNameBzzDeposit), 10)
 				if !ok {
 					return fmt.Errorf("converting bzz deposit to big.Int: %w", err)
 				}
 
-				if err := c.swapClient.SendBZZ(ctx, a, bzzDeposit); err != nil {
+				tx, err = c.swapClient.SendBZZ(ctx, a, bzzDeposit)
+				if err != nil {
 					return fmt.Errorf("deposit bzz: %w", err)
 				}
+				fmt.Printf("%s funded with %s BZZ, transaction: %s\n", a, bzzDeposit, tx)
 			}
 
 			return nil

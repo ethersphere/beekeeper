@@ -83,14 +83,14 @@ type ethRequestParams struct {
 }
 
 // sendETH makes ETH deposit
-func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (err error) {
+func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
-		return fmt.Errorf("get accounts: %w", err)
+		return "", fmt.Errorf("get accounts: %w", err)
 	}
 
 	if !contains(ethAccounts, g.ethAccount) {
-		return fmt.Errorf("eth account %s not found", g.ethAccount)
+		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
 
 	req := ethRequest{
@@ -110,21 +110,22 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (
 		Result  string `json:"result"`
 	})
 
-	err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp)
+	if err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+		return "", err
+	}
 
-	fmt.Printf("transaction %s from %s to %s ETH %d\n", resp.Result, g.ethAccount, to, ammount)
-	return
+	return resp.Result, nil
 }
 
 // sendBZZ makes BZZ token deposit
-func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount *big.Int) (err error) {
+func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount *big.Int) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
-		return fmt.Errorf("get accounts: %w", err)
+		return "", fmt.Errorf("get accounts: %w", err)
 	}
 
 	if !contains(ethAccounts, g.ethAccount) {
-		return fmt.Errorf("eth account %s not found", g.ethAccount)
+		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
 
 	req := ethRequest{
@@ -144,10 +145,11 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount *big.Int) (
 		Result  string `json:"result"`
 	})
 
-	err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp)
+	if err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+		return "", err
+	}
 
-	fmt.Printf("transaction %s from %s to %s BZZ %d\n", resp.Result, g.ethAccount, g.bzzTokenAddress, ammount)
-	return
+	return resp.Result, nil
 }
 
 // ethAccounts returns list of accounts

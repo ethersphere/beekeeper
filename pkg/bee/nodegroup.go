@@ -336,7 +336,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 	}
 	retries = 5
 	for retries > 0 {
-		err = g.cluster.swap.SendETH(ctx, a.Ethereum, ethDeposit)
+		tx, err := g.cluster.swap.SendETH(ctx, a.Ethereum, ethDeposit)
 		if err != nil {
 			retries--
 			if retries == 0 {
@@ -345,6 +345,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 			time.Sleep(nodeRetryTimeout)
 			continue
 		}
+		fmt.Printf("%s funded with %s ETH, transaction: %s\n", name, ethDeposit, tx)
 		break
 	}
 
@@ -354,7 +355,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 	}
 	retries = 5
 	for retries > 0 {
-		err = g.cluster.swap.SendBZZ(ctx, a.Ethereum, bzzDeposit)
+		tx, err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, bzzDeposit)
 		if err != nil {
 			retries--
 			if retries == 0 {
@@ -363,6 +364,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 			time.Sleep(nodeRetryTimeout)
 			continue
 		}
+		fmt.Printf("%s funded with %s BZZ, transaction: %s\n", name, bzzDeposit, tx)
 		break
 	}
 
