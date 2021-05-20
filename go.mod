@@ -3,15 +3,11 @@ module github.com/ethersphere/beekeeper
 go 1.16
 
 require (
-	github.com/ethereum/go-ethereum v1.9.23
 	github.com/ethersphere/bee v0.5.3
 	github.com/ethersphere/bmt v0.1.4
-	github.com/ethersphere/go-sw3-abi v0.4.0 // indirect
-	github.com/ethersphere/sw3-bindings/v2 v2.1.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/common v0.24.0
-	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.1
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
