@@ -7,9 +7,11 @@ import (
 
 const (
 	BzzDeposit      = "1000000000000000000"
+	BzzGasPrice     = 65536
 	BzzTokenAddress = "0x6aab14fe9cccd64a502d23842d916eb5321c26e7"
 	EthAccount      = "0x62cab2b3b55f341f10348720ca18063cdb779ad5"
 	EthDepost       = "1000000000000000000"
+	EthGasPrice     = 21000
 )
 
 // Swap defines Swap interface

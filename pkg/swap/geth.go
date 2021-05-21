@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // compile check whether GethClient implements Swap interface
@@ -80,6 +81,7 @@ type ethRequestParams struct {
 	To    string
 	Data  string
 	Value string
+	Gas   string
 }
 
 // sendETH makes ETH deposit
@@ -92,7 +94,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (
 	if !contains(ethAccounts, g.ethAccount) {
 		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
-
+	// 10^18
 	req := ethRequest{
 		ID:      "0",
 		JsonRPC: "1.0",
@@ -100,7 +102,8 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (
 		Params: []ethRequestParams{{
 			From:  g.ethAccount,
 			To:    to,
-			Value: "0x" + fmt.Sprintf("%x", ammount),
+			Value: addPrefix("0x", fmt.Sprintf("%x", ammount)),
+			Gas:   addPrefix("0x", fmt.Sprintf("%x", EthGasPrice)),
 		}},
 	}
 
@@ -123,7 +126,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount *big.Int) (
 	if err != nil {
 		return "", fmt.Errorf("get accounts: %w", err)
 	}
-
+	// 10^16
 	if !contains(ethAccounts, g.ethAccount) {
 		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
@@ -135,7 +138,8 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount *big.Int) (
 		Params: []ethRequestParams{{
 			From: g.ethAccount,
 			To:   g.bzzTokenAddress,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", to[2:]) + fmt.Sprintf("%064x", ammount),
+			Data: "0x40c10f19" + fmt.Sprintf("%064s", removePrefix("0x", to)) + fmt.Sprintf("%064x", ammount),
+			Gas:  addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
 		}},
 	}
 
@@ -174,6 +178,7 @@ func (g *GethClient) ethAccounts(ctx context.Context) (a []string, err error) {
 	return resp.Result, nil
 }
 
+// contains checks if list contains string
 func contains(list []string, find string) bool {
 	for _, v := range list {
 		if v == find {
@@ -182,4 +187,20 @@ func contains(list []string, find string) bool {
 	}
 
 	return false
+}
+
+// addPrefix adds prefix to string if it doesn't exist
+func addPrefix(prefix, to string) string {
+	if !strings.HasPrefix(to, prefix) {
+		return prefix + to
+	}
+	return to
+}
+
+// removePrefix removes prefix from string if it exists
+func removePrefix(prefix, from string) string {
+	if strings.HasPrefix(from, prefix) {
+		return from[len(prefix):]
+	}
+	return from
 }
