@@ -203,7 +203,7 @@ func float64ToBigInt(f float64, coin int64) *big.Int {
 	bigFloat.SetFloat64(f)
 
 	bigCoin := new(big.Float)
-	bigCoin.SetInt(big.NewInt(coin))
+	bigCoin.SetInt64(coin)
 
 	bigFloat.Mul(bigFloat, bigCoin)
 
