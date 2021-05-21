@@ -3,7 +3,6 @@ package bee
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -330,13 +329,9 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 		break
 	}
 
-	ethDeposit, ok := new(big.Int).SetString(swap.EthDepost, 10)
-	if !ok {
-		return fmt.Errorf("converting eth deposit to big.Int: %w", err)
-	}
 	retries = 5
 	for retries > 0 {
-		tx, err := g.cluster.swap.SendETH(ctx, a.Ethereum, ethDeposit)
+		tx, err := g.cluster.swap.SendETH(ctx, a.Ethereum, swap.EthDepost)
 		if err != nil {
 			retries--
 			if retries == 0 {
@@ -345,17 +340,13 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 			time.Sleep(nodeRetryTimeout)
 			continue
 		}
-		fmt.Printf("%s funded with %s ETH, transaction: %s\n", name, ethDeposit, tx)
+		fmt.Printf("%s funded with %.2f ETH, transaction: %s\n", name, swap.EthDepost, tx)
 		break
 	}
 
-	bzzDeposit, ok := new(big.Int).SetString(swap.BzzDeposit, 10)
-	if !ok {
-		return fmt.Errorf("converting bzz deposit to big.Int: %w", err)
-	}
 	retries = 5
 	for retries > 0 {
-		tx, err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, bzzDeposit)
+		tx, err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, swap.BzzDeposit)
 		if err != nil {
 			retries--
 			if retries == 0 {
@@ -364,7 +355,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 			time.Sleep(nodeRetryTimeout)
 			continue
 		}
-		fmt.Printf("%s funded with %s BZZ, transaction: %s\n", name, bzzDeposit, tx)
+		fmt.Printf("%s funded with %.2f BZZ, transaction: %s\n", name, swap.BzzDeposit, tx)
 		break
 	}
 

@@ -14,19 +14,19 @@ var _ Client = (*GethClient)(nil)
 
 // GethClient manages communication with the Geth node
 type GethClient struct {
-	bzzDeposit      string
+	bzzDeposit      float64
 	bzzTokenAddress string
 	ethAccount      string
-	ethDeposit      string
+	ethDeposit      float64
 	httpClient      *http.Client // HTTP client must handle authentication implicitly
 }
 
 // GethClientOptions holds optional parameters for the GethClient
 type GethClientOptions struct {
-	BzzDeposit      string
+	BzzDeposit      float64
 	BzzTokenAddress string
 	EthAccount      string
-	EthDeposit      string
+	EthDeposit      float64
 	HTTPClient      *http.Client
 }
 
@@ -40,7 +40,7 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 		o.HTTPClient = new(http.Client)
 	}
 
-	if len(o.BzzDeposit) == 0 {
+	if o.BzzDeposit == 0 {
 		o.BzzDeposit = BzzDeposit
 	}
 
@@ -52,7 +52,7 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 		o.EthAccount = EthAccount
 	}
 
-	if len(o.EthDeposit) == 0 {
+	if o.EthDeposit == 0 {
 		o.EthDeposit = EthDepost
 	}
 
@@ -85,7 +85,7 @@ type ethRequestParams struct {
 }
 
 // sendETH makes ETH deposit
-func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (tx string, err error) {
+func (g *GethClient) SendETH(ctx context.Context, to string, ammount float64) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get accounts: %w", err)
@@ -94,7 +94,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (
 	if !contains(ethAccounts, g.ethAccount) {
 		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
-	// 10^18
+
 	req := ethRequest{
 		ID:      "0",
 		JsonRPC: "1.0",
@@ -102,7 +102,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (
 		Params: []ethRequestParams{{
 			From:  g.ethAccount,
 			To:    to,
-			Value: addPrefix("0x", fmt.Sprintf("%x", ammount)),
+			Value: addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(ammount))),
 			Gas:   addPrefix("0x", fmt.Sprintf("%x", EthGasPrice)),
 		}},
 	}
@@ -121,12 +121,12 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount *big.Int) (
 }
 
 // sendBZZ makes BZZ token deposit
-func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount *big.Int) (tx string, err error) {
+func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount float64) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get accounts: %w", err)
 	}
-	// 10^16
+
 	if !contains(ethAccounts, g.ethAccount) {
 		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
@@ -138,7 +138,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount *big.Int) (
 		Params: []ethRequestParams{{
 			From: g.ethAccount,
 			To:   g.bzzTokenAddress,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", removePrefix("0x", to)) + fmt.Sprintf("%064x", ammount),
+			Data: "0x40c10f19" + fmt.Sprintf("%064s", removePrefix("0x", to)) + fmt.Sprintf("%064x", float64ToBigInt(ammount)),
 			Gas:  addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
 		}},
 	}
@@ -203,4 +203,20 @@ func removePrefix(prefix, from string) string {
 		return from[len(prefix):]
 	}
 	return from
+}
+
+// float64ToBigInt converts float64 to big.Int
+func float64ToBigInt(f float64) *big.Int {
+	bigFloat := new(big.Float)
+	bigFloat.SetFloat64(f)
+
+	coin := new(big.Float)
+	coin.SetInt(big.NewInt(1000000000000000000))
+
+	bigFloat.Mul(bigFloat, coin)
+
+	result := new(big.Int)
+	bigFloat.Int(result) // store converted number in result
+
+	return result
 }
