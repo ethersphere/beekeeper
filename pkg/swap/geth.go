@@ -85,7 +85,7 @@ type ethRequestParams struct {
 }
 
 // sendETH makes ETH deposit
-func (g *GethClient) SendETH(ctx context.Context, to string, ammount float64) (tx string, err error) {
+func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get accounts: %w", err)
@@ -102,7 +102,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount float64) (t
 		Params: []ethRequestParams{{
 			From:  g.ethAccount,
 			To:    to,
-			Value: addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(ammount))),
+			Value: addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(amount))),
 			Gas:   addPrefix("0x", fmt.Sprintf("%x", EthGasPrice)),
 		}},
 	}
@@ -121,7 +121,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, ammount float64) (t
 }
 
 // sendBZZ makes BZZ token deposit
-func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount float64) (tx string, err error) {
+func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get accounts: %w", err)
@@ -138,7 +138,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, ammount float64) (t
 		Params: []ethRequestParams{{
 			From: g.ethAccount,
 			To:   g.bzzTokenAddress,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", removePrefix("0x", to)) + fmt.Sprintf("%064x", float64ToBigInt(ammount)),
+			Data: "0x40c10f19" + fmt.Sprintf("%064s", removePrefix("0x", to)) + fmt.Sprintf("%064x", float64ToBigInt(amount)),
 			Gas:  addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
 		}},
 	}
