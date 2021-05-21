@@ -1,0 +1,117 @@
+# cluster installed with bee-local
+clusters:
+  local:
+    _inherit: ""
+    name: bee
+    namespace: local
+    disable-namespace: true
+    api-domain: localhost
+    api-insecure-tls: true
+    api-scheme: https
+    debug-api-domain: localhost
+    debug-api-insecure-tls: true
+    debug-api-scheme: https
+    node-groups:
+      bootnode:
+        mode: bootnode
+        bee-config: local-bootnode
+        config: local
+        nodes:  
+        - name: bootnode-0
+          bootnodes: /dns4/bootnode-1-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAmMw7Uj6vfraD9BYx3coDs6MK6pAmActE8fsfaZwigsaB6
+          # clef-key: '{"address":"b087e2263124cde331e7f7b6951a73b3f9d6209d","crypto":{"cipher":"aes-128-ctr","ciphertext":"daf449b902aeca242a6cbcfaab850f2162ae10edca7693637c24162b41d324e7","cipherparams":{"iv":"3f9097b3313aca121a6e5296e38f84ab"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":4096,"p":6,"r":8,"salt":"5c0a2a3313b1136e87f9ee00cdf0a2bfd800282a0e210deb6fe10cbe57926416"},"mac":"5dd5a91a02de2955733ea9d5171eeb7a6c4777fd6b2b591ca603fddcc10c1195"},"id":"a9820b1f-05f9-40d9-8a86-03d1f79f383f","version":3}'
+          # clef-password: clefbeesecret
+          libp2p-key: '{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}'
+          swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
+      bee:
+        bee-config: local
+        config: local
+        count: 2
+        mode: node
+
+# bee-local node group
+node-groups:
+  local:
+    _inherit: ""
+    clef-image: ethersphere/clef:latest
+    clef-image-pull-policy: Always
+    image: ethersphere/bee:latest
+    image-pull-policy: Always
+    image-pull-secrets: [regcred]
+    ingress-annotations:
+      nginx.ingress.kubernetes.io/affinity: "cookie"
+      nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
+      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
+      nginx.ingress.kubernetes.io/session-cookie-path: "default"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    ingress-class: "traefik"
+    ingress-debug-class: "traefik"
+    labels:
+      app.kubernetes.io/component: "node"
+      app.kubernetes.io/part-of: "bee"
+      app.kubernetes.io/version: "latest"
+    node-selector: 
+      node-group: "bee-staging"
+    persistence-enabled: false
+    persistence-storage-class: "local-storage"
+    persistence-storage-request: "34Gi"
+    pod-management-policy: "OrderedReady"
+    resources-limit-cpu: "1"
+    resources-limit-memory: 2Gi
+    resources-request-cpu: 750m
+    resources-request-memory: 1Gi
+    restart-policy: "Always"
+    update-strategy: "RollingUpdate"
+
+# bee-local bee configs
+bee-configs:
+  local:
+    _inherit: ""
+    api-addr: ":1633"
+    block-time: 1
+    bootnodes: ""
+    bootnode-mode: false
+    cache-capacity: 1000000
+    clef-signer-enable: false
+    clef-signer-endpoint: ""
+    cors-allowed-origins: ""
+    data-dir: "/home/bee/.bee"
+    db-open-files-limit: 200
+    db-block-cache-capacity: 33554432
+    db-write-buffer-size: 33554432
+    db-disable-seeks-compaction: false
+    debug-api-addr: ":1635"
+    debug-api-enable: true
+    full-node: true
+    gateway-mode: false
+    global-pinning-enabled: true
+    nat-addr: ""
+    network-id: 1987
+    p2p-addr: ":1634"
+    p2p-quic-enable: false
+    p2p-ws-enable: false
+    password: "beekeeper"
+    payment-early: 1000000000000
+    payment-threshold: 1500000000000
+    payment-tolerance: 50000000000000
+    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
+    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
+    resolver-options: ""
+    standalone: false
+    swap-enable: true
+    swap-endpoint: "ws://geth-swap.local:8546"
+    swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
+    swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
+    swap-initial-deposit: 3000
+    tracing-enabled: true
+    tracing-endpoint: ""
+    tracing-service-name: "bee"
+    verbosity: 5
+    welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
+  local-bootnode:
+    _inherit: "local"
+    bootnode-mode: true

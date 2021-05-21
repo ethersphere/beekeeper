@@ -1,0 +1,83 @@
+# CI checks
+checks:
+  ci-full-connectivity:
+    timeout: 5m
+    type: full-connectivity
+  ci-gc:
+    options:
+      cache-size: 100
+      postage-amount: 1
+      postage-wait: 5s
+      reserve-size: 1024
+    timeout: 5m
+    type: gc
+  ci-manifest:
+    options:
+      files-in-collection: 10
+      max-pathname-length: 64
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+    timeout: 5m
+    type: manifest
+  ci-pingpong:
+    options:
+      metrics-enabled: 
+    timeout: 5m
+    type: pingpong
+  ci-pss:
+    options:
+      address-prefix: 10
+      metrics-enabled:
+      node-count: 3
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      request-timeout: 5m
+    timeout: 5m
+    type: pss
+  ci-pushsync-chunks:
+    options:
+      chunks-per-node: 3
+      metrics-enabled:
+      mode: chunks
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      retries: 5
+      retry-delay: 1s
+      upload-node-count: 3
+    timeout: 5m
+    type: pushsync
+  ci-retrieval:
+    options:
+      chunks-per-node: 3
+      metrics-enabled:
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      upload-node-count: 3
+    timeout: 5m
+    type: retrieval
+  ci-settlements:
+    options:
+      dry-run: false
+      expect-settlements: true
+      file-name: settlements
+      file-size: 1048576 # 1mb = 1*1024*1024
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      threshold: 1500000000000
+      upload-node-count: 3
+      wait-before-downloading: 5s
+    timeout: 5m
+    type: settlements
+  ci-soc:
+    options:
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      request-timeout: 5m
+    timeout: 5m
+    type: soc
