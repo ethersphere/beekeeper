@@ -61,7 +61,7 @@ var Checks = map[string]CheckType{
 				PostageWait        *time.Duration `yaml:"postage-wait"`
 				Seed               *int64         `yaml:"seed"`
 				UploadNodeCount    *int           `yaml:"upload-node-count"`
-				WaitBeforeDownload *int           `yaml:"wait-before-download"`
+				WaitBeforeDownload *time.Duration `yaml:"wait-before-download"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
