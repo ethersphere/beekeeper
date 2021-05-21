@@ -138,7 +138,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx
 		Params: []ethRequestParams{{
 			From: g.ethAccount,
 			To:   g.bzzTokenAddress,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", strings.TrimPrefix("0x", to)) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
+			Data: "0x40c10f19" + fmt.Sprintf("%064s", strings.TrimLeft("0x", to)) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
 			Gas:  addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
 		}},
 	}
