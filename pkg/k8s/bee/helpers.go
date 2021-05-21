@@ -148,7 +148,9 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
 			InitialDelaySeconds: 5,
 			Handler: containers.HTTPGetHandler{
-				// Path: "/readiness",
+				// Bee node is not ready until it is funded
+				// because Beekeeper does funding it needs node to be ready before it is funded
+				// if Bee readiness is changed to be ready before funding, path can be set to "/readiness"
 				Path: "/health",
 				Port: "debug",
 			},
