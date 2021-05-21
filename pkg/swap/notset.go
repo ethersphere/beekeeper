@@ -14,11 +14,11 @@ var _ Client = (*NotSet)(nil)
 type NotSet struct{}
 
 // sendETH makes ETH deposit
-func (n *NotSet) SendETH(ctx context.Context, to string, ammount float64) (tx string, err error) {
+func (n *NotSet) SendETH(ctx context.Context, to string, amount float64) (tx string, err error) {
 	return "", ErrNotSet
 }
 
 // sendBZZ makes BZZ token deposit
-func (n *NotSet) SendBZZ(ctx context.Context, to string, ammount float64) (tx string, err error) {
+func (n *NotSet) SendBZZ(ctx context.Context, to string, amount float64) (tx string, err error) {
 	return "", ErrNotSet
 }
