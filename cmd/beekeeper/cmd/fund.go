@@ -58,7 +58,7 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 	cmd.Flags().String(optionNameBzzTokenAddress, "0x6aab14fe9cccd64a502d23842d916eb5321c26e7", "BZZ token address")
 	cmd.Flags().String(optionNameEthAccount, "0x62cab2b3b55f341f10348720ca18063cdb779ad5", "ETH account address")
 	cmd.Flags().Float64(optionNameEthDeposit, 0.01, "ETH amount to deposit")
-	cmd.Flags().String(optionNameGethURL, "http://geth.beekeeper.test.internal", "Geth node URL")
+	cmd.Flags().String(optionNameGethURL, "http://geth-swap.geth-swap.test.internal", "Geth node URL")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "timeout")
 
 	c.root.AddCommand(cmd)
