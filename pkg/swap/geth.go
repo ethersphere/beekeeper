@@ -53,7 +53,7 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 	}
 
 	if o.EthDeposit == 0 {
-		o.EthDeposit = EthDepost
+		o.EthDeposit = EthDeposit
 	}
 
 	c = &GethClient{
@@ -102,7 +102,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx
 		Params: []ethRequestParams{{
 			From:  g.ethAccount,
 			To:    to,
-			Value: addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(amount))),
+			Value: addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(amount, 1000000000000000000))), // 18 zeroes
 			Gas:   addPrefix("0x", fmt.Sprintf("%x", EthGasPrice)),
 		}},
 	}
@@ -138,7 +138,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx
 		Params: []ethRequestParams{{
 			From: g.ethAccount,
 			To:   g.bzzTokenAddress,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", removePrefix("0x", to)) + fmt.Sprintf("%064x", float64ToBigInt(amount)),
+			Data: "0x40c10f19" + fmt.Sprintf("%064s", strings.TrimPrefix("0x", to)) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
 			Gas:  addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
 		}},
 	}
@@ -197,23 +197,15 @@ func addPrefix(prefix, to string) string {
 	return to
 }
 
-// removePrefix removes prefix from string if it exists
-func removePrefix(prefix, from string) string {
-	if strings.HasPrefix(from, prefix) {
-		return from[len(prefix):]
-	}
-	return from
-}
-
 // float64ToBigInt converts float64 to big.Int
-func float64ToBigInt(f float64) *big.Int {
+func float64ToBigInt(f float64, coin int64) *big.Int {
 	bigFloat := new(big.Float)
 	bigFloat.SetFloat64(f)
 
-	coin := new(big.Float)
-	coin.SetInt(big.NewInt(1000000000000000000))
+	bigCoin := new(big.Float)
+	bigCoin.SetInt(big.NewInt(coin))
 
-	bigFloat.Mul(bigFloat, coin)
+	bigFloat.Mul(bigFloat, bigCoin)
 
 	result := new(big.Int)
 	bigFloat.Int(result) // store converted number in result
