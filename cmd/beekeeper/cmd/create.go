@@ -7,7 +7,8 @@ import (
 func (c *command) initCreateCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create Bee infrastructure",
+		Short: "creates Bee infrastructure",
+		Long:  `Creates Bee infrastructure.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},

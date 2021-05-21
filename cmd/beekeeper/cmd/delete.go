@@ -7,7 +7,8 @@ import (
 func (c *command) initDeleteCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "delete",
-		Short: "Delete Bee infrastructure",
+		Short: "deletes Bee infrastructure",
+		Long:  `Deletes Bee infrastructure.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},

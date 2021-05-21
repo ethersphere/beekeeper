@@ -21,7 +21,7 @@ func (c *command) initFundCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "fund",
-		Short: "Fund Ethereum addresses",
+		Short: "funds Ethereum addresses",
 		Long: `Fund makes BZZ tokens and ETH deposits to given Ethereum addresses.
 beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {

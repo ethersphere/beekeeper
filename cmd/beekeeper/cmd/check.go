@@ -24,7 +24,8 @@ func (c *command) initCheckCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "check",
-		Short: "Run tests on a Bee cluster",
+		Short: "runs integration tests on a Bee cluster",
+		Long:  `runs integration tests on a Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
@@ -80,7 +81,7 @@ func (c *command) initCheckCmd() (err error) {
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
-	cmd.Flags().Bool(optionNameCreateCluster, false, "start cluster")
+	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing checks")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")

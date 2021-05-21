@@ -17,9 +17,14 @@ func (c *command) initPrintCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "print",
-		Short: "Print information about a Bee cluster",
-		Long:  `Print information about a Bee cluster: addresses, depths, overlays, peers, topologies`,
+		Short: "prints information about a Bee cluster",
+		Long: `Prints information about a Bee cluster: addresses, depths, overlays, peers, topologies
+Requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies`,
 		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
+			}
+
 			for k := range printFuncs {
 				if k == args[0] {
 					return nil

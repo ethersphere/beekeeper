@@ -23,7 +23,8 @@ func (c *command) initSimulateCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "simulate",
-		Short: "Run simulations on a Bee cluster",
+		Short: "runs simulations on a Bee cluster",
+		Long:  `Runs simulations on a Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
@@ -79,7 +80,7 @@ func (c *command) initSimulateCmd() (err error) {
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
-	cmd.Flags().Bool(optionNameCreateCluster, false, "start cluster")
+	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing simulations")
 	cmd.Flags().StringSlice(optionNameSimulations, []string{"upload"}, "list of simulations to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")

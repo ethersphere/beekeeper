@@ -2,14 +2,123 @@
 
 [![Go](https://github.com/ethersphere/beekeeper/workflows/Go/badge.svg)](https://github.com/ethersphere/beekeeper/actions)
 
-**Ethereum Swarm Beekeeper** is tool used for testing of [Ethereum Swarm Bee](https://github.com/ethersphere/bee).
+**Ethereum Swarm Beekeeper** is tool used for orchestrating cluster of [Ethereum Swarm Bee](https://github.com/ethersphere/bee) and running integration tests and simulations against it in the Kubernetes.
 
-# Installing
+# Requirements
+
+* Kubernetes cluster (v1.19+)
+* [Geth Swap node](https://github.com/ethersphere/helm/tree/master/charts/geth-swap)
+
+# Installation
 
 ```bash
 make binary
 cp dist/beekeeper /usr/local/bin/beekeeper
 ```
+
+# Configuration
+
+Beekeeper is configured with:
+* **config file** - sets Beekeeper's internals, and
+* **config directory** - sets Bee cluster configuration, checks and simulations
+
+## Config file
+
+Config file is used to set Beekeeper internals:
+* config directory location
+* Kubernetes client
+* Swap client
+
+Default location for config file is: **$HOME/.beekeeper.yaml**
+
+Location can also be set with **--config** flag.
+
+example:
+```
+config-dir: <user home dir>/.beekeeper/
+enable-k8s: true
+in-cluster: false
+kubeconfig: "~/.kube/config"
+geth-url: http://geth-swap.geth-swap.test.internal
+bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7 
+eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
+```
+
+NOTE: command flags can be also set through the config file
+
+## Config directory
+
+Config directory is used to group configuration (.yaml) files describing:
+* Bee cluster setup in Kubernetes
+* checks (integration tests), and
+* simulations
+
+Default location for config dir is: **$HOME/.beekeeper/**
+
+Location can also be set with **--config-dir** flag.
+
+Examples of .yaml files can be found in the [Beekeeper repo](https://github.com/ethersphere/beekeeper/tree/master/config).
+
+Config dir's .yaml files have several main blocks:
+* **clusters** - defines clusters Beekeeper works with
+* **node-groups** - defines Bee node groups that are part of the cluster. Node group is a collection of Bee nodes sharing same configuration parameters.
+* **bee-configs** - defines Bee configuration that can be assigned to node-groups
+* **checks** - defines checks Beekeeper can execute against the cluster
+* **simulations** - defines simulations Beekeeper can execute against the cluster
+* **stages** - defines stages for dynamic execution of checks and simulations
+
+### Inheritance
+
+Inheritance can be set through the field *_inherit*.
+
+Clusters, node-groups and bee-configs blocks support inheritance. 
+
+example:
+```
+bee-configs:
+  light-node:
+    _inherit: default
+    full-node: false
+```
+This setting means that *light-node* bee-config will inherit all parameters from the *default* bee-config, overriding only *full-node* parameter.
+
+### Action types
+
+Action types can be set in every check or simulation definition.
+
+Action types allow defining same check or simulation with different parameters.
+
+example:
+```
+checks:
+  pushsync-chunks:
+    options:
+      chunks-per-node: 1
+      metrics-enabled:
+      mode: chunks
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      retries: 5
+      retry-delay: 1s
+      upload-node-count: 1
+    timeout: 5m
+    type: pushsync
+  pushsync-light-chunks:
+    options:
+      chunks-per-node: 1
+      metrics-enabled:
+      mode: light-chunks
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      retries: 5
+      retry-delay: 1s
+      upload-node-count: 1
+    timeout: 5m
+    type: pushsync
+```
+This setting means that pushsync check can be executed choosing *pushsync-chunks* or *pushsync-light-chunks* variation.
 
 # Usage
 
@@ -17,148 +126,127 @@ cp dist/beekeeper /usr/local/bin/beekeeper
 
 |command|description|
 |-------|-----------|
-| check | Run tests on Bee node(s) |
+| check | runs integration tests on a Bee cluster |
+| create | creates Bee infrastructure |
+| delete | Delete Bee infrastructure |
+| fund | Fund Ethereum addresses |
 | help | Help about any command |
-| print | Print Bee cluster info |
+| print | Print information about a Bee cluster |
+| simulate | Run simulations on a Bee cluster |
 | version | Print version number |
 
 ## check
 
-Command **check** runs test(s) on Bee node(s).
- Each test is implemented as a subcommand.
+Command **check** runs ingegration tests on a Bee cluster.
 
-Available subcommands:
+It has following flags:
 
-|subcommand|description|
-|----------|-----------|
-| fileretrieval | Checks file retrieval ability of the cluster |
-| fileretrievaldynamic | Checks file retrieval ability of the dynamic cluster |
-| fullconnectivity | Checks full connectivity in the cluster |
-| kademlia | Checks Kademlia topology in the cluster |
-| localpinning | Checks local pinning ability of the cluster |
-| manifest | Checks manifest functionality on the cluster |
-| peercount | Count peers for all nodes in the cluster |
-| pingpong | Executes ping from all nodes to all other nodes in the cluster |
-| pullsync | Checks pullsync ability of the cluster |
-| pushsync | Checks pushsync ability of the cluster |
-| retrieval | Checks retrieval ability of the cluster |
-
-### fileretrieval
-
-**fileretrieval** checks file retrieval ability of the cluster.
-It uploads given number of files to given number of nodes, 
-and attempts retrieval of those files from the last node in the cluster.
-
-Example:
-```bash
-beekeeper check fileretrieval --namespace bee --node-count 3 --upload-node-count 2 --files-per-node 4 --file-size 1048576
+```
+--checks strings        list of checks to execute (default [pingpong])
+--cluster-name string   cluster name (default "default")
+--create-cluster        creates cluster before executing checks
+--help                  help for check
+--metrics-enabled       enable metrics
+--seed int              seed, -1 for random (default -1)
+--timeout duration      timeout (default 30m0s)
 ```
 
-### fileretrievaldynamic
-
-**fileretrievaldynamic** checks file retrieval ability of the dynamic cluster. It uploads file to a random node, then it downloads that file from given number of random nodes. Then, it stops given number of other random nodes, and tries to download file again from other random nodes. It starts stopped nodes and downloads file from them.
-It has an option to add new nodes to the cluster and repeat previous steps with the updated cluster.
-
-Example:
-```bash
-beekeeper check fileretrievaldynamic --namespace bee --node-count 5 --new-node-count 3 --kubeconfig /Users/<user>/.kube/config 
+example:
+```
+beekeeper check --checks=pingpong,pushsync
 ```
 
-### fullconnectivity
+## create
 
-**fullconnectivity** checks if every node has connectivity to all other nodes in the cluster.
+Command **create** creates Bee infrastructure. It has two subcommands:
+* bee-cluster - creates Bee cluster
 
-Example:
-```bash
-beekeeper check fullconnectivity --namespace bee --node-count 3
+    example:
+    ```
+    beekeeper create bee-cluster default
+    ```
+
+* k8s-namespace - creates Kubernetes namespace
+
+    example:
+    ```
+    beekeeper create k8s-namespace beekeeper
+    ```
+
+## delete
+
+Command **delete** deletes Bee infrastructure. It has two subcommands:
+* bee-cluster - deletes Bee cluster
+
+    example:
+    ```
+    beekeeper delete bee-cluster default
+    ```
+
+* k8s-namespace - deletes Kubernetes namespace
+
+    example:
+    ```
+    beekeeper delete k8s-namespace beekeeper
+    ```
+
+## fund
+
+Command **fund** makes BZZ tokens and ETH deposits to given Ethereum addresses.
+
+It has following flags:
+
+```
+--addresses strings          Bee node Ethereum addresses (must start with 0x)
+--bzz-deposit float          BZZ tokens amount to deposit (default 100)
+--bzz-token-address string   BZZ token address (default "0x6aab14fe9cccd64a502d23842d916eb5321c26e7")
+--eth-account string         ETH account address (default "0x62cab2b3b55f341f10348720ca18063cdb779ad5")
+--eth-deposit float          ETH amount to deposit (default 0.01)
+--geth-url string            Geth node URL (default "http://geth-swap.geth-swap.test.internal")
+--help                       help for fund
+--timeout duration           timeout (default 5m0s)
 ```
 
-### kademlia
-
-**kademlia** checks Kademlia topology in the cluster.
-
-Example:
-```bash
-beekeeper check kademlia --namespace bee --node-count 3
+example:
 ```
-
-### localpinning
-
-**localpinning** checks local pinning ability of the cluster.
-
-Example:
-```bash
-beekeeper check localpinning --namespace bee --node-count 3
-```
-
-### manifest
-
-**manifest** checks manifest functionality on the cluster.
-
-Example:
-```bash
-beekeeper check manifest --namespace bee --node-count 3
-```
-
-### peercount
-
-**peercount** counts peers for all nodes in the cluster.
-
-Example:
-```bash
-beekeeper check peercount --namespace bee --node-count 3
-```
-
-### pingpong
-
-**pingpong** executes ping from all nodes to all other nodes in the cluster,
-and prints round-trip time (RTT) of each ping.
-
-Example:
-```bash
-beekeeper check pingpong --namespace bee --node-count 3
-```
-
-### pullsync
-
-**pullsync** checks pullsync ability of the cluster.
-
-Example:
-```bash
-beekeeper check pullsync --namespace bee --node-count 3
-```
-
-### pushsync
-
-**pushsync** checks pushsync ability of the cluster.
-It uploads given number of chunks to given number of nodes, and checks if chunks are synced to their closest nodes.
-
-Example:
-```bash
-beekeeper check pushsync --namespace bee --node-count 3 --upload-node-count 2 --chunks-per-node 4
-```
-
-### retrieval
-
-**retrieval** checks retrieval ability of the cluster.
-It uploads given number of chunks to given number of nodes, 
-and attempts retrieval of those chunks from the last node in the cluster.
-
-Example:
-```bash
-beekeeper check retrieval --namespace bee --node-count 3 --upload-node-count 2 --chunks-per-node 4
+beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0
 ```
 
 ## print
 
-Command **print** prints info about Bee cluster.
- Each type of information is implemented as a subcommand.
+Command **print** prints information about a Bee cluster.
 
-Available subcommands:
+example:
+```
+beekeeper print overlays
+```
 
-|subcommand|description|
-|----------|-----------|
-| addresses | Print addresses for every node in a cluster |
-| overlays | Print overlay address for every node in a cluster |
-| peers | Print list of peers for every node in a cluster |
-| topologies | Print list of Kademlia topology for every node in a cluster |
+## simulate
+
+Command **simulate** runs simulations on a Bee cluster.
+
+It has following flags:
+
+```
+--cluster-name string   cluster name (default "default")
+--create-cluster        creates cluster before executing simulations
+--help                  help for check
+--metrics-enabled       enable metrics
+--seed int              seed, -1 for random (default -1)
+--simulations strings   list of simulations to execute (default [upload])
+--timeout duration      timeout (default 30m0s)
+```
+
+example:
+```
+beekeeper simulate --simulations=upload
+```
+
+## version
+
+Command **version** prints version number.
+
+example:
+```
+beekeeper version
+```

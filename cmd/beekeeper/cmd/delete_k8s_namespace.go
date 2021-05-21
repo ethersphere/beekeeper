@@ -9,8 +9,8 @@ import (
 func (c *command) initDeleteK8SNamespace() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "k8s-namespace",
-		Short: "Delete Kubernetes namespace",
-		Long:  `Delete Kubernetes namespace.`,
+		Short: "deletes Kubernetes namespace",
+		Long:  `Deletes Kubernetes namespace.`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return fmt.Errorf("requires exactly one argument representing name of the Kubernetes namespace")

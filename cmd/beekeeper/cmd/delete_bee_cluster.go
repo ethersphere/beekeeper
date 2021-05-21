@@ -16,8 +16,8 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "bee-cluster",
-		Short: "Delete Bee cluster",
-		Long:  `Delete Bee cluster.`,
+		Short: "deletes Bee cluster",
+		Long:  `Deletes Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
