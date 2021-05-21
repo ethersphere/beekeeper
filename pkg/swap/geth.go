@@ -95,7 +95,6 @@ func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx
 		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
 
-	fmt.Println("ETH float64ToBigInt", fmt.Sprintf("%064x", float64ToBigInt(amount, 1000000000000000000)))
 	req := ethRequest{
 		ID:      "0",
 		JsonRPC: "1.0",
@@ -132,7 +131,6 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx
 		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
 	}
 
-	fmt.Println("TrimPrefix", fmt.Sprintf("%064s", strings.TrimPrefix(to, "0x")))
 	req := ethRequest{
 		ID:      "0",
 		JsonRPC: "1.0",
