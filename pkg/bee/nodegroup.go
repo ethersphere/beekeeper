@@ -643,7 +643,7 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
-func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions) (err error) {
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions, fund bool) (err error) {
 	if err := g.AddNode(name, o); err != nil {
 		return fmt.Errorf("add node %s: %w", name, err)
 	}
@@ -656,8 +656,10 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions) (
 		return fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	if err := g.Fund(ctx, name); err != nil {
-		return fmt.Errorf("fund node %s: %w", name, err)
+	if fund {
+		if err := g.Fund(ctx, name); err != nil {
+			return fmt.Errorf("fund node %s: %w", name, err)
+		}
 	}
 
 	return

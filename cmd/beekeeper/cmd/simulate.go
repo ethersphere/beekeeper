@@ -18,6 +18,7 @@ func (c *command) initSimulateCmd() (err error) {
 		optionNameMetricsEnabled = "metrics-enabled"
 		optionNameSeed           = "seed"
 		optionNameTimeout        = "timeout"
+		optionNameWithFunding    = "with-funding"
 		// TODO: optionNameStages         = "stages"
 	)
 
@@ -36,7 +37,7 @@ func (c *command) initSimulateCmd() (err error) {
 			}
 
 			// setup cluster
-			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameCreateCluster))
+			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameCreateCluster), c.globalConfig.GetBool(optionNameWithFunding))
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
@@ -85,6 +86,7 @@ func (c *command) initSimulateCmd() (err error) {
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
 	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
+	cmd.Flags().Bool(optionNameWithFunding, false, "fund nodes")
 
 	c.root.AddCommand(cmd)
 

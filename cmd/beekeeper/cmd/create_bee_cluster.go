@@ -11,6 +11,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 	const (
 		optionNameClusterName = "cluster-name"
 		optionNameTimeout     = "timeout"
+		optionNameWithFunding = "with-funding"
 	)
 
 	cmd := &cobra.Command{
@@ -21,7 +22,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			_, err = c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, true)
+			_, err = c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, true, c.globalConfig.GetBool(optionNameWithFunding))
 
 			return err
 		},
@@ -30,6 +31,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
+	cmd.Flags().Bool(optionNameWithFunding, true, "fund nodes")
 
 	return cmd
 }

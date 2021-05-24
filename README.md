@@ -149,6 +149,7 @@ It has following flags:
 --metrics-enabled       enable metrics
 --seed int              seed, -1 for random (default -1)
 --timeout duration      timeout (default 30m0s)
+--with-funding          fund nodes (default false)
 ```
 
 example:
@@ -160,6 +161,15 @@ beekeeper check --checks=pingpong,pushsync
 
 Command **create** creates Bee infrastructure. It has two subcommands:
 * bee-cluster - creates Bee cluster
+
+    It has following flags:
+
+    ```
+    --cluster-name string   cluster name (default "default")
+    --help                  help for bee-cluster
+    --timeout duration      timeout (default 30m0s)
+    --with-funding          fund nodes (default true)
+    ```
 
     example:
     ```
@@ -177,6 +187,15 @@ Command **create** creates Bee infrastructure. It has two subcommands:
 
 Command **delete** deletes Bee infrastructure. It has two subcommands:
 * bee-cluster - deletes Bee cluster
+
+    It has following flags:
+
+    ```
+    --cluster-name string   cluster name (default "default")
+    --help                  help for bee-cluster
+    --timeout duration      timeout (default 15m0s)
+    --with-storage          delete storage
+    ```
 
     example:
     ```
@@ -216,6 +235,14 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 
 Command **print** prints information about a Bee cluster.
 
+It has following flags:
+
+```
+--cluster-name string   cluster name (default "default")
+--help                  help for print
+--timeout duration      timeout (default 15m0s)
+```
+
 example:
 ```
 beekeeper print overlays
@@ -235,6 +262,7 @@ It has following flags:
 --seed int              seed, -1 for random (default -1)
 --simulations strings   list of simulations to execute (default [upload])
 --timeout duration      timeout (default 30m0s)
+--with-funding          fund nodes (default false)
 ```
 
 example:

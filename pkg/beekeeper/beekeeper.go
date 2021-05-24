@@ -31,6 +31,7 @@ type Actions struct {
 	StartCount  int
 	StopCount   int
 	DeleteCount int
+	WithFunding bool
 }
 
 // Run runs check against the cluster
@@ -158,7 +159,7 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 
 	// add nodes
 	for _, n := range toAdd {
-		if err := ng.SetupNode(ctx, n, bee.NodeOptions{}); err != nil {
+		if err := ng.SetupNode(ctx, n, bee.NodeOptions{}, a.WithFunding); err != nil {
 			return fmt.Errorf("add start node %s: %w", n, err)
 		}
 		overlay, err := ng.NodeClient(n).Overlay(ctx)
@@ -247,7 +248,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 				<-updateSemaphore
 			}()
 
-			if err := ng.SetupNode(ctx, n, bee.NodeOptions{}); err != nil {
+			if err := ng.SetupNode(ctx, n, bee.NodeOptions{}, a.WithFunding); err != nil {
 				return fmt.Errorf("add start node %s: %w", n, err)
 			}
 			overlay, err := ng.NodeClient(n).Overlay(ctx)

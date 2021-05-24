@@ -329,30 +329,36 @@ stages:
         start: 0
         stop: 1
         delete: 3
+        with-funding: true
       - node-group: drone
         add: 4
         start: 0
         stop: 3
         delete: 1
+        with-funding: true
     -
       - node-group: bee
         add: 3
         start: 1
         stop: 1
         delete: 3
+        with-funding: true
       - node-group: drone
         add: 2
         start: 1
         stop: 2
         delete: 1
+        with-funding: true
     -
       - node-group: bee
         add: 4
         start: 1
         stop: 3
         delete: 1
+        with-funding: true
       - node-group: drone
         add: 3
         start: 1
         stop: 2
         delete: 1
+        with-funding: true
