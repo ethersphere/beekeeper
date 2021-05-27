@@ -1,0 +1,7 @@
+enable-k8s: true
+in-cluster: false
+geth-url: http://geth-swap.localhost
+bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7 
+eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
+# config-dir: ""
+# kubeconfig: ""
