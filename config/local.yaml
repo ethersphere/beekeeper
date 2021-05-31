@@ -149,13 +149,15 @@ bee-configs:
     _inherit: "bee-local"
     bootnode: /dnsaddr/localhost
   bootnode-local-dns:
-    _inherit: "bee-local-dns"
+    _inherit: "bee-local"
+    bootnode: /dnsaddr/localhost
     bootnode-mode: true
   bee-local-gc:
     _inherit: "bee-local"
     cache-capacity: 100
   bootnode-local-gc:
-    _inherit: "bee-local-gc"
+    _inherit: "bee-local"
+    cache-capacity: 100
     bootnode-mode: true
 
 # CI checks
