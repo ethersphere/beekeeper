@@ -228,7 +228,7 @@ checks:
       file-name: settlements
       file-size: 2097152 # 2mb = 2*1024*1024
       postage-amount: 1
-      postage-depth: 16
+      postage-depth: 18
       postage-wait: 5s
       threshold: 1500000000000
       upload-node-count: 3
