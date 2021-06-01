@@ -17,29 +17,41 @@ clusters:
         mode: bootnode
         bee-config: bootnode
         config: default
-        nodes:  
+        nodes:
         - name: bootnode-0
           bootnodes: /dns4/bootnode-1-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAmMw7Uj6vfraD9BYx3coDs6MK6pAmActE8fsfaZwigsaB6
-          # clef-key: '{"address":"b087e2263124cde331e7f7b6951a73b3f9d6209d","crypto":{"cipher":"aes-128-ctr","ciphertext":"daf449b902aeca242a6cbcfaab850f2162ae10edca7693637c24162b41d324e7","cipherparams":{"iv":"3f9097b3313aca121a6e5296e38f84ab"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":4096,"p":6,"r":8,"salt":"5c0a2a3313b1136e87f9ee00cdf0a2bfd800282a0e210deb6fe10cbe57926416"},"mac":"5dd5a91a02de2955733ea9d5171eeb7a6c4777fd6b2b591ca603fddcc10c1195"},"id":"a9820b1f-05f9-40d9-8a86-03d1f79f383f","version":3}'
-          # clef-password: clefbeesecret
+          clef:
+            key: '{"address":"b087e2263124cde331e7f7b6951a73b3f9d6209d","crypto":{"cipher":"aes-128-ctr","ciphertext":"daf449b902aeca242a6cbcfaab850f2162ae10edca7693637c24162b41d324e7","cipherparams":{"iv":"3f9097b3313aca121a6e5296e38f84ab"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":4096,"p":6,"r":8,"salt":"5c0a2a3313b1136e87f9ee00cdf0a2bfd800282a0e210deb6fe10cbe57926416"},"mac":"5dd5a91a02de2955733ea9d5171eeb7a6c4777fd6b2b591ca603fddcc10c1195"},"id":"a9820b1f-05f9-40d9-8a86-03d1f79f383f","version":3}'
+            password: clefbeesecret
           libp2p-key: '{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}'
           swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
         - name: bootnode-1
           bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL
-          # clef-key: '{"address":"4e998d718f3bdab63cab2fec4be442c38f1b361d","crypto":{"cipher":"aes-128-ctr","ciphertext":"b6d241d3cce6bfea70dcd404f7a06839542f85247b97b6b59dd22e7df6ec5750","cipherparams":{"iv":"c06f3f38a715ad458b63c9174560e54b"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":4096,"p":6,"r":8,"salt":"c4fc6e1b567ae798c4380704e762ff3c83de5432e9458e90f35a0facdcd2069f"},"mac":"455e7d1546e538f4831d1219a4d1efded1465c2655106b7e79c734e0ad642d9a"},"id":"e80a1a17-6945-4aae-9460-863f735f9b1e","version":3}'
-          # clef-password: clefbeesecret
+          clef:
+            key: '{"address":"4e998d718f3bdab63cab2fec4be442c38f1b361d","crypto":{"cipher":"aes-128-ctr","ciphertext":"b6d241d3cce6bfea70dcd404f7a06839542f85247b97b6b59dd22e7df6ec5750","cipherparams":{"iv":"c06f3f38a715ad458b63c9174560e54b"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":4096,"p":6,"r":8,"salt":"c4fc6e1b567ae798c4380704e762ff3c83de5432e9458e90f35a0facdcd2069f"},"mac":"455e7d1546e538f4831d1219a4d1efded1465c2655106b7e79c734e0ad642d9a"},"id":"e80a1a17-6945-4aae-9460-863f735f9b1e","version":3}'
+            password: clefbeesecret
           libp2p-key: '{"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f688ddcdfe88acbebef2037c68030b1a0a367a561333e5c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","crypto":{"cipher":"aes-128-ctr","ciphertext":"0d0ff25e9b03292e622c5a09ec00c2acb7ff5882f02dd2f00a26ac6d3292a434","cipherparams":{"iv":"cd4082caf63320b306fe885796ba224f"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a4d63d56c539eb3eff2a235090127486722fa2c836cf735d50d673b730cebc3f"},"mac":"aad40da9c1e742e2b01bb8f76ba99ace97ccb0539cea40e31eb6b9bb64a3f36a"},"version":3}'
           swarm-key: '{"address":"ebe269e07161c68a942a3a7fce6b4ed66867d6f0","crypto":{"cipher":"aes-128-ctr","ciphertext":"06b550c35b46099aea8f6c9f799497d34bd5ebc13af79c7cdb2a1037227544ad","cipherparams":{"iv":"fa088e69b1849e40f190a5f69f0555f8"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"42b4f2815c0042d02eed916a7a74ecdc005f1f7eae0cfb5837c15f469df9ddba"},"mac":"23e3d0594ab94587258a33cc521edbde009b887a6f117ed7a3422d1c95123568"},"version":3}'
       bee:
+        mode: node
         bee-config: default
         config: default
-        count: 5
-        mode: node
+        nodes:
+        - clef:
+            key: '{"address":"4558ab6d518bf60b813eeba3077eed986027c5da","crypto":{"cipher":"aes-128-ctr","ciphertext":"1bbeffa438a8b8fd592a46323fe0168d8d8e2625085ca8550023b5c0bd48a126","cipherparams":{"iv":"3f369a742a465aaf5e3025864639421a"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"4c2c1fde6491213ea3c6021c82a70327bc0a056569a6e7c2a3fda9e486c0f090"},"mac":"f733b77f675acf0539e7d3d60735408c6efd43893dc0d5b0f94124b0197f89dd"},"id":"1e526dc4-60bd-4c4d-897d-f284806abf2b","version":3}'
+            password: clefbeesecret
+        - clef:
+            key: '{"address":"24d7ed323121dedde08d1a9bbd9d054b839daeb8","crypto":{"cipher":"aes-128-ctr","ciphertext":"ea7572730209e815078fd6a32abce9cceeeb2aabe44908bc212005cd3e705ed0","cipherparams":{"iv":"05d4ef77ecfe7a95b970b04998314303"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"6b3b75689f29a6cbe458cafdadddbb42e2b4256e9729570fb4b1077a09a1b9fb"},"mac":"729d8049519daee7559a856fc11f9166fffe9ceef3533f288ba335d9fdcab392"},"id":"009aafd5-e803-46c0-a061-bf314a81cf79","version":3}'
+            password: clefbeesecret
+        - clef:
+            key: '{"address":"59ad7a86e3115e50af278edb46917bb1d447172a","crypto":{"cipher":"aes-128-ctr","ciphertext":"0cade286ef24fba2f8272ff8f76aca11b572296d89e7e98adffadca950a9ae87","cipherparams":{"iv":"064b28702c7b6e8d3f6b5e384522bd9a"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"be9030a16c79c4fb77bbfc0b5597791e3cf3ad506abd7ccee48809fe2a98fea0"},"mac":"d91202f50ad0bd709cbc8da7195ce08510e7299d394761392af5f184ebe0b94f"},"id":"551210c5-c319-4f19-9179-d6e86a60c45d","version":3}'
+            password: clefbeesecret
       light:
+        mode: node
         bee-config: light-node
         config: light-node
-        count: 5
-        mode: node
+        count: 3
+        
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
@@ -90,8 +102,8 @@ bee-configs:
     bootnodes: ""
     bootnode-mode: false
     cache-capacity: 1000000
-    clef-signer-enable: false
-    clef-signer-endpoint: ""
+    clef-signer-enable: true
+    clef-signer-endpoint: "http://localhost:8550"
     cors-allowed-origins: ""
     data-dir: "/home/bee/.bee"
     db-open-files-limit: 200

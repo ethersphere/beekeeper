@@ -76,8 +76,9 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 	fmt.Printf("secret %s is set in namespace %s\n", keysSecret, o.Namespace)
 
 	// secret with clef key and pass
+	clefSecretEnabled := len(o.ClefKey) > 0 && len(o.ClefPassword) > 0
 	clefSecret := fmt.Sprintf("%s-clef", o.Name)
-	if len(o.ClefKey) > 0 && len(o.ClefPassword) > 0 {
+	if o.Config.ClefSignerEnable && clefSecretEnabled {
 		clefSecretData := map[string]string{
 			"key":      o.ClefKey,
 			"password": o.ClefPassword,
@@ -281,7 +282,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 
 	// statefulset
 	sSet := o.Name
-	clefEnabled := len(o.ClefKey) > 0
+	clefEnabled := o.Config.ClefSignerEnable
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := len(o.SwarmKey) > 0
 
@@ -301,6 +302,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 				Spec: pod.PodSpec{
 					InitContainers: setInitContainers(setInitContainersOptions{
 						ClefEnabled:         clefEnabled,
+						ClefSecretEnabled:   clefSecretEnabled,
 						ClefImage:           o.ClefImage,
 						ClefImagePullPolicy: o.ClefImagePullPolicy,
 						ClefPassword:        o.ClefPassword,
@@ -320,6 +322,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 						ResourcesRequestCPU:    o.ResourcesRequestCPU,
 						ResourcesRequestMemory: o.ResourcesRequestMemory,
 						ClefEnabled:            clefEnabled,
+						ClefSecretEnabled:      clefSecretEnabled,
 						ClefImage:              o.ClefImage,
 						ClefImagePullPolicy:    o.ClefImagePullPolicy,
 						ClefPassword:           o.ClefPassword,
@@ -337,6 +340,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 						KeysSecret:         keysSecret,
 						PersistenceEnabled: o.PersistenceEnabled,
 						ClefEnabled:        clefEnabled,
+						ClefSecretEnabled:  clefSecretEnabled,
 						ClefSecret:         clefSecret,
 						LibP2PEnabled:      libP2PEnabled,
 						SwarmEnabled:       swarmEnabled,
