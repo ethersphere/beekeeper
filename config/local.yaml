@@ -207,7 +207,7 @@ checks:
       postage-depth: 16
       postage-wait: 5s
       retries: 5
-      retry-delay: 1s
+      retry-delay: 15s
       upload-node-count: 3
     timeout: 5m
     type: pushsync
@@ -226,7 +226,7 @@ checks:
       dry-run: false
       expect-settlements: true
       file-name: settlements
-      file-size: 1048576 # 1mb = 1*1024*1024
+      file-size: 2097152 # 2mb = 2*1024*1024
       postage-amount: 1
       postage-depth: 16
       postage-wait: 5s
