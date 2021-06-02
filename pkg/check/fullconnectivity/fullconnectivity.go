@@ -7,12 +7,23 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 )
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
 
 var errFullConnectivity = errors.New("full connectivity")
 
-// Check executes full connectivity check if cluster is fully connected
-func Check(ctx context.Context, cluster *bee.Cluster) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err

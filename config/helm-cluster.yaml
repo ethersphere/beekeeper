@@ -1,0 +1,19 @@
+# cluster installed with helm chart
+clusters:
+  helm:
+    _inherit: ""
+    name: bee
+    namespace: beekeeper
+    disable-namespace: false
+    api-domain: test.internal
+    api-insecure-tls: true
+    api-scheme: https
+    debug-api-domain: test.internal
+    debug-api-insecure-tls: true
+    debug-api-scheme: https
+    node-groups:
+      bee:
+        bee-config: default
+        config: default
+        count: 5
+        mode: node

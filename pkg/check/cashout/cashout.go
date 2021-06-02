@@ -9,11 +9,32 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 )
+
+// TODO: remove need for node group, use whole cluster instead
 
 // Options represents settlements check options
 type Options struct {
 	NodeGroup string
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		NodeGroup: "bee",
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
 }
 
 type CashoutAction struct {
@@ -25,10 +46,13 @@ type CashoutAction struct {
 }
 
 // Check executes settlements check
-func Check(c *bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
 
-	ng := c.NodeGroup(o.NodeGroup)
+	ng := cluster.NodeGroup(o.NodeGroup)
 
 	sortedNodes := ng.NodesSorted()
 	var actions []CashoutAction

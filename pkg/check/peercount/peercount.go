@@ -5,12 +5,21 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 )
 
-// Check executes peer count check on cluster
-func Check(cluster *bee.Cluster) (err error) {
-	ctx := context.Background()
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
 
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err

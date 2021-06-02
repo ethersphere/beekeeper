@@ -10,41 +10,79 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-// Options represents settlements check options
+// Options represents check options
 type Options struct {
-	UploadNodeCount    int
+	DryRun             bool
+	ExpectSettlements  bool
 	FileName           string
 	FileSize           int64
-	Seed               int64
-	Threshold          int64
-	WaitBeforeDownload time.Duration
-	ExpectSettlements  bool
 	PostageAmount      int64
-	PostageWait        time.Duration
 	PostageDepth       uint64
+	PostageWait        time.Duration
+	Seed               int64
+	Threshold          int64 // balances treshold
+	UploadNodeCount    int
+	WaitBeforeDownload time.Duration // seconds to wait before downloading a file
 }
 
-// Check executes settlements check
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		DryRun:             false,
+		ExpectSettlements:  true,
+		FileName:           "settlements",
+		FileSize:           1 * 1024 * 1024, // 1mb
+		PostageAmount:      1,
+		PostageDepth:       16,
+		PostageWait:        5 * time.Second,
+		Seed:               0,
+		Threshold:          10000000000000,
+		UploadNodeCount:    1,
+		WaitBeforeDownload: 5 * time.Second,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	if o.DryRun {
+		fmt.Println("running settlements (dry mode)")
+		return dryRun(ctx, cluster, o)
+	}
+	fmt.Println("running settlements")
+
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	overlays, err := c.FlattenOverlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Initial settlement validation
-	balances, err := c.FlattenBalances(ctx)
+	balances, err := cluster.FlattenBalances(ctx)
 	if err != nil {
 		return err
 	}
-	settlements, err := c.FlattenSettlements(ctx)
+	settlements, err := cluster.FlattenSettlements(ctx)
 	if err != nil {
 		return err
 	}
@@ -55,16 +93,16 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	var previousSettlements map[string]map[string]bee.SentReceived
 
-	clients, err := c.NodesClients(ctx)
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
 		var settlementsHappened = false
 		// upload file to random node
-		uIndex := rnd.Intn(c.Size())
+		uIndex := rnd.Intn(cluster.Size())
 		uNode := sortedNodes[uIndex]
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
 
@@ -87,12 +125,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = c.FlattenBalances(ctx)
+			balances, err = cluster.FlattenBalances(ctx)
 			if err != nil {
 				return err
 			}
 
-			settlements, err = c.FlattenSettlements(ctx)
+			settlements, err = cluster.FlattenSettlements(ctx)
 			if err != nil {
 				return err
 			}
@@ -113,7 +151,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 		time.Sleep(o.WaitBeforeDownload)
 		// download file from random node
-		dIndex := randomIndex(rnd, c.Size(), uIndex)
+		dIndex := randomIndex(rnd, cluster.Size(), uIndex)
 		dNode := sortedNodes[dIndex]
 		size, hash, err := clients[dNode].DownloadFile(ctx, file.Address())
 		if err != nil {
@@ -129,12 +167,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = c.FlattenBalances(ctx)
+			balances, err = cluster.FlattenBalances(ctx)
 			if err != nil {
 				return err
 			}
 
-			settlements, err = c.FlattenSettlements(ctx)
+			settlements, err = cluster.FlattenSettlements(ctx)
 			if err != nil {
 				return err
 			}
@@ -162,21 +200,19 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	return
 }
 
-// DryRunCheck executes settlements validation check without files uploading/downloading
-func DryRunCheck(c *bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
-
-	overlays, err := c.FlattenOverlays(ctx)
+// dryRun executes settlements validation check without files uploading/downloading
+func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	balances, err := c.FlattenBalances(ctx)
+	balances, err := cluster.FlattenBalances(ctx)
 	if err != nil {
 		return err
 	}
 
-	settlements, err := c.FlattenSettlements(ctx)
+	settlements, err := cluster.FlattenSettlements(ctx)
 	if err != nil {
 		return err
 	}

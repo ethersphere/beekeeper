@@ -91,8 +91,11 @@ func (p *PodSpec) toK8S() v1.PodSpec {
 		NodeName:       p.NodeName,
 		NodeSelector:   p.NodeSelector,
 		PreemptionPolicy: func() *v1.PreemptionPolicy {
-			p := v1.PreemptionPolicy(p.PreemptionPolicy)
-			return &p
+			if len(p.PreemptionPolicy) > 0 {
+				pp := v1.PreemptionPolicy(p.PreemptionPolicy)
+				return &pp
+			}
+			return nil
 		}(),
 		Priority:                      &p.Priority,
 		PriorityClassName:             p.PriorityClassName,

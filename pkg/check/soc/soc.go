@@ -13,22 +13,46 @@ import (
 	"github.com/ethersphere/bee/pkg/crypto"
 	"github.com/ethersphere/bee/pkg/soc"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 )
 
-// Options represents SOC check options
+// Options represents check options
 type Options struct {
-	RequestTimeout time.Duration
 	PostageAmount  int64
-	PostageWait    time.Duration
 	PostageDepth   uint64
+	PostageWait    time.Duration
+	RequestTimeout time.Duration
 }
 
-// Check sends a SOC chunk and retrieves with the address.
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		PostageAmount:  1,
+		PostageDepth:   16,
+		PostageWait:    5 * time.Second,
+		RequestTimeout: 5 * time.Minute,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
 
 	payload := []byte("Hello Swarm :)")
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
@@ -63,12 +87,12 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, o.RequestTimeout)
 	defer cancel()
 
 	nodeName := sortedNodes[0]
 
-	clients, err := c.NodesClients(ctx)
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}

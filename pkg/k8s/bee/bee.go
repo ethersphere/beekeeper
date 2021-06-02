@@ -76,8 +76,9 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 	fmt.Printf("secret %s is set in namespace %s\n", keysSecret, o.Namespace)
 
 	// secret with clef key and pass
+	clefSecretEnabled := len(o.ClefKey) > 0 && len(o.ClefPassword) > 0
 	clefSecret := fmt.Sprintf("%s-clef", o.Name)
-	if len(o.ClefKey) > 0 && len(o.ClefPassword) > 0 {
+	if o.Config.ClefSignerEnable && clefSecretEnabled {
 		clefSecretData := map[string]string{
 			"key":      o.ClefKey,
 			"password": o.ClefPassword,
@@ -116,10 +117,11 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 		ServiceSpec: service.Spec{
 			Ports: service.Ports{
 				{
-					Name:       "api",
-					Protocol:   "TCP",
-					Port:       portAPI,
-					TargetPort: "api",
+					AppProtocol: "TCP",
+					Name:        "api",
+					Protocol:    "TCP",
+					Port:        portAPI,
+					TargetPort:  "api",
 				},
 			},
 			Selector: o.Selector,
@@ -136,6 +138,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
+			Class: o.IngressClass,
 			Rules: ingress.Rules{{
 				Host: o.IngressHost,
 				Paths: ingress.Paths{{
@@ -143,7 +146,8 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 						ServiceName: apiSvc,
 						ServicePort: "api",
 					},
-					Path: "/",
+					Path:     "/",
+					PathType: "ImplementationSpecific",
 				}},
 			}},
 		},
@@ -165,10 +169,11 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
 			Ports: service.Ports{{
-				Name:       "debug",
-				Protocol:   "TCP",
-				Port:       portDebug,
-				TargetPort: "debug",
+				AppProtocol: "TCP",
+				Name:        "debug",
+				Protocol:    "TCP",
+				Port:        portDebug,
+				TargetPort:  "debug",
 			}},
 			Selector: o.Selector,
 			Type:     "ClusterIP",
@@ -184,6 +189,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
+			Class: o.IngressDebugClass,
 			Rules: ingress.Rules{{
 				Host: o.IngressDebugHost,
 				Paths: ingress.Paths{{
@@ -191,7 +197,8 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 						ServiceName: debugSvc,
 						ServicePort: "debug",
 					},
-					Path: "/",
+					Path:     "/",
+					PathType: "ImplementationSpecific",
 				}},
 			}},
 		},
@@ -221,11 +228,12 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 		ServiceSpec: service.Spec{
 			ExternalTrafficPolicy: "Local",
 			Ports: setBeeNodePort(setBeeNodePortOptions{
-				Name:       "p2p",
-				Protocol:   "TCP",
-				TargetPort: "p2p",
-				Port:       portP2P,
-				NodePort:   nodePortP2P,
+				AppProtocol: "TCP",
+				Name:        "p2p",
+				Protocol:    "TCP",
+				TargetPort:  "p2p",
+				Port:        portP2P,
+				NodePort:    nodePortP2P,
 			}),
 			Selector: o.Selector,
 			Type:     "NodePort",
@@ -243,22 +251,25 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 		ServiceSpec: service.Spec{
 			Ports: service.Ports{
 				{
-					Name:       "api",
-					Protocol:   "TCP",
-					Port:       portAPI,
-					TargetPort: "api",
+					AppProtocol: "TCP",
+					Name:        "api",
+					Protocol:    "TCP",
+					Port:        portAPI,
+					TargetPort:  "api",
 				},
 				{
-					Name:       "debug",
-					Protocol:   "TCP",
-					Port:       portDebug,
-					TargetPort: "debug",
+					AppProtocol: "TCP",
+					Name:        "debug",
+					Protocol:    "TCP",
+					Port:        portDebug,
+					TargetPort:  "debug",
 				},
 				{
-					Name:       "p2p",
-					Protocol:   "TCP",
-					Port:       portP2P,
-					TargetPort: "p2p",
+					AppProtocol: "TCP",
+					Name:        "p2p",
+					Protocol:    "TCP",
+					Port:        portP2P,
+					TargetPort:  "p2p",
 				},
 			},
 			Selector: o.Selector,
@@ -271,7 +282,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 
 	// statefulset
 	sSet := o.Name
-	clefEnabled := len(o.ClefKey) > 0
+	clefEnabled := o.Config.ClefSignerEnable
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := len(o.SwarmKey) > 0
 
@@ -291,6 +302,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 				Spec: pod.PodSpec{
 					InitContainers: setInitContainers(setInitContainersOptions{
 						ClefEnabled:         clefEnabled,
+						ClefSecretEnabled:   clefSecretEnabled,
 						ClefImage:           o.ClefImage,
 						ClefImagePullPolicy: o.ClefImagePullPolicy,
 						ClefPassword:        o.ClefPassword,
@@ -298,23 +310,24 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 						SwarmEnabled:        swarmEnabled,
 					}),
 					Containers: setContainers(setContainersOptions{
-						Name:                sSet,
-						Image:               o.Image,
-						ImagePullPolicy:     o.ImagePullPolicy,
-						LimitCPU:            o.LimitCPU,
-						LimitMemory:         o.LimitMemory,
-						RequestCPU:          o.RequestCPU,
-						RequestMemory:       o.RequestMemory,
-						PortAPI:             portAPI,
-						PortDebug:           portDebug,
-						PortP2P:             portP2P,
-						PersistenceEnabled:  o.PersistenceEnabled,
-						ClefEnabled:         clefEnabled,
-						ClefImage:           o.ClefImage,
-						ClefImagePullPolicy: o.ClefImagePullPolicy,
-						ClefPassword:        o.ClefPassword,
-						LibP2PEnabled:       libP2PEnabled,
-						SwarmEnabled:        swarmEnabled,
+						Name:                   sSet,
+						Image:                  o.Image,
+						ImagePullPolicy:        o.ImagePullPolicy,
+						PortAPI:                portAPI,
+						PortDebug:              portDebug,
+						PortP2P:                portP2P,
+						PersistenceEnabled:     o.PersistenceEnabled,
+						ResourcesLimitCPU:      o.ResourcesLimitCPU,
+						ResourcesLimitMemory:   o.ResourcesLimitMemory,
+						ResourcesRequestCPU:    o.ResourcesRequestCPU,
+						ResourcesRequestMemory: o.ResourcesRequestMemory,
+						ClefEnabled:            clefEnabled,
+						ClefSecretEnabled:      clefSecretEnabled,
+						ClefImage:              o.ClefImage,
+						ClefImagePullPolicy:    o.ClefImagePullPolicy,
+						ClefPassword:           o.ClefPassword,
+						LibP2PEnabled:          libP2PEnabled,
+						SwarmEnabled:           swarmEnabled,
 					}),
 					NodeSelector: o.NodeSelector,
 					PodSecurityContext: pod.PodSecurityContext{
@@ -327,6 +340,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 						KeysSecret:         keysSecret,
 						PersistenceEnabled: o.PersistenceEnabled,
 						ClefEnabled:        clefEnabled,
+						ClefSecretEnabled:  clefSecretEnabled,
 						ClefSecret:         clefSecret,
 						LibP2PEnabled:      libP2PEnabled,
 						SwarmEnabled:       swarmEnabled,
@@ -339,7 +353,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 			VolumeClaimTemplates: setPersistentVolumeClaims(setPersistentVolumeClaimsOptions{
 				Enabled:        o.PersistenceEnabled,
 				StorageClass:   o.PersistenceStorageClass,
-				StorageRequest: o.PersistanceStorageRequest,
+				StorageRequest: o.PersistenceStorageRequest,
 			}),
 		},
 	}); err != nil {

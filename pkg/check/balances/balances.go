@@ -9,29 +9,63 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-// Options represents balances check options
+// Options represents check options
 type Options struct {
-	NodeGroup          string
-	UploadNodeCount    int
+	DryRun             bool
 	FileName           string
 	FileSize           int64
-	Seed               int64
-	WaitBeforeDownload int
 	PostageAmount      int64
 	PostageWait        time.Duration
+	Seed               int64
+	UploadNodeCount    int
+	WaitBeforeDownload time.Duration
 }
 
-// Check executes balances check
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		DryRun:             false,
+		FileName:           "balances",
+		FileSize:           1 * 1024 * 1024, // 1mb,
+		PostageAmount:      1,
+		PostageWait:        5 * time.Second,
+		Seed:               0,
+		UploadNodeCount:    1,
+		WaitBeforeDownload: 5 * time.Second,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	if o.DryRun {
+		fmt.Println("running balances (dry mode)")
+		return dryRun(ctx, cluster, o)
+	}
+	fmt.Println("running balances")
+
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	overlays, err := c.Overlays(ctx)
+	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
 	}
@@ -39,7 +73,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	flatOverlays := flattenOverlays(overlays)
 
 	// Initial balances validation
-	balances, err := c.Balances(ctx)
+	balances, err := cluster.Balances(ctx)
 	if err != nil {
 		return err
 	}
@@ -57,7 +91,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		ng, nodeName, overlay := overlays.Random(rnd)
 
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
-		client := c.NodeGroups()[ng].NodeClient(nodeName)
+		client := cluster.NodeGroups()[ng].NodeClient(nodeName)
 
 		// add some buffer to ensure depth is enough
 		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
@@ -80,7 +114,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = c.Balances(ctx)
+			balances, err = cluster.Balances(ctx)
 			if err != nil {
 				return err
 			}
@@ -98,10 +132,10 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			break
 		}
 
-		time.Sleep(time.Duration(o.WaitBeforeDownload) * time.Second)
+		time.Sleep(o.WaitBeforeDownload)
 		// download file from random node
 		ng, nodeName, overlay = overlays.Random(rnd)
-		size, hash, err := c.NodeGroups()[ng].NodeClient(nodeName).DownloadFile(ctx, file.Address())
+		size, hash, err := cluster.NodeGroups()[ng].NodeClient(nodeName).DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %s: %w", nodeName, err)
 		}
@@ -115,7 +149,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		for t := 0; t < 5; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = c.Balances(ctx)
+			balances, err = cluster.Balances(ctx)
 			if err != nil {
 				return err
 			}
@@ -137,17 +171,15 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	return
 }
 
-// DryRunCheck executes balances validation check without files uploading/downloading
-func DryRunCheck(c *bee.Cluster, o Options) (err error) {
-	ctx := context.Background()
-
-	overlays, err := c.Overlays(ctx)
+// dryRun executes balances validation check without files uploading/downloading
+func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 	flatOverlays := flattenOverlays(overlays)
 
-	balances, err := c.Balances(ctx)
+	balances, err := cluster.Balances(ctx)
 	if err != nil {
 		return err
 	}

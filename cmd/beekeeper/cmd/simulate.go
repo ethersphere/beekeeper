@@ -1,0 +1,94 @@
+package cmd
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/spf13/cobra"
+)
+
+func (c *command) initSimulateCmd() (err error) {
+	const (
+		optionNameClusterName    = "cluster-name"
+		optionNameCreateCluster  = "create-cluster"
+		optionNameSimulations    = "simulations"
+		optionNameMetricsEnabled = "metrics-enabled"
+		optionNameSeed           = "seed"
+		optionNameTimeout        = "timeout"
+		optionNameWithFunding    = "with-funding"
+		// TODO: optionNameStages         = "stages"
+	)
+
+	cmd := &cobra.Command{
+		Use:   "simulate",
+		Short: "runs simulations on a Bee cluster",
+		Long:  `Runs simulations on a Bee cluster.`,
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
+			defer cancel()
+
+			// set cluster config
+			cfgCluster, ok := c.config.Clusters[c.globalConfig.GetString(optionNameClusterName)]
+			if !ok {
+				return fmt.Errorf("cluster %s not defined", c.globalConfig.GetString(optionNameClusterName))
+			}
+
+			// setup cluster
+			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameCreateCluster), c.globalConfig.GetBool(optionNameWithFunding))
+			if err != nil {
+				return fmt.Errorf("cluster setup: %w", err)
+			}
+
+			// set global config
+			simulationGlobalConfig := config.SimulationGlobalConfig{
+				MetricsEnabled: c.globalConfig.GetBool(optionNameMetricsEnabled),
+				MetricsPusher:  push.New("beekeeper", *cfgCluster.Namespace),
+				Seed:           c.globalConfig.GetInt64(optionNameSeed),
+			}
+
+			// run simulations
+			for _, simulationName := range c.globalConfig.GetStringSlice(optionNameSimulations) {
+				// get configuration
+				simulationConfig, ok := c.config.Simulations[simulationName]
+				if !ok {
+					return fmt.Errorf("simulation %s doesn't exist", simulationName)
+				}
+
+				// choose simulation type
+				simulation, ok := config.Simulations[simulationConfig.Type]
+				if !ok {
+					return fmt.Errorf("simulation %s not implemented", simulationConfig.Type)
+				}
+
+				// create simulation options
+				o, err := simulation.NewOptions(simulationGlobalConfig, simulationConfig)
+				if err != nil {
+					return fmt.Errorf("creating simulation %s options: %w", simulationName, err)
+				}
+
+				// run simulation
+				if err := simulation.NewAction().Run(ctx, cluster, o); err != nil {
+					return fmt.Errorf("running simulation %s: %w", simulationName, err)
+				}
+			}
+
+			return nil
+		},
+		PreRunE: c.preRunE,
+	}
+
+	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing simulations")
+	cmd.Flags().StringSlice(optionNameSimulations, []string{"upload"}, "list of simulations to execute")
+	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
+	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")
+	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
+	cmd.Flags().Bool(optionNameWithFunding, false, "fund nodes")
+
+	c.root.AddCommand(cmd)
+
+	return nil
+}

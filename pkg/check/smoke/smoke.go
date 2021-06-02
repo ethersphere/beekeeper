@@ -9,26 +9,56 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
+// TODO: remove need for node group, use whole cluster instead
+
 // Options represents smoke test options
 type Options struct {
-	NodeGroup       string
-	UploadNodeCount int
-	Runs            int // how many runs to do
 	Bytes           int // how many bytes to upload each time
-	Timeout         time.Duration
+	NodeGroup       string
+	Runs            int // how many runs to do
 	Seed            int64
+	Timeout         time.Duration
+	UploadNodeCount int
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		Bytes:           0,
+		NodeGroup:       "bee",
+		Runs:            1,
+		Seed:            0,
+		Timeout:         1 * time.Second,
+		UploadNodeCount: 1,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
 }
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c *bee.Cluster, o Options) error {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
 	fmt.Printf("seed: %d\n", o.Seed)
 	var (
-		ctx         = context.Background()
 		rnd         = random.PseudoGenerator(o.Seed)
-		ng          = c.NodeGroup(o.NodeGroup)
+		ng          = cluster.NodeGroup(o.NodeGroup)
 		r           = rand.New(rand.NewSource(o.Seed))
 		sortedNodes = ng.NodesSorted()
 	)

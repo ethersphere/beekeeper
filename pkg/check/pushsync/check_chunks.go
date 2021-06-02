@@ -11,9 +11,9 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// CheckChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func CheckChunks(c *bee.Cluster, o Options) error {
-	ctx := context.Background()
+// checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
+func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
+	fmt.Println("running pushsync (chunks mode)")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 

@@ -1,8 +1,7 @@
 package ingress
 
 import (
-	ev1b1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	v1 "k8s.io/api/networking/v1"
 )
 
 // Backend represents Kubernetes IngressBackend
@@ -12,9 +11,13 @@ type Backend struct {
 }
 
 // toK8S converts Backend to Kuberntes client object
-func (b *Backend) toK8S() ev1b1.IngressBackend {
-	return ev1b1.IngressBackend{
-		ServiceName: b.ServiceName,
-		ServicePort: intstr.FromString(b.ServicePort),
+func (b *Backend) toK8S() v1.IngressBackend {
+	return v1.IngressBackend{
+		Service: &v1.IngressServiceBackend{
+			Name: b.ServiceName,
+			Port: v1.ServiceBackendPort{
+				Name: b.ServicePort,
+			},
+		},
 	}
 }

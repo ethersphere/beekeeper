@@ -9,52 +9,96 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
 
-// Options represents pushsync check options
+// Options represents check options
 type Options struct {
-	UploadNodeCount int
-	FilesPerNode    int
 	FileName        string
 	FileSize        int64
-	Seed            int64
+	FilesPerNode    int
+	Full            bool
+	MetricsPusher   *push.Pusher
 	PostageAmount   int64
 	PostageWait     time.Duration
+	Seed            int64
+	UploadNodeCount int
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		FileName:        "file-retrieval",
+		FileSize:        1 * 1024 * 1024, // 1mb
+		FilesPerNode:    1,
+		Full:            false,
+		MetricsPusher:   nil,
+		PostageAmount:   1,
+		PostageWait:     5 * time.Second,
+		Seed:            0,
+		UploadNodeCount: 1,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	if o.Full {
+		return fullCheck(ctx, cluster, o)
+	}
+
+	return defaultCheck(ctx, cluster, o)
 }
 
 var errFileRetrieval = errors.New("file retrieval")
 
-// Check uploads files on cluster and downloads them from the last node in the cluster
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+// defaultCheck uploads files on cluster and downloads them from the last node in the cluster
+func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+	fmt.Println("running file retrieval")
+
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	pusher.Collector(uploadedCounter)
-	pusher.Collector(uploadTimeGauge)
-	pusher.Collector(uploadTimeHistogram)
-	pusher.Collector(downloadedCounter)
-	pusher.Collector(downloadTimeGauge)
-	pusher.Collector(downloadTimeHistogram)
-	pusher.Collector(retrievedCounter)
-	pusher.Collector(notRetrievedCounter)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(uploadedCounter)
+		o.MetricsPusher.Collector(uploadTimeGauge)
+		o.MetricsPusher.Collector(uploadTimeHistogram)
+		o.MetricsPusher.Collector(downloadedCounter)
+		o.MetricsPusher.Collector(downloadTimeGauge)
+		o.MetricsPusher.Collector(downloadTimeHistogram)
+		o.MetricsPusher.Collector(retrievedCounter)
+		o.MetricsPusher.Collector(notRetrievedCounter)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
-	pusher.Format(expfmt.FmtText)
-
-	overlays, err := c.FlattenOverlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	clients, err := c.NodesClients(ctx)
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 	lastNodeName := sortedNodes[len(sortedNodes)-1]
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
@@ -108,8 +152,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s\n", nodeName, j, overlays[nodeName].String(), file.Address().String())
 
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
+			if o.MetricsPusher != nil {
+				if err := o.MetricsPusher.Push(); err != nil {
 					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}
@@ -119,31 +163,33 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 	return
 }
 
-// CheckFull uploads files on cluster and downloads them from the all nodes in the cluster
-func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+// fullCheck uploads files on cluster and downloads them from the all nodes in the cluster
+func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+	fmt.Println("running file retrieval (full mode)")
+
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	pusher.Collector(uploadedCounter)
-	pusher.Collector(uploadTimeGauge)
-	pusher.Collector(uploadTimeHistogram)
-	pusher.Collector(downloadedCounter)
-	pusher.Collector(downloadTimeGauge)
-	pusher.Collector(downloadTimeHistogram)
-	pusher.Collector(retrievedCounter)
-	pusher.Collector(notRetrievedCounter)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(uploadedCounter)
+		o.MetricsPusher.Collector(uploadTimeGauge)
+		o.MetricsPusher.Collector(uploadTimeHistogram)
+		o.MetricsPusher.Collector(downloadedCounter)
+		o.MetricsPusher.Collector(downloadTimeGauge)
+		o.MetricsPusher.Collector(downloadTimeHistogram)
+		o.MetricsPusher.Collector(retrievedCounter)
+		o.MetricsPusher.Collector(notRetrievedCounter)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
-	pusher.Format(expfmt.FmtText)
-
-	overlays, err := c.FlattenOverlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 
-	clients, err := c.NodesClients(ctx)
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
@@ -199,8 +245,8 @@ func CheckFull(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool)
 				retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				fmt.Printf("Node %s. File %d retrieved successfully from node %s. Node: %s Download node: %s File: %s\n", nodeName, j, n, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
 
-				if pushMetrics {
-					if err := pusher.Push(); err != nil {
+				if o.MetricsPusher != nil {
+					if err := o.MetricsPusher.Push(); err != nil {
 						fmt.Printf("node %s: %v\n", nodeName, err)
 					}
 				}

@@ -12,19 +12,13 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
 
-// Options represents chunk repair check options
-type Options struct {
-	NodeGroup              string
-	NumberOfChunksToRepair int
-	Seed                   int64
-	PostageAmount          int64
-	PostageWait            time.Duration
-}
+// TODO: remove need for node group, use whole cluster instead
 
 const (
 	maxIterations    = 10
@@ -35,19 +29,57 @@ var (
 	errLessNodesForTest = errors.New("node count is less than the minimum count required")
 )
 
-// Check ...
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+// Options represents check options
+type Options struct {
+	MetricsPusher          *push.Pusher
+	NodeGroup              string
+	NumberOfChunksToRepair int
+	PostageAmount          int64
+	PostageWait            time.Duration
+	Seed                   int64
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		MetricsPusher:          nil,
+		NodeGroup:              "bee",
+		NumberOfChunksToRepair: 1,
+		PostageAmount:          1,
+		PostageWait:            5 * time.Second,
+		Seed:                   0,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	fmt.Println("running chunk repair")
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	pusher.Collector(repairedCounter)
-	pusher.Collector(repairedTimeGauge)
-	pusher.Collector(repairedTimeHistogram)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(repairedCounter)
+		o.MetricsPusher.Collector(repairedTimeGauge)
+		o.MetricsPusher.Collector(repairedTimeHistogram)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
-	pusher.Format(expfmt.FmtText)
-
-	ng := c.NodeGroup(o.NodeGroup)
+	ng := cluster.NodeGroup(o.NodeGroup)
 	for i := 0; i < o.NumberOfChunksToRepair; i++ {
 		// Pick node A, B, C and a chunk which is closest to B
 		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, ng, rnds[i])
@@ -154,12 +186,13 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			break
 		}
 
-		if pushMetrics {
-			if err := pusher.Push(); err != nil {
+		if o.MetricsPusher != nil {
+			if err := o.MetricsPusher.Push(); err != nil {
 				fmt.Printf("chunk %d: %s\n", i, err)
 			}
 		}
 	}
+
 	return nil
 }
 

@@ -11,18 +11,17 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// CheckChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func CheckLightChunks(c *bee.Cluster, o Options) error {
-	ctx := context.Background()
+// checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
+func checkLightChunks(ctx context.Context, cluster *bee.Cluster, o Options) error {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	overlays, err := c.FlattenOverlays(ctx, "bee", "bootnode")
+	overlays, err := cluster.FlattenOverlays(ctx, "bee", "bootnode")
 	if err != nil {
 		return err
 	}
 
-	lightnodes := c.NodeGroup("drone")
+	lightnodes := cluster.NodeGroup("light")
 
 	for i, nodeName := range lightnodes.NodesSorted() {
 		if i >= o.UploadNodeCount {
@@ -51,7 +50,7 @@ func CheckLightChunks(c *bee.Cluster, o Options) error {
 
 			time.Sleep(o.RetryDelay)
 
-			clients, err := c.NodesClients(ctx)
+			clients, err := cluster.NodesClients(ctx)
 			if err != nil {
 				return err
 			}

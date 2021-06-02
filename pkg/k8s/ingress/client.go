@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	ev1b1 "k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -31,7 +31,7 @@ type Options struct {
 
 // Set updates Ingress or creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
-	spec := &ev1b1.Ingress{
+	spec := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   namespace,
@@ -41,10 +41,10 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.Spec.toK8S(),
 	}
 
-	_, err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	_, err = c.clientset.NetworkingV1().Ingresses(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			_, err = c.clientset.NetworkingV1().Ingresses(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
 				return fmt.Errorf("creating ingress %s in namespace %s: %w", name, namespace, err)
 			}
@@ -58,7 +58,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 
 // Delete deletes Ingress
 func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
-	err = c.clientset.ExtensionsV1beta1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	err = c.clientset.NetworkingV1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil

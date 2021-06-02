@@ -9,9 +9,10 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
-const nodeReadyTimeout = 3 * time.Second
+const nodeRetryTimeout = 3 * time.Second
 
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
@@ -36,18 +37,20 @@ type NodeGroupOptions struct {
 	ImagePullPolicy           string
 	ImagePullSecrets          []string
 	IngressAnnotations        map[string]string
+	IngressClass              string
 	IngressDebugAnnotations   map[string]string
+	IngressDebugClass         string
 	Labels                    map[string]string
-	LimitCPU                  string
-	LimitMemory               string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
 	PersistenceStorageClass   string
-	PersistanceStorageRequest string
+	PersistenceStorageRequest string
 	PodManagementPolicy       string
 	RestartPolicy             string
-	RequestCPU                string
-	RequestMemory             string
+	ResourcesLimitCPU         string
+	ResourcesLimitMemory      string
+	ResourcesRequestCPU       string
+	ResourcesRequestMemory    string
 	UpdateStrategy            string
 }
 
@@ -98,23 +101,6 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 	})
 
 	g.addNode(n)
-
-	return
-}
-
-// AddStartNode adds new node in the node group and starts it in the k8s cluster
-func (g *NodeGroup) AddStartNode(ctx context.Context, name string, o NodeOptions) (err error) {
-	if err := g.AddNode(name, o); err != nil {
-		return fmt.Errorf("add node %s: %w", name, err)
-	}
-
-	if err := g.CreateNode(ctx, name); err != nil {
-		return fmt.Errorf("create node %s in k8s: %w", name, err)
-	}
-
-	if err := g.StartNode(ctx, name); err != nil {
-		return fmt.Errorf("start node %s in k8s: %w", name, err)
-	}
 
 	return
 }
@@ -288,21 +274,23 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
 		ImagePullSecrets:          g.opts.ImagePullSecrets,
 		IngressAnnotations:        g.opts.IngressAnnotations,
+		IngressClass:              g.opts.IngressClass,
 		IngressHost:               g.cluster.ingressHost(name),
 		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
+		IngressDebugClass:         g.opts.IngressDebugClass,
 		IngressDebugHost:          g.cluster.ingressDebugHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 n.libP2PKey,
-		LimitCPU:                  g.opts.LimitCPU,
-		LimitMemory:               g.opts.LimitMemory,
 		NodeSelector:              g.opts.NodeSelector,
 		PersistenceEnabled:        g.opts.PersistenceEnabled,
 		PersistenceStorageClass:   g.opts.PersistenceStorageClass,
-		PersistanceStorageRequest: g.opts.PersistanceStorageRequest,
+		PersistenceStorageRequest: g.opts.PersistenceStorageRequest,
 		PodManagementPolicy:       g.opts.PodManagementPolicy,
 		RestartPolicy:             g.opts.RestartPolicy,
-		RequestCPU:                g.opts.RequestCPU,
-		RequestMemory:             g.opts.RequestMemory,
+		ResourcesLimitCPU:         g.opts.ResourcesLimitCPU,
+		ResourcesLimitMemory:      g.opts.ResourcesLimitMemory,
+		ResourcesRequestCPU:       g.opts.ResourcesRequestCPU,
+		ResourcesRequestMemory:    g.opts.ResourcesRequestMemory,
 		Selector:                  labels,
 		SwarmKey:                  n.swarmKey,
 		UpdateStrategy:            g.opts.UpdateStrategy,
@@ -320,6 +308,56 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	}
 
 	g.deleteNode(name)
+
+	return
+}
+
+// Fund adds funds to the node
+func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
+	var a Addresses
+	retries := 5
+	for retries > 0 {
+		a, err = g.NodeClient(name).Addresses(ctx)
+		if err != nil {
+			retries--
+			if retries == 0 {
+				return fmt.Errorf("get %s address: %w", name, err)
+			}
+			time.Sleep(nodeRetryTimeout)
+			continue
+		}
+		break
+	}
+
+	retries = 5
+	for retries > 0 {
+		tx, err := g.cluster.swap.SendETH(ctx, a.Ethereum, swap.EthDeposit)
+		if err != nil {
+			retries--
+			if retries == 0 {
+				return fmt.Errorf("send eth: %w", err)
+			}
+			time.Sleep(nodeRetryTimeout)
+			continue
+		}
+		fmt.Printf("%s funded with %.2f ETH, transaction: %s\n", name, swap.EthDeposit, tx)
+		break
+	}
+
+	retries = 5
+	for retries > 0 {
+		tx, err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, swap.BzzDeposit)
+		if err != nil {
+			retries--
+			if retries == 0 {
+				return fmt.Errorf("send eth: %w", err)
+			}
+			time.Sleep(nodeRetryTimeout)
+			continue
+		}
+		fmt.Printf("%s funded with %.2f BZZ, transaction: %s\n", name, swap.BzzDeposit, tx)
+		break
+	}
 
 	return
 }
@@ -604,6 +642,29 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 	return
 }
 
+// SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions, fund bool) (err error) {
+	if err := g.AddNode(name, o); err != nil {
+		return fmt.Errorf("add node %s: %w", name, err)
+	}
+
+	if err := g.CreateNode(ctx, name); err != nil {
+		return fmt.Errorf("create node %s in k8s: %w", name, err)
+	}
+
+	if err := g.StartNode(ctx, name); err != nil {
+		return fmt.Errorf("start node %s in k8s: %w", name, err)
+	}
+
+	if fund {
+		if err := g.Fund(ctx, name); err != nil {
+			return fmt.Errorf("fund node %s: %w", name, err)
+		}
+	}
+
+	return
+}
+
 // NodeGroupSettlements represents settlements of all nodes in the node group
 type NodeGroupSettlements map[string]map[string]SentReceived
 
@@ -715,7 +776,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		}
 
 		fmt.Printf("%s is not ready yet\n", name)
-		time.Sleep(nodeReadyTimeout)
+		time.Sleep(nodeRetryTimeout)
 	}
 }
 
@@ -738,7 +799,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		}
 
 		fmt.Printf("%s is not stopped yet\n", name)
-		time.Sleep(nodeReadyTimeout)
+		time.Sleep(nodeRetryTimeout)
 	}
 }
 

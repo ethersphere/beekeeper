@@ -9,49 +9,80 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
 
-// Options represents pushsync check options
+// Options represents check options
 type Options struct {
-	UploadNodeCount int
-	ChunksPerNode   int
-	Seed            int64
+	ChunksPerNode   int // number of chunks to upload per node
+	MetricsPusher   *push.Pusher
 	PostageAmount   int64
-	PostageWait     time.Duration
 	PostageDepth    uint64
+	PostageWait     time.Duration
+	Seed            int64
+	UploadNodeCount int
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		ChunksPerNode:   1,
+		MetricsPusher:   nil,
+		PostageAmount:   1,
+		PostageDepth:    16,
+		PostageWait:     5 * time.Second,
+		Seed:            random.Int64(),
+		UploadNodeCount: 1,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
 }
 
 var errRetrieval = errors.New("retrieval")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
-	ctx := context.Background()
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	pusher.Collector(uploadedCounter)
-	pusher.Collector(uploadTimeGauge)
-	pusher.Collector(uploadTimeHistogram)
-	pusher.Collector(downloadedCounter)
-	pusher.Collector(downloadTimeGauge)
-	pusher.Collector(downloadTimeHistogram)
-	pusher.Collector(retrievedCounter)
-	pusher.Collector(notRetrievedCounter)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(uploadedCounter)
+		o.MetricsPusher.Collector(uploadTimeGauge)
+		o.MetricsPusher.Collector(uploadTimeHistogram)
+		o.MetricsPusher.Collector(downloadedCounter)
+		o.MetricsPusher.Collector(downloadTimeGauge)
+		o.MetricsPusher.Collector(downloadTimeHistogram)
+		o.MetricsPusher.Collector(retrievedCounter)
+		o.MetricsPusher.Collector(notRetrievedCounter)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
-	pusher.Format(expfmt.FmtText)
-
-	overlays, err := c.FlattenOverlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
-	clients, err := c.NodesClients(ctx)
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 	lastNodeName := sortedNodes[len(sortedNodes)-1]
 	for i := 0; i < o.UploadNodeCount; i++ {
 
@@ -105,8 +136,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String())
 
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
+			if o.MetricsPusher != nil {
+				if err := o.MetricsPusher.Push(); err != nil {
 					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}

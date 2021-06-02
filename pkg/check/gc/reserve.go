@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -23,13 +24,39 @@ type Options struct {
 	ReserveSize   int
 }
 
-func CheckReserve(c *bee.Cluster, o Options) error {
-	ctx := context.Background()
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		CacheSize:     1000,
+		Seed:          0,
+		PostageAmount: 1,
+		PostageWait:   5 * time.Second,
+		ReserveSize:   1024,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Println("gc: reserve check")
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	node, err := c.RandomNode(ctx, rnd)
+	node, err := cluster.RandomNode(ctx, rnd)
 	if err != nil {
 		return fmt.Errorf("random node: %w", err)
 	}

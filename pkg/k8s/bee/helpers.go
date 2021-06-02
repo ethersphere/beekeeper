@@ -12,12 +12,18 @@ import (
 
 const (
 	configTemplate = `api-addr: {{.APIAddr}}
+block-time: {{ .BlockTime }}
 bootnode: {{.Bootnodes}}
+bootnode-mode: {{.BootnodeMode}}
+cache-capacity: {{.CacheCapacity}}
 clef-signer-enable: {{.ClefSignerEnable}}
 clef-signer-endpoint: {{.ClefSignerEndpoint}}
 cors-allowed-origins: {{.CORSAllowedOrigins}}
 data-dir: {{.DataDir}}
-db-capacity: {{.DBCapacity}}
+db-open-files-limit: {{.DbOpenFilesLimit}}
+db-block-cache-capacity: {{.DbBlockCacheCapacity}}
+db-write-buffer-size: {{.DbWriteBufferSize}}
+db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
 debug-api-addr: {{.DebugAPIAddr}}
 debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}
@@ -39,6 +45,7 @@ standalone: {{.Standalone}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
 swap-factory-address: {{.SwapFactoryAddress}}
+swap-legacy-factory-addresses: {{.SwapLegacyFactoryAddresses}}
 swap-initial-deposit: {{.SwapInitialDeposit}}
 tracing-enable: {{.TracingEnabled}}
 tracing-endpoint: {{.TracingEndpoint}}
@@ -50,6 +57,7 @@ welcome-message: {{.WelcomeMessage}}
 
 type setInitContainersOptions struct {
 	ClefEnabled         bool
+	ClefSecretEnabled   bool
 	ClefImage           string
 	ClefImagePullPolicy string
 	ClefPassword        string
@@ -65,7 +73,8 @@ func setInitContainers(o setInitContainersOptions) (inits containers.Containers)
 			ImagePullPolicy: o.ClefImagePullPolicy,
 			Command:         []string{"sh", "-c", "/entrypoint.sh init; echo 'clef initialization done';"},
 			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
-				ClefEnabled: o.ClefEnabled,
+				ClefEnabled:       o.ClefEnabled,
+				ClefSecretEnabled: o.ClefSecretEnabled,
 			}),
 		})
 	}
@@ -89,23 +98,24 @@ echo 'bee initialization done';`},
 }
 
 type setContainersOptions struct {
-	Name                string
-	Image               string
-	ImagePullPolicy     string
-	LimitCPU            string
-	LimitMemory         string
-	RequestCPU          string
-	RequestMemory       string
-	PortAPI             int32
-	PortDebug           int32
-	PortP2P             int32
-	PersistenceEnabled  bool
-	ClefEnabled         bool
-	ClefImage           string
-	ClefImagePullPolicy string
-	ClefPassword        string
-	LibP2PEnabled       bool
-	SwarmEnabled        bool
+	Name                   string
+	Image                  string
+	ImagePullPolicy        string
+	PortAPI                int32
+	PortDebug              int32
+	PortP2P                int32
+	PersistenceEnabled     bool
+	ResourcesLimitCPU      string
+	ResourcesLimitMemory   string
+	ResourcesRequestCPU    string
+	ResourcesRequestMemory string
+	ClefEnabled            bool
+	ClefSecretEnabled      bool
+	ClefImage              string
+	ClefImagePullPolicy    string
+	ClefPassword           string
+	LibP2PEnabled          bool
+	SwarmEnabled           bool
 }
 
 func setContainers(o setContainersOptions) (c containers.Containers) {
@@ -131,22 +141,31 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 				Protocol:      "TCP",
 			},
 		},
-		LivenessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{Handler: containers.HTTPGetHandler{
-			Path: "/health",
-			Port: "debug",
-		}}},
-		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{Handler: containers.HTTPGetHandler{
-			Path: "/readiness",
-			Port: "debug",
-		}}},
+		LivenessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
+			InitialDelaySeconds: 5,
+			Handler: containers.HTTPGetHandler{
+				Path: "/health",
+				Port: "debug",
+			},
+		}},
+		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
+			InitialDelaySeconds: 5,
+			Handler: containers.HTTPGetHandler{
+				// Bee node is not ready until it is funded
+				// because Beekeeper does funding it needs node to be ready before it is funded
+				// if Bee readiness is changed to be ready before funding, path can be set to "/readiness"
+				Path: "/health",
+				Port: "debug",
+			},
+		}},
 		Resources: containers.Resources{
 			Limit: containers.Limit{
-				CPU:    o.LimitCPU,
-				Memory: o.LimitMemory,
+				CPU:    o.ResourcesLimitCPU,
+				Memory: o.ResourcesLimitMemory,
 			},
 			Request: containers.Request{
-				CPU:    o.RequestCPU,
-				Memory: o.RequestMemory,
+				CPU:    o.ResourcesRequestCPU,
+				Memory: o.ResourcesRequestMemory,
 			},
 		},
 		SecurityContext: containers.SecurityContext{
@@ -173,7 +192,8 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 				},
 			},
 			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
-				ClefEnabled: o.ClefEnabled,
+				ClefEnabled:       o.ClefEnabled,
+				ClefSecretEnabled: o.ClefSecretEnabled,
 			}),
 		})
 	}
@@ -218,7 +238,8 @@ func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts containers.Vo
 }
 
 type setClefVolumeMountsOptions struct {
-	ClefEnabled bool
+	ClefEnabled       bool
+	ClefSecretEnabled bool
 }
 
 func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts containers.VolumeMounts) {
@@ -228,18 +249,20 @@ func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts containers.
 			MountPath: "/app/data",
 			ReadOnly:  false,
 		})
-		volumeMounts = append(volumeMounts, containers.VolumeMount{
-			Name:      "clef-key",
-			MountPath: "/app/data/keystore/clef.key",
-			SubPath:   "clef.key",
-			ReadOnly:  true,
-		})
-		volumeMounts = append(volumeMounts, containers.VolumeMount{
-			Name:      "clef-secret",
-			MountPath: "/app/data/password",
-			SubPath:   "password",
-			ReadOnly:  true,
-		})
+		if o.ClefSecretEnabled {
+			volumeMounts = append(volumeMounts, containers.VolumeMount{
+				Name:      "clef-key",
+				MountPath: "/app/data/keystore/clef.key",
+				SubPath:   "clef.key",
+				ReadOnly:  true,
+			})
+			volumeMounts = append(volumeMounts, containers.VolumeMount{
+				Name:      "clef-secret",
+				MountPath: "/app/data/password",
+				SubPath:   "password",
+				ReadOnly:  true,
+			})
+		}
 	}
 
 	return
@@ -251,6 +274,7 @@ type setVolumesOptions struct {
 	ClefSecret         string
 	PersistenceEnabled bool
 	ClefEnabled        bool
+	ClefSecretEnabled  bool
 	LibP2PEnabled      bool
 	SwarmEnabled       bool
 }
@@ -275,26 +299,28 @@ func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
 				Name: "clef",
 			},
 		})
-		volumes = append(volumes, pod.Volume{
-			Secret: &pod.SecretVolume{
-				Name:       "clef-key",
-				SecretName: o.ClefSecret,
-				Items: pod.Items{{
-					Key:   "key",
-					Value: "clef.key",
-				}},
-			},
-		})
-		volumes = append(volumes, pod.Volume{
-			Secret: &pod.SecretVolume{
-				Name:       "clef-secret",
-				SecretName: o.ClefSecret,
-				Items: pod.Items{{
-					Key:   "password",
-					Value: "password",
-				}},
-			},
-		})
+		if o.ClefSecretEnabled {
+			volumes = append(volumes, pod.Volume{
+				Secret: &pod.SecretVolume{
+					Name:       "clef-key",
+					SecretName: o.ClefSecret,
+					Items: pod.Items{{
+						Key:   "key",
+						Value: "clef.key",
+					}},
+				},
+			})
+			volumes = append(volumes, pod.Volume{
+				Secret: &pod.SecretVolume{
+					Name:       "clef-secret",
+					SecretName: o.ClefSecret,
+					Items: pod.Items{{
+						Key:   "password",
+						Value: "password",
+					}},
+				},
+			})
+		}
 	}
 	if o.LibP2PEnabled {
 		volumes = append(volumes, pod.Volume{
@@ -348,28 +374,31 @@ func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.Per
 }
 
 type setBeeNodePortOptions struct {
-	Name       string
-	Protocol   string
-	TargetPort string
-	Port       int32
-	NodePort   int32
+	AppProtocol string
+	Name        string
+	Protocol    string
+	TargetPort  string
+	Port        int32
+	NodePort    int32
 }
 
 func setBeeNodePort(o setBeeNodePortOptions) (ports service.Ports) {
 	if o.NodePort > 0 {
 		return service.Ports{{
-			Name:       "p2p",
-			Protocol:   "TCP",
-			Port:       o.Port,
-			TargetPort: "p2p",
-			Nodeport:   o.NodePort,
+			AppProtocol: "TCP",
+			Name:        "p2p",
+			Protocol:    "TCP",
+			Port:        o.Port,
+			TargetPort:  "p2p",
+			Nodeport:    o.NodePort,
 		}}
 	}
 	return service.Ports{{
-		Name:       "p2p",
-		Protocol:   "TCP",
-		Port:       o.Port,
-		TargetPort: "p2p",
+		AppProtocol: "TCP",
+		Name:        "p2p",
+		Protocol:    "TCP",
+		Port:        o.Port,
+		TargetPort:  "p2p",
 	}}
 }
 

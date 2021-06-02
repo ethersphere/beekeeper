@@ -7,50 +7,77 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// Options represents pullsync check options
+// Options represents check options
 type Options struct {
-	UploadNodeCount            int
-	ChunksPerNode              int
-	ReplicationFactorThreshold int
-	Seed                       int64
+	ChunksPerNode              int // number of chunks to upload per node
 	PostageAmount              int64
 	PostageWait                time.Duration
+	ReplicationFactorThreshold int // minimal replication factor per chunk
+	Seed                       int64
+	UploadNodeCount            int
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		ChunksPerNode:              1,
+		PostageAmount:              1,
+		PostageWait:                5 * time.Second,
+		ReplicationFactorThreshold: 2,
+		Seed:                       random.Int64(),
+		UploadNodeCount:            1,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
 }
 
 var errPullSync = errors.New("pull sync")
 
-// Check uploads given chunks on cluster and checks pullsync ability of the cluster
-func Check(c *bee.Cluster, o Options) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
 	var (
-		ctx                    = context.Background()
 		rnds                   = random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 		totalReplicationFactor float64
 	)
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	overlays, err := c.FlattenOverlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	topologies, err := c.FlattenTopologies(ctx)
+	topologies, err := cluster.FlattenTopologies(ctx)
 	if err != nil {
 		return err
 	}
 
-	clients, err := c.NodesClients(ctx)
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
 
 		nodeName := sortedNodes[i]
@@ -152,7 +179,7 @@ func Check(c *bee.Cluster, o Options) (err error) {
 				}
 			}
 
-			rf, err := c.GlobalReplicationFactor(ctx, chunk.Address())
+			rf, err := cluster.GlobalReplicationFactor(ctx, chunk.Address())
 			if err != nil {
 				return fmt.Errorf("replication factor: %w", err)
 			}

@@ -9,37 +9,64 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-// Options represents PSS check options
+// Options represents check options
 type Options struct {
-	NodeCount      int
-	RequestTimeout time.Duration
 	AddressPrefix  int
-	Seed           int64
+	MetricsPusher  *push.Pusher
+	NodeCount      int
 	PostageAmount  int64
-	PostageWait    time.Duration
 	PostageDepth   uint64
+	PostageWait    time.Duration
+	RequestTimeout time.Duration
+	Seed           int64
 }
 
-var (
-	errDataMismatch        = errors.New("pss: data sent and received are not equal")
-	errWebsocketConnection = errors.New("pss: websocket connection terminated with an error")
-)
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		AddressPrefix:  1,
+		MetricsPusher:  nil,
+		NodeCount:      1,
+		PostageAmount:  1,
+		PostageDepth:   16,
+		PostageWait:    5 * time.Second,
+		RequestTimeout: 5 * time.Minute,
+		Seed:           random.Int64(),
+	}
+}
 
-// Check sends a PSS message to random nodes while receiving them on the other end
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (err error) {
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
 
 	testData := []byte("Hello Swarm :)")
 	testTopic := "test"
 	testCount := o.NodeCount / 2
 
-	pusher.Collector(sendAndReceiveGauge)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(sendAndReceiveGauge)
+	}
 
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 
 	set := randomDoubleSet(o.Seed, testCount, o.NodeCount)
 
@@ -52,7 +79,7 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 		nodeAName := sortedNodes[set[i][0]]
 		nodeBName := sortedNodes[set[i][1]]
 
-		clients, err := c.NodesClients(ctx)
+		clients, err := cluster.NodesClients(ctx)
 		if err != nil {
 			cancel()
 			return err
@@ -109,8 +136,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 			return err
 		}
 
-		if pushMetrics {
-			if err := pusher.Push(); err != nil {
+		if o.MetricsPusher != nil {
+			if err := o.MetricsPusher.Push(); err != nil {
 				fmt.Printf("pss: push gauge: %v\n", err)
 			}
 		}
@@ -118,6 +145,11 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) (er
 
 	return nil
 }
+
+var (
+	errDataMismatch        = errors.New("pss: data sent and received are not equal")
+	errWebsocketConnection = errors.New("pss: websocket connection terminated with an error")
+)
 
 func randomDoubleSet(seed int64, count int, max int) [][]int {
 

@@ -10,36 +10,81 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// Options represents pushsync check options
+// Options represents check options
 type Options struct {
-	UploadNodeCount int
 	ChunksPerNode   int
-	FilesPerNode    int
-	FileSize        int64
-	Retries         int
-	RetryDelay      time.Duration
-	Seed            int64
+	MetricsPusher   *push.Pusher
+	Mode            string
 	PostageAmount   int64
-	PostageWait     time.Duration
 	PostageDepth    uint64
+	PostageWait     time.Duration
+	Retries         int           // number of reties on problems
+	RetryDelay      time.Duration // retry delay duration
+	Seed            int64
+	UploadNodeCount int
 }
 
-// Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) error {
-	ctx := context.Background()
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		ChunksPerNode:   1,
+		MetricsPusher:   nil,
+		Mode:            "default",
+		PostageAmount:   1,
+		PostageDepth:    16,
+		PostageWait:     5 * time.Second,
+		Retries:         5,
+		RetryDelay:      1 * time.Second,
+		Seed:            random.Int64(),
+		UploadNodeCount: 1,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	switch o.Mode {
+	case "chunks":
+		return checkChunks(ctx, cluster, o)
+	case "light-chunks":
+		return checkLightChunks(ctx, cluster, o)
+	default:
+		return defaultCheck(ctx, cluster, o)
+	}
+}
+
+// defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
+func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
+	fmt.Println("running pushsync")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	pusher.Collector(uploadedCounter)
-	pusher.Collector(uploadTimeGauge)
-	pusher.Collector(uploadTimeHistogram)
-	pusher.Collector(syncedCounter)
-	pusher.Collector(notSyncedCounter)
-
-	pusher.Format(expfmt.FmtText)
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(uploadedCounter)
+		o.MetricsPusher.Collector(uploadTimeGauge)
+		o.MetricsPusher.Collector(uploadTimeHistogram)
+		o.MetricsPusher.Collector(syncedCounter)
+		o.MetricsPusher.Collector(notSyncedCounter)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
 	overlays, err := c.FlattenOverlays(ctx)
 	if err != nil {
@@ -114,8 +159,8 @@ func Check(c *bee.Cluster, o Options, pusher *push.Pusher, pushMetrics bool) err
 				break
 			}
 
-			if pushMetrics {
-				if err := pusher.Push(); err != nil {
+			if o.MetricsPusher != nil {
+				if err := o.MetricsPusher.Push(); err != nil {
 					return fmt.Errorf("node %s: %v", nodeName, err)
 				}
 			}

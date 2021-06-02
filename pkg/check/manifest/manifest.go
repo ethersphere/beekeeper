@@ -13,29 +13,56 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// Options represents manifest options
+// Options represents check options
 type Options struct {
 	FilesInCollection int
 	MaxPathnameLength int32
-	Seed              int64
 	PostageAmount     int64
 	PostageWait       time.Duration
 	PostageDepth      uint64
+	Seed              int64
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		FilesInCollection: 10,
+		MaxPathnameLength: 64,
+		PostageAmount:     1,
+		PostageDepth:      16,
+		PostageWait:       5 * time.Second,
+		Seed:              0,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
 }
 
 var errManifest = errors.New("manifest data mismatch")
 
-// Check executes manifest check
-func Check(c *bee.Cluster, o Options) error {
-	ctx := context.Background()
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
 	rnd := random.PseudoGenerator(o.Seed)
 
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	overlays, err := c.FlattenOverlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
@@ -51,12 +78,12 @@ func Check(c *bee.Cluster, o Options) error {
 	}
 
 	tarFile := bee.NewBufferFile("", tarReader)
-	clients, err := c.NodesClients(ctx)
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 	node := sortedNodes[0]
 
 	client := clients[node]

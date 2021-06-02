@@ -8,27 +8,56 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
 
-// Options represents pingpong check options
+// Options represents check options
 type Options struct {
-	DynamicActions []Actions
-	MetricsEnabled bool
-	MetricsPusher  *push.Pusher
-	Seed           int64
+	MetricsPusher *push.Pusher
 }
 
-// Check executes ping from all nodes to all other nodes in the cluster
-func Check(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
-	o.MetricsPusher.Collector(rttGauge)
-	o.MetricsPusher.Collector(rttHistogram)
-	o.MetricsPusher.Format(expfmt.FmtText)
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{
+		MetricsPusher: nil,
+	}
+}
+
+// compile check whether Check implements interface
+var _ beekeeper.Action = (*Check)(nil)
+
+// Check instance
+type Check struct{}
+
+// NewCheck returns new check
+func NewCheck() beekeeper.Action {
+	return &Check{}
+}
+
+// Run executes ping check
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	fmt.Println("running pingpong")
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	if o.MetricsPusher != nil {
+		o.MetricsPusher.Collector(rttGauge)
+		o.MetricsPusher.Collector(rttHistogram)
+		o.MetricsPusher.Format(expfmt.FmtText)
+	}
 
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
-		for n := range nodeStream(ctx, ng.NodesClientsAll(ctx)) {
+		nodesClients, err := ng.NodesClients(ctx)
+		if err != nil {
+			return fmt.Errorf("get nodes clients: %w", err)
+		}
+
+		for n := range nodeStream(ctx, nodesClients) { // TODO: confirm use case for nodeStream(ctx, ng.NodesClientsAll(ctx))
 			for t := 0; t < 5; t++ {
 				time.Sleep(2 * time.Duration(t) * time.Second)
 
@@ -53,7 +82,7 @@ func Check(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 				rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
 				rttHistogram.Observe(rtt.Seconds())
 
-				if o.MetricsEnabled {
+				if o.MetricsPusher != nil {
 					if err := o.MetricsPusher.Push(); err != nil {
 						fmt.Printf("node %s: %v\n", n.Name, err)
 					}
@@ -63,6 +92,7 @@ func Check(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 		}
 	}
 
+	fmt.Println("pingpong check completed successfully")
 	return
 }
 
