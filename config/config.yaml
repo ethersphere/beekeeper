@@ -296,7 +296,7 @@ checks:
       postage-wait: 5s
       threshold: 10000000000000
       upload-node-count: 3
-      wait-before-download: 5
+      wait-before-download: 5s
     timeout: 5m
     type: settlements
   smoke:
