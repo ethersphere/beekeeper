@@ -276,7 +276,7 @@ checks:
       dry-run: false
       expect-settlements: true
       file-name: settlements
-      file-size: 2097152 # 2mb = 2*1024*1024
+      file-size: 4194304 # 2mb = 3*1024*1024
       postage-amount: 1
       postage-depth: 18
       postage-wait: 5s
