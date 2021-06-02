@@ -132,8 +132,8 @@ func (n *NodeService) Settlement(ctx context.Context, a swarm.Address) (resp Set
 // Settlements represents node's settlements with all peers
 type Settlements struct {
 	Settlements   []Settlement   `json:"settlements"`
-	TotalReceived *bigint.BigInt `json:"totalreceived"`
-	TotalSent     *bigint.BigInt `json:"totalsent"`
+	TotalReceived *bigint.BigInt `json:"totalReceived"`
+	TotalSent     *bigint.BigInt `json:"totalSent"`
 }
 
 // Settlements returns node's settlements with all peers
