@@ -218,7 +218,7 @@ checks:
     type: pingpong
   pss:
     options:
-      address-prefix: 10
+      address-prefix: 2
       metrics-enabled:
       node-count: 3
       postage-amount: 1
