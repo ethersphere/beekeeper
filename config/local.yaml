@@ -282,7 +282,7 @@ checks:
       postage-wait: 5s
       threshold: 1500000000000
       upload-node-count: 3
-      wait-before-download: 10
+      wait-before-download: 10s
     timeout: 5m
     type: settlements
   ci-soc:
