@@ -55,7 +55,7 @@ clusters:
           bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL
           libp2p-key: '{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}'
           clef:
-            key: '{"address":"b087e2263124cde331e7f7b6951a73b3f9d6209d","crypto":{"cipher":"aes-128-ctr","ciphertext":"daf449b902aeca242a6cbcfaab850f2162ae10edca7693637c24162b41d324e7","cipherparams":{"iv":"3f9097b3313aca121a6e5296e38f84ab"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":4096,"p":6,"r":8,"salt":"5c0a2a3313b1136e87f9ee00cdf0a2bfd800282a0e210deb6fe10cbe57926416"},"mac":"5dd5a91a02de2955733ea9d5171eeb7a6c4777fd6b2b591ca603fddcc10c1195"},"id":"a9820b1f-05f9-40d9-8a86-03d1f79f383f","version":3}'
+            key: '{"address":"59ad7a86e3115e50af278edb46917bb1d447172a","crypto":{"cipher":"aes-128-ctr","ciphertext":"0cade286ef24fba2f8272ff8f76aca11b572296d89e7e98adffadca950a9ae87","cipherparams":{"iv":"064b28702c7b6e8d3f6b5e384522bd9a"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"be9030a16c79c4fb77bbfc0b5597791e3cf3ad506abd7ccee48809fe2a98fea0"},"mac":"d91202f50ad0bd709cbc8da7195ce08510e7299d394761392af5f184ebe0b94f"},"id":"551210c5-c319-4f19-9179-d6e86a60c45d","version":3}'
             password: clefbeesecret
       bee:
         bee-config: bee-local-clef
