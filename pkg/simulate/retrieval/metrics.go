@@ -106,7 +106,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			ConstLabels: prometheus.Labels{
 				"cluster": clusterName,
 			},
-			Name: "chunks_not_downloadeded_count",
+			Name: "chunks_not_downloaded_count",
 			Help: "Number of chunks that has not been downloaded.",
 		},
 		[]string{"node"},
