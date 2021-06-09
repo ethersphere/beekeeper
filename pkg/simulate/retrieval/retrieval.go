@@ -11,7 +11,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
-	"github.com/prometheus/common/expfmt"
 )
 
 // Options represents simulation options
@@ -59,17 +58,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(uploadedCounter)
-		o.MetricsPusher.Collector(uploadTimeGauge)
-		o.MetricsPusher.Collector(uploadTimeHistogram)
-		o.MetricsPusher.Collector(downloadedCounter)
-		o.MetricsPusher.Collector(downloadTimeGauge)
-		o.MetricsPusher.Collector(downloadTimeHistogram)
-		o.MetricsPusher.Collector(retrievedCounter)
-		o.MetricsPusher.Collector(notRetrievedCounter)
-		o.MetricsPusher.Format(expfmt.FmtText)
-	}
+	metrics := newMetrics(cluster.Name(), o.MetricsPusher)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -110,9 +99,9 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				}
 				d0 := time.Since(t0)
 
-				uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
-				uploadTimeHistogram.Observe(d0.Seconds())
+				metrics.uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				metrics.uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
+				metrics.uploadTimeHistogram.Observe(d0.Seconds())
 
 				t1 := time.Now()
 
@@ -126,12 +115,12 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				}
 				d1 := time.Since(t1)
 
-				downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d1.Seconds())
-				downloadTimeHistogram.Observe(d1.Seconds())
+				metrics.downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				metrics.downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d1.Seconds())
+				metrics.downloadTimeHistogram.Observe(d1.Seconds())
 
 				if !bytes.Equal(chunk.Data(), data) {
-					notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+					metrics.notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 					fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", nodeName, j, chunk.Size(), len(data), overlays[nodeName].String(), ref.String())
 					if bytes.Contains(chunk.Data(), data) {
 						fmt.Printf("Downloaded data is subset of the uploaded data\n")
@@ -139,7 +128,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 					continue
 				}
 
-				retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				metrics.retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String())
 
 				if o.MetricsPusher != nil {
