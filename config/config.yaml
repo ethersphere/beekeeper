@@ -341,7 +341,7 @@ simulations:
       upload-node-count: 1
       upload-delay: 10s
     timeout: 5m
-    type: retireval
+    type: retrieval
 
 # stages defines stages for dynamic execution of checks and simulations
 stages:
