@@ -93,27 +93,28 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 
 				t0 := time.Now()
 				ref, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
+				d0 := time.Since(t0)
 				if err != nil {
+					metrics.notUploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 					fmt.Printf("error: node %s: %v\n", nodeName, err)
 					continue
 				}
-				d0 := time.Since(t0)
 
 				metrics.uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				metrics.uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
 				metrics.uploadTimeHistogram.Observe(d0.Seconds())
 
-				t1 := time.Now()
-
 				// pick a random node to validate that the chunk is retrievable
 				downloadNode := sortedNodes[rnds[i].Intn(len(sortedNodes))]
 
+				t1 := time.Now()
 				data, err := clients[downloadNode].DownloadChunk(ctx, ref, "")
+				d1 := time.Since(t1)
 				if err != nil {
+					metrics.notDownloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 					fmt.Printf("error: node %s: %v\n", downloadNode, err)
 					continue
 				}
-				d1 := time.Since(t1)
 
 				metrics.downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				metrics.downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d1.Seconds())

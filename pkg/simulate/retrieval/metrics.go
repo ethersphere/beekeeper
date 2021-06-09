@@ -8,9 +8,11 @@ import (
 
 type metrics struct {
 	uploadedCounter       *prometheus.CounterVec
+	notUploadedCounter    *prometheus.CounterVec
 	uploadTimeGauge       *prometheus.GaugeVec
 	uploadTimeHistogram   prometheus.Histogram
 	downloadedCounter     *prometheus.CounterVec
+	notDownloadedCounter  *prometheus.CounterVec
 	downloadTimeGauge     *prometheus.GaugeVec
 	downloadTimeHistogram prometheus.Histogram
 	retrievedCounter      *prometheus.CounterVec
@@ -40,6 +42,20 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 		[]string{"node"},
 	)
 	addCollector(uploadedCounter)
+
+	notUploadedCounter := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			ConstLabels: prometheus.Labels{
+				"cluster": clusterName,
+			},
+			Name: "chunks_not_uploaded_count",
+			Help: "Number of not uploaded chunks.",
+		},
+		[]string{"node"},
+	)
+	addCollector(notUploadedCounter)
 
 	uploadTimeGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -82,6 +98,20 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 		[]string{"node"},
 	)
 	addCollector(downloadedCounter)
+
+	notDownloadedCounter := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			ConstLabels: prometheus.Labels{
+				"cluster": clusterName,
+			},
+			Name: "chunks_not_downloadeded_count",
+			Help: "Number of chunks that has not been downloaded.",
+		},
+		[]string{"node"},
+	)
+	addCollector(notDownloadedCounter)
 
 	downloadTimeGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -145,9 +175,11 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 
 	return metrics{
 		uploadedCounter:       uploadedCounter,
+		notUploadedCounter:    notUploadedCounter,
 		uploadTimeGauge:       uploadTimeGauge,
 		uploadTimeHistogram:   uploadTimeHistogram,
 		downloadedCounter:     downloadedCounter,
+		notDownloadedCounter:  notDownloadedCounter,
 		downloadTimeGauge:     downloadTimeGauge,
 		downloadTimeHistogram: downloadTimeHistogram,
 		retrievedCounter:      retrievedCounter,
