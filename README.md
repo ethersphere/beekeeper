@@ -39,7 +39,7 @@ config-dir: <user home dir>/.beekeeper/
 enable-k8s: true
 in-cluster: false
 kubeconfig: "~/.kube/config"
-geth-url: http://geth-swap.geth-swap.test.internal
+geth-url: http://geth-swap.geth-swap.dai.internal
 bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7 
 eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
 ```
@@ -221,7 +221,7 @@ It has following flags:
 --bzz-token-address string   BZZ token address (default "0x6aab14fe9cccd64a502d23842d916eb5321c26e7")
 --eth-account string         ETH account address (default "0x62cab2b3b55f341f10348720ca18063cdb779ad5")
 --eth-deposit float          ETH amount to deposit (default 0.01)
---geth-url string            Geth node URL (default "http://geth-swap.geth-swap.test.internal")
+--geth-url string            Geth node URL (default "http://geth-swap.geth-swap.dai.internal")
 --help                       help for fund
 --timeout duration           timeout (default 5m0s)
 ```
