@@ -331,6 +331,17 @@ simulations:
       upload-node-percentage: 50
     timeout: 5m
     type: upload
+  retrieval:
+    options:
+      chunks-per-node: 1
+      metrics-enabled: true
+      postage-amount: 1
+      postage-depth: 16
+      postage-wait: 5s
+      upload-node-count: 1
+      upload-delay: 10s
+    timeout: 5m
+    type: retireval
 
 # stages defines stages for dynamic execution of checks and simulations
 stages:
