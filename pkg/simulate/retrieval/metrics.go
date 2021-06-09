@@ -64,7 +64,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			},
 			Name:    "chunk_upload_seconds",
 			Help:    "Chunk upload duration Histogram.",
-			Buckets: prometheus.LinearBuckets(0, 0.1, 10),
+			Buckets: []float64{0.01, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
 		},
 	)
 	addCollector(uploadTimeHistogram)
@@ -106,7 +106,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			},
 			Name:    "chunk_download_seconds",
 			Help:    "Chunk download duration Histogram.",
-			Buckets: prometheus.LinearBuckets(0, 0.1, 10),
+			Buckets: []float64{0.01, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
 		},
 	)
 	addCollector(downloadTimeHistogram)
