@@ -2,17 +2,17 @@ package debugapi
 
 import (
 	"context"
-	"math/big"
+	"github.com/ethersphere/beekeeper/pkg/bigint"
 	"net/http"
 )
 
 type PostageService service
 
 type ReserveState struct {
-	Radius    uint8    `json:"radius"`
-	Available int64    `json:"available"`
-	Outer     *big.Int `json:"outer"`
-	Inner     *big.Int `json:"inner"`
+	Radius    uint8          `json:"radius"`
+	Available int64          `json:"available"`
+	Outer     *bigint.BigInt `json:"outer"`
+	Inner     *bigint.BigInt `json:"inner"`
 }
 
 // Returns the batchstore reservestate of the node
