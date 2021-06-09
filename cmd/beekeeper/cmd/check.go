@@ -12,13 +12,14 @@ import (
 
 func (c *command) initCheckCmd() (err error) {
 	const (
-		optionNameClusterName    = "cluster-name"
-		optionNameCreateCluster  = "create-cluster"
-		optionNameChecks         = "checks"
-		optionNameMetricsEnabled = "metrics-enabled"
-		optionNameSeed           = "seed"
-		optionNameTimeout        = "timeout"
-		optionNameWithFunding    = "with-funding"
+		optionNameClusterName          = "cluster-name"
+		optionNameCreateCluster        = "create-cluster"
+		optionNameChecks               = "checks"
+		optionNameMetricsEnabled       = "metrics-enabled"
+		optionNameSeed                 = "seed"
+		optionNameTimeout              = "timeout"
+		optionNameWithFunding          = "with-funding"
+		optionNameMetricsPusherAddress = "metrics-pusher-address"
 		// TODO: optionNameStages         = "stages"
 
 	)
@@ -46,7 +47,7 @@ func (c *command) initCheckCmd() (err error) {
 			// set global config
 			checkGlobalConfig := config.CheckGlobalConfig{
 				MetricsEnabled: c.globalConfig.GetBool(optionNameMetricsEnabled),
-				MetricsPusher:  push.New("beekeeper", cfgCluster.GetNamespace()),
+				MetricsPusher:  push.New(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace()),
 				Seed:           c.globalConfig.GetInt64(optionNameSeed),
 			}
 
@@ -82,6 +83,7 @@ func (c *command) initCheckCmd() (err error) {
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().String(optionNameMetricsPusherAddress, "beekeeper", "prometheus metrics pusher address")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing checks")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
