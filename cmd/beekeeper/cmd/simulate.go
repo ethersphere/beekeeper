@@ -82,7 +82,7 @@ func (c *command) initSimulateCmd() (err error) {
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
-	cmd.Flags().String(optionNameMetricsPusherAddress, "beekeeper", "prometheus metrics pusher address")
+	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.dai.internal", "prometheus metrics pusher address")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing simulations")
 	cmd.Flags().StringSlice(optionNameSimulations, []string{"upload"}, "list of simulations to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")

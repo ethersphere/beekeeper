@@ -83,7 +83,7 @@ func (c *command) initCheckCmd() (err error) {
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
-	cmd.Flags().String(optionNameMetricsPusherAddress, "beekeeper", "prometheus metrics pusher address")
+	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.dai.internal", "prometheus metrics pusher address")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing checks")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
