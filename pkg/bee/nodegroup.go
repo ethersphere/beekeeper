@@ -670,8 +670,8 @@ type NodeGroupSettlements map[string]map[string]SentReceived
 
 // SentReceived object
 type SentReceived struct {
-	Received int
-	Sent     int
+	Received int64
+	Sent     int64
 }
 
 // Settlements returns NodeGroupSettlements
