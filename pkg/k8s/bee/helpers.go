@@ -121,7 +121,7 @@ type setContainersOptions struct {
 
 func setContainers(o setContainersOptions) (c containers.Containers) {
 	c = append(c, containers.Container{
-		Name:            o.Name,
+		Name:            "bee",
 		Image:           o.Image,
 		ImagePullPolicy: o.ImagePullPolicy,
 		Command:         []string{"bee", "start", "--config=.bee.yaml"},
