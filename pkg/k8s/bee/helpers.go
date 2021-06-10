@@ -44,6 +44,7 @@ resolver-options: {{.ResolverOptions}}
 standalone: {{.Standalone}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
+swap-deployment-gas-price: {{.SwapDeploymentGasPrice}}
 swap-factory-address: {{.SwapFactoryAddress}}
 swap-legacy-factory-addresses: {{.SwapLegacyFactoryAddresses}}
 swap-initial-deposit: {{.SwapInitialDeposit}}

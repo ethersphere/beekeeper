@@ -44,6 +44,7 @@ type BeeConfig struct {
 	Standalone                 *bool   `yaml:"standalone"`
 	SwapEnable                 *bool   `yaml:"swap-enable"`
 	SwapEndpoint               *string `yaml:"swap-endpoint"`
+	SwapDeploymentGasPrice     *string `yaml:"swap-deployment-gas-price"`
 	SwapFactoryAddress         *string `yaml:"swap-factory-address"`
 	SwapLegacyFactoryAddresses *string `yaml:"swap-legacy-factory-addresses"`
 	SwapInitialDeposit         *uint64 `yaml:"swap-initial-deposit"`
