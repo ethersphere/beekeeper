@@ -320,7 +320,7 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, depth uint64, sleep time.
 		return batches[0].BatchID, nil
 	}
 
-	b, err := c.CreatePostageBatch(ctx, 1, depth, "test-label")
+	b, err := c.CreatePostageBatch(ctx, 1000, depth, "test-label") // todo: make amount optional, was hardcoded to 1
 	time.Sleep(sleep)
 	return b, err
 }

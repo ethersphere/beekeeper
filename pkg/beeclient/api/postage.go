@@ -26,7 +26,9 @@ type postageStampsResponse struct {
 func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
 	url := fmt.Sprintf("/%s/stamps/%d/%d?label=%s", apiVersion, amount, depth, label)
 	var resp postageResponse
-	err := p.client.request(ctx, http.MethodPost, url, nil, &resp)
+	h := http.Header{}
+	h.Add("Gas-Price", "600000000000") // todo: quick fix, make it optional
+	err := p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, &resp)
 	if err != nil {
 		return "", err
 	}
