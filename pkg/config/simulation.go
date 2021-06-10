@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/beekeeper/pkg/simulate/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/simulate/upload"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"gopkg.in/yaml.v3"
@@ -50,6 +51,30 @@ var Simulations = map[string]SimulationType{
 				return nil, fmt.Errorf("decoding simulation %s options: %w", simulation.Type, err)
 			}
 			opts := upload.NewDefaultOptions()
+
+			if err := applySimulationConfig(simulationGlobalConfig, simulationOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"retrieval": {
+		NewAction: retrieval.NewSimulation,
+		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
+			simulationOpts := new(struct {
+				ChunksPerNode   *int           `yaml:"chunks-per-node"`
+				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
+				PostageDepth    *uint64        `yaml:"postage-depth"`
+				PostageWait     *time.Duration `yaml:"postage-wait"`
+				Seed            *int64         `yaml:"seed"`
+				UploadNodeCount *int           `yaml:"upload-node-count"`
+				UploadDelay     *time.Duration `yaml:"upload-delay"`
+			})
+			if err := simulation.Options.Decode(simulationOpts); err != nil {
+				return nil, fmt.Errorf("decoding simulation %s options: %w", simulation.Type, err)
+			}
+			opts := retrieval.NewDefaultOptions()
 
 			if err := applySimulationConfig(simulationGlobalConfig, simulationOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

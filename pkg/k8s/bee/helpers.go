@@ -44,6 +44,7 @@ resolver-options: {{.ResolverOptions}}
 standalone: {{.Standalone}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
+swap-deployment-gas-price: {{.SwapDeploymentGasPrice}}
 swap-factory-address: {{.SwapFactoryAddress}}
 swap-legacy-factory-addresses: {{.SwapLegacyFactoryAddresses}}
 swap-initial-deposit: {{.SwapInitialDeposit}}
@@ -120,7 +121,7 @@ type setContainersOptions struct {
 
 func setContainers(o setContainersOptions) (c containers.Containers) {
 	c = append(c, containers.Container{
-		Name:            o.Name,
+		Name:            "bee",
 		Image:           o.Image,
 		ImagePullPolicy: o.ImagePullPolicy,
 		Command:         []string{"bee", "start", "--config=.bee.yaml"},

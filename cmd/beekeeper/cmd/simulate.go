@@ -12,13 +12,14 @@ import (
 
 func (c *command) initSimulateCmd() (err error) {
 	const (
-		optionNameClusterName    = "cluster-name"
-		optionNameCreateCluster  = "create-cluster"
-		optionNameSimulations    = "simulations"
-		optionNameMetricsEnabled = "metrics-enabled"
-		optionNameSeed           = "seed"
-		optionNameTimeout        = "timeout"
-		optionNameWithFunding    = "with-funding"
+		optionNameClusterName          = "cluster-name"
+		optionNameCreateCluster        = "create-cluster"
+		optionNameSimulations          = "simulations"
+		optionNameMetricsEnabled       = "metrics-enabled"
+		optionNameSeed                 = "seed"
+		optionNameTimeout              = "timeout"
+		optionNameWithFunding          = "with-funding"
+		optionNameMetricsPusherAddress = "metrics-pusher-address"
 		// TODO: optionNameStages         = "stages"
 	)
 
@@ -45,7 +46,7 @@ func (c *command) initSimulateCmd() (err error) {
 			// set global config
 			simulationGlobalConfig := config.SimulationGlobalConfig{
 				MetricsEnabled: c.globalConfig.GetBool(optionNameMetricsEnabled),
-				MetricsPusher:  push.New("beekeeper", *cfgCluster.Namespace),
+				MetricsPusher:  push.New(c.globalConfig.GetString(optionNameMetricsPusherAddress), *cfgCluster.Namespace),
 				Seed:           c.globalConfig.GetInt64(optionNameSeed),
 			}
 
@@ -81,6 +82,7 @@ func (c *command) initSimulateCmd() (err error) {
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.dai.internal", "prometheus metrics pusher address")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing simulations")
 	cmd.Flags().StringSlice(optionNameSimulations, []string{"upload"}, "list of simulations to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")

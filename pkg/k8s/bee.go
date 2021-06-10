@@ -92,6 +92,7 @@ type Config struct {
 	Standalone                 bool   // whether we want the node to start with no listen addresses for p2p
 	SwapEnable                 bool   // enable swap
 	SwapEndpoint               string // swap ethereum blockchain endpoint
+	SwapDeploymentGasPrice     string // gas price in wei to use for deployment and funding
 	SwapFactoryAddress         string // swap factory address
 	SwapLegacyFactoryAddresses string // swap legacy factory addresses
 	SwapInitialDeposit         uint64 // initial deposit if deploying a new chequebook
