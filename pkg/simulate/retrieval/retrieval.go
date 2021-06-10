@@ -104,6 +104,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 					fmt.Printf("error: node %s: %v\n", nodeName, err)
 					continue
 				}
+				fmt.Printf("Chunk %s uploaded successfully to node %s\n", chunk.Address().String(), overlays[nodeName].String())
 
 				metrics.uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				metrics.uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
@@ -145,7 +146,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				}
 
 				metrics.retrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
-				fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", downloadNode, j, overlays[downloadNode].String(), chunk.Address().String())
+				fmt.Printf("Chunk %s retrieved successfully from node %s\n", chunk.Address().String(), overlays[downloadNode].String())
 
 				if o.MetricsPusher != nil {
 					if err := o.MetricsPusher.Push(); err != nil {
