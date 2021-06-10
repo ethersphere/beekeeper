@@ -96,6 +96,11 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				d0 := time.Since(t0)
 				if err != nil {
 					metrics.notUploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+					if o.MetricsPusher != nil {
+						if err := o.MetricsPusher.Push(); err != nil {
+							fmt.Printf("upload node %s: %v\n", nodeName, err)
+						}
+					}
 					fmt.Printf("error: node %s: %v\n", nodeName, err)
 					continue
 				}
@@ -111,30 +116,40 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				data, err := clients[downloadNode].DownloadChunk(ctx, ref, "")
 				d1 := time.Since(t1)
 				if err != nil {
-					metrics.notDownloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+					metrics.notDownloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
+					if o.MetricsPusher != nil {
+						if err := o.MetricsPusher.Push(); err != nil {
+							fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
+						}
+					}
 					fmt.Printf("error: node %s: %v\n", downloadNode, err)
 					continue
 				}
 
-				metrics.downloadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				metrics.downloadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d1.Seconds())
+				metrics.downloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
+				metrics.downloadTimeGauge.WithLabelValues(overlays[downloadNode].String(), ref.String()).Set(d1.Seconds())
 				metrics.downloadTimeHistogram.Observe(d1.Seconds())
 
 				if !bytes.Equal(chunk.Data(), data) {
-					metrics.notRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", nodeName, j, chunk.Size(), len(data), overlays[nodeName].String(), ref.String())
+					metrics.notRetrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
+					if o.MetricsPusher != nil {
+						if err := o.MetricsPusher.Push(); err != nil {
+							fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
+						}
+					}
+					fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", downloadNode, j, chunk.Size(), len(data), overlays[downloadNode].String(), ref.String())
 					if bytes.Contains(chunk.Data(), data) {
 						fmt.Printf("Downloaded data is subset of the uploaded data\n")
 					}
 					continue
 				}
 
-				metrics.retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String())
+				metrics.retrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
+				fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", downloadNode, j, overlays[downloadNode].String(), chunk.Address().String())
 
 				if o.MetricsPusher != nil {
 					if err := o.MetricsPusher.Push(); err != nil {
-						fmt.Printf("node %s: %v\n", nodeName, err)
+						fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
 					}
 				}
 			}
