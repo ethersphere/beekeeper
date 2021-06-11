@@ -58,7 +58,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	metrics := newMetrics(cluster.Name(), o.MetricsPusher)
+	metrics := newMetrics(cluster.Name()+"-"+time.Now().UTC().Format("2006-01-02-15-04-05-000000000"), o.MetricsPusher)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {

@@ -19,7 +19,7 @@ type metrics struct {
 	notRetrievedCounter   *prometheus.CounterVec
 }
 
-func newMetrics(clusterName string, pusher *push.Pusher) metrics {
+func newMetrics(runID string, pusher *push.Pusher) metrics {
 	namespace := "beekeeper"
 	subsystem := "simulation_retrieval"
 
@@ -34,7 +34,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name: "chunks_uploaded_count",
 			Help: "Number of uploaded chunks.",
@@ -62,7 +62,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name: "chunk_upload_duration_seconds",
 			Help: "Chunk upload duration Gauge.",
@@ -76,7 +76,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name:    "chunk_upload_seconds",
 			Help:    "Chunk upload duration Histogram.",
@@ -90,7 +90,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name: "chunks_downloaded_count",
 			Help: "Number of downloaded chunks.",
@@ -118,7 +118,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name: "chunk_download_duration_seconds",
 			Help: "Chunk download duration Gauge.",
@@ -132,7 +132,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name:    "chunk_download_seconds",
 			Help:    "Chunk download duration Histogram.",
@@ -146,7 +146,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name: "chunks_retrieved_count",
 			Help: "Number of chunks that has been retrieved.",
@@ -160,7 +160,7 @@ func newMetrics(clusterName string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name: "chunks_not_retrieved_count",
 			Help: "Number of chunks that has not been retrieved.",
