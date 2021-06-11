@@ -48,7 +48,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name: "chunks_not_uploaded_count",
 			Help: "Number of not uploaded chunks.",
@@ -104,7 +104,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 			Namespace: namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
+				"run": runID,
 			},
 			Name: "chunks_not_downloaded_count",
 			Help: "Number of chunks that has not been downloaded.",
