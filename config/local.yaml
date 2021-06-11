@@ -155,9 +155,9 @@ bee-configs:
     p2p-quic-enable: false
     p2p-ws-enable: false
     password: "beekeeper"
-    payment-early: 150000000000
-    payment-threshold: 1500000000000
-    payment-tolerance: 150000000000
+    payment-early: 1500000
+    payment-threshold: 15000000
+    payment-tolerance: 1500000
     postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
     price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: ""
@@ -295,7 +295,7 @@ checks:
       postage-amount: 1
       postage-depth: 18
       postage-wait: 5s
-      threshold: 1500000000000
+      threshold: 15000000
       upload-node-count: 3
       wait-before-download: 20s
     timeout: 5m
