@@ -18,10 +18,12 @@ import (
 // Options represents check options
 type Options struct {
 	AddressPrefix  int
+	GasPrice       int64
 	MetricsPusher  *push.Pusher
 	NodeCount      int
 	PostageAmount  int64
 	PostageDepth   uint64
+	PostageLabel   string
 	PostageWait    time.Duration
 	RequestTimeout time.Duration
 	Seed           int64
@@ -31,10 +33,12 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		AddressPrefix:  1,
+		GasPrice:       1000000000000,
 		MetricsPusher:  nil,
 		NodeCount:      1,
 		PostageAmount:  1,
 		PostageDepth:   16,
+		PostageLabel:   "test-label",
 		PostageWait:    5 * time.Second,
 		RequestTimeout: 5 * time.Minute,
 		Seed:           random.Int64(),
@@ -94,12 +98,13 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return err
 		}
 
-		batchID, err := nodeA.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+		batchID, err := nodeA.GetOrCreateBatch(ctx, o.GasPrice, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 		if err != nil {
 			cancel()
 			return fmt.Errorf("node %s: batched id %w", nodeAName, err)
 		}
 		fmt.Printf("node %s: batched id %s\n", nodeAName, batchID)
+		time.Sleep(o.PostageWait)
 
 		ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
 		if err != nil {

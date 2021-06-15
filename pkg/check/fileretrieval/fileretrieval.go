@@ -21,8 +21,10 @@ type Options struct {
 	FileSize        int64
 	FilesPerNode    int
 	Full            bool
+	GasPrice        int64
 	MetricsPusher   *push.Pusher
 	PostageAmount   int64
+	PostageLabel    string
 	PostageWait     time.Duration
 	Seed            int64
 	UploadNodeCount int
@@ -35,8 +37,10 @@ func NewDefaultOptions() Options {
 		FileSize:        1 * 1024 * 1024, // 1mb
 		FilesPerNode:    1,
 		Full:            false,
+		GasPrice:        1000000000000,
 		MetricsPusher:   nil,
 		PostageAmount:   1,
+		PostageLabel:    "test-label",
 		PostageWait:     5 * time.Second,
 		Seed:            0,
 		UploadNodeCount: 1,
@@ -106,13 +110,11 @@ func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.GasPrice, o.PostageAmount, depth, o.PostageLabel)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
-
 			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-
 			time.Sleep(o.PostageWait)
 
 			t0 := time.Now()
@@ -200,13 +202,11 @@ func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.GasPrice, o.PostageAmount, depth, o.PostageLabel)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
-
 			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-
 			time.Sleep(o.PostageWait)
 
 			t0 := time.Now()

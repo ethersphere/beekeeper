@@ -16,8 +16,11 @@ import (
 // Options represents simulation options
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
+	GasPrice        int64
 	MetricsPusher   *push.Pusher
+	PostageAmount   int64
 	PostageDepth    uint64
+	PostageLabel    string
 	PostageWait     time.Duration
 	Seed            int64
 	UploadNodeCount int
@@ -28,8 +31,11 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
+		GasPrice:        1000000000000,
 		MetricsPusher:   nil,
+		PostageAmount:   1000,
 		PostageDepth:    16,
+		PostageLabel:    "test-label",
 		PostageWait:     5 * time.Second,
 		Seed:            random.Int64(),
 		UploadNodeCount: 1,
@@ -77,12 +83,13 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 			nodeName := sortedNodes[i]
 			client := clients[nodeName]
 
-			batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+			batchID, err := client.GetOrCreateBatch(ctx, o.GasPrice, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 			if err != nil {
 				fmt.Printf("error: node %s: batch id %v\n", nodeName, err)
 				continue
 			}
 			fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+			time.Sleep(o.PostageWait)
 
 			for j := 0; j < o.ChunksPerNode; j++ {
 				chunk, err := bee.NewRandomChunk(rnds[i])

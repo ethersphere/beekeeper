@@ -17,7 +17,9 @@ import (
 // Options represents check options
 type Options struct {
 	ChunksPerNode              int // number of chunks to upload per node
+	GasPrice                   int64
 	PostageAmount              int64
+	PostageLabel               string
 	PostageWait                time.Duration
 	ReplicationFactorThreshold int // minimal replication factor per chunk
 	Seed                       int64
@@ -28,7 +30,9 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:              1,
+		GasPrice:                   1000000000000,
 		PostageAmount:              1,
+		PostageLabel:               "test-label",
 		PostageWait:                5 * time.Second,
 		ReplicationFactorThreshold: 2,
 		Seed:                       random.Int64(),
@@ -83,13 +87,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		nodeName := sortedNodes[i]
 		client := clients[nodeName]
 
-		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		batchID, err := client.CreatePostageBatch(ctx, o.GasPrice, o.PostageAmount, bee.MinimumBatchDepth, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 		}
-
 		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-
 		time.Sleep(o.PostageWait)
 
 		for j := 0; j < o.ChunksPerNode; j++ {

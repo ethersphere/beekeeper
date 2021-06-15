@@ -301,14 +301,14 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 }
 
 // CreatePostageBatch returns the batchID of a batch of postage stamps
-func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
+func (c *Client) CreatePostageBatch(ctx context.Context, gasPrice, amount int64, depth uint64, label string) (string, error) {
 	if depth < MinimumBatchDepth {
 		depth = MinimumBatchDepth
 	}
-	return c.api.Postage.CreatePostageBatch(ctx, amount, depth, label)
+	return c.api.Postage.CreatePostageBatch(ctx, gasPrice, amount, depth, label)
 }
 
-func (c *Client) GetOrCreateBatch(ctx context.Context, depth uint64, sleep time.Duration) (string, error) {
+func (c *Client) GetOrCreateBatch(ctx context.Context, gasPrice, amount int64, depth uint64, label string) (string, error) {
 	batches, err := c.PostageBatches(ctx)
 	if err != nil {
 		return "", err
@@ -320,9 +320,7 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, depth uint64, sleep time.
 		return batches[0].BatchID, nil
 	}
 
-	b, err := c.CreatePostageBatch(ctx, 1000, depth, "test-label") // todo: make amount optional, was hardcoded to 1
-	time.Sleep(sleep)
-	return b, err
+	return c.CreatePostageBatch(ctx, gasPrice, amount, depth, label)
 }
 
 // PostageBatches returns the list of batches of node
