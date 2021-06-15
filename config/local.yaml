@@ -135,7 +135,7 @@ bee-configs:
     block-time: 1
     bootnodes: ""
     bootnode-mode: false
-    cache-capacity: 2000
+    cache-capacity: 20000
     clef-signer-enable: false
     clef-signer-endpoint: ""
     cors-allowed-origins: ""
@@ -155,9 +155,9 @@ bee-configs:
     p2p-quic-enable: false
     p2p-ws-enable: false
     password: "beekeeper"
-    payment-early: 1500000
-    payment-threshold: 15000000
-    payment-tolerance: 1500000
+    payment-early: 10000000
+    payment-threshold: 100000000
+    payment-tolerance: 10000000
     postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
     price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: ""
@@ -277,13 +277,13 @@ checks:
       dry-run: false
       expect-settlements: true
       file-name: settlements
-      file-size: 2097152 # 2mb = 2*1024*1024
+      file-size: 14680064 # 14mb = 14*1024*1024
       postage-amount: 1
-      postage-depth: 18
+      postage-depth: 20
       postage-wait: 5s
-      threshold: 1500000000000
+      threshold: 100000000
       upload-node-count: 3
-      wait-before-download: 5s
+      wait-before-download: 20s
     timeout: 5m
     type: settlements
   ci-settlements-clef:
@@ -291,13 +291,13 @@ checks:
       dry-run: false
       expect-settlements: true
       file-name: settlements
-      file-size: 2097152 # 2mb = 2*1024*1024
+      file-size: 14680064 # 14mb = 14*1024*1024
       postage-amount: 1
-      postage-depth: 18
+      postage-depth: 20
       postage-wait: 5s
-      threshold: 15000000
+      threshold: 100000000
       upload-node-count: 3
-      wait-before-download: 20s
+      wait-before-download: 35s
     timeout: 5m
     type: settlements
   ci-soc:
