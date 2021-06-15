@@ -2,6 +2,7 @@ package config
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
@@ -11,48 +12,49 @@ type BeeConfig struct {
 	// parent to inherit settings from
 	*Inherit `yaml:",inline"`
 	// Bee configuration
-	APIAddr                    *string `yaml:"api-addr"`
-	BlockTime                  *uint64 `yaml:"block-time"`
-	Bootnodes                  *string `yaml:"bootnodes"`
-	BootnodeMode               *bool   `yaml:"bootnode-mode"`
-	CacheCapacity              *uint64 `yaml:"cache-capacity"`
-	ClefSignerEnable           *bool   `yaml:"clef-signer-enable"`
-	ClefSignerEndpoint         *string `yaml:"clef-signer-endpoint"`
-	CORSAllowedOrigins         *string `yaml:"cors-allowed-origins"`
-	DataDir                    *string `yaml:"data-dir"`
-	DbOpenFilesLimit           *int    `yaml:"db-open-files-limit"`
-	DbBlockCacheCapacity       *int    `yaml:"db-block-cache-capacity"`
-	DbWriteBufferSize          *int    `yaml:"db-write-buffer-size"`
-	DbDisableSeeksCompaction   *bool   `yaml:"db-disable-seeks-compaction"`
-	DebugAPIAddr               *string `yaml:"debug-api-addr"`
-	DebugAPIEnable             *bool   `yaml:"debug-api-enable"`
-	FullNode                   *bool   `yaml:"full-node"`
-	GatewayMode                *bool   `yaml:"gateway-mode"`
-	GlobalPinningEnabled       *bool   `yaml:"global-pinning-enabled"`
-	NATAddr                    *string `yaml:"nat-addr"`
-	NetworkID                  *uint64 `yaml:"network-id"`
-	P2PAddr                    *string `yaml:"p2p-addr"`
-	P2PQUICEnable              *bool   `yaml:"p2p-quic-enable"`
-	P2PWSEnable                *bool   `yaml:"pwp-ws-enable"`
-	Password                   *string `yaml:"password"`
-	PaymentEarly               *uint64 `yaml:"payment-early"`
-	PaymentThreshold           *uint64 `yaml:"payment-threshold"`
-	PaymentTolerance           *uint64 `yaml:"payment-tolerance"`
-	PostageStampAddress        *string `yaml:"postage-stamp-address"`
-	PriceOracleAddress         *string `yaml:"price-oracle-address"`
-	ResolverOptions            *string `yaml:"resolver-options"`
-	Standalone                 *bool   `yaml:"standalone"`
-	SwapEnable                 *bool   `yaml:"swap-enable"`
-	SwapEndpoint               *string `yaml:"swap-endpoint"`
-	SwapDeploymentGasPrice     *string `yaml:"swap-deployment-gas-price"`
-	SwapFactoryAddress         *string `yaml:"swap-factory-address"`
-	SwapLegacyFactoryAddresses *string `yaml:"swap-legacy-factory-addresses"`
-	SwapInitialDeposit         *uint64 `yaml:"swap-initial-deposit"`
-	TracingEnabled             *bool   `yaml:"tracing-enabled"`
-	TracingEndpoint            *string `yaml:"tracing-endpoint"`
-	TracingServiceName         *string `yaml:"tracing-service-name"`
-	Verbosity                  *uint64 `yaml:"verbosity"`
-	WelcomeMessage             *string `yaml:"welcome-message"`
+	APIAddr                    *string        `yaml:"api-addr"`
+	BlockTime                  *uint64        `yaml:"block-time"`
+	Bootnodes                  *string        `yaml:"bootnodes"`
+	BootnodeMode               *bool          `yaml:"bootnode-mode"`
+	CacheCapacity              *uint64        `yaml:"cache-capacity"`
+	ClefSignerEnable           *bool          `yaml:"clef-signer-enable"`
+	ClefSignerEndpoint         *string        `yaml:"clef-signer-endpoint"`
+	CORSAllowedOrigins         *string        `yaml:"cors-allowed-origins"`
+	DataDir                    *string        `yaml:"data-dir"`
+	DbOpenFilesLimit           *int           `yaml:"db-open-files-limit"`
+	DbBlockCacheCapacity       *int           `yaml:"db-block-cache-capacity"`
+	DbWriteBufferSize          *int           `yaml:"db-write-buffer-size"`
+	DbDisableSeeksCompaction   *bool          `yaml:"db-disable-seeks-compaction"`
+	DebugAPIAddr               *string        `yaml:"debug-api-addr"`
+	DebugAPIEnable             *bool          `yaml:"debug-api-enable"`
+	FullNode                   *bool          `yaml:"full-node"`
+	GatewayMode                *bool          `yaml:"gateway-mode"`
+	GlobalPinningEnabled       *bool          `yaml:"global-pinning-enabled"`
+	NATAddr                    *string        `yaml:"nat-addr"`
+	NetworkID                  *uint64        `yaml:"network-id"`
+	P2PAddr                    *string        `yaml:"p2p-addr"`
+	P2PQUICEnable              *bool          `yaml:"p2p-quic-enable"`
+	P2PWSEnable                *bool          `yaml:"pwp-ws-enable"`
+	Password                   *string        `yaml:"password"`
+	PaymentEarly               *uint64        `yaml:"payment-early"`
+	PaymentThreshold           *uint64        `yaml:"payment-threshold"`
+	PaymentTolerance           *uint64        `yaml:"payment-tolerance"`
+	PostageStampAddress        *string        `yaml:"postage-stamp-address"`
+	PriceOracleAddress         *string        `yaml:"price-oracle-address"`
+	ResolverOptions            *string        `yaml:"resolver-options"`
+	Standalone                 *bool          `yaml:"standalone"`
+	SwapEnable                 *bool          `yaml:"swap-enable"`
+	SwapEndpoint               *string        `yaml:"swap-endpoint"`
+	SwapDeploymentGasPrice     *string        `yaml:"swap-deployment-gas-price"`
+	SwapFactoryAddress         *string        `yaml:"swap-factory-address"`
+	SwapLegacyFactoryAddresses *string        `yaml:"swap-legacy-factory-addresses"`
+	SwapInitialDeposit         *uint64        `yaml:"swap-initial-deposit"`
+	TracingEnabled             *bool          `yaml:"tracing-enabled"`
+	TracingEndpoint            *string        `yaml:"tracing-endpoint"`
+	TracingServiceName         *string        `yaml:"tracing-service-name"`
+	Verbosity                  *uint64        `yaml:"verbosity"`
+	WelcomeMessage             *string        `yaml:"welcome-message"`
+	WarmupTime                 *time.Duration `yaml:"warmup-time"`
 }
 
 // Export exports BeeConfig to k8s.Config

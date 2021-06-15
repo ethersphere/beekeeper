@@ -53,6 +53,7 @@ tracing-endpoint: {{.TracingEndpoint}}
 tracing-service-name: {{.TracingServiceName}}
 verbosity: {{.Verbosity}}
 welcome-message: {{.WelcomeMessage}}
+warmup-time: {{.WarmupTime}}
 `
 )
 

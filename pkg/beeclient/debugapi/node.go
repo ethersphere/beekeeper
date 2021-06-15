@@ -2,9 +2,10 @@ package debugapi
 
 import (
 	"context"
-	"math/big"
 	"net/http"
 	"time"
+
+	"github.com/ethersphere/beekeeper/pkg/bigint"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 )
@@ -29,8 +30,8 @@ func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error)
 
 // Balance represents node's balance with a peer
 type Balance struct {
-	Balance int64  `json:"balance"`
-	Peer    string `json:"peer"`
+	Balance *bigint.BigInt `json:"balance"`
+	Peer    string         `json:"peer"`
 }
 
 // Balance returns node's balance with a given peer
@@ -117,9 +118,9 @@ func (n *NodeService) Readiness(ctx context.Context) (resp Readiness, err error)
 
 // Settlement represents node's settlement with a peer
 type Settlement struct {
-	Peer     string `json:"peer"`
-	Received int    `json:"received"`
-	Sent     int    `json:"sent"`
+	Peer     string         `json:"peer"`
+	Received *bigint.BigInt `json:"received"`
+	Sent     *bigint.BigInt `json:"sent"`
 }
 
 // Settlement returns node's settlement with a given peer
@@ -130,9 +131,9 @@ func (n *NodeService) Settlement(ctx context.Context, a swarm.Address) (resp Set
 
 // Settlements represents node's settlements with all peers
 type Settlements struct {
-	Settlements   []Settlement `json:"settlements"`
-	TotalReceived int          `json:"totalreceived"`
-	TotalSent     int          `json:"totalsent"`
+	Settlements   []Settlement   `json:"settlements"`
+	TotalReceived *bigint.BigInt `json:"totalReceived"`
+	TotalSent     *bigint.BigInt `json:"totalSent"`
 }
 
 // Settlements returns node's settlements with all peers
@@ -142,15 +143,15 @@ func (n *NodeService) Settlements(ctx context.Context) (resp Settlements, err er
 }
 
 type Cheque struct {
-	Beneficiary string   `json:"beneficiary"`
-	Chequebook  string   `json:"chequebook"`
-	Payout      *big.Int `json:"payout"`
+	Beneficiary string         `json:"beneficiary"`
+	Chequebook  string         `json:"chequebook"`
+	Payout      *bigint.BigInt `json:"payout"`
 }
 
 type CashoutStatusResult struct {
-	Recipient  string   `json:"recipient"`
-	LastPayout *big.Int `json:"lastPayout"`
-	Bounced    bool     `json:"bounced"`
+	Recipient  string         `json:"recipient"`
+	LastPayout *bigint.BigInt `json:"lastPayout"`
+	Bounced    bool           `json:"bounced"`
 }
 
 type CashoutStatusResponse struct {
@@ -158,7 +159,7 @@ type CashoutStatusResponse struct {
 	Cheque          *Cheque              `json:"lastCashedCheque"`
 	TransactionHash *string              `json:"transactionHash"`
 	Result          *CashoutStatusResult `json:"result"`
-	UncashedAmount  *big.Int             `json:"uncashedAmount"`
+	UncashedAmount  *bigint.BigInt       `json:"uncashedAmount"`
 }
 
 func (n *NodeService) CashoutStatus(ctx context.Context, a swarm.Address) (resp CashoutStatusResponse, err error) {
@@ -176,8 +177,8 @@ func (n *NodeService) Cashout(ctx context.Context, a swarm.Address) (resp Transa
 }
 
 type ChequebookBalanceResponse struct {
-	TotalBalance     *big.Int `json:"totalBalance"`
-	AvailableBalance *big.Int `json:"availableBalance"`
+	TotalBalance     *bigint.BigInt `json:"totalBalance"`
+	AvailableBalance *bigint.BigInt `json:"availableBalance"`
 }
 
 func (n *NodeService) ChequebookBalance(ctx context.Context) (resp ChequebookBalanceResponse, err error) {
