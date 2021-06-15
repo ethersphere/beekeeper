@@ -314,8 +314,6 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, gasPrice, amount int64, d
 		return "", err
 	}
 
-	fmt.Println("got batches", batches)
-
 	if len(batches) != 0 {
 		return batches[0].BatchID, nil
 	}
