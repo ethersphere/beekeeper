@@ -40,6 +40,10 @@ var Simulations = map[string]SimulationType{
 		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
+				GasPrice             *int64         `yaml:"gas-price"`
+				PostageAmount        *int64         `yaml:"postage-amount"`
+				PostageDepth         *uint64        `yaml:"postage-depth"`
+				PostageLabel         *string        `yaml:"postage-label"`
 				PostageWait          *time.Duration `yaml:"postage-wait"`
 				Retries              *int           `yaml:"retries"`
 				RetryDelay           *time.Duration `yaml:"retry-delay"`
@@ -64,8 +68,11 @@ var Simulations = map[string]SimulationType{
 		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
 			simulationOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
+				GasPrice        *int64         `yaml:"gas-price"`
 				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
+				PostageAmount   *int64         `yaml:"postage-amount"`
 				PostageDepth    *uint64        `yaml:"postage-depth"`
+				PostageLabel    *string        `yaml:"postage-label"`
 				PostageWait     *time.Duration `yaml:"postage-wait"`
 				Seed            *int64         `yaml:"seed"`
 				UploadNodeCount *int           `yaml:"upload-node-count"`
