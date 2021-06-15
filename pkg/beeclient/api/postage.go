@@ -27,7 +27,7 @@ func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, d
 	url := fmt.Sprintf("/%s/stamps/%d/%d?label=%s", apiVersion, amount, depth, label)
 	var resp postageResponse
 	h := http.Header{}
-	h.Add("Gas-Price", "600000000000") // todo: quick fix, make it optional
+	h.Add("Gas-Price", "1000000000000") // todo: quick fix, make it optional
 	err := p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, &resp)
 	if err != nil {
 		return "", err
