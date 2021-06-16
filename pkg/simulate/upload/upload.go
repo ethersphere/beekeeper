@@ -19,6 +19,10 @@ import (
 // Options represents simulation options
 type Options struct {
 	FileSize             int64
+	GasPrice             string
+	PostageAmount        int64
+	PostageDepth         uint64
+	PostageLabel         string
 	PostageWait          time.Duration
 	Retries              int
 	RetryDelay           time.Duration
@@ -31,6 +35,10 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		FileSize:             1,
+		GasPrice:             "",
+		PostageAmount:        1000,
+		PostageDepth:         16,
+		PostageLabel:         "test-label",
 		PostageWait:          5 * time.Second,
 		Retries:              5,
 		RetryDelay:           1 * time.Second,
@@ -121,11 +129,12 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 						return ctx.Err()
 					}
 
-					batchID, err := n.GetOrCreateBatch(ctx, 16, o.PostageWait)
+					batchID, err := n.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 					if err != nil {
 						return fmt.Errorf("node %s: batch id %w", p, err)
 					}
 					fmt.Printf("node %s: batch id %s\n", p, batchID)
+					time.Sleep(o.PostageWait)
 
 					if err := n.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 						fmt.Printf("error: uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)

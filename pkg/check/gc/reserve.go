@@ -17,21 +17,23 @@ import (
 
 // Options represents gc check options
 type Options struct {
-	CacheSize     int // size of the node's localstore in chunks
-	Seed          int64
-	PostageAmount int64
-	PostageWait   time.Duration
-	ReserveSize   int
+	CacheSize    int // size of the node's localstore in chunks
+	GasPrice     string
+	PostageLabel string
+	PostageWait  time.Duration
+	ReserveSize  int
+	Seed         int64
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		CacheSize:     1000,
-		Seed:          0,
-		PostageAmount: 1,
-		PostageWait:   5 * time.Second,
-		ReserveSize:   1024,
+		CacheSize:    1000,
+		GasPrice:     "",
+		PostageLabel: "test-label",
+		PostageWait:  5 * time.Second,
+		ReserveSize:  1024,
+		Seed:         0,
 	}
 }
 
@@ -83,7 +85,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	depth := capacityToDepth(origState.Radius, origState.Available)
 
 	// STEP 1: create low value batch that covers the size of the reserve and upload chunk as much as the size of the cache
-	batchID, err := client.CreatePostageBatch(ctx, loAmount, depth, "test-label")
+	batchID, err := client.CreatePostageBatch(ctx, loAmount, depth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
@@ -124,7 +126,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, loAmount, higherRadius)
 
 	// STEP 2: create high value batch that covers the size of the reserve which should trigger the garbage collection of the low value batch
-	highValueBatch, err := client.CreatePostageBatch(ctx, hiAmount, depth, "test-label")
+	highValueBatch, err := client.CreatePostageBatch(ctx, hiAmount, depth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
@@ -189,7 +191,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), depth, hiAmount, state.Radius)
 
-	batchID, err = client.CreatePostageBatch(ctx, loAmount, depth-1, "test-label")
+	batchID, err = client.CreatePostageBatch(ctx, loAmount, depth-1, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}

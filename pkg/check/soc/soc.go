@@ -18,8 +18,10 @@ import (
 
 // Options represents check options
 type Options struct {
+	GasPrice       string
 	PostageAmount  int64
 	PostageDepth   uint64
+	PostageLabel   string
 	PostageWait    time.Duration
 	RequestTimeout time.Duration
 }
@@ -27,8 +29,10 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
+		GasPrice:       "",
 		PostageAmount:  1,
 		PostageDepth:   16,
+		PostageLabel:   "test-label",
 		PostageWait:    5 * time.Second,
 		RequestTimeout: 5 * time.Minute,
 	}
@@ -102,11 +106,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
 
-	batchID, err := node.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+	batchID, err := node.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}
 	fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+	time.Sleep(o.PostageWait)
 
 	fmt.Printf("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
 	fmt.Printf("soc: owner %s\n", owner)

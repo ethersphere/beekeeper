@@ -206,7 +206,6 @@ checks:
   ci-gc:
     options:
       cache-size: 100
-      postage-amount: 1
       postage-wait: 5s
       reserve-size: 1024
     timeout: 5m

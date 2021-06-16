@@ -31,10 +31,12 @@ var (
 
 // Options represents check options
 type Options struct {
+	GasPrice               string
 	MetricsPusher          *push.Pusher
 	NodeGroup              string
 	NumberOfChunksToRepair int
 	PostageAmount          int64
+	PostageLabel           string
 	PostageWait            time.Duration
 	Seed                   int64
 }
@@ -42,10 +44,12 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
+		GasPrice:               "",
 		MetricsPusher:          nil,
 		NodeGroup:              "bee",
 		NumberOfChunksToRepair: 1,
 		PostageAmount:          1,
+		PostageLabel:           "test-label",
 		PostageWait:            5 * time.Second,
 		Seed:                   0,
 	}
@@ -91,13 +95,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return err
 		}
 
-		batchID, err := nodeA.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, "test-label")
+		batchID, err := nodeA.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("created batched id %w", err)
 		}
-
 		fmt.Printf("created batched id %s", batchID)
-
 		time.Sleep(o.PostageWait)
 
 		// upload the chunk in nodeA

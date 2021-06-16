@@ -18,7 +18,9 @@ type Options struct {
 	DryRun             bool
 	FileName           string
 	FileSize           int64
+	GasPrice           string
 	PostageAmount      int64
+	PostageLabel       string
 	PostageWait        time.Duration
 	Seed               int64
 	UploadNodeCount    int
@@ -31,7 +33,9 @@ func NewDefaultOptions() Options {
 		DryRun:             false,
 		FileName:           "balances",
 		FileSize:           1 * 1024 * 1024, // 1mb,
+		GasPrice:           "",
 		PostageAmount:      1,
+		PostageLabel:       "test-label",
 		PostageWait:        5 * time.Second,
 		Seed:               0,
 		UploadNodeCount:    1,
@@ -95,13 +99,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 		// add some buffer to ensure depth is enough
 		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, "test-label")
+		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 		}
-
 		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-
 		time.Sleep(o.PostageWait)
 
 		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {

@@ -17,10 +17,12 @@ import (
 // Options represents check options
 type Options struct {
 	ChunksPerNode   int
+	GasPrice        string
 	MetricsPusher   *push.Pusher
 	Mode            string
 	PostageAmount   int64
 	PostageDepth    uint64
+	PostageLabel    string
 	PostageWait     time.Duration
 	Retries         int           // number of reties on problems
 	RetryDelay      time.Duration // retry delay duration
@@ -32,10 +34,12 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
+		GasPrice:        "",
 		MetricsPusher:   nil,
 		Mode:            "default",
 		PostageAmount:   1,
 		PostageDepth:    16,
+		PostageLabel:    "test-label",
 		PostageWait:     5 * time.Second,
 		Retries:         5,
 		RetryDelay:      1 * time.Second,
@@ -102,11 +106,12 @@ func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
 		nodeName := sortedNodes[i]
 		client := clients[nodeName]
 
-		batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+		batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
 		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+		time.Sleep(o.PostageWait)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])

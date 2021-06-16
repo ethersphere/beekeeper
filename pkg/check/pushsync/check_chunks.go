@@ -33,11 +33,12 @@ func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
 
 		uploader := clients[nodeName]
 
-		batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+		batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
 		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+		time.Sleep(o.PostageWait)
 
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {

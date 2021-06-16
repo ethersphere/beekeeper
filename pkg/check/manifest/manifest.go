@@ -20,10 +20,12 @@ import (
 // Options represents check options
 type Options struct {
 	FilesInCollection int
+	GasPrice          string
 	MaxPathnameLength int32
 	PostageAmount     int64
-	PostageWait       time.Duration
 	PostageDepth      uint64
+	PostageLabel      string
+	PostageWait       time.Duration
 	Seed              int64
 }
 
@@ -31,9 +33,11 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		FilesInCollection: 10,
+		GasPrice:          "",
 		MaxPathnameLength: 64,
 		PostageAmount:     1,
 		PostageDepth:      16,
+		PostageLabel:      "test-label",
 		PostageWait:       5 * time.Second,
 		Seed:              0,
 	}
@@ -88,11 +92,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	client := clients[node]
 
-	batchID, err := client.GetOrCreateBatch(ctx, o.PostageDepth, o.PostageWait)
+	batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", node, err)
 	}
 	fmt.Printf("node %s: batch id %s\n", node, batchID)
+	time.Sleep(o.PostageWait)
 
 	if err := client.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
