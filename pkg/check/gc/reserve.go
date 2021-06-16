@@ -194,7 +194,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	// STEP 3: Upload chunks with high value batch, then create a low value batch, and confirm no chunks were garbage collected
-	highValueChunks := chunkBatch(rnd, overlay, o.CacheSize*0.5, state.Radius)
+	highValueChunks := chunkBatch(rnd, overlay, int(float64(o.CacheSize)*0.5), state.Radius)
 	for _, c := range highValueChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: highValueBatch}); err != nil {
 			return fmt.Errorf("high value chunks: %w", err)

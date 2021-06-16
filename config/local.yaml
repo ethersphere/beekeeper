@@ -192,10 +192,10 @@ bee-configs:
     bootnode-mode: true
   bee-local-gc:
     _inherit: "bee-local"
-    cache-capacity: 100
+    cache-capacity: 64
   bootnode-local-gc:
     _inherit: "bee-local"
-    cache-capacity: 100
+    cache-capacity: 64
     bootnode-mode: true
 
 # CI checks
