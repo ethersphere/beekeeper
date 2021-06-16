@@ -5,10 +5,10 @@ clusters:
     name: bee
     namespace: beekeeper
     disable-namespace: false
-    api-domain: test.internal
+    api-domain: dai.internal
     api-insecure-tls: true
     api-scheme: https
-    debug-api-domain: test.internal
+    debug-api-domain: dai.internal
     debug-api-insecure-tls: true
     debug-api-scheme: https
     node-groups:
