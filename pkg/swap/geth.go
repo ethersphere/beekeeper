@@ -77,11 +77,11 @@ type ethRequest struct {
 
 // ethRequestParams represents common eth request parameters
 type ethRequestParams struct {
-	From  string
-	To    string
-	Data  string
-	Value string
-	Gas   string
+	From     string
+	To       string
+	Data     string
+	Value    string
+	GasPrice string
 }
 
 // sendETH makes ETH deposit
@@ -100,10 +100,10 @@ func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx
 		JsonRPC: "1.0",
 		Method:  "eth_sendTransaction",
 		Params: []ethRequestParams{{
-			From:  g.ethAccount,
-			To:    to,
-			Value: addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(amount, 1000000000000000000))), // 18 zeroes
-			Gas:   addPrefix("0x", fmt.Sprintf("%x", EthGasPrice)),
+			From:     g.ethAccount,
+			To:       to,
+			Value:    addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(amount, 1000000000000000000))), // 18 zeroes
+			GasPrice: addPrefix("0x", fmt.Sprintf("%x", EthGasPrice)),
 		}},
 	}
 
@@ -136,10 +136,10 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx
 		JsonRPC: "1.0",
 		Method:  "eth_sendTransaction",
 		Params: []ethRequestParams{{
-			From: g.ethAccount,
-			To:   g.bzzTokenAddress,
-			Data: "0x40c10f19" + fmt.Sprintf("%064s", strings.TrimPrefix(to, "0x")) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
-			Gas:  addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
+			From:     g.ethAccount,
+			To:       g.bzzTokenAddress,
+			Data:     "0x40c10f19" + fmt.Sprintf("%064s", strings.TrimPrefix(to, "0x")) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
+			GasPrice: addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
 		}},
 	}
 
