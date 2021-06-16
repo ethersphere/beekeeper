@@ -151,7 +151,6 @@ checks:
       dry-run: false
       file-name: balances
       file-size: 1048576 # 1mb = 1*1024*1024
-      gas-price: 1000000000000
       postage-amount: 1000
       postage-wait: 5s
       upload-node-count: 3
@@ -165,7 +164,6 @@ checks:
     type: cashout
   chunk-repair:
     options:
-      gas-price: 1000000000000
       metrics-enabled: 
       node-group: bee
       number-of-chunks-to-repair: 1
@@ -180,7 +178,6 @@ checks:
       file-size: 1048576 # 1mb = 1*1024*1024
       files-per-node: 1
       full: false
-      gas-price: 1000000000000
       postage-amount: 1000
       postage-wait: 5s
       upload-node-count: 3
@@ -192,7 +189,6 @@ checks:
   gc:
     options:
       cache-size: 1000
-      gas-price: 1000000000000
       postage-wait: 5s
       reserve-size: 1024
     timeout: 5m
@@ -205,7 +201,6 @@ checks:
   manifest:
     options:
       files-in-collection: 10
-      gas-price: 1000000000000
       max-pathname-length: 64
       postage-amount: 1000
       postage-depth: 16
@@ -223,7 +218,6 @@ checks:
   pss:
     options:
       address-prefix: 2
-      gas-price: 1000000000000
       metrics-enabled:
       node-count: 3
       postage-amount: 1000
@@ -235,7 +229,6 @@ checks:
   pullsync:
     options:
       chunks-per-node: 1
-      gas-price: 1000000000000
       postage-amount: 1000
       postage-wait: 5s
       replication-factor-threshold: 2
@@ -245,7 +238,6 @@ checks:
   pushsync:
     options:
       chunks-per-node: 1
-      gas-price: 1000000000000
       metrics-enabled:
       mode: default
       postage-amount: 1000
@@ -259,7 +251,6 @@ checks:
   pushsync-chunks:
     options:
       chunks-per-node: 1
-      gas-price: 1000000000000
       metrics-enabled:
       mode: chunks
       postage-amount: 1000
@@ -273,7 +264,6 @@ checks:
   pushsync-light-chunks:
     options:
       chunks-per-node: 1
-      gas-price: 1000000000000
       metrics-enabled:
       mode: light-chunks
       postage-amount: 1000
@@ -287,7 +277,6 @@ checks:
   retrieval:
     options:
       chunks-per-node: 1
-      gas-price: 1000000000000
       metrics-enabled:
       postage-amount: 1000
       postage-depth: 16
@@ -301,7 +290,6 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 1048576 # 1mb = 1*1024*1024
-      gas-price: 1000000000000
       postage-amount: 1000
       postage-depth: 16
       postage-wait: 5s
@@ -321,7 +309,6 @@ checks:
     type: smoke
   soc:
     options:
-      gas-price: 1000000000000
       postage-amount: 1000
       postage-depth: 16
       postage-wait: 5s
@@ -335,7 +322,6 @@ simulations:
   upload:
     options:
       file-size: 1048576 # 1mb = 1*1024*1024
-      gas-price: 1000000000000
       postage-amount: 1000
       postage-depth: 16
       postage-wait: 5s
@@ -349,7 +335,6 @@ simulations:
   retrieval:
     options:
       chunks-per-node: 1
-      gas-price: 1000000000000
       metrics-enabled: true
       postage-amount: 1000
       postage-depth: 16

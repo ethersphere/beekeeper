@@ -19,7 +19,7 @@ import (
 // Options represents simulation options
 type Options struct {
 	FileSize             int64
-	GasPrice             int64
+	GasPrice             string
 	PostageAmount        int64
 	PostageDepth         uint64
 	PostageLabel         string
@@ -35,7 +35,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		FileSize:             1,
-		GasPrice:             1000000000000,
+		GasPrice:             "",
 		PostageAmount:        1000,
 		PostageDepth:         16,
 		PostageLabel:         "test-label",
@@ -129,7 +129,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 						return ctx.Err()
 					}
 
-					batchID, err := n.GetOrCreateBatch(ctx, o.GasPrice, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+					batchID, err := n.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 					if err != nil {
 						return fmt.Errorf("node %s: batch id %w", p, err)
 					}

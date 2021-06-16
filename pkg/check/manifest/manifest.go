@@ -20,7 +20,7 @@ import (
 // Options represents check options
 type Options struct {
 	FilesInCollection int
-	GasPrice          int64
+	GasPrice          string
 	MaxPathnameLength int32
 	PostageAmount     int64
 	PostageDepth      uint64
@@ -33,7 +33,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		FilesInCollection: 10,
-		GasPrice:          1000000000000,
+		GasPrice:          "",
 		MaxPathnameLength: 64,
 		PostageAmount:     1,
 		PostageDepth:      16,
@@ -92,7 +92,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	client := clients[node]
 
-	batchID, err := client.GetOrCreateBatch(ctx, o.GasPrice, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", node, err)
 	}

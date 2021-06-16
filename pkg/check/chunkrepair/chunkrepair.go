@@ -31,7 +31,7 @@ var (
 
 // Options represents check options
 type Options struct {
-	GasPrice               int64
+	GasPrice               string
 	MetricsPusher          *push.Pusher
 	NodeGroup              string
 	NumberOfChunksToRepair int
@@ -44,7 +44,7 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		GasPrice:               1000000000000,
+		GasPrice:               "",
 		MetricsPusher:          nil,
 		NodeGroup:              "bee",
 		NumberOfChunksToRepair: 1,
@@ -95,7 +95,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return err
 		}
 
-		batchID, err := nodeA.CreatePostageBatch(ctx, o.GasPrice, o.PostageAmount, bee.MinimumBatchDepth, o.PostageLabel)
+		batchID, err := nodeA.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("created batched id %w", err)
 		}

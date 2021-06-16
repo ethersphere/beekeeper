@@ -206,7 +206,6 @@ checks:
   ci-gc:
     options:
       cache-size: 100
-      gas-price: 65536
       postage-wait: 5s
       reserve-size: 1024
     timeout: 5m
@@ -214,7 +213,6 @@ checks:
   ci-manifest:
     options:
       files-in-collection: 10
-      gas-price: 65536
       max-pathname-length: 64
       postage-amount: 1
       postage-depth: 16
@@ -229,7 +227,6 @@ checks:
   ci-pss:
     options:
       address-prefix: 2
-      gas-price: 65536
       metrics-enabled:
       node-count: 3
       postage-amount: 1
@@ -241,7 +238,6 @@ checks:
   ci-pushsync-chunks:
     options:
       chunks-per-node: 3
-      gas-price: 65536
       metrics-enabled:
       mode: chunks
       postage-amount: 1
@@ -255,7 +251,6 @@ checks:
   ci-pushsync-light-chunks:
     options:
       chunks-per-node: 3
-      gas-price: 65536
       metrics-enabled:
       mode: light-chunks
       postage-amount: 1
@@ -269,7 +264,6 @@ checks:
   ci-retrieval:
     options:
       chunks-per-node: 3
-      gas-price: 65536
       metrics-enabled:
       postage-amount: 1
       postage-depth: 16
@@ -283,7 +277,6 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      gas-price: 65536
       postage-amount: 1
       postage-depth: 20
       postage-wait: 5s
@@ -298,7 +291,6 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      gas-price: 65536
       postage-amount: 1
       postage-depth: 20
       postage-wait: 5s
@@ -309,7 +301,6 @@ checks:
     type: settlements
   ci-soc:
     options:
-      gas-price: 65536
       postage-amount: 1
       postage-depth: 16
       postage-wait: 5s

@@ -40,7 +40,7 @@ var Simulations = map[string]SimulationType{
 		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
-				GasPrice             *int64         `yaml:"gas-price"`
+				GasPrice             *string        `yaml:"gas-price"`
 				PostageAmount        *int64         `yaml:"postage-amount"`
 				PostageDepth         *uint64        `yaml:"postage-depth"`
 				PostageLabel         *string        `yaml:"postage-label"`
@@ -68,7 +68,7 @@ var Simulations = map[string]SimulationType{
 		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
 			simulationOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
-				GasPrice        *int64         `yaml:"gas-price"`
+				GasPrice        *string        `yaml:"gas-price"`
 				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
 				PostageAmount   *int64         `yaml:"postage-amount"`
 				PostageDepth    *uint64        `yaml:"postage-depth"`

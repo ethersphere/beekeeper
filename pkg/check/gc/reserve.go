@@ -18,7 +18,7 @@ import (
 // Options represents gc check options
 type Options struct {
 	CacheSize    int // size of the node's localstore in chunks
-	GasPrice     int64
+	GasPrice     string
 	PostageLabel string
 	PostageWait  time.Duration
 	ReserveSize  int
@@ -29,7 +29,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		CacheSize:    1000,
-		GasPrice:     1000000000000,
+		GasPrice:     "",
 		PostageLabel: "test-label",
 		PostageWait:  5 * time.Second,
 		ReserveSize:  1024,
@@ -85,7 +85,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	depth := capacityToDepth(origState.Radius, origState.Available)
 
 	// STEP 1: create low value batch that covers the size of the reserve and upload chunk as much as the size of the cache
-	batchID, err := client.CreatePostageBatch(ctx, o.GasPrice, loAmount, depth, o.PostageLabel)
+	batchID, err := client.CreatePostageBatch(ctx, loAmount, depth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
@@ -126,7 +126,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, loAmount, higherRadius)
 
 	// STEP 2: create high value batch that covers the size of the reserve which should trigger the garbage collection of the low value batch
-	highValueBatch, err := client.CreatePostageBatch(ctx, o.GasPrice, hiAmount, depth, o.PostageLabel)
+	highValueBatch, err := client.CreatePostageBatch(ctx, hiAmount, depth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
@@ -191,7 +191,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), depth, hiAmount, state.Radius)
 
-	batchID, err = client.CreatePostageBatch(ctx, o.GasPrice, loAmount, depth-1, o.PostageLabel)
+	batchID, err = client.CreatePostageBatch(ctx, loAmount, depth-1, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}

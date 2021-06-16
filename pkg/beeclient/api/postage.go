@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
 // PostageService represents Bee's Postage service
@@ -24,12 +23,17 @@ type postageStampsResponse struct {
 }
 
 // Sends a create postage request to a node that returns the bactchID
-func (p *PostageService) CreatePostageBatch(ctx context.Context, gasPrice, amount int64, depth uint64, label string) (string, error) {
+func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (batchID string, err error) {
 	url := fmt.Sprintf("/%s/stamps/%d/%d?label=%s", apiVersion, amount, depth, label)
 	var resp postageResponse
-	h := http.Header{}
-	h.Add("Gas-Price", strconv.FormatInt(gasPrice, 10))
-	err := p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, &resp)
+	if gasPrice != "" {
+		h := http.Header{}
+		h.Add("Gas-Price", gasPrice)
+		err = p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, &resp)
+	} else {
+		err = p.client.request(ctx, http.MethodPost, url, nil, &resp)
+	}
+
 	if err != nil {
 		return "", err
 	}

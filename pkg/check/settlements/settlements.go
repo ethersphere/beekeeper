@@ -20,7 +20,7 @@ type Options struct {
 	ExpectSettlements  bool
 	FileName           string
 	FileSize           int64
-	GasPrice           int64
+	GasPrice           string
 	PostageAmount      int64
 	PostageDepth       uint64
 	PostageLabel       string
@@ -38,7 +38,7 @@ func NewDefaultOptions() Options {
 		ExpectSettlements:  true,
 		FileName:           "settlements",
 		FileSize:           1 * 1024 * 1024, // 1mb
-		GasPrice:           1000000000000,
+		GasPrice:           "",
 		PostageAmount:      1,
 		PostageDepth:       16,
 		PostageLabel:       "test-label",
@@ -113,7 +113,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		client := clients[uNode]
 
 		fmt.Println("node", uNode)
-		batchID, err := client.GetOrCreateBatch(ctx, o.GasPrice, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+		batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", uNode, err)
 		}

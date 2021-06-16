@@ -18,7 +18,7 @@ import (
 
 // Options represents check options
 type Options struct {
-	GasPrice       int64
+	GasPrice       string
 	PostageAmount  int64
 	PostageDepth   uint64
 	PostageLabel   string
@@ -29,7 +29,7 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		GasPrice:       1000000000000,
+		GasPrice:       "",
 		PostageAmount:  1,
 		PostageDepth:   16,
 		PostageLabel:   "test-label",
@@ -106,7 +106,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
 
-	batchID, err := node.GetOrCreateBatch(ctx, o.GasPrice, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := node.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}
