@@ -124,6 +124,10 @@ func nodeStream(ctx context.Context, nodes map[string]*bee.Client) <-chan nodeSt
 				nodeStream <- nodeStreamMsg{Name: name, Error: err}
 				return
 			}
+			if len(peers) == 0 {
+				nodeStream <- nodeStreamMsg{Name: name, Error: fmt.Errorf("no peers")}
+				return
+			}
 
 			for m := range node.PingStream(ctx, peers) {
 				if m.Error != nil {
