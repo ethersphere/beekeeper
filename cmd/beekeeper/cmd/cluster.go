@@ -33,7 +33,10 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			cluster.AddNodeGroup(ng, ngConfig.Export())
 
 			// delete nodes from the node group
-			g := cluster.NodeGroup(ng)
+			g, err := cluster.NodeGroup(ng)
+			if err != nil {
+				return err
+			}
 			for i := 0; i < len(v.Nodes); i++ {
 				nName := fmt.Sprintf("%s-%d", ng, i)
 				if len(v.Nodes[i].Name) > 0 {
@@ -55,7 +58,10 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			cluster.AddNodeGroup(ng, ngConfig.Export())
 
 			// delete nodes from the node group
-			g := cluster.NodeGroup(ng)
+			g, err := cluster.NodeGroup(ng)
+			if err != nil {
+				return err
+			}
 			if len(v.Nodes) > 0 {
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := fmt.Sprintf("%s-%d", ng, i)
@@ -120,7 +126,10 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				cluster.AddNodeGroup(ng, ngConfig.Export())
 
 				// start nodes in the node group
-				g := cluster.NodeGroup(ng)
+				g, err := cluster.NodeGroup(ng)
+				if err != nil {
+					return nil, err
+				}
 				errGroup := new(errgroup.Group)
 				for i := 0; i < len(v.Nodes); i++ {
 					// set node name
@@ -184,7 +193,10 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				cluster.AddNodeGroup(ng, ngOptions)
 
 				// start nodes in the node group
-				g := cluster.NodeGroup(ng)
+				g, err := cluster.NodeGroup(ng)
+				if err != nil {
+					return nil, err
+				}
 				errGroup := new(errgroup.Group)
 
 				if len(v.Nodes) > 0 {
@@ -242,7 +254,10 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				cluster.AddNodeGroup(ng, ngConfig.Export())
 
 				// add nodes to the node group
-				g := cluster.NodeGroup(ng)
+				g, err := cluster.NodeGroup(ng)
+				if err != nil {
+					return nil, err
+				}
 				for i := 0; i < len(v.Nodes); i++ {
 					// set node name
 					nName := fmt.Sprintf("%s-%d", ng, i)
@@ -301,7 +316,10 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				cluster.AddNodeGroup(ng, gOptions)
 
 				// add nodes to the node group
-				g := cluster.NodeGroup(ng)
+				g, err := cluster.NodeGroup(ng)
+				if err != nil {
+					return nil, err
+				}
 
 				if len(v.Nodes) > 0 {
 					for i := 0; i < len(v.Nodes); i++ {

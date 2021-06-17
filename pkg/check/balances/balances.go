@@ -95,18 +95,21 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		ng, nodeName, overlay := overlays.Random(rnd)
 
 		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
-		client := cluster.NodeGroups()[ng].NodeClient(nodeName)
+		uClient, err := cluster.NodeGroups()[ng].NodeClient(nodeName)
+		if err != nil {
+			return err
+		}
 
 		// add some buffer to ensure depth is enough
 		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel)
+		batchID, err := uClient.CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 		}
 		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
 		time.Sleep(o.PostageWait)
 
-		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
+		if err := uClient.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("node %s: %w", nodeName, err)
 		}
 		fmt.Printf("File %s uploaded successfully to node \"%s\" (%s)\n", file.Address().String(), nodeName, overlay.String())
@@ -137,7 +140,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		time.Sleep(o.WaitBeforeDownload)
 		// download file from random node
 		ng, nodeName, overlay = overlays.Random(rnd)
-		size, hash, err := cluster.NodeGroups()[ng].NodeClient(nodeName).DownloadFile(ctx, file.Address())
+		dClient, err := cluster.NodeGroups()[ng].NodeClient(nodeName)
+		if err != nil {
+			return err
+		}
+		size, hash, err := dClient.DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %s: %w", nodeName, err)
 		}

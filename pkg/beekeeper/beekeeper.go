@@ -52,7 +52,10 @@ func Run(ctx context.Context, cluster *bee.Cluster, action Action, options inter
 			fmt.Printf("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 
 			rnd := random.PseudoGenerator(seed)
-			ng := cluster.NodeGroup(u.NodeGroup)
+			ng, err := cluster.NodeGroup(u.NodeGroup)
+			if err != nil {
+				return err
+			}
 			if err := updateNodeGroup(ctx, ng, u.Actions, rnd, i); err != nil {
 				return err
 			}
@@ -102,7 +105,10 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, action Action, o
 				}()
 
 				fmt.Printf("node group %s, add %d, delete %d, start %d, stop %d\n", u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
-				ng := cluster.NodeGroup(u.NodeGroup)
+				ng, err := cluster.NodeGroup(u.NodeGroup)
+				if err != nil {
+					return err
+				}
 				if err := updateNodeGroupConcurrently(ctx, ng, u.Actions, rnds[j], i, buffers[j]); err != nil {
 					return err
 				}
@@ -162,7 +168,11 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 		if err := ng.SetupNode(ctx, n, bee.NodeOptions{}, a.WithFunding); err != nil {
 			return fmt.Errorf("add start node %s: %w", n, err)
 		}
-		overlay, err := ng.NodeClient(n).Overlay(ctx)
+		c, err := ng.NodeClient(n)
+		if err != nil {
+			return err
+		}
+		overlay, err := c.Overlay(ctx)
 		if err != nil {
 			return fmt.Errorf("get node %s overlay: %w", n, err)
 		}
@@ -171,7 +181,11 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 
 	// delete nodes
 	for _, n := range toDelete {
-		overlay, err := ng.NodeClient(n).Overlay(ctx)
+		c, err := ng.NodeClient(n)
+		if err != nil {
+			return err
+		}
+		overlay, err := c.Overlay(ctx)
 		if err != nil {
 			return fmt.Errorf("get node %s overlay: %w", n, err)
 		}
@@ -186,7 +200,11 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 		if err := ng.StartNode(ctx, n); err != nil {
 			return fmt.Errorf("start node %s: %w", n, err)
 		}
-		overlay, err := ng.NodeClient(n).Overlay(ctx)
+		c, err := ng.NodeClient(n)
+		if err != nil {
+			return err
+		}
+		overlay, err := c.Overlay(ctx)
 		if err != nil {
 			return fmt.Errorf("get node %s overlay: %w", n, err)
 		}
@@ -195,7 +213,11 @@ func updateNodeGroup(ctx context.Context, ng *bee.NodeGroup, a Actions, rnd *ran
 
 	// stop nodes
 	for _, n := range toStop {
-		overlay, err := ng.NodeClient(n).Overlay(ctx)
+		c, err := ng.NodeClient(n)
+		if err != nil {
+			return err
+		}
+		overlay, err := c.Overlay(ctx)
 		if err != nil {
 			return fmt.Errorf("get node %s overlay: %w", n, err)
 		}
@@ -251,7 +273,11 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 			if err := ng.SetupNode(ctx, n, bee.NodeOptions{}, a.WithFunding); err != nil {
 				return fmt.Errorf("add start node %s: %w", n, err)
 			}
-			overlay, err := ng.NodeClient(n).Overlay(ctx)
+			c, err := ng.NodeClient(n)
+			if err != nil {
+				return err
+			}
+			overlay, err := c.Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
@@ -269,7 +295,11 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 				<-updateSemaphore
 			}()
 
-			overlay, err := ng.NodeClient(n).Overlay(ctx)
+			c, err := ng.NodeClient(n)
+			if err != nil {
+				return err
+			}
+			overlay, err := c.Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
@@ -293,7 +323,11 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 			if err := ng.StartNode(ctx, n); err != nil {
 				return fmt.Errorf("start node %s: %w", n, err)
 			}
-			overlay, err := ng.NodeClient(n).Overlay(ctx)
+			c, err := ng.NodeClient(n)
+			if err != nil {
+				return err
+			}
+			overlay, err := c.Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
@@ -311,7 +345,11 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *bee.NodeGroup, a Actio
 				<-updateSemaphore
 			}()
 
-			overlay, err := ng.NodeClient(n).Overlay(ctx)
+			c, err := ng.NodeClient(n)
+			if err != nil {
+				return err
+			}
+			overlay, err := c.Overlay(ctx)
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}

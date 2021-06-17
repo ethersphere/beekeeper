@@ -257,7 +257,10 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		"app.kubernetes.io/instance": name,
 	})
 
-	n := g.getNode(name)
+	n, err := g.getNode(name)
+	if err != nil {
+		return err
+	}
 
 	if err := g.k8s.Create(ctx, k8s.CreateOptions{
 		// Bee configuration
@@ -317,7 +320,11 @@ func (g *NodeGroup) Fund(ctx context.Context, name string) (err error) {
 	var a Addresses
 	retries := 5
 	for retries > 0 {
-		a, err = g.NodeClient(name).Addresses(ctx)
+		c, err := g.NodeClient(name)
+		if err != nil {
+			return err
+		}
+		a, err = c.Addresses(ctx)
 		if err != nil {
 			retries--
 			if retries == 0 {
@@ -475,12 +482,12 @@ func (g *NodeGroup) NodesSorted() (l []string) {
 }
 
 // Node returns node
-func (g *NodeGroup) Node(name string) *Node {
+func (g *NodeGroup) Node(name string) (*Node, error) {
 	return g.getNode(name)
 }
 
 // NodeClient returns node's client
-func (g *NodeGroup) NodeClient(name string) *Client {
+func (g *NodeGroup) NodeClient(name string) (*Client, error) {
 	return g.getClient(name)
 }
 
@@ -899,11 +906,12 @@ func (g *NodeGroup) deleteNode(name string) {
 	g.lock.Unlock()
 }
 
-func (g *NodeGroup) getClient(name string) *Client {
-	g.lock.RLock()
-	c := g.nodes[name].client
-	g.lock.RUnlock()
-	return c
+func (g *NodeGroup) getClient(name string) (*Client, error) {
+	n, err := g.getNode(name)
+	if err != nil {
+		return nil, err
+	}
+	return n.client, nil
 }
 
 func (g *NodeGroup) getClients() map[string]*Client {
@@ -916,11 +924,14 @@ func (g *NodeGroup) getClients() map[string]*Client {
 	return c
 }
 
-func (g *NodeGroup) getNode(name string) *Node {
+func (g *NodeGroup) getNode(name string) (n *Node, err error) {
 	g.lock.RLock()
-	n := g.nodes[name]
+	n, ok := g.nodes[name]
 	g.lock.RUnlock()
-	return n
+	if !ok {
+		return nil, fmt.Errorf("node %s not found", name)
+	}
+	return
 }
 
 func (g *NodeGroup) getNodes() map[string]*Node {

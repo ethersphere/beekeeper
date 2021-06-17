@@ -52,13 +52,19 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("invalid options type")
 	}
 
-	ng := cluster.NodeGroup(o.NodeGroup)
-
+	ng, err := cluster.NodeGroup(o.NodeGroup)
+	if err != nil {
+		return err
+	}
 	sortedNodes := ng.NodesSorted()
 	var actions []CashoutAction
 
 	for _, node := range sortedNodes {
-		settlements, err := ng.NodeClient(node).Settlements(ctx)
+		client, err := ng.NodeClient(node)
+		if err != nil {
+			return err
+		}
+		settlements, err := client.Settlements(ctx)
 		if err != nil {
 			return err
 		}
@@ -69,18 +75,18 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 				if err != nil {
 					return err
 				}
-				cashoutStatus, err := ng.NodeClient(node).CashoutStatus(ctx, peerOverlay)
+				cashoutStatus, err := client.CashoutStatus(ctx, peerOverlay)
 				if err != nil {
 					return err
 				}
 
 				if cashoutStatus.UncashedAmount.Cmp(big.NewInt(0)) > 0 {
-					chequebookBalance, err := ng.NodeClient(node).ChequebookBalance(ctx)
+					chequebookBalance, err := client.ChequebookBalance(ctx)
 					if err != nil {
 						return err
 					}
 
-					txHash, err := ng.NodeClient(node).Cashout(ctx, peerOverlay)
+					txHash, err := client.Cashout(ctx, peerOverlay)
 					if err != nil {
 						return err
 					}
@@ -104,7 +110,11 @@ LOOP:
 		time.Sleep(5 * time.Second)
 
 		for _, action := range actions {
-			cashoutStatus, err := ng.NodeClient(action.node).CashoutStatus(ctx, action.peer)
+			client, err := ng.NodeClient(action.node)
+			if err != nil {
+				return err
+			}
+			cashoutStatus, err := client.CashoutStatus(ctx, action.peer)
 			if err != nil {
 				return err
 			}
@@ -118,7 +128,7 @@ LOOP:
 				return fmt.Errorf("bouncing cheque on %s from peer %s", action.node, action.peer)
 			}
 
-			chequebookBalance, err := ng.NodeClient(action.node).ChequebookBalance(ctx)
+			chequebookBalance, err := client.ChequebookBalance(ctx)
 			if err != nil {
 				return err
 			}
