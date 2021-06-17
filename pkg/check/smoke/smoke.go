@@ -71,10 +71,14 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	for i := 0; i < o.Runs; i++ {
 		uploader := r.Intn(len(sortedNodes))
 		nodeName := sortedNodes[uploader]
+		uClient, err := ng.NodeClient(nodeName)
+		if err != nil {
+			return err
+		}
 
 		fmt.Printf("run %d, uploader node is: %s\n", i, nodeName)
 
-		tr, err := ng.NodeClient(nodeName).CreateTag(ctx)
+		tr, err := uClient.CreateTag(ctx)
 		if err != nil {
 			return fmt.Errorf("get tag from node %s: %w", nodeName, err)
 		}
@@ -84,7 +88,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return fmt.Errorf("create random data: %w", err)
 		}
 
-		addr, err := ng.NodeClient(nodeName).UploadBytes(ctx, data, api.UploadOptions{Pin: false, Tag: tr.Uid})
+		addr, err := uClient.UploadBytes(ctx, data, api.UploadOptions{Pin: false, Tag: tr.Uid})
 		if err != nil {
 			return fmt.Errorf("upload to node %s: %w", nodeName, err)
 		}
@@ -92,7 +96,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		ctx, cancel := context.WithTimeout(ctx, o.Timeout)
 		defer cancel()
 
-		err = ng.NodeClient(nodeName).WaitSync(ctx, tr.Uid)
+		err = uClient.WaitSync(ctx, tr.Uid)
 		if err != nil {
 			return fmt.Errorf("sync with node %s: %w", nodeName, err)
 		}
@@ -100,8 +104,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		// pick a random different node and try to download the content
 		n := randNot(r, len(sortedNodes), uploader)
 		downloadNode := sortedNodes[n]
+		dClient, err := ng.NodeClient(downloadNode)
+		if err != nil {
+			return err
+		}
 
-		dd, err := ng.NodeClient(downloadNode).DownloadBytes(ctx, addr)
+		dd, err := dClient.DownloadBytes(ctx, addr)
 		if err != nil {
 			return fmt.Errorf("download from node %s: %w", nodeName, err)
 		}
