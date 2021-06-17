@@ -21,7 +21,10 @@ func checkLightChunks(ctx context.Context, cluster *bee.Cluster, o Options) erro
 		return err
 	}
 
-	lightnodes := cluster.NodeGroup("light")
+	lightnodes, err := cluster.NodeGroup("light")
+	if err != nil {
+		return err
+	}
 
 	for i, nodeName := range lightnodes.NodesSorted() {
 		if i >= o.UploadNodeCount {

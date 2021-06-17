@@ -83,7 +83,10 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		o.MetricsPusher.Format(expfmt.FmtText)
 	}
 
-	ng := cluster.NodeGroup(o.NodeGroup)
+	ng, err := cluster.NodeGroup(o.NodeGroup)
+	if err != nil {
+		return err
+	}
 	for i := 0; i < o.NumberOfChunksToRepair; i++ {
 		// Pick node A, B, C and a chunk which is closest to B
 		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, ng, rnds[i])

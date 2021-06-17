@@ -52,8 +52,10 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("invalid options type")
 	}
 
-	ng := cluster.NodeGroup(o.NodeGroup)
-
+	ng, err := cluster.NodeGroup(o.NodeGroup)
+	if err != nil {
+		return err
+	}
 	sortedNodes := ng.NodesSorted()
 	var actions []CashoutAction
 

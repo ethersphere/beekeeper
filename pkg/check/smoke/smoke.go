@@ -56,9 +56,14 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	fmt.Printf("seed: %d\n", o.Seed)
+
+	ng, err := cluster.NodeGroup(o.NodeGroup)
+	if err != nil {
+		return err
+	}
+
 	var (
 		rnd         = random.PseudoGenerator(o.Seed)
-		ng          = cluster.NodeGroup(o.NodeGroup)
 		r           = rand.New(rand.NewSource(o.Seed))
 		sortedNodes = ng.NodesSorted()
 	)

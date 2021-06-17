@@ -184,8 +184,12 @@ func (c *Cluster) NodeGroupsSorted() (l []string) {
 }
 
 // NodeGroup returns node group
-func (c *Cluster) NodeGroup(name string) *NodeGroup {
-	return c.nodeGroups[name]
+func (c *Cluster) NodeGroup(name string) (ng *NodeGroup, err error) {
+	ng, ok := c.nodeGroups[name]
+	if !ok {
+		return nil, fmt.Errorf("node group %s not found", name)
+	}
+	return
 }
 
 // Nodes returns map of nodes in the cluster
