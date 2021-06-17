@@ -192,10 +192,10 @@ bee-configs:
     bootnode-mode: true
   bee-local-gc:
     _inherit: "bee-local"
-    cache-capacity: 100
+    cache-capacity: 64
   bootnode-local-gc:
     _inherit: "bee-local"
-    cache-capacity: 100
+    cache-capacity: 64
     bootnode-mode: true
 
 # CI checks
@@ -205,9 +205,9 @@ checks:
     type: full-connectivity
   ci-gc:
     options:
-      cache-size: 100
+      cache-size: 64
       postage-wait: 5s
-      reserve-size: 1024
+      reserve-size: 64
     timeout: 5m
     type: gc
   ci-manifest:

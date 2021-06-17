@@ -105,6 +105,9 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Printf("uploaded pinned chunk %q\n", pinnedChunk.Address())
 
+	// since CacheSize is the same as the reserve size in this test setup,
+	// the 64 chunks would fill the reserve up so that 32 chunks are moved
+	// from the reserve to the cache.
 	lowValueChunks := chunkBatch(rnd, overlay, o.CacheSize, origState.Radius)
 	for _, c := range lowValueChunks {
 		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
@@ -114,16 +117,9 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), depth, loAmount, origState.Radius)
 
-	// upload higher radius chunks that should not be garbage collected
-	higherRadius := origState.Radius + 1
-	higherRadiusChunkCount := int(float64(o.CacheSize) * 0.1)
-	lowValueHigherRadiusChunks := chunkBatch(rnd, overlay, higherRadiusChunkCount, higherRadius)
-	for _, c := range lowValueHigherRadiusChunks {
-		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID}); err != nil {
-			return fmt.Errorf("low value chunk: %w", err)
-		}
-	}
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, loAmount, higherRadius)
+	// now buy another batch so that the batchstore picks up the batch and
+	// lines up the appropriate events in sequence in the FIFO queue for
+	// eviction
 
 	// STEP 2: create high value batch that covers the size of the reserve which should trigger the garbage collection of the low value batch
 	highValueBatch, err := client.CreatePostageBatch(ctx, hiAmount, depth, o.GasPrice, o.PostageLabel)
@@ -132,6 +128,21 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Printf("created batch id %s with depth %d and amount %d\n", highValueBatch, depth, hiAmount)
 	time.Sleep(o.PostageWait)
+
+	// upload higher radius chunks that should not be garbage collected
+	// but the lower PO chunks should get GCd since eviction would be called on them
+	higherRadius := origState.Radius + 1
+
+	// upload half the CacheSize again so that reserve eviction kicks in again
+	// and this time also gc kicks in and evicts 10% of the cache
+	higherRadiusChunkCount := int(float64(o.CacheSize) * 0.5)
+	lowValueHigherRadiusChunks := chunkBatch(rnd, overlay, higherRadiusChunkCount, higherRadius)
+	for _, c := range lowValueHigherRadiusChunks {
+		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID}); err != nil {
+			return fmt.Errorf("low value chunk: %w", err)
+		}
+	}
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, loAmount, higherRadius)
 
 	state, err = node.Client().ReserveState(ctx)
 	if err != nil {
@@ -183,7 +194,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	// STEP 3: Upload chunks with high value batch, then create a low value batch, and confirm no chunks were garbage collected
-	highValueChunks := chunkBatch(rnd, overlay, o.CacheSize, state.Radius)
+	highValueChunks := chunkBatch(rnd, overlay, int(float64(o.CacheSize)*0.5), state.Radius)
 	for _, c := range highValueChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: highValueBatch}); err != nil {
 			return fmt.Errorf("high value chunks: %w", err)
@@ -262,7 +273,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 }
 
 func capacityToDepth(radius uint8, available int64) uint64 {
-	depth := int(math.Log2(float64(available) * math.Exp2(float64(radius))))
+	depth := int(math.Log2(float64(available)))
 	if depth < bee.MinimumBatchDepth {
 		depth = bee.MinimumBatchDepth
 	}
