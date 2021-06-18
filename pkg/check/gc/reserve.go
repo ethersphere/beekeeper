@@ -133,7 +133,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	// but the lower PO chunks should get GCd since eviction would be called on them
 	higherRadius := origState.Radius + 1
 
-	// upload half the CacheSize again so that reserve eviction kicks in again
+	// upload another CacheSize again so that reserve eviction kicks in again
 	// and this time also gc kicks in and evicts 10% of the cache
 	higherRadiusChunkCount := o.CacheSize
 	lowValueHigherRadiusChunks := chunkBatch(rnd, overlay, higherRadiusChunkCount, higherRadius)
