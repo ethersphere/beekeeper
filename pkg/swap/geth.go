@@ -81,6 +81,7 @@ type ethRequestParams struct {
 	To       string
 	Data     string
 	Value    string
+	Gas      string
 	GasPrice string
 }
 
@@ -103,6 +104,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx
 			From:     g.ethAccount,
 			To:       to,
 			Value:    addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(amount, 1000000000000000000))), // 18 zeroes
+			Gas:      addPrefix("0x", fmt.Sprintf("%x", EthGasLimit)),
 			GasPrice: addPrefix("0x", fmt.Sprintf("%x", EthGasPrice)),
 		}},
 	}
@@ -139,6 +141,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx
 			From:     g.ethAccount,
 			To:       g.bzzTokenAddress,
 			Data:     "0x40c10f19" + fmt.Sprintf("%064s", strings.TrimPrefix(to, "0x")) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
+			Gas:      addPrefix("0x", fmt.Sprintf("%x", BzzGasLimit)),
 			GasPrice: addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
 		}},
 	}
