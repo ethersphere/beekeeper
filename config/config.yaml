@@ -188,9 +188,9 @@ checks:
     type: full-connectivity
   gc:
     options:
-      cache-size: 1000
+      cache-size: 64
       postage-wait: 5s
-      reserve-size: 1024
+      reserve-size: 64
     timeout: 5m
     type: gc
   kademlia:
