@@ -106,8 +106,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	fmt.Printf("uploaded pinned chunk %q\n", pinnedChunk.Address())
 
 	// since CacheSize is the same as the reserve size in this test setup,
-	// the 64 chunks would fill the reserve up so that 32 chunks are moved
-	// from the reserve to the cache.
+	// the 64 chunks would fill the reserve up so that 7 chunks are moved
+	// from the reserve to the cache. we still need to insert another (64-7) chunks
 	lowValueChunks := chunkBatch(rnd, overlay, o.CacheSize, origState.Radius)
 	for _, c := range lowValueChunks {
 		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
@@ -135,7 +135,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	// upload half the CacheSize again so that reserve eviction kicks in again
 	// and this time also gc kicks in and evicts 10% of the cache
-	higherRadiusChunkCount := int(float64(o.CacheSize) * 0.5)
+	higherRadiusChunkCount := o.CacheSize - int(float64(o.CacheSize)*0.1)
 	lowValueHigherRadiusChunks := chunkBatch(rnd, overlay, higherRadiusChunkCount, higherRadius)
 	for _, c := range lowValueHigherRadiusChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID}); err != nil {
