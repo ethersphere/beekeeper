@@ -89,7 +89,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
-	fmt.Printf("created batch id %s with depth %d and amount %d\n", batchID, depth, hiAmount)
+	fmt.Printf("created batch id %s with depth %d and amount %d\n", batchID, depth, loAmount)
 	time.Sleep(o.PostageWait)
 
 	state, err := node.Client().ReserveState(ctx)
@@ -143,6 +143,9 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		}
 	}
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, loAmount, higherRadius)
+
+	// allow time to sleep so that chunks can get synced and then GCd
+	time.Sleep(o.PostageWait)
 
 	state, err = node.Client().ReserveState(ctx)
 	if err != nil {
