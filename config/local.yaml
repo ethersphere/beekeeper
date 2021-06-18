@@ -214,6 +214,8 @@ checks:
   ci-full-connectivity:
     timeout: 5m
     type: full-connectivity
+    exclude-node-group:
+    - light
   ci-gc:
     options:
       cache-size: 64
@@ -257,6 +259,8 @@ checks:
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
+      exclude-node-group:
+      - light
     timeout: 5m
     type: pushsync
   ci-pushsync-light-chunks:
@@ -270,6 +274,8 @@ checks:
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
+      exclude-node-group:
+      - light
     timeout: 5m
     type: pushsync
   ci-retrieval:
