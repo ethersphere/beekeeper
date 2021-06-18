@@ -108,13 +108,22 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	// since CacheSize is the same as the reserve size in this test setup,
 	// the 64 chunks would fill the reserve up so that 7 chunks are moved
 	// from the reserve to the cache. we still need to insert another (64-7) chunks
-	lowValueChunks := chunkBatch(rnd, overlay, o.CacheSize, origState.Radius)
+	lowValueChunks := chunkBatch(rnd, overlay, 10, origState.Radius)
 	for _, c := range lowValueChunks {
 		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
 		if err != nil {
 			return fmt.Errorf("low value chunk: %w", err)
 		}
 	}
+	lowValueChunks2 := chunkBatch(rnd, overlay, 64-10, origState.Radius+1)
+	for _, c := range lowValueChunks2 {
+		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
+		if err != nil {
+			return fmt.Errorf("low value chunk: %w", err)
+		}
+	}
+	lowValueChunks = append(lowValueChunks, lowValueChunks2...)
+
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), depth, loAmount, origState.Radius)
 
 	// now buy another batch so that the batchstore picks up the batch and
@@ -131,11 +140,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	// upload higher radius chunks that should not be garbage collected
 	// but the lower PO chunks should get GCd since eviction would be called on them
-	higherRadius := origState.Radius + 1
+	higherRadius := origState.Radius + 2
 
 	// upload half the CacheSize again so that reserve eviction kicks in again
 	// and this time also gc kicks in and evicts 10% of the cache
-	higherRadiusChunkCount := o.CacheSize - int(float64(o.CacheSize)*0.1)
+	higherRadiusChunkCount := 64 - 7
 	lowValueHigherRadiusChunks := chunkBatch(rnd, overlay, higherRadiusChunkCount, higherRadius)
 	for _, c := range lowValueHigherRadiusChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID}); err != nil {
