@@ -29,29 +29,36 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return err
 	}
 
-	peers, err := cluster.Peers(ctx)
+	fullNodes, err := cluster.Overlays(ctx, "light")
+	if err != nil {
+		return err
+	}
+
+	peers, err := cluster.Peers(ctx, "light")
 	if err != nil {
 		return err
 	}
 
 	clusterSize := cluster.Size()
-	expectedPeerCount := clusterSize - 1
+	expectedPeerCount := clusterSize - len(cluster.LightNodeNames())
 
-	for group, v := range overlays {
+	for group, v := range fullNodes {
 		for node, overlay := range v {
-			if len(peers[group][node]) != expectedPeerCount {
-				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(peers[group][node]), expectedPeerCount, overlay)
+			allPeers := peers[group][node]
+
+			if len(allPeers) < expectedPeerCount { // we expect to be connected to all full nodes plus a subset of light nodes
+				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), expectedPeerCount, overlay)
 				return errFullConnectivity
 			}
 
-			for _, p := range peers[group][node] {
+			for _, p := range allPeers {
 				if !contains(overlays, p) {
 					fmt.Printf("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
 					return errFullConnectivity
 				}
 			}
 
-			fmt.Printf("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(peers[group][node]), expectedPeerCount, overlay)
+			fmt.Printf("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), expectedPeerCount, overlay)
 		}
 	}
 

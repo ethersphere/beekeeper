@@ -300,18 +300,19 @@ var Checks = map[string]CheckType{
 		NewAction: pushsync.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				ChunksPerNode   *int           `yaml:"chunks-per-node"`
-				GasPrice        *string        `yaml:"gas-price"`
-				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
-				Mode            *string        `yaml:"mode"`
-				PostageAmount   *int64         `yaml:"postage-amount"`
-				PostageDepth    *uint64        `yaml:"postage-depth"`
-				PostageLabel    *string        `yaml:"postage-label"`
-				PostageWait     *time.Duration `yaml:"postage-wait"`
-				Retries         *int           `yaml:"retries"`
-				RetryDelay      *time.Duration `yaml:"retry-delay"`
-				Seed            *int64         `yaml:"seed"`
-				UploadNodeCount *int           `yaml:"upload-node-count"`
+				ChunksPerNode     *int           `yaml:"chunks-per-node"`
+				GasPrice          *string        `yaml:"gas-price"`
+				MetricsEnabled    *bool          `yaml:"metrics-enabled"`
+				Mode              *string        `yaml:"mode"`
+				PostageAmount     *int64         `yaml:"postage-amount"`
+				PostageDepth      *uint64        `yaml:"postage-depth"`
+				PostageLabel      *string        `yaml:"postage-label"`
+				PostageWait       *time.Duration `yaml:"postage-wait"`
+				Retries           *int           `yaml:"retries"`
+				RetryDelay        *time.Duration `yaml:"retry-delay"`
+				Seed              *int64         `yaml:"seed"`
+				UploadNodeCount   *int           `yaml:"upload-node-count"`
+				ExcludeNodeGroups *[]string      `yaml:"exclude-node-group"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

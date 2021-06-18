@@ -16,17 +16,17 @@ func checkLightChunks(ctx context.Context, cluster *bee.Cluster, o Options) erro
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	overlays, err := cluster.FlattenOverlays(ctx, "bee", "bootnode")
+	overlays, err := cluster.FlattenOverlays(ctx, o.ExcludeNodeGroups...)
 	if err != nil {
 		return err
 	}
 
-	lightnodes, err := cluster.NodeGroup("light")
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	for i, nodeName := range lightnodes.NodesSorted() {
+	for i, nodeName := range cluster.LightNodeNames() {
 		if i >= o.UploadNodeCount {
 			break
 		}
@@ -37,12 +37,15 @@ func checkLightChunks(ctx context.Context, cluster *bee.Cluster, o Options) erro
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			uploader, err := lightnodes.NodeClient(nodeName)
-			if err != nil {
-				return err
-			}
+			uploader := clients[nodeName]
 
-			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
+			batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+			if err != nil {
+				return fmt.Errorf("node %s: batch id %w", nodeName, err)
+			}
+			fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+
+			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -56,10 +59,6 @@ func checkLightChunks(ctx context.Context, cluster *bee.Cluster, o Options) erro
 
 			time.Sleep(o.RetryDelay)
 
-			clients, err := cluster.NodesClients(ctx)
-			if err != nil {
-				return err
-			}
 			node := clients[closestName]
 
 			synced, err := node.HasChunk(ctx, ref)

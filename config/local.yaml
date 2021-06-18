@@ -43,6 +43,11 @@ clusters:
         config: local-dns
         count: 2
         mode: node
+      light:
+        bee-config: bee-local-light
+        config: local-light
+        count: 2
+        mode: node
   local-clef:
     _inherit: "local"
     node-groups:
@@ -126,6 +131,8 @@ node-groups:
     _inherit: "local"
   local-gc:
     _inherit: "local"
+  local-light:
+    _inherit: "local"
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 bee-configs:
@@ -181,6 +188,10 @@ bee-configs:
     _inherit: "bee-local"
     bootnode: /dnsaddr/localhost
     bootnode-mode: true
+  bee-local-light:
+    _inherit: "bee-local"
+    bootnode: /dnsaddr/localhost
+    full-node: false
   bee-local-clef:
     _inherit: "bee-local"
     clef-signer-enable: true

@@ -214,6 +214,26 @@ func (c *Cluster) NodeNames() (names []string) {
 	return
 }
 
+// LightNodeNames returns a list of light node names
+func (c *Cluster) LightNodeNames() (names []string) {
+	for name, node := range c.Nodes() {
+		if !node.config.FullNode {
+			names = append(names, name)
+		}
+	}
+	return
+}
+
+// FullNodeNames returns a list of full node names
+func (c *Cluster) FullNodeNames() (names []string) {
+	for name, node := range c.Nodes() {
+		if !node.config.FullNode {
+			names = append(names, name)
+		}
+	}
+	return
+}
+
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes
 func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) {
 	clients := make(map[string]*Client)
@@ -273,11 +293,14 @@ func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string
 	return ng, name, o
 }
 
-// Overlays returns ClusterOverlays
-func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err error) {
+// Overlays returns ClusterOverlays excluding the provided node group names
+func (c *Cluster) Overlays(ctx context.Context, exclude ...string) (overlays ClusterOverlays, err error) {
 	overlays = make(ClusterOverlays)
 
 	for k, v := range c.nodeGroups {
+		if containsName(exclude, k) {
+			continue
+		}
 		o, err := v.Overlays(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -289,8 +312,8 @@ func (c *Cluster) Overlays(ctx context.Context) (overlays ClusterOverlays, err e
 	return
 }
 
-// FlattenOverlays returns aggregated ClusterOverlays
-func (c *Cluster) FlattenOverlays(ctx context.Context, include ...string) (map[string]swarm.Address, error) {
+// FlattenOverlays returns aggregated ClusterOverlays excluding the provided node group names
+func (c *Cluster) FlattenOverlays(ctx context.Context, exclude ...string) (map[string]swarm.Address, error) {
 	o, err := c.Overlays(ctx)
 	if err != nil {
 		return nil, err
@@ -299,7 +322,7 @@ func (c *Cluster) FlattenOverlays(ctx context.Context, include ...string) (map[s
 	res := make(map[string]swarm.Address)
 
 	for ngn, ngo := range o {
-		if len(include) > 0 && !containsName(include, ngn) {
+		if containsName(exclude, ngn) {
 			continue
 		}
 		for n, over := range ngo {
@@ -326,10 +349,13 @@ func containsName(s []string, e string) bool {
 type ClusterPeers map[string]NodeGroupPeers
 
 // Peers returns peers of all nodes in the cluster
-func (c *Cluster) Peers(ctx context.Context) (peers ClusterPeers, err error) {
+func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error) {
 	peers = make(ClusterPeers)
 
 	for k, v := range c.nodeGroups {
+		if containsName(exclude, k) {
+			continue
+		}
 		p, err := v.Peers(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)

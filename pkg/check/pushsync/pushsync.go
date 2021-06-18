@@ -16,35 +16,37 @@ import (
 
 // Options represents check options
 type Options struct {
-	ChunksPerNode   int
-	GasPrice        string
-	MetricsPusher   *push.Pusher
-	Mode            string
-	PostageAmount   int64
-	PostageDepth    uint64
-	PostageLabel    string
-	PostageWait     time.Duration
-	Retries         int           // number of reties on problems
-	RetryDelay      time.Duration // retry delay duration
-	Seed            int64
-	UploadNodeCount int
+	ChunksPerNode     int
+	GasPrice          string
+	MetricsPusher     *push.Pusher
+	Mode              string
+	PostageAmount     int64
+	PostageDepth      uint64
+	PostageLabel      string
+	PostageWait       time.Duration
+	Retries           int           // number of reties on problems
+	RetryDelay        time.Duration // retry delay duration
+	Seed              int64
+	UploadNodeCount   int
+	ExcludeNodeGroups []string
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ChunksPerNode:   1,
-		GasPrice:        "",
-		MetricsPusher:   nil,
-		Mode:            "default",
-		PostageAmount:   1,
-		PostageDepth:    16,
-		PostageLabel:    "test-label",
-		PostageWait:     5 * time.Second,
-		Retries:         5,
-		RetryDelay:      1 * time.Second,
-		Seed:            random.Int64(),
-		UploadNodeCount: 1,
+		ChunksPerNode:     1,
+		GasPrice:          "",
+		MetricsPusher:     nil,
+		Mode:              "default",
+		PostageAmount:     1,
+		PostageDepth:      16,
+		PostageLabel:      "test-label",
+		PostageWait:       5 * time.Second,
+		Retries:           5,
+		RetryDelay:        1 * time.Second,
+		Seed:              random.Int64(),
+		UploadNodeCount:   1,
+		ExcludeNodeGroups: []string{},
 	}
 }
 
