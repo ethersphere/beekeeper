@@ -98,13 +98,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Println("reservestate:", state)
 
-	pinnedChunk := bee.GenerateRandomChunkAt(rnd, overlay, 0)
-	_, err = client.UploadChunk(ctx, pinnedChunk.Data(), api.UploadOptions{Pin: true, BatchID: batchID})
-	if err != nil {
-		return fmt.Errorf("unable to upload chunk: %w", err)
-	}
-	fmt.Printf("uploaded pinned chunk %q\n", pinnedChunk.Address())
-
 	// since CacheSize is the same as the reserve size in this test setup,
 	// the 64 chunks would fill the reserve up so that 7 chunks are moved
 	// from the reserve to the cache. we still need to insert another (64-7) chunks
@@ -115,7 +108,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return fmt.Errorf("low value chunk: %w", err)
 		}
 	}
-	lowValueChunks2 := chunkBatch(rnd, overlay, 64-11, origState.Radius+1)
+	lowValueChunks2 := chunkBatch(rnd, overlay, 64-10, origState.Radius+1)
 	for _, c := range lowValueChunks2 {
 		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
 		if err != nil {
@@ -197,14 +190,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("low value higher radius chunks were gc'd. Retrieved: %d, gc'd count: %d", hasCount, len(lowValueHigherRadiusChunks)-hasCount)
 	}
 
-	has, err := client.HasChunk(ctx, pinnedChunk.Address())
-	if err != nil {
-		return fmt.Errorf("unable to check pinned chunk %q: %w", pinnedChunk.Address(), err)
-	}
-	if !has {
-		return fmt.Errorf("expected node pin for uploaded chunk %q", pinnedChunk.Address())
-	}
-
 	// STEP 3: Upload chunks with high value batch, then create a low value batch, and confirm no chunks were garbage collected
 	highValueChunks := chunkBatch(rnd, overlay, int(float64(o.CacheSize)*0.5), state.Radius)
 	for _, c := range highValueChunks {
@@ -242,43 +227,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	if len(highValueChunks) != hasCount {
 		return fmt.Errorf("high value chunks were gc'd. Retrieved: %d,  gc'd count: %d", hasCount, len(highValueChunks)-hasCount)
-	}
-
-	pinned, err := client.GetPins(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to get pins: %w", err)
-	}
-	if len(pinned) != 1 {
-		return fmt.Errorf("unexpected pin count %d", len(pinned))
-	}
-	pinnedRef := pinned[0]
-
-	if !pinnedChunk.Address().Equal(pinnedRef) {
-		return fmt.Errorf("chunk %q is not pinned", pinnedChunk.Address())
-	}
-
-	if have, err := client.GetPinnedRootHash(ctx, pinnedRef); err != nil {
-		return fmt.Errorf("unable to get pinned root hash: %w", err)
-	} else if !have.Equal(pinnedRef) {
-		return fmt.Errorf("address mismatch: have %q; want %q", have, pinnedRef)
-	}
-
-	if err := client.UnpinRootHash(ctx, pinnedRef); err != nil {
-		return fmt.Errorf("cannot unpin chunk: %w", err)
-	}
-
-	if have, err := client.GetPinnedRootHash(ctx, pinnedRef); err != nil {
-		return fmt.Errorf("unable to get pinned root hash: %w", err)
-	} else if !have.Equal(swarm.ZeroAddress) {
-		return fmt.Errorf("address mismatch: have %q; want none", have)
-	}
-
-	pinned, err = client.GetPins(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to get pins: %w", err)
-	}
-	if len(pinned) > 0 {
-		return errors.New("pin count is greater than zero")
 	}
 
 	return nil
