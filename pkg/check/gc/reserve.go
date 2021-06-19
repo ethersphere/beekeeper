@@ -115,7 +115,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return fmt.Errorf("low value chunk: %w", err)
 		}
 	}
-	lowValueChunks2 := chunkBatch(rnd, overlay, 64-10, origState.Radius+1)
+	lowValueChunks2 := chunkBatch(rnd, overlay, 64-11, origState.Radius+1)
 	for _, c := range lowValueChunks2 {
 		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
 		if err != nil {
