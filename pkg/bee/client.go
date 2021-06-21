@@ -305,7 +305,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	if depth < MinimumBatchDepth {
 		depth = MinimumBatchDepth
 	}
-	return c.api.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
+	return c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
 }
 
 func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (string, error) {
@@ -322,8 +322,8 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 }
 
 // PostageBatches returns the list of batches of node
-func (c *Client) PostageBatches(ctx context.Context) ([]api.PostageStampResponse, error) {
-	return c.api.Postage.PostageBatches(ctx)
+func (c *Client) PostageBatches(ctx context.Context) ([]debugapi.PostageStampResponse, error) {
+	return c.debug.Postage.PostageBatches(ctx)
 }
 
 // ReserveState returns reserve radius, available capacity, inner and outer radiuses

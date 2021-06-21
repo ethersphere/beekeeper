@@ -101,6 +101,34 @@ func (c *Client) requestJSON(ctx context.Context, method, path string, body, v i
 	return c.request(ctx, method, path, bodyBuffer, v)
 }
 
+// requestWithHeader handles the HTTP request response cycle.
+func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (err error) {
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+
+	req.Header = header
+	req.Header.Add("Accept", contentType)
+
+	r, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if err = responseErrorHandler(r); err != nil {
+		return err
+	}
+
+	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		_ = json.NewDecoder(r.Body).Decode(&v)
+		return err
+	}
+
+	return err
+}
+
 // request handles the HTTP request response cycle.
 func (c *Client) request(ctx context.Context, method, path string, body io.Reader, v interface{}) (err error) {
 	req, err := http.NewRequest(method, path, body)
