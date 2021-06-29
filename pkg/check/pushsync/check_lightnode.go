@@ -45,7 +45,16 @@ func checkLightChunks(ctx context.Context, cluster *bee.Cluster, o Options) erro
 			}
 			fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
 
-			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
+			var ref swarm.Address
+
+			for i := 0; i < 3; i++ {
+				ref, err = uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
+				if err == nil {
+					break
+				}
+				time.Sleep(5 * time.Second)
+			}
+
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
