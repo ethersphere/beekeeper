@@ -40,13 +40,13 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	clusterSize := cluster.Size()
-	expectedPeerCount := clusterSize - len(cluster.LightNodeNames())
+	expectedPeerCount := clusterSize - len(cluster.LightNodeNames()) - 1 // we expect to be connected to all full nodes
 
 	for group, v := range fullNodes {
 		for node, overlay := range v {
 			allPeers := peers[group][node]
 
-			if len(allPeers) < expectedPeerCount { // we expect to be connected to all full nodes plus a subset of light nodes
+			if len(allPeers) < expectedPeerCount {
 				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), expectedPeerCount, overlay)
 				return errFullConnectivity
 			}
