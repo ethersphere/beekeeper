@@ -74,6 +74,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	set := randomDoubleSet(o.Seed, testCount, o.NodeCount)
 
+	fullNodes := cluster.FullNodeNames()
+
 	for i := 0; i < len(set); i++ {
 
 		fmt.Printf("pss: test %d of %d\n", i+1, testCount)
@@ -81,7 +83,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
 
 		nodeAName := sortedNodes[set[i][0]]
-		nodeBName := sortedNodes[set[i][1]]
+		nodeBName := fullNodes[0]
 
 		clients, err := cluster.NodesClients(ctx)
 		if err != nil {
