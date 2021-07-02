@@ -151,7 +151,21 @@ var Checks = map[string]CheckType{
 	"full-connectivity": {
 		NewAction: fullconnectivity.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
-			return nil, nil
+			checkOpts := new(struct {
+				LightNodeNames *[]string `yaml:"group-1"`
+				FullNodeNames  *[]string `yaml:"group-2"`
+				BootNodeNames  *[]string `yaml:"boot-nodes"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := fullconnectivity.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
 		},
 	},
 	"gc": {

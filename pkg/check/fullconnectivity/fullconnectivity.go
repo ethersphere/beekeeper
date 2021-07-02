@@ -21,39 +21,56 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
+type Options struct {
+	LightNodeNames []string
+	FullNodeNames  []string
+	BootNodeNames  []string
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{}
+}
+
 var errFullConnectivity = errors.New("full connectivity")
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
-	if err := checkFullNodesConnectivity(ctx, cluster); err != nil {
+	lightNodes := opts.(Options).LightNodeNames
+	bootNodes := opts.(Options).BootNodeNames
+	if err := checkFullNodesConnectivity(ctx, cluster, lightNodes, bootNodes); err != nil {
 		return fmt.Errorf("check full nodes: %w", err)
 	}
-	if err := checkLightNodesConnectivity(ctx, cluster); err != nil {
+	fullNodes := opts.(Options).FullNodeNames
+	if err := checkLightNodesConnectivity(ctx, cluster, fullNodes); err != nil {
 		return fmt.Errorf("check light nodes: %w", err)
 	}
 
 	return
 }
 
-func checkFullNodesConnectivity(ctx context.Context, cluster *bee.Cluster) (err error) {
+func checkFullNodesConnectivity(ctx context.Context, cluster *bee.Cluster, skipNodes, bootNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	fullNodes, err := cluster.Overlays(ctx, "light")
+	fullNodes, err := cluster.Overlays(ctx, skipNodes...)
 	if err != nil {
 		return err
 	}
 
-	peers, err := cluster.Peers(ctx, "light")
+	peers, err := cluster.Peers(ctx, skipNodes...)
 	if err != nil {
 		return err
 	}
 
-	clusterSize := cluster.Size()
-	expectedPeerCount := clusterSize - len(cluster.LightNodeNames()) - 1 // we expect to be connected to all full nodes
+	// clusterSize := cluster.Size()
+	expectedPeerCount := len(cluster.FullNodeNames()) - 1 // we expect to be connected to all full nodes except self
 
 	for group, v := range fullNodes {
+		if isBootNode(group, bootNodes) {
+			expectedPeerCount = len(cluster.NodeNames()) - 1 // bootnodes are connected to all others
+		}
 		for node, overlay := range v {
 			allPeers := peers[group][node]
 
@@ -76,18 +93,28 @@ func checkFullNodesConnectivity(ctx context.Context, cluster *bee.Cluster) (err 
 	return
 }
 
-func checkLightNodesConnectivity(ctx context.Context, cluster *bee.Cluster) (err error) {
+func isBootNode(group string, bootnodes []string) bool {
+	for _, b := range bootnodes {
+		if group == b {
+			return true
+		}
+	}
+
+	return false
+}
+
+func checkLightNodesConnectivity(ctx context.Context, cluster *bee.Cluster, skipNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	lightNodes, err := cluster.Overlays(ctx, "bee", "bootnode")
+	lightNodes, err := cluster.Overlays(ctx, skipNodes...)
 	if err != nil {
 		return err
 	}
 
-	peers, err := cluster.Peers(ctx, "bee", "bootnode")
+	peers, err := cluster.Peers(ctx, skipNodes...)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -62,95 +62,48 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("invalid options type")
 	}
 
-	testData := []byte("Hello Swarm :)")
-	testTopic := "test"
-	testCount := o.NodeCount / 2
-
 	if o.MetricsPusher != nil {
 		o.MetricsPusher.Collector(sendAndReceiveGauge)
 	}
 
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+
 	sortedNodes := cluster.NodeNames()
+	if o.NodeCount > len(sortedNodes) {
+		o.NodeCount = len(sortedNodes)
+	}
 
-	set := randomDoubleSet(o.Seed, testCount, o.NodeCount)
-
-	fullNodes := cluster.FullNodeNames()
-
-	for i := 0; i < len(set); i++ {
-
-		fmt.Printf("pss: test %d of %d\n", i+1, testCount)
-
-		ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
-
-		nodeAName := sortedNodes[set[i][0]]
-		nodeBName := fullNodes[0]
-
-		clients, err := cluster.NodesClients(ctx)
-		if err != nil {
-			cancel()
-			return err
+	for j, nodeAName := range shuffle(cluster.NodeNames()) {
+		if j >= o.NodeCount {
+			break
 		}
-
-		nodeA := clients[nodeAName]
-		nodeB := clients[nodeBName]
-
-		addrB, err := nodeB.Addresses(ctx)
-		if err != nil {
-			cancel()
-			return err
-		}
-
-		batchID, err := nodeA.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
-		if err != nil {
-			cancel()
-			return fmt.Errorf("node %s: batched id %w", nodeAName, err)
-		}
-		fmt.Printf("node %s: batched id %s\n", nodeAName, batchID)
-		time.Sleep(o.PostageWait)
-
-		ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
-		if err != nil {
-			cancel()
-			return err
-		}
-
-		fmt.Printf("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
-
-		tStart := time.Now()
-		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
-		if err != nil {
-			close()
-			cancel()
-			return err
-		}
-
-		msg, ok := <-ch
-		if ok {
-			if msg == string(testData) {
-				fmt.Println("pss: websocket connection received correct message")
-				sendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
-			} else {
-				err = errDataMismatch
+		for _, nodeBName := range shuffle(cluster.FullNodeNames()) {
+			if nodeAName == nodeBName {
+				continue
 			}
-		} else {
-			err = errWebsocketConnection
-		}
 
-		cancel()
-		close()
+			fmt.Printf("pss: test %d of %d\n", j+1, o.NodeCount)
 
-		if err != nil {
-			return err
-		}
-
-		if o.MetricsPusher != nil {
-			if err := o.MetricsPusher.Push(); err != nil {
-				fmt.Printf("pss: push gauge: %v\n", err)
+			if err := testPss(nodeAName, nodeBName, clients, o); err != nil {
+				return err
 			}
+
+			break
 		}
 	}
 
 	return nil
+}
+
+func shuffle(names []string) []string {
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(names), func(i, j int) {
+		names[i], names[j] = names[j], names[i]
+	})
+	return names
 }
 
 var (
@@ -158,28 +111,73 @@ var (
 	errWebsocketConnection = errors.New("pss: websocket connection terminated with an error")
 )
 
-func randomDoubleSet(seed int64, count int, max int) [][]int {
+var (
+	testData  = []byte("Hello Swarm :)")
+	testTopic = "test"
+)
 
-	if max <= 1 {
-		log.Fatal("max must be greater than one")
+func testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Options) error {
+	ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
+
+	nodeA := clients[nodeAName]
+	nodeB := clients[nodeBName]
+
+	addrB, err := nodeB.Addresses(ctx)
+	if err != nil {
+		cancel()
+		return err
 	}
 
-	rnd := random.PseudoGenerator(seed)
+	batchID, err := nodeA.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+	if err != nil {
+		cancel()
+		return fmt.Errorf("node %s: batched id %w", nodeAName, err)
+	}
+	fmt.Printf("node %s: batched id %s\n", nodeAName, batchID)
+	time.Sleep(o.PostageWait)
 
-	ret := make([][]int, 0)
+	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
+	if err != nil {
+		cancel()
+		return err
+	}
 
-	for i := 0; i < count; i++ {
-		first := rnd.Intn(max)
-		second := first
+	fmt.Printf("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
 
-		for first == second {
-			second = rnd.Intn(max)
+	tStart := time.Now()
+	err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
+	if err != nil {
+		close()
+		cancel()
+		return err
+	}
+
+	msg, ok := <-ch
+	if ok {
+		if msg == string(testData) {
+			fmt.Println("pss: websocket connection received correct message")
+			sendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
+		} else {
+			err = errDataMismatch
 		}
-
-		ret = append(ret, []int{first, second})
+	} else {
+		err = errWebsocketConnection
 	}
 
-	return ret
+	cancel()
+	close()
+
+	if err != nil {
+		return err
+	}
+
+	if o.MetricsPusher != nil {
+		if err := o.MetricsPusher.Push(); err != nil {
+			fmt.Printf("pss: push gauge: %v\n", err)
+		}
+	}
+
+	return nil
 }
 
 func listenWebsocket(ctx context.Context, host string, topic string) (<-chan string, func(), error) {
