@@ -64,10 +64,11 @@ func checkFullNodesConnectivity(ctx context.Context, cluster *bee.Cluster, skipN
 		return err
 	}
 
-	// clusterSize := cluster.Size()
-	expectedPeerCount := len(cluster.FullNodeNames()) - 1 // we expect to be connected to all full nodes except self
+	fullNodeNames := cluster.FullNodeNames()
+	fullNodeCount := len(fullNodeNames) - 1 // we expect to be connected to all full nodes except self
 
 	for group, v := range fullNodes {
+		expectedPeerCount := fullNodeCount
 		if isBootNode(group, bootNodes) {
 			expectedPeerCount = len(cluster.NodeNames()) - 1 // bootnodes are connected to all others
 		}
