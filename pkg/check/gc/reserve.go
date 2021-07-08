@@ -82,7 +82,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("reservestate: %w", err)
 	}
 	fmt.Println("reservestate:", origState)
-	depth := capacityToDepth(origState.Radius, origState.Available)
+	depth := uint64(8)
 	fmt.Println("depth:", depth)
 	// STEP 1: create low value batch that covers the size of the reserve and upload chunk as much as the size of the cache
 	batchID, err := client.CreatePostageBatch(ctx, loAmount, depth, o.GasPrice, o.PostageLabel)
@@ -105,10 +105,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Printf("uploaded pinned chunk %q\n", pinnedChunk.Address())
 
-	// since CacheSize is the same as the reserve size in this test setup,
-	// the 64 chunks would fill the reserve up so that 7 chunks are moved
-	// from the reserve to the cache. we still need to insert another (64-7) chunks
-	lowValueChunks := chunkBatch(rnd, overlay, o.CacheSize, origState.Radius)
+	lowValueChunks := chunkBatch(rnd, overlay, 10, origState.Radius)
 	for _, c := range lowValueChunks {
 		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
 		if err != nil {
@@ -135,7 +132,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	// upload half the CacheSize again so that reserve eviction kicks in again
 	// and this time also gc kicks in and evicts 10% of the cache
-	higherRadiusChunkCount := o.CacheSize - int(float64(o.CacheSize)*0.1)
+	higherRadiusChunkCount := 10
 	lowValueHigherRadiusChunks := chunkBatch(rnd, overlay, higherRadiusChunkCount, higherRadius)
 	for _, c := range lowValueHigherRadiusChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID}); err != nil {
@@ -165,7 +162,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	lowValueChunksLen := len(lowValueChunks)
-	wantCount := int(float64(lowValueChunksLen)*0.9) // A 10% cache garbage collection is expected.
+	wantCount := int(float64(lowValueChunksLen) * 0.9) // A 10% cache garbage collection is expected.
 	fmt.Printf("retrieved low value chunks: %d, gc'd count: %d\n", hasCount, lowValueChunksLen-hasCount)
 
 	if hasCount != wantCount {
