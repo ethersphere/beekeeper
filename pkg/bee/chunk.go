@@ -154,7 +154,7 @@ func chunkHahser() hash.Hash {
 func GenerateRandomChunkAt(rnd *rand.Rand, target swarm.Address, po uint8) swarm.Chunk {
 	data := make([]byte, swarm.ChunkSize)
 	for {
-		_, _ = rnd.Read(data)
+		_, _ = rnd.Read(data) // TODO: Tweak the data to have the po address?
 		chunk, _ := cac.New(data)
 		if swarm.Proximity(chunk.Address().Bytes(), target.Bytes()) == po {
 			return chunk

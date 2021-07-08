@@ -29,9 +29,9 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		CacheSize:    1000,
-		GasPrice:     "",
+		GasPrice:     "500000000000",
 		PostageLabel: "test-label",
-		PostageWait:  5 * time.Second,
+		PostageWait:  50 * time.Second,
 		ReserveSize:  1024,
 		Seed:         0,
 	}
@@ -62,7 +62,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return fmt.Errorf("random node: %w", err)
 	}
-	fmt.Printf("node %s\n", node.Name())
+	fmt.Printf("chosen node %s\n", node.Name())
 
 	const (
 		loAmount = 1
@@ -83,7 +83,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Println("reservestate:", origState)
 	depth := capacityToDepth(origState.Radius, origState.Available)
-
+	fmt.Println("depth:", depth)
 	// STEP 1: create low value batch that covers the size of the reserve and upload chunk as much as the size of the cache
 	batchID, err := client.CreatePostageBatch(ctx, loAmount, depth, o.GasPrice, o.PostageLabel)
 	if err != nil {
@@ -164,11 +164,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		}
 	}
 
-	fmt.Printf("retrieved low value chunks: %d, gc'd count: %d\n", hasCount, len(lowValueChunks)-hasCount)
+	lowValueChunksLen := len(lowValueChunks)
+	wantCount := int(float64(lowValueChunksLen)*0.9) // A 10% cache garbage collection is expected.
+	fmt.Printf("retrieved low value chunks: %d, gc'd count: %d\n", hasCount, lowValueChunksLen-hasCount)
 
-	// a 10% cache garbage collection is expected
-	if hasCount != int(float64(len(lowValueChunks))*0.9) {
-		return errors.New("lowValueChunks gc count  error")
+	if hasCount != wantCount {
+		return fmt.Errorf("lowValueChunks gc count: has %d; want %d\n", hasCount, wantCount)
 	}
 
 	hasCount = 0
@@ -285,6 +286,10 @@ func capacityToDepth(radius uint8, available int64) uint64 {
 }
 
 func chunkBatch(rnd *rand.Rand, target swarm.Address, count int, po uint8) []swarm.Chunk {
+	start := time.Now()
+	defer func() {
+		fmt.Printf("chunkBatch took: %v\n", time.Since(start))
+	}()
 	chunks := make([]swarm.Chunk, count)
 	for i := range chunks {
 		chunks[i] = bee.GenerateRandomChunkAt(rnd, target, po)
