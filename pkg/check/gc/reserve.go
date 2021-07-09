@@ -234,18 +234,20 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			}
 			// allow the postage stamp to be picked up by the other nodes
 			time.Sleep(o.PostageWait)
-			if err = printReserveState(ctx, node.Client(), "step"); err != nil {
-				return fmt.Errorf("post first stamp: %w", err)
-			}
-
 		}
 		fmt.Printf("created batch id %s with depth %d and amount %d\n", batchID, depth, step.stampAmount)
-		if err := step.run(batchID); err != nil {
+		state, err = node.ReserveState(ctx)
+		if err != nil {
+			return fmt.Errorf("reservestate: %w", err)
+		}
+		fmt.Printf("%s reserve state: %s", statePrefix, state)
+
+		if err := step.run(batchID, state); err != nil {
 			return fmt.Errorf("step %d: run: %w", i, err)
 		}
 	}
 
-	highValueChunks := chunkBatch(rnd, overlay, int(float64(o.CacheSize)*0.5), state.Radius)
+	highValueChunks := chunkBatch(rnd, overlay, 10, state.Radius)
 	for _, c := range highValueChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: highValueBatch}); err != nil {
 			return fmt.Errorf("high value chunks: %w", err)
@@ -294,13 +296,4 @@ func chunkBatch(rnd *rand.Rand, target swarm.Address, count int, po uint8) []swa
 		chunks[i] = bee.GenerateRandomChunkAt(rnd, target, po)
 	}
 	return chunks
-}
-
-func printReserveState(ctx context.Context, node *bee.Client, statePrefix string) error {
-	state, err = node.ReserveState(ctx)
-	if err != nil {
-		return fmt.Errorf("reservestate: %w", err)
-	}
-	fmt.Printf("%s reserve state: %s", statePrefix, state)
-	return nil
 }
