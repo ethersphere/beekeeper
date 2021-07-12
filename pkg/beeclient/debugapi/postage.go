@@ -65,7 +65,7 @@ func (rs ReserveState) String() string {
 }
 
 // Returns the batchstore reservestate of the node
-func (p *PostageService) Reservestate(ctx context.Context) (ReserveState, error) {
+func (p *PostageService) ReserveState(ctx context.Context) (ReserveState, error) {
 	var resp ReserveState
 	err := p.client.request(ctx, http.MethodGet, "/reservestate", nil, &resp)
 	return resp, err

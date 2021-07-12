@@ -301,11 +301,29 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 }
 
 // CreatePostageBatch returns the batchID of a batch of postage stamps
-func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (string, error) {
+func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string, printReserveState bool) (string, error) {
 	if depth < MinimumBatchDepth {
 		depth = MinimumBatchDepth
 	}
-	return c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
+	if printReserveState {
+		rs, err := c.ReserveState(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("print reserve state (before): %w", err)
+		}
+		fmt.Printf("Reserve state (prior to buying the batch):\n%s", rs.String())
+	}
+	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
+	if err != nil {
+		return nil, fmt.Errorf("create postage stamp: %w", err)
+	}
+	if printReserveState {
+		rs, err := c.ReserveState(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("print reserve state (after): %w", err)
+		}
+		fmt.Printf("Reserve state (after buying the batch):\n%s", rs.String())
+	}
+	return id, nil
 }
 
 func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (string, error) {
@@ -328,7 +346,7 @@ func (c *Client) PostageBatches(ctx context.Context) ([]debugapi.PostageStampRes
 
 // ReserveState returns reserve radius, available capacity, inner and outer radiuses
 func (c *Client) ReserveState(ctx context.Context) (debugapi.ReserveState, error) {
-	return c.debug.Postage.Reservestate(ctx)
+	return c.debug.Postage.ReserveState(ctx)
 }
 
 // SendPSSMessage triggers a PSS message with a topic and recipient address
