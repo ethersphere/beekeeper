@@ -319,7 +319,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 
 	usable := false
 	// wait for the stamp to become usable
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 30; i++ {
 		state, err := c.debug.Postage.PostageBatch(id)
 		if err != nil {
 			return nil, fmt.Errorf("wait for stamp activation: %w", err)
