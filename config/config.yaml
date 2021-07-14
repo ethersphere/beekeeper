@@ -197,7 +197,6 @@ checks:
   gc:
     options:
       cache-size: 10
-      postage-wait: 5s
       reserve-size: 16
     timeout: 5m
     type: gc

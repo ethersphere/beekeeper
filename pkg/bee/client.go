@@ -301,27 +301,47 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 }
 
 // CreatePostageBatch returns the batchID of a batch of postage stamps
-func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string, printReserveState bool) (string, error) {
+func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string, verbose bool) (string, error) {
 	if depth < MinimumBatchDepth {
 		depth = MinimumBatchDepth
 	}
-	if printReserveState {
+	if verbose {
 		rs, err := c.ReserveState(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("print reserve state (before): %w", err)
 		}
-		fmt.Printf("Reserve state (prior to buying the batch):\n%s", rs.String())
+		fmt.Printf("reserve state (prior to buying the batch):\n%s", rs.String())
 	}
 	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
 	if err != nil {
 		return nil, fmt.Errorf("create postage stamp: %w", err)
 	}
-	if printReserveState {
+
+	usable := false
+	// wait for the stamp to become usable
+	for i := 0; i < 15; i++ {
+		state, err := c.debug.Postage.PostageBatch(id)
+		if err != nil {
+			return nil, fmt.Errorf("wait for stamp activation: %w", err)
+		}
+		usable = state.Usable
+		if usable {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	if !usable {
+		return nil, fmt.Errof("timed out waiting for batch %s to activate", id)
+	}
+
+	if verbose {
 		rs, err := c.ReserveState(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("print reserve state (after): %w", err)
 		}
-		fmt.Printf("Reserve state (after buying the batch):\n%s", rs.String())
+		fmt.Printf("reserve state (after buying the batch):\n%s", rs.String())
+		fmt.Printf("created batch id %s with depth %d and amount %d\n", id, depth, amount)
 	}
 	return id, nil
 }

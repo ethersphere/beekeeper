@@ -16,8 +16,15 @@ type postageResponse struct {
 }
 
 type PostageStampResponse struct {
-	BatchID     string `json:"batchID"`
-	Utilization uint32 `json:"utilization"`
+	BatchID       string         `json:"batchID"`
+	Utilization   uint32         `json:"utilization"`
+	Usable        bool           `json:"usable"`
+	Label         string         `json:"label"`
+	Depth         uint8          `json:"depth"`
+	Amount        *bigint.BigInt `json:"amount"`
+	BucketDepth   uint8          `json:"bucketDepth"`
+	BlockNumber   uint64         `json:"blockNumber"`
+	ImmutableFlag bool           `json:"immutableFlag"`
 }
 
 type postageStampsResponse struct {
@@ -50,6 +57,15 @@ func (p *PostageService) PostageBatches(ctx context.Context) ([]PostageStampResp
 		return nil, err
 	}
 	return resp.Stamps, nil
+}
+
+func (p *PostageService) PostageBatch(ctx context.Context, batchID string) (PostageStampResponse, error) {
+	var resp PostageStampResponse
+	err := p.client.request(ctx, http.MethodGet, "/stamps/"+batchID, nil, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 type ReserveState struct {

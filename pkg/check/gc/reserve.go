@@ -19,7 +19,6 @@ type Options struct {
 	CacheSize    int // size of the node's localstore in chunks
 	GasPrice     string
 	PostageLabel string
-	PostageWait  time.Duration
 	ReserveSize  int
 	Seed         int64
 }
@@ -30,7 +29,6 @@ func NewDefaultOptions() Options {
 		CacheSize:    1000,
 		GasPrice:     "500000000000",
 		PostageLabel: "test-label",
-		PostageWait:  5 * time.Second,
 		ReserveSize:  1024,
 		Seed:         0,
 	}
@@ -64,9 +62,9 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	fmt.Printf("chosen node %s\n", node.Name())
 
 	const (
-		loAmount = 1
-		hiAmount = 3
-		depth    = uint64(8)
+		cheapBatchAmount     = 1
+		expensiveBatchAmount = 3
+		depth                = uint64(8)
 	)
 
 	client := node.Client()
@@ -90,13 +88,10 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		lowValueHigherRadiusChunks = chunkBatch(rnd, overlay, higherRadiusChunkCount, higherRadius)
 	)
 
-	// STEP 1: create low value batch that covers the size of the reserve and upload chunk as much as the size of the cache
-	batchID, err := client.CreatePostageBatch(ctx, loAmount, depth, o.GasPrice, o.PostageLabel, true)
+	batchID, err := client.CreatePostageBatch(ctx, cheapBatchAmount, depth, o.GasPrice, o.PostageLabel, true)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
-	fmt.Printf("created batch id %s with depth %d and amount %d\n", batchID, depth, loAmount)
-	time.Sleep(o.PostageWait)
 
 	_, err = client.UploadChunk(ctx, pinnedChunk.Data(), api.UploadOptions{Pin: true, BatchID: batchID})
 	if err != nil {
@@ -117,19 +112,17 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	 reserve
 	*/
 
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), depth, loAmount, origState.Radius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), depth, cheapBatchAmount, origState.Radius)
 
 	// now buy another batch so that the batchstore picks up the batch and
 	// lines up the appropriate events in sequence in the FIFO queue for
 	// eviction
 
 	// create high value batch that covers the size of the reserve which should trigger the garbage collection of the low value batch
-	highValueBatch, err := client.CreatePostageBatch(ctx, hiAmount, depth, o.GasPrice, o.PostageLabel)
+	highValueBatch, err := client.CreatePostageBatch(ctx, expensiveBatchAmount, depth, o.GasPrice, o.PostageLabel, true)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
-	fmt.Printf("created batch id %s with depth %d and amount %d\n", highValueBatch, depth, hiAmount)
-	time.Sleep(o.PostageWait)
 
 	// upload higher radius chunks that should not be garbage collected
 	// but the lower PO chunks should get GCd since eviction would be called on them
@@ -141,11 +134,10 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return fmt.Errorf("low value chunk: %w", err)
 		}
 	}
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, loAmount, higherRadius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), depth, cheapBatchAmount, higherRadius)
 
 	// allow time to sleep so that chunks can get synced and then GCd
-	time.Sleep(o.PostageWait)
-
+	time.Sleep(5 * time.Second)
 	state, err := node.Client().ReserveState(ctx)
 	if err != nil {
 		return fmt.Errorf("reservestate: %w", err)
@@ -203,14 +195,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return fmt.Errorf("high value chunks: %w", err)
 		}
 	}
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), depth, hiAmount, state.Radius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), depth, expensiveBatchAmount, state.Radius)
 
-	batchID, err = client.CreatePostageBatch(ctx, loAmount, depth-1, o.GasPrice, o.PostageLabel)
+	batchID, err = client.CreatePostageBatch(ctx, cheapBatchAmount, depth-1, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
-	fmt.Printf("created batch id %s with depth %d and amount %d\n", batchID, depth, hiAmount)
-	time.Sleep(o.PostageWait)
 
 	state, err = client.ReserveState(ctx)
 	if err != nil {
@@ -274,15 +264,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	return nil
 }
-
-//func capacityToDepth(radius uint8, available int64) uint64 {
-//	depth := int(math.Log2(float64(available)))
-//	if depth < bee.MinimumBatchDepth {
-//		depth = bee.MinimumBatchDepth
-//	}
-//
-//	return uint64(depth) + 1
-//}
 
 func chunkBatch(rnd *rand.Rand, target swarm.Address, count int, po uint8) []swarm.Chunk {
 	chunks := make([]swarm.Chunk, count)
