@@ -45,7 +45,44 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
+const (
+	cheapBatchAmount     = 1
+	expensiveBatchAmount = 3
+	batchDepth           = uint64(8)
+)
+
 /*
+*********************************************************
+**                       WARNING!!!                    **
+*********************************************************
+
+This test depends on a very particular test setup.
+If you modify the test, you must make sure that
+the setup is still correct. This test is meant to
+run ONLY on the CI since the setup is guaranteed
+by diff patches that are applied on the appropriate
+source files in the bee repo before the test is run.
+
+- These files are visible under .github/patches
+- The patching sequence is visible in the beekeeper github
+workflow under .github/workflows/beekeeper.yaml
+
+The test setup is as follows:
+-	Cluster must be fresh (i.e. no other previous transactions
+	made on the underlying eth backend before the cluster is
+	brought up
+-	Initial Radius(Default Depth) = 2
+-	Bucket Depth = 2
+-	Reserve Capacity = 16 chunks
+-	Cache Capacity = 10 chunks
+- Cheap Batch Amount Per Chunk = 1 PLUR
+- Expensive Batch Amount Per Chunk = 3 PLUR
+- Batch Depth = 8
+
+A little bit about how the numbers make sense:
+- Batch Depth = 8 means the batch has 2^8 (256) chunks capacity
+-
+
  1 chunk pinned at po 0
  7+3 chunks at po(originalInitialRadius) 10
  evicts 7 chunks to the cache
@@ -67,12 +104,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("random node: %w", err)
 	}
 	fmt.Printf("chosen node %s\n", node.Name())
-
-	const (
-		cheapBatchAmount     = 1
-		expensiveBatchAmount = 3
-		batchDepth           = uint64(8)
-	)
 
 	client := node.Client()
 

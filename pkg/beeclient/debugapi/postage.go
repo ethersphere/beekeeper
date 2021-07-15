@@ -63,7 +63,7 @@ func (p *PostageService) PostageBatch(ctx context.Context, batchID string) (Post
 	var resp PostageStampResponse
 	err := p.client.request(ctx, http.MethodGet, "/stamps/"+batchID, nil, &resp)
 	if err != nil {
-		return nil, err
+		return PostageStampResponse{}, err
 	}
 	return resp, nil
 }
