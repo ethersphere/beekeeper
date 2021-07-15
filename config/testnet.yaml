@@ -31,7 +31,7 @@ node-groups:
     _inherit: ""
     clef-image: ethersphere/clef:latest
     clef-image-pull-policy: Always
-    image: ethersphere/bee:latest
+    image: ethersphere/bee@sha256:d19e6fd73fc52d62876bdba1a9ba4e9ab5aae4916e15e756b907b99a1ecc0bf5
     image-pull-policy: Always
     image-pull-secrets: [regcred]
     ingress-annotations:
@@ -105,11 +105,11 @@ bee-configs:
     resolver-options: "https://cloudflare-eth.com"
     standalone: false
     swap-enable: true
-    swap-endpoint: "ws://goerli-geth.goerli-geth:8546"
+    swap-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
     swap-factory-address: ""
     swap-legacy-factory-addresses: ""
-    swap-initial-deposit: 0
-    tracing-enabled: true
+    swap-initial-deposit: 10000000000000000
+    tracing-enabled: false
     tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
     tracing-service-name: "bee"
     verbosity: 5
