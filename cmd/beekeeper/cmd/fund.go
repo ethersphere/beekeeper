@@ -11,12 +11,14 @@ import (
 func (c *command) initFundCmd() (err error) {
 	const (
 		optionNameAddresses       = "addresses"
-		optionNameBzzDeposit      = "bzz-deposit"
-		optionNameBzzTokenAddress = "bzz-token-address"
 		optionNameEthAccount      = "eth-account"
-		optionNameEthDeposit      = "eth-deposit"
+		optionNameBzzTokenAddress = "bzz-token-address"
 		optionNameGethURL         = "geth-url"
-		optionNameTimeout         = "timeout"
+		optionNameBzzDeposit      = "bzz-deposit"
+		optionNameEthDeposit      = "eth-deposit"
+		optionNameGBzzDeposit     = "gBzz-deposit"
+
+		optionNameTimeout = "timeout"
 	)
 
 	cmd := &cobra.Command{
@@ -33,19 +35,33 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 			defer cancel()
 
 			for _, a := range c.globalConfig.GetStringSlice(optionNameAddresses) {
+				// ETH funding
 				ethDeposit := c.globalConfig.GetFloat64(optionNameEthDeposit)
-				tx, err := c.swapClient.SendETH(ctx, a, ethDeposit)
-				if err != nil {
-					return fmt.Errorf("send eth: %w", err)
+				if ethDeposit > 0 {
+					tx, err := c.swapClient.SendETH(ctx, a, ethDeposit)
+					if err != nil {
+						return fmt.Errorf("send eth: %w", err)
+					}
+					fmt.Printf("%s funded with %.2f ETH, transaction: %s\n", a, ethDeposit, tx)
 				}
-				fmt.Printf("%s funded with %.2f ETH, transaction: %s\n", a, ethDeposit, tx)
-
+				// BZZ funding
 				bzzDeposit := c.globalConfig.GetFloat64(optionNameBzzDeposit)
-				tx, err = c.swapClient.SendBZZ(ctx, a, bzzDeposit)
-				if err != nil {
-					return fmt.Errorf("deposit bzz: %w", err)
+				if bzzDeposit > 0 {
+					tx, err := c.swapClient.SendGBZZ(ctx, a, bzzDeposit)
+					if err != nil {
+						return fmt.Errorf("deposit bzz: %w", err)
+					}
+					fmt.Printf("%s funded with %.2f BZZ, transaction: %s\n", a, bzzDeposit, tx)
 				}
-				fmt.Printf("%s funded with %.2f BZZ, transaction: %s\n", a, bzzDeposit, tx)
+				// gBZZ funding
+				gBzzDeposit := c.globalConfig.GetFloat64(optionNameGBzzDeposit)
+				if gBzzDeposit > 0 {
+					tx, err := c.swapClient.SendGBZZ(ctx, a, gBzzDeposit)
+					if err != nil {
+						return fmt.Errorf("deposit gBzz: %w", err)
+					}
+					fmt.Printf("%s funded with %.2f gBZZ, transaction: %s\n", a, gBzzDeposit, tx)
+				}
 			}
 
 			return nil
@@ -54,11 +70,12 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 	}
 
 	cmd.Flags().StringSlice(optionNameAddresses, nil, "Bee node Ethereum addresses (must start with 0x)")
-	cmd.Flags().Float64(optionNameBzzDeposit, 100.0, "BZZ tokens amount to deposit")
 	cmd.Flags().String(optionNameBzzTokenAddress, "0x6aab14fe9cccd64a502d23842d916eb5321c26e7", "BZZ token address")
 	cmd.Flags().String(optionNameEthAccount, "0x62cab2b3b55f341f10348720ca18063cdb779ad5", "ETH account address")
-	cmd.Flags().Float64(optionNameEthDeposit, 1.0, "ETH amount to deposit")
 	cmd.Flags().String(optionNameGethURL, "http://geth-swap.geth-swap.dai.internal", "Geth node URL")
+	cmd.Flags().Float64(optionNameBzzDeposit, 0, "BZZ tokens amount to deposit")
+	cmd.Flags().Float64(optionNameGBzzDeposit, 0, "gBZZ tokens amount to deposit")
+	cmd.Flags().Float64(optionNameEthDeposit, 0, "ETH amount to deposit")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "timeout")
 
 	c.root.AddCommand(cmd)

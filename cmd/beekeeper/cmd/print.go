@@ -37,7 +37,7 @@ Requires exactly one argument from the following list: addresses, depths, overla
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, false, false)
+			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, false)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}

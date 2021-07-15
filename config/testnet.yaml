@@ -12,17 +12,20 @@ clusters:
     debug-api-domain: dai.internal
     debug-api-insecure-tls: true
     debug-api-scheme: https
+    funding:
+      eth: 0.1
+      gbzz: 2.0
     node-groups:
       bee:
         mode: node
         bee-config: testnet
         config: testnet
-        count: 1
-      # light:
-      #   mode: node
-      #   bee-config: testnet-light-node
-      #   config: testnet-light-node
-      #   count: 1
+        count: 3
+      light:
+        mode: node
+        bee-config: testnet-light-node
+        config: testnet-light-node
+        count: 3
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it

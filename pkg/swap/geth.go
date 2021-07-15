@@ -14,19 +14,15 @@ var _ Client = (*GethClient)(nil)
 
 // GethClient manages communication with the Geth node
 type GethClient struct {
-	bzzDeposit      float64
 	bzzTokenAddress string
 	ethAccount      string
-	ethDeposit      float64
 	httpClient      *http.Client // HTTP client must handle authentication implicitly
 }
 
 // GethClientOptions holds optional parameters for the GethClient
 type GethClientOptions struct {
-	BzzDeposit      float64
 	BzzTokenAddress string
 	EthAccount      string
-	EthDeposit      float64
 	HTTPClient      *http.Client
 }
 
@@ -40,10 +36,6 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 		o.HTTPClient = new(http.Client)
 	}
 
-	if o.BzzDeposit == 0 {
-		o.BzzDeposit = BzzDeposit
-	}
-
 	if len(o.BzzTokenAddress) == 0 {
 		o.BzzTokenAddress = BzzTokenAddress
 	}
@@ -52,15 +44,9 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 		o.EthAccount = EthAccount
 	}
 
-	if o.EthDeposit == 0 {
-		o.EthDeposit = EthDeposit
-	}
-
 	c = &GethClient{
-		bzzDeposit:      o.BzzDeposit,
 		bzzTokenAddress: o.BzzTokenAddress,
 		ethAccount:      o.EthAccount,
-		ethDeposit:      o.EthDeposit,
 		httpClient:      httpClientWithTransport(baseURL, o.HTTPClient),
 	}
 
@@ -85,7 +71,7 @@ type ethRequestParams struct {
 	GasPrice string
 }
 
-// sendETH makes ETH deposit
+// SendETH makes ETH deposit
 func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
@@ -105,7 +91,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx
 			To:       to,
 			Value:    addPrefix("0x", fmt.Sprintf("%x", float64ToBigInt(amount, 1000000000000000000))), // 18 zeroes
 			Gas:      addPrefix("0x", fmt.Sprintf("%x", EthGasLimit)),
-			GasPrice: addPrefix("0x", fmt.Sprintf("%x", EthGasPrice)),
+			GasPrice: addPrefix("0x", fmt.Sprintf("%x", GasPrice)),
 		}},
 	}
 
@@ -122,7 +108,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx
 	return resp.Result, nil
 }
 
-// sendBZZ makes BZZ token deposit
+// SendBZZ makes BZZ token deposit
 func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
@@ -140,9 +126,46 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx
 		Params: []ethRequestParams{{
 			From:     g.ethAccount,
 			To:       g.bzzTokenAddress,
-			Data:     "0x40c10f19" + fmt.Sprintf("%064s", strings.TrimPrefix(to, "0x")) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
+			Data:     mintBzz + fmt.Sprintf("%064s", strings.TrimPrefix(to, "0x")) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
 			Gas:      addPrefix("0x", fmt.Sprintf("%x", BzzGasLimit)),
-			GasPrice: addPrefix("0x", fmt.Sprintf("%x", BzzGasPrice)),
+			GasPrice: addPrefix("0x", fmt.Sprintf("%x", GasPrice)),
+		}},
+	}
+
+	resp := new(struct {
+		ID      string `json:"id"`
+		JsonRPC string `json:"jsonrpc"`
+		Result  string `json:"result"`
+	})
+
+	if err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+		return "", err
+	}
+
+	return resp.Result, nil
+}
+
+// SendGBZZ makes gBZZ token deposit
+func (g *GethClient) SendGBZZ(ctx context.Context, to string, amount float64) (tx string, err error) {
+	ethAccounts, err := g.ethAccounts(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get accounts: %w", err)
+	}
+
+	if !contains(ethAccounts, g.ethAccount) {
+		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
+	}
+
+	req := ethRequest{
+		ID:      "0",
+		JsonRPC: "1.0",
+		Method:  "eth_sendTransaction",
+		Params: []ethRequestParams{{
+			From:     g.ethAccount,
+			To:       g.bzzTokenAddress,
+			Data:     transferBzz + fmt.Sprintf("%064s", strings.TrimPrefix(to, "0x")) + fmt.Sprintf("%064x", float64ToBigInt(amount, 10000000000000000)), // 16 zeroes
+			Gas:      addPrefix("0x", fmt.Sprintf("%x", BzzGasLimit)),
+			GasPrice: addPrefix("0x", fmt.Sprintf("%x", GasPrice)),
 		}},
 	}
 

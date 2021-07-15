@@ -9,6 +9,9 @@ clusters:
     api-scheme: http
     debug-api-domain: localhost
     debug-api-scheme: http
+    funding:
+      eth: 0.1
+      bzz: 100.0
     node-groups:
       bootnode:
         mode: bootnode
