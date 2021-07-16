@@ -87,7 +87,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		nodeName := sortedNodes[i]
 		client := clients[nodeName]
 
-		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, o.GasPrice, o.PostageLabel)
+		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, o.GasPrice, o.PostageLabel, false)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 		}

@@ -308,21 +308,21 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	if verbose {
 		rs, err := c.ReserveState(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("print reserve state (before): %w", err)
+			return "", fmt.Errorf("print reserve state (before): %w", err)
 		}
 		fmt.Printf("reserve state (prior to buying the batch):\n%s", rs.String())
 	}
 	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
 	if err != nil {
-		return nil, fmt.Errorf("create postage stamp: %w", err)
+		return "", fmt.Errorf("create postage stamp: %w", err)
 	}
 
 	usable := false
 	// wait for the stamp to become usable
 	for i := 0; i < 30; i++ {
-		state, err := c.debug.Postage.PostageBatch(id)
+		state, err := c.debug.Postage.PostageBatch(ctx, id)
 		if err != nil {
-			return nil, fmt.Errorf("wait for stamp activation: %w", err)
+			return "", fmt.Errorf("wait for stamp activation: %w", err)
 		}
 		usable = state.Usable
 		if usable {
@@ -332,13 +332,13 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	}
 
 	if !usable {
-		return nil, fmt.Errof("timed out waiting for batch %s to activate", id)
+		return "", fmt.Errorf("timed out waiting for batch %s to activate", id)
 	}
 
 	if verbose {
 		rs, err := c.ReserveState(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("print reserve state (after): %w", err)
+			return "", fmt.Errorf("print reserve state (after): %w", err)
 		}
 		fmt.Printf("reserve state (after buying the batch):\n%s", rs.String())
 		fmt.Printf("created batch id %s with depth %d and amount %d\n", id, depth, amount)
@@ -356,7 +356,7 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 		return batches[0].BatchID, nil
 	}
 
-	return c.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
+	return c.CreatePostageBatch(ctx, amount, depth, gasPrice, label, false)
 }
 
 // PostageBatches returns the list of batches of node
