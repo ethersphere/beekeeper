@@ -100,32 +100,32 @@ A little bit about how the numbers make sense:
 - Upload 1 pinned chunk at bin 0 to the node.
 - Upload 10 chunks at the initial radius PO. These 10
   chunks will later be evicted from the reserve to the
-	cache. The number 10 is selected since we evict from the
-	reserve in PO quantiles and 10 is exactly the size of the
-	cache. This means that when these chunks are evicted to
-	the cache, cache eviction is immediately triggered, causing
-	10% of them (1) to be evicted.
+  cache. The number 10 is selected since we evict from the
+  reserve in PO quantiles and 10 is exactly the size of the
+  cache. This means that when these chunks are evicted to
+  the cache, cache eviction is immediately triggered, causing
+  10% of them (1) to be evicted.
 - Upload another 10 chunks, this will result in the reserve
   evicting the first batch of chunks with the first PO in line.
-	these are the 10 chunks which were uploaded in the previous
-	step.
+  these are the 10 chunks which were uploaded in the previous
+  step.
 
-	NOTE: normally the reserve eviction will try to evict
-	from itself either half of the cache size or ten percent of
-	the reserve size. We are cheating here by evicting the whole
-	cache size in one go due to the fact that all chunks in the
-	first PO add up the to entire size of the cache. The reserve
-	eviction evicts WHOLE PO quantiles and will not stop in the
-	middle of an eviction just because the target was reached.
-	It will check whether the target was reached only after a
-	certain PO has been kicked out of the reserve.
+  NOTE: normally the reserve eviction will try to evict
+  from itself either half of the cache size or ten percent of
+  the reserve size. We are cheating here by evicting the whole
+  cache size in one go due to the fact that all chunks in the
+  first PO add up the to entire size of the cache. The reserve
+  eviction evicts WHOLE PO quantiles and will not stop in the
+  middle of an eviction just because the target was reached.
+  It will check whether the target was reached only after a
+  certain PO has been kicked out of the reserve.
 
 - Check that ten percent of the first ten chunks have indeed
   been evicted.
   At this stage the cache size is 9 and reserve size 10
 - Upload another 5 chunks to the reserve. This should NOT kick
   in the reserve eviction (reserve size 15), and the previous
-	chunks in addition to the new ones should remain.
+  chunks in addition to the new ones should remain.
 - Check that pinned chunk still persists and perform sanity
   checks on the pinning API.
 */
