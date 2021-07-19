@@ -59,7 +59,7 @@ func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, erro
 	}{}
 
 	err := n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+a.String(), nil, &resp)
-	if err == ErrNotFound {
+	if IsHTTPStatusErrorCode(err, http.StatusNotFound) {
 		return false, nil
 	} else if err != nil {
 		return false, err
