@@ -263,11 +263,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), batchDepth, expensiveBatchAmount, state.Radius)
 
-	batchID, err = client.CreatePostageBatch(ctx, cheapBatchAmount, batchDepth-1, o.GasPrice, o.PostageLabel, true)
-	if err != nil {
-		return fmt.Errorf("create batch: %w", err)
-	}
-
 	_, hasCount, err = client.HasChunks(ctx, addresses(highValueChunks))
 	if err != nil {
 		return fmt.Errorf("high value chunk: %w", err)
@@ -278,6 +273,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if len(highValueChunks) != hasCount {
 		return fmt.Errorf("high value chunks were gc'd. Retrieved: %d, gc'd count: %d", hasCount, len(highValueChunks)-hasCount)
 	}
+
+	// local pinning sanity checks
 
 	has, err := client.HasChunk(ctx, pinnedChunk.Address())
 	if err != nil {
