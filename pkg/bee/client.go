@@ -174,6 +174,20 @@ func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return c.debug.Node.HasChunk(ctx, a)
 }
 
+func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, count int, err error) {
+	for i, addr := range a {
+		v, err := c.debug.Node.HasChunk(ctx, addr)
+		if err != nil {
+			return nil, 0, err
+		}
+		has[i] = v
+		if v {
+			count++
+		}
+	}
+	return has, count, nil
+}
+
 // Overlay returns node's overlay address
 func (c *Client) Overlay(ctx context.Context) (o swarm.Address, err error) {
 	var a debugapi.Addresses

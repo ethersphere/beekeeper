@@ -58,46 +58,94 @@ by diff patches that are applied on the appropriate
 source files in the bee repo before the test is run.
 
 - These patches are visible under .github/patches in the bee
-	repo.
+  repo.
 - The patching sequence is visible in the beekeeper github
-	workflow under .github/workflows/beekeeper.yaml also in the
-	bee repo.
+  workflow under .github/workflows/beekeeper.yaml also in the
+  bee repo.
 
 *********************************************************
 **                        SETUP											   **
 *********************************************************
 
--	Cluster must be fresh (i.e. no other previous transactions
-	made on the underlying eth backend before the cluster is
-	brought up)
--	Initial Radius(Default Depth) = 2
--	Bucket Depth = 2
--	Reserve Capacity = 16 chunks
--	Cache Capacity = 10 chunks
+- Cluster must be fresh (i.e. no other previous transactions
+  made on the underlying eth backend before the cluster is
+  brought up)
+- Initial Radius(Default Depth) = 2
+- Bucket Depth = 2
+- Reserve Capacity = 16 chunks
+- Cache Capacity = 10 chunks
 - Batch Amount Per Chunk (cheap)			= 1 PLUR
 - Batch Amount Per Chunk (expensive)	= 3 PLUR
 - Batch Depth = 8
 
 A little bit about how the numbers make sense:
 - Batch Depth = 8 means the batch has 2^8 (256) chunks capacity
--	Since reserve capacity is 16 and batch capacity is 256, we
-	divide 256/16 to get the number of neighborhoods required to
-	store the batch and arrive at 16. Since 16=2^4 we assume that
-	the reserve radius after purchasing the batch increases to 4
+- Since reserve capacity is 16 and batch capacity is 256, we
+  divide 256/16 to get the number of neighborhoods required to
+  store the batch and arrive at 16. Since 16=2^4 we assume that
+  the reserve radius after purchasing the batch increases to 4
 - Bucket depth is 2, meaning there are 4 buckets in the batch.
-	Since we are mining chunks in this test and because bucket
-	depth is a small number, we assume that all chunks we are mining
-	per batch fall under the same bucket. This is to prevent tests
-	flaking due to Payment Required HTTP caused by one of the buckets
-	filling up.
+  Since we are mining chunks in this test and because bucket
+  depth is a small number, we assume that all chunks we are mining
+  per batch fall under the same bucket. This is to prevent tests
+  flaking due to Payment Required HTTP caused by one of the buckets
+  filling up.
 
- 1 chunk pinned at po 0
- 7+3 chunks at po(originalInitialRadius) 10
- evicts 7 chunks to the cache
- reserve
+*********************************************************
+**                      SCENARIO										   **
+*********************************************************
+
+- Buy an initial batch with depth 8 and amount 1 PLUR per
+  chunk. This makes the initial radius go from 2 to 4.
+- Upload 1 pinned chunk at bin 0 to the node.
+- Upload 10 chunks at the initial radius PO. These 10
+  chunks will later be evicted from the reserve to the
+	cache. The number 10 is selected since we evict from the
+	reserve in PO quantiles and 10 is exactly the size of the
+	cache. This means that when these chunks are evicted to
+	the cache, cache eviction is immediately triggered, causing
+	10% of them (1) to be evicted.
+- Upload another 10 chunks, this will result in the reserve
+  evicting the first batch of chunks with the first PO in line.
+	these are the 10 chunks which were uploaded in the previous
+	step.
+
+	NOTE: normally the reserve eviction will try to evict
+	from itself either half of the cache size or ten percent of
+	the reserve size. We are cheating here by evicting the whole
+	cache size in one go due to the fact that all chunks in the
+	first PO add up the to entire size of the cache. The reserve
+	eviction evicts WHOLE PO quantiles and will not stop in the
+	middle of an eviction just because the target was reached.
+	It will check whether the target was reached only after a
+	certain PO has been kicked out of the reserve.
+
+- Check that ten percent of the first ten chunks have indeed
+  been evicted.
+  At this stage the cache size is 9 and reserve size 10
+- Upload another 5 chunks to the reserve. This should NOT kick
+  in the reserve eviction (reserve size 15), and the previous
+	chunks in addition to the new ones should remain.
+- Check that pinned chunk still persists and perform sanity
+  checks on the pinning API.
 */
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	const (
+		cheapBatchAmount     = 1
+		expensiveBatchAmount = 3
+		batchDepth           = uint64(8)         // the depth for the batches that we buy
+		initialRadius        = 2                 // initial reserve radius
+		radius1              = 4                 // radius expected after purchase of 1st batch
+		higherRadius         = initialRadius + 1 // radius needed for the chunks that shouldnt be GCd
+	)
+
+	var (
+		pinnedChunk                = bee.GenerateRandomChunkAt(rnd, overlay, 0)
+		lowValueChunks             = chunkBatch(rnd, overlay, 10, initialRadius)
+		lowValueHigherRadiusChunks = chunkBatch(rnd, overlay, 10, higherRadius)
+	)
+
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -111,7 +159,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return fmt.Errorf("random node: %w", err)
 	}
-	fmt.Printf("chosen node %s\n", node.Name())
+	fmt.Printf("chosen node: %s\n", node.Name())
 
 	client := node.Client()
 
@@ -126,20 +174,16 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("reservestate: %w", err)
 	}
 
-	const (
-		cheapBatchAmount     = 1
-		expensiveBatchAmount = 3
-		batchDepth           = uint64(8)
-		initialRadius        = 2
-		higherRadius         = initialRadius + 1
-		radius1              = 4 // radius expected after purchase of 1st batch
-	)
-
-	var (
-		pinnedChunk                = bee.GenerateRandomChunkAt(rnd, overlay, 0)
-		lowValueChunks             = chunkBatch(rnd, overlay, 10, initialRadius)
-		lowValueHigherRadiusChunks = chunkBatch(rnd, overlay, 10, higherRadius)
-	)
+	// do some sanity checks to assure test setup is correct
+	if origState.Radius != initialRadius {
+		return fmt.Errorf("wrong initial radius, got %d want %d", origState.Radius, initialRadius)
+	}
+	if origState.StorageRadius != 0 {
+		return fmt.Errorf("wrong initial storage radius, got %d want %d", origState.StorageRadius, 0)
+	}
+	if origState.Available != 16 {
+		return fmt.Errorf("wrong initial storage radius, got %d want %d", origState.Available, 16)
+	}
 
 	batchID, err := client.CreatePostageBatch(ctx, cheapBatchAmount, batchDepth, o.GasPrice, o.PostageLabel, true)
 	if err != nil {
@@ -159,7 +203,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		}
 	}
 
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), batchDepth, cheapBatchAmount, origState.Radius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), batchDepth, cheapBatchAmount, initialRadius)
 
 	highValueBatch, err := client.CreatePostageBatch(ctx, expensiveBatchAmount, batchDepth, o.GasPrice, o.PostageLabel, true)
 	if err != nil {
@@ -171,6 +215,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return fmt.Errorf("low value chunk: %w", err)
 		}
 	}
+
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), batchDepth, cheapBatchAmount, higherRadius)
 
 	// allow time to sleep so that chunks can get synced and then GCd
@@ -180,50 +225,33 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return fmt.Errorf("reservestate: %w", err)
 	}
-	fmt.Println("reservestate:", state)
+	fmt.Println("Reserve state:", state)
 
-	hasCount := 0
-	for _, c := range lowValueChunks {
-		has, err := client.HasChunk(ctx, c.Address())
-		if err != nil {
-			return fmt.Errorf("low value chunk: %w", err)
-		}
-		if has {
-			hasCount++
-		}
+	if state.StorageRadius != 2 {
+		return fmt.Errorf("storage radius mismatch. got %d want %d", state.StorageRadius, 2)
 	}
 
-	lowValueChunksLen := len(lowValueChunks)
-	wantCount := int(float64(lowValueChunksLen) * 0.9) // A 10% cache garbage collection is expected.
-	fmt.Printf("retrieved low value chunks: %d, gc'd count: %d\n", hasCount, lowValueChunksLen-hasCount)
+	_, hasCount, err := client.HasChunks(ctx, lowValueChunks)
+	if err != nil {
+		return fmt.Errorf("low value chunk: %w", err)
+	}
+	fmt.Printf("retrieved low value chunks: %d, gc'd count: %d\n", hasCount, len(lowValueChunks)-hasCount)
 
-	if hasCount != wantCount {
-		return fmt.Errorf("lowValueChunks gc count: has %d; want %d\n", hasCount, wantCount)
+	// cache size is 10 and we expect ten percent to be evicted
+	if hasCount != 9 {
+		return fmt.Errorf("first batch gc count mismatch, has %d; want %d\n", hasCount, 9)
 	}
 
-	hasCount = 0
-	for _, c := range lowValueHigherRadiusChunks {
-		has, err := client.HasChunk(ctx, c.Address())
-		if err != nil {
-			return fmt.Errorf("low value higher radius chunk: %w", err)
-		}
-		if has {
-			hasCount++
-		}
+	_, hasCount, err := client.HasChunks(ctx, lowValueHigherRadiusChunks)
+	if err != nil {
+		return fmt.Errorf("low value higher radius chunk: %w", err)
 	}
 
 	fmt.Printf("retrieved low value high radius chunks: %d, gc'd count: %d\n", hasCount, len(lowValueHigherRadiusChunks)-hasCount)
 
-	if len(lowValueHigherRadiusChunks) != hasCount {
-		return fmt.Errorf("low value higher radius chunks were gc'd. Retrieved: %d, gc'd count: %d", hasCount, len(lowValueHigherRadiusChunks)-hasCount)
-	}
-
-	has, err := client.HasChunk(ctx, pinnedChunk.Address())
-	if err != nil {
-		return fmt.Errorf("unable to check pinned chunk %q: %w", pinnedChunk.Address(), err)
-	}
-	if !has {
-		return fmt.Errorf("expected node pin for uploaded chunk %q", pinnedChunk.Address())
+	// expect all chunks to be there
+	if hasCount != 10 {
+		return fmt.Errorf("higher radius chunks gc'd. got %d want %d", hasCount, 10)
 	}
 
 	highValueChunks := chunkBatch(rnd, overlay, 5, state.Radius)
@@ -239,21 +267,23 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("create batch: %w", err)
 	}
 
-	hasCount = 0
-	for _, c := range highValueChunks {
-		has, err := client.HasChunk(ctx, c.Address())
-		if err != nil {
-			return fmt.Errorf("high value chunk: %w", err)
-		}
-		if has {
-			hasCount++
-		}
+	_, hasCount, err = client.HasChunks(ctx, highValueChunks)
+	if err != nil {
+		return fmt.Errorf("high value chunk: %w", err)
 	}
 
 	fmt.Printf("retrieved high value chunks: %d, gc'd count: %d\n", hasCount, len(highValueChunks)-hasCount)
 
 	if len(highValueChunks) != hasCount {
-		return fmt.Errorf("high value chunks were gc'd. Retrieved: %d,  gc'd count: %d", hasCount, len(highValueChunks)-hasCount)
+		return fmt.Errorf("high value chunks were gc'd. Retrieved: %d, gc'd count: %d", hasCount, len(highValueChunks)-hasCount)
+	}
+
+	has, err := client.HasChunk(ctx, pinnedChunk.Address())
+	if err != nil {
+		return fmt.Errorf("unable to check pinned chunk %q: %w", pinnedChunk.Address(), err)
+	}
+	if !has {
+		return fmt.Errorf("expected pinned chunk %q to persist", pinnedChunk.Address())
 	}
 
 	pinned, err := client.GetPins(ctx)
