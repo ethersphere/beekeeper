@@ -17,7 +17,7 @@ func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	overlays, err := c.FlattenOverlays(ctx)
+	overlays, err := c.FlattenOverlays(ctx, o.ExcludeNodeGroups...)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,8 @@ func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
 		return err
 	}
 
-	sortedNodes := c.NodeNames()
+	sortedNodes := c.FullNodeNames()
+
 	for i := 0; i < o.UploadNodeCount; i++ {
 
 		nodeName := sortedNodes[i]

@@ -21,37 +21,122 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
+type Options struct {
+	LightNodeNames []string
+	FullNodeNames  []string
+	BootNodeNames  []string
+}
+
+// NewDefaultOptions returns new default options
+func NewDefaultOptions() Options {
+	return Options{}
+}
+
 var errFullConnectivity = errors.New("full connectivity")
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	lightNodes := opts.(Options).LightNodeNames
+	bootNodes := opts.(Options).BootNodeNames
+	if err := checkFullNodesConnectivity(ctx, cluster, lightNodes, bootNodes); err != nil {
+		return fmt.Errorf("check full nodes: %w", err)
+	}
+	fullNodes := opts.(Options).FullNodeNames
+	if err := checkLightNodesConnectivity(ctx, cluster, fullNodes); err != nil {
+		return fmt.Errorf("check light nodes: %w", err)
+	}
+
+	return
+}
+
+func checkFullNodesConnectivity(ctx context.Context, cluster *bee.Cluster, skipNodes, bootNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	peers, err := cluster.Peers(ctx)
+	fullNodes, err := cluster.Overlays(ctx, skipNodes...)
 	if err != nil {
 		return err
 	}
 
-	clusterSize := cluster.Size()
-	expectedPeerCount := clusterSize - 1
+	peers, err := cluster.Peers(ctx, skipNodes...)
+	if err != nil {
+		return err
+	}
 
-	for group, v := range overlays {
+	fullNodeNames := cluster.FullNodeNames()
+	fullNodeCount := len(fullNodeNames) - 1 // we expect to be connected to all full nodes except self
+
+	for group, v := range fullNodes {
+		expectedPeerCount := fullNodeCount
+		if isBootNode(group, bootNodes) {
+			expectedPeerCount = len(cluster.NodeNames()) - 1 // bootnodes are connected to all others
+		}
 		for node, overlay := range v {
-			if len(peers[group][node]) != expectedPeerCount {
-				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(peers[group][node]), expectedPeerCount, overlay)
+			allPeers := peers[group][node]
+
+			if len(allPeers) < expectedPeerCount {
+				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), expectedPeerCount, overlay)
 				return errFullConnectivity
 			}
 
-			for _, p := range peers[group][node] {
+			for _, p := range allPeers {
 				if !contains(overlays, p) {
 					fmt.Printf("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
 					return errFullConnectivity
 				}
 			}
 
-			fmt.Printf("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(peers[group][node]), expectedPeerCount, overlay)
+			fmt.Printf("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), expectedPeerCount, overlay)
+		}
+	}
+
+	return
+}
+
+func isBootNode(group string, bootnodes []string) bool {
+	for _, b := range bootnodes {
+		if group == b {
+			return true
+		}
+	}
+
+	return false
+}
+
+func checkLightNodesConnectivity(ctx context.Context, cluster *bee.Cluster, skipNodes []string) (err error) {
+	overlays, err := cluster.Overlays(ctx)
+	if err != nil {
+		return err
+	}
+
+	lightNodes, err := cluster.Overlays(ctx, skipNodes...)
+	if err != nil {
+		return err
+	}
+
+	peers, err := cluster.Peers(ctx, skipNodes...)
+	if err != nil {
+		return err
+	}
+
+	for group, v := range lightNodes {
+		for node, overlay := range v {
+			allPeers := peers[group][node]
+
+			if len(allPeers) < 1 { // expected to be connected to the bootnode
+				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), 1, overlay)
+				return errFullConnectivity
+			}
+
+			for _, p := range allPeers {
+				if !contains(overlays, p) {
+					fmt.Printf("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
+					return errFullConnectivity
+				}
+			}
+
+			fmt.Printf("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), 1, overlay)
 		}
 	}
 

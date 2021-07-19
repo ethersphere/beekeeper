@@ -189,6 +189,14 @@ checks:
   full-connectivity:
     timeout: 5m
     type: full-connectivity
+    options:
+      boot-nodes:
+      - bootnode  
+      group-1:
+      - light
+      group-2:
+      - bee
+      - bootnode
   gc:
     options:
       cache-size: 64
@@ -257,6 +265,8 @@ checks:
       metrics-enabled:
       mode: chunks
       postage-amount: 1000
+      exclude-node-group:
+      - light
       postage-depth: 16
       postage-wait: 5s
       retries: 5
@@ -270,6 +280,8 @@ checks:
       metrics-enabled:
       mode: light-chunks
       postage-amount: 1000
+      exclude-node-group:
+      - light
       postage-depth: 16
       postage-wait: 5s
       retries: 5

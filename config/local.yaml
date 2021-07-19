@@ -46,6 +46,11 @@ clusters:
         config: local-dns
         count: 2
         mode: node
+      light:
+        bee-config: bee-local-light
+        config: local-light
+        count: 2
+        mode: node
   local-clef:
     _inherit: "local"
     node-groups:
@@ -129,6 +134,8 @@ node-groups:
     _inherit: "local"
   local-gc:
     _inherit: "local"
+  local-light:
+    _inherit: "local"
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 bee-configs:
@@ -184,6 +191,10 @@ bee-configs:
     _inherit: "bee-local"
     bootnode: /dnsaddr/localhost
     bootnode-mode: true
+  bee-local-light:
+    _inherit: "bee-local"
+    bootnode: /dnsaddr/localhost
+    full-node: false
   bee-local-clef:
     _inherit: "bee-local"
     clef-signer-enable: true
@@ -206,6 +217,14 @@ checks:
   ci-full-connectivity:
     timeout: 5m
     type: full-connectivity
+    options:
+      boot-nodes:
+      - bootnode  
+      group-1:
+      - light
+      group-2:
+      - bee
+      - bootnode
   ci-gc:
     options:
       cache-size: 64
@@ -249,6 +268,8 @@ checks:
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
+      exclude-node-group:
+      - light
     timeout: 5m
     type: pushsync
   ci-pushsync-light-chunks:
@@ -262,6 +283,8 @@ checks:
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
+      exclude-node-group:
+      - light
     timeout: 5m
     type: pushsync
   ci-retrieval:
