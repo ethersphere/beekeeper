@@ -175,6 +175,7 @@ func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 }
 
 func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, count int, err error) {
+	has = make([]bool, len(a))
 	for i, addr := range a {
 		v, err := c.debug.Node.HasChunk(ctx, addr)
 		if err != nil {
@@ -324,7 +325,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (before): %w", err)
 		}
-		fmt.Printf("reserve state (prior to buying the batch):\n%s", rs.String())
+		fmt.Printf("reserve state (prior to buying the batch):\n%s\n", rs.String())
 	}
 	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
 	if err != nil {
@@ -354,7 +355,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (after): %w", err)
 		}
-		fmt.Printf("reserve state (after buying the batch):\n%s", rs.String())
+		fmt.Printf("reserve state (after buying the batch):\n%s\n", rs.String())
 		fmt.Printf("created batch id %s with depth %d and amount %d\n", id, depth, amount)
 	}
 	return id, nil
