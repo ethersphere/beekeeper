@@ -47,7 +47,7 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 				// BZZ funding
 				bzzDeposit := c.globalConfig.GetFloat64(optionNameBzzDeposit)
 				if bzzDeposit > 0 {
-					tx, err := c.swapClient.SendGBZZ(ctx, a, bzzDeposit)
+					tx, err := c.swapClient.SendBZZ(ctx, a, bzzDeposit)
 					if err != nil {
 						return fmt.Errorf("deposit bzz: %w", err)
 					}
