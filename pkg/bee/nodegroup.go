@@ -325,7 +325,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o FundingOptions) (er
 	var a Addresses
 	if o.Eth > 0 || o.Bzz > 0 || o.GBzz > 0 {
 		retries := 5
-		for retries > 0 {
+		for {
 			c, err := g.NodeClient(name)
 			if err != nil {
 				return err
@@ -345,7 +345,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o FundingOptions) (er
 
 	if o.Eth > 0 {
 		retries := 5
-		for retries > 0 {
+		for {
 			tx, err := g.cluster.swap.SendETH(ctx, a.Ethereum, o.Eth)
 			if err != nil {
 				retries--
@@ -362,7 +362,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o FundingOptions) (er
 
 	if o.Bzz > 0 {
 		retries := 5
-		for retries > 0 {
+		for {
 			tx, err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, o.Bzz)
 			if err != nil {
 				retries--
@@ -379,7 +379,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o FundingOptions) (er
 
 	if o.GBzz > 0 {
 		retries := 5
-		for retries > 0 {
+		for {
 			tx, err := g.cluster.swap.SendGBZZ(ctx, a.Ethereum, o.GBzz)
 			if err != nil {
 				retries--
