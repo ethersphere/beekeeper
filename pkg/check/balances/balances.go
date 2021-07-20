@@ -102,7 +102,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 		// add some buffer to ensure depth is enough
 		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-		batchID, err := uClient.CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel)
+		batchID, err := uClient.CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 		}

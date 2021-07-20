@@ -16,8 +16,17 @@ type postageResponse struct {
 }
 
 type PostageStampResponse struct {
-	BatchID     string `json:"batchID"`
-	Utilization uint32 `json:"utilization"`
+	BatchID       string         `json:"batchID"`
+	Utilization   uint32         `json:"utilization"`
+	Usable        bool           `json:"usable"`
+	Label         string         `json:"label"`
+	Depth         uint8          `json:"depth"`
+	Amount        *bigint.BigInt `json:"amount"`
+	BucketDepth   uint8          `json:"bucketDepth"`
+	BlockNumber   uint64         `json:"blockNumber"`
+	ImmutableFlag bool           `json:"immutableFlag"`
+	Exists        bool           `json:"exists"`
+	BatchTTL      int64          `json:"batchTTL"`
 }
 
 type postageStampsResponse struct {
@@ -52,15 +61,29 @@ func (p *PostageService) PostageBatches(ctx context.Context) ([]PostageStampResp
 	return resp.Stamps, nil
 }
 
+func (p *PostageService) PostageBatch(ctx context.Context, batchID string) (PostageStampResponse, error) {
+	var resp PostageStampResponse
+	err := p.client.request(ctx, http.MethodGet, "/stamps/"+batchID, nil, &resp)
+	if err != nil {
+		return PostageStampResponse{}, err
+	}
+	return resp, nil
+}
+
 type ReserveState struct {
-	Radius    uint8          `json:"radius"`
-	Available int64          `json:"available"`
-	Outer     *bigint.BigInt `json:"outer"`
-	Inner     *bigint.BigInt `json:"inner"`
+	Radius        uint8          `json:"radius"`
+	StorageRadius uint8          `json:"storageRadius"`
+	Available     int64          `json:"available"`
+	Outer         *bigint.BigInt `json:"outer"`
+	Inner         *bigint.BigInt `json:"inner"`
+}
+
+func (rs ReserveState) String() string {
+	return fmt.Sprintf("Radius: %d, StorageRadius: %d, Available: %d, Outer: %v, Inner: %v", rs.Radius, rs.StorageRadius, rs.Available, rs.Outer, rs.Inner)
 }
 
 // Returns the batchstore reservestate of the node
-func (p *PostageService) Reservestate(ctx context.Context) (ReserveState, error) {
+func (p *PostageService) ReserveState(ctx context.Context) (ReserveState, error) {
 	var resp ReserveState
 	err := p.client.request(ctx, http.MethodGet, "/reservestate", nil, &resp)
 	return resp, err

@@ -196,9 +196,8 @@ checks:
       - bootnode
   gc:
     options:
-      cache-size: 64
-      postage-wait: 5s
-      reserve-size: 64
+      cache-size: 10
+      reserve-size: 16
     timeout: 5m
     type: gc
   kademlia:

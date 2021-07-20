@@ -172,12 +172,11 @@ var Checks = map[string]CheckType{
 		NewAction: gc.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				CacheSize    *int           `yaml:"cache-size"`
-				GasPrice     *string        `yaml:"gas-price"`
-				PostageLabel *string        `yaml:"postage-label"`
-				PostageWait  *time.Duration `yaml:"postage-wait"`
-				ReserveSize  *int           `yaml:"reserve-size"`
-				Seed         *int64         `yaml:"seed"`
+				CacheSize    *int    `yaml:"cache-size"`
+				GasPrice     *string `yaml:"gas-price"`
+				PostageLabel *string `yaml:"postage-label"`
+				ReserveSize  *int    `yaml:"reserve-size"`
+				Seed         *int64  `yaml:"seed"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

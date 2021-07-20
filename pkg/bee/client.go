@@ -174,6 +174,21 @@ func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return c.debug.Node.HasChunk(ctx, a)
 }
 
+func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, count int, err error) {
+	has = make([]bool, len(a))
+	for i, addr := range a {
+		v, err := c.debug.Node.HasChunk(ctx, addr)
+		if err != nil {
+			return nil, 0, err
+		}
+		has[i] = v
+		if v {
+			count++
+		}
+	}
+	return has, count, nil
+}
+
 // Overlay returns node's overlay address
 func (c *Client) Overlay(ctx context.Context) (o swarm.Address, err error) {
 	var a debugapi.Addresses
@@ -301,11 +316,49 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 }
 
 // CreatePostageBatch returns the batchID of a batch of postage stamps
-func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (string, error) {
+func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string, verbose bool) (string, error) {
 	if depth < MinimumBatchDepth {
 		depth = MinimumBatchDepth
 	}
-	return c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
+	if verbose {
+		rs, err := c.ReserveState(ctx)
+		if err != nil {
+			return "", fmt.Errorf("print reserve state (before): %w", err)
+		}
+		fmt.Printf("reserve state (prior to buying the batch):\n%s\n", rs.String())
+	}
+	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
+	if err != nil {
+		return "", fmt.Errorf("create postage stamp: %w", err)
+	}
+
+	usable := false
+	// wait for the stamp to become usable
+	for i := 0; i < 60; i++ {
+		time.Sleep(1 * time.Second)
+		state, err := c.debug.Postage.PostageBatch(ctx, id)
+		if err != nil {
+			continue
+		}
+		usable = state.Usable
+		if usable {
+			break
+		}
+	}
+
+	if !usable {
+		return "", fmt.Errorf("timed out waiting for batch %s to activate", id)
+	}
+
+	if verbose {
+		rs, err := c.ReserveState(ctx)
+		if err != nil {
+			return "", fmt.Errorf("print reserve state (after): %w", err)
+		}
+		fmt.Printf("reserve state (after buying the batch):\n%s\n", rs.String())
+		fmt.Printf("created batch id %s with depth %d and amount %d\n", id, depth, amount)
+	}
+	return id, nil
 }
 
 func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (string, error) {
@@ -318,7 +371,7 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 		return batches[0].BatchID, nil
 	}
 
-	return c.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
+	return c.CreatePostageBatch(ctx, amount, depth, gasPrice, label, false)
 }
 
 // PostageBatches returns the list of batches of node
@@ -328,7 +381,7 @@ func (c *Client) PostageBatches(ctx context.Context) ([]debugapi.PostageStampRes
 
 // ReserveState returns reserve radius, available capacity, inner and outer radiuses
 func (c *Client) ReserveState(ctx context.Context) (debugapi.ReserveState, error) {
-	return c.debug.Postage.Reservestate(ctx)
+	return c.debug.Postage.ReserveState(ctx)
 }
 
 // SendPSSMessage triggers a PSS message with a topic and recipient address
