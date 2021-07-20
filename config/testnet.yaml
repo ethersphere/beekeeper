@@ -4,7 +4,7 @@ clusters:
   testnet:
     _inherit: ""
     name: bee
-    namespace: svetomir
+    namespace: beekeeper
     disable-namespace: false
     api-domain: dai.internal
     api-insecure-tls: true
