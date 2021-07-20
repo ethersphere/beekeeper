@@ -152,14 +152,19 @@ func chunkHahser() hash.Hash {
 
 // GenerateRandomChunkAt generates a chunk with address of proximity order po wrt target.
 func GenerateRandomChunkAt(rnd *rand.Rand, target swarm.Address, po uint8) swarm.Chunk {
-	data := make([]byte, swarm.ChunkSize)
 	for {
-		_, _ = rnd.Read(data)
-		chunk, _ := cac.New(data)
+		chunk := NewRandSwarmChunk(rnd)
 		if swarm.Proximity(chunk.Address().Bytes(), target.Bytes()) == po {
 			return chunk
 		}
 	}
+}
+
+func NewRandSwarmChunk(rnd *rand.Rand) swarm.Chunk {
+	data := make([]byte, swarm.ChunkSize)
+	_, _ = rnd.Read(data)
+	chunk, _ := cac.New(data)
+	return chunk
 }
 
 // GenerateNRandomChunksAt returns n randomly generated chunks for target address.

@@ -366,6 +366,15 @@ simulations:
       upload-delay: 10s
     timeout: 5m
     type: retrieval
+  pushsync:
+    options:
+      postage-amount: 1000
+      postage-depth: 20
+      postage-wait: 5s
+      seed: 
+      proxy-api-endpoint: "http://ethproxy.localhost"
+    timeout: 5m
+    type: pushsync
 
 # stages defines stages for dynamic execution of checks and simulations
 stages:

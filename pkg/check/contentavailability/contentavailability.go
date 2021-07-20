@@ -63,7 +63,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	store := &putterMock{exists: make(map[string]swarm.Address)}
 	pipe := builder.NewPipelineBuilder(ctx, store, storage.ModePutUpload, false)
-	addr, err := builder.FeedPipeline(ctx, pipe, bytes.NewBuffer(content), int64(len(content)))
+	addr, err := builder.FeedPipeline(ctx, pipe, bytes.NewBuffer(content))
 	if err != nil {
 		return fmt.Errorf("unable to feed pipeline: %w", err)
 	}
