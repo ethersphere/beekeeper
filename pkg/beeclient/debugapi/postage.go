@@ -25,6 +25,8 @@ type PostageStampResponse struct {
 	BucketDepth   uint8          `json:"bucketDepth"`
 	BlockNumber   uint64         `json:"blockNumber"`
 	ImmutableFlag bool           `json:"immutableFlag"`
+	Exists        bool           `json:"exists"`
+	BatchTTL      int64          `json:"batchTTL"`
 }
 
 type postageStampsResponse struct {
