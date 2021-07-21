@@ -20,6 +20,7 @@ type Cluster struct {
 	DebugAPIDomain      *string                      `yaml:"debug-api-domain"`
 	DebugAPIInsecureTLS *bool                        `yaml:"debug-api-insecure-tls"`
 	DebugAPIScheme      *string                      `yaml:"debug-api-scheme"`
+	Funding             *Funding                     `yaml:"funding"`
 	NodeGroups          *map[string]ClusterNodeGroup `yaml:"node-groups"`
 }
 

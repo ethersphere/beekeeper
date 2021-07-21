@@ -101,7 +101,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	return
 }
 
-func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start, fund bool) (cluster *bee.Cluster, err error) {
+func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster *bee.Cluster, err error) {
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
@@ -163,7 +163,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					}
 
 					errGroup.Go(func() error {
-						return g.SetupNode(ctx, nName, nOptions, fund)
+						return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
 					})
 				}
 
@@ -222,7 +222,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						}
 
 						errGroup.Go(func() error {
-							return g.SetupNode(ctx, nName, nOptions, fund)
+							return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
 						})
 					}
 				} else {
@@ -231,7 +231,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						nName := fmt.Sprintf("%s-%d", ng, i)
 
 						errGroup.Go(func() error {
-							return g.SetupNode(ctx, nName, bee.NodeOptions{}, fund)
+							return g.SetupNode(ctx, nName, bee.NodeOptions{}, clusterConfig.Funding.Export())
 						})
 					}
 				}
