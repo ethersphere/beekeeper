@@ -1,17 +1,14 @@
 package retrieval
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	beev2 "github.com/ethersphere/beekeeper/pkg/check/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -20,10 +17,10 @@ import (
 // Options represents check options
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
-	GasPrice        string
-	MetricsPusher   *push.Pusher
-	PostageAmount   int64
 	PostageDepth    uint64
+	MetricsPusher   *push.Pusher
+	GasPrice        string
+	PostageAmount   int64
 	PostageLabel    string
 	PostageWait     time.Duration
 	Seed            int64
@@ -69,7 +66,19 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		setUpMetrics(o)
 	}
 
-	cluster_v2, err := newClusterV2(ctx, cluster, o)
+	clusterOpts := beev2.ClusterOptions{
+		ChunksPerNode:   o.ChunksPerNode,
+		MetricsPusher:   o.MetricsPusher,
+		PostageDepth:    o.PostageDepth,
+		GasPrice:        o.GasPrice,
+		PostageAmount:   o.PostageAmount,
+		PostageLabel:    o.PostageLabel,
+		PostageWait:     o.PostageWait,
+		Seed:            o.Seed,
+		UploadNodeCount: o.UploadNodeCount,
+	}
+
+	cluster_v2, err := beev2.NewClusterV2(ctx, cluster, clusterOpts)
 	if err != nil {
 		return err
 	}
@@ -77,7 +86,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	lastNode := cluster_v2.LastNode()
 
 	for i := 0; i < o.UploadNodeCount; i++ {
-		uploader, err := cluster_v2.Node(i).NewChunkUploader(ctx, i, o)
+		uploader, err := cluster_v2.Node(i).NewChunkUploader(ctx, i)
 		if err != nil {
 			return err
 		}
@@ -88,7 +97,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			// time upload
 			t0 := time.Now()
 
-			chunk, err := uploader.uploadRandomChunk()
+			chunk, err := uploader.UploadRandomChunk()
 
 			if err != nil {
 				return err
@@ -96,161 +105,46 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 			d0 := time.Since(t0)
 
-			uploadedCounter.WithLabelValues(uploader.overlay).Inc()
-			uploadTimeGauge.WithLabelValues(uploader.overlay, chunk.AddrString()).Set(d0.Seconds())
+			uploadedCounter.WithLabelValues(uploader.Overlay).Inc()
+			uploadTimeGauge.WithLabelValues(uploader.Overlay, chunk.AddrString()).Set(d0.Seconds())
 			uploadTimeHistogram.Observe(d0.Seconds())
 
 			// time download
 			t1 := time.Now()
 
-			data, err := lastNode.DownloadChunk(ctx, chunk.addr)
+			data, err := lastNode.DownloadChunk(ctx, chunk.Addr)
 
 			if err != nil {
-				return fmt.Errorf("node %s: %w", lastNode.name, err)
+				return fmt.Errorf("node %s: %w", lastNode.Name, err)
 			}
 
 			d1 := time.Since(t1)
 
-			downloadedCounter.WithLabelValues(uploader.name).Inc()
-			downloadTimeGauge.WithLabelValues(uploader.name, chunk.AddrString()).Set(d1.Seconds())
+			downloadedCounter.WithLabelValues(uploader.Name).Inc()
+			downloadTimeGauge.WithLabelValues(uploader.Name, chunk.AddrString()).Set(d1.Seconds())
 			downloadTimeHistogram.Observe(d1.Seconds())
 
-			if !bytes.Equal(chunk.Data(), data) {
-				notRetrievedCounter.WithLabelValues(uploader.name).Inc()
-				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastNode.name, j, len(chunk.Data()), len(data), uploader.name, chunk.AddrString())
-				if bytes.Contains(chunk.Data(), data) {
+			if !chunk.Equals(data) {
+				notRetrievedCounter.WithLabelValues(uploader.Name).Inc()
+				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastNode.Name, j, chunk.Size(), len(data), uploader.Name, chunk.AddrString())
+				if chunk.Contains(data) {
 					fmt.Printf("Downloaded data is subset of the uploaded data\n")
 				}
 				return errRetrieval
 			}
 
-			retrievedCounter.WithLabelValues(uploader.name).Inc()
-			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastNode.name, j, uploader.name, chunk.AddrString())
+			retrievedCounter.WithLabelValues(uploader.Name).Inc()
+			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastNode.Name, j, uploader.Name, chunk.AddrString())
 
 			if o.MetricsPusher != nil {
 				if err := o.MetricsPusher.Push(); err != nil {
-					fmt.Printf("node %s: %v\n", lastNode.name, err)
+					fmt.Printf("node %s: %v\n", lastNode.Name, err)
 				}
 			}
 		}
 	}
 
 	return
-}
-
-type clusterV2 struct {
-	ctx     context.Context
-	clients map[string]*bee.Client
-	nodes   []nodeV2
-}
-
-func newClusterV2(ctx context.Context, cluster *bee.Cluster, o Options) (*clusterV2, error) {
-	clients, err := cluster.NodesClients(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	overlays, err := cluster.FlattenOverlays(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	rnds := random.PseudoGenerators(o.Seed, len(overlays))
-	fmt.Printf("Seed: %d\n", o.Seed)
-
-	var (
-		nodes []nodeV2
-		count int
-	)
-	for name, addr := range overlays {
-		nodes = append(nodes, nodeV2{
-			name:    name,
-			overlay: addr,
-			client:  clients[name],
-			rnd:     rnds[count],
-		})
-		count++
-	}
-
-	return &clusterV2{
-		ctx:     ctx,
-		clients: clients,
-		nodes:   nodes,
-	}, nil
-}
-
-func (c *clusterV2) LastNode() *nodeV2 {
-	return &c.nodes[len(c.nodes)-1]
-}
-
-func (c *clusterV2) Node(index int) *nodeV2 {
-	return &c.nodes[index]
-}
-
-type nodeV2 struct {
-	name    string
-	overlay swarm.Address
-	client  *bee.Client
-	rnd     *rand.Rand
-}
-
-func (n *nodeV2) DownloadChunk(ctx context.Context, ref swarm.Address) ([]byte, error) {
-	return n.client.DownloadChunk(ctx, ref, "")
-}
-
-type chunkUploader struct {
-	ctx     context.Context
-	rnd     *rand.Rand
-	name    string
-	client  *bee.Client
-	batchID string
-	overlay string
-}
-
-func (n *nodeV2) NewChunkUploader(ctx context.Context, index int, o Options) (*chunkUploader, error) {
-	batchID, err := n.client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
-	if err != nil {
-		return nil, fmt.Errorf("node %s: batch id %w", n.name, err)
-	}
-	fmt.Printf("node %s: batch id %s\n", n.name, batchID)
-
-	return &chunkUploader{
-		ctx:     ctx,
-		rnd:     n.rnd,
-		name:    n.name,
-		client:  n.client,
-		batchID: batchID,
-	}, nil
-}
-
-func (cu *chunkUploader) uploadRandomChunk() (*chunkV2, error) {
-	chunk, err := bee.NewRandomChunk(cu.rnd)
-	if err != nil {
-		return nil, fmt.Errorf("node %s: %w", cu.name, err)
-	}
-
-	ref, err := cu.client.UploadChunk(cu.ctx, chunk.Data(), api.UploadOptions{BatchID: cu.batchID})
-	if err != nil {
-		return nil, fmt.Errorf("node %s: %w", cu.name, err)
-	}
-
-	return &chunkV2{
-		addr: ref,
-		data: chunk.Data(),
-	}, nil
-}
-
-type chunkV2 struct {
-	addr swarm.Address
-	data []byte
-}
-
-func (c *chunkV2) AddrString() string {
-	return c.addr.String()
-}
-
-func (c *chunkV2) Data() []byte {
-	return c.data
 }
 
 func setUpMetrics(o Options) {
