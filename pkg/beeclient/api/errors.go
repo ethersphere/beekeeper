@@ -2,39 +2,34 @@ package api
 
 import (
 	"errors"
-	"strings"
+	"fmt"
+	"net/http"
 )
 
-// BadRequestError holds list of errors from http response that represent
-// invalid data submitted by the user.
-type BadRequestError struct {
-	errors []string
+// HTTPStatusError represents the error derived from the HTTP response status
+// code.
+type HTTPStatusError struct {
+	Code int
 }
 
-// NewBadRequestError constructs a new BadRequestError with provided errors.
-func NewBadRequestError(errors ...string) (err *BadRequestError) {
-	return &BadRequestError{
-		errors: errors,
+// NewHTTPStatusError creates a new instance of HTTPStatusError based on the
+// provided code.
+func NewHTTPStatusError(code int) *HTTPStatusError {
+	return &HTTPStatusError{
+		Code: code,
 	}
 }
 
-func (e *BadRequestError) Error() (s string) {
-	return strings.Join(e.errors, " ")
+func (e *HTTPStatusError) Error() string {
+	return fmt.Sprintf("%d %s", e.Code, http.StatusText(e.Code))
 }
 
-// Errors returns a list of error messages.
-func (e *BadRequestError) Errors() (errs []string) {
-	return e.errors
+// IsHTTPStatusErrorCode return whether the error is HTTPStatusError with a
+// specific HTTP status code.
+func IsHTTPStatusErrorCode(err error, code int) bool {
+	var e *HTTPStatusError
+	if errors.As(err, &e) {
+		return e.Code == code
+	}
+	return false
 }
-
-// Errors that are returned by the API.
-var (
-	ErrUnauthorized        = errors.New("unauthorized")
-	ErrForbidden           = errors.New("forbidden")
-	ErrNotFound            = errors.New("not found")
-	ErrMethodNotAllowed    = errors.New("method not allowed")
-	ErrTooManyRequests     = errors.New("too many requests")
-	ErrInternalServerError = errors.New("internal server error")
-	ErrServiceUnavailable  = errors.New("service unavailable")
-	ErrRecoveryInitiated   = errors.New("try again later")
-)
