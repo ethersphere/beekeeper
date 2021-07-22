@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	beev2 "github.com/ethersphere/beekeeper/pkg/check/bee"
+	beeV2 "github.com/ethersphere/beekeeper/pkg/check/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -66,27 +66,24 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		setUpMetrics(o)
 	}
 
-	clusterOpts := beev2.ClusterOptions{
-		ChunksPerNode:   o.ChunksPerNode,
-		MetricsPusher:   o.MetricsPusher,
-		PostageDepth:    o.PostageDepth,
-		GasPrice:        o.GasPrice,
-		PostageAmount:   o.PostageAmount,
-		PostageLabel:    o.PostageLabel,
-		PostageWait:     o.PostageWait,
-		Seed:            o.Seed,
-		UploadNodeCount: o.UploadNodeCount,
+	clusterOpts := beeV2.ClusterOptions{
+		PostageDepth:  o.PostageDepth,
+		GasPrice:      o.GasPrice,
+		PostageAmount: o.PostageAmount,
+		PostageLabel:  o.PostageLabel,
+		PostageWait:   o.PostageWait,
+		Seed:          o.Seed,
 	}
 
-	cluster_v2, err := beev2.NewClusterV2(ctx, cluster, clusterOpts)
+	clusterV2, err := beeV2.NewClusterV2(ctx, cluster, clusterOpts)
 	if err != nil {
 		return err
 	}
 
-	lastNode := cluster_v2.LastNode()
+	lastNode := clusterV2.LastNode()
 
 	for i := 0; i < o.UploadNodeCount; i++ {
-		uploader, err := cluster_v2.Node(i).NewChunkUploader(ctx, i)
+		uploader, err := clusterV2.Node(i).NewChunkUploader(ctx)
 		if err != nil {
 			return err
 		}
@@ -112,33 +109,33 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			// time download
 			t1 := time.Now()
 
-			data, err := lastNode.DownloadChunk(ctx, chunk.Addr)
+			data, err := lastNode.DownloadChunk(ctx, chunk.Addr())
 
 			if err != nil {
-				return fmt.Errorf("node %s: %w", lastNode.Name, err)
+				return fmt.Errorf("node %s: %w", lastNode.Name(), err)
 			}
 
 			d1 := time.Since(t1)
 
-			downloadedCounter.WithLabelValues(uploader.Name).Inc()
-			downloadTimeGauge.WithLabelValues(uploader.Name, chunk.AddrString()).Set(d1.Seconds())
+			downloadedCounter.WithLabelValues(uploader.Name()).Inc()
+			downloadTimeGauge.WithLabelValues(uploader.Name(), chunk.AddrString()).Set(d1.Seconds())
 			downloadTimeHistogram.Observe(d1.Seconds())
 
 			if !chunk.Equals(data) {
-				notRetrievedCounter.WithLabelValues(uploader.Name).Inc()
-				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastNode.Name, j, chunk.Size(), len(data), uploader.Name, chunk.AddrString())
+				notRetrievedCounter.WithLabelValues(uploader.Name()).Inc()
+				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastNode.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
 				if chunk.Contains(data) {
 					fmt.Printf("Downloaded data is subset of the uploaded data\n")
 				}
 				return errRetrieval
 			}
 
-			retrievedCounter.WithLabelValues(uploader.Name).Inc()
-			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastNode.Name, j, uploader.Name, chunk.AddrString())
+			retrievedCounter.WithLabelValues(uploader.Name()).Inc()
+			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastNode.Name(), j, uploader.Name(), chunk.AddrString())
 
 			if o.MetricsPusher != nil {
 				if err := o.MetricsPusher.Push(); err != nil {
-					fmt.Printf("node %s: %v\n", lastNode.Name, err)
+					fmt.Printf("node %s: %v\n", lastNode.Name(), err)
 				}
 			}
 		}

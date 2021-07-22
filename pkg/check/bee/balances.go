@@ -26,7 +26,7 @@ func (c *ClusterV2) ExpectBalancesHaveChanged(ctx context.Context) error {
 	for t := 0; t < 5; t++ {
 		time.Sleep(2 * time.Duration(t) * time.Second)
 
-		balances, err := c.balances(c.ctx)
+		balances, err := c.cluster.Balances(c.ctx)
 
 		if err != nil {
 			return err

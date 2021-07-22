@@ -11,7 +11,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 type ClusterV2 struct {
@@ -19,26 +18,21 @@ type ClusterV2 struct {
 	clients         map[string]*bee.Client
 	nodes           []nodeV2
 	o               ClusterOptions
-	balances        func(ctx context.Context) (balances bee.ClusterBalances, err error)
+	cluster         *bee.Cluster
 	overlays        bee.ClusterOverlays
 	balancesHistory []bee.NodeGroupBalances
 	rnd             *rand.Rand
 }
 
 type ClusterOptions struct {
-	DryRun             bool
-	FileName           string
-	FileSize           int64
-	GasPrice           string
-	PostageAmount      int64
-	PostageLabel       string
-	PostageWait        time.Duration
-	Seed               int64
-	UploadNodeCount    int
-	WaitBeforeDownload time.Duration
-	ChunksPerNode      int // number of chunks to upload per node
-	PostageDepth       uint64
-	MetricsPusher      *push.Pusher
+	FileName      string
+	FileSize      int64
+	GasPrice      string
+	PostageAmount int64
+	PostageLabel  string
+	PostageWait   time.Duration
+	Seed          int64
+	PostageDepth  uint64
 }
 
 func NewClusterV2(ctx context.Context, cluster *bee.Cluster, o ClusterOptions) (*ClusterV2, error) {
@@ -69,7 +63,7 @@ func NewClusterV2(ctx context.Context, cluster *bee.Cluster, o ClusterOptions) (
 	)
 	for name, addr := range flatOverlays {
 		nodes = append(nodes, nodeV2{
-			Name:   name,
+			name:   name,
 			Addr:   addr,
 			client: clients[name],
 			rnd:    rnds[count],
@@ -83,15 +77,12 @@ func NewClusterV2(ctx context.Context, cluster *bee.Cluster, o ClusterOptions) (
 		overlays: overlays,
 		nodes:    nodes,
 		rnd:      rnd,
-		balances: func(ctx context.Context) (bee.ClusterBalances, error) {
-			return cluster.Balances(ctx)
-		},
 	}, nil
 }
 
 // NewRandomFile returns new pseudorandom file
 func (node *nodeV2) UploadRandomFile(ctx context.Context) (FileV2, error) {
-	name := fmt.Sprintf("%s-%s", node.o.FileName, node.Name)
+	name := fmt.Sprintf("%s-%s", node.o.FileName, node.name)
 	file := FileV2{
 		name: name,
 		rand: node.rnd,
@@ -102,7 +93,7 @@ func (node *nodeV2) UploadRandomFile(ctx context.Context) (FileV2, error) {
 }
 
 func (c *ClusterV2) SaveBalances() error {
-	balances, err := c.balances(c.ctx)
+	balances, err := c.cluster.Balances(c.ctx)
 
 	if err != nil {
 		return err
@@ -117,11 +108,15 @@ func (c *ClusterV2) SaveBalances() error {
 
 type nodeV2 struct {
 	o       ClusterOptions
-	Name    string
+	name    string
 	Addr    swarm.Address
 	rnd     *rand.Rand
 	overlay swarm.Address
 	client  *bee.Client
+}
+
+func (n *nodeV2) Name() string {
+	return n.name
 }
 
 func (c *ClusterV2) RandomNode() *nodeV2 {
@@ -129,7 +124,7 @@ func (c *ClusterV2) RandomNode() *nodeV2 {
 
 	return &nodeV2{
 		o:       c.o,
-		Name:    nodeName,
+		name:    nodeName,
 		overlay: overlay,
 		client:  c.clients[nodeName],
 	}
@@ -137,19 +132,19 @@ func (c *ClusterV2) RandomNode() *nodeV2 {
 
 func (n nodeV2) UploadFile(ctx context.Context, file FileV2) error {
 	depth := 2 + bee.EstimatePostageBatchDepth(n.o.FileSize)
-	batchID, err := n.client.CreatePostageBatch(ctx, n.o.PostageAmount, depth, n.o.GasPrice, n.o.PostageLabel)
+	batchID, err := n.client.CreatePostageBatch(ctx, n.o.PostageAmount, depth, n.o.GasPrice, n.o.PostageLabel, false)
 	if err != nil {
-		return fmt.Errorf("node %s: created batch id %w", n.Name, err)
+		return fmt.Errorf("node %s: created batch id %w", n.name, err)
 	}
-	fmt.Printf("node %s: created batch id %s\n", n.Name, batchID)
+	fmt.Printf("node %s: created batch id %s\n", n.name, batchID)
 	time.Sleep(n.o.PostageWait)
 
 	filev1 := bee.NewRandomFile(file.rand, file.name, file.size)
 	if err := n.client.UploadFile(ctx, &filev1, api.UploadOptions{BatchID: batchID}); err != nil {
-		return fmt.Errorf("node %s: %w", n.Name, err)
+		return fmt.Errorf("node %s: %w", n.name, err)
 	}
 
-	fmt.Println("Uploaded file to", n.Name)
+	fmt.Println("Uploaded file to", n.name)
 
 	return nil
 }
@@ -157,13 +152,13 @@ func (n nodeV2) UploadFile(ctx context.Context, file FileV2) error {
 func (n nodeV2) ExpectToHaveFile(ctx context.Context, file FileV2) error {
 	size, hash, err := n.client.DownloadFile(ctx, file.address)
 	if err != nil {
-		return fmt.Errorf("node %s: %w", n.Name, err)
+		return fmt.Errorf("node %s: %w", n.name, err)
 	}
 
-	fmt.Println("Downloaded file from", n.Name)
+	fmt.Println("Downloaded file from", n.name)
 
 	if !bytes.Equal(file.hash, hash) {
-		return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.address.String(), n.Name, file.size, size)
+		return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.address.String(), n.name, file.size, size)
 	}
 
 	return nil
@@ -193,24 +188,28 @@ func (c *ClusterV2) Node(index int) *nodeV2 {
 type ChunkUploader struct {
 	ctx     context.Context
 	rnd     *rand.Rand
-	Name    string
+	name    string
 	client  *bee.Client
 	batchID string
 	Overlay string
 }
 
-func (n *nodeV2) NewChunkUploader(ctx context.Context, index int) (*ChunkUploader, error) {
+func (c *ChunkUploader) Name() string {
+	return c.name
+}
+
+func (n *nodeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 	o := n.o
 	batchID, err := n.client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {
-		return nil, fmt.Errorf("node %s: batch id %w", n.Name, err)
+		return nil, fmt.Errorf("node %s: batch id %w", n.name, err)
 	}
-	fmt.Printf("node %s: batch id %s\n", n.Name, batchID)
+	fmt.Printf("node %s: batch id %s\n", n.name, batchID)
 
 	return &ChunkUploader{
 		ctx:     ctx,
 		rnd:     n.rnd,
-		Name:    n.Name,
+		name:    n.name,
 		client:  n.client,
 		batchID: batchID,
 	}, nil
@@ -219,27 +218,31 @@ func (n *nodeV2) NewChunkUploader(ctx context.Context, index int) (*ChunkUploade
 func (cu *ChunkUploader) UploadRandomChunk() (*chunkV2, error) {
 	chunk, err := bee.NewRandomChunk(cu.rnd)
 	if err != nil {
-		return nil, fmt.Errorf("node %s: %w", cu.Name, err)
+		return nil, fmt.Errorf("node %s: %w", cu.name, err)
 	}
 
 	ref, err := cu.client.UploadChunk(cu.ctx, chunk.Data(), api.UploadOptions{BatchID: cu.batchID})
 	if err != nil {
-		return nil, fmt.Errorf("node %s: %w", cu.Name, err)
+		return nil, fmt.Errorf("node %s: %w", cu.name, err)
 	}
 
 	return &chunkV2{
-		Addr: ref,
+		addr: ref,
 		data: chunk.Data(),
 	}, nil
 }
 
 type chunkV2 struct {
-	Addr swarm.Address
+	addr swarm.Address
 	data []byte
 }
 
+func (c *chunkV2) Addr() swarm.Address {
+	return c.addr
+}
+
 func (c *chunkV2) AddrString() string {
-	return c.Addr.String()
+	return c.addr.String()
 }
 
 func (c *chunkV2) Equals(data []byte) bool {

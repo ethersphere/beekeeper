@@ -24,16 +24,13 @@ func (c *Check) RunV2(ctx context.Context, cluster *bee.Cluster, opts interface{
 	var clusterV2 *beev2.ClusterV2
 
 	clusterOpts := beev2.ClusterOptions{
-		DryRun:             o.DryRun,
-		FileName:           o.FileName,
-		FileSize:           o.FileSize,
-		GasPrice:           o.GasPrice,
-		PostageAmount:      o.PostageAmount,
-		PostageLabel:       o.PostageLabel,
-		PostageWait:        o.PostageWait,
-		Seed:               o.Seed,
-		UploadNodeCount:    o.UploadNodeCount,
-		WaitBeforeDownload: o.WaitBeforeDownload,
+		FileName:      o.FileName,
+		FileSize:      o.FileSize,
+		GasPrice:      o.GasPrice,
+		PostageAmount: o.PostageAmount,
+		PostageLabel:  o.PostageLabel,
+		PostageWait:   o.PostageWait,
+		Seed:          o.Seed,
 	}
 
 	if clusterV2, err = beev2.NewClusterV2(ctx, cluster, clusterOpts); err != nil {
