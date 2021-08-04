@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -36,7 +36,6 @@ type Client struct {
 	Tags    *TagsService
 	PSS     *PSSService
 	SOC     *SOCService
-	Postage *PostageService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -69,7 +68,6 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.Tags = (*TagsService)(&c.service)
 	c.PSS = (*PSSService)(&c.service)
 	c.SOC = (*SOCService)(&c.service)
-	c.Postage = (*PostageService)(&c.service)
 	return c
 }
 
@@ -221,54 +219,33 @@ func drain(r io.ReadCloser) {
 	}()
 }
 
-// responseErrorHandler returns an error based on the HTTP status code or nil if
-// the status code is from 200 to 299.
-func responseErrorHandler(r *http.Response) (err error) {
-	if r.StatusCode == http.StatusAccepted {
-		return ErrRecoveryInitiated
-	}
-	if r.StatusCode/100 == 2 {
-		return nil
-	}
-	switch r.StatusCode {
-	case http.StatusBadRequest:
-		return decodeBadRequest(r)
-	case http.StatusUnauthorized:
-		return ErrUnauthorized
-	case http.StatusForbidden:
-		return ErrForbidden
-	case http.StatusNotFound:
-		return ErrNotFound
-	case http.StatusTooManyRequests:
-		return ErrTooManyRequests
-	case http.StatusInternalServerError:
-		return ErrInternalServerError
-	case http.StatusServiceUnavailable:
-		return ErrServiceUnavailable
-	default:
-		return errors.New(strings.ToLower(r.Status))
-	}
+type messageResponse struct {
+	Message string `json:"message"`
 }
 
-// decodeBadRequest parses the body of HTTP response that contains a list of
-// errors as the result of bad request data.
-func decodeBadRequest(r *http.Response) (err error) {
-
-	type badRequestResponse struct {
-		Errors []string `json:"errors"`
+// responseErrorHandler returns an error based on the HTTP status code or nil if
+// the status code is from 200 to 299.
+// The error will include the message from standardized JSON-encoded error response
+// if it is not the same as the status text.
+func responseErrorHandler(r *http.Response) (err error) {
+	if r.StatusCode/100 == 2 {
+		// no error if response in 2xx range
+		return nil
 	}
 
-	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		return NewBadRequestError("bad request")
-	}
-	var e badRequestResponse
-	if err = json.NewDecoder(r.Body).Decode(&e); err != nil {
-		if err == io.EOF {
-			return NewBadRequestError("bad request")
+	var e messageResponse
+	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		if err = json.NewDecoder(r.Body).Decode(&e); err != nil && err != io.EOF {
+			return err
 		}
-		return err
 	}
-	return NewBadRequestError(e.Errors...)
+
+	err = NewHTTPStatusError(r.StatusCode)
+	// add message to the error if it is not already the same as the status text
+	if e.Message != "" && e.Message != http.StatusText(r.StatusCode) {
+		return fmt.Errorf("response message %q: status: %w", e.Message, err)
+	}
+	return err
 }
 
 // service is the base type for all API service providing the Client instance

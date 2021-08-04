@@ -12,6 +12,9 @@ clusters:
     debug-api-domain: dai.internal
     debug-api-insecure-tls: true
     debug-api-scheme: https
+    funding:
+      eth: 0.1
+      bzz: 100.0
     node-groups:
       bootnode:
         mode: bootnode
@@ -186,11 +189,18 @@ checks:
   full-connectivity:
     timeout: 5m
     type: full-connectivity
+    options:
+      boot-nodes:
+      - bootnode  
+      group-1:
+      - light
+      group-2:
+      - bee
+      - bootnode
   gc:
     options:
-      cache-size: 1000
-      postage-wait: 5s
-      reserve-size: 1024
+      cache-size: 10
+      reserve-size: 16
     timeout: 5m
     type: gc
   kademlia:
@@ -254,6 +264,8 @@ checks:
       metrics-enabled:
       mode: chunks
       postage-amount: 1000
+      exclude-node-group:
+      - light
       postage-depth: 16
       postage-wait: 5s
       retries: 5
@@ -267,6 +279,8 @@ checks:
       metrics-enabled:
       mode: light-chunks
       postage-amount: 1000
+      exclude-node-group:
+      - light
       postage-depth: 16
       postage-wait: 5s
       retries: 5

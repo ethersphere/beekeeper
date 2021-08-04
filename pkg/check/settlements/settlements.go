@@ -125,9 +125,10 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		}
 		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())
 
+		settlementsValid := false
 		// validate settlements after uploading a file
 		previousSettlements = settlements
-		for t := 0; t < 5; t++ {
+		for t := 0; t < 7; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
 			balances, err = cluster.FlattenBalances(ctx)
@@ -151,7 +152,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			}
 
 			fmt.Println("Settlements are valid")
+			settlementsValid = true
 			break
+		}
+
+		if !settlementsValid {
+			return errors.New("Settlements are not valid")
 		}
 
 		time.Sleep(o.WaitBeforeDownload)
@@ -167,9 +173,10 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		}
 		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dNode].String())
 
+		settlementsValid = false
 		// validate settlements after downloading a file
 		previousSettlements = settlements
-		for t := 0; t < 5; t++ {
+		for t := 0; t < 7; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
 			balances, err = cluster.FlattenBalances(ctx)
@@ -198,7 +205,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			}
 
 			fmt.Println("Settlements are valid")
+			settlementsValid = true
 			break
+		}
+
+		if !settlementsValid {
+			return errors.New("Settlements are not valid")
 		}
 	}
 

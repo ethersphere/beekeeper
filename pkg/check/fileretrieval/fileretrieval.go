@@ -110,7 +110,7 @@ func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel)
+			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
@@ -202,7 +202,7 @@ func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel)
+			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
