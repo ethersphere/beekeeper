@@ -332,7 +332,7 @@ checks:
       request-timeout: 5m
     timeout: 5m
     type: soc
-  content-availability:
+  ci-content-availability:
     type: content-availability
     timeout: 5m
     options:
