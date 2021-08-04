@@ -28,14 +28,15 @@ type Client struct {
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
-	Bytes   *BytesService
-	Chunks  *ChunksService
-	Files   *FilesService
-	Dirs    *DirsService
-	Pinning *PinningService
-	Tags    *TagsService
-	PSS     *PSSService
-	SOC     *SOCService
+	Bytes       *BytesService
+	Chunks      *ChunksService
+	Files       *FilesService
+	Dirs        *DirsService
+	Pinning     *PinningService
+	Tags        *TagsService
+	PSS         *PSSService
+	SOC         *SOCService
+	Stewardship *StewardshipService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -68,6 +69,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.Tags = (*TagsService)(&c.service)
 	c.PSS = (*PSSService)(&c.service)
 	c.SOC = (*SOCService)(&c.service)
+	c.Stewardship = (*StewardshipService)(&c.service)
 	return c
 }
 

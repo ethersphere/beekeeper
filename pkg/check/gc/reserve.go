@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -160,14 +159,13 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		expensiveBatchAmount = 3
 		batchDepth           = uint64(8)         // the depth for the batches that we buy
 		initialRadius        = 2                 // initial reserve radius
-		radius1              = 4                 // radius expected after purchase of 1st batch
 		higherRadius         = initialRadius + 1 // radius needed for the chunks that shouldnt be GCd
 	)
 
 	var (
 		pinnedChunk                = bee.GenerateRandomChunkAt(rnd, overlay, 0)
-		lowValueChunks             = chunkBatch(rnd, overlay, 10, initialRadius)
-		lowValueHigherRadiusChunks = chunkBatch(rnd, overlay, 10, higherRadius)
+		lowValueChunks             = bee.GenerateNRandomChunksAt(rnd, overlay, 10, initialRadius)
+		lowValueHigherRadiusChunks = bee.GenerateNRandomChunksAt(rnd, overlay, 10, higherRadius)
 	)
 
 	origState, err := client.ReserveState(ctx)
@@ -232,7 +230,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("storage radius mismatch. got %d want %d", state.StorageRadius, 2)
 	}
 
-	_, hasCount, err := client.HasChunks(ctx, addresses(lowValueChunks))
+	_, hasCount, err := client.HasChunks(ctx, bee.AddressOfChunk(lowValueChunks...))
 	if err != nil {
 		return fmt.Errorf("low value chunk: %w", err)
 	}
@@ -243,7 +241,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("first batch gc count mismatch, has %d; want %d\n", hasCount, 9)
 	}
 
-	_, hasCount, err = client.HasChunks(ctx, addresses(lowValueHigherRadiusChunks))
+	_, hasCount, err = client.HasChunks(ctx, bee.AddressOfChunk(lowValueHigherRadiusChunks...))
 	if err != nil {
 		return fmt.Errorf("low value higher radius chunk: %w", err)
 	}
@@ -255,7 +253,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("higher radius chunks gc'd. got %d want %d", hasCount, 10)
 	}
 
-	highValueChunks := chunkBatch(rnd, overlay, 5, state.Radius)
+	highValueChunks := bee.GenerateNRandomChunksAt(rnd, overlay, 5, state.Radius)
 	for _, c := range highValueChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: highValueBatch}); err != nil {
 			return fmt.Errorf("high value chunks: %w", err)
@@ -263,7 +261,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), batchDepth, expensiveBatchAmount, state.Radius)
 
-	_, hasCount, err = client.HasChunks(ctx, addresses(highValueChunks))
+	_, hasCount, err = client.HasChunks(ctx, bee.AddressOfChunk(highValueChunks...))
 	if err != nil {
 		return fmt.Errorf("high value chunk: %w", err)
 	}
@@ -322,20 +320,4 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	return nil
-}
-
-func chunkBatch(rnd *rand.Rand, target swarm.Address, count int, po uint8) []swarm.Chunk {
-	chunks := make([]swarm.Chunk, count)
-	for i := range chunks {
-		chunks[i] = bee.GenerateRandomChunkAt(rnd, target, po)
-	}
-	return chunks
-}
-
-func addresses(c []swarm.Chunk) []swarm.Address {
-	addrs := make([]swarm.Address, len(c))
-	for i, v := range c {
-		addrs[i] = v.Address()
-	}
-	return addrs
 }

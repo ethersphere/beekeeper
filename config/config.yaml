@@ -329,6 +329,13 @@ checks:
       request-timeout: 5m
     timeout: 5m
     type: soc
+  content-availability:
+    type: content-availability
+    timeout: 5m
+    options:
+      content-size: 16384
+      postage-amount: 1000
+      postage-depth: 16
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options 
