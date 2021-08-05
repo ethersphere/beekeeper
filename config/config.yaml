@@ -343,6 +343,7 @@ simulations:
   upload:
     options:
       file-size: 1048576 # 1mb = 1*1024*1024
+      gas-price: "10000000000"
       postage-amount: 1000
       postage-depth: 16
       postage-wait: 5s
@@ -356,6 +357,7 @@ simulations:
   retrieval:
     options:
       chunks-per-node: 1
+      gas-price: "10000000000"
       metrics-enabled: true
       postage-amount: 1000
       postage-depth: 16

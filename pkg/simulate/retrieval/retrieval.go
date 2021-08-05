@@ -98,8 +98,17 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 					continue
 				}
 
+				tag, err := client.CreateTag(ctx)
+				if err != nil {
+					return fmt.Errorf("create tag on node %s: %w", nodeName, err)
+				}
+
+				// upload chunk
 				t0 := time.Now()
-				ref, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
+				ref, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{
+					BatchID: batchID,
+					Tag:     tag.Uid,
+				})
 				d0 := time.Since(t0)
 				if err != nil {
 					metrics.notUploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
@@ -111,18 +120,37 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 					fmt.Printf("error: node %s: %v\n", nodeName, err)
 					continue
 				}
-				fmt.Printf("Chunk %s uploaded successfully to node %s\n", chunk.Address().String(), overlays[nodeName].String())
-
 				metrics.uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				metrics.uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
 				metrics.uploadTimeHistogram.Observe(d0.Seconds())
+				fmt.Printf("Chunk %s uploaded successfully to node %s\n", chunk.Address().String(), overlays[nodeName].String())
+
+				// check if chunk is synced
+				t1 := time.Now()
+				err = client.WaitSync(ctx, tag.Uid)
+				d1 := time.Since(t1)
+				if err != nil {
+					metrics.notSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+					if o.MetricsPusher != nil {
+						if err := o.MetricsPusher.Push(); err != nil {
+							fmt.Printf("upload node %s: %v\n", nodeName, err)
+						}
+					}
+					fmt.Printf("sync with node %s: %v\n", nodeName, err)
+					continue
+				}
+				metrics.syncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				metrics.syncTagsTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d1.Seconds())
+				metrics.syncTagsTimeHistogram.Observe(d1.Seconds())
+				fmt.Printf("Chunk %s synced successfully with node %s\n", chunk.Address().String(), nodeName)
 
 				// pick a random node to validate that the chunk is retrievable
 				downloadNode := sortedNodes[rnds[i].Intn(len(sortedNodes))]
 
-				t1 := time.Now()
+				// download chunk
+				t2 := time.Now()
 				data, err := clients[downloadNode].DownloadChunk(ctx, ref, "")
-				d1 := time.Since(t1)
+				d2 := time.Since(t2)
 				if err != nil {
 					metrics.notDownloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
 					if o.MetricsPusher != nil {
@@ -133,11 +161,11 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 					fmt.Printf("error: node %s: %v\n", downloadNode, err)
 					continue
 				}
-
 				metrics.downloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
-				metrics.downloadTimeGauge.WithLabelValues(overlays[downloadNode].String(), ref.String()).Set(d1.Seconds())
-				metrics.downloadTimeHistogram.Observe(d1.Seconds())
+				metrics.downloadTimeGauge.WithLabelValues(overlays[downloadNode].String(), ref.String()).Set(d2.Seconds())
+				metrics.downloadTimeHistogram.Observe(d2.Seconds())
 
+				// validate that chunk is retrieved correctly
 				if !bytes.Equal(chunk.Data(), data) {
 					metrics.notRetrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
 					if o.MetricsPusher != nil {
@@ -151,7 +179,6 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 					}
 					continue
 				}
-
 				metrics.retrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
 				fmt.Printf("Chunk %s retrieved successfully from node %s\n", chunk.Address().String(), overlays[downloadNode].String())
 
