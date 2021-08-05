@@ -5,13 +5,13 @@ import (
 )
 
 const (
-	BzzTokenAddress = "0x6aab14fe9cccd64a502d23842d916eb5321c26e7"
-	EthAccount      = "0x62cab2b3b55f341f10348720ca18063cdb779ad5"
-	GasPrice        = 10000000000
-	BzzGasLimit     = 100000
-	EthGasLimit     = 21000
-	mintBzz         = "0x40c10f19"
-	transferBzz     = "0xa9059cbb"
+	BzzTokenAddress       = "0x6aab14fe9cccd64a502d23842d916eb5321c26e7"
+	EthAccount            = "0x62cab2b3b55f341f10348720ca18063cdb779ad5"
+	GasPrice        int64 = 10000000000
+	BzzGasLimit           = 100000
+	EthGasLimit           = 21000
+	mintBzz               = "0x40c10f19"
+	transferBzz           = "0xa9059cbb"
 )
 
 // Client defines Client interface
