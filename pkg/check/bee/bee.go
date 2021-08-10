@@ -13,18 +13,19 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-type ClusterV2 struct {
-	ctx             context.Context
-	clients         map[string]*bee.Client
-	nodes           []nodeV2
-	o               ClusterOptions
-	cluster         *bee.Cluster
-	overlays        bee.ClusterOverlays
+type CheckCase struct {
+	ctx      context.Context
+	clients  map[string]*bee.Client
+	nodes    []nodeV2
+	cluster  *bee.Cluster
+	overlays bee.ClusterOverlays
+
+	o               CaseOptions
 	balancesHistory []bee.NodeGroupBalances
 	rnd             *rand.Rand
 }
 
-type ClusterOptions struct {
+type CaseOptions struct {
 	FileName      string
 	FileSize      int64
 	GasPrice      string
@@ -35,7 +36,7 @@ type ClusterOptions struct {
 	PostageDepth  uint64
 }
 
-func NewClusterV2(ctx context.Context, cluster *bee.Cluster, o ClusterOptions) (*ClusterV2, error) {
+func NewCheckCase(ctx context.Context, cluster *bee.Cluster, o CaseOptions) (*CheckCase, error) {
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return nil, err
@@ -71,7 +72,7 @@ func NewClusterV2(ctx context.Context, cluster *bee.Cluster, o ClusterOptions) (
 		count++
 	}
 
-	return &ClusterV2{
+	return &CheckCase{
 		ctx:      ctx,
 		clients:  clients,
 		overlays: overlays,
@@ -92,7 +93,7 @@ func (node *nodeV2) UploadRandomFile(ctx context.Context) (FileV2, error) {
 	return file, node.UploadFile(ctx, file)
 }
 
-func (c *ClusterV2) SaveBalances() error {
+func (c *CheckCase) SaveBalances() error {
 	balances, err := c.cluster.Balances(c.ctx)
 
 	if err != nil {
@@ -107,7 +108,7 @@ func (c *ClusterV2) SaveBalances() error {
 }
 
 type nodeV2 struct {
-	o       ClusterOptions
+	o       CaseOptions
 	name    string
 	Addr    swarm.Address
 	rnd     *rand.Rand
@@ -119,7 +120,7 @@ func (n *nodeV2) Name() string {
 	return n.name
 }
 
-func (c *ClusterV2) RandomNode() *nodeV2 {
+func (c *CheckCase) RandomNode() *nodeV2 {
 	_, nodeName, overlay := c.overlays.Random(c.rnd)
 
 	return &nodeV2{
@@ -164,7 +165,7 @@ func (n nodeV2) ExpectToHaveFile(ctx context.Context, file FileV2) error {
 	return nil
 }
 
-func (c *ClusterV2) prevBalances() bee.NodeGroupBalances {
+func (c *CheckCase) prevBalances() bee.NodeGroupBalances {
 	len := len(c.balancesHistory)
 	return c.balancesHistory[len-1]
 }
@@ -177,11 +178,11 @@ type FileV2 struct {
 	size    int64
 }
 
-func (c *ClusterV2) LastNode() *nodeV2 {
+func (c *CheckCase) LastNode() *nodeV2 {
 	return &c.nodes[len(c.nodes)-1]
 }
 
-func (c *ClusterV2) Node(index int) *nodeV2 {
+func (c *CheckCase) Node(index int) *nodeV2 {
 	return &c.nodes[index]
 }
 

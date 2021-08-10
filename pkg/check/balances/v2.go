@@ -21,9 +21,9 @@ func (c *Check) RunV2(ctx context.Context, cluster *bee.Cluster, opts interface{
 
 	fmt.Println("running balances")
 
-	var clusterV2 *beev2.ClusterV2
+	var checkCase *beev2.CheckCase
 
-	clusterOpts := beev2.ClusterOptions{
+	caseOpts := beev2.CaseOptions{
 		FileName:      o.FileName,
 		FileSize:      o.FileSize,
 		GasPrice:      o.GasPrice,
@@ -33,40 +33,40 @@ func (c *Check) RunV2(ctx context.Context, cluster *bee.Cluster, opts interface{
 		Seed:          o.Seed,
 	}
 
-	if clusterV2, err = beev2.NewClusterV2(ctx, cluster, clusterOpts); err != nil {
+	if checkCase, err = beev2.NewCheckCase(ctx, cluster, caseOpts); err != nil {
 		return err
 	}
 
-	if err := clusterV2.SaveBalances(); err != nil {
+	if err := checkCase.SaveBalances(); err != nil {
 		return err
 	}
 
-	if err := clusterV2.ExpectValidInitialBalances(ctx); err != nil {
+	if err := checkCase.ExpectValidInitialBalances(ctx); err != nil {
 		return err
 	}
 
 	// repeats
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload/check
-		node := clusterV2.RandomNode()
+		node := checkCase.RandomNode()
 
 		file, err := node.UploadRandomFile(ctx)
 
 		if err != nil {
 			return err
 		}
-		if err := clusterV2.ExpectBalancesHaveChanged(ctx); err != nil {
+		if err := checkCase.ExpectBalancesHaveChanged(ctx); err != nil {
 			return err
 		}
 
 		// download/check
-		if err := clusterV2.RandomNode().ExpectToHaveFile(ctx, file); err != nil {
+		if err := checkCase.RandomNode().ExpectToHaveFile(ctx, file); err != nil {
 			return err
 		}
-		if err := clusterV2.SaveBalances(); err != nil {
+		if err := checkCase.SaveBalances(); err != nil {
 			return err
 		}
-		if err := clusterV2.ExpectBalancesHaveChanged(ctx); err != nil {
+		if err := checkCase.ExpectBalancesHaveChanged(ctx); err != nil {
 			return err
 		}
 	}

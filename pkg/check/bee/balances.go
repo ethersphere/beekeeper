@@ -9,7 +9,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-func (c *ClusterV2) ExpectValidInitialBalances(ctx context.Context) error {
+func (c *CheckCase) ExpectValidInitialBalances(ctx context.Context) error {
 	flatBalances := c.prevBalances()
 	flatOverlays := flattenOverlays(c.overlays)
 
@@ -22,7 +22,7 @@ func (c *ClusterV2) ExpectValidInitialBalances(ctx context.Context) error {
 	return nil
 }
 
-func (c *ClusterV2) ExpectBalancesHaveChanged(ctx context.Context) error {
+func (c *CheckCase) ExpectBalancesHaveChanged(ctx context.Context) error {
 	for t := 0; t < 5; t++ {
 		time.Sleep(2 * time.Duration(t) * time.Second)
 

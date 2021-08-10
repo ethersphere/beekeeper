@@ -66,7 +66,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		setUpMetrics(o)
 	}
 
-	clusterOpts := beeV2.ClusterOptions{
+	caseOpts := beeV2.CaseOptions{
 		PostageDepth:  o.PostageDepth,
 		GasPrice:      o.GasPrice,
 		PostageAmount: o.PostageAmount,
@@ -75,15 +75,15 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		Seed:          o.Seed,
 	}
 
-	clusterV2, err := beeV2.NewClusterV2(ctx, cluster, clusterOpts)
+	checkCase, err := beeV2.NewCheckCase(ctx, cluster, caseOpts)
 	if err != nil {
 		return err
 	}
 
-	lastNode := clusterV2.LastNode()
+	lastNode := checkCase.LastNode()
 
 	for i := 0; i < o.UploadNodeCount; i++ {
-		uploader, err := clusterV2.Node(i).NewChunkUploader(ctx)
+		uploader, err := checkCase.Node(i).NewChunkUploader(ctx)
 		if err != nil {
 			return err
 		}
