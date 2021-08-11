@@ -104,7 +104,9 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 	}
 
 	names := shuffle(rnd, cluster.NodeNames(), o.Seed)
-	// TODO: explain this function call
+
+	//
+
 	buckets, leftovers := toBuckets(names, o.StartPercentage, o.EndPercentage, o.StepPercentage)
 
 	malfunctionEth := 0
@@ -166,7 +168,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 			downloadName := randomCmp(rnd, uploadName, names)
 			downloadNode := clients[downloadName]
 
-			fmt.Printf("using node %s as downloader \n", downloadName)
+			fmt.Printf("using node %s as downloader\n", downloadName)
 
 			downloaded = downloadChunks(ctx, o, uploaded, downloadNode, chunks)
 
@@ -253,6 +255,11 @@ func shuffle(rnd *rand.Rand, names []string, seed int64) []string {
 	return names
 }
 
+// toBuckets splits arr into buckets where the first bucket is 0-th index upto start percentage number of elements,
+// subsequent buckets are step percentage number of elements until the end percentage is reached,
+// leftover is the elements from stop percentage up to the last element,
+// ex: arr = [1,2,3,4,5,6,7,8,9, 10], start=0.4, end=0.8, step=0.2,
+// returned is [[1,2,3,4], [5,6], [7,8]], [9,10]
 func toBuckets(arr []string, start float64, end float64, step float64) ([][]string, []string) {
 
 	var ret [][]string
@@ -268,7 +275,7 @@ func toBuckets(arr []string, start float64, end float64, step float64) ([][]stri
 		startCount += stepCount
 	}
 
-	return ret, arr[startCount:len(arr)]
+	return ret, arr[startCount : len(arr)-1]
 }
 
 func getIPFromUnderlays(addrs []string) string {
