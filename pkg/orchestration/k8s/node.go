@@ -5,6 +5,9 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
+// compile check whether client implements interface
+var _ orchestration.Node = (*Node)(nil)
+
 // Node represents Bee node
 type Node struct {
 	name         string
@@ -16,18 +19,8 @@ type Node struct {
 	swarmKey     string
 }
 
-// NodeOptions holds optional parameters for the Node.
-type NodeOptions struct {
-	ClefKey      string
-	ClefPassword string
-	Client       *bee.Client
-	Config       *orchestration.Config
-	LibP2PKey    string
-	SwarmKey     string
-}
-
 // NewNode returns Bee node
-func NewNode(name string, opts NodeOptions) (n *Node) {
+func NewNode(name string, opts orchestration.NodeOptions) (n *Node) {
 	n = &Node{name: name}
 
 	if opts.Client != nil {

@@ -64,7 +64,7 @@ func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
+func (g *NodeGroup) AddNode(name string, o orchestration.NodeOptions) (err error) {
 	aURL, err := g.cluster.apiURL(name)
 	if err != nil {
 		return fmt.Errorf("API URL %s: %w", name, err)
@@ -91,7 +91,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		config = g.opts.BeeConfig
 	}
 
-	n := NewNode(name, NodeOptions{
+	n := NewNode(name, orchestration.NodeOptions{
 		ClefKey:      o.ClefKey,
 		ClefPassword: o.ClefPassword,
 		Client:       client,
@@ -679,7 +679,7 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
-func (g *NodeGroup) SetupNode(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error) {
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f FundingOptions) (err error) {
 	if err := g.AddNode(name, o); err != nil {
 		return fmt.Errorf("add node %s: %w", name, err)
 	}
