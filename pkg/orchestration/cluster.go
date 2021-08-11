@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s/notset"
@@ -235,8 +236,8 @@ func (c *Cluster) FullNodeNames() (names []string) {
 }
 
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes
-func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) {
-	clients := make(map[string]*Client)
+func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, error) {
+	clients := make(map[string]*bee.Client)
 	for _, ng := range c.NodeGroups() {
 		ngc, err := ng.NodesClients(ctx)
 		if err != nil {
@@ -250,8 +251,8 @@ func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) 
 }
 
 // NodesClientsAll returns map of node's clients in the cluster
-func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*Client, error) {
-	clients := make(map[string]*Client)
+func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*bee.Client, error) {
+	clients := make(map[string]*bee.Client)
 	for _, ng := range c.NodeGroups() {
 		for n, client := range ng.NodesClientsAll(ctx) {
 			clients[n] = client
@@ -455,13 +456,13 @@ func (c *Cluster) Topologies(ctx context.Context) (topologies ClusterTopologies,
 }
 
 // FlattenTopologies returns an aggregate of Topologies
-func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]Topology, err error) {
+func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error) {
 	top, err := c.Topologies(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	topologies = make(map[string]Topology)
+	topologies = make(map[string]bee.Topology)
 
 	for _, v := range top {
 		for n, over := range v {

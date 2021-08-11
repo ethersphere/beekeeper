@@ -8,7 +8,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -108,7 +109,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 		// upload file to random node
 		uIndex := rnd.Intn(cluster.Size())
 		uNode := sortedNodes[uIndex]
-		file := orchestration.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
+		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
 
 		client := clients[uNode]
 

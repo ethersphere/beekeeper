@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"

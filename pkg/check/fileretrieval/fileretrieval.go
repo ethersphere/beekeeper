@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -107,9 +108,9 @@ func defaultCheck(ctx context.Context, cluster *orchestration.Cluster, o Options
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
 		for j := 0; j < o.FilesPerNode; j++ {
-			file := orchestration.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
+			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
-			depth := 2 + orchestration.EstimatePostageBatchDepth(file.Size())
+			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
 			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
@@ -199,9 +200,9 @@ func fullCheck(ctx context.Context, cluster *orchestration.Cluster, o Options) (
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
 		for j := 0; j < o.FilesPerNode; j++ {
-			file := orchestration.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
+			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
-			depth := 2 + orchestration.EstimatePostageBatchDepth(file.Size())
+			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
 			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)

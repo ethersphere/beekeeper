@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -92,7 +93,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *orchestration.Cluster, op
 			time.Sleep(o.PostageWait)
 
 			for j := 0; j < o.ChunksPerNode; j++ {
-				chunk, err := orchestration.NewRandomChunk(rnds[i])
+				chunk, err := bee.NewRandomChunk(rnds[i])
 				if err != nil {
 					fmt.Printf("error: node %s: %v\n", nodeName, err)
 					continue

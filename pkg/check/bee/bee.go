@@ -8,14 +8,15 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 type CheckCase struct {
 	ctx      context.Context
-	clients  map[string]*orchestration.Client
+	clients  map[string]*bee.Client
 	nodes    []nodeV2
 	cluster  *orchestration.Cluster
 	overlays orchestration.ClusterOverlays
@@ -113,7 +114,7 @@ type nodeV2 struct {
 	Addr    swarm.Address
 	rnd     *rand.Rand
 	overlay swarm.Address
-	client  *orchestration.Client
+	client  *bee.Client
 }
 
 func (n *nodeV2) Name() string {
@@ -132,7 +133,7 @@ func (c *CheckCase) RandomNode() *nodeV2 {
 }
 
 func (n nodeV2) UploadFile(ctx context.Context, file FileV2) error {
-	depth := 2 + orchestration.EstimatePostageBatchDepth(n.o.FileSize)
+	depth := 2 + bee.EstimatePostageBatchDepth(n.o.FileSize)
 	batchID, err := n.client.CreatePostageBatch(ctx, n.o.PostageAmount, depth, n.o.GasPrice, n.o.PostageLabel, false)
 	if err != nil {
 		return fmt.Errorf("node %s: created batch id %w", n.name, err)
@@ -140,7 +141,7 @@ func (n nodeV2) UploadFile(ctx context.Context, file FileV2) error {
 	fmt.Printf("node %s: created batch id %s\n", n.name, batchID)
 	time.Sleep(n.o.PostageWait)
 
-	filev1 := orchestration.NewRandomFile(file.rand, file.name, file.size)
+	filev1 := bee.NewRandomFile(file.rand, file.name, file.size)
 	if err := n.client.UploadFile(ctx, &filev1, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %s: %w", n.name, err)
 	}
@@ -190,7 +191,7 @@ type ChunkUploader struct {
 	ctx     context.Context
 	rnd     *rand.Rand
 	name    string
-	client  *orchestration.Client
+	client  *bee.Client
 	batchID string
 	Overlay string
 }
@@ -217,7 +218,7 @@ func (n *nodeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 }
 
 func (cu *ChunkUploader) UploadRandomChunk() (*chunkV2, error) {
-	chunk, err := orchestration.NewRandomChunk(cu.rnd)
+	chunk, err := bee.NewRandomChunk(cu.rnd)
 	if err != nil {
 		return nil, fmt.Errorf("node %s: %w", cu.name, err)
 	}

@@ -1,4 +1,4 @@
-package orchestration
+package bee
 
 import (
 	"bytes"
@@ -103,6 +103,14 @@ func (f *File) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err er
 	}
 
 	return
+}
+
+func (f *File) SetAddress(a swarm.Address) {
+	f.address = a
+}
+
+func (f *File) SetHash(h []byte) {
+	f.hash = h
 }
 
 func fileHasher() hash.Hash {

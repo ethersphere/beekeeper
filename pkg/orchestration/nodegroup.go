@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
@@ -74,7 +75,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		return fmt.Errorf("debug API URL %s: %w", name, err)
 	}
 
-	client := NewClient(ClientOptions{
+	client := bee.NewClient(bee.ClientOptions{
 		APIURL:              aURL,
 		APIInsecureTLS:      g.cluster.apiInsecureTLS,
 		DebugAPIURL:         dURL,
@@ -105,7 +106,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 }
 
 // NodeGroupAddresses represents addresses of all nodes in the node group
-type NodeGroupAddresses map[string]Addresses
+type NodeGroupAddresses map[string]bee.Addresses
 
 // Addresses returns NodeGroupAddresses
 func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error) {
@@ -133,7 +134,7 @@ func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, er
 // AddressesStreamMsg represents message sent over the AddressStream channel
 type AddressesStreamMsg struct {
 	Name      string
-	Addresses Addresses
+	Addresses bee.Addresses
 	Error     error
 }
 
@@ -152,7 +153,7 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStream
 		}
 
 		wg.Add(1)
-		go func(n string, c *Client) {
+		go func(n string, c *bee.Client) {
 			defer wg.Done()
 
 			a, err := c.Addresses(ctx)
@@ -211,7 +212,7 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, e
 // BalancesStreamMsg represents message sent over the BalancesStream channel
 type BalancesStreamMsg struct {
 	Name     string
-	Balances Balances
+	Balances bee.Balances
 	Error    error
 }
 
@@ -230,7 +231,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 		}
 
 		wg.Add(1)
-		go func(n string, c *Client) {
+		go func(n string, c *bee.Client) {
 			defer wg.Done()
 
 			b, err := c.Balances(ctx)
@@ -322,7 +323,7 @@ type FundingOptions struct {
 
 // Fund adds funds to the node
 func (g *NodeGroup) Fund(ctx context.Context, name string, o FundingOptions) (err error) {
-	var a Addresses
+	var a bee.Addresses
 	if o.Eth > 0 || o.Bzz > 0 || o.GBzz > 0 {
 		retries := 5
 		for {
@@ -444,7 +445,7 @@ func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan
 			}
 
 			wg.Add(1)
-			go func(n string, c *Client) {
+			go func(n string, c *bee.Client) {
 				defer wg.Done()
 
 				found, err := c.HasChunk(ctx, a)
@@ -474,7 +475,7 @@ func (g *NodeGroup) Nodes() map[string]*Node {
 }
 
 // NodesClients returns map of node's clients in the node group excluding stopped nodes
-func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*Client, error) {
+func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*bee.Client, error) {
 	stopped, err := g.StoppedNodes(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
@@ -489,7 +490,7 @@ func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*Client, error
 }
 
 // NodesClientsAll returns map of node's clients in the node group
-func (g *NodeGroup) NodesClientsAll(ctx context.Context) map[string]*Client {
+func (g *NodeGroup) NodesClientsAll(ctx context.Context) map[string]*bee.Client {
 	return g.getClients()
 }
 
@@ -515,7 +516,7 @@ func (g *NodeGroup) Node(name string) (*Node, error) {
 }
 
 // NodeClient returns node's client
-func (g *NodeGroup) NodeClient(name string) (*Client, error) {
+func (g *NodeGroup) NodeClient(name string) (*bee.Client, error) {
 	return g.getClient(name)
 }
 
@@ -568,7 +569,7 @@ func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMs
 		}
 
 		wg.Add(1)
-		go func(n string, c *Client) {
+		go func(n string, c *bee.Client) {
 			defer wg.Done()
 
 			a, err := c.Overlay(ctx)
@@ -636,7 +637,7 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 		}
 
 		wg.Add(1)
-		go func(n string, c *Client) {
+		go func(n string, c *bee.Client) {
 			defer wg.Done()
 
 			a, err := c.Peers(ctx)
@@ -746,7 +747,7 @@ func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettl
 // SettlementsStreamMsg represents message sent over the SettlementsStream channel
 type SettlementsStreamMsg struct {
 	Name        string
-	Settlements Settlements
+	Settlements bee.Settlements
 	Error       error
 }
 
@@ -765,7 +766,7 @@ func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsSt
 		}
 
 		wg.Add(1)
-		go func(n string, c *Client) {
+		go func(n string, c *bee.Client) {
 			defer wg.Done()
 
 			s, err := c.Settlements(ctx)
@@ -853,7 +854,7 @@ func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err err
 }
 
 // NodeGroupTopologies represents Kademlia topology of all nodes in the node group
-type NodeGroupTopologies map[string]Topology
+type NodeGroupTopologies map[string]bee.Topology
 
 // Topologies returns NodeGroupTopologies
 func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopologies, err error) {
@@ -881,7 +882,7 @@ func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopolog
 // TopologyStreamMsg represents message sent over the TopologyStream channel
 type TopologyStreamMsg struct {
 	Name     string
-	Topology Topology
+	Topology bee.Topology
 	Error    error
 }
 
@@ -900,7 +901,7 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMs
 		}
 
 		wg.Add(1)
-		go func(n string, c *Client) {
+		go func(n string, c *bee.Client) {
 			defer wg.Done()
 
 			t, err := c.Topology(ctx)
@@ -932,7 +933,7 @@ func (g *NodeGroup) deleteNode(name string) {
 	g.lock.Unlock()
 }
 
-func (g *NodeGroup) getClient(name string) (*Client, error) {
+func (g *NodeGroup) getClient(name string) (*bee.Client, error) {
 	n, err := g.getNode(name)
 	if err != nil {
 		return nil, err
@@ -940,8 +941,8 @@ func (g *NodeGroup) getClient(name string) (*Client, error) {
 	return n.client, nil
 }
 
-func (g *NodeGroup) getClients() map[string]*Client {
-	c := make(map[string]*Client)
+func (g *NodeGroup) getClients() map[string]*bee.Client {
+	c := make(map[string]*bee.Client)
 	g.lock.RLock()
 	for k, v := range g.nodes {
 		c[k] = v.client

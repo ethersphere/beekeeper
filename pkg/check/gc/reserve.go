@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -165,7 +166,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 	)
 
 	var (
-		pinnedChunk                = orchestration.GenerateRandomChunkAt(rnd, overlay, 0)
+		pinnedChunk                = bee.GenerateRandomChunkAt(rnd, overlay, 0)
 		lowValueChunks             = chunkBatch(rnd, overlay, 10, initialRadius)
 		lowValueHigherRadiusChunks = chunkBatch(rnd, overlay, 10, higherRadius)
 	)
@@ -327,7 +328,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 func chunkBatch(rnd *rand.Rand, target swarm.Address, count int, po uint8) []swarm.Chunk {
 	chunks := make([]swarm.Chunk, count)
 	for i := range chunks {
-		chunks[i] = orchestration.GenerateRandomChunkAt(rnd, target, po)
+		chunks[i] = bee.GenerateRandomChunkAt(rnd, target, po)
 	}
 	return chunks
 }

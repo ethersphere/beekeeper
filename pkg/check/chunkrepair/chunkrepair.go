@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -98,7 +99,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 			return err
 		}
 
-		batchID, err := nodeA.CreatePostageBatch(ctx, o.PostageAmount, orchestration.MinimumBatchDepth, o.GasPrice, o.PostageLabel, false)
+		batchID, err := nodeA.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, o.GasPrice, o.PostageLabel, false)
 		if err != nil {
 			return fmt.Errorf("created batched id %w", err)
 		}
@@ -204,11 +205,11 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match
 // nodeB is the closest to the generated chunk in the cluster.
-func getNodes(ctx context.Context, ng *orchestration.NodeGroup, rnd *rand.Rand) (*orchestration.Client, *orchestration.Client, *orchestration.Client, *orchestration.Chunk, error) {
+func getNodes(ctx context.Context, ng *orchestration.NodeGroup, rnd *rand.Rand) (*bee.Client, *bee.Client, *bee.Client, *bee.Chunk, error) {
 	var overlayA swarm.Address
 	var overlayB swarm.Address
 	var overlayC swarm.Address
-	var chunk *orchestration.Chunk
+	var chunk *bee.Chunk
 
 	// get overlay addresses of the cluster
 	overlays, err := ng.Overlays(ctx)
@@ -250,9 +251,9 @@ func getNodes(ctx context.Context, ng *orchestration.NodeGroup, rnd *rand.Rand) 
 	fmt.Printf("chunk Address: %s\n", chunk.Address().String())
 
 	// get the nodes for all the addresses
-	var nodeA *orchestration.Client
-	var nodeB *orchestration.Client
-	var nodeC *orchestration.Client
+	var nodeA *bee.Client
+	var nodeB *bee.Client
+	var nodeC *bee.Client
 	nodesClients, err := ng.NodesClients(ctx)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("get nodes clients: %w", err)
@@ -277,7 +278,7 @@ func getNodes(ctx context.Context, ng *orchestration.NodeGroup, rnd *rand.Rand) 
 }
 
 // uploadAndPinChunkToNode uploads a given chunk to a given node and pins it.
-func uploadAndPinChunkToNode(ctx context.Context, node *orchestration.Client, chunk *orchestration.Chunk) error {
+func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.Chunk) error {
 	ref, err := node.UploadChunk(ctx, chunk.Data(), api.UploadOptions{Pin: false})
 	if err != nil {
 		return err
@@ -287,7 +288,7 @@ func uploadAndPinChunkToNode(ctx context.Context, node *orchestration.Client, ch
 }
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
-func deleteChunkFromAllNodes(ctx context.Context, ng *orchestration.NodeGroup, chunk *orchestration.Chunk) error {
+func deleteChunkFromAllNodes(ctx context.Context, ng *orchestration.NodeGroup, chunk *bee.Chunk) error {
 	nodesClients, err := ng.NodesClients(ctx)
 	if err != nil {
 		return fmt.Errorf("get nodes clients: %w", err)
@@ -304,8 +305,8 @@ func deleteChunkFromAllNodes(ctx context.Context, ng *orchestration.NodeGroup, c
 
 // getRandomChunkAndClosestNode generates a random node and picks the closest node in the cluster, so that
 // when the chunk is uploaded anywhere in the cluster it lands in this node.
-func getRandomChunkAndClosestNode(overlays orchestration.NodeGroupOverlays, rnd *rand.Rand) (swarm.Address, *orchestration.Chunk, error) {
-	chunk, err := orchestration.NewRandomChunk(rnd)
+func getRandomChunkAndClosestNode(overlays orchestration.NodeGroupOverlays, rnd *rand.Rand) (swarm.Address, *bee.Chunk, error) {
+	chunk, err := bee.NewRandomChunk(rnd)
 	if err != nil {
 		return swarm.ZeroAddress, nil, err
 	}

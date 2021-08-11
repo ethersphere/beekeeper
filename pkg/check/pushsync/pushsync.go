@@ -8,7 +8,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -116,7 +117,7 @@ func defaultCheck(ctx context.Context, c *orchestration.Cluster, o Options) erro
 		time.Sleep(o.PostageWait)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
-			chunk, err := orchestration.NewRandomChunk(rnds[i])
+			chunk, err := bee.NewRandomChunk(rnds[i])
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}

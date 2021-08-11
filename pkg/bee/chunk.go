@@ -1,4 +1,4 @@
-package orchestration
+package bee
 
 import (
 	"encoding/binary"

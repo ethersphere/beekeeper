@@ -9,7 +9,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -111,7 +112,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *orchestration.Cluster, op
 			}
 
 			for {
-				file := orchestration.NewRandomFile(rnds[i], "filename", o.FileSize)
+				file := bee.NewRandomFile(rnds[i], "filename", o.FileSize)
 
 				retryCount := 0
 				for {

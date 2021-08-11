@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -94,14 +95,14 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 
 		ng, nodeName, overlay := overlays.Random(rnd)
 
-		file := orchestration.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
+		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
 		uClient, err := cluster.NodeGroups()[ng].NodeClient(nodeName)
 		if err != nil {
 			return err
 		}
 
 		// add some buffer to ensure depth is enough
-		depth := 2 + orchestration.EstimatePostageBatchDepth(file.Size())
+		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
 		batchID, err := uClient.CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)

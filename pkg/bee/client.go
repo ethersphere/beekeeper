@@ -1,4 +1,4 @@
-package orchestration
+package bee
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
+	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 )
 
 const retryCount int = 5
@@ -613,8 +613,8 @@ func (c *Client) UploadFile(ctx context.Context, f *File, o api.UploadOptions) (
 		return fmt.Errorf("upload file: %w", err)
 	}
 
-	f.address = r.Reference
-	f.hash = h.Sum(nil)
+	f.SetAddress(r.Reference)
+	f.SetHash(h.Sum(nil))
 
 	return
 }
@@ -627,8 +627,8 @@ func (c *Client) UploadCollection(ctx context.Context, f *File, o api.UploadOpti
 		return fmt.Errorf("upload collection: %w", err)
 	}
 
-	f.address = r.Reference
-	f.hash = h.Sum(nil)
+	f.SetAddress(r.Reference)
+	f.SetHash(h.Sum(nil))
 
 	return
 }

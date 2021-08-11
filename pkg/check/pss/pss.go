@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -116,7 +117,7 @@ var (
 	testTopic = "test"
 )
 
-func testPss(nodeAName, nodeBName string, clients map[string]*orchestration.Client, o Options) error {
+func testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Options) error {
 	ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
 
 	nodeA := clients[nodeAName]

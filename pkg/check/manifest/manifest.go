@@ -11,7 +11,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -81,7 +82,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 		return err
 	}
 
-	tarFile := orchestration.NewBufferFile("", tarReader)
+	tarFile := bee.NewBufferFile("", tarReader)
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
@@ -134,8 +135,8 @@ DOWNLOAD:
 	return nil
 }
 
-func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]orchestration.File, error) {
-	files := make([]orchestration.File, filesCount)
+func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]bee.File, error) {
+	files := make([]bee.File, filesCount)
 
 	for i := 0; i < filesCount; i++ {
 		pathnameLength := int64(r.Int31n(maxPathnameLength-1)) + 1 // ensure path with length of at least one
@@ -149,7 +150,7 @@ func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]orc
 
 		pathname := hex.EncodeToString(b)
 
-		file := orchestration.NewRandomFile(r, pathname, pathnameLength)
+		file := bee.NewRandomFile(r, pathname, pathnameLength)
 
 		err = file.CalculateHash()
 		if err != nil {
@@ -164,7 +165,7 @@ func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]orc
 
 // tarFiles receives an array of files and creates a new tar archive with those
 // files as a collection.
-func tarFiles(files []orchestration.File) (*bytes.Buffer, error) {
+func tarFiles(files []bee.File) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 
