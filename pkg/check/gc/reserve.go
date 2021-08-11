@@ -26,7 +26,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		CacheSize:    1000,
-		GasPrice:     "500000000000",
+		GasPrice:     "",
 		PostageLabel: "test-label",
 		ReserveSize:  1024,
 		Seed:         0,
