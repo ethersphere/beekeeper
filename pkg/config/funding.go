@@ -3,7 +3,7 @@ package config
 import (
 	"reflect"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // Funding represents funding deposits for every node in the cluster
@@ -13,8 +13,8 @@ type Funding struct {
 	GBzz *float64 `yaml:"gbzz"`
 }
 
-// Export exports Funding to bee.FundingOptions
-func (f *Funding) Export() (o bee.FundingOptions) {
+// Export exports Funding to orchestration.FundingOptions
+func (f *Funding) Export() (o orchestration.FundingOptions) {
 	localVal := reflect.ValueOf(f).Elem()
 	localType := reflect.TypeOf(f).Elem()
 	remoteVal := reflect.ValueOf(&o).Elem()
@@ -32,5 +32,5 @@ func (f *Funding) Export() (o bee.FundingOptions) {
 		}
 	}
 
-	return remoteVal.Interface().(bee.FundingOptions)
+	return remoteVal.Interface().(orchestration.FundingOptions)
 }

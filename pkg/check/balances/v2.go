@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	beev2 "github.com/ethersphere/beekeeper/pkg/check/bee"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
-func (c *Check) RunV2(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) RunV2(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

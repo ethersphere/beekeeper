@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
@@ -55,7 +55,7 @@ func NewSimulation() beekeeper.Action {
 }
 
 // Run executes retrieval simulation
-func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (s *Simulation) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -92,7 +92,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 			time.Sleep(o.PostageWait)
 
 			for j := 0; j < o.ChunksPerNode; j++ {
-				chunk, err := bee.NewRandomChunk(rnds[i])
+				chunk, err := orchestration.NewRandomChunk(rnds[i])
 				if err != nil {
 					fmt.Printf("error: node %s: %v\n", nodeName, err)
 					continue

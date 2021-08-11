@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 func (c *CheckCase) ExpectValidInitialBalances(ctx context.Context) error {
@@ -51,7 +51,7 @@ func (c *CheckCase) ExpectBalancesHaveChanged(ctx context.Context) error {
 	return nil
 }
 
-func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
+func flattenOverlays(o orchestration.ClusterOverlays) map[string]swarm.Address {
 	res := make(map[string]swarm.Address)
 	for _, ngo := range o {
 		for n, over := range ngo {
@@ -61,7 +61,7 @@ func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
 	return res
 }
 
-func flattenBalances(b bee.ClusterBalances) map[string]map[string]int64 {
+func flattenBalances(b orchestration.ClusterBalances) map[string]map[string]int64 {
 	res := make(map[string]map[string]int64)
 	for _, ngb := range b {
 		for n, balances := range ngb {
@@ -94,7 +94,7 @@ func expectCreditsEqualDebits(overlays map[string]swarm.Address, balances map[st
 }
 
 // balancesHaveChanged checks if balances have changed
-func balancesHaveChanged(current, previous bee.NodeGroupBalances) {
+func balancesHaveChanged(current, previous orchestration.NodeGroupBalances) {
 	for node, v := range current {
 		for peer, balance := range v {
 			if balance != previous[node][peer] {

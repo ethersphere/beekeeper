@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // compile check whether Check implements interface
@@ -34,7 +34,7 @@ func NewDefaultOptions() Options {
 
 var errFullConnectivity = errors.New("full connectivity")
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	lightNodes := opts.(Options).LightNodeNames
 	bootNodes := opts.(Options).BootNodeNames
 	if err := checkFullNodesConnectivity(ctx, cluster, lightNodes, bootNodes); err != nil {
@@ -48,7 +48,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	return
 }
 
-func checkFullNodesConnectivity(ctx context.Context, cluster *bee.Cluster, skipNodes, bootNodes []string) (err error) {
+func checkFullNodesConnectivity(ctx context.Context, cluster *orchestration.Cluster, skipNodes, bootNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func isBootNode(group string, bootnodes []string) bool {
 	return false
 }
 
-func checkLightNodesConnectivity(ctx context.Context, cluster *bee.Cluster, skipNodes []string) (err error) {
+func checkLightNodesConnectivity(ctx context.Context, cluster *orchestration.Cluster, skipNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func checkLightNodesConnectivity(ctx context.Context, cluster *bee.Cluster, skip
 }
 
 // contains checks if a given set of swarm.Address contains given swarm.Address
-func contains(s bee.ClusterOverlays, a swarm.Address) bool {
+func contains(s orchestration.ClusterOverlays, a swarm.Address) bool {
 	for _, v := range s {
 		for _, o := range v {
 			if o.Equal(a) {

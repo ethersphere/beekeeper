@@ -11,9 +11,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -56,7 +56,7 @@ func NewCheck() beekeeper.Action {
 
 var errManifest = errors.New("manifest data mismatch")
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -81,7 +81,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return err
 	}
 
-	tarFile := bee.NewBufferFile("", tarReader)
+	tarFile := orchestration.NewBufferFile("", tarReader)
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
@@ -134,8 +134,8 @@ DOWNLOAD:
 	return nil
 }
 
-func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]bee.File, error) {
-	files := make([]bee.File, filesCount)
+func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]orchestration.File, error) {
+	files := make([]orchestration.File, filesCount)
 
 	for i := 0; i < filesCount; i++ {
 		pathnameLength := int64(r.Int31n(maxPathnameLength-1)) + 1 // ensure path with length of at least one
@@ -149,7 +149,7 @@ func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]bee
 
 		pathname := hex.EncodeToString(b)
 
-		file := bee.NewRandomFile(r, pathname, pathnameLength)
+		file := orchestration.NewRandomFile(r, pathname, pathnameLength)
 
 		err = file.CalculateHash()
 		if err != nil {
@@ -164,7 +164,7 @@ func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]bee
 
 // tarFiles receives an array of files and creates a new tar archive with those
 // files as a collection.
-func tarFiles(files []bee.File) (*bytes.Buffer, error) {
+func tarFiles(files []orchestration.File) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 

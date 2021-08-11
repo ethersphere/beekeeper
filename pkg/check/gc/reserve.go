@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -130,7 +130,7 @@ A little bit about how the numbers make sense:
   checks on the pinning API.
 */
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 
 	o, ok := opts.(Options)
 	if !ok {
@@ -165,7 +165,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	)
 
 	var (
-		pinnedChunk                = bee.GenerateRandomChunkAt(rnd, overlay, 0)
+		pinnedChunk                = orchestration.GenerateRandomChunkAt(rnd, overlay, 0)
 		lowValueChunks             = chunkBatch(rnd, overlay, 10, initialRadius)
 		lowValueHigherRadiusChunks = chunkBatch(rnd, overlay, 10, higherRadius)
 	)
@@ -240,7 +240,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	// cache size is 10 and we expect ten percent to be evicted
 	if hasCount != 9 {
-		return fmt.Errorf("first batch gc count mismatch, has %d; want %d\n", hasCount, 9)
+		return fmt.Errorf("first batch gc count mismatch, has %d; want %d", hasCount, 9)
 	}
 
 	_, hasCount, err = client.HasChunks(ctx, addresses(lowValueHigherRadiusChunks))
@@ -327,7 +327,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 func chunkBatch(rnd *rand.Rand, target swarm.Address, count int, po uint8) []swarm.Chunk {
 	chunks := make([]swarm.Chunk, count)
 	for i := range chunks {
-		chunks[i] = bee.GenerateRandomChunkAt(rnd, target, po)
+		chunks[i] = orchestration.GenerateRandomChunkAt(rnd, target, po)
 	}
 	return chunks
 }

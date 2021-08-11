@@ -1,4 +1,4 @@
-package bee
+package orchestration
 
 import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"

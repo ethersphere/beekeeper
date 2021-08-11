@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -54,7 +54,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -88,20 +88,20 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Println("Balances are valid")
 
-	var previousBalances bee.NodeGroupBalances
+	var previousBalances orchestration.NodeGroupBalances
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload file to random node
 
 		ng, nodeName, overlay := overlays.Random(rnd)
 
-		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
+		file := orchestration.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
 		uClient, err := cluster.NodeGroups()[ng].NodeClient(nodeName)
 		if err != nil {
 			return err
 		}
 
 		// add some buffer to ensure depth is enough
-		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+		depth := 2 + orchestration.EstimatePostageBatchDepth(file.Size())
 		batchID, err := uClient.CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
@@ -181,7 +181,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 }
 
 // dryRun executes balances validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+func dryRun(ctx context.Context, cluster *orchestration.Cluster, o Options) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
@@ -226,7 +226,7 @@ func validateBalances(overlays map[string]swarm.Address, balances map[string]map
 }
 
 // balancesHaveChanged checks if balances have changed
-func balancesHaveChanged(current, previous bee.NodeGroupBalances) {
+func balancesHaveChanged(current, previous orchestration.NodeGroupBalances) {
 	for node, v := range current {
 		for peer, balance := range v {
 			if balance != previous[node][peer] {
@@ -238,7 +238,7 @@ func balancesHaveChanged(current, previous bee.NodeGroupBalances) {
 	fmt.Println("Balances have not changed")
 }
 
-func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
+func flattenOverlays(o orchestration.ClusterOverlays) map[string]swarm.Address {
 	res := make(map[string]swarm.Address)
 	for _, ngo := range o {
 		for n, over := range ngo {
@@ -248,7 +248,7 @@ func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
 	return res
 }
 
-func flattenBalances(b bee.ClusterBalances) map[string]map[string]int64 {
+func flattenBalances(b orchestration.ClusterBalances) map[string]map[string]int64 {
 	res := make(map[string]map[string]int64)
 	for _, ngb := range b {
 		for n, balances := range ngb {

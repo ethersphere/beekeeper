@@ -8,9 +8,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -61,7 +61,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -95,7 +95,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 	fmt.Println("Settlements are valid")
 
-	var previousSettlements map[string]map[string]bee.SentReceived
+	var previousSettlements map[string]map[string]orchestration.SentReceived
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -108,7 +108,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		// upload file to random node
 		uIndex := rnd.Intn(cluster.Size())
 		uNode := sortedNodes[uIndex]
-		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
+		file := orchestration.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
 
 		client := clients[uNode]
 
@@ -157,7 +157,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		}
 
 		if !settlementsValid {
-			return errors.New("Settlements are not valid")
+			return errors.New("settlements are not valid")
 		}
 
 		time.Sleep(o.WaitBeforeDownload)
@@ -210,7 +210,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		}
 
 		if !settlementsValid {
-			return errors.New("Settlements are not valid")
+			return errors.New("settlements are not valid")
 		}
 	}
 
@@ -218,7 +218,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 }
 
 // dryRun executes settlements validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+func dryRun(ctx context.Context, cluster *orchestration.Cluster, o Options) (err error) {
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
@@ -243,7 +243,7 @@ func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
 }
 
 // validateSettlements checks if settlements are valid
-func validateSettlements(threshold int64, overlays bee.NodeGroupOverlays, balances bee.NodeGroupBalances, settlements bee.NodeGroupSettlements) (err error) {
+func validateSettlements(threshold int64, overlays orchestration.NodeGroupOverlays, balances orchestration.NodeGroupBalances, settlements orchestration.NodeGroupSettlements) (err error) {
 	// threshold validation
 	for node, v := range balances {
 		for _, balance := range v {
@@ -293,7 +293,7 @@ func validateSettlements(threshold int64, overlays bee.NodeGroupOverlays, balanc
 }
 
 // settlementsHaveHappened checks if settlements have happened
-func settlementsHaveHappened(current, previous map[string]map[string]bee.SentReceived) bool {
+func settlementsHaveHappened(current, previous map[string]map[string]orchestration.SentReceived) bool {
 	for node, v := range current {
 		for peer, settlement := range v {
 			if settlement.Received != previous[node][peer].Received || settlement.Sent != previous[node][peer].Sent {

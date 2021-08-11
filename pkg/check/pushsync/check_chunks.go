@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
+func checkChunks(ctx context.Context, c *orchestration.Cluster, o Options) error {
 	fmt.Println("running pushsync (chunks mode)")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
@@ -43,7 +43,7 @@ func checkChunks(ctx context.Context, c *bee.Cluster, o Options) error {
 
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {
-			chunk, err := bee.NewRandomChunk(rnds[i])
+			chunk, err := orchestration.NewRandomChunk(rnds[i])
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}

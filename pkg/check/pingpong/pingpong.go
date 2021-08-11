@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
@@ -37,7 +37,7 @@ func NewCheck() beekeeper.Action {
 }
 
 // Run executes ping check
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	fmt.Println("running pingpong")
 	o, ok := opts.(Options)
 	if !ok {
@@ -104,13 +104,13 @@ type nodeStreamMsg struct {
 	Error       error
 }
 
-func nodeStream(ctx context.Context, nodes map[string]*bee.Client) <-chan nodeStreamMsg {
+func nodeStream(ctx context.Context, nodes map[string]*orchestration.Client) <-chan nodeStreamMsg {
 	nodeStream := make(chan nodeStreamMsg)
 
 	var wg sync.WaitGroup
 	for k, v := range nodes {
 		wg.Add(1)
-		go func(name string, node *bee.Client) {
+		go func(name string, node *orchestration.Client) {
 			defer wg.Done()
 
 			address, err := node.Overlay(ctx)

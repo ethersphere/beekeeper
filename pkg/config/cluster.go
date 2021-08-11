@@ -3,7 +3,7 @@ package config
 import (
 	"reflect"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // Cluster represents cluster configuration
@@ -47,8 +47,8 @@ type Clef struct {
 	Password string `yaml:"password"`
 }
 
-// Export exports Cluster to bee.ClusterOptions, skipping all other extra fields
-func (c *Cluster) Export() (o bee.ClusterOptions) {
+// Export exports Cluster to orchestration.ClusterOptions, skipping all other extra fields
+func (c *Cluster) Export() (o orchestration.ClusterOptions) {
 	localVal := reflect.ValueOf(c).Elem()
 	localType := reflect.TypeOf(c).Elem()
 	remoteVal := reflect.ValueOf(&o).Elem()
@@ -66,7 +66,7 @@ func (c *Cluster) Export() (o bee.ClusterOptions) {
 		}
 	}
 
-	return remoteVal.Interface().(bee.ClusterOptions)
+	return remoteVal.Interface().(orchestration.ClusterOptions)
 }
 
 // GetName returns cluster name

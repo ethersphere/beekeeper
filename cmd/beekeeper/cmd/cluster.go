@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -19,7 +19,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	clusterOptions.K8SClient = c.k8sClient
 	clusterOptions.SwapClient = c.swapClient
 
-	cluster := bee.NewCluster(clusterConfig.GetName(), clusterOptions)
+	cluster := orchestration.NewCluster(clusterConfig.GetName(), clusterOptions)
 
 	// delete node groups
 	for ng, v := range clusterConfig.GetNodeGroups() {
@@ -101,7 +101,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	return
 }
 
-func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster *bee.Cluster, err error) {
+func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster *orchestration.Cluster, err error) {
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
@@ -111,7 +111,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	clusterOptions.K8SClient = c.k8sClient
 	clusterOptions.SwapClient = c.swapClient
 
-	cluster = bee.NewCluster(clusterConfig.GetName(), clusterOptions)
+	cluster = orchestration.NewCluster(clusterConfig.GetName(), clusterOptions)
 
 	if start {
 		bootnodes := ""
@@ -146,7 +146,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					// set NodeOptions
-					nOptions := bee.NodeOptions{
+					nOptions := orchestration.NodeOptions{
 						Config: &bConfig,
 					}
 					if len(v.Nodes[i].Clef.Key) > 0 {
@@ -207,7 +207,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 							nName = v.Nodes[i].Name
 						}
 						// set NodeOptions
-						nOptions := bee.NodeOptions{}
+						nOptions := orchestration.NodeOptions{}
 						if len(v.Nodes[i].Clef.Key) > 0 {
 							nOptions.ClefKey = v.Nodes[i].Clef.Key
 						}
@@ -231,7 +231,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						nName := fmt.Sprintf("%s-%d", ng, i)
 
 						errGroup.Go(func() error {
-							return g.SetupNode(ctx, nName, bee.NodeOptions{}, clusterConfig.Funding.Export())
+							return g.SetupNode(ctx, nName, orchestration.NodeOptions{}, clusterConfig.Funding.Export())
 						})
 					}
 				}
@@ -273,7 +273,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
 					bootnodes += bConfig.Bootnodes + " "
 					// set NodeOptions
-					nOptions := bee.NodeOptions{
+					nOptions := orchestration.NodeOptions{
 						Config: &bConfig,
 					}
 					if len(v.Nodes[i].Clef.Key) > 0 {
@@ -329,7 +329,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 							nName = v.Nodes[i].Name
 						}
 						// set NodeOptions
-						nOptions := bee.NodeOptions{}
+						nOptions := orchestration.NodeOptions{}
 						if len(v.Nodes[i].Clef.Key) > 0 {
 							nOptions.ClefKey = v.Nodes[i].Clef.Key
 						}
@@ -343,7 +343,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 							nOptions.SwarmKey = v.Nodes[i].SwarmKey
 						}
 
-						if err := g.AddNode(nName, bee.NodeOptions{}); err != nil {
+						if err := g.AddNode(nName, orchestration.NodeOptions{}); err != nil {
 							return nil, fmt.Errorf("adding node %s: %w", nName, err)
 						}
 					}
@@ -351,7 +351,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					for i := 0; i < v.Count; i++ {
 						nName := fmt.Sprintf("%s-%d", ng, i)
 
-						if err := g.AddNode(nName, bee.NodeOptions{}); err != nil {
+						if err := g.AddNode(nName, orchestration.NodeOptions{}); err != nil {
 							return nil, fmt.Errorf("adding node %s: %w", nName, err)
 						}
 					}

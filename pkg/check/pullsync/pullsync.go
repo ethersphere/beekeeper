@@ -8,10 +8,10 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
 // Options represents check options
@@ -53,7 +53,7 @@ func NewCheck() beekeeper.Action {
 
 var errPullSync = errors.New("pull sync")
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -87,7 +87,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		nodeName := sortedNodes[i]
 		client := clients[nodeName]
 
-		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, bee.MinimumBatchDepth, o.GasPrice, o.PostageLabel, false)
+		batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, orchestration.MinimumBatchDepth, o.GasPrice, o.PostageLabel, false)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 		}
@@ -96,13 +96,13 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (
-				chunk bee.Chunk
+				chunk orchestration.Chunk
 				err   error
 				nnRep int
 			)
 			replicatingNodes := make(map[string]swarm.Address)
 
-			chunk, err = bee.NewRandomChunk(rnds[i])
+			chunk, err = orchestration.NewRandomChunk(rnds[i])
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}

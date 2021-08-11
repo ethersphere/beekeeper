@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -56,7 +56,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -116,7 +116,7 @@ var (
 	testTopic = "test"
 )
 
-func testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Options) error {
+func testPss(nodeAName, nodeBName string, clients map[string]*orchestration.Client, o Options) error {
 	ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
 
 	nodeA := clients[nodeAName]

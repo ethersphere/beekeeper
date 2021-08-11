@@ -3,7 +3,7 @@ package config
 import (
 	"reflect"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // NodeGroup represents node group configuration
@@ -35,8 +35,8 @@ type NodeGroup struct {
 	UpdateStrategy            *string            `yaml:"update-strategy"`
 }
 
-// Export exports NodeGroup to bee.NodeGroupOptions
-func (n *NodeGroup) Export() (o bee.NodeGroupOptions) {
+// Export exports NodeGroup to orchestration.NodeGroupOptions
+func (n *NodeGroup) Export() (o orchestration.NodeGroupOptions) {
 	localVal := reflect.ValueOf(n).Elem()
 	localType := reflect.TypeOf(n).Elem()
 	remoteVal := reflect.ValueOf(&o).Elem()
@@ -54,5 +54,5 @@ func (n *NodeGroup) Export() (o bee.NodeGroupOptions) {
 		}
 	}
 
-	return remoteVal.Interface().(bee.NodeGroupOptions)
+	return remoteVal.Interface().(orchestration.NodeGroupOptions)
 }

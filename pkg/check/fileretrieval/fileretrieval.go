@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -58,7 +58,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -74,7 +74,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 var errFileRetrieval = errors.New("file retrieval")
 
 // defaultCheck uploads files on cluster and downloads them from the last node in the cluster
-func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+func defaultCheck(ctx context.Context, cluster *orchestration.Cluster, o Options) (err error) {
 	fmt.Println("running file retrieval")
 
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
@@ -107,9 +107,9 @@ func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
 		for j := 0; j < o.FilesPerNode; j++ {
-			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
+			file := orchestration.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
-			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+			depth := 2 + orchestration.EstimatePostageBatchDepth(file.Size())
 			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
@@ -166,7 +166,7 @@ func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 }
 
 // fullCheck uploads files on cluster and downloads them from the all nodes in the cluster
-func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+func fullCheck(ctx context.Context, cluster *orchestration.Cluster, o Options) (err error) {
 	fmt.Println("running file retrieval (full mode)")
 
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
@@ -199,9 +199,9 @@ func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 	for i := 0; i < o.UploadNodeCount; i++ {
 		nodeName := sortedNodes[i]
 		for j := 0; j < o.FilesPerNode; j++ {
-			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
+			file := orchestration.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
-			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
+			depth := 2 + orchestration.EstimatePostageBatchDepth(file.Size())
 			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
