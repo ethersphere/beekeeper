@@ -1,4 +1,4 @@
-package k8s
+package bee
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// ErrNotSet represents error when Kubernetes Bee client is not set
-var ErrNotSet = errors.New("kubernetes Bee client not set")
+// ErrNotSet represents error when orchestration client is not set
+var ErrNotSet = errors.New("orchestration client not set")
 
 // Bee represents Bee implementation in Kubernetes
 type Bee interface {

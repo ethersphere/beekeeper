@@ -10,8 +10,9 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
-	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s/notset"
+	ob "github.com/ethersphere/beekeeper/pkg/orchestration/bee"
+	k8sBee "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
@@ -373,7 +374,7 @@ func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node *Node, err
 	nodes := []*Node{}
 	for _, ng := range c.NodeGroups() {
 		stopped, err := ng.StoppedNodes(ctx)
-		if err != nil && err != k8s.ErrNotSet {
+		if err != nil && err != ob.ErrNotSet {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
+	ob "github.com/ethersphere/beekeeper/pkg/orchestration/bee"
 )
 
 const nodeRetryTimeout = 3 * time.Second
@@ -22,7 +22,7 @@ type NodeGroup struct {
 
 	// set when added to the cluster
 	cluster *Cluster
-	k8s     k8s.Bee
+	k8s     ob.Bee
 
 	lock sync.RWMutex
 }
@@ -32,7 +32,7 @@ type NodeGroupOptions struct {
 	Annotations               map[string]string
 	ClefImage                 string
 	ClefImagePullPolicy       string
-	BeeConfig                 *k8s.Config
+	BeeConfig                 *ob.Config
 	Image                     string
 	ImagePullPolicy           string
 	ImagePullSecrets          []string
@@ -84,7 +84,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 	})
 
 	// TODO: make more granular, check every sub-option
-	var config *k8s.Config
+	var config *ob.Config
 	if o.Config != nil {
 		config = o.Config
 	} else {
@@ -141,7 +141,7 @@ type AddressesStreamMsg struct {
 // AddressesStream returns stream of addresses of all nodes in the node group
 func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != k8s.ErrNotSet {
+	if err != nil && err != ob.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -219,7 +219,7 @@ type BalancesStreamMsg struct {
 // BalancesStream returns stream of balances of all nodes in the cluster
 func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != k8s.ErrNotSet {
+	if err != nil && err != ob.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -262,7 +262,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	if err := g.k8s.Create(ctx, k8s.CreateOptions{
+	if err := g.k8s.Create(ctx, ob.CreateOptions{
 		// Bee configuration
 		Config: *n.config,
 		// Kubernetes configuration
@@ -432,7 +432,7 @@ type HasChunkStreamMsg struct {
 // HasChunkStream returns stream of HasChunk requests for all nodes in the node group
 func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan HasChunkStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != k8s.ErrNotSet {
+	if err != nil && err != ob.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -557,7 +557,7 @@ type OverlaysStreamMsg struct {
 // TODO: add semaphore
 func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != k8s.ErrNotSet {
+	if err != nil && err != ob.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -625,7 +625,7 @@ type PeersStreamMsg struct {
 // PeersStream returns stream of peers of all nodes in the node group
 func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != k8s.ErrNotSet {
+	if err != nil && err != ob.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -754,7 +754,7 @@ type SettlementsStreamMsg struct {
 // SettlementsStream returns stream of settlements of all nodes in the cluster
 func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != k8s.ErrNotSet {
+	if err != nil && err != ob.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -889,7 +889,7 @@ type TopologyStreamMsg struct {
 // TopologyStream returns stream of Kademlia topologies of all nodes in the node group
 func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != k8s.ErrNotSet {
+	if err != nil && err != ob.ErrNotSet {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
