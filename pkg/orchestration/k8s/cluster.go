@@ -70,7 +70,7 @@ func NewCluster(name string, o ClusterOptions) *Cluster {
 }
 
 // AddNodeGroup adds new node group to the cluster
-func (c *Cluster) AddNodeGroup(name string, o NodeGroupOptions) {
+func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
 	g := NewNodeGroup(name, o)
 	g.cluster = c
 

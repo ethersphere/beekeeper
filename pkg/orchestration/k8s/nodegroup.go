@@ -18,7 +18,7 @@ const nodeRetryTimeout = 3 * time.Second
 type NodeGroup struct {
 	name  string
 	nodes map[string]*Node
-	opts  NodeGroupOptions
+	opts  orchestration.NodeGroupOptions
 
 	// set when added to the cluster
 	cluster *Cluster
@@ -27,35 +27,8 @@ type NodeGroup struct {
 	lock sync.RWMutex
 }
 
-// NodeGroupOptions represents node group options
-type NodeGroupOptions struct {
-	Annotations               map[string]string
-	ClefImage                 string
-	ClefImagePullPolicy       string
-	BeeConfig                 *orchestration.Config
-	Image                     string
-	ImagePullPolicy           string
-	ImagePullSecrets          []string
-	IngressAnnotations        map[string]string
-	IngressClass              string
-	IngressDebugAnnotations   map[string]string
-	IngressDebugClass         string
-	Labels                    map[string]string
-	NodeSelector              map[string]string
-	PersistenceEnabled        bool
-	PersistenceStorageClass   string
-	PersistenceStorageRequest string
-	PodManagementPolicy       string
-	RestartPolicy             string
-	ResourcesLimitCPU         string
-	ResourcesLimitMemory      string
-	ResourcesRequestCPU       string
-	ResourcesRequestMemory    string
-	UpdateStrategy            string
-}
-
 // NewNodeGroup returns new node group
-func NewNodeGroup(name string, o NodeGroupOptions) *NodeGroup {
+func NewNodeGroup(name string, o orchestration.NodeGroupOptions) *NodeGroup {
 	return &NodeGroup{
 		name:  name,
 		nodes: make(map[string]*Node),

@@ -3,7 +3,7 @@ package config
 import (
 	"reflect"
 
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // NodeGroup represents node group configuration
