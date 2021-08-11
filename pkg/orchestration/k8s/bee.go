@@ -14,11 +14,11 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
-	ob "github.com/ethersphere/beekeeper/pkg/orchestration/bee"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // compile check whether client implements interface
-var _ ob.Bee = (*Client)(nil)
+var _ orchestration.Bee = (*Client)(nil)
 
 // Client manages communication with the Kubernetes
 type Client struct {
@@ -38,7 +38,7 @@ func NewClient(k8s *k8s.Client) (c *Client) {
 }
 
 // Create creates Bee node in the cluster
-func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
+func (c *Client) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
 	// bee configuration
 	var config bytes.Buffer
 	if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {

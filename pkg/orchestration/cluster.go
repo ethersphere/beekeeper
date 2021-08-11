@@ -10,9 +10,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
-	ob "github.com/ethersphere/beekeeper/pkg/orchestration/bee"
 	k8sBee "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
-	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
@@ -79,7 +77,8 @@ func (c *Cluster) AddNodeGroup(name string, o NodeGroupOptions) {
 	if g.cluster.k8s != nil {
 		g.k8s = k8sBee.NewClient(g.cluster.k8s)
 	} else {
-		g.k8s = new(notset.BeeClient)
+		// g.k8s = new(notset.BeeClient)
+		g.k8s = nil
 	}
 
 	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)
@@ -374,7 +373,7 @@ func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node *Node, err
 	nodes := []*Node{}
 	for _, ng := range c.NodeGroups() {
 		stopped, err := ng.StoppedNodes(ctx)
-		if err != nil && err != ob.ErrNotSet {
+		if err != nil && err != ErrNotSet {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 
