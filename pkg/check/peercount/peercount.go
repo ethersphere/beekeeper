@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 )
 
 // compile check whether Check implements interface

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	beev2 "github.com/ethersphere/beekeeper/pkg/check/bee"
-	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 )
 
 func (c *Check) RunV2(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {

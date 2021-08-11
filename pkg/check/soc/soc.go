@@ -13,7 +13,7 @@ import (
 	"github.com/ethersphere/bee/pkg/crypto"
 	"github.com/ethersphere/bee/pkg/soc"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 )
 
 // Options represents check options

@@ -9,7 +9,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 )
 
 // TODO: remove need for node group, use whole cluster instead

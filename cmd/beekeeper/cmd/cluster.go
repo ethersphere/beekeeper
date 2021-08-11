@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
-	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"golang.org/x/sync/errgroup"
 )
 

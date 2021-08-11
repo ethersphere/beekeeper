@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"golang.org/x/sync/errgroup"
 )

@@ -1,4 +1,4 @@
-package orchestration
+package k8s
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
-	k8sBee "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
@@ -75,7 +75,7 @@ func (c *Cluster) AddNodeGroup(name string, o NodeGroupOptions) {
 	g.cluster = c
 
 	if g.cluster.k8s != nil {
-		g.k8s = k8sBee.NewClient(g.cluster.k8s)
+		g.k8s = NewClient(g.cluster.k8s)
 	} else {
 		// g.k8s = new(notset.BeeClient)
 		g.k8s = nil
@@ -373,7 +373,7 @@ func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node *Node, err
 	nodes := []*Node{}
 	for _, ng := range c.NodeGroups() {
 		stopped, err := ng.StoppedNodes(ctx)
-		if err != nil && err != ErrNotSet {
+		if err != nil && err != orchestration.ErrNotSet {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 
@@ -516,17 +516,4 @@ func (c *Cluster) ingressDebugHost(name string) string {
 		return fmt.Sprintf("%s-debug.%s", name, c.debugAPIDomain)
 	}
 	return fmt.Sprintf("%s-debug.%s.%s", name, c.namespace, c.debugAPIDomain)
-}
-
-// mergeMaps joins two maps
-func mergeMaps(a, b map[string]string) map[string]string {
-	m := map[string]string{}
-	for k, v := range a {
-		m[k] = v
-	}
-	for k, v := range b {
-		m[k] = v
-	}
-
-	return m
 }

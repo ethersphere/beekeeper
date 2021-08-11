@@ -3,7 +3,7 @@ package config
 import (
 	"reflect"
 
-	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 )
 
 // Cluster represents cluster configuration

@@ -1,7 +1,8 @@
-package orchestration
+package k8s
 
 import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // Node represents Bee node
@@ -10,7 +11,7 @@ type Node struct {
 	clefKey      string
 	clefPassword string
 	client       *bee.Client
-	config       *Config
+	config       *orchestration.Config
 	libP2PKey    string
 	swarmKey     string
 }
@@ -20,7 +21,7 @@ type NodeOptions struct {
 	ClefKey      string
 	ClefPassword string
 	Client       *bee.Client
-	Config       *Config
+	Config       *orchestration.Config
 	LibP2PKey    string
 	SwarmKey     string
 }
@@ -62,7 +63,7 @@ func (n *Node) Client() *bee.Client {
 }
 
 // Config returns node's config
-func (n *Node) Config() *Config {
+func (n *Node) Config() *orchestration.Config {
 	return n.config
 }
 
