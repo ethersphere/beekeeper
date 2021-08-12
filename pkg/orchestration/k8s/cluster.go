@@ -31,8 +31,8 @@ type Cluster struct {
 	swap                swap.Client
 	labels              map[string]string
 	namespace           string
-	disableNamespace    bool                               // do not use namespace for node hostnames
-	nodeGroups          map[string]orchestration.NodeGroup // set when groups are added to the cluster
+	disableNamespace    bool                  // do not use namespace for node hostnames
+	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
 }
 
 // NewCluster returns new cluster
@@ -51,7 +51,7 @@ func NewCluster(name string, o orchestration.ClusterOptions) *Cluster {
 		labels:              o.Labels,
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,
-		nodeGroups:          make(map[string]orchestration.NodeGroup),
+		nodeGroups:          make(map[string]*NodeGroup),
 	}
 }
 
@@ -140,7 +140,11 @@ func (c *Cluster) Name() string {
 
 // NodeGroups returns map of node groups in the cluster
 func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
-	return c.nodeGroups
+	nodeGroups := make(map[string]orchestration.NodeGroup)
+	for k, v := range c.nodeGroups {
+		nodeGroups[k] = v
+	}
+	return nodeGroups
 }
 
 // NodeGroupsSorted returns sorted list of node names in the node group

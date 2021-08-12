@@ -21,7 +21,7 @@ var _ orchestration.NodeGroup = (*NodeGroup)(nil)
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
 	name  string
-	nodes map[string]orchestration.Node
+	nodes map[string]*Node
 	opts  orchestration.NodeGroupOptions
 
 	// set when added to the cluster
@@ -35,7 +35,7 @@ type NodeGroup struct {
 func NewNodeGroup(name string, o orchestration.NodeGroupOptions) *NodeGroup {
 	return &NodeGroup{
 		name:  name,
-		nodes: make(map[string]orchestration.Node),
+		nodes: make(map[string]*Node),
 		opts:  o,
 	}
 }
@@ -441,7 +441,11 @@ func (g *NodeGroup) Name() string {
 
 // Nodes returns map of nodes in the node group
 func (g *NodeGroup) Nodes() map[string]orchestration.Node {
-	return g.getNodes()
+	nodes := make(map[string]orchestration.Node)
+	for k, v := range g.getNodes() {
+		nodes[k] = v
+	}
+	return nodes
 }
 
 // NodesClients returns map of node's clients in the node group excluding stopped nodes
@@ -890,7 +894,7 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMs
 	return topologyStream, nil
 }
 
-func (g *NodeGroup) addNode(n orchestration.Node) {
+func (g *NodeGroup) addNode(n *Node) {
 	g.lock.Lock()
 	g.nodes[n.Name()] = n
 	g.lock.Unlock()
@@ -930,7 +934,7 @@ func (g *NodeGroup) getNode(name string) (n orchestration.Node, err error) {
 	return
 }
 
-func (g *NodeGroup) getNodes() map[string]orchestration.Node {
+func (g *NodeGroup) getNodes() map[string]*Node {
 	g.lock.RLock()
 	nodes := g.nodes
 	g.lock.RUnlock()
