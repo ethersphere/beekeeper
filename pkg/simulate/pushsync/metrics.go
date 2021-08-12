@@ -57,8 +57,8 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 			ConstLabels: prometheus.Labels{
 				"run": runID,
 			},
-			Name: "download_retry_count",
-			Help: "Number of download attempts",
+			Name: "download_node_count",
+			Help: "Number of nodes used for downloading",
 		},
 		[]string{"node"},
 	)
