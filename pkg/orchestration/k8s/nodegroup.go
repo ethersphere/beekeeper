@@ -78,11 +78,8 @@ func (g *NodeGroup) AddNode(name string, o orchestration.NodeOptions) (err error
 	return
 }
 
-// NodeGroupAddresses represents addresses of all nodes in the node group
-type NodeGroupAddresses map[string]bee.Addresses
-
 // Addresses returns NodeGroupAddresses
-func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error) {
+func (g *NodeGroup) Addresses(ctx context.Context) (addrs orchestration.NodeGroupAddresses, err error) {
 	stream, err := g.AddressesStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("addresses stream: %w", err)
@@ -93,7 +90,7 @@ func (g *NodeGroup) Addresses(ctx context.Context) (addrs NodeGroupAddresses, er
 		msgs = append(msgs, m)
 	}
 
-	addrs = make(NodeGroupAddresses)
+	addrs = make(orchestration.NodeGroupAddresses)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
@@ -146,11 +143,8 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStream
 	return addressStream, nil
 }
 
-// NodeGroupBalances represents balances of all nodes in the node group
-type NodeGroupBalances map[string]map[string]int64
-
 // Balances returns NodeGroupBalances
-func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, err error) {
+func (g *NodeGroup) Balances(ctx context.Context) (balances orchestration.NodeGroupBalances, err error) {
 	stream, err := g.BalancesStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("balances stream: %w", err)
@@ -166,7 +160,7 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances NodeGroupBalances, e
 		msgs = append(msgs, m)
 	}
 
-	balances = make(NodeGroupBalances)
+	balances = make(orchestration.NodeGroupBalances)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
@@ -288,14 +282,8 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	return
 }
 
-type FundingOptions struct {
-	Eth  float64
-	Bzz  float64
-	GBzz float64
-}
-
 // Fund adds funds to the node
-func (g *NodeGroup) Fund(ctx context.Context, name string, o FundingOptions) (err error) {
+func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.FundingOptions) (err error) {
 	var a bee.Addresses
 	if o.Eth > 0 || o.Bzz > 0 || o.GBzz > 0 {
 		retries := 5
@@ -493,11 +481,8 @@ func (g *NodeGroup) NodeClient(name string) (*bee.Client, error) {
 	return g.getClient(name)
 }
 
-// NodeGroupOverlays represents overlay addresses of all nodes in the node group
-type NodeGroupOverlays map[string]swarm.Address
-
 // Overlays returns NodeGroupOverlays
-func (g *NodeGroup) Overlays(ctx context.Context) (overlays NodeGroupOverlays, err error) {
+func (g *NodeGroup) Overlays(ctx context.Context) (overlays orchestration.NodeGroupOverlays, err error) {
 	stream, err := g.OverlaysStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("overlay stream: %w", err)
@@ -508,7 +493,7 @@ func (g *NodeGroup) Overlays(ctx context.Context) (overlays NodeGroupOverlays, e
 		msgs = append(msgs, m)
 	}
 
-	overlays = make(NodeGroupOverlays)
+	overlays = make(orchestration.NodeGroupOverlays)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, m.Error
@@ -562,11 +547,8 @@ func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMs
 	return overlaysStream, nil
 }
 
-// NodeGroupPeers represents peers of all nodes in the node group
-type NodeGroupPeers map[string][]swarm.Address
-
 // Peers returns NodeGroupPeers
-func (g *NodeGroup) Peers(ctx context.Context) (peers NodeGroupPeers, err error) {
+func (g *NodeGroup) Peers(ctx context.Context) (peers orchestration.NodeGroupPeers, err error) {
 	stream, err := g.PeersStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("peers stream: %w", err)
@@ -577,7 +559,7 @@ func (g *NodeGroup) Peers(ctx context.Context) (peers NodeGroupPeers, err error)
 		msgs = append(msgs, m)
 	}
 
-	peers = make(NodeGroupPeers)
+	peers = make(orchestration.NodeGroupPeers)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
@@ -652,7 +634,7 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
-func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f FundingOptions) (err error) {
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
 	if err := g.AddNode(name, o); err != nil {
 		return fmt.Errorf("add node %s: %w", name, err)
 	}
@@ -672,17 +654,8 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.
 	return
 }
 
-// NodeGroupSettlements represents settlements of all nodes in the node group
-type NodeGroupSettlements map[string]map[string]SentReceived
-
-// SentReceived object
-type SentReceived struct {
-	Received int64
-	Sent     int64
-}
-
 // Settlements returns NodeGroupSettlements
-func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error) {
+func (g *NodeGroup) Settlements(ctx context.Context) (settlements orchestration.NodeGroupSettlements, err error) {
 	stream, err := g.SettlementsStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("settlements stream: %w", err)
@@ -698,15 +671,15 @@ func (g *NodeGroup) Settlements(ctx context.Context) (settlements NodeGroupSettl
 		msgs = append(msgs, m)
 	}
 
-	settlements = make(NodeGroupSettlements)
+	settlements = make(orchestration.NodeGroupSettlements)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
 		}
 
-		tmp := make(map[string]SentReceived)
+		tmp := make(map[string]orchestration.SentReceived)
 		for _, s := range m.Settlements.Settlements {
-			tmp[s.Peer] = SentReceived{
+			tmp[s.Peer] = orchestration.SentReceived{
 				Received: s.Received,
 				Sent:     s.Sent,
 			}
@@ -826,11 +799,8 @@ func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err err
 	return
 }
 
-// NodeGroupTopologies represents Kademlia topology of all nodes in the node group
-type NodeGroupTopologies map[string]bee.Topology
-
 // Topologies returns NodeGroupTopologies
-func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopologies, err error) {
+func (g *NodeGroup) Topologies(ctx context.Context) (topologies orchestration.NodeGroupTopologies, err error) {
 	stream, err := g.TopologyStream(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("topology stream: %w", err)
@@ -841,7 +811,7 @@ func (g *NodeGroup) Topologies(ctx context.Context) (topologies NodeGroupTopolog
 		msgs = append(msgs, m)
 	}
 
-	topologies = make(NodeGroupTopologies)
+	topologies = make(orchestration.NodeGroupTopologies)
 	for _, m := range msgs {
 		if m.Error != nil {
 			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)

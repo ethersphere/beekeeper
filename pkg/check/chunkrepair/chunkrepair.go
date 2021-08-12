@@ -13,7 +13,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -67,7 +68,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestrationK8S.Cluster, opts interface{}) (err error) {
 	fmt.Println("running chunk repair")
 	o, ok := opts.(Options)
 	if !ok {
@@ -205,7 +206,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match
 // nodeB is the closest to the generated chunk in the cluster.
-func getNodes(ctx context.Context, ng *orchestration.NodeGroup, rnd *rand.Rand) (*bee.Client, *bee.Client, *bee.Client, *bee.Chunk, error) {
+func getNodes(ctx context.Context, ng *orchestrationK8S.NodeGroup, rnd *rand.Rand) (*bee.Client, *bee.Client, *bee.Client, *bee.Chunk, error) {
 	var overlayA swarm.Address
 	var overlayB swarm.Address
 	var overlayC swarm.Address
@@ -288,7 +289,7 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.C
 }
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
-func deleteChunkFromAllNodes(ctx context.Context, ng *orchestration.NodeGroup, chunk *bee.Chunk) error {
+func deleteChunkFromAllNodes(ctx context.Context, ng *orchestrationK8S.NodeGroup, chunk *bee.Chunk) error {
 	nodesClients, err := ng.NodesClients(ctx)
 	if err != nil {
 		return fmt.Errorf("get nodes clients: %w", err)

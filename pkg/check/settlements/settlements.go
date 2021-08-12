@@ -11,7 +11,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -62,7 +63,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestrationK8S.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -219,7 +220,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 }
 
 // dryRun executes settlements validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster *orchestration.Cluster, o Options) (err error) {
+func dryRun(ctx context.Context, cluster *orchestrationK8S.Cluster, o Options) (err error) {
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err

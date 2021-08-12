@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 func (c *CheckCase) ExpectValidInitialBalances(ctx context.Context) error {

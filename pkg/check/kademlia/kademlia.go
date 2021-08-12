@@ -9,7 +9,8 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 )
 
 // Options represents check options
@@ -35,7 +36,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestrationK8S.Cluster, opts interface{}) (err error) {
 	fmt.Println("running kademlia")
 	o, ok := opts.(Options)
 	if !ok {

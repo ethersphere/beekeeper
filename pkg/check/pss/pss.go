@@ -10,7 +10,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -57,7 +57,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *orchestrationK8S.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

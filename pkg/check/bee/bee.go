@@ -10,7 +10,8 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -18,7 +19,7 @@ type CheckCase struct {
 	ctx      context.Context
 	clients  map[string]*bee.Client
 	nodes    []nodeV2
-	cluster  *orchestration.Cluster
+	cluster  *orchestrationK8S.Cluster
 	overlays orchestration.ClusterOverlays
 
 	o               CaseOptions
@@ -37,7 +38,7 @@ type CaseOptions struct {
 	PostageDepth  uint64
 }
 
-func NewCheckCase(ctx context.Context, cluster *orchestration.Cluster, o CaseOptions) (*CheckCase, error) {
+func NewCheckCase(ctx context.Context, cluster *orchestrationK8S.Cluster, o CaseOptions) (*CheckCase, error) {
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return nil, err

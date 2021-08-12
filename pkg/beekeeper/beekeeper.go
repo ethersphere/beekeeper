@@ -165,7 +165,7 @@ func updateNodeGroup(ctx context.Context, ng *orchestrationK8S.NodeGroup, a Acti
 
 	// add nodes
 	for _, n := range toAdd {
-		if err := ng.SetupNode(ctx, n, orchestration.NodeOptions{}, orchestrationK8S.FundingOptions{}); err != nil {
+		if err := ng.SetupNode(ctx, n, orchestration.NodeOptions{}, orchestration.FundingOptions{}); err != nil {
 			return fmt.Errorf("add start node %s: %w", n, err)
 		}
 		c, err := ng.NodeClient(n)
@@ -270,7 +270,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng *orchestrationK8S.NodeG
 				<-updateSemaphore
 			}()
 
-			if err := ng.SetupNode(ctx, n, orchestration.NodeOptions{}, orchestrationK8S.FundingOptions{}); err != nil {
+			if err := ng.SetupNode(ctx, n, orchestration.NodeOptions{}, orchestration.FundingOptions{}); err != nil {
 				return fmt.Errorf("add start node %s: %w", n, err)
 			}
 			c, err := ng.NodeClient(n)

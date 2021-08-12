@@ -3,7 +3,7 @@ package config
 import (
 	"reflect"
 
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // Funding represents funding deposits for every node in the cluster
