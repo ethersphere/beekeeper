@@ -38,7 +38,7 @@ type CaseOptions struct {
 	PostageDepth  uint64
 }
 
-func NewCheckCase(ctx context.Context, cluster *orchestrationK8S.Cluster, o CaseOptions) (*CheckCase, error) {
+func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, o CaseOptions) (*CheckCase, error) {
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return nil, err

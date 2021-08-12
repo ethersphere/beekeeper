@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // compile check whether Check implements interface
@@ -19,7 +19,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *orchestrationK8S.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err

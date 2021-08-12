@@ -12,7 +12,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"golang.org/x/sync/errgroup"
 )
@@ -61,7 +61,7 @@ func NewSimulation() beekeeper.Action {
 }
 
 // Run executes upload stress
-func (s *Simulation) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	fmt.Println("running upload simulation")
 	o, ok := opts.(Options)
 	if !ok {

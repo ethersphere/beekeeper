@@ -8,12 +8,12 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
-	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func checkLightChunks(ctx context.Context, cluster *orchestrationK8S.Cluster, o Options) error {
+func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 

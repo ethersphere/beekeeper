@@ -3,7 +3,7 @@ package config
 import (
 	"reflect"
 
-	orchestration "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 )
 
 // Cluster represents cluster configuration
@@ -48,7 +48,7 @@ type Clef struct {
 }
 
 // Export exports Cluster to orchestration.ClusterOptions, skipping all other extra fields
-func (c *Cluster) Export() (o orchestration.ClusterOptions) {
+func (c *Cluster) Export() (o orchestrationK8S.ClusterOptions) {
 	localVal := reflect.ValueOf(c).Elem()
 	localType := reflect.TypeOf(c).Elem()
 	remoteVal := reflect.ValueOf(&o).Elem()
@@ -66,7 +66,7 @@ func (c *Cluster) Export() (o orchestration.ClusterOptions) {
 		}
 	}
 
-	return remoteVal.Interface().(orchestration.ClusterOptions)
+	return remoteVal.Interface().(orchestrationK8S.ClusterOptions)
 }
 
 // GetName returns cluster name

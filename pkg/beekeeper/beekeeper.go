@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"golang.org/x/sync/errgroup"
 )
 
 // Action defines Beekeeper Action's interface
 type Action interface {
-	Run(ctx context.Context, cluster *orchestrationK8S.Cluster, o interface{}) (err error)
+	Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) (err error)
 }
 
 // Stage define stages for updating Bee
@@ -35,7 +34,7 @@ type Actions struct {
 }
 
 // Run runs check against the cluster
-func Run(ctx context.Context, cluster *orchestrationK8S.Cluster, action Action, options interface{}, stages []Stage, seed int64) (err error) {
+func Run(ctx context.Context, cluster orchestration.Cluster, action Action, options interface{}, stages []Stage, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
 	if err := action.Run(ctx, cluster, options); err != nil {
@@ -75,7 +74,7 @@ func Run(ctx context.Context, cluster *orchestrationK8S.Cluster, action Action, 
 }
 
 // RunConcurrently runs check against the cluster, cluster updates are executed concurrently
-func RunConcurrently(ctx context.Context, cluster *orchestrationK8S.Cluster, action Action, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
+func RunConcurrently(ctx context.Context, cluster orchestration.Cluster, action Action, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
 	if err := action.Run(ctx, cluster, options); err != nil {
