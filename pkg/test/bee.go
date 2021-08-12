@@ -83,9 +83,9 @@ func NewCheckCase(ctx context.Context, cluster *orchestration.Cluster, o CaseOpt
 }
 
 // NewRandomFile returns new pseudorandom file
-func (node *nodeV2) UploadRandomFile(ctx context.Context) (FileV2, error) {
+func (node *nodeV2) UploadRandomFile(ctx context.Context) (File, error) {
 	name := fmt.Sprintf("%s-%s", node.o.FileName, node.name)
-	file := FileV2{
+	file := File{
 		name: name,
 		rand: node.rnd,
 		size: node.o.FileSize,
@@ -132,7 +132,7 @@ func (c *CheckCase) RandomNode() *nodeV2 {
 	}
 }
 
-func (n nodeV2) UploadFile(ctx context.Context, file FileV2) error {
+func (n nodeV2) UploadFile(ctx context.Context, file File) error {
 	depth := 2 + bee.EstimatePostageBatchDepth(n.o.FileSize)
 	batchID, err := n.client.CreatePostageBatch(ctx, n.o.PostageAmount, depth, n.o.GasPrice, n.o.PostageLabel, false)
 	if err != nil {
@@ -141,8 +141,8 @@ func (n nodeV2) UploadFile(ctx context.Context, file FileV2) error {
 	fmt.Printf("node %s: created batch id %s\n", n.name, batchID)
 	time.Sleep(n.o.PostageWait)
 
-	filev1 := bee.NewRandomFile(file.rand, file.name, file.size)
-	if err := n.client.UploadFile(ctx, &filev1, api.UploadOptions{BatchID: batchID}); err != nil {
+	randomFile := bee.NewRandomFile(file.rand, file.name, file.size)
+	if err := n.client.UploadFile(ctx, &randomFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %s: %w", n.name, err)
 	}
 
@@ -151,7 +151,7 @@ func (n nodeV2) UploadFile(ctx context.Context, file FileV2) error {
 	return nil
 }
 
-func (n nodeV2) ExpectToHaveFile(ctx context.Context, file FileV2) error {
+func (n nodeV2) ExpectToHaveFile(ctx context.Context, file File) error {
 	size, hash, err := n.client.DownloadFile(ctx, file.address)
 	if err != nil {
 		return fmt.Errorf("node %s: %w", n.name, err)
@@ -171,7 +171,7 @@ func (c *CheckCase) prevBalances() orchestration.NodeGroupBalances {
 	return c.balancesHistory[len-1]
 }
 
-type FileV2 struct {
+type File struct {
 	address swarm.Address
 	name    string
 	hash    []byte
