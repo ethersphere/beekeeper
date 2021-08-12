@@ -35,24 +35,8 @@ type Cluster struct {
 	nodeGroups          map[string]orchestration.NodeGroup // set when groups are added to the cluster
 }
 
-// ClusterOptions represents Bee cluster options
-type ClusterOptions struct {
-	Annotations         map[string]string
-	APIDomain           string
-	APIInsecureTLS      bool
-	APIScheme           string
-	DebugAPIDomain      string
-	DebugAPIInsecureTLS bool
-	DebugAPIScheme      string
-	K8SClient           *k8s.Client
-	SwapClient          swap.Client
-	Labels              map[string]string
-	Namespace           string
-	DisableNamespace    bool
-}
-
 // NewCluster returns new cluster
-func NewCluster(name string, o ClusterOptions) *Cluster {
+func NewCluster(name string, o orchestration.ClusterOptions) *Cluster {
 	return &Cluster{
 		name:                name,
 		annotations:         o.Annotations,

@@ -6,6 +6,8 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
 type Cluster interface {
@@ -35,6 +37,22 @@ type Cluster interface {
 	FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error)
 }
 
+// ClusterOptions represents Bee cluster options
+type ClusterOptions struct {
+	Annotations         map[string]string
+	APIDomain           string
+	APIInsecureTLS      bool
+	APIScheme           string
+	DebugAPIDomain      string
+	DebugAPIInsecureTLS bool
+	DebugAPIScheme      string
+	K8SClient           *k8s.Client
+	SwapClient          swap.Client
+	Labels              map[string]string
+	Namespace           string
+	DisableNamespace    bool
+}
+
 // ClusterAddresses represents addresses of all nodes in the cluster
 type ClusterAddresses map[string]NodeGroupAddresses
 
@@ -43,6 +61,15 @@ type ClusterBalances map[string]NodeGroupBalances
 
 // ClusterOverlays represents overlay addresses of all nodes in the cluster
 type ClusterOverlays map[string]NodeGroupOverlays
+
+// ClusterPeers represents peers of all nodes in the cluster
+type ClusterPeers map[string]NodeGroupPeers
+
+// ClusterSettlements represents settlements of all nodes in the cluster
+type ClusterSettlements map[string]NodeGroupSettlements
+
+// ClusterTopologies represents Kademlia topology of all nodes in the cluster
+type ClusterTopologies map[string]NodeGroupTopologies
 
 // RandomOverlay returns a random overlay from a random NodeGroup
 func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string, overlay swarm.Address) {
@@ -73,12 +100,3 @@ func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string
 	}
 	return ng, name, o
 }
-
-// ClusterPeers represents peers of all nodes in the cluster
-type ClusterPeers map[string]NodeGroupPeers
-
-// ClusterSettlements represents settlements of all nodes in the cluster
-type ClusterSettlements map[string]NodeGroupSettlements
-
-// ClusterTopologies represents Kademlia topology of all nodes in the cluster
-type ClusterTopologies map[string]NodeGroupTopologies
