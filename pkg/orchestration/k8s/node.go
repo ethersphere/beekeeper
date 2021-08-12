@@ -46,36 +46,36 @@ func NewNode(name string, opts orchestration.NodeOptions) (n *Node) {
 }
 
 // Name returns node's name
-func (n *Node) Name() string {
+func (n Node) Name() string {
 	return n.name
 }
 
 // Client returns node's name
-func (n *Node) Client() *bee.Client {
+func (n Node) Client() *bee.Client {
 	return n.client
 }
 
 // Config returns node's config
-func (n *Node) Config() *orchestration.Config {
+func (n Node) Config() *orchestration.Config {
 	return n.config
 }
 
 // ClefKey returns node's clefKey
-func (n *Node) ClefKey() string {
+func (n Node) ClefKey() string {
 	return n.clefKey
 }
 
 // ClefPassword returns node's clefPassword
-func (n *Node) ClefPassword() string {
+func (n Node) ClefPassword() string {
 	return n.clefPassword
 }
 
 // LibP2PKey returns node's libP2PKey
-func (n *Node) LibP2PKey() string {
+func (n Node) LibP2PKey() string {
 	return n.libP2PKey
 }
 
 // SwarmKey returns node's swarmKey
-func (n *Node) SwarmKey() string {
+func (n Node) SwarmKey() string {
 	return n.swarmKey
 }

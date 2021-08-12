@@ -1,9 +1,39 @@
 package orchestration
 
 import (
+	"context"
+
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
+
+type NodeGroup interface {
+	AddNode(name string, o NodeOptions) (err error)
+	Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error)
+	Balances(ctx context.Context) (balances NodeGroupBalances, err error)
+	CreateNode(ctx context.Context, name string) (err error)
+	DeleteNode(ctx context.Context, name string) (err error)
+	Fund(ctx context.Context, name string, o FundingOptions) (err error)
+	GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
+	Name() string
+	Nodes() map[string]Node
+	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
+	NodesClientsAll(ctx context.Context) map[string]*bee.Client
+	NodesSorted() (l []string)
+	Node(name string) (Node, error)
+	NodeClient(name string) (*bee.Client, error)
+	Overlays(ctx context.Context) (overlays NodeGroupOverlays, err error)
+	Peers(ctx context.Context) (peers NodeGroupPeers, err error)
+	NodeReady(ctx context.Context, name string) (ok bool, err error)
+	RunningNodes(ctx context.Context) (running []string, err error)
+	SetupNode(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
+	Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
+	Size() int
+	StartNode(ctx context.Context, name string) (err error)
+	StopNode(ctx context.Context, name string) (err error)
+	StoppedNodes(ctx context.Context) (stopped []string, err error)
+	Topologies(ctx context.Context) (topologies NodeGroupTopologies, err error)
+}
 
 // NodeGroupOptions represents node group options
 type NodeGroupOptions struct {

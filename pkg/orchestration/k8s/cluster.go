@@ -14,6 +14,9 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
+// compile check whether client implements interface
+var _ orchestration.Cluster = (*Cluster)(nil)
+
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
 	name                string
@@ -28,8 +31,8 @@ type Cluster struct {
 	swap                swap.Client
 	labels              map[string]string
 	namespace           string
-	disableNamespace    bool                  // do not use namespace for node hostnames
-	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
+	disableNamespace    bool                               // do not use namespace for node hostnames
+	nodeGroups          map[string]orchestration.NodeGroup // set when groups are added to the cluster
 }
 
 // ClusterOptions represents Bee cluster options
@@ -65,7 +68,7 @@ func NewCluster(name string, o ClusterOptions) *Cluster {
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,
 
-		nodeGroups: make(map[string]*NodeGroup),
+		nodeGroups: make(map[string]orchestration.NodeGroup),
 	}
 }
 
@@ -160,7 +163,7 @@ func (c *Cluster) Name() string {
 }
 
 // NodeGroups returns map of node groups in the cluster
-func (c *Cluster) NodeGroups() (l map[string]*NodeGroup) {
+func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
 	return c.nodeGroups
 }
 
@@ -179,7 +182,7 @@ func (c *Cluster) NodeGroupsSorted() (l []string) {
 }
 
 // NodeGroup returns node group
-func (c *Cluster) NodeGroup(name string) (ng *NodeGroup, err error) {
+func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error) {
 	ng, ok := c.nodeGroups[name]
 	if !ok {
 		return nil, fmt.Errorf("node group %s not found", name)
@@ -188,10 +191,10 @@ func (c *Cluster) NodeGroup(name string) (ng *NodeGroup, err error) {
 }
 
 // Nodes returns map of nodes in the cluster
-func (c *Cluster) Nodes() map[string]*Node {
-	n := make(map[string]*Node)
+func (c *Cluster) Nodes() map[string]orchestration.Node {
+	n := make(map[string]orchestration.Node)
 	for _, ng := range c.NodeGroups() {
-		for k, v := range ng.getNodes() {
+		for k, v := range ng.Nodes() {
 			n[k] = v
 		}
 	}
@@ -201,7 +204,7 @@ func (c *Cluster) Nodes() map[string]*Node {
 // NodeNamess returns a list of node names in the cluster across all node groups
 func (c *Cluster) NodeNames() (names []string) {
 	for _, ng := range c.NodeGroups() {
-		for k := range ng.getNodes() {
+		for k := range ng.Nodes() {
 			names = append(names, k)
 		}
 	}
@@ -212,7 +215,7 @@ func (c *Cluster) NodeNames() (names []string) {
 // LightNodeNames returns a list of light node names
 func (c *Cluster) LightNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
-		if !node.config.FullNode {
+		if !node.Config().FullNode {
 			names = append(names, name)
 		}
 	}
@@ -222,7 +225,7 @@ func (c *Cluster) LightNodeNames() (names []string) {
 // FullNodeNames returns a list of full node names
 func (c *Cluster) FullNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
-		if node.config.FullNode {
+		if node.Config().FullNode {
 			names = append(names, name)
 		}
 	}
@@ -327,16 +330,16 @@ func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers orchestra
 }
 
 // RandomNode returns random running node from a cluster
-func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node *Node, err error) {
-	nodes := []*Node{}
+func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node orchestration.Node, err error) {
+	nodes := []orchestration.Node{}
 	for _, ng := range c.NodeGroups() {
 		stopped, err := ng.StoppedNodes(ctx)
 		if err != nil && err != orchestration.ErrNotSet {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 
-		for _, v := range ng.getNodes() {
-			if contains(stopped, v.name) {
+		for _, v := range ng.Nodes() {
+			if contains(stopped, v.Name()) {
 				continue
 			}
 			nodes = append(nodes, v)
@@ -386,7 +389,7 @@ func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements orchestra
 // Size returns size of the cluster
 func (c *Cluster) Size() (size int) {
 	for _, ng := range c.nodeGroups {
-		size += len(ng.nodes)
+		size += ng.Size()
 	}
 	return
 }

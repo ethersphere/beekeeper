@@ -136,7 +136,7 @@ func RunConcurrently(ctx context.Context, cluster *orchestrationK8S.Cluster, act
 }
 
 // updateNodeGroup updates node group by adding, deleting, starting and stopping it's nodes
-func updateNodeGroup(ctx context.Context, ng *orchestrationK8S.NodeGroup, a Actions, rnd *rand.Rand, stage int) (err error) {
+func updateNodeGroup(ctx context.Context, ng orchestration.NodeGroup, a Actions, rnd *rand.Rand, stage int) (err error) {
 	// get info from the cluster
 	running, err := ng.RunningNodes(ctx)
 	if err != nil {
@@ -231,7 +231,7 @@ func updateNodeGroup(ctx context.Context, ng *orchestrationK8S.NodeGroup, a Acti
 }
 
 // updateNodeGroupConcurrently updates node group concurrently
-func updateNodeGroupConcurrently(ctx context.Context, ng *orchestrationK8S.NodeGroup, a Actions, rnd *rand.Rand, stage, buff int) (err error) {
+func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup, a Actions, rnd *rand.Rand, stage, buff int) (err error) {
 	// get info from the cluster
 	running, err := ng.RunningNodes(ctx)
 	if err != nil {

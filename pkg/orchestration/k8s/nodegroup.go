@@ -14,10 +14,13 @@ import (
 
 const nodeRetryTimeout = 3 * time.Second
 
+// compile check whether client implements interface
+var _ orchestration.NodeGroup = (*NodeGroup)(nil)
+
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
 	name  string
-	nodes map[string]*Node
+	nodes map[string]orchestration.Node
 	opts  orchestration.NodeGroupOptions
 
 	// set when added to the cluster
@@ -31,7 +34,7 @@ type NodeGroup struct {
 func NewNodeGroup(name string, o orchestration.NodeGroupOptions) *NodeGroup {
 	return &NodeGroup{
 		name:  name,
-		nodes: make(map[string]*Node),
+		nodes: make(map[string]orchestration.Node),
 		opts:  o,
 	}
 }
@@ -118,7 +121,7 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStream
 	addressStream := make(chan AddressesStreamMsg)
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
-		if contains(stopped, v.name) {
+		if contains(stopped, v.Name()) {
 			continue
 		}
 
@@ -132,7 +135,7 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStream
 				Addresses: a,
 				Error:     err,
 			}
-		}(k, v.client)
+		}(k, v.Client())
 	}
 
 	go func() {
@@ -193,7 +196,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 	balancesStream := make(chan BalancesStreamMsg)
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
-		if contains(stopped, v.name) {
+		if contains(stopped, v.Name()) {
 			continue
 		}
 
@@ -207,7 +210,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 				Balances: b,
 				Error:    err,
 			}
-		}(k, v.client)
+		}(k, v.Client())
 	}
 
 	go func() {
@@ -231,15 +234,15 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 	if err := g.k8s.Create(ctx, orchestration.CreateOptions{
 		// Bee configuration
-		Config: *n.config,
+		Config: *n.Config(),
 		// Kubernetes configuration
 		Name:                      name,
 		Namespace:                 g.cluster.namespace,
 		Annotations:               g.opts.Annotations,
 		ClefImage:                 g.opts.ClefImage,
 		ClefImagePullPolicy:       g.opts.ClefImagePullPolicy,
-		ClefKey:                   n.clefKey,
-		ClefPassword:              n.clefPassword,
+		ClefKey:                   n.ClefKey(),
+		ClefPassword:              n.ClefPassword(),
 		Image:                     g.opts.Image,
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
 		ImagePullSecrets:          g.opts.ImagePullSecrets,
@@ -250,7 +253,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		IngressDebugClass:         g.opts.IngressDebugClass,
 		IngressDebugHost:          g.cluster.ingressDebugHost(name),
 		Labels:                    labels,
-		LibP2PKey:                 n.libP2PKey,
+		LibP2PKey:                 n.LibP2PKey(),
 		NodeSelector:              g.opts.NodeSelector,
 		PersistenceEnabled:        g.opts.PersistenceEnabled,
 		PersistenceStorageClass:   g.opts.PersistenceStorageClass,
@@ -262,7 +265,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		ResourcesRequestCPU:       g.opts.ResourcesRequestCPU,
 		ResourcesRequestMemory:    g.opts.ResourcesRequestMemory,
 		Selector:                  labels,
-		SwarmKey:                  n.swarmKey,
+		SwarmKey:                  n.SwarmKey(),
 		UpdateStrategy:            g.opts.UpdateStrategy,
 	}); err != nil {
 		return err
@@ -401,7 +404,7 @@ func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan
 	go func() {
 		var wg sync.WaitGroup
 		for k, v := range g.nodes {
-			if contains(stopped, v.name) {
+			if contains(stopped, v.Name()) {
 				continue
 			}
 
@@ -415,7 +418,7 @@ func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan
 					Found: found,
 					Error: err,
 				}
-			}(k, v.client)
+			}(k, v.Client())
 		}
 
 		wg.Wait()
@@ -431,7 +434,7 @@ func (g *NodeGroup) Name() string {
 }
 
 // Nodes returns map of nodes in the node group
-func (g *NodeGroup) Nodes() map[string]*Node {
+func (g *NodeGroup) Nodes() map[string]orchestration.Node {
 	return g.getNodes()
 }
 
@@ -472,7 +475,7 @@ func (g *NodeGroup) NodesSorted() (l []string) {
 }
 
 // Node returns node
-func (g *NodeGroup) Node(name string) (*Node, error) {
+func (g *NodeGroup) Node(name string) (orchestration.Node, error) {
 	return g.getNode(name)
 }
 
@@ -522,7 +525,7 @@ func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMs
 	overlaysStream := make(chan OverlaysStreamMsg)
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
-		if contains(stopped, v.name) {
+		if contains(stopped, v.Name()) {
 			continue
 		}
 
@@ -536,7 +539,7 @@ func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMs
 				Address: a,
 				Error:   err,
 			}
-		}(k, v.client)
+		}(k, v.Client())
 	}
 
 	go func() {
@@ -587,7 +590,7 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 	peersStream := make(chan PeersStreamMsg)
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
-		if contains(stopped, v.name) {
+		if contains(stopped, v.Name()) {
 			continue
 		}
 
@@ -601,7 +604,7 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 				Peers: a,
 				Error: err,
 			}
-		}(k, v.client)
+		}(k, v.Client())
 	}
 
 	go func() {
@@ -707,7 +710,7 @@ func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsSt
 	SettlementsStream := make(chan SettlementsStreamMsg)
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
-		if contains(stopped, v.name) {
+		if contains(stopped, v.Name()) {
 			continue
 		}
 
@@ -721,7 +724,7 @@ func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsSt
 				Settlements: s,
 				Error:       err,
 			}
-		}(k, v.client)
+		}(k, v.Client())
 	}
 
 	go func() {
@@ -839,7 +842,7 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMs
 	topologyStream := make(chan TopologyStreamMsg)
 	var wg sync.WaitGroup
 	for k, v := range g.nodes {
-		if contains(stopped, v.name) {
+		if contains(stopped, v.Name()) {
 			continue
 		}
 
@@ -853,7 +856,7 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMs
 				Topology: t,
 				Error:    err,
 			}
-		}(k, v.client)
+		}(k, v.Client())
 	}
 
 	go func() {
@@ -864,7 +867,7 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMs
 	return topologyStream, nil
 }
 
-func (g *NodeGroup) addNode(n *Node) {
+func (g *NodeGroup) addNode(n orchestration.Node) {
 	g.lock.Lock()
 	g.nodes[n.Name()] = n
 	g.lock.Unlock()
@@ -881,30 +884,30 @@ func (g *NodeGroup) getClient(name string) (*bee.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return n.client, nil
+	return n.Client(), nil
 }
 
 func (g *NodeGroup) getClients() map[string]*bee.Client {
 	c := make(map[string]*bee.Client)
 	g.lock.RLock()
 	for k, v := range g.nodes {
-		c[k] = v.client
+		c[k] = v.Client()
 	}
 	g.lock.RUnlock()
 	return c
 }
 
-func (g *NodeGroup) getNode(name string) (n *Node, err error) {
+func (g *NodeGroup) getNode(name string) (n orchestration.Node, err error) {
 	g.lock.RLock()
 	n, ok := g.nodes[name]
 	g.lock.RUnlock()
 	if !ok {
-		return nil, fmt.Errorf("node %s not found", name)
+		return Node{}, fmt.Errorf("node %s not found", name)
 	}
 	return
 }
 
-func (g *NodeGroup) getNodes() map[string]*Node {
+func (g *NodeGroup) getNodes() map[string]orchestration.Node {
 	g.lock.RLock()
 	nodes := g.nodes
 	g.lock.RUnlock()
