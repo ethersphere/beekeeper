@@ -24,11 +24,6 @@ func (c *BeeClient) Ready(ctx context.Context, name string, namespace string) (r
 	return false, orchestration.ErrNotSet
 }
 
-// RunningNodes returns list of running nodes
-func (c *BeeClient) RunningNodes(ctx context.Context, namespace string) (running []string, err error) {
-	return nil, orchestration.ErrNotSet
-}
-
 // Start starts Bee node in the cluster
 func (c *BeeClient) Start(ctx context.Context, name string, namespace string) (err error) {
 	return orchestration.ErrNotSet
@@ -37,9 +32,4 @@ func (c *BeeClient) Start(ctx context.Context, name string, namespace string) (e
 // Stop stops Bee node in the cluster
 func (c *BeeClient) Stop(ctx context.Context, name string, namespace string) (err error) {
 	return orchestration.ErrNotSet
-}
-
-// StoppedNodes returns list of stopped nodes
-func (c *BeeClient) StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error) {
-	return nil, orchestration.ErrNotSet
 }

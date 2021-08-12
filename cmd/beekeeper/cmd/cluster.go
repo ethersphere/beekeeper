@@ -29,6 +29,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		if !ok {
 			return fmt.Errorf("node group profile %s not defined", v.Config)
 		}
+
 		if v.Mode == "bootnode" { // TODO: implement standalone mode
 			// register node group
 			cluster.AddNodeGroup(ng, ngConfig.Export())
@@ -38,6 +39,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			if err != nil {
 				return err
 			}
+
 			for i := 0; i < len(v.Nodes); i++ {
 				nName := fmt.Sprintf("%s-%d", ng, i)
 				if len(v.Nodes[i].Name) > 0 {

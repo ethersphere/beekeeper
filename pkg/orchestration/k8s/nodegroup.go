@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
@@ -25,7 +26,7 @@ type NodeGroup struct {
 
 	// set when added to the cluster
 	cluster *Cluster
-	k8s     orchestration.Bee
+	k8s     *k8s.Client
 
 	lock sync.RWMutex
 }
@@ -232,7 +233,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	if err := g.k8s.Create(ctx, orchestration.CreateOptions{
+	if err := n.Create(ctx, orchestration.CreateOptions{
 		// Bee configuration
 		Config: *n.Config(),
 		// Kubernetes configuration
@@ -276,7 +277,12 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	if err := g.k8s.Delete(ctx, name, g.cluster.namespace); err != nil {
+	n, err := g.getNode(name)
+	if err != nil {
+		return err
+	}
+
+	if err := n.Delete(ctx, g.cluster.namespace); err != nil {
 		return err
 	}
 
@@ -617,17 +623,23 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 
 // NodeReady returns node's readiness
 func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err error) {
-	return g.k8s.Ready(ctx, name, g.cluster.namespace)
+	n, err := g.getNode(name)
+	if err != nil {
+		return false, err
+	}
+
+	return n.Ready(ctx, g.cluster.namespace)
 }
 
 // RunningNodes returns list of running nodes
+// TODO: filter by labels
 func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err error) {
-	allRunning, err := g.k8s.RunningNodes(ctx, g.cluster.namespace)
+	running, err = g.k8s.StatefulSet.RunningStatefulSets(ctx, g.cluster.namespace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("running statefulsets in namespace %s: %w", g.cluster.namespace, err)
 	}
 
-	for _, v := range allRunning {
+	for _, v := range running {
 		if contains(g.NodesSorted(), v) {
 			running = append(running, v)
 		}
@@ -742,7 +754,12 @@ func (g *NodeGroup) Size() int {
 
 // StartNode start node by scaling its statefulset to 1
 func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
-	if err := g.k8s.Start(ctx, name, g.cluster.namespace); err != nil {
+	n, err := g.getNode(name)
+	if err != nil {
+		return err
+	}
+
+	if err := n.Start(ctx, g.cluster.namespace); err != nil {
 		return err
 	}
 
@@ -765,7 +782,12 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 
 // StopNode stops node by scaling down its statefulset to 0
 func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
-	if err := g.k8s.Stop(ctx, name, g.cluster.namespace); err != nil {
+	n, err := g.getNode(name)
+	if err != nil {
+		return err
+	}
+
+	if err := n.Stop(ctx, g.cluster.namespace); err != nil {
 		return err
 	}
 
@@ -787,10 +809,11 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 }
 
 // StoppedNodes returns list of stopped nodes
+// TODO: filter by labels
 func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
-	allStopped, err := g.k8s.StoppedNodes(ctx, g.cluster.namespace)
+	allStopped, err := g.k8s.StatefulSet.StoppedStatefulSets(ctx, g.cluster.namespace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("stopped statefulsets in namespace %s: %w", g.cluster.namespace, err)
 	}
 
 	for _, v := range allStopped {

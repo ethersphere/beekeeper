@@ -11,7 +11,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
@@ -52,8 +51,7 @@ func NewCluster(name string, o orchestration.ClusterOptions) *Cluster {
 		labels:              o.Labels,
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,
-
-		nodeGroups: make(map[string]orchestration.NodeGroup),
+		nodeGroups:          make(map[string]orchestration.NodeGroup),
 	}
 }
 
@@ -62,11 +60,7 @@ func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
 	g := NewNodeGroup(name, o)
 	g.cluster = c
 
-	if g.cluster.k8s != nil {
-		g.k8s = NewClient(g.cluster.k8s)
-	} else {
-		g.k8s = new(notset.BeeClient)
-	}
+	g.k8s = c.k8s
 
 	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)
 	g.opts.Labels = mergeMaps(g.cluster.labels, o.Labels)
