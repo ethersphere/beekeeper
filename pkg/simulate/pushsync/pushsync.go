@@ -20,41 +20,41 @@ import (
 
 // Options represents simulation options
 type Options struct {
-	GasPrice            string
-	MetricsPusher       *push.Pusher
-	PostageAmount       int64
-	PostageDepth        uint64
-	PostageLabel        string
-	DownloadWait        time.Duration
-	UploadWait          time.Duration
-	DownloadNodeAttemps int64
-	DownloadRetry       int64
-	Seed                int64
-	ProxyApiEndpoint    string
-	ChunkCount          int64
-	StartPercentage     float64
-	EndPercentage       float64
-	StepPercentage      float64
+	GasPrice         string
+	MetricsPusher    *push.Pusher
+	PostageAmount    int64
+	PostageDepth     uint64
+	PostageLabel     string
+	DownloadWait     time.Duration
+	UploadWait       time.Duration
+	DownloadCount    int64
+	DownloadRetry    int64
+	Seed             int64
+	ProxyApiEndpoint string
+	ChunkCount       int64
+	StartPercentage  float64
+	EndPercentage    float64
+	StepPercentage   float64
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		GasPrice:            "",
-		MetricsPusher:       nil,
-		PostageAmount:       1000,
-		PostageDepth:        20,
-		PostageLabel:        "test-label",
-		UploadWait:          30 * time.Second,
-		DownloadWait:        15 * time.Second,
-		DownloadRetry:       3,
-		DownloadNodeAttemps: 3,
-		Seed:                0,
-		ProxyApiEndpoint:    "http://ethproxy.localhost",
-		ChunkCount:          500,
-		StartPercentage:     0.0,
-		EndPercentage:       0.6,
-		StepPercentage:      0.1,
+		GasPrice:         "",
+		MetricsPusher:    nil,
+		PostageAmount:    1000,
+		PostageDepth:     20,
+		PostageLabel:     "test-label",
+		UploadWait:       30 * time.Second,
+		DownloadWait:     15 * time.Second,
+		DownloadRetry:    3,
+		DownloadCount:    3,
+		Seed:             0,
+		ProxyApiEndpoint: "http://ethproxy.localhost",
+		ChunkCount:       500,
+		StartPercentage:  0.0,
+		EndPercentage:    0.6,
+		StepPercentage:   0.1,
 	}
 }
 
@@ -105,9 +105,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 
 	names := shuffle(rnd, cluster.NodeNames(), o.Seed)
 
-	//
-
-	buckets, leftovers := toBuckets(names, o.StartPercentage, o.EndPercentage, o.StepPercentage)
+	buckets, leftovers := ToBuckets(names, o.StartPercentage, o.EndPercentage, o.StepPercentage)
 
 	malfunctionEth := 0
 
@@ -126,10 +124,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				return errors.New("not enough underlay addresses")
 			}
 
-			nodeIP := getIPFromUnderlays(nodeAddr.Underlay)
-			if nodeIP == "" {
-				continue
-			}
+			nodeIP := GetIPFromUnderlays(nodeAddr.Underlay)
 
 			fmt.Printf("freezing block number for node %s ip %s\n", n, nodeIP)
 
@@ -160,11 +155,11 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 			return fmt.Errorf("upload: %w", err)
 		}
 
-		metricStr := fmt.Sprintf("%d out of %d malfunctioning backends", malfunctionEth, len(names))
-		metrics.uploadedCounter.WithLabelValues(metricStr).Add(float64(uploaded))
+		metricStr := fmt.Sprintf("%d_%d_malfunctioning_backends", malfunctionEth, len(names))
+		metrics.uploadedChunks.WithLabelValues(metricStr).Add(float64(uploaded))
 
 		var downloaded int
-		for i := 0; i < int(o.DownloadNodeAttemps); i++ {
+		for i := 0; i < int(o.DownloadCount); i++ {
 			downloadName := randomCmp(rnd, uploadName, names)
 			downloadNode := clients[downloadName]
 
@@ -172,18 +167,20 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 
 			downloaded = downloadChunks(ctx, o, uploaded, downloadNode, chunks)
 
-			fmt.Printf("%s\n", metricStr)
+			fmt.Printf("%d out of %d_malfunctioning backends\n", malfunctionEth, len(names))
 			fmt.Printf("uploaded to %s %d chunks\n", uploadName, uploaded)
 			fmt.Printf("downloaded from %s %d chunks\n", downloadName, downloaded)
 
-			metrics.downloadRetry.WithLabelValues(metricStr).Inc()
+			metrics.downloadCount.WithLabelValues(metricStr).Inc()
 
 			if downloaded == uploaded {
 				break
 			}
+
+			time.Sleep(o.DownloadWait)
 		}
 
-		metrics.downloadedCounter.WithLabelValues(metricStr).Add(float64(downloaded))
+		metrics.downloadedChunks.WithLabelValues(metricStr).Add(float64(downloaded))
 	}
 
 	return nil
@@ -195,7 +192,6 @@ func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Cl
 	if err != nil {
 		return 0, fmt.Errorf("batch create %w", err)
 	}
-	fmt.Printf("batch id %s\n", batchID)
 
 	count := 0
 	for _, chunk := range chunks {
@@ -260,7 +256,7 @@ func shuffle(rnd *rand.Rand, names []string, seed int64) []string {
 // leftover is the elements from stop percentage up to the last element,
 // ex: arr = [1,2,3,4,5,6,7,8,9, 10], start=0.4, end=0.8, step=0.2,
 // returned is [[1,2,3,4], [5,6], [7,8]], [9,10]
-func toBuckets(arr []string, start float64, end float64, step float64) ([][]string, []string) {
+func ToBuckets(arr []string, start float64, end float64, step float64) ([][]string, []string) {
 
 	var ret [][]string
 
@@ -275,10 +271,10 @@ func toBuckets(arr []string, start float64, end float64, step float64) ([][]stri
 		startCount += stepCount
 	}
 
-	return ret, arr[startCount : len(arr)-1]
+	return ret, arr[startCount:]
 }
 
-func getIPFromUnderlays(addrs []string) string {
+func GetIPFromUnderlays(addrs []string) string {
 
 	underlayRegex, _ := regexp.Compile(`(\/ip4\/)([0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)`)
 

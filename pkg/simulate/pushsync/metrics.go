@@ -7,9 +7,9 @@ import (
 )
 
 type metrics struct {
-	uploadedCounter   *prometheus.CounterVec
-	downloadedCounter *prometheus.CounterVec
-	downloadRetry     *prometheus.CounterVec
+	uploadedChunks   *prometheus.CounterVec
+	downloadedChunks *prometheus.CounterVec
+	downloadCount    *prometheus.CounterVec
 }
 
 func newMetrics(runID string, pusher *push.Pusher) metrics {
@@ -22,7 +22,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 		}
 	}
 
-	uploadedCounter := prometheus.NewCounterVec(
+	uploadedChunks := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: subsystem,
@@ -34,9 +34,9 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 		},
 		[]string{"node"},
 	)
-	addCollector(uploadedCounter)
+	addCollector(uploadedChunks)
 
-	downloadedCounter := prometheus.NewCounterVec(
+	downloadedChunks := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: subsystem,
@@ -48,9 +48,9 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 		},
 		[]string{"node"},
 	)
-	addCollector(downloadedCounter)
+	addCollector(downloadedChunks)
 
-	downloadRetry := prometheus.NewCounterVec(
+	downloadCount := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: subsystem,
@@ -62,15 +62,15 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 		},
 		[]string{"node"},
 	)
-	addCollector(downloadRetry)
+	addCollector(downloadCount)
 
 	if pusher != nil {
 		pusher.Format(expfmt.FmtText)
 	}
 
 	return metrics{
-		uploadedCounter:   uploadedCounter,
-		downloadedCounter: downloadedCounter,
-		downloadRetry:     downloadRetry,
+		uploadedChunks:   uploadedChunks,
+		downloadedChunks: downloadedChunks,
+		downloadCount:    downloadCount,
 	}
 }

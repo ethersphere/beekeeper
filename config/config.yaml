@@ -370,7 +370,6 @@ simulations:
     options:
       postage-amount: 1000
       postage-depth: 20
-      postage-wait: 5s
       seed: 
       proxy-api-endpoint: "http://ethproxy.localhost"
     timeout: 5m
