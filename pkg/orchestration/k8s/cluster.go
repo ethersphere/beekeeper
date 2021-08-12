@@ -59,9 +59,7 @@ func NewCluster(name string, o orchestration.ClusterOptions) *Cluster {
 func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
 	g := NewNodeGroup(name, o)
 	g.cluster = c
-
 	g.k8s = c.k8s
-
 	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)
 	g.opts.Labels = mergeMaps(g.cluster.labels, o.Labels)
 
