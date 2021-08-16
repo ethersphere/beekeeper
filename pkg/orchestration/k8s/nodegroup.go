@@ -73,6 +73,7 @@ func (g *NodeGroup) AddNode(name string, o orchestration.NodeOptions) (err error
 		ClefPassword: o.ClefPassword,
 		Client:       client,
 		Config:       config,
+		K8S:          g.k8s,
 		LibP2PKey:    o.LibP2PKey,
 		SwarmKey:     o.SwarmKey,
 	})
@@ -277,11 +278,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	n, err := g.getNode(name)
-	if err != nil {
-		return err
-	}
-
+	n := NewNode(name, orchestration.NodeOptions{K8S: g.k8s})
 	if err := n.Delete(ctx, g.cluster.namespace); err != nil {
 		return err
 	}

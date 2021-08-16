@@ -55,6 +55,9 @@ func NewNode(name string, opts orchestration.NodeOptions) (n *Node) {
 	if len(opts.SwarmKey) > 0 {
 		n.swarmKey = opts.SwarmKey
 	}
+	if opts.K8S != nil {
+		n.k8s = opts.K8S
+	}
 
 	return
 }

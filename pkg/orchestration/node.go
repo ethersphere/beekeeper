@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
 // ErrNotSet represents error when orchestration client is not set
@@ -32,6 +33,7 @@ type NodeOptions struct {
 	ClefPassword string
 	Client       *bee.Client
 	Config       *Config
+	K8S          *k8s.Client
 	LibP2PKey    string
 	SwarmKey     string
 }
