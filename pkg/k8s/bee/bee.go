@@ -331,6 +331,7 @@ func (c *Client) Create(ctx context.Context, o k8s.CreateOptions) (err error) {
 					}),
 					NodeSelector: o.NodeSelector,
 					PodSecurityContext: pod.PodSecurityContext{
+						FSGroupChangePolicy: "Always",
 						FSGroup: 999,
 					},
 					RestartPolicy:      o.RestartPolicy,
