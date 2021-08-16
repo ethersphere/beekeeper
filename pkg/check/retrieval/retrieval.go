@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	beeV2 "github.com/ethersphere/beekeeper/pkg/check/bee"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	test "github.com/ethersphere/beekeeper/pkg/test"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
@@ -66,7 +66,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		setUpMetrics(o)
 	}
 
-	caseOpts := beeV2.CaseOptions{
+	caseOpts := test.CaseOptions{
 		PostageDepth:  o.PostageDepth,
 		GasPrice:      o.GasPrice,
 		PostageAmount: o.PostageAmount,
@@ -75,7 +75,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		Seed:          o.Seed,
 	}
 
-	checkCase, err := beeV2.NewCheckCase(ctx, cluster, caseOpts)
+	checkCase, err := test.NewCheckCase(ctx, cluster, caseOpts)
 	if err != nil {
 		return err
 	}
