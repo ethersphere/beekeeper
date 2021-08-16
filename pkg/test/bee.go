@@ -11,7 +11,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -19,7 +18,7 @@ type CheckCase struct {
 	ctx      context.Context
 	clients  map[string]*bee.Client
 	nodes    []nodeV2
-	cluster  *orchestrationK8S.Cluster
+	cluster  orchestration.Cluster
 	overlays orchestration.ClusterOverlays
 
 	o               CaseOptions
