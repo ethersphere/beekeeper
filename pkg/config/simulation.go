@@ -98,7 +98,6 @@ var Simulations = map[string]SimulationType{
 				GasPrice         *string  `yaml:"gas-price"`
 				PostageAmount    *int64   `yaml:"postage-amount"`
 				PostageDepth     *uint64  `yaml:"postage-depth"`
-				PostageLabel     *string  `yaml:"postage-label"`
 				Seed             *int64   `yaml:"seed"`
 				ProxyApiEndpoint *string  `yaml:"proxy-api-endpoint"`
 				ChunkCount       *int64   `yaml:"chunk-count"`

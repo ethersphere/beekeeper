@@ -24,7 +24,6 @@ type Options struct {
 	MetricsPusher    *push.Pusher
 	PostageAmount    int64
 	PostageDepth     uint64
-	PostageLabel     string
 	DownloadWait     time.Duration
 	UploadWait       time.Duration
 	DownloadCount    int64
@@ -32,9 +31,11 @@ type Options struct {
 	Seed             int64
 	ProxyApiEndpoint string
 	ChunkCount       int64
-	StartPercentage  float64
-	EndPercentage    float64
-	StepPercentage   float64
+
+	// percentages must be in the range of [0, 1.0]
+	StartPercentage float64
+	EndPercentage   float64
+	StepPercentage  float64
 }
 
 // NewDefaultOptions returns new default options
@@ -44,7 +45,6 @@ func NewDefaultOptions() Options {
 		MetricsPusher:    nil,
 		PostageAmount:    1000,
 		PostageDepth:     20,
-		PostageLabel:     "test-label",
 		UploadWait:       30 * time.Second,
 		DownloadWait:     15 * time.Second,
 		DownloadRetry:    3,
@@ -105,7 +105,8 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 
 	names := shuffle(rnd, cluster.NodeNames(), o.Seed)
 
-	buckets, leftovers := ToBuckets(names, o.StartPercentage, o.EndPercentage, o.StepPercentage)
+	buckets := ToBuckets(names, o.StartPercentage, o.EndPercentage, o.StepPercentage)
+	uploadNames := buckets[len(buckets)-1]
 
 	malfunctionEth := 0
 
@@ -145,8 +146,8 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 
 		chunks := chunkBatch(rnd, int(o.ChunkCount))
 
-		index := rnd.Intn(len(leftovers))
-		uploadName := leftovers[index]
+		index := rnd.Intn(len(uploadNames))
+		uploadName := uploadNames[index]
 		uploadNode := clients[uploadName]
 		fmt.Printf("using node %s as uploader\n", uploadName)
 
@@ -188,7 +189,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 
 func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Client, chunks []swarm.Chunk) (int, error) {
 
-	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel, false)
+	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "sim-pushsync", false)
 	if err != nil {
 		return 0, fmt.Errorf("batch create %w", err)
 	}
@@ -253,10 +254,10 @@ func shuffle(rnd *rand.Rand, names []string, seed int64) []string {
 
 // toBuckets splits arr into buckets where the first bucket is 0-th index upto start percentage number of elements,
 // subsequent buckets are step percentage number of elements until the end percentage is reached,
-// leftover is the elements from stop percentage up to the last element,
-// ex: arr = [1,2,3,4,5,6,7,8,9, 10], start=0.4, end=0.8, step=0.2,
-// returned is [[1,2,3,4], [5,6], [7,8]], [9,10]
-func ToBuckets(arr []string, start float64, end float64, step float64) ([][]string, []string) {
+// ex: arr = [1,2,3,4,5,6,7,8,9,10], start=0.4, end=0.8, step=0.2,
+// last bucket is the remaining items that are outside of the start - end range, so when end is 1.0, last bucket is empty
+// returned is [[1,2,3,4], [5,6], [7,8], [9,10]]
+func ToBuckets(arr []string, start float64, end float64, step float64) [][]string {
 
 	var ret [][]string
 
@@ -271,7 +272,9 @@ func ToBuckets(arr []string, start float64, end float64, step float64) ([][]stri
 		startCount += stepCount
 	}
 
-	return ret, arr[startCount:]
+	ret = append(ret, arr[startCount:])
+
+	return ret
 }
 
 func GetIPFromUnderlays(addrs []string) string {

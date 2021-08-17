@@ -1,6 +1,7 @@
 package pushsync
 
 import (
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -13,7 +14,6 @@ type metrics struct {
 }
 
 func newMetrics(runID string, pusher *push.Pusher) metrics {
-	namespace := "beekeeper"
 	subsystem := "simulation_pushsync"
 
 	addCollector := func(c prometheus.Collector) {
@@ -24,7 +24,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	uploadedChunks := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -38,7 +38,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	downloadedChunks := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -52,7 +52,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	downloadCount := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,

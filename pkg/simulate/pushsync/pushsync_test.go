@@ -1,7 +1,6 @@
 package pushsync_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ethersphere/beekeeper/pkg/simulate/pushsync"
@@ -35,7 +34,7 @@ func TestTobuckets(t *testing.T) {
 		{
 			name:     "0.1-0.8-0.1",
 			base:     []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
-			buckets:  [][]string{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}, {"6"}, {"7"}, {"8"}},
+			buckets:  [][]string{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}, {"6"}, {"7"}, {"8"}, {"9", "10"}},
 			leftover: []string{"9", "10"},
 			start:    0.1,
 			end:      0.8,
@@ -44,19 +43,25 @@ func TestTobuckets(t *testing.T) {
 		{
 			name:     "0.2-0.9-0.1",
 			base:     []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
-			buckets:  [][]string{{"1", "2"}, {"3"}, {"4"}, {"5"}, {"6"}, {"7"}, {"8"}, {"9"}},
+			buckets:  [][]string{{"1", "2"}, {"3"}, {"4"}, {"5"}, {"6"}, {"7"}, {"8"}, {"9"}, {"10"}},
 			leftover: []string{"10"},
 			start:    0.2,
 			end:      0.9,
 			step:     0.1,
 		},
+		{
+			name:     "0.2-1.0-0.1",
+			base:     []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
+			buckets:  [][]string{{"1", "2"}, {"3"}, {"4"}, {"5"}, {"6"}, {"7"}, {"8"}, {"9"}, {"10"}, {}},
+			leftover: []string{},
+			start:    0.2,
+			end:      1.0,
+			step:     0.1,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			buckets, leftover := pushsync.ToBuckets(tc.base, tc.start, tc.end, tc.step)
-
-			fmt.Println(buckets)
-			fmt.Println(leftover)
-			fmt.Println(tc.leftover)
+			buckets := pushsync.ToBuckets(tc.base, tc.start, tc.end, tc.step)
+			leftover := buckets[len(buckets)-1]
 
 			if !isArrSame(leftover, tc.leftover) {
 				t.Fatal("leftovers do not match")
