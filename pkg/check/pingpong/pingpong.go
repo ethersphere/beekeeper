@@ -38,7 +38,7 @@ func NewCheck() beekeeper.Action {
 }
 
 // Run executes ping check
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	fmt.Println("running pingpong")
 	o, ok := opts.(Options)
 	if !ok {

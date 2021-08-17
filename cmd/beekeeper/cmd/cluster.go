@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -19,7 +20,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	clusterOptions.K8SClient = c.k8sClient
 	clusterOptions.SwapClient = c.swapClient
 
-	cluster := orchestration.NewCluster(clusterConfig.GetName(), clusterOptions)
+	cluster := orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions)
 
 	// delete node groups
 	for ng, v := range clusterConfig.GetNodeGroups() {
@@ -28,6 +29,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		if !ok {
 			return fmt.Errorf("node group profile %s not defined", v.Config)
 		}
+
 		if v.Mode == "bootnode" { // TODO: implement standalone mode
 			// register node group
 			cluster.AddNodeGroup(ng, ngConfig.Export())
@@ -37,6 +39,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			if err != nil {
 				return err
 			}
+
 			for i := 0; i < len(v.Nodes); i++ {
 				nName := fmt.Sprintf("%s-%d", ng, i)
 				if len(v.Nodes[i].Name) > 0 {
@@ -101,7 +104,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	return
 }
 
-func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster *orchestration.Cluster, err error) {
+func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster orchestration.Cluster, err error) {
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
@@ -111,7 +114,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	clusterOptions.K8SClient = c.k8sClient
 	clusterOptions.SwapClient = c.swapClient
 
-	cluster = orchestration.NewCluster(clusterConfig.GetName(), clusterOptions)
+	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions)
 
 	if start {
 		bootnodes := ""

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
@@ -14,31 +15,91 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
-	ob "github.com/ethersphere/beekeeper/pkg/orchestration/bee"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // compile check whether client implements interface
-var _ ob.Bee = (*Client)(nil)
+var _ orchestration.Node = (*Node)(nil)
 
-// Client manages communication with the Kubernetes
-type Client struct {
-	k8s *k8s.Client
+// Node represents Bee node
+type Node struct {
+	name         string
+	clefKey      string
+	clefPassword string
+	client       *bee.Client
+	config       *orchestration.Config
+	k8s          *k8s.Client
+	libP2PKey    string
+	swarmKey     string
 }
 
-// ClientOptions holds optional parameters for the Client.
-type ClientOptions struct {
-	KubeconfigPath string
-}
+// NewNode returns Bee node
+func NewNode(name string, opts orchestration.NodeOptions) (n *Node) {
+	n = &Node{name: name}
 
-// NewClient returns Kubernetes clientset
-func NewClient(k8s *k8s.Client) (c *Client) {
-	return &Client{
-		k8s: k8s,
+	if opts.Client != nil {
+		n.client = opts.Client
 	}
+	if opts.Config != nil {
+		n.config = opts.Config
+	}
+	if len(opts.ClefKey) > 0 {
+		n.clefKey = opts.ClefKey
+	}
+	if len(opts.ClefPassword) > 0 {
+		n.clefPassword = opts.ClefPassword
+	}
+	if len(opts.LibP2PKey) > 0 {
+		n.libP2PKey = opts.LibP2PKey
+	}
+	if len(opts.SwarmKey) > 0 {
+		n.swarmKey = opts.SwarmKey
+	}
+	if opts.K8S != nil {
+		n.k8s = opts.K8S
+	}
+
+	return
 }
 
-// Create creates Bee node in the cluster
-func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
+// Name returns node's name
+func (n Node) Name() string {
+	return n.name
+}
+
+// Client returns node's name
+func (n Node) Client() *bee.Client {
+	return n.client
+}
+
+// Config returns node's config
+func (n Node) Config() *orchestration.Config {
+	return n.config
+}
+
+// ClefKey returns node's clefKey
+func (n Node) ClefKey() string {
+	return n.clefKey
+}
+
+// ClefPassword returns node's clefPassword
+func (n Node) ClefPassword() string {
+	return n.clefPassword
+}
+
+// LibP2PKey returns node's libP2PKey
+func (n Node) LibP2PKey() string {
+	return n.libP2PKey
+}
+
+// SwarmKey returns node's swarmKey
+func (n Node) SwarmKey() string {
+	return n.swarmKey
+}
+
+//
+
+func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
 	// bee configuration
 	var config bytes.Buffer
 	if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
@@ -46,7 +107,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 	}
 
 	configCM := o.Name
-	if err = c.k8s.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
+	if err = n.k8s.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Data: map[string]string{
@@ -67,7 +128,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 		keysSecretData["swarm"] = o.SwarmKey
 	}
 
-	if err := c.k8s.Secret.Set(ctx, keysSecret, o.Namespace, secret.Options{
+	if err := n.k8s.Secret.Set(ctx, keysSecret, o.Namespace, secret.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		StringData:  keysSecretData,
@@ -84,7 +145,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 			"key":      o.ClefKey,
 			"password": o.ClefPassword,
 		}
-		if err := c.k8s.Secret.Set(ctx, clefSecret, o.Namespace, secret.Options{
+		if err := n.k8s.Secret.Set(ctx, clefSecret, o.Namespace, secret.Options{
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 			StringData:  clefSecretData,
@@ -96,7 +157,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 
 	// service account
 	svcAccount := o.Name
-	if err := c.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
+	if err := n.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
 		Annotations:      o.Annotations,
 		Labels:           o.Labels,
 		ImagePullSecrets: o.ImagePullSecrets,
@@ -112,7 +173,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 	}
 
 	apiSvc := fmt.Sprintf("%s-api", o.Name)
-	if err := c.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
+	if err := n.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -135,7 +196,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 
 	// api service's ingress
 	apiIn := fmt.Sprintf("%s-api", o.Name)
-	if err := c.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
+	if err := n.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
@@ -165,7 +226,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 
 	// debug service
 	debugSvc := fmt.Sprintf("%s-debug", o.Name)
-	if err := c.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
+	if err := n.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -186,7 +247,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 
 	// debug service's ingress
 	debugIn := fmt.Sprintf("%s-debug", o.Name)
-	if err := c.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
+	if err := n.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
@@ -223,7 +284,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 	}
 
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
-	if err := c.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
+	if err := n.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -246,7 +307,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
-	if err := c.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
+	if err := n.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -287,7 +348,7 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := len(o.SwarmKey) > 0
 
-	if err := c.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
+	if err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Spec: statefulset.StatefulSetSpec{
@@ -366,136 +427,112 @@ func (c *Client) Create(ctx context.Context, o ob.CreateOptions) (err error) {
 	return
 }
 
-// Delete deletes Bee node from the cluster
-func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 	// statefulset
-	if err := c.k8s.StatefulSet.Delete(ctx, name, namespace); err != nil {
+	if err := n.k8s.StatefulSet.Delete(ctx, n.name, namespace); err != nil {
 		return fmt.Errorf("deleting statefulset in namespace %s: %w", namespace, err)
 	}
-	fmt.Printf("statefulset %s is deleted in namespace %s\n", name, namespace)
+	fmt.Printf("statefulset %s is deleted in namespace %s\n", n.name, namespace)
 
 	// headless service
-	headlessSvc := fmt.Sprintf("%s-headless", name)
-	if err := c.k8s.Service.Delete(ctx, headlessSvc, namespace); err != nil {
+	headlessSvc := fmt.Sprintf("%s-headless", n.name)
+	if err := n.k8s.Service.Delete(ctx, headlessSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", headlessSvc, namespace)
 
 	// p2p service
-	p2pSvc := fmt.Sprintf("%s-p2p", name)
-	if err := c.k8s.Service.Delete(ctx, p2pSvc, namespace); err != nil {
+	p2pSvc := fmt.Sprintf("%s-p2p", n.name)
+	if err := n.k8s.Service.Delete(ctx, p2pSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", p2pSvc, namespace)
 
 	// debug service's ingress
-	debugIn := fmt.Sprintf("%s-debug", name)
-	if err := c.k8s.Ingress.Delete(ctx, debugIn, namespace); err != nil {
+	debugIn := fmt.Sprintf("%s-debug", n.name)
+	if err := n.k8s.Ingress.Delete(ctx, debugIn, namespace); err != nil {
 		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("ingress %s is deleted in namespace %s\n", debugIn, namespace)
 
 	// debug service
-	debugSvc := fmt.Sprintf("%s-debug", name)
-	if err := c.k8s.Service.Delete(ctx, debugSvc, namespace); err != nil {
+	debugSvc := fmt.Sprintf("%s-debug", n.name)
+	if err := n.k8s.Service.Delete(ctx, debugSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", debugSvc, namespace)
 
 	// api service's ingress
-	apiIn := fmt.Sprintf("%s-api", name)
-	if err := c.k8s.Ingress.Delete(ctx, apiIn, namespace); err != nil {
+	apiIn := fmt.Sprintf("%s-api", n.name)
+	if err := n.k8s.Ingress.Delete(ctx, apiIn, namespace); err != nil {
 		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("ingress %s is deleted in namespace %s\n", apiIn, namespace)
 
 	// api service
-	apiSvc := fmt.Sprintf("%s-api", name)
-	if err := c.k8s.Service.Delete(ctx, apiSvc, namespace); err != nil {
+	apiSvc := fmt.Sprintf("%s-api", n.name)
+	if err := n.k8s.Service.Delete(ctx, apiSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", apiSvc, namespace)
 
 	// service account
-	svcAccount := name
-	if err := c.k8s.ServiceAccount.Delete(ctx, svcAccount, namespace); err != nil {
+	svcAccount := n.name
+	if err := n.k8s.ServiceAccount.Delete(ctx, svcAccount, namespace); err != nil {
 		return fmt.Errorf("deleting serviceaccount in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("serviceaccount %s is deleted in namespace %s\n", svcAccount, namespace)
 
 	// secret with clef key
-	clefSecret := fmt.Sprintf("%s-clef", name)
-	if err := c.k8s.Secret.Delete(ctx, clefSecret, namespace); err != nil {
+	clefSecret := fmt.Sprintf("%s-clef", n.name)
+	if err := n.k8s.Secret.Delete(ctx, clefSecret, namespace); err != nil {
 		return fmt.Errorf("deleting secret in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("secret %s is deleted in namespace %s\n", clefSecret, namespace)
 
 	// secret with keys
-	keysSecret := fmt.Sprintf("%s-keys", name)
-	if err = c.k8s.Secret.Delete(ctx, keysSecret, namespace); err != nil {
+	keysSecret := fmt.Sprintf("%s-keys", n.name)
+	if err = n.k8s.Secret.Delete(ctx, keysSecret, namespace); err != nil {
 		return fmt.Errorf("deleting secret %s in namespace %s: %w", keysSecret, namespace, err)
 	}
 	fmt.Printf("secret %s is deleted in namespace %s\n", keysSecret, namespace)
 
 	// bee configuration
-	configCM := name
-	if err = c.k8s.ConfigMap.Delete(ctx, configCM, namespace); err != nil {
+	configCM := n.name
+	if err = n.k8s.ConfigMap.Delete(ctx, configCM, namespace); err != nil {
 		return fmt.Errorf("deleting configmap %s in namespace %s: %w", configCM, namespace, err)
 	}
 	fmt.Printf("configmap %s is deleted in namespace %s\n", configCM, namespace)
 
-	fmt.Printf("node %s is deleted in namespace %s\n", name, namespace)
+	fmt.Printf("node %s is deleted in namespace %s\n", n.name, namespace)
 	return
 }
 
-// Ready gets Bee node's readiness
-func (c *Client) Ready(ctx context.Context, name, namespace string) (ready bool, err error) {
-	r, err := c.k8s.StatefulSet.ReadyReplicas(ctx, name, namespace)
+func (n Node) Ready(ctx context.Context, namespace string) (ready bool, err error) {
+	r, err := n.k8s.StatefulSet.ReadyReplicas(ctx, n.name, namespace)
 	if err != nil {
-		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", name, namespace, err)
+		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", n.name, namespace, err)
 	}
 
 	return r == 1, nil
 }
 
-// RunningNodes returns list of running nodes
-// TODO: filter by labels
-func (c *Client) RunningNodes(ctx context.Context, namespace string) (running []string, err error) {
-	running, err = c.k8s.StatefulSet.RunningStatefulSets(ctx, namespace)
+func (n Node) Start(ctx context.Context, namespace string) (err error) {
+	err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 1)
 	if err != nil {
-		return nil, fmt.Errorf("running statefulsets in namespace %s: %w", namespace, err)
+		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
 	}
+
+	fmt.Printf("node %s is started in namespace %s\n", n.name, namespace)
 	return
 }
 
-// Start starts Bee node in the cluster
-func (c *Client) Start(ctx context.Context, name, namespace string) (err error) {
-	err = c.k8s.StatefulSet.Scale(ctx, name, namespace, 1)
+func (n Node) Stop(ctx context.Context, namespace string) (err error) {
+	err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 0)
 	if err != nil {
-		return fmt.Errorf("scale statefulset %s in namespace %s: %w", name, namespace, err)
+		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
 	}
 
-	fmt.Printf("node %s is started in namespace %s\n", name, namespace)
-	return
-}
-
-// Stop stops Bee node in the cluster
-func (c *Client) Stop(ctx context.Context, name, namespace string) (err error) {
-	err = c.k8s.StatefulSet.Scale(ctx, name, namespace, 0)
-	if err != nil {
-		return fmt.Errorf("scale statefulset %s in namespace %s: %w", name, namespace, err)
-	}
-
-	fmt.Printf("node %s is stopped in namespace %s\n", name, namespace)
-	return
-}
-
-// StoppedNodes returns list of stopped nodes
-// TODO: filter by labels
-func (c *Client) StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error) {
-	stopped, err = c.k8s.StatefulSet.StoppedStatefulSets(ctx, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("stopped statefulsets in namespace %s: %w", namespace, err)
-	}
+	fmt.Printf("node %s is stopped in namespace %s\n", n.name, namespace)
 	return
 }

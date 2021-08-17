@@ -52,7 +52,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -119,7 +119,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 }
 
 // dryRun executes balances validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster *orchestration.Cluster, o Options) (err error) {
+func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err

@@ -131,7 +131,7 @@ A little bit about how the numbers make sense:
   checks on the pinning API.
 */
 
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 
 	o, ok := opts.(Options)
 	if !ok {

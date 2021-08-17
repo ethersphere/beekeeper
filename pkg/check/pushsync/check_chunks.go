@@ -13,7 +13,7 @@ import (
 )
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func checkChunks(ctx context.Context, c *orchestration.Cluster, o Options) error {
+func checkChunks(ctx context.Context, c orchestration.Cluster, o Options) error {
 	fmt.Println("running pushsync (chunks mode)")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)

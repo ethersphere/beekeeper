@@ -13,7 +13,7 @@ import (
 
 // Action defines Beekeeper Action's interface
 type Action interface {
-	Run(ctx context.Context, cluster *orchestration.Cluster, o interface{}) (err error)
+	Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) (err error)
 }
 
 // Stage define stages for updating Bee
@@ -34,7 +34,7 @@ type Actions struct {
 }
 
 // Run runs check against the cluster
-func Run(ctx context.Context, cluster *orchestration.Cluster, action Action, options interface{}, stages []Stage, seed int64) (err error) {
+func Run(ctx context.Context, cluster orchestration.Cluster, action Action, options interface{}, stages []Stage, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
 	if err := action.Run(ctx, cluster, options); err != nil {
@@ -74,7 +74,7 @@ func Run(ctx context.Context, cluster *orchestration.Cluster, action Action, opt
 }
 
 // RunConcurrently runs check against the cluster, cluster updates are executed concurrently
-func RunConcurrently(ctx context.Context, cluster *orchestration.Cluster, action Action, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
+func RunConcurrently(ctx context.Context, cluster orchestration.Cluster, action Action, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
 	if err := action.Run(ctx, cluster, options); err != nil {
@@ -135,7 +135,7 @@ func RunConcurrently(ctx context.Context, cluster *orchestration.Cluster, action
 }
 
 // updateNodeGroup updates node group by adding, deleting, starting and stopping it's nodes
-func updateNodeGroup(ctx context.Context, ng *orchestration.NodeGroup, a Actions, rnd *rand.Rand, stage int) (err error) {
+func updateNodeGroup(ctx context.Context, ng orchestration.NodeGroup, a Actions, rnd *rand.Rand, stage int) (err error) {
 	// get info from the cluster
 	running, err := ng.RunningNodes(ctx)
 	if err != nil {
@@ -230,7 +230,7 @@ func updateNodeGroup(ctx context.Context, ng *orchestration.NodeGroup, a Actions
 }
 
 // updateNodeGroupConcurrently updates node group concurrently
-func updateNodeGroupConcurrently(ctx context.Context, ng *orchestration.NodeGroup, a Actions, rnd *rand.Rand, stage, buff int) (err error) {
+func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup, a Actions, rnd *rand.Rand, stage, buff int) (err error) {
 	// get info from the cluster
 	running, err := ng.RunningNodes(ctx)
 	if err != nil {

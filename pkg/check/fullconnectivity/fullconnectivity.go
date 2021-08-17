@@ -34,7 +34,7 @@ func NewDefaultOptions() Options {
 
 var errFullConnectivity = errors.New("full connectivity")
 
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	lightNodes := opts.(Options).LightNodeNames
 	bootNodes := opts.(Options).BootNodeNames
 	if err := checkFullNodesConnectivity(ctx, cluster, lightNodes, bootNodes); err != nil {
@@ -48,7 +48,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 	return
 }
 
-func checkFullNodesConnectivity(ctx context.Context, cluster *orchestration.Cluster, skipNodes, bootNodes []string) (err error) {
+func checkFullNodesConnectivity(ctx context.Context, cluster orchestration.Cluster, skipNodes, bootNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func isBootNode(group string, bootnodes []string) bool {
 	return false
 }
 
-func checkLightNodesConnectivity(ctx context.Context, cluster *orchestration.Cluster, skipNodes []string) (err error) {
+func checkLightNodesConnectivity(ctx context.Context, cluster orchestration.Cluster, skipNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err

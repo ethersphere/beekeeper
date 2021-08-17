@@ -62,7 +62,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -79,7 +79,7 @@ func (c *Check) Run(ctx context.Context, cluster *orchestration.Cluster, opts in
 }
 
 // defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
-func defaultCheck(ctx context.Context, c *orchestration.Cluster, o Options) error {
+func defaultCheck(ctx context.Context, c orchestration.Cluster, o Options) error {
 	fmt.Println("running pushsync")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)

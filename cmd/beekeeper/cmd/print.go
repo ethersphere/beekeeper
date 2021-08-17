@@ -61,8 +61,8 @@ Requires exactly one argument from the following list: addresses, depths, overla
 }
 
 var (
-	printFuncs = map[string]func(ctx context.Context, cluster *orchestration.Cluster) (err error){
-		"addresses": func(ctx context.Context, cluster *orchestration.Cluster) (err error) {
+	printFuncs = map[string]func(ctx context.Context, cluster orchestration.Cluster) (err error){
+		"addresses": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 			addresses, err := cluster.Addresses(ctx)
 			if err != nil {
 				return err
@@ -82,7 +82,7 @@ var (
 
 			return
 		},
-		"depths": func(ctx context.Context, cluster *orchestration.Cluster) (err error) {
+		"depths": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 			topologies, err := cluster.Topologies(ctx)
 			if err != nil {
 				return err
@@ -98,7 +98,7 @@ var (
 
 			return
 		},
-		"overlays": func(ctx context.Context, cluster *orchestration.Cluster) (err error) {
+		"overlays": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 			overlays, err := cluster.Overlays(ctx)
 			if err != nil {
 				return err
@@ -113,7 +113,7 @@ var (
 
 			return
 		},
-		"peers": func(ctx context.Context, cluster *orchestration.Cluster) (err error) {
+		"peers": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 			peers, err := cluster.Peers(ctx)
 			if err != nil {
 				return err
@@ -129,7 +129,7 @@ var (
 			}
 			return
 		},
-		"topologies": func(ctx context.Context, cluster *orchestration.Cluster) (err error) {
+		"topologies": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 			topologies, err := cluster.Topologies(ctx)
 			if err != nil {
 				return err

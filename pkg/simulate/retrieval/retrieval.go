@@ -56,7 +56,7 @@ func NewSimulation() beekeeper.Action {
 }
 
 // Run executes retrieval simulation
-func (s *Simulation) Run(ctx context.Context, cluster *orchestration.Cluster, opts interface{}) (err error) {
+func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
