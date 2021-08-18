@@ -23,10 +23,11 @@ type Client struct {
 	httpClient *http.Client // HTTP client must handle authentication implicitly.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
-	// Services that API provides.
+	// Services that Debug API provides.
 	Node     *NodeService
 	PingPong *PingPongService
 	Postage  *PostageService
+	Health   *HealthService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -54,6 +55,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.Node = (*NodeService)(&c.service)
 	c.PingPong = (*PingPongService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
+	c.Health = (*HealthService)(&c.service)
 	return c
 }
 

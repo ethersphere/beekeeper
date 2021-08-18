@@ -37,6 +37,7 @@ type Client struct {
 	PSS         *PSSService
 	SOC         *SOCService
 	Stewardship *StewardshipService
+	Auth        *AuthService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -70,6 +71,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.PSS = (*PSSService)(&c.service)
 	c.SOC = (*SOCService)(&c.service)
 	c.Stewardship = (*StewardshipService)(&c.service)
+	c.Auth = (*AuthService)(&c.service)
 	return c
 }
 
