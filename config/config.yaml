@@ -339,7 +339,16 @@ checks:
     options:
       content-size: 16384
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 16  
+  auth:
+    type: auth
+    timeout: 1m
+    options:
+      dry-run: false
+      role: role0
+      admin-username: test
+      admin-password-hash: $2a$12$4q3T8gCc1nnPcar58OEAxeuclim/urcLpcwNEPnKcO9YT/2/sOA3m
+      restricted-group-name: restricted
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options 

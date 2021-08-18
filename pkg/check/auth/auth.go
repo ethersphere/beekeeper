@@ -1,4 +1,4 @@
-package balances
+package auth
 
 import (
 	"context"
@@ -11,6 +11,12 @@ import (
 // Options represents check options
 type Options struct {
 	DryRun bool
+
+	Role              string
+	AdminUsername     string
+	AdminPasswordHash string
+
+	RestrictedGroupName string
 }
 
 // NewDefaultOptions returns new default options
@@ -44,7 +50,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	fmt.Println("running auth health")
 
-	restricted, err := cluster.NodeGroup("restricted")
+	restricted, err := cluster.NodeGroup(o.RestrictedGroupName)
 	if err != nil {
 		return err
 	}
@@ -52,14 +58,18 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	for _, node := range restricted.Nodes() {
 		client := node.Client()
 
-		token, _ := client.Authenticate(ctx)
+		token, _ := client.Authenticate(ctx, o.Role, o.AdminUsername, o.AdminPasswordHash)
 		if err != nil {
 			return fmt.Errorf("authorize: %w", err)
 		}
 
-		_, err := client.Health(ctx, token)
+		status, err := client.Health(ctx, token)
 		if err != nil {
 			return fmt.Errorf("health check: %w", err)
+		}
+
+		if status != "ok" {
+			return fmt.Errorf("expected status 'ok', got: %s", status)
 		}
 	}
 

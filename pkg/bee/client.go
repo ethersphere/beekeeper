@@ -681,11 +681,13 @@ func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 }
 
 // Authenticate
-func (c *Client) Authenticate(ctx context.Context) (string, error) {
-	return "", nil
+func (c *Client) Authenticate(ctx context.Context, role, username, password string) (string, error) {
+	resp, err := c.api.Auth.Authenticate(ctx, role, username, password)
+	return resp.Key, err
 }
 
 // Health
 func (c *Client) Health(ctx context.Context, securityToken string) (string, error) {
-	return "", nil
+	resp, err := c.debug.Health.Check(ctx, securityToken)
+	return resp.Status, err
 }
