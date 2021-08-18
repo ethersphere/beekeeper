@@ -151,10 +151,12 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 		uploadNode := clients[uploadName]
 		fmt.Printf("using node %s as uploader\n", uploadName)
 
-		uploaded, err := uploadChunks(ctx, rnd, o, uploadNode, chunks)
+		err := uploadChunks(ctx, rnd, o, uploadNode, chunks)
 		if err != nil {
 			return fmt.Errorf("upload: %w", err)
 		}
+
+		uploaded := int(o.ChunkCount)
 
 		metricStr := fmt.Sprintf("%d_%d_malfunctioning_backends", malfunctionEth, len(names))
 		metrics.uploadedChunks.WithLabelValues(metricStr).Add(float64(uploaded))
@@ -187,25 +189,24 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 	return nil
 }
 
-func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Client, chunks []swarm.Chunk) (int, error) {
+func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Client, chunks []swarm.Chunk) error {
 
 	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "sim-pushsync", false)
 	if err != nil {
-		return 0, fmt.Errorf("batch create %w", err)
+		return fmt.Errorf("batch create %w", err)
 	}
 
-	count := 0
 	for _, chunk := range chunks {
 		_, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
 	// wait for uploader to sync to network
 	time.Sleep(o.UploadWait)
 
-	return count, nil
+	return nil
 }
 
 func downloadChunks(ctx context.Context, o Options, uploadCount int, client *bee.Client, chunks []swarm.Chunk) int {
