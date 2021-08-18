@@ -197,8 +197,8 @@ func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Cl
 	count := 0
 	for _, chunk := range chunks {
 		_, err := client.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
-		if err == nil {
-			count++
+		if err != nil {
+			return 0, err
 		}
 	}
 
