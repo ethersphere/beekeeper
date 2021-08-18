@@ -679,3 +679,13 @@ func (c *Client) IsRetrievable(ctx context.Context, ref swarm.Address) (bool, er
 func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 	return c.api.Stewardship.Reupload(ctx, ref)
 }
+
+// Authenticate
+func (c *Client) Authenticate(ctx context.Context) (string, error) {
+	return "", nil
+}
+
+// Health
+func (c *Client) Health(ctx context.Context, securityToken string) (string, error) {
+	return "", nil
+}
