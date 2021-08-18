@@ -45,9 +45,11 @@ func (p *TagsService) GetTag(ctx context.Context, tagUID uint32) (resp TagRespon
 func (p *TagsService) WaitSync(ctx context.Context, tagUID uint32) (err error) {
 
 	c := make(chan bool)
-	e := make(chan error)
 	defer close(c)
+
+	e := make(chan error)
 	defer close(e)
+
 	go func(ctx context.Context, c chan bool, e chan error) {
 		for {
 			select {
@@ -55,7 +57,6 @@ func (p *TagsService) WaitSync(ctx context.Context, tagUID uint32) (err error) {
 				return
 			default:
 				tr, err := p.GetTag(ctx, tagUID)
-
 				if err != nil {
 					e <- err
 					return
@@ -71,15 +72,12 @@ func (p *TagsService) WaitSync(ctx context.Context, tagUID uint32) (err error) {
 		}
 	}(ctx, c, e)
 
-	for {
-		select {
-		case <-c:
-			return
-		case err := <-e:
-			return err
-		case <-ctx.Done():
-			return ctx.Err()
-		}
+	select {
+	case <-c:
+		return
+	case err := <-e:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-
 }

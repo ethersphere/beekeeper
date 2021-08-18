@@ -161,3 +161,28 @@ func GenerateRandomChunkAt(rnd *rand.Rand, target swarm.Address, po uint8) swarm
 		}
 	}
 }
+
+// GenerateNRandomChunksAt returns n randomly generated chunks for target address.
+func GenerateNRandomChunksAt(rnd *rand.Rand, target swarm.Address, n int, po uint8) []swarm.Chunk {
+	chunks := make([]swarm.Chunk, n)
+	for i := range chunks {
+		chunks[i] = GenerateRandomChunkAt(rnd, target, po)
+	}
+	return chunks
+}
+
+// AddressOfChunk returns address(es) of the given chunk(s).
+func AddressOfChunk(chunks ...swarm.Chunk) []swarm.Address {
+	switch len(chunks) {
+	case 0:
+		return nil
+	case 1:
+		return []swarm.Address{chunks[0].Address()}
+	default:
+		addrs := make([]swarm.Address, len(chunks))
+		for i, v := range chunks {
+			addrs[i] = v.Address()
+		}
+		return addrs
+	}
+}

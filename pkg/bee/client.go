@@ -668,3 +668,14 @@ func (c *Client) GetTag(ctx context.Context, tagUID uint32) (resp api.TagRespons
 
 	return
 }
+
+// IsRetrievable checks whether the content on the given address is retrievable.
+func (c *Client) IsRetrievable(ctx context.Context, ref swarm.Address) (bool, error) {
+	return c.api.Stewardship.IsRetrievable(ctx, ref)
+}
+
+// Reupload re-uploads root hash and all of its underlying associated chunks to
+// the network.
+func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
+	return c.api.Stewardship.Reupload(ctx, ref)
+}

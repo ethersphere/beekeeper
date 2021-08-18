@@ -17,6 +17,10 @@ type metrics struct {
 	downloadTimeHistogram prometheus.Histogram
 	retrievedCounter      *prometheus.CounterVec
 	notRetrievedCounter   *prometheus.CounterVec
+	syncedCounter         *prometheus.CounterVec
+	notSyncedCounter      *prometheus.CounterVec
+	syncTagsTimeGauge     *prometheus.GaugeVec
+	syncTagsTimeHistogram prometheus.Histogram
 }
 
 func newMetrics(runID string, pusher *push.Pusher) metrics {
@@ -169,6 +173,62 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 	)
 	addCollector(notRetrievedCounter)
 
+	syncedCounter := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			ConstLabels: prometheus.Labels{
+				"run": runID,
+			},
+			Name: "tags_synced_count",
+			Help: "Number of synced tags.",
+		},
+		[]string{"node"},
+	)
+	addCollector(syncedCounter)
+
+	notSyncedCounter := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			ConstLabels: prometheus.Labels{
+				"run": runID,
+			},
+			Name: "tags_not_synced_count",
+			Help: "Number of not synced tags.",
+		},
+		[]string{"node"},
+	)
+	addCollector(notSyncedCounter)
+
+	syncTagsTimeGauge := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			ConstLabels: prometheus.Labels{
+				"run": runID,
+			},
+			Name: "tags_sync_duration_seconds",
+			Help: "Tags sync duration Gauge.",
+		},
+		[]string{"node", "chunk"},
+	)
+	addCollector(syncTagsTimeGauge)
+
+	syncTagsTimeHistogram := prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			ConstLabels: prometheus.Labels{
+				"run": runID,
+			},
+			Name:    "tags_sync_seconds",
+			Help:    "Tags sync duration Histogram.",
+			Buckets: []float64{0.01, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+		},
+	)
+	addCollector(syncTagsTimeHistogram)
+
 	if pusher != nil {
 		pusher.Format(expfmt.FmtText)
 	}
@@ -184,5 +244,9 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 		downloadTimeHistogram: downloadTimeHistogram,
 		retrievedCounter:      retrievedCounter,
 		notRetrievedCounter:   notRetrievedCounter,
+		syncedCounter:         syncedCounter,
+		notSyncedCounter:      notSyncedCounter,
+		syncTagsTimeGauge:     syncTagsTimeGauge,
+		syncTagsTimeHistogram: syncTagsTimeHistogram,
 	}
 }
