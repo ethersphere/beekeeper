@@ -17,6 +17,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/manifest"
 	"github.com/ethersphere/beekeeper/pkg/check/peercount"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
+	"github.com/ethersphere/beekeeper/pkg/check/postage"
 	"github.com/ethersphere/beekeeper/pkg/check/pss"
 	"github.com/ethersphere/beekeeper/pkg/check/pullsync"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
@@ -457,6 +458,27 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := contentavailability.NewDefaultOptions()
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+			return opts, nil
+		},
+	},
+	"postage": {
+		NewAction: postage.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				GasPrice           *string `yaml:"gas-price"`
+				PostageAmount      *int64  `yaml:"postage-amount"`
+				PostageTopupAmount *int64  `yaml:"postage-amount"`
+				PostageDepth       *uint64 `yaml:"postage-depth"`
+				PostageNewDepth    *uint64 `yaml:"postage-depth"`
+				PostageLabel       *string `yaml:"postage-label"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := postage.NewDefaultOptions()
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}

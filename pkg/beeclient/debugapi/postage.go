@@ -51,6 +51,28 @@ func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, d
 	return resp.BatchID, err
 }
 
+// Sends a create postage request to a node that returns the bactchID
+func (p *PostageService) TopUpPostageBatch(ctx context.Context, batchID string, amount int64, gasPrice string) (err error) {
+	url := fmt.Sprintf("/stamps/topup/%s/%d", batchID, amount)
+	if gasPrice != "" {
+		h := http.Header{}
+		h.Add("Gas-Price", gasPrice)
+		return p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, nil)
+	}
+	return p.client.request(ctx, http.MethodPost, url, nil, nil)
+}
+
+// Sends a create postage request to a node that returns the bactchID
+func (p *PostageService) DilutePostageBatch(ctx context.Context, batchID string, newDepth uint64, gasPrice string) (err error) {
+	url := fmt.Sprintf("/stamps/dilute/%s/%d", batchID, newDepth)
+	if gasPrice != "" {
+		h := http.Header{}
+		h.Add("Gas-Price", gasPrice)
+		return p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, nil)
+	}
+	return p.client.request(ctx, http.MethodPost, url, nil, nil)
+}
+
 // Fetches the list postage stamp batches
 func (p *PostageService) PostageBatches(ctx context.Context) ([]PostageStampResponse, error) {
 	var resp postageStampsResponse

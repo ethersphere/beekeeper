@@ -379,6 +379,16 @@ func (c *Client) PostageBatches(ctx context.Context) ([]debugapi.PostageStampRes
 	return c.debug.Postage.PostageBatches(ctx)
 }
 
+// TopupPostageBatch tops up the given batch with the amount per chunk
+func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount int64, gasPrice string) error {
+	return c.debug.Postage.TopUpPostageBatch(ctx, batchID, amount, gasPrice)
+}
+
+// DilutePostageBatch dilutes the given batch by increasing the depth
+func (c *Client) DilutePostageBatch(ctx context.Context, batchID string, depth uint64, gasPrice string) error {
+	return c.debug.Postage.DilutePostageBatch(ctx, batchID, depth, gasPrice)
+}
+
 // ReserveState returns reserve radius, available capacity, inner and outer radiuses
 func (c *Client) ReserveState(ctx context.Context) (debugapi.ReserveState, error) {
 	return c.debug.Postage.ReserveState(ctx)
