@@ -340,7 +340,6 @@ checks:
       postage-amount: 1000
       postage-depth: 16
   ci-auth:
-    type: auth
     timeout: 1m
     options:
       dry-run: false
