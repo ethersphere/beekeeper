@@ -33,7 +33,7 @@ type postageStampsResponse struct {
 	Stamps []PostageStampResponse `json:"stamps"`
 }
 
-// Sends a create postage request to a node that returns the bactchID
+// Sends a create postage request to a node that returns the batchID
 func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (batchID string, err error) {
 	url := fmt.Sprintf("/stamps/%d/%d?label=%s", amount, depth, label)
 	var resp postageResponse
@@ -51,7 +51,7 @@ func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, d
 	return resp.BatchID, err
 }
 
-// Sends a create postage request to a node that returns the bactchID
+// Sends a topup batch request to a node that returns the batchID
 func (p *PostageService) TopUpPostageBatch(ctx context.Context, batchID string, amount int64, gasPrice string) (err error) {
 	url := fmt.Sprintf("/stamps/topup/%s/%d", batchID, amount)
 	if gasPrice != "" {
@@ -62,7 +62,7 @@ func (p *PostageService) TopUpPostageBatch(ctx context.Context, batchID string, 
 	return p.client.request(ctx, http.MethodPatch, url, nil, nil)
 }
 
-// Sends a create postage request to a node that returns the bactchID
+// Sends a dilute batch request to a node that returns the batchID
 func (p *PostageService) DilutePostageBatch(ctx context.Context, batchID string, newDepth uint64, gasPrice string) (err error) {
 	url := fmt.Sprintf("/stamps/dilute/%s/%d", batchID, newDepth)
 	if gasPrice != "" {
