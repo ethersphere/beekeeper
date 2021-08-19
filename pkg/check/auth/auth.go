@@ -63,6 +63,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			return fmt.Errorf("authorize: %w", err)
 		}
 
+		fmt.Println("got token", token)
+
 		status, err := client.Health(ctx, token)
 		if err != nil {
 			return fmt.Errorf("health check: %w", err)
@@ -73,6 +75,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		}
 	}
 
+	fmt.Println("authenticated health check completed successfully")
 	return
 }
 
