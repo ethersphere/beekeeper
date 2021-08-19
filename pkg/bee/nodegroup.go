@@ -11,7 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
-const nodeRetryTimeout = 3 * time.Second
+const nodeRetryTimeout = 5 * time.Second
 
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
