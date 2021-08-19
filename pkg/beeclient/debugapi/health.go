@@ -8,8 +8,8 @@ import (
 // HealthService represents Bee's health service
 type HealthService service
 
-// Check fetches health status of the instance
-func (b *HealthService) Check(ctx context.Context, securityToken string) (resp HealthResponse, err error) {
+// Status fetches health status of the instance
+func (b *HealthService) Status(ctx context.Context, securityToken string) (resp HealthResponse, err error) {
 	header := make(http.Header)
 	header.Set("Content-Type", "application/json")
 	header.Set("Authorization", "Bearer "+securityToken)
