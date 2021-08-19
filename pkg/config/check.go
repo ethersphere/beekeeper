@@ -472,7 +472,7 @@ var Checks = map[string]CheckType{
 				Role                *string `json:"role"`
 				AdminUsername       *string `json:"admin-username"`
 				AdminPasswordHash   *string `json:"admin-password-hash"`
-				RestrictedGroupName *string `json:"restricted"`
+				RestrictedGroupName *string `json:"restricted-group-name"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
