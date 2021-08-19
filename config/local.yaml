@@ -344,6 +344,6 @@ checks:
     timeout: 5m
     options:
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
       postage-topup-amount: 100
-      postage-new-depth: 17
+      postage-new-depth: 18
