@@ -29,6 +29,11 @@ clusters:
         config: local
         count: 2
         mode: node
+      restricted:
+        bee-config: bee-local
+        config: local
+        count: 1
+        mode: node
   local-dns:
     _inherit: "local"
     node-groups:
@@ -358,4 +363,4 @@ checks:
       role: role0
       admin-username: test
       admin-password-hash: $2a$12$4q3T8gCc1nnPcar58OEAxeuclim/urcLpcwNEPnKcO9YT/2/sOA3m
-      restricted-group-name: restricted
+      restricted-group-name: bee-local-restricted
