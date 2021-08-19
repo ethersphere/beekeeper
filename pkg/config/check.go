@@ -468,11 +468,11 @@ var Checks = map[string]CheckType{
 		NewAction: auth.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				DryRun              *bool   `json:"dry-run"`
-				Role                *string `json:"role"`
-				AdminUsername       *string `json:"admin-username"`
-				AdminPasswordHash   *string `json:"admin-password-hash"`
-				RestrictedGroupName *string `json:"restricted-group-name"`
+				DryRun              *bool   `yaml:"dry-run"`
+				Role                *string `yaml:"role"`
+				AdminUsername       *string `yaml:"admin-username"`
+				AdminPasswordHash   *string `yaml:"admin-password-hash"`
+				RestrictedGroupName *string `yaml:"restricted-group-name"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
