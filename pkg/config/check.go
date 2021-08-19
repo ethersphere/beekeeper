@@ -470,9 +470,9 @@ var Checks = map[string]CheckType{
 			checkOpts := new(struct {
 				GasPrice           *string `yaml:"gas-price"`
 				PostageAmount      *int64  `yaml:"postage-amount"`
-				PostageTopupAmount *int64  `yaml:"postage-amount"`
+				PostageTopupAmount *int64  `yaml:"postage-topup-amount"`
 				PostageDepth       *uint64 `yaml:"postage-depth"`
-				PostageNewDepth    *uint64 `yaml:"postage-depth"`
+				PostageNewDepth    *uint64 `yaml:"postage-new-depth"`
 				PostageLabel       *string `yaml:"postage-label"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {

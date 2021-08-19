@@ -28,8 +28,8 @@ func NewDefaultOptions() Options {
 		GasPrice:           "",
 		PostageAmount:      1000,
 		PostageTopupAmount: 100,
-		PostageDepth:       16,
-		PostageNewDepth:    17,
+		PostageDepth:       17,
+		PostageNewDepth:    18,
 		PostageLabel:       "test-label",
 		PostageWait:        5 * time.Second,
 		NodeCount:          1,
@@ -74,16 +74,14 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("failed getting postage batches %w", err)
 	}
 
-	currentValue := mbig.NewInt(0).Mul(mbig.NewInt(o.PostageAmount), mbig.NewInt(1<<o.PostageDepth))
-
 	found := false
 	for _, v := range batches {
 		if v.BatchID == batchID {
 			found = true
-			if v.Amount.Cmp(currentValue) != 0 {
+			if v.Amount.Int64() != o.PostageAmount {
 				return fmt.Errorf(
 					"invalid batch amount expected %d got %d, batch %s",
-					currentValue.Int64(),
+					o.PostageAmount,
 					v.Amount.Int64(),
 					batchID,
 				)
@@ -115,18 +113,16 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("failed getting postage batches %w", err)
 	}
 
-	topupAmount := mbig.NewInt(o.PostageTopupAmount)
-
-	newValue := mbig.NewInt(0).Add(currentValue, mbig.NewInt(0).Mul(topupAmount, mbig.NewInt(int64(1<<o.PostageDepth))))
+	newAmount := o.PostageAmount + o.PostageTopupAmount
 
 	found = false
 	for _, v := range batches {
 		if v.BatchID == batchID {
 			found = true
-			if v.Amount.Cmp(newValue) != 0 {
+			if v.Amount.Int64() != newAmount {
 				return fmt.Errorf(
 					"invalid batch amount expected %d got %d, batch %s",
-					newValue.Int64(),
+					newAmount,
 					v.Amount.Int64(),
 					batchID,
 				)
@@ -149,7 +145,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	depthChange := o.PostageNewDepth - o.PostageDepth
 
-	newValue2 := mbig.NewInt(0).Div(newValue, mbig.NewInt(int64(1<<depthChange)))
+	newValue2 := mbig.NewInt(0).Div(mbig.NewInt(newAmount), mbig.NewInt(int64(1<<depthChange)))
 
 	err = client.DilutePostageBatch(ctx, batchID, o.PostageNewDepth, o.GasPrice)
 	if err != nil {

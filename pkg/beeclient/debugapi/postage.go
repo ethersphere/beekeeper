@@ -57,9 +57,9 @@ func (p *PostageService) TopUpPostageBatch(ctx context.Context, batchID string, 
 	if gasPrice != "" {
 		h := http.Header{}
 		h.Add("Gas-Price", gasPrice)
-		return p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, nil)
+		return p.client.requestWithHeader(ctx, http.MethodPatch, url, h, nil, nil)
 	}
-	return p.client.request(ctx, http.MethodPost, url, nil, nil)
+	return p.client.request(ctx, http.MethodPatch, url, nil, nil)
 }
 
 // Sends a create postage request to a node that returns the bactchID
@@ -68,9 +68,9 @@ func (p *PostageService) DilutePostageBatch(ctx context.Context, batchID string,
 	if gasPrice != "" {
 		h := http.Header{}
 		h.Add("Gas-Price", gasPrice)
-		return p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, nil)
+		return p.client.requestWithHeader(ctx, http.MethodPatch, url, h, nil, nil)
 	}
-	return p.client.request(ctx, http.MethodPost, url, nil, nil)
+	return p.client.request(ctx, http.MethodPatch, url, nil, nil)
 }
 
 // Fetches the list postage stamp batches
