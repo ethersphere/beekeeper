@@ -341,7 +341,6 @@ checks:
       postage-amount: 1000
       postage-depth: 16  
   auth:
-    type: auth
     timeout: 1m
     options:
       dry-run: false

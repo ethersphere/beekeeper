@@ -26,6 +26,11 @@ clusters:
         bee-config: testnet-light-node
         config: testnet-light-node
         count: 3
+      restricted:
+        mode: node
+        bee-config: testnet-restricted
+        config: testnet-restricted
+        count: 1
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
@@ -66,6 +71,11 @@ node-groups:
     restart-policy: "Always"
     update-strategy: "RollingUpdate"
   testnet-light-node:
+    _inherit: testnet
+    image: ethersphere/bee:latest
+    image-pull-policy: Always
+    persistence-enabled: false
+  testnet-restricted:
     _inherit: testnet
     image: ethersphere/bee:latest
     image-pull-policy: Always
@@ -119,4 +129,7 @@ bee-configs:
     welcome-message: "Welcome to the Testnet!"
   testnet-light-node:
     _inherit: testnet
-    full-node: false
+    full-node: false 
+  testnet-restricted:
+    _inherit: testnet
+    restricted: true
