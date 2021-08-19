@@ -688,6 +688,6 @@ func (c *Client) Authenticate(ctx context.Context, role, username, password stri
 
 // Health
 func (c *Client) Health(ctx context.Context, securityToken string) (string, error) {
-	resp, err := c.debug.Health.Check(ctx, securityToken)
+	resp, err := c.debug.Health.Status(ctx, securityToken)
 	return resp.Status, err
 }
