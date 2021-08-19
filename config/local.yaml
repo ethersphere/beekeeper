@@ -339,3 +339,12 @@ checks:
       content-size: 16384
       postage-amount: 1000
       postage-depth: 16
+  ci-auth:
+    type: auth
+    timeout: 1m
+    options:
+      dry-run: false
+      role: role0
+      admin-username: test
+      admin-password-hash: $2a$12$4q3T8gCc1nnPcar58OEAxeuclim/urcLpcwNEPnKcO9YT/2/sOA3m
+      restricted-group-name: restricted
