@@ -58,7 +58,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	for _, node := range restricted.Nodes() {
 		client := node.Client()
 
-		token, _ := client.Authenticate(ctx, o.Role, o.AdminUsername, o.AdminPasswordHash)
+		token, err := client.Authenticate(ctx, o.Role, o.AdminUsername, o.AdminPasswordHash)
 		if err != nil {
 			return fmt.Errorf("authorize: %w", err)
 		}
