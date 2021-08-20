@@ -10,6 +10,6 @@ bee-configs:
 node-groups:
   restricted:
     _inherit: default
-    image: ethersphere/bee:latest
+    image: anatollupacescu/restricted:latest
     image-pull-policy: Always
     persistence-enabled: false

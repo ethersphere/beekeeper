@@ -30,7 +30,7 @@ clusters:
         count: 2
         mode: node
       restricted:
-        bee-config: bee-local
+        bee-config: bee-local-restricted
         config: local
         count: 1
         mode: node
