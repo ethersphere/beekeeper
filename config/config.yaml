@@ -135,6 +135,7 @@ bee-configs:
     postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
     price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: ""
+    restricted: false
     standalone: false
     swap-enable: true
     swap-endpoint: "ws://geth-swap.geth-swap:8546"

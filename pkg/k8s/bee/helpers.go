@@ -41,6 +41,7 @@ payment-tolerance: {{.PaymentTolerance}}
 postage-stamp-address: {{ .PostageStampAddress }}
 price-oracle-address: {{ .PriceOracleAddress }}
 resolver-options: {{.ResolverOptions}}
+restricted: {{.Restricted}}
 standalone: {{.Standalone}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
