@@ -471,7 +471,7 @@ var Checks = map[string]CheckType{
 				DryRun              *bool   `yaml:"dry-run"`
 				Role                *string `yaml:"role"`
 				AdminUsername       *string `yaml:"admin-username"`
-				AdminPasswordHash   *string `yaml:"admin-password-hash"`
+				AdminPassword       *string `yaml:"admin-password"`
 				RestrictedGroupName *string `yaml:"restricted-group-name"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {

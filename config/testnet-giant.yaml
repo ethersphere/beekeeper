@@ -106,6 +106,8 @@ bee-configs:
     price-oracle-address: ""
     resolver-options: "https://cloudflare-eth.com"
     restricted: false
+    admin-username: ""
+    admin-password: ""
     standalone: false
     swap-enable: true
     swap-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
