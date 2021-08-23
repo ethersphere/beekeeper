@@ -136,6 +136,8 @@ bee-configs:
     price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: ""
     restricted: false
+    admin-username: ""
+    admin-password: ""
     standalone: false
     swap-enable: true
     swap-endpoint: "ws://geth-swap.geth-swap:8546"
@@ -348,7 +350,7 @@ checks:
       dry-run: false
       role: role0
       admin-username: test
-      admin-password-hash: $2a$12$4q3T8gCc1nnPcar58OEAxeuclim/urcLpcwNEPnKcO9YT/2/sOA3m
+      admin-password: test
       restricted-group-name: restricted
 
 # simulations defines simulations Beekeeper can execute against the cluster

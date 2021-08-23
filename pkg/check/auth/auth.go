@@ -12,9 +12,9 @@ import (
 type Options struct {
 	DryRun bool
 
-	Role              string
-	AdminUsername     string
-	AdminPasswordHash string
+	Role          string
+	AdminUsername string
+	AdminPassword string
 
 	RestrictedGroupName string
 }
@@ -58,12 +58,10 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	for _, node := range restricted.Nodes() {
 		client := node.Client()
 
-		token, err := client.Authenticate(ctx, o.Role, o.AdminUsername, o.AdminPasswordHash)
+		token, err := client.Authenticate(ctx, o.Role, o.AdminUsername, o.AdminPassword)
 		if err != nil {
-			return fmt.Errorf("authorize: %w", err)
+			return fmt.Errorf("authenticate: %w", err)
 		}
-
-		fmt.Println("got token", token)
 
 		status, err := client.Health(ctx, token)
 		if err != nil {
