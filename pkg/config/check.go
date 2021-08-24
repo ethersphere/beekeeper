@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/check/auth"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/chunkrepair"
+	"github.com/ethersphere/beekeeper/pkg/check/consumed"
 	"github.com/ethersphere/beekeeper/pkg/check/contentavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
@@ -464,8 +464,8 @@ var Checks = map[string]CheckType{
 			return opts, nil
 		},
 	},
-	"auth": {
-		NewAction: auth.NewCheck,
+	"consumed-authenticated": {
+		NewAction: consumed.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				DryRun              *bool   `yaml:"dry-run"`
@@ -477,7 +477,7 @@ var Checks = map[string]CheckType{
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
-			opts := auth.NewDefaultOptions()
+			opts := consumed.NewDefaultOptions()
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}

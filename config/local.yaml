@@ -360,8 +360,8 @@ checks:
       content-size: 16384
       postage-amount: 1000
       postage-depth: 16
-  ci-auth:
-    type: auth
+  ci-consumed-authenticated:
+    type: consumed-authenticated
     timeout: 1m
     options:
       dry-run: false
