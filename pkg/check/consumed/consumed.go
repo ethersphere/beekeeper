@@ -1,4 +1,4 @@
-package auth
+package consumed
 
 import (
 	"context"
@@ -44,11 +44,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	}
 
 	if o.DryRun {
-		fmt.Println("running auth health (dry mode)")
+		fmt.Println("running authenticated 'consumed' check (dry run mode)")
 		return dryRun(ctx, cluster, o)
 	}
 
-	fmt.Println("running auth health")
+	fmt.Println("running authenticated 'consumed' check")
 
 	restricted, err := cluster.NodeGroup(o.RestrictedGroupName)
 	if err != nil {
@@ -65,13 +65,15 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 		balances, err := client.Consumed(ctx, token)
 		if err != nil {
-			return fmt.Errorf("health check: %w", err)
+			return fmt.Errorf("consumed check: %w", err)
 		}
 
-		fmt.Println("got balances", balances)
+		if len(balances) == 0 {
+			return fmt.Errorf("expected non empty balances, got: %v", balances)
+		}
 	}
 
-	fmt.Println("authenticated health check completed successfully")
+	fmt.Println("authenticated 'consumed' check completed successfully")
 	return
 }
 
