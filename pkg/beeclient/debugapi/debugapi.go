@@ -27,7 +27,7 @@ type Client struct {
 	Node     *NodeService
 	PingPong *PingPongService
 	Postage  *PostageService
-	Health   *HealthService
+	Consumed *ConsumedService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -55,7 +55,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.Node = (*NodeService)(&c.service)
 	c.PingPong = (*PingPongService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
-	c.Health = (*HealthService)(&c.service)
+	c.Consumed = (*ConsumedService)(&c.service)
 	return c
 }
 

@@ -687,7 +687,7 @@ func (c *Client) Authenticate(ctx context.Context, role, username, password stri
 }
 
 // Health
-func (c *Client) Health(ctx context.Context, securityToken string) (string, error) {
-	resp, err := c.debug.Health.Status(ctx, securityToken)
-	return resp.Status, err
+func (c *Client) Consumed(ctx context.Context, securityToken string) ([]debugapi.Balance, error) {
+	resp, err := c.debug.Consumed.Balances(ctx, securityToken)
+	return resp.Balances, err
 }
