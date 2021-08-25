@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/auth"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
@@ -36,6 +37,7 @@ type ClientOptions struct {
 	APIInsecureTLS      bool
 	DebugAPIURL         *url.URL
 	DebugAPIInsecureTLS bool
+	Restricted          bool
 	Retry               int
 }
 
@@ -76,8 +78,26 @@ func (c *Client) Config() ClientOptions {
 	return c.opts
 }
 
+func (c *Client) withAuthToken(ctx context.Context) context.Context {
+	if !c.opts.Restricted {
+		return ctx
+	}
+
+	authToken, err := c.Authenticate(ctx, "role0", "test", "test")
+
+	if err != nil {
+		fmt.Println("authenticate", err)
+		return ctx
+	}
+
+	ctx = auth.WithAuthToken(ctx, authToken)
+
+	return ctx
+}
+
 // Addresses returns node's addresses
 func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
+	ctx = c.withAuthToken(ctx)
 	a, err := c.debug.Node.Addresses(ctx)
 	if err != nil {
 		return Addresses{}, fmt.Errorf("get addresses: %w", err)
@@ -192,6 +212,7 @@ func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, 
 // Overlay returns node's overlay address
 func (c *Client) Overlay(ctx context.Context) (o swarm.Address, err error) {
 	var a debugapi.Addresses
+	ctx = c.withAuthToken(ctx)
 	for r := 0; r < c.retry; r++ {
 		time.Sleep(2 * time.Duration(r) * time.Second)
 
@@ -211,6 +232,7 @@ func (c *Client) Overlay(ctx context.Context) (o swarm.Address, err error) {
 
 // Peers returns addresses of node's peers
 func (c *Client) Peers(ctx context.Context) (peers []swarm.Address, err error) {
+	ctx = c.withAuthToken(ctx)
 	ps, err := c.debug.Node.Peers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get peers: %w", err)
@@ -246,6 +268,7 @@ func (c *Client) GetPins(ctx context.Context) ([]swarm.Address, error) {
 
 // Ping pings other node
 func (c *Client) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
+	ctx = c.withAuthToken(ctx)
 	r, err := c.debug.PingPong.Ping(ctx, node)
 	if err != nil {
 		return "", fmt.Errorf("ping node %s: %w", node, err)
@@ -327,6 +350,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		}
 		fmt.Printf("reserve state (prior to buying the batch):\n%s\n", rs.String())
 	}
+	ctx = c.withAuthToken(ctx)
 	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
 	if err != nil {
 		return "", fmt.Errorf("create postage stamp: %w", err)
@@ -376,6 +400,7 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 
 // PostageBatches returns the list of batches of node
 func (c *Client) PostageBatches(ctx context.Context) ([]debugapi.PostageStampResponse, error) {
+	ctx = c.withAuthToken(ctx)
 	return c.debug.Postage.PostageBatches(ctx)
 }
 

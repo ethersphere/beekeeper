@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/auth"
 )
 
 const contentType = "application/json; charset=utf-8"
@@ -141,6 +142,13 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 		req.Header.Set("Content-Type", contentType)
 	}
 	req.Header.Set("Accept", contentType)
+
+	token, ok := auth.GetAuthToken(ctx)
+
+	if ok {
+		bearer := fmt.Sprintf("Bearer %s", token)
+		req.Header.Set("Authorization", bearer)
+	}
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
