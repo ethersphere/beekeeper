@@ -74,15 +74,6 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		return fmt.Errorf("debug API URL %s: %w", name, err)
 	}
 
-	client := NewClient(ClientOptions{
-		APIURL:              aURL,
-		APIInsecureTLS:      g.cluster.apiInsecureTLS,
-		DebugAPIURL:         dURL,
-		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
-		Retry:               5,
-		Restricted:          true,
-	})
-
 	// TODO: make more granular, check every sub-option
 	var config *k8s.Config
 	if o.Config != nil {
@@ -90,6 +81,17 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 	} else {
 		config = g.opts.BeeConfig
 	}
+
+	client := NewClient(ClientOptions{
+		APIURL:              aURL,
+		APIInsecureTLS:      g.cluster.apiInsecureTLS,
+		DebugAPIURL:         dURL,
+		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
+		Retry:               5,
+		Restricted:          config.Restricted,
+		AdminUsername:       "test",
+		AdminPassword:       "test",
+	})
 
 	n := NewNode(name, NodeOptions{
 		ClefKey:      o.ClefKey,
