@@ -83,6 +83,10 @@ func (c *Client) withAuthToken(ctx context.Context) context.Context {
 		return ctx
 	}
 
+	if _, ok := auth.GetAuthToken(ctx); ok {
+		return ctx
+	}
+
 	authToken, err := c.Authenticate(ctx, "role0", "test", "test")
 
 	if err != nil {

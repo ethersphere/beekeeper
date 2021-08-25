@@ -80,7 +80,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		DebugAPIURL:         dURL,
 		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
 		Retry:               5,
-		Restricted:          g.opts.BeeConfig.Restricted,
+		Restricted:          true,
 	})
 
 	// TODO: make more granular, check every sub-option
