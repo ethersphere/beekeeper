@@ -142,15 +142,13 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 }
 
 func (c *Client) authToken(ctx context.Context) string {
-	if c.service.restricted {
-		resp, err := c.Auth.Authenticate(ctx, "role2", c.service.adminUsername, c.service.adminPassword)
-		if err != nil {
-			fmt.Println("authenticate", err)
-		}
-		return resp.Key
+	resp, err := c.Auth.Authenticate(ctx, "role2", c.service.adminUsername, c.service.adminPassword)
+	if err != nil {
+		fmt.Println("authenticate error", err)
+		return ""
 	}
 
-	return ""
+	return resp.Key
 }
 
 // request handles the HTTP request response cycle.
