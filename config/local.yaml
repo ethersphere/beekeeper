@@ -215,7 +215,7 @@ bee-configs:
     bootnode: /dnsaddr/localhost
     restricted: true
     admin-username: test
-    admin-password: $2a$12$4q3T8gCc1nnPcar58OEAxeuclim/urcLpcwNEPnKcO9YT/2/sOA3m
+    admin-password: test
   bee-local-clef:
     _inherit: "bee-local"
     clef-signer-enable: true

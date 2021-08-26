@@ -4,7 +4,7 @@ bee-configs:
     _inherit: default
     restricted: true
     admin-username: test
-    admin-password: $2a$12$4q3T8gCc1nnPcar58OEAxeuclim/urcLpcwNEPnKcO9YT/2/sOA3m
+    admin-password: test
 
 # node groups for restricted nodes
 node-groups:
