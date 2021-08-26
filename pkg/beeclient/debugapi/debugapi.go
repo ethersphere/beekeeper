@@ -28,16 +28,20 @@ type Client struct {
 	PingPong *PingPongService
 	Postage  *PostageService
 	Consumed *ConsumedService
-	Auth     *AuthService
+
+	authenticator Authenticator
+}
+
+type Authenticator interface {
+	Authenticate(context.Context, string) (string, error)
 }
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
 	HTTPClient *http.Client
 
-	Restricted    bool
-	AdminUsername string
-	AdminPassword string
+	Restricted bool
+	Auth       Authenticator
 }
 
 // NewClient constructs a new Client.
@@ -52,9 +56,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
 
 	c.service.restricted = o.Restricted
-	c.service.adminUsername = o.AdminUsername
-	c.service.adminPassword = o.AdminPassword
-
+	c.authenticator = o.Auth
 	return c
 }
 
@@ -67,7 +69,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.PingPong = (*PingPongService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
 	c.Consumed = (*ConsumedService)(&c.service)
-	c.Auth = (*AuthService)(&c.service)
+	// c.Auth = (*AuthService)(&c.service)
 	return c
 }
 
@@ -141,16 +143,6 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	return err
 }
 
-func (c *Client) authToken(ctx context.Context) string {
-	resp, err := c.Auth.Authenticate(ctx, "role2", c.service.adminUsername, c.service.adminPassword)
-	if err != nil {
-		fmt.Println("authenticate error", err)
-		return ""
-	}
-
-	return resp.Key
-}
-
 // request handles the HTTP request response cycle.
 func (c *Client) request(ctx context.Context, method, path string, body io.Reader, v interface{}) (err error) {
 	req, err := http.NewRequest(method, path, body)
@@ -165,8 +157,13 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	req.Header.Set("Accept", contentType)
 
 	if c.service.restricted {
-		bearer := fmt.Sprintf("Bearer %s", c.authToken(ctx))
-		req.Header.Set("Authorization", bearer)
+		key, err := c.authenticator.Authenticate(ctx, "role2")
+		if err != nil {
+			fmt.Println("authenticate error", err)
+		} else {
+			bearer := fmt.Sprintf("Bearer %s", key)
+			req.Header.Set("Authorization", bearer)
+		}
 	}
 
 	r, err := c.httpClient.Do(req)
@@ -242,9 +239,7 @@ func responseErrorHandler(r *http.Response) (err error) {
 type service struct {
 	client *Client
 
-	restricted    bool
-	adminUsername string
-	adminPassword string
+	restricted bool
 }
 
 // Bool is a helper routine that allocates a new bool value to store v and

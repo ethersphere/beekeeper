@@ -42,6 +42,19 @@ type ClientOptions struct {
 	Retry               int
 }
 
+type authenticator struct {
+	service            *api.AuthService
+	username, password string
+}
+
+func (a authenticator) Authenticate(ctx context.Context, role string) (string, error) {
+	res, err := a.service.Authenticate(ctx, role, a.username, a.password)
+	if err != nil {
+		return "", err
+	}
+	return res.Key, nil
+}
+
 // NewClient returns Bee client
 func NewClient(opts ClientOptions) (c *Client) {
 	c = &Client{
@@ -60,9 +73,13 @@ func NewClient(opts ClientOptions) (c *Client) {
 				HTTPClient: &http.Client{Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
 				}},
-				Restricted:    opts.Restricted,
-				AdminUsername: opts.AdminUsername,
-				AdminPassword: opts.AdminPassword},
+				Restricted: opts.Restricted,
+				Auth: &authenticator{
+					service:  c.api.Auth,
+					username: opts.AdminUsername,
+					password: opts.AdminPassword,
+				},
+			},
 		)
 	}
 	if opts.Retry > 0 {
