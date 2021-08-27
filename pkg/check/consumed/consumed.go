@@ -2,6 +2,7 @@ package consumed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -57,6 +58,10 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	for _, node := range restricted.Nodes() {
 		client := node.Client()
+
+		if _, err := client.Consumed(ctx, "fake-token"); err == nil {
+			return errors.New("expected error when calling with fake token")
+		}
 
 		token, err := client.Authenticate(ctx, o.Role, o.AdminUsername, o.AdminPassword)
 		if err != nil {

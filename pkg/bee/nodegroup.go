@@ -82,8 +82,6 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		config = g.opts.BeeConfig
 	}
 
-	fmt.Println("got node", name, "with config", config.Restricted)
-
 	client := NewClient(ClientOptions{
 		APIURL:              aURL,
 		APIInsecureTLS:      g.cluster.apiInsecureTLS,
@@ -91,8 +89,8 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
 		Retry:               5,
 		Restricted:          config.Restricted,
-		AdminUsername:       "test",
-		AdminPassword:       "test",
+		AdminUsername:       g.cluster.username,
+		AdminPassword:       g.cluster.password,
 	})
 
 	n := NewNode(name, NodeOptions{

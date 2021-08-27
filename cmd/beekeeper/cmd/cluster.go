@@ -113,6 +113,8 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	cluster = bee.NewCluster(clusterConfig.GetName(), clusterOptions)
 
+	cluster.SetAdminCredentials(clusterConfig.Authentication.Username, clusterConfig.Authentication.Password)
+
 	if start {
 		bootnodes := ""
 		for ng, v := range clusterConfig.GetNodeGroups() {

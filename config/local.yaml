@@ -12,6 +12,9 @@ clusters:
     funding:
       eth: 0.1
       bzz: 100.0
+    authentication:
+      username: "test"
+      password: "test"
     node-groups:
       bootnode:
         mode: bootnode
