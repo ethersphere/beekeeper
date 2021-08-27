@@ -32,6 +32,7 @@ type Client struct {
 	authenticator Authenticator
 }
 
+// Authenticator retrieves the security token
 type Authenticator interface {
 	Authenticate(context.Context, string) (string, error)
 }
@@ -159,7 +160,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	if c.service.restricted {
 		key, err := c.authenticator.Authenticate(ctx, "role2")
 		if err != nil {
-			fmt.Println("authenticate error", err)
+			return fmt.Errorf("authenticate: %w", err)
 		} else {
 			bearer := fmt.Sprintf("Bearer %s", key)
 			req.Header.Set("Authorization", bearer)

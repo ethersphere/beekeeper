@@ -63,9 +63,18 @@ func NewClient(opts ClientOptions) (c *Client) {
 	}
 
 	if opts.APIURL != nil {
-		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
-		}}})
+		c.api = api.NewClient(opts.APIURL,
+			&api.ClientOptions{
+				Restricted: opts.Restricted,
+				Username:   opts.AdminUsername,
+				Password:   opts.AdminPassword,
+				HTTPClient: &http.Client{
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
+					},
+				},
+			},
+		)
 	}
 	if opts.DebugAPIURL != nil {
 		c.debug = debugapi.NewClient(opts.DebugAPIURL,

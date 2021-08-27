@@ -40,9 +40,17 @@ type Client struct {
 	Auth        *AuthService
 }
 
+// Authenticator retrieves the security token
+type Authenticator interface {
+	Authenticate(context.Context, string) (string, error)
+}
+
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
 	HTTPClient *http.Client
+	Restricted bool
+	Username   string
+	Password   string
 }
 
 // NewClient constructs a new Client.
@@ -54,7 +62,13 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 		o.HTTPClient = new(http.Client)
 	}
 
-	return newClient(httpClientWithTransport(baseURL, o.HTTPClient))
+	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
+
+	c.service.username = o.Username
+	c.service.password = o.Password
+	c.service.restricted = o.Restricted
+
+	return
 }
 
 // newClient constructs a new *Client with the provided http Client, which
@@ -191,6 +205,16 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	req.Header = header
 	req.Header.Add("Accept", contentType)
 
+	if c.service.restricted {
+		key, err := c.Auth.Authenticate(ctx, "role2", c.service.username, c.service.password)
+		if err != nil {
+			return fmt.Errorf("authenticate: %w", err)
+		} else {
+			bearer := fmt.Sprintf("Bearer %s", key)
+			req.Header.Set("Authorization", bearer)
+		}
+	}
+
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
@@ -256,6 +280,10 @@ func responseErrorHandler(r *http.Response) (err error) {
 // for them to use.
 type service struct {
 	client *Client
+
+	restricted bool
+	username   string
+	password   string
 }
 
 // Bool is a helper routine that allocates a new bool value to store v and
