@@ -183,7 +183,11 @@ func (c *Client) requestData(ctx context.Context, method, path string, header ht
 	req.Header.Set("Accept", contentType)
 
 	if c.service.restricted {
-		key, err := c.Auth.Authenticate(ctx, "role2", c.service.username, c.service.password)
+		role := GetRole(method, path)
+		if role == "" {
+			return nil, fmt.Errorf("role not found for %s %s", method, path)
+		}
+		key, err := c.Auth.Authenticate(ctx, role, c.service.username, c.service.password)
 		if err != nil {
 			return nil, fmt.Errorf("authenticate: %w", err)
 		} else {
