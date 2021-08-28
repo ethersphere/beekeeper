@@ -128,37 +128,33 @@ func (c *Client) requestJSON(ctx context.Context, method, path string, body, v i
 		}
 	}
 
-	return c.request(ctx, method, path, bodyBuffer, v)
-}
-
-// request handles the HTTP request response cycle.
-func (c *Client) request(ctx context.Context, method, path string, body io.Reader, v interface{}) (err error) {
-	req, err := http.NewRequest(method, path, body)
+	r, err := c.requestData(ctx, method, path, nil, bodyBuffer, v)
 	if err != nil {
 		return err
 	}
-	req = req.WithContext(ctx)
 
-	if body != nil {
-		req.Header.Set("Content-Type", contentType)
-	}
-	req.Header.Set("Accept", contentType)
-
-	r, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
 	defer drain(r.Body)
-
-	if err = responseErrorHandler(r); err != nil {
-		return err
-	}
 
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		return json.NewDecoder(r.Body).Decode(&v)
 	}
 
 	return nil
+}
+
+// requestWithHeader handles the HTTP request response cycle.
+func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (err error) {
+	r, err := c.requestData(ctx, method, path, header, body, v)
+	if err != nil {
+		return err
+	}
+
+	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		_ = json.NewDecoder(r.Body).Decode(&v)
+		return err
+	}
+
+	return err
 }
 
 // encodeJSON writes a JSON-encoded v object to the provided writer with
@@ -170,45 +166,26 @@ func encodeJSON(w io.Writer, v interface{}) (err error) {
 }
 
 // requestData handles the HTTP request response cycle.
-func (c *Client) requestData(ctx context.Context, method, path string, body io.Reader, v interface{}) (resp io.ReadCloser, err error) {
+func (c *Client) requestData(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (resp *http.Response, err error) {
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
 		return nil, err
 	}
 	req = req.WithContext(ctx)
+
+	if header != nil {
+		req.Header = header
+	}
 
 	if body != nil {
 		req.Header.Set("Content-Type", contentType)
 	}
 	req.Header.Set("Accept", contentType)
 
-	r, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = responseErrorHandler(r); err != nil {
-		return nil, err
-	}
-
-	return r.Body, nil
-}
-
-// requestWithHeader handles the HTTP request response cycle.
-func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (err error) {
-	req, err := http.NewRequest(method, path, body)
-	if err != nil {
-		return err
-	}
-	req = req.WithContext(ctx)
-
-	req.Header = header
-	req.Header.Add("Accept", contentType)
-
 	if c.service.restricted {
 		key, err := c.Auth.Authenticate(ctx, "role2", c.service.username, c.service.password)
 		if err != nil {
-			return fmt.Errorf("authenticate: %w", err)
+			return nil, fmt.Errorf("authenticate: %w", err)
 		} else {
 			bearer := fmt.Sprintf("Bearer %s", key)
 			req.Header.Set("Authorization", bearer)
@@ -217,19 +194,14 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err = responseErrorHandler(r); err != nil {
-		return err
+		return nil, err
 	}
 
-	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		_ = json.NewDecoder(r.Body).Decode(&v)
-		return err
-	}
-
-	return err
+	return r, nil
 }
 
 // drain discards all of the remaining data from the reader and closes it,

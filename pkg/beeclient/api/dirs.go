@@ -14,7 +14,9 @@ type DirsService service
 
 // Download downloads data from the node
 func (s *DirsService) Download(ctx context.Context, a swarm.Address, path string) (resp io.ReadCloser, err error) {
-	return s.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bzz/"+a.String()+"/"+path, nil, nil)
+	r, err := s.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bzz/"+a.String()+"/"+path, nil, nil, nil)
+
+	return r.Body, err
 }
 
 // DirsUploadResponse represents Upload's response

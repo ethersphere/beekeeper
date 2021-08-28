@@ -14,11 +14,15 @@ type ChunksService service
 
 // Download downloads data from the node
 func (c *ChunksService) Download(ctx context.Context, a swarm.Address, targets string) (resp io.ReadCloser, err error) {
+	var r *http.Response
 	if targets == "" {
-		return c.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/chunks/"+a.String(), nil, nil)
+		r, err = c.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/chunks/"+a.String(), nil, nil, nil)
+		return r.Body, err
 	}
 
-	return c.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/chunks/"+a.String()+"?targets="+targets, nil, nil)
+	r, err = c.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/chunks/"+a.String()+"?targets="+targets, nil, nil, nil)
+
+	return r.Body, err
 }
 
 // ChunksUploadResponse represents Upload's response

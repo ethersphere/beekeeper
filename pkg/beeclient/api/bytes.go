@@ -14,7 +14,9 @@ type BytesService service
 
 // Download downloads data from the node
 func (b *BytesService) Download(ctx context.Context, a swarm.Address) (resp io.ReadCloser, err error) {
-	return b.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bytes/"+a.String(), nil, nil)
+	r, err := b.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bytes/"+a.String(), nil, nil, nil)
+
+	return r.Body, err
 }
 
 // BytesUploadResponse represents Upload's response
