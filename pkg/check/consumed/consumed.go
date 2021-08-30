@@ -56,7 +56,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return err
 	}
 
-	for _, node := range restricted.Nodes() {
+	var node *bee.Node
+	for _, node = range restricted.Nodes() {
 		client := node.Client()
 
 		if _, err := client.Consumed(ctx, "fake-token"); err == nil {
@@ -76,6 +77,14 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		if len(balances) == 0 {
 			return fmt.Errorf("expected non empty balances, got: %v", balances)
 		}
+	}
+
+	token, err := node.Client().Authenticate(ctx, "role0", "wrong-username", "wrong-password")
+	if err == nil {
+		return fmt.Errorf("expected error when authenticating with bad credentials")
+	}
+	if token != "" {
+		return fmt.Errorf("want empty token, got %s", token)
 	}
 
 	fmt.Println("authenticated 'consumed' check completed successfully")

@@ -71,7 +71,6 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.PingPong = (*PingPongService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
 	c.Consumed = (*ConsumedService)(&c.service)
-	// c.Auth = (*AuthService)(&c.service)
 	return c
 }
 
