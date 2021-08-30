@@ -60,7 +60,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		client := node.Client()
 
 		if _, err := client.Consumed(ctx, "fake-token"); err == nil {
-			return errors.New("expected error when calling with fake token")
+			return errors.New("expected error when making a call while unauthenticated")
 		}
 
 		token, err := client.Authenticate(ctx, o.Role, o.AdminUsername, o.AdminPassword)
