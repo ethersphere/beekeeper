@@ -113,12 +113,14 @@ func (c *Client) Config() ClientOptions {
 
 // Addresses returns node's addresses
 func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
-	r, err := c.api.Auth.Authenticate(ctx, "role2", "test", "test")
-	if err != nil {
-		return Addresses{}, fmt.Errorf("authenticate: %w", err)
-	}
+	if c.opts.Restricted {
+		r, err := c.api.Auth.Authenticate(ctx, "role2", "test", "test")
+		if err != nil {
+			return Addresses{}, fmt.Errorf("role2 authenticate: %w", err)
+		}
 
-	fmt.Println("got token", r.Key)
+		fmt.Println("got token", r.Key)
+	}
 
 	a, err := c.debug.Node.Addresses(ctx)
 	if err != nil {
