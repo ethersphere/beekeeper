@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 )
 
 const contentType = "application/json; charset=utf-8"
@@ -157,19 +156,19 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	}
 	req.Header.Set("Accept", contentType)
 
-	if c.service.restricted {
-		role := api.GetRole(path, method)
-		if role == "" {
-			return fmt.Errorf("role not found for %s %s", method, path)
-		}
-		key, err := c.authenticator.Authenticate(ctx, role)
-		if err != nil {
-			return fmt.Errorf("authenticate: %w", err)
-		} else {
-			bearer := fmt.Sprintf("Bearer %s", key)
-			req.Header.Set("Authorization", bearer)
-		}
-	}
+	// if c.service.restricted {
+	// 	role := api.GetRole(path, method)
+	// 	if role == "" {
+	// 		return fmt.Errorf("role not found for %s %s", method, path)
+	// 	}
+	// 	key, err := c.authenticator.Authenticate(ctx, role)
+	// 	if err != nil {
+	// 		return fmt.Errorf("authenticate: %w", err)
+	// 	} else {
+	// 		bearer := fmt.Sprintf("Bearer %s", key)
+	// 		req.Header.Set("Authorization", bearer)
+	// 	}
+	// }
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
