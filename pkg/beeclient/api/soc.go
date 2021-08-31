@@ -24,5 +24,5 @@ func (p *SOCService) UploadSOC(ctx context.Context, owner, ID, signature string,
 	url := fmt.Sprintf("/%s/soc/%s/%s?sig=%s", apiVersion, owner, ID, signature)
 
 	resp := SocResponse{}
-	return &resp, p.client.requestWithHeader(ctx, http.MethodPost, url, h, data, &resp)
+	return &resp, p.client.RequestWithHeader(ctx, http.MethodPost, url, h, data, &resp)
 }

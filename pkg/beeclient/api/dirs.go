@@ -30,7 +30,7 @@ func (s *DirsService) Upload(ctx context.Context, data io.Reader, size int64, o 
 	header.Set("swarm-collection", "True")
 	header.Set(postageStampBatchHeader, o.BatchID)
 
-	err = s.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz", header, data, &resp)
+	err = s.client.RequestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz", header, data, &resp)
 
 	return
 }

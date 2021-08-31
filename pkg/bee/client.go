@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/auth"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
 
@@ -80,27 +81,44 @@ func (c *Client) Config() ClientOptions {
 
 // Addresses returns node's addresses
 func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
-
 	var (
 		a debugapi.Addresses
 	)
 
+	a, err = c.debug.Node.Addresses(ctx)
+	if err != nil {
+		fmt.Println("calling for addresses", err)
+	}
+
 	if c.opts.Restricted {
-		auth := &auth.AuthService{
-			Client: c.api.HttpClient,
-		}
 
 		fmt.Println("authenticating...")
 
-		r, err := auth.Authenticate(ctx, "role2", "test", "test")
-		if err != nil {
-			fmt.Println("auth failed", err)
-			return Addresses{}, fmt.Errorf("auth: %w", err)
+		plain := fmt.Sprintf("%s:%s", "test", "test")
+		encoded := base64.StdEncoding.EncodeToString([]byte(plain))
+		header := make(http.Header)
+		header.Set("Content-Type", "application/json")
+		header.Set("Accept", "application/json")
+		header.Set("Authorization", "Basic "+encoded)
+
+		// AuthResponse represents authentication response
+		var authResponse struct {
+			Key string `json:"key"`
 		}
 
-		fmt.Println("getting addresses with key", r.Key)
+		err := c.api.RequestWithHeader(ctx, http.MethodPost, "/auth", header, strings.NewReader(
+			`{
+				"role": "role2"
+			}`,
+		), &authResponse)
 
-		a, err = c.debug.Node.AddressesAuth(ctx, r.Key)
+		if err != nil {
+			return Addresses{}, fmt.Errorf("RequestWithHeader to %shealth: %w", c.opts.APIURL.String(), err)
+		}
+
+		fmt.Println("getting addresses with key", authResponse.Key)
+
+		a, err = c.debug.Node.AddressesAuth(ctx, authResponse.Key)
 		if err != nil {
 			return Addresses{}, fmt.Errorf("get addresses: %w", err)
 		}

@@ -3,18 +3,17 @@ package auth
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 )
 
 // AuthService represents Bee's Auth service
 type AuthService struct {
-	Client *http.Client
+	URL *url.URL
 }
 
 // AuthResponse represents authentication response
@@ -38,7 +37,15 @@ func (a *AuthService) Authenticate(ctx context.Context, role, username, password
 
 	data := strings.NewReader(fmt.Sprintf(roleTmpl, role))
 
-	req, err := http.NewRequest(http.MethodPost, "/auth", data)
+	fmt.Println("got URL", a.URL.String())
+
+	if !strings.HasSuffix(a.URL.Path, "/") {
+		a.URL.Path += "/"
+	}
+
+	fmt.Println("calling", a.URL)
+
+	req, err := http.NewRequest(http.MethodPost, a.URL.String()+"/auth", data)
 	if err != nil {
 		return AuthResponse{}, err
 	}
@@ -46,45 +53,22 @@ func (a *AuthService) Authenticate(ctx context.Context, role, username, password
 	req = req.WithContext(ctx)
 	req.Header = header
 
-	r, err := a.Client.Do(req)
+	c := new(http.Client)
+	r, err := c.Do(req)
 	if err != nil {
 		return AuthResponse{}, err
 	}
 
-	if err = responseErrorHandler(r); err != nil {
-		return AuthResponse{}, err
+	fmt.Println("got status code", r.StatusCode)
+
+	defer r.Body.Close()
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return AuthResponse{}, fmt.Errorf("ReadAll: %w", err)
 	}
 
-	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		if err = json.NewDecoder(r.Body).Decode(&resp); err != nil && err != io.EOF {
-			return AuthResponse{}, err
-		}
-	}
-
-	return
-}
-
-// responseErrorHandler returns an error based on the HTTP status code or nil if
-// the status code is from 200 to 299.
-// The error will include the message from standardized JSON-encoded error response
-// if it is not the same as the status text.
-func responseErrorHandler(r *http.Response) (err error) {
-	if r.StatusCode/100 == 2 {
-		// no error if response in 2xx range
-		return nil
-	}
-
-	var e struct {
-		Message string `json:"message"`
-	}
-
-	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		if err = json.NewDecoder(r.Body).Decode(&e); err != nil && err != io.EOF {
-			return err
-		}
-	}
-
-	return errors.New(e.Message)
+	return AuthResponse{}, fmt.Errorf("real response: %s", string(b))
 }
 
 func GetRole(path, method string) string {
