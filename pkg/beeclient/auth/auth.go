@@ -1,0 +1,157 @@
+package auth
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"regexp"
+	"strings"
+)
+
+// AuthService represents Bee's Auth service
+type AuthService struct {
+	Client *http.Client
+}
+
+// AuthResponse represents authentication response
+type AuthResponse struct {
+	Key string `json:"key"`
+}
+
+const roleTmpl = `{
+    "role": "%s"
+}`
+
+// Authenticate gets the bearer security token based on given credentials
+func (a *AuthService) Authenticate(ctx context.Context, role, username, password string) (resp AuthResponse, err error) {
+	plain := fmt.Sprintf("%s:%s", username, password)
+	encoded := base64.StdEncoding.EncodeToString([]byte(plain))
+
+	header := make(http.Header)
+	header.Set("Content-Type", "application/json")
+	header.Set("Accept", "application/json")
+	header.Set("Authorization", "Basic "+encoded)
+
+	data := strings.NewReader(fmt.Sprintf(roleTmpl, role))
+
+	req, err := http.NewRequest(http.MethodPost, "/auth", data)
+	if err != nil {
+		return AuthResponse{}, err
+	}
+
+	req = req.WithContext(ctx)
+	req.Header = header
+
+	r, err := a.Client.Do(req)
+	if err != nil {
+		return AuthResponse{}, err
+	}
+
+	if err = responseErrorHandler(r); err != nil {
+		return AuthResponse{}, err
+	}
+
+	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		if err = json.NewDecoder(r.Body).Decode(&resp); err != nil && err != io.EOF {
+			return AuthResponse{}, err
+		}
+	}
+
+	return
+}
+
+// responseErrorHandler returns an error based on the HTTP status code or nil if
+// the status code is from 200 to 299.
+// The error will include the message from standardized JSON-encoded error response
+// if it is not the same as the status text.
+func responseErrorHandler(r *http.Response) (err error) {
+	if r.StatusCode/100 == 2 {
+		// no error if response in 2xx range
+		return nil
+	}
+
+	var e struct {
+		Message string `json:"message"`
+	}
+
+	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		if err = json.NewDecoder(r.Body).Decode(&e); err != nil && err != io.EOF {
+			return err
+		}
+	}
+
+	return errors.New(e.Message)
+}
+
+func GetRole(path, method string) string {
+	for _, v := range policies {
+		if v[2] != method {
+			if !strings.Contains(v[2], fmt.Sprintf("(%s)", method)) {
+				continue
+			}
+		}
+		re := regexp.MustCompile(v[1])
+		if re.Match([]byte(path)) {
+			return v[0]
+		}
+	}
+
+	return ""
+}
+
+var policies = [][]string{
+	{"role0", "/bytes/*", "GET"},
+	{"role1", "/bytes", "POST"},
+	{"role0", "/chunks/*", "GET"},
+	{"role1", "/chunks", "POST"},
+	{"role0", "/bzz/*", "GET"},
+	{"role1", "/bzz/*", "PATCH"},
+	{"role1", "/bzz", "POST"},
+	{"role0", "/bzz/*/*", "GET"},
+	{"role1", "/tags", "(GET)|(POST)"},
+	{"role1", "/tags/*", "(GET)|(DELETE)|(PATCH)"},
+	{"role1", "/pins/*", "(GET)|(DELETE)|(POST)"},
+	{"role2", "/pins", "GET"},
+	{"role1", "/pss/send/*", "POST"},
+	{"role0", "/pss/subscribe/*", "GET"},
+	{"role1", "/soc/*/*", "POST"},
+	{"role1", "/feeds/*/*", "POST"},
+	{"role0", "/feeds/*/*", "GET"},
+	{"role2", "/stamps", "GET"},
+	{"role2", "/stamps/*", "GET"},
+	{"role2", "/stamps/*/*", "POST"},
+	{"role2", "/addresses", "GET"},
+	{"role2", "/blocklist", "GET"},
+	{"role2", "/connect/*", "POST"},
+	{"role2", "/peers", "GET"},
+	{"role2", "/peers/*", "DELETE"},
+	{"role2", "/pingpong/*", "POST"},
+	{"role2", "/topology", "GET"},
+	{"role2", "/welcome-message", "(GET)|(POST)"},
+	{"role2", "/balances", "GET"},
+	{"role2", "/balances/*", "GET"},
+	{"role2", "/chequebook/cashout/*", "GET"},
+	{"role3", "/chequebook/cashout/*", "POST"},
+	{"role3", "/chequebook/withdraw", "POST"},
+	{"role3", "/chequebook/deposit", "POST"},
+	{"role2", "/chequebook/cheque/*", "GET"},
+	{"role2", "/chequebook/cheque", "GET"},
+	{"role2", "/chequebook/address", "GET"},
+	{"role2", "/chequebook/balance", "GET"},
+	{"role2", "/chunks/*", "(GET)|(DELETE)"},
+	{"role2", "/reservestate", "GET"},
+	{"role2", "/chainstate", "GET"},
+	{"role2", "/settlements/*", "GET"},
+	{"role2", "/settlements", "GET"},
+	{"role2", "/transactions", "GET"},
+	{"role0", "/transactions/*", "GET"},
+	{"role3", "/transactions/*", "(POST)|(DELETE)"},
+	{"role0", "/consumed", "GET"},
+	{"role0", "/consumed/*", "GET"},
+	{"role0", "/chunks/stream", "GET"},
+	{"role0", "/stewardship/*", "PUT"},
+}

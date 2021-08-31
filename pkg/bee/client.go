@@ -15,6 +15,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/beeclient/auth"
 	"github.com/ethersphere/beekeeper/pkg/beeclient/debugapi"
 )
 
@@ -79,11 +80,37 @@ func (c *Client) Config() ClientOptions {
 
 // Addresses returns node's addresses
 func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
-	fmt.Println("getting addresses from restricted", c.opts.Restricted)
 
-	a, err := c.debug.Node.Addresses(ctx)
-	if err != nil {
-		return Addresses{}, fmt.Errorf("get addresses: %w", err)
+	var (
+		a debugapi.Addresses
+	)
+
+	if c.opts.Restricted {
+		auth := &auth.AuthService{
+			Client: c.api.HttpClient,
+		}
+
+		fmt.Println("authenticating...")
+
+		r, err := auth.Authenticate(ctx, "role2", "test", "test")
+		if err != nil {
+			fmt.Println("auth failed", err)
+			return Addresses{}, fmt.Errorf("auth: %w", err)
+		}
+
+		fmt.Println("getting addresses with key", r.Key)
+
+		a, err = c.debug.Node.AddressesAuth(ctx, r.Key)
+		if err != nil {
+			return Addresses{}, fmt.Errorf("get addresses: %w", err)
+		}
+
+		fmt.Println("got addresses", a, err)
+	} else {
+		a, err = c.debug.Node.Addresses(ctx)
+		if err != nil {
+			return Addresses{}, fmt.Errorf("get addresses: %w", err)
+		}
 	}
 
 	return Addresses{

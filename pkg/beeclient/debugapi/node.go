@@ -28,6 +28,14 @@ func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error)
 	return
 }
 
+// Addresses returns node's addresses
+func (n *NodeService) AddressesAuth(ctx context.Context, key string) (resp Addresses, err error) {
+	h := http.Header{}
+	h.Add("Authorization", "Bearer "+key)
+	err = n.client.requestWithHeader(ctx, http.MethodGet, "/addresses", h, nil, &resp)
+	return
+}
+
 // Balance represents node's balance with a peer
 type Balance struct {
 	Balance *bigint.BigInt `json:"balance"`

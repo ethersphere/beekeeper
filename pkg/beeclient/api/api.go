@@ -24,7 +24,7 @@ var userAgent = "beekeeper/" + beekeeper.Version
 
 // Client manages communication with the Bee API.
 type Client struct {
-	httpClient *http.Client // HTTP client must handle authentication implicitly.
+	HttpClient *http.Client // HTTP client must handle authentication implicitly.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
@@ -59,7 +59,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all API services.
 func newClient(httpClient *http.Client) (c *Client) {
-	c = &Client{httpClient: httpClient}
+	c = &Client{HttpClient: httpClient}
 	c.service.client = c
 	c.Bytes = (*BytesService)(&c.service)
 	c.Chunks = (*ChunksService)(&c.service)
@@ -128,7 +128,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	}
 	req.Header.Set("Accept", contentType)
 
-	r, err := c.httpClient.Do(req)
+	r, err := c.HttpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	}
 	req.Header.Set("Accept", contentType)
 
-	r, err := c.httpClient.Do(req)
+	r, err := c.HttpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	req.Header = header
 	req.Header.Add("Accept", contentType)
 
-	r, err := c.httpClient.Do(req)
+	r, err := c.HttpClient.Do(req)
 	if err != nil {
 		return err
 	}
