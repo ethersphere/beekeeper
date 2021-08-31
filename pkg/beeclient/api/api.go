@@ -40,11 +40,6 @@ type Client struct {
 	Auth        *AuthService
 }
 
-// Authenticator retrieves the security token
-type Authenticator interface {
-	Authenticate(context.Context, string) (string, error)
-}
-
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
 	HTTPClient *http.Client
