@@ -3,9 +3,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -35,27 +33,8 @@ func (b *AuthService) Authenticate(ctx context.Context, role, username, password
 
 	data := strings.NewReader(fmt.Sprintf(roleTmpl, role))
 
-	req, err := http.NewRequest(http.MethodPost, "/auth", data)
-	if err != nil {
+	if err := b.client.requestWithHeader(ctx, http.MethodPost, "/auth", header, data, &resp); err != nil {
 		return AuthResponse{}, err
-	}
-
-	req = req.WithContext(ctx)
-	req.Header = header
-
-	r, err := b.client.httpClient.Do(req)
-	if err != nil {
-		return AuthResponse{}, err
-	}
-
-	if err = responseErrorHandler(r); err != nil {
-		return AuthResponse{}, err
-	}
-
-	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		if err = json.NewDecoder(r.Body).Decode(&resp); err != nil && err != io.EOF {
-			return AuthResponse{}, err
-		}
 	}
 
 	return
