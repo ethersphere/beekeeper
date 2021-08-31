@@ -42,6 +42,9 @@ type BeeConfig struct {
 	PostageStampAddress        *string        `yaml:"postage-stamp-address"`
 	PriceOracleAddress         *string        `yaml:"price-oracle-address"`
 	ResolverOptions            *string        `yaml:"resolver-options"`
+	Restricted                 *bool          `yaml:"restricted"`
+	AdminUsername              *string        `yaml:"admin-username"`
+	AdminPassword              *string        `yaml:"admin-password"`
 	Standalone                 *bool          `yaml:"standalone"`
 	SwapEnable                 *bool          `yaml:"swap-enable"`
 	SwapEndpoint               *string        `yaml:"swap-endpoint"`

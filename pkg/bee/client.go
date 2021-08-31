@@ -37,6 +37,7 @@ type ClientOptions struct {
 	DebugAPIURL         *url.URL
 	DebugAPIInsecureTLS bool
 	Retry               int
+	Restricted          bool
 }
 
 // NewClient returns Bee client
@@ -78,6 +79,8 @@ func (c *Client) Config() ClientOptions {
 
 // Addresses returns node's addresses
 func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
+	fmt.Println("getting addresses from restricted", c.opts.Restricted)
+
 	a, err := c.debug.Node.Addresses(ctx)
 	if err != nil {
 		return Addresses{}, fmt.Errorf("get addresses: %w", err)

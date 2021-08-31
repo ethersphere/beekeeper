@@ -12,6 +12,9 @@ clusters:
     debug-api-domain: dai.internal
     debug-api-insecure-tls: true
     debug-api-scheme: https
+    authentication:
+      username: test
+      password: test
     funding:
       eth: 0.1
       bzz: 100.0

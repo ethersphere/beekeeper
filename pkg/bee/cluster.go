@@ -30,6 +30,8 @@ type Cluster struct {
 	namespace           string
 	disableNamespace    bool                  // do not use namespace for node hostnames
 	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
+	username            string
+	password            string
 }
 
 // ClusterOptions represents Bee cluster options
@@ -67,6 +69,12 @@ func NewCluster(name string, o ClusterOptions) *Cluster {
 
 		nodeGroups: make(map[string]*NodeGroup),
 	}
+}
+
+// SetAdminCredentials sets the credentials
+func (c *Cluster) SetAdminCredentials(username, password string) {
+	c.username = username
+	c.password = password
 }
 
 // AddNodeGroup adds new node group to the cluster
