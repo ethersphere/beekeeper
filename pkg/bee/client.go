@@ -42,18 +42,18 @@ type ClientOptions struct {
 	Retry               int
 }
 
-// type authenticator struct {
-// 	service            *api.AuthService
-// 	username, password string
-// }
+type authenticator struct {
+	service            *api.AuthService
+	username, password string
+}
 
-// func (a authenticator) Authenticate(ctx context.Context, role string) (string, error) {
-// 	res, err := a.service.Authenticate(ctx, role, a.username, a.password)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return res.Key, nil
-// }
+func (a authenticator) Authenticate(ctx context.Context, url, role string) (string, error) {
+	res, err := a.service.Authenticate(ctx, role, url, a.username, a.password)
+	if err != nil {
+		return "", err
+	}
+	return res.Key, nil
+}
 
 // NewClient returns Bee client
 func NewClient(opts ClientOptions) (c *Client) {
@@ -83,11 +83,11 @@ func NewClient(opts ClientOptions) (c *Client) {
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
 				}},
 				Restricted: opts.Restricted,
-				// Auth: &authenticator{
-				// 	service:  c.api.Auth,
-				// 	username: opts.AdminUsername,
-				// 	password: opts.AdminPassword,
-				// },
+				Auth: &authenticator{
+					service:  c.api.Auth,
+					username: opts.AdminUsername,
+					password: opts.AdminPassword,
+				},
 			},
 		)
 	}
@@ -725,10 +725,10 @@ func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 }
 
 // Authenticate
-// func (c *Client) Authenticate(ctx context.Context, role, username, password string) (string, error) {
-// 	resp, err := c.api.Auth.Authenticate(ctx, role, username, password)
-// 	return resp.Key, err
-// }
+func (c *Client) Authenticate(ctx context.Context, role, username, password string) (string, error) {
+	resp, err := c.api.Auth.Authenticate(ctx, c.opts.APIURL.Host, role, username, password)
+	return resp.Key, err
+}
 
 // Consumed
 func (c *Client) Consumed(ctx context.Context, securityToken string) ([]debugapi.Balance, error) {

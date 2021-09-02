@@ -46,6 +46,8 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 		Transport: netTransport,
 	}
 
+	url = fmt.Sprintf("http://%s/auth", url)
+
 	fmt.Println("got url", url)
 
 	req, err := http.NewRequest(http.MethodPost, url+"auth", body)
@@ -61,7 +63,7 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 	}
 
 	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
-		return AuthResponse{}, fmt.Errorf("new request: %w", err)
+		return AuthResponse{}, fmt.Errorf("decoder: %w", err)
 	}
 
 	return
