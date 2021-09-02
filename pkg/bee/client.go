@@ -114,12 +114,19 @@ func (c *Client) Config() ClientOptions {
 // Addresses returns node's addresses
 func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
 	if c.opts.Restricted {
-		r, err := c.api.Auth.Authenticate(ctx, c.opts.APIURL.String(), "role2", "test", "test")
-		if err != nil {
-			return Addresses{}, fmt.Errorf("role3 authenticate: %w", err)
+		var r api.AuthResponse
+		for i := 0; i < 3; i++ {
+			r, err = c.api.Auth.Authenticate(ctx, c.opts.APIURL.String(), "role2", "test", "test")
+			if err != nil {
+				fmt.Println(i, "err auth", err)
+				time.Sleep(3 * time.Second)
+			}
 		}
-
 		fmt.Println("got token", r.Key)
+	}
+
+	if err != nil {
+		return Addresses{}, fmt.Errorf("debug authenticate: %w", err)
 	}
 
 	a, err := c.debug.Node.Addresses(ctx)
@@ -726,18 +733,7 @@ func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 
 // Authenticate
 func (c *Client) Authenticate(ctx context.Context, role, username, password string) (string, error) {
-	var (
-		resp api.AuthResponse
-		err  error
-	)
-	for i := 0; i < 3; i++ {
-		resp, err = c.api.Auth.Authenticate(ctx, c.opts.APIURL.String(), role, username, password)
-		if err != nil {
-			fmt.Println(i, "authenticate err: ", err)
-		}
-		time.Sleep(3 * time.Second)
-	}
-
+	resp, err := c.api.Auth.Authenticate(ctx, c.opts.APIURL.String(), role, username, password)
 	return resp.Key, err
 }
 
