@@ -25,7 +25,7 @@ const roleTmpl = `{
 }`
 
 // Authenticate gets the bearer security token based on given credentials
-func (b *AuthService) Authenticate(ctx context.Context, role, username, password string) (resp AuthResponse, err error) {
+func (b *AuthService) Authenticate(ctx context.Context, url, role, username, password string) (resp AuthResponse, err error) {
 	plain := fmt.Sprintf("%s:%s", username, password)
 	encoded := base64.StdEncoding.EncodeToString([]byte(plain))
 
@@ -48,7 +48,7 @@ func (b *AuthService) Authenticate(ctx context.Context, role, username, password
 		Transport: netTransport,
 	}
 
-	req, err := http.NewRequest(http.MethodPost, "/auth", body)
+	req, err := http.NewRequest(http.MethodPost, url+"/auth", body)
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("new request: %w", err)
 	}
