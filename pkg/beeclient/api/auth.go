@@ -20,9 +20,7 @@ type AuthResponse struct {
 	Key string `json:"key"`
 }
 
-const roleTmpl = `{
-    "role": "%s"
-}`
+const roleTmpl = `{"role": "%s"}`
 
 // Authenticate gets the bearer security token based on given credentials
 func (b *AuthService) Authenticate(ctx context.Context, url, role, username, password string) (resp AuthResponse, err error) {
@@ -48,7 +46,9 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 		Transport: netTransport,
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url+"/auth", body)
+	fmt.Println("got url", url)
+
+	req, err := http.NewRequest(http.MethodPost, url+"auth", body)
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("new request: %w", err)
 	}
