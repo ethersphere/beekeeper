@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"regexp"
@@ -38,13 +38,13 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 	var netTransport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		Dial: (&net.Dialer{
-			Timeout: 5 * time.Second,
+			Timeout: 15 * time.Second,
 		}).Dial,
-		TLSHandshakeTimeout: 5 * time.Second,
+		TLSHandshakeTimeout: 15 * time.Second,
 	}
 
 	var client = &http.Client{
-		Timeout:   time.Second * 10,
+		Timeout:   time.Second * 15,
 		Transport: netTransport,
 	}
 
@@ -61,13 +61,13 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 		return AuthResponse{}, fmt.Errorf("new request: %w", err)
 	}
 
-	bts, _ := ioutil.ReadAll(res.Body)
+	if res.StatusCode != http.StatusCreated {
+		return AuthResponse{}, fmt.Errorf("bad status: %d", res.StatusCode)
+	}
 
-	fmt.Println("got body", string(bts))
-
-	// if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
-	// 	return AuthResponse{}, fmt.Errorf("decoder: %w", err)
-	// }
+	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
+		return AuthResponse{}, fmt.Errorf("decoder: %w", err)
+	}
 
 	return
 }

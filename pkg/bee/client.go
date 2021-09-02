@@ -726,7 +726,18 @@ func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 
 // Authenticate
 func (c *Client) Authenticate(ctx context.Context, role, username, password string) (string, error) {
-	resp, err := c.api.Auth.Authenticate(ctx, c.opts.APIURL.String(), role, username, password)
+	var (
+		resp api.AuthResponse
+		err  error
+	)
+	for i := 0; i < 3; i++ {
+		resp, err = c.api.Auth.Authenticate(ctx, c.opts.APIURL.String(), role, username, password)
+		if err != nil {
+			fmt.Println(i, "authenticate err: ", err)
+		}
+		time.Sleep(3 * time.Second)
+	}
+
 	return resp.Key, err
 }
 
