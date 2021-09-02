@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -35,6 +36,7 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 	body := strings.NewReader(fmt.Sprintf(roleTmpl, role))
 
 	var netTransport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		Dial: (&net.Dialer{
 			Timeout: 5 * time.Second,
 		}).Dial,
@@ -46,15 +48,12 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 		Transport: netTransport,
 	}
 
-	url = fmt.Sprintf("http://%s/auth", url)
-
-	fmt.Println("got url", url)
-
 	req, err := http.NewRequest(http.MethodPost, url+"auth", body)
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("new request: %w", err)
 	}
 	req = req.WithContext(ctx)
+	req.Header = header
 
 	res, err := client.Do(req)
 

@@ -726,7 +726,7 @@ func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 
 // Authenticate
 func (c *Client) Authenticate(ctx context.Context, role, username, password string) (string, error) {
-	resp, err := c.api.Auth.Authenticate(ctx, c.opts.APIURL.Host, role, username, password)
+	resp, err := c.api.Auth.Authenticate(ctx, c.opts.APIURL.String(), role, username, password)
 	return resp.Key, err
 }
 
