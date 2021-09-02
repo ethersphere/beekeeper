@@ -3,10 +3,13 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // AuthService represents Bee's Auth service
@@ -31,10 +34,34 @@ func (b *AuthService) Authenticate(ctx context.Context, role, username, password
 	header.Set("Accept", "application/json")
 	header.Set("Authorization", "Basic "+encoded)
 
-	data := strings.NewReader(fmt.Sprintf(roleTmpl, role))
+	body := strings.NewReader(fmt.Sprintf(roleTmpl, role))
 
-	if err := b.client.requestWithHeader(ctx, http.MethodPost, "/auth", header, data, &resp); err != nil {
-		return AuthResponse{}, err
+	var netTransport = &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+
+	var client = &http.Client{
+		Timeout:   time.Second * 10,
+		Transport: netTransport,
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "/auth", body)
+	if err != nil {
+		return AuthResponse{}, fmt.Errorf("new request: %w", err)
+	}
+	req = req.WithContext(ctx)
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		return AuthResponse{}, fmt.Errorf("new request: %w", err)
+	}
+
+	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
+		return AuthResponse{}, fmt.Errorf("new request: %w", err)
 	}
 
 	return
