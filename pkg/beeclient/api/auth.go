@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"regexp"
@@ -61,9 +61,13 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 		return AuthResponse{}, fmt.Errorf("new request: %w", err)
 	}
 
-	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
-		return AuthResponse{}, fmt.Errorf("decoder: %w", err)
-	}
+	bts, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println("got body", string(bts))
+
+	// if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
+	// 	return AuthResponse{}, fmt.Errorf("decoder: %w", err)
+	// }
 
 	return
 }
