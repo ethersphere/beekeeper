@@ -49,9 +49,9 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 		Transport: netTransport,
 	}
 
-	fmt.Println("GET ", url+"health")
+	fmt.Println("POST ", url+"auth")
 
-	req, err := http.NewRequest(http.MethodGet, url+"health", body)
+	req, err := http.NewRequest(http.MethodPost, url+"auth", body)
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("new request: %w", err)
 	}
@@ -63,14 +63,14 @@ func (b *AuthService) Authenticate(ctx context.Context, url, role, username, pas
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("exec request: %w", err)
 	}
+	bts, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println("got body", string(bts))
 
 	if res.StatusCode != http.StatusCreated {
 		return AuthResponse{}, fmt.Errorf("bad status: %d", res.StatusCode)
 	}
 
-	bts, _ := ioutil.ReadAll(res.Body)
-
-	fmt.Println("got body", string(bts))
 	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
 		return AuthResponse{}, fmt.Errorf("decoder: %w", err)
 	}
