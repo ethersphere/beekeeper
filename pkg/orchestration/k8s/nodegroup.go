@@ -13,7 +13,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
-const nodeRetryTimeout = 3 * time.Second
+const nodeRetryTimeout = 5 * time.Second
 
 // compile check whether client implements interface
 var _ orchestration.NodeGroup = (*NodeGroup)(nil)

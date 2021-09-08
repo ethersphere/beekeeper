@@ -3,8 +3,9 @@ module github.com/ethersphere/beekeeper
 go 1.16
 
 require (
-	github.com/ethersphere/bee v0.5.3
+	github.com/ethersphere/bee v1.0.0
 	github.com/ethersphere/bmt v0.1.4
+	github.com/ethersphere/ethproxy v0.0.3
 	github.com/gorilla/websocket v1.4.2
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/common v0.24.0

@@ -1,6 +1,8 @@
 package retrieval
 
 import (
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
@@ -24,7 +26,6 @@ type metrics struct {
 }
 
 func newMetrics(runID string, pusher *push.Pusher) metrics {
-	namespace := "beekeeper"
 	subsystem := "simulation_retrieval"
 
 	addCollector := func(c prometheus.Collector) {
@@ -35,7 +36,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	uploadedCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -49,7 +50,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	notUploadedCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -63,7 +64,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	uploadTimeGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -77,7 +78,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	uploadTimeHistogram := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -91,7 +92,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	downloadedCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -105,7 +106,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	notDownloadedCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -119,7 +120,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	downloadTimeGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -133,7 +134,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	downloadTimeHistogram := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -147,7 +148,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	retrievedCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -161,7 +162,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	notRetrievedCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -175,7 +176,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	syncedCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -189,7 +190,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	notSyncedCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -203,7 +204,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	syncTagsTimeGauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
@@ -217,7 +218,7 @@ func newMetrics(runID string, pusher *push.Pusher) metrics {
 
 	syncTagsTimeHistogram := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Subsystem: subsystem,
 			ConstLabels: prometheus.Labels{
 				"run": runID,
