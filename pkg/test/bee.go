@@ -15,11 +15,13 @@ import (
 )
 
 type CheckCase struct {
-	ctx      context.Context
-	clients  map[string]*bee.Client
-	nodes    []nodeV2
+	ctx     context.Context
+	clients map[string]*bee.Client
+
 	cluster  orchestration.Cluster
 	overlays orchestration.ClusterOverlays
+
+	nodes []nodeV2
 
 	o               CaseOptions
 	balancesHistory []orchestration.NodeGroupBalances
