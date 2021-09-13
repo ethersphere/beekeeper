@@ -114,7 +114,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	cluster = bee.NewCluster(clusterConfig.GetName(), clusterOptions)
 
 	if start {
-		bootnodes := ""
+		// bootnodes := ""
 		for ng, v := range clusterConfig.GetNodeGroups() {
 			ngConfig, ok := cfg.NodeGroups[v.Config]
 			if !ok {
@@ -143,8 +143,8 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 					}
 					bConfig := beeConfig.Export()
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
-					bootnodes += bConfig.Bootnodes + " "
+					// bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
+					// bootnodes += bConfig.Bootnodes + " "
 					// set NodeOptions
 					nOptions := bee.NodeOptions{
 						Config: &bConfig,
@@ -186,7 +186,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 				}
 				bConfig := beeConfig.Export()
-				bConfig.Bootnodes = bootnodes
+				// bConfig.Bootnodes = bootnodes
 				// add node group to the cluster
 				ngOptions := ngConfig.Export()
 				ngOptions.BeeConfig = &bConfig
@@ -242,7 +242,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 			}
 		}
 	} else {
-		bootnodes := ""
+		// bootnodes := ""
 		for ng, v := range clusterConfig.GetNodeGroups() {
 			ngConfig, ok := cfg.NodeGroups[v.Config]
 			if !ok {
@@ -270,8 +270,8 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 					}
 					bConfig := beeConfig.Export()
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
-					bootnodes += bConfig.Bootnodes + " "
+					// bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
+					// bootnodes += bConfig.Bootnodes + " "
 					// set NodeOptions
 					nOptions := bee.NodeOptions{
 						Config: &bConfig,
@@ -309,7 +309,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 				}
 				bConfig := beeConfig.Export()
-				bConfig.Bootnodes = bootnodes
+				// bConfig.Bootnodes = bootnodes
 				// add node group to the cluster
 				gOptions := ngConfig.Export()
 				gOptions.BeeConfig = &bConfig
