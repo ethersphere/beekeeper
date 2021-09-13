@@ -18,7 +18,7 @@ type CheckCase struct {
 	cluster  orchestration.Cluster
 	overlays orchestration.ClusterOverlays
 
-	nodes []nodeV2
+	nodes []beeV2
 
 	options CaseOptions
 	rnd     *rand.Rand
@@ -58,11 +58,11 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, o CaseOpti
 	fmt.Printf("Seed: %d\n", o.Seed)
 
 	var (
-		nodes []nodeV2
+		nodes []beeV2
 		count int
 	)
 	for name, addr := range flatOverlays {
-		nodes = append(nodes, nodeV2{
+		nodes = append(nodes, beeV2{
 			name:   name,
 			Addr:   addr,
 			client: clients[name],
@@ -81,10 +81,10 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, o CaseOpti
 	}, nil
 }
 
-func (c *CheckCase) RandomNode() *nodeV2 {
+func (c *CheckCase) RandomBee() *beeV2 {
 	_, nodeName, overlay := c.overlays.Random(c.rnd)
 
-	return &nodeV2{
+	return &beeV2{
 		o:       c.options,
 		name:    nodeName,
 		overlay: overlay,
@@ -100,11 +100,11 @@ type File struct {
 	size    int64
 }
 
-func (c *CheckCase) LastNode() *nodeV2 {
+func (c *CheckCase) LastBee() *beeV2 {
 	return &c.nodes[len(c.nodes)-1]
 }
 
-func (c *CheckCase) Node(index int) *nodeV2 {
+func (c *CheckCase) Bee(index int) *beeV2 {
 	return &c.nodes[index]
 }
 

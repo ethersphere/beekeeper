@@ -12,7 +12,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 )
 
-type nodeV2 struct {
+type beeV2 struct {
 	o       CaseOptions
 	name    string
 	Addr    swarm.Address
@@ -21,16 +21,16 @@ type nodeV2 struct {
 	client  *bee.Client
 }
 
-func (n *nodeV2) Name() string {
+func (n *beeV2) Name() string {
 	return n.name
 }
 
-func (n *nodeV2) DownloadChunk(ctx context.Context, ref swarm.Address) ([]byte, error) {
+func (n *beeV2) DownloadChunk(ctx context.Context, ref swarm.Address) ([]byte, error) {
 	return n.client.DownloadChunk(ctx, ref, "")
 }
 
 // NewRandomFile returns new pseudorandom file
-func (node *nodeV2) UploadRandomFile(ctx context.Context) (File, error) {
+func (node *beeV2) UploadRandomFile(ctx context.Context) (File, error) {
 	name := fmt.Sprintf("%s-%s", node.o.FileName, node.name)
 	file := File{
 		name: name,
@@ -41,7 +41,7 @@ func (node *nodeV2) UploadRandomFile(ctx context.Context) (File, error) {
 	return file, node.UploadFile(ctx, file)
 }
 
-func (n nodeV2) UploadFile(ctx context.Context, file File) error {
+func (n beeV2) UploadFile(ctx context.Context, file File) error {
 	depth := 2 + bee.EstimatePostageBatchDepth(n.o.FileSize)
 	batchID, err := n.client.CreatePostageBatch(ctx, n.o.PostageAmount, depth, n.o.GasPrice, n.o.PostageLabel, false)
 	if err != nil {
@@ -60,7 +60,7 @@ func (n nodeV2) UploadFile(ctx context.Context, file File) error {
 	return nil
 }
 
-func (n nodeV2) ExpectToHaveFile(ctx context.Context, file File) error {
+func (n beeV2) ExpectToHaveFile(ctx context.Context, file File) error {
 	size, hash, err := n.client.DownloadFile(ctx, file.address)
 	if err != nil {
 		return fmt.Errorf("node %s: %w", n.name, err)
@@ -75,7 +75,7 @@ func (n nodeV2) ExpectToHaveFile(ctx context.Context, file File) error {
 	return nil
 }
 
-func (n *nodeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
+func (n *beeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 	o := n.o
 	batchID, err := n.client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {

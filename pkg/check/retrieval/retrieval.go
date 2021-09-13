@@ -80,10 +80,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	lastNode := checkCase.LastNode()
+	lastBee := checkCase.LastBee()
 
 	for i := 0; i < o.UploadNodeCount; i++ {
-		uploader, err := checkCase.Node(i).NewChunkUploader(ctx)
+		uploader, err := checkCase.Bee(i).NewChunkUploader(ctx)
 		if err != nil {
 			return err
 		}
@@ -109,10 +109,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			// time download
 			t1 := time.Now()
 
-			data, err := lastNode.DownloadChunk(ctx, chunk.Addr())
+			data, err := lastBee.DownloadChunk(ctx, chunk.Addr())
 
 			if err != nil {
-				return fmt.Errorf("node %s: %w", lastNode.Name(), err)
+				return fmt.Errorf("node %s: %w", lastBee.Name(), err)
 			}
 
 			d1 := time.Since(t1)
@@ -123,7 +123,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			if !chunk.Equals(data) {
 				notRetrievedCounter.WithLabelValues(uploader.Name()).Inc()
-				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastNode.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
+				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastBee.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
 				if chunk.Contains(data) {
 					fmt.Printf("Downloaded data is subset of the uploaded data\n")
 				}
@@ -131,11 +131,11 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			}
 
 			retrievedCounter.WithLabelValues(uploader.Name()).Inc()
-			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastNode.Name(), j, uploader.Name(), chunk.AddrString())
+			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastBee.Name(), j, uploader.Name(), chunk.AddrString())
 
 			if o.MetricsPusher != nil {
 				if err := o.MetricsPusher.Push(); err != nil {
-					fmt.Printf("node %s: %v\n", lastNode.Name(), err)
+					fmt.Printf("node %s: %v\n", lastBee.Name(), err)
 				}
 			}
 		}

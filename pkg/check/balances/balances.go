@@ -95,9 +95,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	// repeats
 	for i := 0; i < o.UploadNodeCount; i++ {
 		// upload/check
-		node := checkCase.RandomNode()
+		bee := checkCase.RandomBee()
 
-		file, err := node.UploadRandomFile(ctx)
+		file, err := bee.UploadRandomFile(ctx)
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		balances = newBalances
 
 		// download/check
-		if err := checkCase.RandomNode().ExpectToHaveFile(ctx, file); err != nil {
+		if err := checkCase.RandomBee().ExpectToHaveFile(ctx, file); err != nil {
 			return err
 		}
 
