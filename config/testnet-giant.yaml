@@ -113,6 +113,7 @@ bee-configs:
     tracing-enabled: false
     tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
     tracing-service-name: "bee"
+    transaction: ""
     verbosity: 5
     welcome-message: "Welcome to the giant!"
   bootnode-giant:

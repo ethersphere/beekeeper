@@ -51,6 +51,7 @@ swap-initial-deposit: {{.SwapInitialDeposit}}
 tracing-enable: {{.TracingEnabled}}
 tracing-endpoint: {{.TracingEndpoint}}
 tracing-service-name: {{.TracingServiceName}}
+transaction: {{.Transaction}}
 verbosity: {{.Verbosity}}
 welcome-message: {{.WelcomeMessage}}
 warmup-time: {{.WarmupTime}}
