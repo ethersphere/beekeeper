@@ -82,8 +82,15 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		return fmt.Errorf("uploader overlay: %w", err)
 	}
 	start := time.Now()
-	ch := bee.NewRandSwarmChunk(rnds[0])
-	batchID, err := uploader.GetOrCreateBatch(ctx, 10000, 16, "", "")
+	var ch swarm.Chunk
+LOOP2:
+	for {
+		ch = bee.NewRandSwarmChunk(rnds[0])
+		if swarm.Proximity(uploaderOverlay.Bytes(), ch.Address().Bytes()) > 3 {
+			break LOOP2
+		}
+	}
+	batchID, err := uploader.GetOrCreateBatch(ctx, 10000, 17, "", "")
 	if err != nil {
 		return fmt.Errorf("created batch id %w", err)
 	}
@@ -92,14 +99,15 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("uploaded chunk %s to node %s\n", addr.String(), uploaderOverlay.String())
+	fmt.Printf("uploaded chunk %s to node %s, po %d\n", addr.String(), uploaderOverlay.String(), swarm.Proximity(uploaderOverlay.Bytes(), ch.Address().Bytes()))
 	sortedNodes := cluster.NodeNames()
 
 	var wg sync.WaitGroup
 	haves := make(map[string]struct{})
 	var mtx sync.Mutex
 
-	topCtx, _ := context.WithTimeout(ctx, 2*time.Minute)
+	topCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 LOOP:
 	for {
 		select {
@@ -112,6 +120,7 @@ LOOP:
 		ctx2, _ := context.WithTimeout(ctx, 5*time.Second)
 		for _, node := range sortedNodes {
 			go func(nodeName string) {
+				defer wg.Done()
 				client := clients[nodeName]
 				has, _ := client.HasChunk(ctx2, addr)
 				if has {
@@ -126,6 +135,7 @@ LOOP:
 			}(node)
 		}
 		wg.Wait()
+		//fmt.Println("finished iteration", "nodes", len(sortedNodes))
 	}
 	fmt.Printf("check ended, total copies: %d\n", totalCopies)
 	return nil

@@ -14,7 +14,7 @@ clusters:
     debug-api-scheme: https
     funding:
       eth: 0.1
-      gbzz: 2.0
+      bzz: 100.0
     node-groups:
       bootnode:
         mode: bootnode
@@ -28,7 +28,7 @@ clusters:
         mode: node
         bee-config: testnet-giant
         config: testnet-giant
-        count: 99
+        count: 499
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
@@ -37,8 +37,8 @@ node-groups:
     _inherit: ""
     clef-image: ethersphere/clef:latest
     clef-image-pull-policy: Always
-    image: ethersphere/bee:latest
-    image-pull-policy: Always
+    image: mrekucci/bee:latest
+    image-pull-policy: IfNotPresent
     image-pull-secrets: [regcred]
     ingress-annotations:
       nginx.ingress.kubernetes.io/affinity: "cookie"
@@ -53,13 +53,14 @@ node-groups:
     ingress-class: "nginx-internal"
     ingress-debug-class: "nginx-internal"
     labels:
+      app.kubernetes.io/name: bee
       app.kubernetes.io/component: "node"
       app.kubernetes.io/part-of: "bee"
       app.kubernetes.io/version: "latest"
     node-selector:
       node-group: "testnet-giant"
-    persistence-enabled: false
-    persistence-storage-class: "gp2"
+    persistence-enabled: true
+    persistence-storage-class: "local-storage-4hdd"
     persistence-storage-request: "34Gi"
     pod-management-policy: "OrderedReady"
     resources-limit-cpu: "1"
@@ -75,7 +76,7 @@ bee-configs:
   testnet-giant:
     _inherit: ""
     api-addr: ":1633"
-    block-time: 15
+    block-time: 1
     bootnodes: ""
     bootnode-mode: false
     cache-capacity: 1000000
@@ -93,7 +94,7 @@ bee-configs:
     gateway-mode: false
     global-pinning-enabled: false
     nat-addr: ""
-    network-id: 10
+    network-id: 1987
     p2p-addr: ":1634"
     p2p-quic-enable: false
     p2p-ws-enable: false
@@ -101,18 +102,18 @@ bee-configs:
     payment-early: 10000000
     payment-threshold: 100000000
     payment-tolerance: 500000000
-    postage-stamp-address: ""
-    price-oracle-address: ""
+    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
+    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: "https://cloudflare-eth.com"
     standalone: false
     swap-enable: true
-    swap-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
-    swap-factory-address: ""
-    swap-legacy-factory-addresses: ""
+    swap-endpoint: "ws://geth-swap.geth-swap:8546"
+    swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
+    swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
     swap-initial-deposit: 10000000000000000
-    tracing-enabled: false
+    tracing-enabled: true
     tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
-    tracing-service-name: "bee"
+    tracing-service-name: "bee-giant"
     verbosity: 5
     welcome-message: "Welcome to the giant!"
   bootnode-giant:
