@@ -3,10 +3,7 @@ package chunkavailability
 import (
 	"context"
 	"fmt"
-	"sync"
-	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	mm "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -53,84 +50,41 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *pu
 		mm.RegisterCollectors(c.Metrics()...)
 	}
 
-	var (
-		rnds        = random.PseudoGenerator(o.Seed)
-		totalCopies = 0
-	)
+	defer func() {
+		if err != nil {
+			c.metrics.Failures.Inc()
+		}
+	}()
+
+	//var (
+	//rnds = random.PseudoGenerator(o.Seed)
+	//)
 
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	overlays, err := cluster.FlattenOverlays(ctx)
-	if err != nil {
-		return err
-	}
+	//overlays, err := cluster.FlattenOverlays(ctx)
+	//if err != nil {
+	//return err
+	//}
 
-	clients, err := cluster.NodesClients(ctx)
-	if err != nil {
-		return err
-	}
-	uploader := clients["bee-0"]
-	uploaderOverlay, err := uploader.Overlay(ctx)
-	if err != nil {
-		return fmt.Errorf("uploader overlay: %w", err)
-	}
-	start := time.Now()
-	var ch swarm.Chunk
-LOOP2:
-	for {
-		ch = bee.NewRandSwarmChunk(rnds[0])
-		if swarm.Proximity(uploaderOverlay.Bytes(), ch.Address().Bytes()) > 3 {
-			break LOOP2
-		}
-	}
-	batchID, err := uploader.GetOrCreateBatch(ctx, 10000, 17, "", "")
-	if err != nil {
-		return fmt.Errorf("created batch id %w", err)
-	}
+	//clients, err := cluster.NodesClients(ctx)
+	//if err != nil {
+	//return err
+	//}
 
-	addr, err := uploader.UploadChunk(ctx, ch.Data(), api.UploadOptions{BatchID: batchID})
-	if err != nil {
-		return err
-	}
-	fmt.Printf("uploaded chunk %s to node %s, po %d\n", addr.String(), uploaderOverlay.String(), swarm.Proximity(uploaderOverlay.Bytes(), ch.Address().Bytes()))
-	sortedNodes := cluster.NodeNames()
+	/*
+		- pick a random node
+		- upload chunk
+		- check option of number of nodes to download from
+		- download from nodes
+		- mark histograms of how long it takes for chunk to be available from all nodes
 
-	var wg sync.WaitGroup
-	haves := make(map[string]struct{})
-	var mtx sync.Mutex
+	*/
+	//batchID, err := uploader.GetOrCreateBatch(ctx, 10000, 17, "", "")
+	//if err != nil {
+	//return fmt.Errorf("created batch id %w", err)
+	//}
 
-	topCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-LOOP:
-	for {
-		select {
-		case <-topCtx.Done():
-			break LOOP
-		default:
-		}
-
-		wg.Add(len(sortedNodes))
-		ctx2, _ := context.WithTimeout(ctx, 5*time.Second)
-		for _, node := range sortedNodes {
-			go func(nodeName string) {
-				defer wg.Done()
-				client := clients[nodeName]
-				has, _ := client.HasChunk(ctx2, addr)
-				if has {
-					mtx.Lock()
-					defer mtx.Unlock()
-					if _, ok := haves[nodeName]; !ok {
-						fmt.Printf("node %s (%s) has chunk %s, took %s\n", overlays[nodeName].String(), nodeName, addr.String(), time.Since(start))
-						haves[nodeName] = struct{}{}
-						totalCopies++
-					}
-				}
-			}(node)
-		}
-		wg.Wait()
-		//fmt.Println("finished iteration", "nodes", len(sortedNodes))
-	}
-	fmt.Printf("check ended, total copies: %d\n", totalCopies)
 	return nil
 }
 
