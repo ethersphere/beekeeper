@@ -243,13 +243,11 @@ checks:
     type: manifest
   ci-pingpong:
     options:
-      metrics-enabled: 
     timeout: 5m
     type: pingpong
   ci-pss:
     options:
       address-prefix: 2
-      metrics-enabled:
       node-count: 3
       postage-amount: 1
       postage-depth: 16
@@ -260,7 +258,6 @@ checks:
   ci-pushsync-chunks:
     options:
       chunks-per-node: 3
-      metrics-enabled:
       mode: chunks
       postage-amount: 1
       postage-depth: 16
@@ -275,7 +272,6 @@ checks:
   ci-pushsync-light-chunks:
     options:
       chunks-per-node: 3
-      metrics-enabled:
       mode: light-chunks
       postage-amount: 1
       postage-depth: 16
@@ -290,7 +286,6 @@ checks:
   ci-retrieval:
     options:
       chunks-per-node: 3
-      metrics-enabled:
       postage-amount: 1
       postage-depth: 16
       postage-wait: 5s

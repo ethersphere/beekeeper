@@ -17,7 +17,6 @@ import (
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
 	GasPrice        string
-	MetricsPusher   *push.Pusher
 	PostageAmount   int64
 	PostageDepth    uint64
 	PostageLabel    string
@@ -32,7 +31,6 @@ func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
 		GasPrice:        "",
-		MetricsPusher:   nil,
 		PostageAmount:   1000,
 		PostageDepth:    16,
 		PostageLabel:    "test-label",
@@ -55,7 +53,7 @@ func NewSimulation() beekeeper.Action {
 }
 
 // Run executes retrieval simulation
-func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -64,7 +62,7 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	metrics := newMetrics(cluster.Name()+"-"+time.Now().UTC().Format("2006-01-02-15-04-05-000000000"), o.MetricsPusher)
+	metrics := newMetrics(cluster.Name()+"-"+time.Now().UTC().Format("2006-01-02-15-04-05-000000000"), metricsPusher)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -112,8 +110,8 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				d0 := time.Since(t0)
 				if err != nil {
 					metrics.notUploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					if o.MetricsPusher != nil {
-						if err := o.MetricsPusher.Push(); err != nil {
+					if metricsPusher != nil {
+						if err := metricsPusher.Push(); err != nil {
 							fmt.Printf("upload node %s: %v\n", nodeName, err)
 						}
 					}
@@ -131,8 +129,8 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				d1 := time.Since(t1)
 				if err != nil {
 					metrics.notSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					if o.MetricsPusher != nil {
-						if err := o.MetricsPusher.Push(); err != nil {
+					if metricsPusher != nil {
+						if err := metricsPusher.Push(); err != nil {
 							fmt.Printf("upload node %s: %v\n", nodeName, err)
 						}
 					}
@@ -153,8 +151,8 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				d2 := time.Since(t2)
 				if err != nil {
 					metrics.notDownloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
-					if o.MetricsPusher != nil {
-						if err := o.MetricsPusher.Push(); err != nil {
+					if metricsPusher != nil {
+						if err := metricsPusher.Push(); err != nil {
 							fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
 						}
 					}
@@ -168,8 +166,8 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				// validate that chunk is retrieved correctly
 				if !bytes.Equal(chunk.Data(), data) {
 					metrics.notRetrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
-					if o.MetricsPusher != nil {
-						if err := o.MetricsPusher.Push(); err != nil {
+					if metricsPusher != nil {
+						if err := metricsPusher.Push(); err != nil {
 							fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
 						}
 					}
@@ -182,8 +180,8 @@ func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interfa
 				metrics.retrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
 				fmt.Printf("Chunk %s retrieved successfully from node %s\n", chunk.Address().String(), overlays[downloadNode].String())
 
-				if o.MetricsPusher != nil {
-					if err := o.MetricsPusher.Push(); err != nil {
+				if metricsPusher != nil {
+					if err := metricsPusher.Push(); err != nil {
 						fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
 					}
 				}

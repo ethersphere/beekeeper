@@ -10,6 +10,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // TODO: remove need for node group, use whole cluster instead
@@ -46,7 +47,7 @@ type CashoutAction struct {
 }
 
 // Check executes settlements check
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

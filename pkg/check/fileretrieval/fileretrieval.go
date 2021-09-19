@@ -22,7 +22,6 @@ type Options struct {
 	FilesPerNode    int
 	Full            bool
 	GasPrice        string
-	MetricsPusher   *push.Pusher
 	PostageAmount   int64
 	PostageLabel    string
 	PostageWait     time.Duration
@@ -38,7 +37,6 @@ func NewDefaultOptions() Options {
 		FilesPerNode:    1,
 		Full:            false,
 		GasPrice:        "",
-		MetricsPusher:   nil,
 		PostageAmount:   1,
 		PostageLabel:    "test-label",
 		PostageWait:     5 * time.Second,
@@ -58,38 +56,38 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 
 	if o.Full {
-		return fullCheck(ctx, cluster, o)
+		return fullCheck(ctx, cluster, metricsPusher, o)
 	}
 
-	return defaultCheck(ctx, cluster, o)
+	return defaultCheck(ctx, cluster, metricsPusher, o)
 }
 
 var errFileRetrieval = errors.New("file retrieval")
 
 // defaultCheck uploads files on cluster and downloads them from the last node in the cluster
-func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+func defaultCheck(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, o Options) (err error) {
 	fmt.Println("running file retrieval")
 
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(uploadedCounter)
-		o.MetricsPusher.Collector(uploadTimeGauge)
-		o.MetricsPusher.Collector(uploadTimeHistogram)
-		o.MetricsPusher.Collector(downloadedCounter)
-		o.MetricsPusher.Collector(downloadTimeGauge)
-		o.MetricsPusher.Collector(downloadTimeHistogram)
-		o.MetricsPusher.Collector(retrievedCounter)
-		o.MetricsPusher.Collector(notRetrievedCounter)
-		o.MetricsPusher.Format(expfmt.FmtText)
+	if metricsPusher != nil {
+		metricsPusher.Collector(uploadedCounter)
+		metricsPusher.Collector(uploadTimeGauge)
+		metricsPusher.Collector(uploadTimeHistogram)
+		metricsPusher.Collector(downloadedCounter)
+		metricsPusher.Collector(downloadTimeGauge)
+		metricsPusher.Collector(downloadTimeHistogram)
+		metricsPusher.Collector(retrievedCounter)
+		metricsPusher.Collector(notRetrievedCounter)
+		metricsPusher.Format(expfmt.FmtText)
 	}
 
 	overlays, err := cluster.FlattenOverlays(ctx)
@@ -154,8 +152,8 @@ func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 			retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s\n", nodeName, j, overlays[nodeName].String(), file.Address().String())
 
-			if o.MetricsPusher != nil {
-				if err := o.MetricsPusher.Push(); err != nil {
+			if metricsPusher != nil {
+				if err := metricsPusher.Push(); err != nil {
 					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}
@@ -166,22 +164,22 @@ func defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err err
 }
 
 // fullCheck uploads files on cluster and downloads them from the all nodes in the cluster
-func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+func fullCheck(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, o Options) (err error) {
 	fmt.Println("running file retrieval (full mode)")
 
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(uploadedCounter)
-		o.MetricsPusher.Collector(uploadTimeGauge)
-		o.MetricsPusher.Collector(uploadTimeHistogram)
-		o.MetricsPusher.Collector(downloadedCounter)
-		o.MetricsPusher.Collector(downloadTimeGauge)
-		o.MetricsPusher.Collector(downloadTimeHistogram)
-		o.MetricsPusher.Collector(retrievedCounter)
-		o.MetricsPusher.Collector(notRetrievedCounter)
-		o.MetricsPusher.Format(expfmt.FmtText)
+	if metricsPusher != nil {
+		metricsPusher.Collector(uploadedCounter)
+		metricsPusher.Collector(uploadTimeGauge)
+		metricsPusher.Collector(uploadTimeHistogram)
+		metricsPusher.Collector(downloadedCounter)
+		metricsPusher.Collector(downloadTimeGauge)
+		metricsPusher.Collector(downloadTimeHistogram)
+		metricsPusher.Collector(retrievedCounter)
+		metricsPusher.Collector(notRetrievedCounter)
+		metricsPusher.Format(expfmt.FmtText)
 	}
 
 	overlays, err := cluster.FlattenOverlays(ctx)
@@ -245,8 +243,8 @@ func fullCheck(ctx context.Context, cluster *bee.Cluster, o Options) (err error)
 				retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				fmt.Printf("Node %s. File %d retrieved successfully from node %s. Node: %s Download node: %s File: %s\n", nodeName, j, n, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
 
-				if o.MetricsPusher != nil {
-					if err := o.MetricsPusher.Push(); err != nil {
+				if metricsPusher != nil {
+					if err := metricsPusher.Push(); err != nil {
 						fmt.Printf("node %s: %v\n", nodeName, err)
 					}
 				}

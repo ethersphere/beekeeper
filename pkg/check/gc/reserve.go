@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // Options represents gc check options
@@ -129,7 +130,7 @@ A little bit about how the numbers make sense:
   checks on the pinning API.
 */
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 
 	o, ok := opts.(Options)
 	if !ok {

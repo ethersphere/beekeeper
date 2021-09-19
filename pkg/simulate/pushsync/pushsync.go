@@ -21,7 +21,6 @@ import (
 // Options represents simulation options
 type Options struct {
 	GasPrice         string
-	MetricsPusher    *push.Pusher
 	PostageAmount    int64
 	PostageDepth     uint64
 	DownloadWait     time.Duration
@@ -42,7 +41,6 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		GasPrice:         "",
-		MetricsPusher:    nil,
 		PostageAmount:    1000,
 		PostageDepth:     20,
 		UploadWait:       30 * time.Second,
@@ -70,14 +68,14 @@ func NewSimulation() beekeeper.Action {
 }
 
 // Run executes upload stress
-func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (s *Simulation) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 
-	metrics := newMetrics(cluster.Name()+"-"+time.Now().UTC().Format("2006-01-02-15-04-05-000000000"), o.MetricsPusher)
+	metrics := newMetrics(cluster.Name()+"-"+time.Now().UTC().Format("2006-01-02-15-04-05-000000000"), metricsPusher)
 
 	rnd := random.PseudoGenerator(o.Seed)
 

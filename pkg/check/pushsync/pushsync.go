@@ -18,7 +18,6 @@ import (
 type Options struct {
 	ChunksPerNode     int
 	GasPrice          string
-	MetricsPusher     *push.Pusher
 	Mode              string
 	PostageAmount     int64
 	PostageDepth      uint64
@@ -36,7 +35,6 @@ func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:     1,
 		GasPrice:          "",
-		MetricsPusher:     nil,
 		Mode:              "default",
 		PostageAmount:     1,
 		PostageDepth:      16,
@@ -61,7 +59,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -69,27 +67,27 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	switch o.Mode {
 	case "chunks":
-		return checkChunks(ctx, cluster, o)
+		return checkChunks(ctx, cluster, metricsPusher, o)
 	case "light-chunks":
-		return checkLightChunks(ctx, cluster, o)
+		return checkLightChunks(ctx, cluster, metricsPusher, o)
 	default:
-		return defaultCheck(ctx, cluster, o)
+		return defaultCheck(ctx, cluster, metricsPusher, o)
 	}
 }
 
 // defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
-func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
+func defaultCheck(ctx context.Context, c *bee.Cluster, metricsPusher *push.Pusher, o Options) error {
 	fmt.Println("running pushsync")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(uploadedCounter)
-		o.MetricsPusher.Collector(uploadTimeGauge)
-		o.MetricsPusher.Collector(uploadTimeHistogram)
-		o.MetricsPusher.Collector(syncedCounter)
-		o.MetricsPusher.Collector(notSyncedCounter)
-		o.MetricsPusher.Format(expfmt.FmtText)
+	if metricsPusher != nil {
+		metricsPusher.Collector(uploadedCounter)
+		metricsPusher.Collector(uploadTimeGauge)
+		metricsPusher.Collector(uploadTimeHistogram)
+		metricsPusher.Collector(syncedCounter)
+		metricsPusher.Collector(notSyncedCounter)
+		metricsPusher.Format(expfmt.FmtText)
 	}
 
 	overlays, err := c.FlattenOverlays(ctx)
@@ -166,8 +164,8 @@ func defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
 				break
 			}
 
-			if o.MetricsPusher != nil {
-				if err := o.MetricsPusher.Push(); err != nil {
+			if metricsPusher != nil {
+				if err := metricsPusher.Push(); err != nil {
 					return fmt.Errorf("node %s: %v", nodeName, err)
 				}
 			}

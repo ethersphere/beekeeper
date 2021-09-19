@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // Options represents check options
@@ -54,7 +55,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -62,7 +63,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	if o.DryRun {
 		fmt.Println("running balances (dry mode)")
-		return dryRun(ctx, cluster, o)
+		return dryRun(ctx, cluster, metricsPusher, o)
 	}
 	fmt.Println("running balances")
 
@@ -181,7 +182,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 }
 
 // dryRun executes balances validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
+func dryRun(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, o Options) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err

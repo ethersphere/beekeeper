@@ -19,7 +19,6 @@ import (
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
 	GasPrice        string
-	MetricsPusher   *push.Pusher
 	PostageAmount   int64
 	PostageDepth    uint64
 	PostageLabel    string
@@ -33,7 +32,6 @@ func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
 		GasPrice:        "",
-		MetricsPusher:   nil,
 		PostageAmount:   1,
 		PostageDepth:    16,
 		PostageLabel:    "test-label",
@@ -57,7 +55,7 @@ func NewCheck() beekeeper.Action {
 var errRetrieval = errors.New("retrieval")
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -66,16 +64,16 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(uploadedCounter)
-		o.MetricsPusher.Collector(uploadTimeGauge)
-		o.MetricsPusher.Collector(uploadTimeHistogram)
-		o.MetricsPusher.Collector(downloadedCounter)
-		o.MetricsPusher.Collector(downloadTimeGauge)
-		o.MetricsPusher.Collector(downloadTimeHistogram)
-		o.MetricsPusher.Collector(retrievedCounter)
-		o.MetricsPusher.Collector(notRetrievedCounter)
-		o.MetricsPusher.Format(expfmt.FmtText)
+	if metricsPusher != nil {
+		metricsPusher.Collector(uploadedCounter)
+		metricsPusher.Collector(uploadTimeGauge)
+		metricsPusher.Collector(uploadTimeHistogram)
+		metricsPusher.Collector(downloadedCounter)
+		metricsPusher.Collector(downloadTimeGauge)
+		metricsPusher.Collector(downloadTimeHistogram)
+		metricsPusher.Collector(retrievedCounter)
+		metricsPusher.Collector(notRetrievedCounter)
+		metricsPusher.Format(expfmt.FmtText)
 	}
 
 	overlays, err := cluster.FlattenOverlays(ctx)
@@ -141,8 +139,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			retrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", nodeName, j, overlays[nodeName].String(), chunk.Address().String())
 
-			if o.MetricsPusher != nil {
-				if err := o.MetricsPusher.Push(); err != nil {
+			if metricsPusher != nil {
+				if err := metricsPusher.Push(); err != nil {
 					fmt.Printf("node %s: %v\n", nodeName, err)
 				}
 			}

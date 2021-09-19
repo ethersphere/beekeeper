@@ -10,7 +10,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/simulate/pushsync"
 	"github.com/ethersphere/beekeeper/pkg/simulate/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/simulate/upload"
-	"github.com/prometheus/client_golang/prometheus/push"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,9 +28,7 @@ type SimulationType struct {
 
 // SimulationGlobalConfig represents global configs for all simulations
 type SimulationGlobalConfig struct {
-	MetricsEnabled bool
-	MetricsPusher  *push.Pusher
-	Seed           int64
+	Seed int64
 }
 
 // Checks represents all available simulation types
@@ -70,7 +67,6 @@ var Simulations = map[string]SimulationType{
 			simulationOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
 				GasPrice        *string        `yaml:"gas-price"`
-				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
 				PostageAmount   *int64         `yaml:"postage-amount"`
 				PostageDepth    *uint64        `yaml:"postage-depth"`
 				PostageLabel    *string        `yaml:"postage-label"`
@@ -129,15 +125,6 @@ func applySimulationConfig(global SimulationGlobalConfig, local, opts interface{
 	for i := 0; i < lv.NumField(); i++ {
 		fieldName := lt.Field(i).Name
 		switch fieldName {
-		case "MetricsEnabled":
-			// if (set globally) || (set locally)
-			if (lv.Field(i).IsNil() && global.MetricsEnabled) || (!lv.Field(i).IsNil() && lv.FieldByName(fieldName).Elem().Bool()) {
-				if global.MetricsPusher == nil {
-					return fmt.Errorf("metrics pusher is nil (not set)")
-				}
-				v := reflect.ValueOf(global.MetricsPusher)
-				ov.FieldByName("MetricsPusher").Set(v)
-			}
 		case "Seed":
 			if lv.Field(i).IsNil() { // set globally
 				if global.Seed >= 0 {

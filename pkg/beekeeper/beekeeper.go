@@ -8,12 +8,13 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus/push"
 	"golang.org/x/sync/errgroup"
 )
 
 // Action defines Beekeeper Action's interface
 type Action interface {
-	Run(ctx context.Context, cluster *bee.Cluster, o interface{}) (err error)
+	Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, o interface{}) (err error)
 }
 
 // Stage define stages for updating Bee
@@ -34,10 +35,10 @@ type Actions struct {
 }
 
 // Run runs check against the cluster
-func Run(ctx context.Context, cluster *bee.Cluster, action Action, options interface{}, stages []Stage, seed int64) (err error) {
+func Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, action Action, options interface{}, stages []Stage, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	if err := action.Run(ctx, cluster, options); err != nil {
+	if err := action.Run(ctx, cluster, metricsPusher, options); err != nil {
 		return err
 	}
 
@@ -65,7 +66,7 @@ func Run(ctx context.Context, cluster *bee.Cluster, action Action, options inter
 			time.Sleep(60 * time.Second)
 		}
 
-		if err := action.Run(ctx, cluster, options); err != nil {
+		if err := action.Run(ctx, cluster, metricsPusher, options); err != nil {
 			return err
 		}
 	}
@@ -74,10 +75,10 @@ func Run(ctx context.Context, cluster *bee.Cluster, action Action, options inter
 }
 
 // RunConcurrently runs check against the cluster, cluster updates are executed concurrently
-func RunConcurrently(ctx context.Context, cluster *bee.Cluster, action Action, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
+func RunConcurrently(ctx context.Context, cluster *bee.Cluster, action Action, metricsPusher *push.Pusher, options interface{}, stages []Stage, buffer int, seed int64) (err error) {
 	fmt.Printf("root seed: %d\n", seed)
 
-	if err := action.Run(ctx, cluster, options); err != nil {
+	if err := action.Run(ctx, cluster, metricsPusher, options); err != nil {
 		return err
 	}
 
@@ -126,7 +127,7 @@ func RunConcurrently(ctx context.Context, cluster *bee.Cluster, action Action, o
 			time.Sleep(60 * time.Second)
 		}
 
-		if err := action.Run(ctx, cluster, options); err != nil {
+		if err := action.Run(ctx, cluster, metricsPusher, options); err != nil {
 			return err
 		}
 	}

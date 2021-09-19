@@ -32,7 +32,6 @@ var (
 // Options represents check options
 type Options struct {
 	GasPrice               string
-	MetricsPusher          *push.Pusher
 	NodeGroup              string
 	NumberOfChunksToRepair int
 	PostageAmount          int64
@@ -45,7 +44,6 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		GasPrice:               "",
-		MetricsPusher:          nil,
 		NodeGroup:              "bee",
 		NumberOfChunksToRepair: 1,
 		PostageAmount:          1,
@@ -66,7 +64,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, metricsPusher *push.Pusher, opts interface{}) (err error) {
 	fmt.Println("running chunk repair")
 	o, ok := opts.(Options)
 	if !ok {
@@ -76,11 +74,11 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
 	fmt.Printf("Seed: %d\n", o.Seed)
 
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(repairedCounter)
-		o.MetricsPusher.Collector(repairedTimeGauge)
-		o.MetricsPusher.Collector(repairedTimeHistogram)
-		o.MetricsPusher.Format(expfmt.FmtText)
+	if metricsPusher != nil {
+		metricsPusher.Collector(repairedCounter)
+		metricsPusher.Collector(repairedTimeGauge)
+		metricsPusher.Collector(repairedTimeHistogram)
+		metricsPusher.Format(expfmt.FmtText)
 	}
 
 	ng, err := cluster.NodeGroup(o.NodeGroup)
@@ -191,8 +189,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			break
 		}
 
-		if o.MetricsPusher != nil {
-			if err := o.MetricsPusher.Push(); err != nil {
+		if metricsPusher != nil {
+			if err := metricsPusher.Push(); err != nil {
 				fmt.Printf("chunk %d: %s\n", i, err)
 			}
 		}
