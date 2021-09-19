@@ -1,76 +1,60 @@
 package pushsync
 
 import (
-	m "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/bee/pkg/metrics"
+	mm "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/push"
-	"github.com/prometheus/common/expfmt"
 )
 
 type metrics struct {
-	uploadedChunks   *prometheus.CounterVec
-	downloadedChunks *prometheus.CounterVec
-	downloadCount    *prometheus.CounterVec
+	UploadedChunks   *prometheus.CounterVec
+	DownloadedChunks *prometheus.CounterVec
+	DownloadCount    *prometheus.CounterVec
 }
 
-func newMetrics(runID string, pusher *push.Pusher) metrics {
+func newMetrics(runID string) metrics {
 	subsystem := "simulation_pushsync"
 
-	addCollector := func(c prometheus.Collector) {
-		if pusher != nil {
-			pusher.Collector(c)
-		}
-	}
-
-	uploadedChunks := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: m.Namespace,
-			Subsystem: subsystem,
-			ConstLabels: prometheus.Labels{
-				"run": runID,
-			},
-			Name: "chunks_uploaded_count",
-			Help: "Number of uploaded chunks.",
-		},
-		[]string{"node"},
-	)
-	addCollector(uploadedChunks)
-
-	downloadedChunks := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: m.Namespace,
-			Subsystem: subsystem,
-			ConstLabels: prometheus.Labels{
-				"run": runID,
-			},
-			Name: "chunks_downloaded_count",
-			Help: "Number of downloaded chunks.",
-		},
-		[]string{"node"},
-	)
-	addCollector(downloadedChunks)
-
-	downloadCount := prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: m.Namespace,
-			Subsystem: subsystem,
-			ConstLabels: prometheus.Labels{
-				"run": runID,
-			},
-			Name: "download_node_count",
-			Help: "Number of nodes used for downloading",
-		},
-		[]string{"node"},
-	)
-	addCollector(downloadCount)
-
-	if pusher != nil {
-		pusher.Format(expfmt.FmtText)
-	}
-
 	return metrics{
-		uploadedChunks:   uploadedChunks,
-		downloadedChunks: downloadedChunks,
-		downloadCount:    downloadCount,
+		UploadedChunks: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				ConstLabels: prometheus.Labels{
+					"run": runID,
+				},
+				Name: "chunks_uploaded_count",
+				Help: "Number of uploaded chunks.",
+			},
+			[]string{"node"},
+		),
+		DownloadedChunks: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				ConstLabels: prometheus.Labels{
+					"run": runID,
+				},
+				Name: "chunks_downloaded_count",
+				Help: "Number of downloaded chunks.",
+			},
+			[]string{"node"},
+		),
+		DownloadCount: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				ConstLabels: prometheus.Labels{
+					"run": runID,
+				},
+				Name: "download_node_count",
+				Help: "Number of nodes used for downloading",
+			},
+			[]string{"node"},
+		),
 	}
+}
+
+func (s *Simulation) Report() []prometheus.Collector {
+	return m.PrometheusCollectorsFromFields(s.metrics)
 }

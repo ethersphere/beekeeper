@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 )
@@ -43,11 +44,22 @@ func (c *command) initCheckCmd() (err error) {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
+			var (
+				metricsPusher  *push.Pusher
+				metricsEnabled = c.globalConfig.GetBool(optionNameMetricsEnabled)
+				cleanup        func()
+			)
+
+			if metricsEnabled {
+				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace())
+
+				// cleanup executes when the calling context terminates
+				defer cleanup()
+			}
+
 			// set global config
 			checkGlobalConfig := config.CheckGlobalConfig{
-				MetricsEnabled: c.globalConfig.GetBool(optionNameMetricsEnabled),
-				MetricsPusher:  push.New(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace()),
-				Seed:           c.globalConfig.GetInt64(optionNameSeed),
+				Seed: c.globalConfig.GetInt64(optionNameSeed),
 			}
 
 			// run checks
@@ -70,8 +82,14 @@ func (c *command) initCheckCmd() (err error) {
 					return fmt.Errorf("creating check %s options: %w", checkName, err)
 				}
 
+				// create check
+				chk := check.NewAction()
+				if r, ok := chk.(metrics.Reporter); ok && metricsEnabled {
+					metrics.RegisterCollectors(metricsPusher, r.Report()...)
+				}
+
 				// run check
-				if err := check.NewAction().Run(ctx, cluster, o); err != nil {
+				if err := chk.Run(ctx, cluster, o); err != nil {
 					return fmt.Errorf("running check %s: %w", checkName, err)
 				}
 			}
@@ -85,7 +103,7 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.dai.internal", "prometheus metrics pusher address")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing checks")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
-	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
+	cmd.Flags().Bool(optionNameMetricsEnabled, true, "enable metrics")
 	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
 

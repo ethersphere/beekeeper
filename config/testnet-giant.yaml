@@ -123,6 +123,5 @@ bee-configs:
 checks:
   testnet-giant-pingpong:
     options:
-      metrics-enabled: 
     timeout: 5m
     type: pingpong

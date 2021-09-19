@@ -25,7 +25,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,9 +43,7 @@ type CheckType struct {
 
 // CheckGlobalConfig represents global configs for all checks
 type CheckGlobalConfig struct {
-	MetricsEnabled bool
-	MetricsPusher  *push.Pusher
-	Seed           int64
+	Seed int64
 }
 
 // Checks represents all available check types
@@ -101,7 +98,6 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				GasPrice               *string        `yaml:"gas-price"`
-				MetricsEnabled         *bool          `yaml:"metrics-enabled"`
 				NodeGroup              *string        `yaml:"node-group"`
 				NumberOfChunksToRepair *int           `yaml:"number-of-chunks-to-repair"`
 				PostageAmount          *int64         `yaml:"postage-amount"`
@@ -130,7 +126,6 @@ var Checks = map[string]CheckType{
 				FilesPerNode    *int           `yaml:"files-per-node"`
 				Full            *bool          `yaml:"full"`
 				GasPrice        *string        `yaml:"gas-price"`
-				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
 				PostageAmount   *int64         `yaml:"postage-amount"`
 				PostageLabel    *string        `yaml:"postage-label"`
 				PostageWait     *time.Duration `yaml:"postage-wait"`
@@ -243,18 +238,7 @@ var Checks = map[string]CheckType{
 	"pingpong": {
 		NewAction: pingpong.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
-			checkOpts := new(struct {
-				MetricsEnabled *bool `yaml:"metrics-enabled"`
-			})
-			if err := check.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
-			}
 			opts := pingpong.NewDefaultOptions()
-
-			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
-				return nil, fmt.Errorf("applying options: %w", err)
-			}
-
 			return opts, nil
 		},
 	},
@@ -264,7 +248,6 @@ var Checks = map[string]CheckType{
 			checkOpts := new(struct {
 				AddressPrefix  *int           `yaml:"address-prefix"`
 				GasPrice       *string        `yaml:"gas-price"`
-				MetricsEnabled *bool          `yaml:"metrics-enabled"`
 				NodeCount      *int           `yaml:"node-count"`
 				PostageAmount  *int64         `yaml:"postage-amount"`
 				PostageDepth   *uint64        `yaml:"postage-depth"`
@@ -316,7 +299,6 @@ var Checks = map[string]CheckType{
 			checkOpts := new(struct {
 				ChunksPerNode     *int           `yaml:"chunks-per-node"`
 				GasPrice          *string        `yaml:"gas-price"`
-				MetricsEnabled    *bool          `yaml:"metrics-enabled"`
 				Mode              *string        `yaml:"mode"`
 				PostageAmount     *int64         `yaml:"postage-amount"`
 				PostageDepth      *uint64        `yaml:"postage-depth"`
@@ -346,7 +328,6 @@ var Checks = map[string]CheckType{
 			checkOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
 				GasPrice        *string        `yaml:"gas-price"`
-				MetricsEnabled  *bool          `yaml:"metrics-enabled"`
 				PostageAmount   *int64         `yaml:"postage-amount"`
 				PostageDepth    *uint64        `yaml:"postage-depth"`
 				PostageLabel    *string        `yaml:"postage-label"`
@@ -475,15 +456,6 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err er
 	for i := 0; i < lv.NumField(); i++ {
 		fieldName := lt.Field(i).Name
 		switch fieldName {
-		case "MetricsEnabled":
-			// if (set globally) || (set locally)
-			if (lv.Field(i).IsNil() && global.MetricsEnabled) || (!lv.Field(i).IsNil() && lv.FieldByName(fieldName).Elem().Bool()) {
-				if global.MetricsPusher == nil {
-					return fmt.Errorf("metrics pusher is nil (not set)")
-				}
-				v := reflect.ValueOf(global.MetricsPusher)
-				ov.FieldByName("MetricsPusher").Set(v)
-			}
 		case "Seed":
 			if lv.Field(i).IsNil() { // set globally
 				if global.Seed >= 0 {

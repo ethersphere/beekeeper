@@ -14,8 +14,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
-	"github.com/prometheus/common/expfmt"
 )
 
 // TODO: remove need for node group, use whole cluster instead
@@ -32,7 +30,6 @@ var (
 // Options represents check options
 type Options struct {
 	GasPrice               string
-	MetricsPusher          *push.Pusher
 	NodeGroup              string
 	NumberOfChunksToRepair int
 	PostageAmount          int64
@@ -45,7 +42,6 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		GasPrice:               "",
-		MetricsPusher:          nil,
 		NodeGroup:              "bee",
 		NumberOfChunksToRepair: 1,
 		PostageAmount:          1,
@@ -59,11 +55,13 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	metrics metrics
+}
 
 // NewCheck returns new check
 func NewCheck() beekeeper.Action {
-	return &Check{}
+	return &Check{newMetrics()}
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
@@ -75,13 +73,6 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
 	fmt.Printf("Seed: %d\n", o.Seed)
-
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(repairedCounter)
-		o.MetricsPusher.Collector(repairedTimeGauge)
-		o.MetricsPusher.Collector(repairedTimeHistogram)
-		o.MetricsPusher.Format(expfmt.FmtText)
-	}
 
 	ng, err := cluster.NodeGroup(o.NodeGroup)
 	if err != nil {
@@ -185,19 +176,12 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 			}
 
 			fmt.Println("repaired chunk ", chunk.Address().String())
-			repairedCounter.WithLabelValues(addressA.String()).Inc()
-			repairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
-			repairedTimeHistogram.Observe(d0.Seconds())
+			c.metrics.RepairedCounter.WithLabelValues(addressA.String()).Inc()
+			c.metrics.RepairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
+			c.metrics.RepairedTimeHistogram.Observe(d0.Seconds())
 			break
 		}
-
-		if o.MetricsPusher != nil {
-			if err := o.MetricsPusher.Push(); err != nil {
-				fmt.Printf("chunk %d: %s\n", i, err)
-			}
-		}
 	}
-
 	return nil
 }
 
