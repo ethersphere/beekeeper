@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/ethersphere/beekeeper/pkg/bigint"
 )
@@ -53,7 +54,7 @@ func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, d
 
 // Sends a topup batch request to a node that returns the batchID
 func (p *PostageService) TopUpPostageBatch(ctx context.Context, batchID string, amount int64, gasPrice string) (err error) {
-	url := fmt.Sprintf("/stamps/topup/%s/%d", batchID, amount)
+	url := fmt.Sprintf("/stamps/topup/%s/%d", url.PathEscape(batchID), amount)
 	if gasPrice != "" {
 		h := http.Header{}
 		h.Add("Gas-Price", gasPrice)
@@ -64,7 +65,7 @@ func (p *PostageService) TopUpPostageBatch(ctx context.Context, batchID string, 
 
 // Sends a dilute batch request to a node that returns the batchID
 func (p *PostageService) DilutePostageBatch(ctx context.Context, batchID string, newDepth uint64, gasPrice string) (err error) {
-	url := fmt.Sprintf("/stamps/dilute/%s/%d", batchID, newDepth)
+	url := fmt.Sprintf("/stamps/dilute/%s/%d", url.PathEscape(batchID), newDepth)
 	if gasPrice != "" {
 		h := http.Header{}
 		h.Add("Gas-Price", gasPrice)
