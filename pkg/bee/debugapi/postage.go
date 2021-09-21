@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/ethersphere/beekeeper/pkg/bigint"
 )
@@ -33,7 +34,7 @@ type postageStampsResponse struct {
 	Stamps []PostageStampResponse `json:"stamps"`
 }
 
-// Sends a create postage request to a node that returns the bactchID
+// Sends a create postage request to a node that returns the batchID
 func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (batchID string, err error) {
 	url := fmt.Sprintf("/stamps/%d/%d?label=%s", amount, depth, label)
 	var resp postageResponse
@@ -49,6 +50,28 @@ func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, d
 		return "", err
 	}
 	return resp.BatchID, err
+}
+
+// Sends a topup batch request to a node that returns the batchID
+func (p *PostageService) TopUpPostageBatch(ctx context.Context, batchID string, amount int64, gasPrice string) (err error) {
+	url := fmt.Sprintf("/stamps/topup/%s/%d", url.PathEscape(batchID), amount)
+	if gasPrice != "" {
+		h := http.Header{}
+		h.Add("Gas-Price", gasPrice)
+		return p.client.requestWithHeader(ctx, http.MethodPatch, url, h, nil, nil)
+	}
+	return p.client.request(ctx, http.MethodPatch, url, nil, nil)
+}
+
+// Sends a dilute batch request to a node that returns the batchID
+func (p *PostageService) DilutePostageBatch(ctx context.Context, batchID string, newDepth uint64, gasPrice string) (err error) {
+	url := fmt.Sprintf("/stamps/dilute/%s/%d", url.PathEscape(batchID), newDepth)
+	if gasPrice != "" {
+		h := http.Header{}
+		h.Add("Gas-Price", gasPrice)
+		return p.client.requestWithHeader(ctx, http.MethodPatch, url, h, nil, nil)
+	}
+	return p.client.request(ctx, http.MethodPatch, url, nil, nil)
 }
 
 // Fetches the list postage stamp batches

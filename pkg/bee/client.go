@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -377,6 +378,69 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 // PostageBatches returns the list of batches of node
 func (c *Client) PostageBatches(ctx context.Context) ([]debugapi.PostageStampResponse, error) {
 	return c.debug.Postage.PostageBatches(ctx)
+}
+
+// PostageBatch returns the batch by ID
+func (c *Client) PostageBatch(ctx context.Context, batchID string) (debugapi.PostageStampResponse, error) {
+	return c.debug.Postage.PostageBatch(ctx, batchID)
+}
+
+// TopupPostageBatch tops up the given batch with the amount per chunk
+func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount int64, gasPrice string) error {
+	batch, err := c.PostageBatch(ctx, batchID)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve batch details: %w", err)
+	}
+
+	err = c.debug.Postage.TopUpPostageBatch(ctx, batchID, amount, gasPrice)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < 60; i++ {
+		time.Sleep(time.Second)
+
+		b, err := c.PostageBatch(ctx, batchID)
+		if err != nil {
+			return err
+		}
+
+		if b.Amount.Cmp(batch.Amount.Int) > 0 {
+			// topup is complete
+			return nil
+		}
+	}
+
+	return errors.New("timed out waiting for batch topup confirmation")
+}
+
+// DilutePostageBatch dilutes the given batch by increasing the depth
+func (c *Client) DilutePostageBatch(ctx context.Context, batchID string, depth uint64, gasPrice string) error {
+	batch, err := c.debug.Postage.PostageBatch(ctx, batchID)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve batch details: %w", err)
+	}
+
+	err = c.debug.Postage.DilutePostageBatch(ctx, batchID, depth, gasPrice)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < 60; i++ {
+		time.Sleep(time.Second)
+
+		b, err := c.debug.Postage.PostageBatch(ctx, batchID)
+		if err != nil {
+			return err
+		}
+
+		if b.Depth > batch.Depth {
+			// dilution is complete
+			return nil
+		}
+	}
+
+	return errors.New("timed out waiting for batch dilution confirmation")
 }
 
 // ReserveState returns reserve radius, available capacity, inner and outer radiuses
