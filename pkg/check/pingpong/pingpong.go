@@ -9,46 +9,33 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/prometheus/client_golang/prometheus/push"
-	"github.com/prometheus/common/expfmt"
 )
 
 // Options represents check options
 type Options struct {
-	MetricsPusher *push.Pusher
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
-	return Options{
-		MetricsPusher: nil,
-	}
+	return Options{}
 }
 
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	metrics metrics
+}
 
 // NewCheck returns new check
 func NewCheck() beekeeper.Action {
-	return &Check{}
+	return &Check{newMetrics()}
 }
 
 // Run executes ping check
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, _ interface{}) (err error) {
 	fmt.Println("running pingpong")
-	o, ok := opts.(Options)
-	if !ok {
-		return fmt.Errorf("invalid options type")
-	}
-
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(rttGauge)
-		o.MetricsPusher.Collector(rttHistogram)
-		o.MetricsPusher.Format(expfmt.FmtText)
-	}
 
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
@@ -79,14 +66,8 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 					continue
 				}
 
-				rttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
-				rttHistogram.Observe(rtt.Seconds())
-
-				if o.MetricsPusher != nil {
-					if err := o.MetricsPusher.Push(); err != nil {
-						fmt.Printf("node %s: %v\n", n.Name, err)
-					}
-				}
+				c.metrics.RttGauge.WithLabelValues(n.Address.String(), n.PeerAddress.String()).Set(rtt.Seconds())
+				c.metrics.RttHistogram.Observe(rtt.Seconds())
 				break
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 )
@@ -42,11 +43,22 @@ func (c *command) initSimulateCmd() (err error) {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
 
+			var (
+				metricsPusher  *push.Pusher
+				metricsEnabled = c.globalConfig.GetBool(optionNameMetricsEnabled)
+				cleanup        func()
+			)
+
+			if metricsEnabled {
+				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace())
+
+				// cleanup executes when the calling context terminates
+				defer cleanup()
+			}
+
 			// set global config
 			simulationGlobalConfig := config.SimulationGlobalConfig{
-				MetricsEnabled: c.globalConfig.GetBool(optionNameMetricsEnabled),
-				MetricsPusher:  push.New(c.globalConfig.GetString(optionNameMetricsPusherAddress), *cfgCluster.Namespace),
-				Seed:           c.globalConfig.GetInt64(optionNameSeed),
+				Seed: c.globalConfig.GetInt64(optionNameSeed),
 			}
 
 			// run simulations
@@ -69,8 +81,14 @@ func (c *command) initSimulateCmd() (err error) {
 					return fmt.Errorf("creating simulation %s options: %w", simulationName, err)
 				}
 
+				// create simulation
+				sim := simulation.NewAction()
+				if s, ok := sim.(metrics.Reporter); ok && metricsEnabled {
+					metrics.RegisterCollectors(metricsPusher, s.Report()...)
+				}
+
 				// run simulation
-				if err := simulation.NewAction().Run(ctx, cluster, o); err != nil {
+				if err := sim.Run(ctx, cluster, o); err != nil {
 					return fmt.Errorf("running simulation %s: %w", simulationName, err)
 				}
 			}
@@ -84,7 +102,7 @@ func (c *command) initSimulateCmd() (err error) {
 	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.dai.internal", "prometheus metrics pusher address")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing simulations")
 	cmd.Flags().StringSlice(optionNameSimulations, []string{"upload"}, "list of simulations to execute")
-	cmd.Flags().Bool(optionNameMetricsEnabled, false, "enable metrics")
+	cmd.Flags().Bool(optionNameMetricsEnabled, true, "enable metrics")
 	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
 
