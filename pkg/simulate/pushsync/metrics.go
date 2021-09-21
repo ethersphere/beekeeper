@@ -48,7 +48,7 @@ func newMetrics(runID string) metrics {
 					"run": runID,
 				},
 				Name: "download_node_count",
-				Help: "Number of nodes used for downloading",
+				Help: "Number of nodes used for downloading.",
 			},
 			[]string{"node"},
 		),

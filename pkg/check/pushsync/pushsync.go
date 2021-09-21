@@ -75,22 +75,22 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 }
 
 // defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
-func (chk *Check) defaultCheck(ctx context.Context, c *bee.Cluster, o Options) error {
+func (c *Check) defaultCheck(ctx context.Context, cluster *bee.Cluster, o Options) error {
 	fmt.Println("running pushsync")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	overlays, err := c.FlattenOverlays(ctx)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	clients, err := c.NodesClients(ctx)
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	sortedNodes := c.NodeNames()
+	sortedNodes := cluster.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
 
 		nodeName := sortedNodes[i]
@@ -117,9 +117,9 @@ func (chk *Check) defaultCheck(ctx context.Context, c *bee.Cluster, o Options) e
 			d0 := time.Since(t0)
 			fmt.Printf("uploaded chunk %s to node %s\n", addr.String(), nodeName)
 
-			chk.metrics.UploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			chk.metrics.UploadTimeGauge.WithLabelValues(overlays[nodeName].String(), addr.String()).Set(d0.Seconds())
-			chk.metrics.UploadTimeHistogram.Observe(d0.Seconds())
+			c.metrics.UploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+			c.metrics.UploadTimeGauge.WithLabelValues(overlays[nodeName].String(), addr.String()).Set(d0.Seconds())
+			c.metrics.UploadTimeHistogram.Observe(d0.Seconds())
 
 			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
@@ -142,12 +142,12 @@ func (chk *Check) defaultCheck(ctx context.Context, c *bee.Cluster, o Options) e
 					return fmt.Errorf("node %s: %w", nodeName, err)
 				}
 				if !synced {
-					chk.metrics.NotSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+					c.metrics.NotSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 					fmt.Printf("node %s overlay %s chunk %s not found on the closest node. retrying...\n", closestName, overlays[closestName], addr.String())
 					continue
 				}
 
-				chk.metrics.SyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				c.metrics.SyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				fmt.Printf("node %s overlay %s chunk %s found on the closest node.\n", closestName, overlays[closestName], addr.String())
 
 				// check succeeded
