@@ -69,7 +69,7 @@ func (g *NodeGroup) AddNode(name string, o NodeOptions) (err error) {
 		return fmt.Errorf("API URL %s: %w", name, err)
 	}
 
-	dURL, err := g.cluster.debugAPIURL(name)
+	dURL, err := g.cluster.debugAPIURL(fmt.Sprintf("%s-0", name))
 	if err != nil {
 		return fmt.Errorf("debug API URL %s: %w", name, err)
 	}

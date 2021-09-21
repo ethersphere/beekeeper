@@ -42,6 +42,8 @@ type ClientOptions struct {
 
 // NewClient returns Bee client
 func NewClient(opts ClientOptions) (c *Client) {
+	fmt.Println(opts.APIURL)
+	fmt.Println(opts.DebugAPIURL)
 	c = &Client{
 		retry: retryCount,
 		opts:  opts,

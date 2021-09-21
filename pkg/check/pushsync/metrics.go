@@ -12,6 +12,12 @@ type metrics struct {
 	UploadTimeHistogram prometheus.Histogram
 	SyncedCounter       *prometheus.CounterVec
 	NotSyncedCounter    *prometheus.CounterVec
+
+	CheckRun        prometheus.Counter
+	CheckFail       prometheus.Counter
+	NodeSyncTime    *prometheus.CounterVec
+	RetrieveAttempt prometheus.Counter
+	RetrieveFail    prometheus.Counter
 }
 
 func newMetrics() metrics {
@@ -60,6 +66,49 @@ func newMetrics() metrics {
 				Help:      "Number of chunks that has not been synced with the closest node.",
 			},
 			[]string{"node"},
+		),
+
+		CheckRun: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				Name:      "check_run",
+				Help:      "Times the check ran",
+			},
+		),
+		CheckFail: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				Name:      "check_fail",
+				Help:      "Times the check failed",
+			},
+		),
+
+		NodeSyncTime: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				Name:      "node_sync_time",
+				Help:      "Time to availability of chunk on Nth node.",
+			},
+			[]string{"node"},
+		),
+		RetrieveAttempt: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				Name:      "retrieve_attempt",
+				Help:      "Retrieval attempts.",
+			},
+		),
+		RetrieveFail: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				Name:      "retrieve_fail",
+				Help:      "Retrieval failures.",
+			},
 		),
 	}
 }

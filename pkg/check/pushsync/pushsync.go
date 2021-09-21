@@ -59,19 +59,16 @@ func NewCheck() beekeeper.Action {
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+	c.metrics.CheckRun.Inc()
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-
-	switch o.Mode {
-	case "chunks":
-		return checkChunks(ctx, cluster, o)
-	case "light-chunks":
-		return checkLightChunks(ctx, cluster, o)
-	default:
-		return c.defaultCheck(ctx, cluster, o)
+	if err := c.checkChunks(ctx, cluster, o); err != nil {
+		c.metrics.CheckFail.Inc()
+		return err
 	}
+	return nil
 }
 
 // defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster

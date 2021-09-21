@@ -36,6 +36,7 @@ type ClientOptions struct {
 
 // NewClient constructs a new Client.
 func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
+	fmt.Println(baseURL)
 	if o == nil {
 		o = new(ClientOptions)
 	}
