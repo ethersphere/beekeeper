@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	mbig "math/big"
-	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -18,7 +17,6 @@ type Options struct {
 	PostageDepth       uint64
 	PostageNewDepth    uint64
 	PostageLabel       string
-	PostageWait        time.Duration
 	NodeCount          int
 }
 
@@ -31,7 +29,6 @@ func NewDefaultOptions() Options {
 		PostageDepth:       17,
 		PostageNewDepth:    18,
 		PostageLabel:       "test-label",
-		PostageWait:        5 * time.Second,
 		NodeCount:          1,
 	}
 }
@@ -67,37 +64,27 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", node, err)
 	}
-	time.Sleep(o.PostageWait)
 
-	batches, err := client.PostageBatches(ctx)
+	batch, err := client.PostageBatch(ctx, batchID)
 	if err != nil {
-		return fmt.Errorf("failed getting postage batches %w", err)
+		return fmt.Errorf("failed getting postage batch %w", err)
 	}
 
-	found := false
-	for _, v := range batches {
-		if v.BatchID == batchID {
-			found = true
-			if v.Amount.Int64() != o.PostageAmount {
-				return fmt.Errorf(
-					"invalid batch amount expected %d got %d, batch %s",
-					o.PostageAmount,
-					v.Amount.Int64(),
-					batchID,
-				)
-			}
-			if v.Depth != uint8(o.PostageDepth) {
-				return fmt.Errorf(
-					"invalid batch amount expected %d got %d, batch %s",
-					o.PostageDepth,
-					v.Depth,
-					batchID,
-				)
-			}
-		}
+	if batch.Amount.Int64() != o.PostageAmount {
+		return fmt.Errorf(
+			"invalid batch amount expected %d got %d, batch %s",
+			o.PostageAmount,
+			batch.Amount.Int64(),
+			batchID,
+		)
 	}
-	if !found {
-		return fmt.Errorf("cannot find batch %s", batchID)
+	if batch.Depth != uint8(o.PostageDepth) {
+		return fmt.Errorf(
+			"invalid batch amount expected %d got %d, batch %s",
+			o.PostageDepth,
+			batch.Depth,
+			batchID,
+		)
 	}
 
 	fmt.Printf("node %s: created new batch id %s\n", node, batchID)
@@ -106,39 +93,29 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return fmt.Errorf("failed topping up batch %s with amount %d gas %s: %w", batchID, o.PostageTopupAmount, o.GasPrice, err)
 	}
-	time.Sleep(o.PostageWait)
 
-	batches, err = client.PostageBatches(ctx)
+	batch, err = client.PostageBatch(ctx, batchID)
 	if err != nil {
-		return fmt.Errorf("failed getting postage batches %w", err)
+		return fmt.Errorf("failed getting postage batch %w", err)
 	}
 
 	newAmount := o.PostageAmount + o.PostageTopupAmount
 
-	found = false
-	for _, v := range batches {
-		if v.BatchID == batchID {
-			found = true
-			if v.Amount.Int64() != newAmount {
-				return fmt.Errorf(
-					"invalid batch amount expected %d got %d, batch %s",
-					newAmount,
-					v.Amount.Int64(),
-					batchID,
-				)
-			}
-			if v.Depth != uint8(o.PostageDepth) {
-				return fmt.Errorf(
-					"invalid batch amount expected %d got %d, batch %s",
-					o.PostageDepth,
-					v.Depth,
-					batchID,
-				)
-			}
-		}
+	if batch.Amount.Int64() != newAmount {
+		return fmt.Errorf(
+			"invalid batch amount expected %d got %d, batch %s",
+			newAmount,
+			batch.Amount.Int64(),
+			batchID,
+		)
 	}
-	if !found {
-		return fmt.Errorf("cannot find batch %s", batchID)
+	if batch.Depth != uint8(o.PostageDepth) {
+		return fmt.Errorf(
+			"invalid batch amount expected %d got %d, batch %s",
+			o.PostageDepth,
+			batch.Depth,
+			batchID,
+		)
 	}
 
 	fmt.Printf("node %s: topped up batch id %s\n", node, batchID)
@@ -151,37 +128,27 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 	if err != nil {
 		return fmt.Errorf("failed topping up batch %s with amount %d gas %s: %w", batchID, o.PostageTopupAmount, o.GasPrice, err)
 	}
-	time.Sleep(o.PostageWait)
 
-	batches, err = client.PostageBatches(ctx)
+	batch, err = client.PostageBatch(ctx, batchID)
 	if err != nil {
-		return fmt.Errorf("failed getting postage batches %w", err)
+		return fmt.Errorf("failed getting postage batch %w", err)
 	}
 
-	found = false
-	for _, v := range batches {
-		if v.BatchID == batchID {
-			found = true
-			if v.Amount.Cmp(newValue2) != 0 {
-				return fmt.Errorf(
-					"invalid batch amount expected %d got %d, batch %s",
-					newValue2.Int64(),
-					v.Amount.Int64(),
-					batchID,
-				)
-			}
-			if v.Depth != uint8(o.PostageNewDepth) {
-				return fmt.Errorf(
-					"invalid batch amount expected %d got %d, batch %s",
-					o.PostageNewDepth,
-					v.Depth,
-					batchID,
-				)
-			}
-		}
+	if batch.Amount.Cmp(newValue2) != 0 {
+		return fmt.Errorf(
+			"invalid batch amount expected %d got %d, batch %s",
+			newValue2.Int64(),
+			batch.Amount.Int64(),
+			batchID,
+		)
 	}
-	if !found {
-		return fmt.Errorf("cannot find batch %s", batchID)
+	if batch.Depth != uint8(o.PostageNewDepth) {
+		return fmt.Errorf(
+			"invalid batch amount expected %d got %d, batch %s",
+			o.PostageNewDepth,
+			batch.Depth,
+			batchID,
+		)
 	}
 
 	fmt.Printf("node %s: diluted batch id %s\n", node, batchID)
