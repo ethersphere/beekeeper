@@ -177,6 +177,7 @@ bee-configs:
     swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
     swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
     swap-initial-deposit: 500000000000000000
+    transaction: ""
     verbosity: 5
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
     warmup-time: 0s
@@ -242,13 +243,11 @@ checks:
     type: manifest
   ci-pingpong:
     options:
-      metrics-enabled: 
     timeout: 5m
     type: pingpong
   ci-pss:
     options:
       address-prefix: 2
-      metrics-enabled:
       node-count: 3
       postage-amount: 1
       postage-depth: 16
@@ -259,7 +258,6 @@ checks:
   ci-pushsync-chunks:
     options:
       chunks-per-node: 3
-      metrics-enabled:
       mode: chunks
       postage-amount: 1
       postage-depth: 16
@@ -274,7 +272,6 @@ checks:
   ci-pushsync-light-chunks:
     options:
       chunks-per-node: 3
-      metrics-enabled:
       mode: light-chunks
       postage-amount: 1
       postage-depth: 16
@@ -289,7 +286,6 @@ checks:
   ci-retrieval:
     options:
       chunks-per-node: 3
-      metrics-enabled:
       postage-amount: 1
       postage-depth: 16
       postage-wait: 5s

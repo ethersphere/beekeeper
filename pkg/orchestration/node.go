@@ -118,6 +118,7 @@ type Config struct {
 	TracingEnabled             bool          // enable tracing
 	TracingEndpoint            string        // endpoint to send tracing data
 	TracingServiceName         string        // service name identifier for tracing
+	Transaction                string        // proof-of-identity transaction hash
 	Verbosity                  uint64        // log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace
 	WelcomeMessage             string        // send a welcome message string during handshakes
 	WarmupTime                 time.Duration // warmup time pull/pushsync protocols

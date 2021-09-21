@@ -11,14 +11,12 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // Options represents simulation options
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
 	GasPrice        string
-	MetricsPusher   *push.Pusher
 	PostageAmount   int64
 	PostageDepth    uint64
 	PostageLabel    string
@@ -33,7 +31,6 @@ func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
 		GasPrice:        "",
-		MetricsPusher:   nil,
 		PostageAmount:   1000,
 		PostageDepth:    16,
 		PostageLabel:    "test-label",
@@ -48,11 +45,13 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Simulation)(nil)
 
 // Simulation instance
-type Simulation struct{}
+type Simulation struct {
+	metrics metrics
+}
 
 // NewSimulation returns new upload simulation
 func NewSimulation() beekeeper.Action {
-	return &Simulation{}
+	return &Simulation{newMetrics("")}
 }
 
 // Run executes retrieval simulation
@@ -64,8 +63,6 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("Seed: %d\n", o.Seed)
-
-	metrics := newMetrics(cluster.Name()+"-"+time.Now().UTC().Format("2006-01-02-15-04-05-000000000"), o.MetricsPusher)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -112,18 +109,13 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 				})
 				d0 := time.Since(t0)
 				if err != nil {
-					metrics.notUploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					if o.MetricsPusher != nil {
-						if err := o.MetricsPusher.Push(); err != nil {
-							fmt.Printf("upload node %s: %v\n", nodeName, err)
-						}
-					}
+					s.metrics.NotUploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 					fmt.Printf("error: node %s: %v\n", nodeName, err)
 					continue
 				}
-				metrics.uploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				metrics.uploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
-				metrics.uploadTimeHistogram.Observe(d0.Seconds())
+				s.metrics.UploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				s.metrics.UploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
+				s.metrics.UploadTimeHistogram.Observe(d0.Seconds())
 				fmt.Printf("Chunk %s uploaded successfully to node %s\n", chunk.Address().String(), overlays[nodeName].String())
 
 				// check if chunk is synced
@@ -131,18 +123,13 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 				err = client.WaitSync(ctx, tag.Uid)
 				d1 := time.Since(t1)
 				if err != nil {
-					metrics.notSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					if o.MetricsPusher != nil {
-						if err := o.MetricsPusher.Push(); err != nil {
-							fmt.Printf("upload node %s: %v\n", nodeName, err)
-						}
-					}
+					s.metrics.NotSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 					fmt.Printf("sync with node %s: %v\n", nodeName, err)
 					continue
 				}
-				metrics.syncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				metrics.syncTagsTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d1.Seconds())
-				metrics.syncTagsTimeHistogram.Observe(d1.Seconds())
+				s.metrics.SyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+				s.metrics.SyncTagsTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d1.Seconds())
+				s.metrics.SyncTagsTimeHistogram.Observe(d1.Seconds())
 				fmt.Printf("Chunk %s synced successfully with node %s\n", chunk.Address().String(), nodeName)
 
 				// pick a random node to validate that the chunk is retrievable
@@ -153,41 +140,25 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 				data, err := clients[downloadNode].DownloadChunk(ctx, ref, "")
 				d2 := time.Since(t2)
 				if err != nil {
-					metrics.notDownloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
-					if o.MetricsPusher != nil {
-						if err := o.MetricsPusher.Push(); err != nil {
-							fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
-						}
-					}
+					s.metrics.NotDownloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
 					fmt.Printf("error: node %s: %v\n", downloadNode, err)
 					continue
 				}
-				metrics.downloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
-				metrics.downloadTimeGauge.WithLabelValues(overlays[downloadNode].String(), ref.String()).Set(d2.Seconds())
-				metrics.downloadTimeHistogram.Observe(d2.Seconds())
+				s.metrics.DownloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
+				s.metrics.DownloadTimeGauge.WithLabelValues(overlays[downloadNode].String(), ref.String()).Set(d2.Seconds())
+				s.metrics.DownloadTimeHistogram.Observe(d2.Seconds())
 
 				// validate that chunk is retrieved correctly
 				if !bytes.Equal(chunk.Data(), data) {
-					metrics.notRetrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
-					if o.MetricsPusher != nil {
-						if err := o.MetricsPusher.Push(); err != nil {
-							fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
-						}
-					}
+					s.metrics.NotRetrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
 					fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", downloadNode, j, chunk.Size(), len(data), overlays[downloadNode].String(), ref.String())
 					if bytes.Contains(chunk.Data(), data) {
 						fmt.Printf("Downloaded data is subset of the uploaded data\n")
 					}
 					continue
 				}
-				metrics.retrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
+				s.metrics.RetrievedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()
 				fmt.Printf("Chunk %s retrieved successfully from node %s\n", chunk.Address().String(), overlays[downloadNode].String())
-
-				if o.MetricsPusher != nil {
-					if err := o.MetricsPusher.Push(); err != nil {
-						fmt.Printf("upload node %s, download node %s: %v\n", nodeName, downloadNode, err)
-					}
-				}
 			}
 		}
 

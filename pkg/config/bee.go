@@ -52,6 +52,7 @@ type BeeConfig struct {
 	TracingEnabled             *bool          `yaml:"tracing-enabled"`
 	TracingEndpoint            *string        `yaml:"tracing-endpoint"`
 	TracingServiceName         *string        `yaml:"tracing-service-name"`
+	Transaction                *string        `yaml:"transaction"`
 	Verbosity                  *uint64        `yaml:"verbosity"`
 	WelcomeMessage             *string        `yaml:"welcome-message"`
 	WarmupTime                 *time.Duration `yaml:"warmup-time"`

@@ -16,13 +16,11 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	proxyClient "github.com/ethersphere/ethproxy/pkg/api/client"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // Options represents simulation options
 type Options struct {
 	GasPrice         string
-	MetricsPusher    *push.Pusher
 	PostageAmount    int64
 	PostageDepth     uint64
 	DownloadWait     time.Duration
@@ -43,7 +41,6 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		GasPrice:         "",
-		MetricsPusher:    nil,
 		PostageAmount:    1000,
 		PostageDepth:     20,
 		UploadWait:       30 * time.Second,
@@ -63,11 +60,13 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Simulation)(nil)
 
 // Simulation instance
-type Simulation struct{}
+type Simulation struct {
+	metrics metrics
+}
 
 // NewSimulation returns new upload simulation
 func NewSimulation() beekeeper.Action {
-	return &Simulation{}
+	return &Simulation{newMetrics("")}
 }
 
 // Run executes upload stress
@@ -77,8 +76,6 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-
-	metrics := newMetrics(cluster.Name()+"-"+time.Now().UTC().Format("2006-01-02-15-04-05-000000000"), o.MetricsPusher)
 
 	rnd := random.PseudoGenerator(o.Seed)
 
@@ -160,7 +157,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 		uploaded := int(o.ChunkCount)
 
 		metricStr := fmt.Sprintf("%d_%d_malfunctioning_backends", malfunctionEth, len(names))
-		metrics.uploadedChunks.WithLabelValues(metricStr).Add(float64(uploaded))
+		s.metrics.UploadedChunks.WithLabelValues(metricStr).Add(float64(uploaded))
 
 		var downloaded int
 		for i := 0; i < int(o.DownloadCount); i++ {
@@ -175,7 +172,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 			fmt.Printf("uploaded to %s %d chunks\n", uploadName, uploaded)
 			fmt.Printf("downloaded from %s %d chunks\n", downloadName, downloaded)
 
-			metrics.downloadCount.WithLabelValues(metricStr).Inc()
+			s.metrics.DownloadCount.WithLabelValues(metricStr).Inc()
 
 			if downloaded == uploaded {
 				break
@@ -184,14 +181,13 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 			time.Sleep(o.DownloadWait)
 		}
 
-		metrics.downloadedChunks.WithLabelValues(metricStr).Add(float64(downloaded))
+		s.metrics.DownloadedChunks.WithLabelValues(metricStr).Add(float64(downloaded))
 	}
 
 	return nil
 }
 
 func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Client, chunks []swarm.Chunk) error {
-
 	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "sim-pushsync", false)
 	if err != nil {
 		return fmt.Errorf("batch create %w", err)
@@ -211,7 +207,6 @@ func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Cl
 }
 
 func downloadChunks(ctx context.Context, o Options, uploadCount int, client *bee.Client, chunks []swarm.Chunk) int {
-
 	var count int
 
 	for i := 0; i < int(o.DownloadRetry); i++ {
@@ -233,7 +228,6 @@ func downloadChunks(ctx context.Context, o Options, uploadCount int, client *bee
 }
 
 func randomCmp(rnd *rand.Rand, cmp string, names []string) string {
-
 	var str string
 
 	for {
@@ -260,7 +254,6 @@ func shuffle(rnd *rand.Rand, names []string, seed int64) []string {
 // last bucket is the remaining items that are outside of the start - end range, so when end is 1.0, last bucket is empty
 // returned is [[1,2,3,4], [5,6], [7,8], [9,10]]
 func ToBuckets(arr []string, start float64, end float64, step float64) [][]string {
-
 	var ret [][]string
 
 	stepCount := int(float64(len(arr)) * step)
@@ -280,7 +273,6 @@ func ToBuckets(arr []string, start float64, end float64, step float64) [][]strin
 }
 
 func GetIPFromUnderlays(addrs []string) string {
-
 	underlayRegex, _ := regexp.Compile(`(\/ip4\/)([0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)`)
 
 	for _, addr := range addrs {

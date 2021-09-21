@@ -11,7 +11,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Action defines Beekeeper Action's interface
+// Action defines Beekeeper Action's interface. An action that
+// needs to expose metrics should implement the metrics.Reporter
+// interface.
 type Action interface {
 	Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) (err error)
 }

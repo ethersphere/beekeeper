@@ -10,15 +10,11 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	test "github.com/ethersphere/beekeeper/pkg/test"
-	"github.com/prometheus/client_golang/prometheus/push"
-	"github.com/prometheus/common/expfmt"
 )
 
 // Options represents check options
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
-	PostageDepth    uint64
-	MetricsPusher   *push.Pusher
 	GasPrice        string
 	PostageAmount   int64
 	PostageLabel    string
@@ -32,9 +28,7 @@ func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
 		GasPrice:        "",
-		MetricsPusher:   nil,
 		PostageAmount:   1,
-		PostageDepth:    16,
 		PostageLabel:    "test-label",
 		PostageWait:     5 * time.Second,
 		Seed:            random.Int64(),
@@ -46,28 +40,25 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	metrics metrics
+}
 
 // NewCheck returns new check
 func NewCheck() beekeeper.Action {
-	return &Check{}
+	return &Check{newMetrics()}
 }
 
 var errRetrieval = errors.New("retrieval")
 
-// Check uploads given chunks on cluster and checks pushsync ability of the cluster
+// Run uploads given chunks on cluster and checks pushsync ability of the cluster
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 
-	if o.MetricsPusher != nil {
-		setUpMetrics(o)
-	}
-
 	caseOpts := test.CaseOptions{
-		PostageDepth:  o.PostageDepth,
 		GasPrice:      o.GasPrice,
 		PostageAmount: o.PostageAmount,
 		PostageLabel:  o.PostageLabel,
@@ -102,9 +93,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			d0 := time.Since(t0)
 
-			uploadedCounter.WithLabelValues(uploader.Overlay).Inc()
-			uploadTimeGauge.WithLabelValues(uploader.Overlay, chunk.AddrString()).Set(d0.Seconds())
-			uploadTimeHistogram.Observe(d0.Seconds())
+			c.metrics.UploadedCounter.WithLabelValues(uploader.Overlay).Inc()
+			c.metrics.UploadTimeGauge.WithLabelValues(uploader.Overlay, chunk.AddrString()).Set(d0.Seconds())
+			c.metrics.UploadTimeHistogram.Observe(d0.Seconds())
 
 			// time download
 			t1 := time.Now()
@@ -117,12 +108,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			d1 := time.Since(t1)
 
-			downloadedCounter.WithLabelValues(uploader.Name()).Inc()
-			downloadTimeGauge.WithLabelValues(uploader.Name(), chunk.AddrString()).Set(d1.Seconds())
-			downloadTimeHistogram.Observe(d1.Seconds())
+			c.metrics.DownloadedCounter.WithLabelValues(uploader.Name()).Inc()
+			c.metrics.DownloadTimeGauge.WithLabelValues(uploader.Name(), chunk.AddrString()).Set(d1.Seconds())
+			c.metrics.DownloadTimeHistogram.Observe(d1.Seconds())
 
 			if !chunk.Equals(data) {
-				notRetrievedCounter.WithLabelValues(uploader.Name()).Inc()
+				c.metrics.NotRetrievedCounter.WithLabelValues(uploader.Name()).Inc()
 				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastBee.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
 				if chunk.Contains(data) {
 					fmt.Printf("Downloaded data is subset of the uploaded data\n")
@@ -130,28 +121,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				return errRetrieval
 			}
 
-			retrievedCounter.WithLabelValues(uploader.Name()).Inc()
+			c.metrics.RetrievedCounter.WithLabelValues(uploader.Name()).Inc()
 			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastBee.Name(), j, uploader.Name(), chunk.AddrString())
-
-			if o.MetricsPusher != nil {
-				if err := o.MetricsPusher.Push(); err != nil {
-					fmt.Printf("node %s: %v\n", lastBee.Name(), err)
-				}
-			}
 		}
 	}
 
 	return
-}
-
-func setUpMetrics(o Options) {
-	o.MetricsPusher.Collector(uploadedCounter)
-	o.MetricsPusher.Collector(uploadTimeGauge)
-	o.MetricsPusher.Collector(uploadTimeHistogram)
-	o.MetricsPusher.Collector(downloadedCounter)
-	o.MetricsPusher.Collector(downloadTimeGauge)
-	o.MetricsPusher.Collector(downloadTimeHistogram)
-	o.MetricsPusher.Collector(retrievedCounter)
-	o.MetricsPusher.Collector(notRetrievedCounter)
-	o.MetricsPusher.Format(expfmt.FmtText)
 }

@@ -140,6 +140,7 @@ bee-configs:
     tracing-enabled: true
     tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
     tracing-service-name: "bee"
+    transaction: ""
     verbosity: 5
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
   bootnode:
@@ -167,7 +168,6 @@ checks:
     type: cashout
   chunk-repair:
     options:
-      metrics-enabled: 
       node-group: bee
       number-of-chunks-to-repair: 1
       postage-amount: 1000
@@ -222,13 +222,11 @@ checks:
     type: peer-count
   pingpong:
     options:
-      metrics-enabled: 
     timeout: 5m
     type: pingpong
   pss:
     options:
       address-prefix: 2
-      metrics-enabled:
       node-count: 3
       postage-amount: 1000
       postage-depth: 16
@@ -248,7 +246,6 @@ checks:
   pushsync:
     options:
       chunks-per-node: 1
-      metrics-enabled:
       mode: default
       postage-amount: 1000
       postage-depth: 16
@@ -261,7 +258,6 @@ checks:
   pushsync-chunks:
     options:
       chunks-per-node: 1
-      metrics-enabled:
       mode: chunks
       postage-amount: 1000
       exclude-node-group:
@@ -276,7 +272,6 @@ checks:
   pushsync-light-chunks:
     options:
       chunks-per-node: 1
-      metrics-enabled:
       mode: light-chunks
       postage-amount: 1000
       exclude-node-group:
@@ -291,7 +286,6 @@ checks:
   retrieval:
     options:
       chunks-per-node: 1
-      metrics-enabled:
       postage-amount: 1000
       postage-depth: 16
       postage-wait: 5s
@@ -358,7 +352,6 @@ simulations:
     options:
       chunks-per-node: 1
       gas-price: "10000000000"
-      metrics-enabled: true
       postage-amount: 1000
       postage-depth: 16
       postage-wait: 5s

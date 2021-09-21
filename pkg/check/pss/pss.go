@@ -13,14 +13,12 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/gorilla/websocket"
-	"github.com/prometheus/client_golang/prometheus/push"
 )
 
 // Options represents check options
 type Options struct {
 	AddressPrefix  int
 	GasPrice       string
-	MetricsPusher  *push.Pusher
 	NodeCount      int
 	PostageAmount  int64
 	PostageDepth   uint64
@@ -35,7 +33,6 @@ func NewDefaultOptions() Options {
 	return Options{
 		AddressPrefix:  1,
 		GasPrice:       "",
-		MetricsPusher:  nil,
 		NodeCount:      1,
 		PostageAmount:  1,
 		PostageDepth:   16,
@@ -50,21 +47,19 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	metrics metrics
+}
 
 // NewCheck returns new check
 func NewCheck() beekeeper.Action {
-	return &Check{}
+	return &Check{newMetrics()}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
-	}
-
-	if o.MetricsPusher != nil {
-		o.MetricsPusher.Collector(sendAndReceiveGauge)
 	}
 
 	clients, err := cluster.NodesClients(ctx)
@@ -88,7 +83,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			fmt.Printf("pss: test %d of %d\n", j+1, o.NodeCount)
 
-			if err := testPss(nodeAName, nodeBName, clients, o); err != nil {
+			if err := c.testPss(nodeAName, nodeBName, clients, o); err != nil {
 				return err
 			}
 
@@ -117,7 +112,7 @@ var (
 	testTopic = "test"
 )
 
-func testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Options) error {
+func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Options) error {
 	ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
 
 	nodeA := clients[nodeAName]
@@ -157,7 +152,7 @@ func testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Opti
 	if ok {
 		if msg == string(testData) {
 			fmt.Println("pss: websocket connection received correct message")
-			sendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
+			c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
 		} else {
 			err = errDataMismatch
 		}
@@ -170,12 +165,6 @@ func testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Opti
 
 	if err != nil {
 		return err
-	}
-
-	if o.MetricsPusher != nil {
-		if err := o.MetricsPusher.Push(); err != nil {
-			fmt.Printf("pss: push gauge: %v\n", err)
-		}
 	}
 
 	return nil
