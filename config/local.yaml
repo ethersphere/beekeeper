@@ -335,3 +335,11 @@ checks:
       content-size: 16384
       postage-amount: 1000
       postage-depth: 16
+  ci-postage:
+    type: postage
+    timeout: 5m
+    options:
+      postage-amount: 1000
+      postage-depth: 17
+      postage-topup-amount: 100
+      postage-new-depth: 18
