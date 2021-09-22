@@ -59,13 +59,11 @@ func NewCheck() beekeeper.Action {
 }
 
 func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
-	c.metrics.CheckRun.Inc()
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 	if err := c.checkChunks(ctx, cluster, o); err != nil {
-		c.metrics.CheckFail.Inc()
 		return err
 	}
 	return nil

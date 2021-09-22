@@ -13,8 +13,9 @@ type metrics struct {
 	SyncedCounter       *prometheus.CounterVec
 	NotSyncedCounter    *prometheus.CounterVec
 
-	CheckRun        prometheus.Counter
-	CheckFail       prometheus.Counter
+	CheckRun        *prometheus.CounterVec
+	CheckFail       *prometheus.CounterVec
+	CheckSuccess    *prometheus.CounterVec
 	NodeSyncTime    *prometheus.CounterVec
 	RetrieveAttempt *prometheus.CounterVec
 	RetrieveFail    *prometheus.CounterVec
@@ -70,21 +71,32 @@ func newMetrics() metrics {
 			[]string{"node"},
 		),
 
-		CheckRun: prometheus.NewCounter(
+		CheckRun: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: mm.Namespace,
 				Subsystem: subsystem,
 				Name:      "check_run",
 				Help:      "Times the check ran",
 			},
+			[]string{"node"},
 		),
-		CheckFail: prometheus.NewCounter(
+		CheckFail: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: mm.Namespace,
 				Subsystem: subsystem,
 				Name:      "check_fail",
 				Help:      "Times the check failed",
 			},
+			[]string{"node"},
+		),
+		CheckSuccess: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				Name:      "check_success",
+				Help:      "Times the check succeeded.",
+			},
+			[]string{"node"},
 		),
 
 		NodeSyncTime: prometheus.NewCounterVec(

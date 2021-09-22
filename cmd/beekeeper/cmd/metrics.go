@@ -11,6 +11,7 @@ import (
 
 // newMetricsPusher returns a new metrics pusher and a cleanup function.
 func newMetricsPusher(pusherAddress, job string) (*push.Pusher, func()) {
+	fmt.Println(pusherAddress)
 	metricsPusher := push.New(pusherAddress, job)
 	metricsPusher.Format(expfmt.FmtText)
 
