@@ -16,8 +16,10 @@ type metrics struct {
 	CheckRun        prometheus.Counter
 	CheckFail       prometheus.Counter
 	NodeSyncTime    *prometheus.CounterVec
-	RetrieveAttempt prometheus.Counter
-	RetrieveFail    prometheus.Counter
+	RetrieveAttempt *prometheus.CounterVec
+	RetrieveFail    *prometheus.CounterVec
+	UploadSuccess   *prometheus.CounterVec
+	RetrieveSuccess *prometheus.CounterVec
 }
 
 func newMetrics() metrics {
@@ -94,21 +96,41 @@ func newMetrics() metrics {
 			},
 			[]string{"node"},
 		),
-		RetrieveAttempt: prometheus.NewCounter(
+		RetrieveAttempt: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: mm.Namespace,
 				Subsystem: subsystem,
 				Name:      "retrieve_attempt",
 				Help:      "Retrieval attempts.",
 			},
+			[]string{"node"},
 		),
-		RetrieveFail: prometheus.NewCounter(
+		RetrieveFail: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: mm.Namespace,
 				Subsystem: subsystem,
 				Name:      "retrieve_fail",
 				Help:      "Retrieval failures.",
 			},
+			[]string{"node"},
+		),
+		RetrieveSuccess: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				Name:      "retrieve_success",
+				Help:      "Retrieval success.",
+			},
+			[]string{"node"},
+		),
+		UploadSuccess: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: mm.Namespace,
+				Subsystem: subsystem,
+				Name:      "upload_success",
+				Help:      "Successful uploads.",
+			},
+			[]string{"node"},
 		),
 	}
 }
