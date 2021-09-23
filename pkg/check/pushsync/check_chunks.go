@@ -37,6 +37,7 @@ LOOP:
 		wg.Add(1)
 		ctxd, canceld := context.WithTimeout(ctx, 1*time.Minute)
 		go func() {
+			defer wg.Done()
 			nodes := cluster.Nodes()
 			for _, uploader := range nodes {
 				nodesInner := cluster.Nodes()
@@ -59,7 +60,6 @@ LOOP:
 }
 
 func (c *Check) uploadNodes(ctx context.Context, uploader *bee.Node, others map[string]*bee.Node, rnd *rand.Rand) (err error) {
-	fmt.Println("uploader", uploader.Name(), &others)
 	c.metrics.CheckRun.WithLabelValues(uploader.Name()).Inc()
 	defer func() {
 		if err != nil {
@@ -104,13 +104,12 @@ LOOP:
 		if len(others) == 0 {
 			break LOOP
 		}
-		fmt.Println("uploader", uploader.Name(), "len", len(others))
 		for nodeName, node := range others {
 			wg.Add(1)
 			c.metrics.RetrieveAttempt.WithLabelValues(nodeName).Inc()
 			go func(client *bee.Client, name string) {
-				ctxi, cancel := context.WithTimeout(ctx, 5*time.Second)
-				defer cancel()
+				ctxi, canceli := context.WithTimeout(ctx, 5*time.Second)
+				defer canceli()
 
 				defer wg.Done()
 
