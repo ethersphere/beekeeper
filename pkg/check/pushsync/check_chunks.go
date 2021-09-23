@@ -89,13 +89,13 @@ LOOP:
 		if len(others) == 0 {
 			break LOOP
 		}
-		ctxi, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-
 		for nodeName, node := range others {
 			wg.Add(1)
 			c.metrics.RetrieveAttempt.WithLabelValues(nodeName).Inc()
 			go func(client *bee.Client, name string) {
+				ctxi, cancel := context.WithTimeout(ctx, 5*time.Second)
+				defer cancel()
+
 				defer wg.Done()
 
 				b, err := client.DownloadChunk(ctxi, ref, "")
