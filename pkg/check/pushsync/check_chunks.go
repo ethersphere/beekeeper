@@ -109,7 +109,7 @@ LOOP:
 				}
 
 				idx := cnt.Inc()
-				c.metrics.NodeSyncTime.WithLabelValues(fmt.Sprintf("%d", idx)).Add(float64(time.Since(start)))
+				c.metrics.NodeSyncTime.WithLabelValues(uploader.Name(), fmt.Sprintf("%d", idx)).Observe(time.Since(start).Seconds())
 				fmt.Printf("%d'th node (%s) has chunk, took %s\n", idx, name, time.Since(start))
 				mtx.Lock()
 				delete(others, name)

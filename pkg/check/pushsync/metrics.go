@@ -16,7 +16,7 @@ type metrics struct {
 	CheckRun        *prometheus.CounterVec
 	CheckFail       *prometheus.CounterVec
 	CheckSuccess    *prometheus.CounterVec
-	NodeSyncTime    *prometheus.CounterVec
+	NodeSyncTime    *prometheus.HistogramVec
 	RetrieveAttempt *prometheus.CounterVec
 	RetrieveFail    *prometheus.CounterVec
 	UploadSuccess   *prometheus.CounterVec
@@ -99,14 +99,14 @@ func newMetrics() metrics {
 			[]string{"node"},
 		),
 
-		NodeSyncTime: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
+		NodeSyncTime: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
 				Namespace: mm.Namespace,
 				Subsystem: subsystem,
 				Name:      "node_sync_time",
 				Help:      "Time to availability of chunk on Nth node.",
 			},
-			[]string{"node"},
+			[]string{"node", "index"},
 		),
 		RetrieveAttempt: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
