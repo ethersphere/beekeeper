@@ -35,9 +35,8 @@ LOOP:
 		default:
 		}
 		wg.Add(1)
+		ctxd, canceld := context.WithTimeout(ctx, 1*time.Minute)
 		go func() {
-			ctxd, canceld := context.WithTimeout(ctx, 1*time.Minute)
-			defer canceld()
 			nodes := cluster.Nodes()
 			for _, uploader := range nodes {
 				nodesInner := cluster.Nodes()
@@ -54,6 +53,7 @@ LOOP:
 		}()
 
 		wg.Wait()
+		canceld()
 	}
 	return nil
 }
