@@ -20,30 +20,46 @@ func (c *Check) checkChunks(ctx context.Context, cluster *bee.Cluster, o Options
 	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("seed: %d\n", o.Seed)
 
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-	defer cancel()
 	var wg sync.WaitGroup
-	nodes := cluster.Nodes()
 
-	for _, uploader := range nodes {
-		nodesInner := cluster.Nodes()
-		delete(nodesInner, uploader.Name())
+	//the test will restart itself every 12 hours, this is in order to
+	// create more meaningful metrics, so that we can apply prometheus
+	// functions to them.
+	ctx, cancel := context.WithTimeout(ctx, 12*time.Hour)
+	defer cancel()
+LOOP:
+	for {
+		select {
+		case <-ctx.Done():
+			break LOOP
+		default:
+		}
 		wg.Add(1)
-		go func(uploader *bee.Node, nodesInner map[string]*bee.Node) {
-			defer wg.Done()
-			err := c.uploadNodes(ctx, uploader, nodesInner, rnd)
-			if err != nil {
-				fmt.Println(err)
+		go func() {
+			ctxd, canceld := context.WithTimeout(ctx, 1*time.Minute)
+			defer canceld()
+			nodes := cluster.Nodes()
+			for _, uploader := range nodes {
+				nodesInner := cluster.Nodes()
+				delete(nodesInner, uploader.Name())
+				wg.Add(1)
+				go func(uploader *bee.Node, nodesInner map[string]*bee.Node) {
+					defer wg.Done()
+					err := c.uploadNodes(ctxd, uploader, nodesInner, rnd)
+					if err != nil {
+						fmt.Println(err)
+					}
+				}(uploader, nodesInner)
 			}
-		}(uploader, nodesInner)
+		}()
+
+		wg.Wait()
 	}
-
-	wg.Wait()
-
 	return nil
 }
 
 func (c *Check) uploadNodes(ctx context.Context, uploader *bee.Node, others map[string]*bee.Node, rnd *rand.Rand) (err error) {
+	fmt.Println("uploader", uploader.Name(), &others)
 	c.metrics.CheckRun.WithLabelValues(uploader.Name()).Inc()
 	defer func() {
 		if err != nil {
@@ -62,12 +78,11 @@ func (c *Check) uploadNodes(ctx context.Context, uploader *bee.Node, others map[
 		return fmt.Errorf("node %s: %w", uploader.Name(), err)
 	}
 
-	start := time.Now()
-
 	ref, err := uploader.Client().UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 	if err != nil {
 		return fmt.Errorf("node %s: %w", uploader.Name(), err)
 	}
+	start := time.Now()
 
 	c.metrics.UploadSuccess.WithLabelValues(uploader.Name()).Inc()
 
@@ -89,6 +104,7 @@ LOOP:
 		if len(others) == 0 {
 			break LOOP
 		}
+		fmt.Println("uploader", uploader.Name(), "len", len(others))
 		for nodeName, node := range others {
 			wg.Add(1)
 			c.metrics.RetrieveAttempt.WithLabelValues(nodeName).Inc()
@@ -110,7 +126,7 @@ LOOP:
 
 				idx := cnt.Inc()
 				c.metrics.NodeSyncTime.WithLabelValues(uploader.Name(), fmt.Sprintf("%d", idx)).Observe(time.Since(start).Seconds())
-				fmt.Printf("%d'th node (%s) has chunk, took %s\n", idx, name, time.Since(start))
+				fmt.Printf("uploader %s, %d'th node (%s) has chunk, took %s\n", uploader.Name(), idx, name, time.Since(start))
 				mtx.Lock()
 				delete(others, name)
 				mtx.Unlock()
