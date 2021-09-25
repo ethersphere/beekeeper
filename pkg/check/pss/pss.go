@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/gorilla/websocket"
 )
@@ -55,7 +56,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{newMetrics()}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

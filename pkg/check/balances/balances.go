@@ -1,16 +1,13 @@
 package balances
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	test "github.com/ethersphere/beekeeper/pkg/test"
 )
 
 // Options represents check options
@@ -54,7 +51,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -64,146 +61,115 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 		fmt.Println("running balances (dry mode)")
 		return dryRun(ctx, cluster, o)
 	}
+
 	fmt.Println("running balances")
 
-	rnd := random.PseudoGenerator(o.Seed)
-	fmt.Printf("Seed: %d\n", o.Seed)
+	var checkCase *test.CheckCase
 
-	overlays, err := cluster.Overlays(ctx)
+	caseOpts := test.CaseOptions{
+		FileName:      o.FileName,
+		FileSize:      o.FileSize,
+		GasPrice:      o.GasPrice,
+		PostageAmount: o.PostageAmount,
+		PostageLabel:  o.PostageLabel,
+		PostageWait:   o.PostageWait,
+		Seed:          o.Seed,
+	}
+
+	if checkCase, err = test.NewCheckCase(ctx, cluster, caseOpts); err != nil {
+		return err
+	}
+
+	balances, err := checkCase.Balances(ctx)
 	if err != nil {
 		return err
 	}
 
-	flatOverlays := flattenOverlays(overlays)
-
-	// Initial balances validation
-	balances, err := cluster.Balances(ctx)
-	if err != nil {
-		return err
+	// initial validation
+	if err := validateBalances(balances); err != nil {
+		return fmt.Errorf("invalid initial balances: %v", err)
 	}
 
-	flatBalances := flattenBalances(balances)
-	if err := validateBalances(flatOverlays, flatBalances); err != nil {
-		return fmt.Errorf("invalid initial balances: %s", err.Error())
-	}
 	fmt.Println("Balances are valid")
 
-	var previousBalances bee.NodeGroupBalances
+	// repeats
 	for i := 0; i < o.UploadNodeCount; i++ {
-		// upload file to random node
+		// upload/check
+		bee := checkCase.RandomBee()
 
-		ng, nodeName, overlay := overlays.Random(rnd)
-
-		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, nodeName), o.FileSize)
-		uClient, err := cluster.NodeGroups()[ng].NodeClient(nodeName)
+		file, err := bee.UploadRandomFile(ctx)
 		if err != nil {
 			return err
 		}
 
-		// add some buffer to ensure depth is enough
-		depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-		batchID, err := uClient.CreatePostageBatch(ctx, o.PostageAmount, depth, o.GasPrice, o.PostageLabel, false)
-		if err != nil {
-			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
-		}
-		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-		time.Sleep(o.PostageWait)
-
-		if err := uClient.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
-			return fmt.Errorf("node %s: %w", nodeName, err)
-		}
-		fmt.Printf("File %s uploaded successfully to node \"%s\" (%s)\n", file.Address().String(), nodeName, overlay.String())
-
-		// Validate balances after uploading a file
-		previousBalances = flatBalances
-		for t := 0; t < 5; t++ {
-			time.Sleep(2 * time.Duration(t) * time.Second)
-
-			balances, err = cluster.Balances(ctx)
-			if err != nil {
-				return err
-			}
-			flatBalances = flattenBalances(balances)
-			balancesHaveChanged(flatBalances, previousBalances)
-
-			err = validateBalances(flatOverlays, flatBalances)
-			if err != nil {
-				fmt.Printf("Invalid balances after uploading a file: %s\n", err.Error())
-				fmt.Println("Retrying ...")
-				continue
-			}
-
-			fmt.Println("Balances are valid")
-			break
-		}
-
-		time.Sleep(o.WaitBeforeDownload)
-		// download file from random node
-		ng, nodeName, overlay = overlays.Random(rnd)
-		dClient, err := cluster.NodeGroups()[ng].NodeClient(nodeName)
+		newBalances, err := checkCase.Balances(ctx)
 		if err != nil {
 			return err
 		}
-		size, hash, err := dClient.DownloadFile(ctx, file.Address())
+
+		if err := expectBalancesHaveChanged(ctx, balances, newBalances); err != nil {
+			return err
+		}
+
+		balances = newBalances
+
+		// download/check
+		if err := checkCase.RandomBee().ExpectToHaveFile(ctx, file); err != nil {
+			return err
+		}
+
+		newBalances, err = checkCase.Balances(ctx)
 		if err != nil {
-			return fmt.Errorf("node %s: %w", nodeName, err)
+			return err
 		}
-		if !bytes.Equal(file.Hash(), hash) {
-			return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlay.String(), file.Size(), size)
-		}
-		fmt.Printf("File %s downloaded successfully from node \"%s\"(%s)\n", file.Address().String(), nodeName, overlay.String())
 
-		// Validate balances after downloading a file
-		previousBalances = flatBalances
-		for t := 0; t < 5; t++ {
-			time.Sleep(2 * time.Duration(t) * time.Second)
-
-			balances, err = cluster.Balances(ctx)
-			if err != nil {
-				return err
-			}
-			flatBalances = flattenBalances(balances)
-			balancesHaveChanged(flatBalances, previousBalances)
-
-			err := validateBalances(flatOverlays, flatBalances)
-			if err != nil {
-				fmt.Printf("Invalid balances after downloading a file: %s\n", err.Error())
-				fmt.Println("Retrying ...")
-				continue
-			}
-
-			fmt.Println("Balances are valid")
-			break
+		if err := expectBalancesHaveChanged(ctx, balances, newBalances); err != nil {
+			return err
 		}
 	}
 
-	return
+	return nil
 }
 
 // dryRun executes balances validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster *bee.Cluster, o Options) (err error) {
-	overlays, err := cluster.Overlays(ctx)
-	if err != nil {
-		return err
-	}
-	flatOverlays := flattenOverlays(overlays)
-
+func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options) (err error) {
 	balances, err := cluster.Balances(ctx)
 	if err != nil {
 		return err
 	}
-	flatBalances := flattenBalances(balances)
 
-	if err := validateBalances(flatOverlays, flatBalances); err != nil {
+	flatBalances := flattenBalances(balances)
+	if err := validateBalances(flatBalances); err != nil {
 		return fmt.Errorf("invalid balances")
 	}
+
 	fmt.Println("Balances are valid")
 
 	return
 }
 
+func expectBalancesHaveChanged(ctx context.Context, balances, newBalances orchestration.NodeGroupBalances) error {
+	for t := 0; t < 5; t++ {
+		time.Sleep(2 * time.Duration(t) * time.Second)
+
+		balancesHaveChanged(newBalances, balances)
+
+		if err := validateBalances(newBalances); err != nil {
+			fmt.Println("Invalid balances after downloading a file:", err)
+			fmt.Println("Retrying ...", t)
+			continue
+		}
+
+		fmt.Println("Balances are valid")
+
+		break
+	}
+
+	return nil
+}
+
 // validateBalances checks balances symmetry
-func validateBalances(overlays map[string]swarm.Address, balances map[string]map[string]int64) (err error) {
+func validateBalances(balances map[string]map[string]int64) (err error) {
 	var noSymmetry bool
 
 	for node, v := range balances {
@@ -226,7 +192,7 @@ func validateBalances(overlays map[string]swarm.Address, balances map[string]map
 }
 
 // balancesHaveChanged checks if balances have changed
-func balancesHaveChanged(current, previous bee.NodeGroupBalances) {
+func balancesHaveChanged(current, previous orchestration.NodeGroupBalances) {
 	for node, v := range current {
 		for peer, balance := range v {
 			if balance != previous[node][peer] {
@@ -238,17 +204,8 @@ func balancesHaveChanged(current, previous bee.NodeGroupBalances) {
 	fmt.Println("Balances have not changed")
 }
 
-func flattenOverlays(o bee.ClusterOverlays) map[string]swarm.Address {
-	res := make(map[string]swarm.Address)
-	for _, ngo := range o {
-		for n, over := range ngo {
-			res[n] = over
-		}
-	}
-	return res
-}
-
-func flattenBalances(b bee.ClusterBalances) map[string]map[string]int64 {
+// flattenBalances convenience function
+func flattenBalances(b orchestration.ClusterBalances) map[string]map[string]int64 {
 	res := make(map[string]map[string]int64)
 	for _, ngb := range b {
 		for n, balances := range ngb {

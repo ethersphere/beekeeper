@@ -1,4 +1,4 @@
-package bee
+package k8s
 
 import (
 	"strconv"

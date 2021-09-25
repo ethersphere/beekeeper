@@ -9,6 +9,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // Options represents check options
@@ -34,7 +35,7 @@ func NewCheck() beekeeper.Action {
 }
 
 // Run executes ping check
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, _ interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interface{}) (err error) {
 	fmt.Println("running pingpong")
 
 	nodeGroups := cluster.NodeGroups()

@@ -1,23 +1,41 @@
-package k8s
+package orchestration
 
 import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
-// ErrNotSet represents error when Kubernetes Bee client is not set
-var ErrNotSet = errors.New("kubernetes Bee client not set")
+// ErrNotSet represents error when orchestration client is not set
+var ErrNotSet = errors.New("orchestration client not set")
 
-// Bee represents Bee implementation in Kubernetes
-type Bee interface {
+type Node interface {
+	Name() string
+	Client() *bee.Client
+	ClefKey() string
+	ClefPassword() string
+	Config() *Config
 	Create(ctx context.Context, o CreateOptions) (err error)
-	Delete(ctx context.Context, name, namespace string) (err error)
-	Ready(ctx context.Context, name, namespace string) (ready bool, err error)
-	RunningNodes(ctx context.Context, namespace string) (running []string, err error)
-	Start(ctx context.Context, name, namespace string) (err error)
-	Stop(ctx context.Context, name, namespace string) (err error)
-	StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error)
+	Delete(ctx context.Context, namespace string) (err error)
+	LibP2PKey() string
+	Ready(ctx context.Context, namespace string) (ready bool, err error)
+	Start(ctx context.Context, namespace string) (err error)
+	Stop(ctx context.Context, namespace string) (err error)
+	SwarmKey() string
+}
+
+// NodeOptions holds optional parameters for the Node.
+type NodeOptions struct {
+	ClefKey      string
+	ClefPassword string
+	Client       *bee.Client
+	Config       *Config
+	K8S          *k8s.Client
+	LibP2PKey    string
+	SwarmKey     string
 }
 
 // CreateOptions represents available options for creating node

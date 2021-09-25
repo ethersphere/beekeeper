@@ -11,8 +11,9 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/beeclient/api"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
@@ -64,7 +65,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{newMetrics()}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	fmt.Println("running chunk repair")
 	o, ok := opts.(Options)
 	if !ok {
@@ -188,7 +189,7 @@ func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{})
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match
 // nodeB is the closest to the generated chunk in the cluster.
-func getNodes(ctx context.Context, ng *bee.NodeGroup, rnd *rand.Rand) (*bee.Client, *bee.Client, *bee.Client, *bee.Chunk, error) {
+func getNodes(ctx context.Context, ng orchestration.NodeGroup, rnd *rand.Rand) (*bee.Client, *bee.Client, *bee.Client, *bee.Chunk, error) {
 	var overlayA swarm.Address
 	var overlayB swarm.Address
 	var overlayC swarm.Address
@@ -271,7 +272,7 @@ func uploadAndPinChunkToNode(ctx context.Context, node *bee.Client, chunk *bee.C
 }
 
 // deleteChunkFromAllNodes deletes a given chunk from al the nodes of the cluster.
-func deleteChunkFromAllNodes(ctx context.Context, ng *bee.NodeGroup, chunk *bee.Chunk) error {
+func deleteChunkFromAllNodes(ctx context.Context, ng orchestration.NodeGroup, chunk *bee.Chunk) error {
 	nodesClients, err := ng.NodesClients(ctx)
 	if err != nil {
 		return fmt.Errorf("get nodes clients: %w", err)
@@ -288,7 +289,7 @@ func deleteChunkFromAllNodes(ctx context.Context, ng *bee.NodeGroup, chunk *bee.
 
 // getRandomChunkAndClosestNode generates a random node and picks the closest node in the cluster, so that
 // when the chunk is uploaded anywhere in the cluster it lands in this node.
-func getRandomChunkAndClosestNode(overlays bee.NodeGroupOverlays, rnd *rand.Rand) (swarm.Address, *bee.Chunk, error) {
+func getRandomChunkAndClosestNode(overlays orchestration.NodeGroupOverlays, rnd *rand.Rand) (swarm.Address, *bee.Chunk, error) {
 	chunk, err := bee.NewRandomChunk(rnd)
 	if err != nil {
 		return swarm.ZeroAddress, nil, err
@@ -305,7 +306,7 @@ func getRandomChunkAndClosestNode(overlays bee.NodeGroupOverlays, rnd *rand.Rand
 }
 
 // findFarthestNodes finds two farthest nodes in the cluster
-func findFarthestNodes(overlays bee.NodeGroupOverlays) (swarm.Address, swarm.Address, error) {
+func findFarthestNodes(overlays orchestration.NodeGroupOverlays) (swarm.Address, swarm.Address, error) {
 	var overlayA swarm.Address
 	var overlayC swarm.Address
 	dist := big.NewInt(0)

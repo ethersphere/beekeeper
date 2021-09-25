@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // BeeConfig represents Bee configuration
@@ -58,8 +58,8 @@ type BeeConfig struct {
 	WarmupTime                 *time.Duration `yaml:"warmup-time"`
 }
 
-// Export exports BeeConfig to k8s.Config
-func (b *BeeConfig) Export() (o k8s.Config) {
+// Export exports BeeConfig to orchestration.Config
+func (b *BeeConfig) Export() (o orchestration.Config) {
 	localVal := reflect.ValueOf(b).Elem()
 	localType := reflect.TypeOf(b).Elem()
 	remoteVal := reflect.ValueOf(&o).Elem()
@@ -77,5 +77,5 @@ func (b *BeeConfig) Export() (o k8s.Config) {
 		}
 	}
 
-	return remoteVal.Interface().(k8s.Config)
+	return remoteVal.Interface().(orchestration.Config)
 }

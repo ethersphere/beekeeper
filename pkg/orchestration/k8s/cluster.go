@@ -1,4 +1,4 @@
-package bee
+package k8s
 
 import (
 	"context"
@@ -8,11 +8,14 @@ import (
 	"sort"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
-	k8sBee "github.com/ethersphere/beekeeper/pkg/k8s/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s/notset"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
+
+// compile check whether client implements interface
+var _ orchestration.Cluster = (*Cluster)(nil)
 
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
@@ -32,24 +35,8 @@ type Cluster struct {
 	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
 }
 
-// ClusterOptions represents Bee cluster options
-type ClusterOptions struct {
-	Annotations         map[string]string
-	APIDomain           string
-	APIInsecureTLS      bool
-	APIScheme           string
-	DebugAPIDomain      string
-	DebugAPIInsecureTLS bool
-	DebugAPIScheme      string
-	K8SClient           *k8s.Client
-	SwapClient          swap.Client
-	Labels              map[string]string
-	Namespace           string
-	DisableNamespace    bool
-}
-
 // NewCluster returns new cluster
-func NewCluster(name string, o ClusterOptions) *Cluster {
+func NewCluster(name string, o orchestration.ClusterOptions) *Cluster {
 	return &Cluster{
 		name:                name,
 		annotations:         o.Annotations,
@@ -64,34 +51,24 @@ func NewCluster(name string, o ClusterOptions) *Cluster {
 		labels:              o.Labels,
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,
-
-		nodeGroups: make(map[string]*NodeGroup),
+		nodeGroups:          make(map[string]*NodeGroup),
 	}
 }
 
 // AddNodeGroup adds new node group to the cluster
-func (c *Cluster) AddNodeGroup(name string, o NodeGroupOptions) {
+func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
 	g := NewNodeGroup(name, o)
 	g.cluster = c
-
-	if g.cluster.k8s != nil {
-		g.k8s = k8sBee.NewClient(g.cluster.k8s)
-	} else {
-		g.k8s = new(notset.BeeClient)
-	}
-
+	g.k8s = c.k8s
 	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)
 	g.opts.Labels = mergeMaps(g.cluster.labels, o.Labels)
 
 	c.nodeGroups[name] = g
 }
 
-// ClusterAddresses represents addresses of all nodes in the cluster
-type ClusterAddresses map[string]NodeGroupAddresses
-
 // Addresses returns ClusterAddresses
-func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]NodeGroupAddresses, err error) {
-	addrs = make(ClusterAddresses)
+func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]orchestration.NodeGroupAddresses, err error) {
+	addrs = make(orchestration.ClusterAddresses)
 
 	for k, v := range c.nodeGroups {
 		a, err := v.Addresses(ctx)
@@ -105,12 +82,9 @@ func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]NodeGroupAddr
 	return
 }
 
-// ClusterBalances represents balances of all nodes in the cluster
-type ClusterBalances map[string]NodeGroupBalances
-
 // Balances returns ClusterBalances
-func (c *Cluster) Balances(ctx context.Context) (balances ClusterBalances, err error) {
-	balances = make(ClusterBalances)
+func (c *Cluster) Balances(ctx context.Context) (balances orchestration.ClusterBalances, err error) {
+	balances = make(orchestration.ClusterBalances)
 
 	for k, v := range c.nodeGroups {
 		b, err := v.Balances(ctx)
@@ -125,13 +99,13 @@ func (c *Cluster) Balances(ctx context.Context) (balances ClusterBalances, err e
 }
 
 // FlattenBalances returns aggregated NodeGroupBalances
-func (c *Cluster) FlattenBalances(ctx context.Context) (balances NodeGroupBalances, err error) {
+func (c *Cluster) FlattenBalances(ctx context.Context) (balances orchestration.NodeGroupBalances, err error) {
 	b, err := c.Balances(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	balances = make(NodeGroupBalances)
+	balances = make(orchestration.NodeGroupBalances)
 
 	for _, v := range b {
 		for n, bal := range v {
@@ -165,8 +139,12 @@ func (c *Cluster) Name() string {
 }
 
 // NodeGroups returns map of node groups in the cluster
-func (c *Cluster) NodeGroups() (l map[string]*NodeGroup) {
-	return c.nodeGroups
+func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
+	nodeGroups := make(map[string]orchestration.NodeGroup)
+	for k, v := range c.nodeGroups {
+		nodeGroups[k] = v
+	}
+	return nodeGroups
 }
 
 // NodeGroupsSorted returns sorted list of node names in the node group
@@ -184,7 +162,7 @@ func (c *Cluster) NodeGroupsSorted() (l []string) {
 }
 
 // NodeGroup returns node group
-func (c *Cluster) NodeGroup(name string) (ng *NodeGroup, err error) {
+func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error) {
 	ng, ok := c.nodeGroups[name]
 	if !ok {
 		return nil, fmt.Errorf("node group %s not found", name)
@@ -193,10 +171,10 @@ func (c *Cluster) NodeGroup(name string) (ng *NodeGroup, err error) {
 }
 
 // Nodes returns map of nodes in the cluster
-func (c *Cluster) Nodes() map[string]*Node {
-	n := make(map[string]*Node)
+func (c *Cluster) Nodes() map[string]orchestration.Node {
+	n := make(map[string]orchestration.Node)
 	for _, ng := range c.NodeGroups() {
-		for k, v := range ng.getNodes() {
+		for k, v := range ng.Nodes() {
 			n[k] = v
 		}
 	}
@@ -206,7 +184,7 @@ func (c *Cluster) Nodes() map[string]*Node {
 // NodeNamess returns a list of node names in the cluster across all node groups
 func (c *Cluster) NodeNames() (names []string) {
 	for _, ng := range c.NodeGroups() {
-		for k := range ng.getNodes() {
+		for k := range ng.Nodes() {
 			names = append(names, k)
 		}
 	}
@@ -217,7 +195,7 @@ func (c *Cluster) NodeNames() (names []string) {
 // LightNodeNames returns a list of light node names
 func (c *Cluster) LightNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
-		if !node.config.FullNode {
+		if !node.Config().FullNode {
 			names = append(names, name)
 		}
 	}
@@ -227,7 +205,7 @@ func (c *Cluster) LightNodeNames() (names []string) {
 // FullNodeNames returns a list of full node names
 func (c *Cluster) FullNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
-		if node.config.FullNode {
+		if node.Config().FullNode {
 			names = append(names, name)
 		}
 	}
@@ -235,8 +213,8 @@ func (c *Cluster) FullNodeNames() (names []string) {
 }
 
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes
-func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) {
-	clients := make(map[string]*Client)
+func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, error) {
+	clients := make(map[string]*bee.Client)
 	for _, ng := range c.NodeGroups() {
 		ngc, err := ng.NodesClients(ctx)
 		if err != nil {
@@ -250,8 +228,8 @@ func (c *Cluster) NodesClients(ctx context.Context) (map[string]*Client, error) 
 }
 
 // NodesClientsAll returns map of node's clients in the cluster
-func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*Client, error) {
-	clients := make(map[string]*Client)
+func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*bee.Client, error) {
+	clients := make(map[string]*bee.Client)
 	for _, ng := range c.NodeGroups() {
 		for n, client := range ng.NodesClientsAll(ctx) {
 			clients[n] = client
@@ -260,42 +238,9 @@ func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*Client, erro
 	return clients, nil
 }
 
-// ClusterOverlays represents overlay addresses of all nodes in the cluster
-type ClusterOverlays map[string]NodeGroupOverlays
-
-// RandomOverlay returns a random overlay from a random NodeGroup
-func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string, overlay swarm.Address) {
-	i := r.Intn(len(c))
-	var (
-		ng, name string
-		ngo      NodeGroupOverlays
-		o        swarm.Address
-	)
-	for n, v := range c {
-		if i == 0 {
-			ng = n
-			ngo = v
-			break
-		}
-		i--
-	}
-
-	i = r.Intn(len(ngo))
-
-	for n, v := range ngo {
-		if i == 0 {
-			name = n
-			o = v
-			break
-		}
-		i--
-	}
-	return ng, name, o
-}
-
 // Overlays returns ClusterOverlays excluding the provided node group names
-func (c *Cluster) Overlays(ctx context.Context, exclude ...string) (overlays ClusterOverlays, err error) {
-	overlays = make(ClusterOverlays)
+func (c *Cluster) Overlays(ctx context.Context, exclude ...string) (overlays orchestration.ClusterOverlays, err error) {
+	overlays = make(orchestration.ClusterOverlays)
 
 	for k, v := range c.nodeGroups {
 		if containsName(exclude, k) {
@@ -345,12 +290,9 @@ func containsName(s []string, e string) bool {
 	return false
 }
 
-// ClusterPeers represents peers of all nodes in the cluster
-type ClusterPeers map[string]NodeGroupPeers
-
 // Peers returns peers of all nodes in the cluster
-func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error) {
-	peers = make(ClusterPeers)
+func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers orchestration.ClusterPeers, err error) {
+	peers = make(orchestration.ClusterPeers)
 
 	for k, v := range c.nodeGroups {
 		if containsName(exclude, k) {
@@ -368,16 +310,16 @@ func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers ClusterPe
 }
 
 // RandomNode returns random running node from a cluster
-func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node *Node, err error) {
-	nodes := []*Node{}
+func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node orchestration.Node, err error) {
+	nodes := []orchestration.Node{}
 	for _, ng := range c.NodeGroups() {
 		stopped, err := ng.StoppedNodes(ctx)
-		if err != nil && err != k8s.ErrNotSet {
+		if err != nil && err != orchestration.ErrNotSet {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 
-		for _, v := range ng.getNodes() {
-			if contains(stopped, v.name) {
+		for _, v := range ng.Nodes() {
+			if contains(stopped, v.Name()) {
 				continue
 			}
 			nodes = append(nodes, v)
@@ -387,12 +329,9 @@ func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node *Node, err
 	return nodes[r.Intn(len(nodes))], nil
 }
 
-// ClusterSettlements represents settlements of all nodes in the cluster
-type ClusterSettlements map[string]NodeGroupSettlements
-
 // Settlements returns
-func (c *Cluster) Settlements(ctx context.Context) (settlements ClusterSettlements, err error) {
-	settlements = make(ClusterSettlements)
+func (c *Cluster) Settlements(ctx context.Context) (settlements orchestration.ClusterSettlements, err error) {
+	settlements = make(orchestration.ClusterSettlements)
 
 	for k, v := range c.nodeGroups {
 		s, err := v.Settlements(ctx)
@@ -407,13 +346,13 @@ func (c *Cluster) Settlements(ctx context.Context) (settlements ClusterSettlemen
 }
 
 // FlattenSettlements returns aggregated NodeGroupSettlements
-func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error) {
+func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements orchestration.NodeGroupSettlements, err error) {
 	s, err := c.Settlements(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	settlements = make(NodeGroupSettlements)
+	settlements = make(orchestration.NodeGroupSettlements)
 
 	for _, v := range s {
 		for n, set := range v {
@@ -430,17 +369,14 @@ func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements NodeGroup
 // Size returns size of the cluster
 func (c *Cluster) Size() (size int) {
 	for _, ng := range c.nodeGroups {
-		size += len(ng.nodes)
+		size += ng.Size()
 	}
 	return
 }
 
-// ClusterTopologies represents Kademlia topology of all nodes in the cluster
-type ClusterTopologies map[string]NodeGroupTopologies
-
 // Topologies returns ClusterTopologies
-func (c *Cluster) Topologies(ctx context.Context) (topologies ClusterTopologies, err error) {
-	topologies = make(ClusterTopologies)
+func (c *Cluster) Topologies(ctx context.Context) (topologies orchestration.ClusterTopologies, err error) {
+	topologies = make(orchestration.ClusterTopologies)
 
 	for k, v := range c.nodeGroups {
 		t, err := v.Topologies(ctx)
@@ -455,13 +391,13 @@ func (c *Cluster) Topologies(ctx context.Context) (topologies ClusterTopologies,
 }
 
 // FlattenTopologies returns an aggregate of Topologies
-func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]Topology, err error) {
+func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error) {
 	top, err := c.Topologies(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	topologies = make(map[string]Topology)
+	topologies = make(map[string]bee.Topology)
 
 	for _, v := range top {
 		for n, over := range v {
@@ -515,17 +451,4 @@ func (c *Cluster) ingressDebugHost(name string) string {
 		return fmt.Sprintf("%s-debug.%s", name, c.debugAPIDomain)
 	}
 	return fmt.Sprintf("%s-debug.%s.%s", name, c.namespace, c.debugAPIDomain)
-}
-
-// mergeMaps joins two maps
-func mergeMaps(a, b map[string]string) map[string]string {
-	m := map[string]string{}
-	for k, v := range a {
-		m[k] = v
-	}
-	for k, v := range b {
-		m[k] = v
-	}
-
-	return m
 }

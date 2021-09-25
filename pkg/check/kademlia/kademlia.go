@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // Options represents check options
@@ -35,7 +35,7 @@ func NewCheck() beekeeper.Action {
 	return &Check{}
 }
 
-func (c *Check) Run(ctx context.Context, cluster *bee.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	fmt.Println("running kademlia")
 	o, ok := opts.(Options)
 	if !ok {
@@ -60,7 +60,7 @@ var (
 	errKadmeliaBinDisconnected = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
 )
 
-func checkKademlia(topologies bee.ClusterTopologies) error {
+func checkKademlia(topologies orchestration.ClusterTopologies) error {
 	for _, v := range topologies {
 		for n, t := range v {
 			if t.Depth == 0 {
@@ -92,7 +92,7 @@ func checkKademlia(topologies bee.ClusterTopologies) error {
 // checkKademliaD checks that for each topology, each node is connected to all
 // peers that are within depth and that are online. Online-ness is assumed by the list
 // of topologies (i.e. if we have the peer's topology, it is assumed it is online).
-func checkKademliaD(topologies bee.ClusterTopologies) error {
+func checkKademliaD(topologies orchestration.ClusterTopologies) error {
 	overlays := allOverlays(topologies)
 	culprits := make(map[string][]swarm.Address)
 	for _, nodeGroup := range topologies {
@@ -139,7 +139,7 @@ func checkKademliaD(topologies bee.ClusterTopologies) error {
 	return nil
 }
 
-func allOverlays(t bee.ClusterTopologies) []swarm.Address {
+func allOverlays(t orchestration.ClusterTopologies) []swarm.Address {
 	var addrs []swarm.Address
 	for _, nodeGroup := range t {
 		for _, t := range nodeGroup {
