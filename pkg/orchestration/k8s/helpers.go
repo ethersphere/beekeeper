@@ -12,6 +12,7 @@ import (
 
 const (
 	configTemplate = `api-addr: {{.APIAddr}}
+allow-private-cidrs: {{ .AllowPrivateCIDRs }}
 block-time: {{ .BlockTime }}
 bootnode: {{.Bootnodes}}
 bootnode-mode: {{.BootnodeMode}}

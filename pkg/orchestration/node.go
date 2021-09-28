@@ -78,6 +78,7 @@ type CreateOptions struct {
 
 // Config represents Bee configuration
 type Config struct {
+	AllowPrivateCIDRs          bool          // allow to advertise private CIDRs to the public network
 	APIAddr                    string        // HTTP API listen address
 	BlockTime                  uint64        // chain block time
 	Bootnodes                  string        // initial nodes to connect to
