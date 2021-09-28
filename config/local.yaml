@@ -181,6 +181,7 @@ bee-configs:
     verbosity: 5
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
     warmup-time: 0s
+    allow-private-cidrs: true
 
   bootnode-local:
     _inherit: "bee-local"

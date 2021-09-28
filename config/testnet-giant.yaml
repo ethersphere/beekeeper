@@ -116,6 +116,7 @@ bee-configs:
     transaction: ""
     verbosity: 5
     welcome-message: "Welcome to the giant!"
+    allow-private-cidrs: true
   bootnode-giant:
     _inherit: "testnet-giant"
     bootnode-mode: true
