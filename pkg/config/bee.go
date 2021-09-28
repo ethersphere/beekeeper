@@ -12,6 +12,7 @@ type BeeConfig struct {
 	// parent to inherit settings from
 	*Inherit `yaml:",inline"`
 	// Bee configuration
+	AllowPrivateCIDRs          *bool          `yaml:"allow-private-cidrs"`
 	APIAddr                    *string        `yaml:"api-addr"`
 	BlockTime                  *uint64        `yaml:"block-time"`
 	Bootnodes                  *string        `yaml:"bootnodes"`
