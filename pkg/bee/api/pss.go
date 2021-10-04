@@ -18,7 +18,7 @@ func (p *PSSService) SendMessage(ctx context.Context, nodeAddress swarm.Address,
 	h := http.Header{}
 	h.Add(postageStampBatchHeader, batchID)
 
-	url := fmt.Sprintf("/%s/pss/send/%s/%s?recipient=%s", apiVersion, topic, nodeAddress.String()[:2*prefix], nodePublicKey)
+	url := fmt.Sprintf("/%s/pss/send/%s/%s?recipient=%s", apiVersion, topic, nodeAddress.String()[:prefix], nodePublicKey)
 
 	return p.client.requestWithHeader(ctx, http.MethodPost, url, h, data, nil)
 }
