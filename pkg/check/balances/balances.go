@@ -17,6 +17,7 @@ type Options struct {
 	FileSize           int64
 	GasPrice           string
 	PostageAmount      int64
+	PostageDepth       uint64
 	PostageLabel       string
 	PostageWait        time.Duration
 	Seed               int64
@@ -32,6 +33,7 @@ func NewDefaultOptions() Options {
 		FileSize:           1 * 1024 * 1024, // 1mb,
 		GasPrice:           "",
 		PostageAmount:      1,
+		PostageDepth:       16,
 		PostageLabel:       "test-label",
 		PostageWait:        5 * time.Second,
 		Seed:               0,

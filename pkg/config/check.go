@@ -58,6 +58,7 @@ var Checks = map[string]CheckType{
 				FileSize           *int64         `yaml:"file-size"`
 				GasPrice           *string        `yaml:"gas-price"`
 				PostageAmount      *int64         `yaml:"postage-amount"`
+				PostageDepth       *uint64        `yaml:"postage-depth"`
 				PostageLabel       *string        `yaml:"postage-label"`
 				PostageWait        *time.Duration `yaml:"postage-wait"`
 				Seed               *int64         `yaml:"seed"`
