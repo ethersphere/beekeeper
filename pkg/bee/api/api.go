@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/bee/auth"
 )
 
 const (
@@ -26,6 +27,7 @@ var userAgent = "beekeeper/" + beekeeper.Version
 type Client struct {
 	httpClient *http.Client // HTTP client must handle authentication implicitly.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
+	restricted bool
 
 	// Services that API provides.
 	Bytes       *BytesService
@@ -42,6 +44,7 @@ type Client struct {
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
 	HTTPClient *http.Client
+	Restricted bool
 }
 
 // NewClient constructs a new Client.
@@ -53,7 +56,10 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 		o.HTTPClient = new(http.Client)
 	}
 
-	return newClient(httpClientWithTransport(baseURL, o.HTTPClient))
+	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
+	c.restricted = o.Restricted
+
+	return
 }
 
 // newClient constructs a new *Client with the provided http Client, which
@@ -128,6 +134,11 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	}
 	req.Header.Set("Accept", contentType)
 
+	if c.restricted {
+		key := auth.GetToken(path, method)
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
+
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
@@ -166,6 +177,11 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	}
 	req.Header.Set("Accept", contentType)
 
+	if c.restricted {
+		key := auth.GetToken(path, method)
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
+
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -188,6 +204,11 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 
 	req.Header = header
 	req.Header.Add("Accept", contentType)
+
+	if c.restricted {
+		key := auth.GetToken(path, method)
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {

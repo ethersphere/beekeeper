@@ -9,6 +9,7 @@ clusters:
     api-scheme: http
     debug-api-domain: localhost
     debug-api-scheme: http
+    admin-password: test
     funding:
       eth: 0.1
       bzz: 100.0
@@ -51,6 +52,11 @@ clusters:
         config: local-light
         count: 2
         mode: node
+      restricted:
+        mode: node
+        bee-config: bee-local-restricted
+        config: bee-local-restricted
+        count: 1
   local-clef:
     _inherit: "local"
     node-groups:
@@ -136,6 +142,8 @@ node-groups:
     _inherit: "local"
   local-light:
     _inherit: "local"
+  bee-local-restricted:
+    _inherit: "local"
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 bee-configs:
@@ -171,6 +179,9 @@ bee-configs:
     postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
     price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: ""
+    restricted: false
+    token-encryption-key: ""
+    admin-password: ""
     standalone: false
     swap-enable: true
     swap-endpoint: "ws://geth-swap:8546"
@@ -201,6 +212,12 @@ bee-configs:
     _inherit: "bee-local"
     clef-signer-enable: true
     clef-signer-endpoint: "http://localhost:8550"
+  bee-local-restricted:
+    _inherit: "bee-local"
+    bootnode: /dnsaddr/localhost
+    restricted: true
+    token-encryption-key: testtest
+    admin-password: $2a$12$Ltg3M2W53Xv9wwJ2.iAv4e4gWELrrr8D2dYat7wNdY2xArdmOSL1i
   bootnode-local-clef:
     _inherit: "bee-local"
     clef-signer-enable: true

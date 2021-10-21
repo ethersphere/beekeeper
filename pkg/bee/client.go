@@ -38,6 +38,7 @@ type ClientOptions struct {
 	DebugAPIURL         *url.URL
 	DebugAPIInsecureTLS bool
 	Retry               int
+	Restricted          bool
 }
 
 // NewClient returns Bee client
@@ -50,12 +51,12 @@ func NewClient(opts ClientOptions) (c *Client) {
 	if opts.APIURL != nil {
 		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
-		}}})
+		}}, Restricted: opts.Restricted})
 	}
 	if opts.DebugAPIURL != nil {
 		c.debug = debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
-		}}})
+		}}, Restricted: opts.Restricted})
 	}
 	if opts.Retry > 0 {
 		c.retry = opts.Retry

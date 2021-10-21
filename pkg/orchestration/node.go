@@ -109,6 +109,9 @@ type Config struct {
 	PostageStampAddress        string        // postage stamp address
 	PriceOracleAddress         string        // price Oracle address
 	ResolverOptions            string        // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
+	Restricted                 bool          // start node in restricted mode
+	TokenEncryptionKey         string        // username for API authentication
+	AdminPassword              string        // password hash for API authentication
 	Standalone                 bool          // whether we want the node to start with no listen addresses for p2p
 	SwapEnable                 bool          // enable swap
 	SwapEndpoint               string        // swap ethereum blockchain endpoint
