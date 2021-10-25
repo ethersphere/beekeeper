@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/bee/auth"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 )
 
 const contentType = "application/json; charset=utf-8"
@@ -148,7 +148,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	req.Header.Set("Accept", contentType)
 
 	if !c.restricted {
-		key := auth.GetToken(path, method)
+		key := api.GetToken(path, method)
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 

@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/bee/auth"
 )
 
 const (
@@ -39,7 +38,7 @@ type Client struct {
 	PSS         *PSSService
 	SOC         *SOCService
 	Stewardship *StewardshipService
-	Auth        *auth.AuthService
+	Auth        *AuthService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -77,6 +76,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.PSS = (*PSSService)(&c.service)
 	c.SOC = (*SOCService)(&c.service)
 	c.Stewardship = (*StewardshipService)(&c.service)
+	c.Auth = (*AuthService)(&c.service)
 	return c
 }
 
@@ -136,7 +136,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	req.Header.Set("Accept", contentType)
 
 	if c.restricted {
-		key := auth.GetToken(path, method)
+		key := GetToken(path, method)
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 
@@ -179,7 +179,7 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	req.Header.Set("Accept", contentType)
 
 	if c.restricted {
-		key := auth.GetToken(path, method)
+		key := GetToken(path, method)
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 
@@ -207,7 +207,7 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	req.Header.Add("Accept", contentType)
 
 	if c.restricted {
-		key := auth.GetToken(path, method)
+		key := GetToken(path, method)
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 

@@ -62,7 +62,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 
 		// auth with bad password
-		token, err := node.Client().Authenticate(ctx, o.Role, "wrong-password")
+		token, err := client.Authenticate(ctx, o.Role, "wrong-password")
 		if err == nil {
 			return fmt.Errorf("expected error when authenticating with bad credentials")
 		}
