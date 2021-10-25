@@ -147,7 +147,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	}
 	req.Header.Set("Accept", contentType)
 
-	if !c.restricted {
+	if c.restricted {
 		key := api.GetToken(path, method)
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
