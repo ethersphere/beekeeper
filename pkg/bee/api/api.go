@@ -39,6 +39,7 @@ type Client struct {
 	PSS         *PSSService
 	SOC         *SOCService
 	Stewardship *StewardshipService
+	Auth        *auth.AuthService
 }
 
 // ClientOptions holds optional parameters for the Client.

@@ -744,3 +744,15 @@ func (c *Client) IsRetrievable(ctx context.Context, ref swarm.Address) (bool, er
 func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 	return c.api.Stewardship.Reupload(ctx, ref)
 }
+
+// Authenticate
+func (c *Client) Authenticate(ctx context.Context, role, password string) (string, error) {
+	resp, err := c.api.Auth.Authenticate(ctx, role, password)
+	return resp.Key, err
+}
+
+// Refresh
+func (c *Client) Refresh(ctx context.Context, securityToken string) (string, error) {
+	resp, err := c.api.Auth.Refresh(ctx, securityToken)
+	return resp.Key, err
+}

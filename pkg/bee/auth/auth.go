@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -21,13 +21,54 @@ type AuthResponse struct {
 	Key string `json:"key"`
 }
 
+const expiryTmpl = `{
+    "expiry": %s
+}`
+
+func (a *AuthService) Refresh(ctx context.Context, securityToken string) (resp AuthResponse, err error) {
+	header := make(http.Header)
+	header.Set("Content-Type", "application/json")
+	header.Set("Accept", "application/json")
+	header.Set("Authorization", "Bearer "+securityToken)
+
+	data := strings.NewReader(fmt.Sprintf(expiryTmpl, "30"))
+
+	if !strings.HasSuffix(a.URL.Path, "/") {
+		a.URL.Path += "/"
+	}
+
+	req, err := http.NewRequest(http.MethodPost, a.URL.String()+"/refresh", data)
+	if err != nil {
+		return AuthResponse{}, err
+	}
+
+	req = req.WithContext(ctx)
+	req.Header = header
+
+	c := new(http.Client)
+	r, err := c.Do(req)
+	if err != nil {
+		return AuthResponse{}, err
+	}
+
+	defer r.Body.Close()
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		return AuthResponse{}, fmt.Errorf("ReadAll: %w", err)
+	}
+
+	return AuthResponse{}, fmt.Errorf("real response: %s", string(b))
+}
+
 const roleTmpl = `{
-    "role": "%s"
+    "role": "%s",
+	"expiry": 30
 }`
 
 // Authenticate gets the bearer security token based on given credentials
-func (a *AuthService) Authenticate(ctx context.Context, role, username, password string) (resp AuthResponse, err error) {
-	plain := fmt.Sprintf("%s:%s", username, password)
+func (a *AuthService) Authenticate(ctx context.Context, role, password string) (resp AuthResponse, err error) {
+	plain := fmt.Sprintf("test:%s", password)
 	encoded := base64.StdEncoding.EncodeToString([]byte(plain))
 
 	header := make(http.Header)
@@ -57,7 +98,7 @@ func (a *AuthService) Authenticate(ctx context.Context, role, username, password
 
 	defer r.Body.Close()
 
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		return AuthResponse{}, fmt.Errorf("ReadAll: %w", err)
 	}

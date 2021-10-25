@@ -361,3 +361,10 @@ checks:
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
+  ci-authenticate:
+    type: authenticate
+    timeout: 5m
+    options:
+      role: role0
+      admin-password: test
+      restricted-group-name: restricted
