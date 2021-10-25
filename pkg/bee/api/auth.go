@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -33,20 +32,9 @@ func (a *AuthService) Refresh(ctx context.Context, securityToken string) (string
 		return "", err
 	}
 
-	r, err := a.client.httpClient.Post("/refresh", "application/json", bytes.NewReader(data))
-	if err != nil {
-		return "", err
-	}
-
-	defer r.Body.Close()
-
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		return "", fmt.Errorf("ReadAll: %w", err)
-	}
-
 	var resp AuthResponse
-	if err := json.Unmarshal(b, &resp); err != nil {
+	err = a.client.requestWithHeader(ctx, http.MethodPost, "/refresh", header, bytes.NewReader(data), &resp)
+	if err != nil {
 		return "", err
 	}
 
@@ -71,20 +59,9 @@ func (a *AuthService) Authenticate(ctx context.Context, role, password string) (
 		return "", err
 	}
 
-	r, err := a.client.httpClient.Post("/auth", "application/json", bytes.NewReader(data))
-	if err != nil {
-		return "", err
-	}
-
-	defer r.Body.Close()
-
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		return "", fmt.Errorf("ReadAll: %w", err)
-	}
-
 	var resp AuthResponse
-	if err := json.Unmarshal(b, &resp); err != nil {
+	err = a.client.requestWithHeader(ctx, http.MethodPost, "/auth", header, bytes.NewReader(data), &resp)
+	if err != nil {
 		return "", err
 	}
 
