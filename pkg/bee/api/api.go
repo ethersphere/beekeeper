@@ -135,8 +135,11 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	}
 	req.Header.Set("Accept", contentType)
 
-	if c.restricted {
-		key := GetToken(path, method)
+	if c.restricted && req.Header.Get("Authorization") == "" {
+		key, err := GetToken(path, method)
+		if err != nil {
+			return err
+		}
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 
@@ -178,8 +181,11 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	}
 	req.Header.Set("Accept", contentType)
 
-	if c.restricted {
-		key := GetToken(path, method)
+	if c.restricted && req.Header.Get("Authorization") == "" {
+		key, err := GetToken(path, method)
+		if err != nil {
+			return nil, err
+		}
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 
@@ -207,7 +213,10 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	req.Header.Add("Accept", contentType)
 
 	if c.restricted && req.Header.Get("Authorization") == "" {
-		key := GetToken(path, method)
+		key, err := GetToken(path, method)
+		if err != nil {
+			return err
+		}
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 

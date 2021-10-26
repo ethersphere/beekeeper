@@ -9,6 +9,7 @@ func TestGetRole(t *testing.T) {
 		expectedRole string
 	}{
 		{desc: "plain", expectedRole: "role1", path: "/bytes", method: "POST"},
+		{desc: "query param", expectedRole: "role1", path: "/v1/bzz?name=settlements-2", method: "POST"},
 		{desc: "multi method 1", expectedRole: "role1", path: "/tags", method: "POST"},
 		{desc: "multi method 2", expectedRole: "role1", path: "/tags", method: "GET"},
 		{desc: "one level", expectedRole: "role0", path: "/bytes/123", method: "GET"},

@@ -75,7 +75,7 @@ const (
 	role3 = "2HgybgRX8FFuTkGHj0XGHeIbpzwnfjlJmQD/rbmSxgE399Gz42kAEbPMGtcd3fqF+SOzPOpOg/jv1bDHE1C6fiW4xzf7lEEa6CEenkiTF6e0p3U="
 )
 
-func GetToken(path, method string) string {
+func GetToken(path, method string) (string, error) {
 	m := map[string]string{
 		"role0": role0,
 		"role1": role1,
@@ -85,7 +85,11 @@ func GetToken(path, method string) string {
 
 	r := getRole(path, method)
 
-	return m[r]
+	if r == "" {
+		return "", fmt.Errorf("role not found for path '%s' and method %s", path, method)
+	}
+
+	return m[r], nil
 }
 
 func getRole(path, method string) string {
@@ -112,8 +116,11 @@ var policies = [][]string{
 	{"role0", "/bzz/*", "GET"},
 	{"role1", "/bzz/*", "PATCH"},
 	{"role1", "/bzz", "POST"},
+	{"role1", "/bzz\\?*", "POST"},
 	{"role0", "/bzz/*/*", "GET"},
-	{"role1", "/tags", "(GET)|(POST)"},
+	{"role1", "/tags", "GET"},
+	{"role1", "/tags\\?*", "GET"},
+	{"role1", "/tags", "POST"},
 	{"role1", "/tags/*", "(GET)|(DELETE)|(PATCH)"},
 	{"role1", "/pins/*", "(GET)|(DELETE)|(POST)"},
 	{"role2", "/pins", "GET"},
@@ -138,7 +145,9 @@ var policies = [][]string{
 	{"role2", "/chequebook/cashout/*", "GET"},
 	{"role3", "/chequebook/cashout/*", "POST"},
 	{"role3", "/chequebook/withdraw", "POST"},
+	{"role3", "/chequebook/withdraw\\?*", "POST"},
 	{"role3", "/chequebook/deposit", "POST"},
+	{"role3", "/chequebook/deposit\\?*", "POST"},
 	{"role2", "/chequebook/cheque/*", "GET"},
 	{"role2", "/chequebook/cheque", "GET"},
 	{"role2", "/chequebook/address", "GET"},
