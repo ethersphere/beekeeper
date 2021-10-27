@@ -69,27 +69,27 @@ func (a *AuthService) Authenticate(ctx context.Context, role, password string) (
 }
 
 const (
-	role0 = "ZwCJiyoVVOKY4fbiRw7XNiFOwqGfIXxV5MkKbI3ZaB0QYvVpmTbnEvg9pIyOCwMxgvLmnaiMlPBj+9+Q/rR86mSv3HbL17B94Mu23e+EutewXUM="
-	role1 = "0vR/rRorcAsqjV9sbeOo5B8FJrXoycm96Qa57xPjN/Y4yWclQN6SrdrfMfpDb8jEWvoHC2dcOktsQXoJMLnKkLPVIyIu/0R5V/G1ZUsa3evt/Ew="
-	role2 = "eM/p8zbw572azyc81tw8QnUmIan0QQM+BHC/QhKlW2e0QhxpcloDcJDPU8xunC/aSma1bVVGJeetuBbJ+ng/omgAaCi9oolL0lEyIN0oZ/v0h6Y="
-	role3 = "2HgybgRX8FFuTkGHj0XGHeIbpzwnfjlJmQD/rbmSxgE399Gz42kAEbPMGtcd3fqF+SOzPOpOg/jv1bDHE1C6fiW4xzf7lEEa6CEenkiTF6e0p3U="
+	Role0 = "ZwCJiyoVVOKY4fbiRw7XNiFOwqGfIXxV5MkKbI3ZaB0QYvVpmTbnEvg9pIyOCwMxgvLmnaiMlPBj+9+Q/rR86mSv3HbL17B94Mu23e+EutewXUM="
+	Role1 = "0vR/rRorcAsqjV9sbeOo5B8FJrXoycm96Qa57xPjN/Y4yWclQN6SrdrfMfpDb8jEWvoHC2dcOktsQXoJMLnKkLPVIyIu/0R5V/G1ZUsa3evt/Ew="
+	Role2 = "eM/p8zbw572azyc81tw8QnUmIan0QQM+BHC/QhKlW2e0QhxpcloDcJDPU8xunC/aSma1bVVGJeetuBbJ+ng/omgAaCi9oolL0lEyIN0oZ/v0h6Y="
+	Role3 = "2HgybgRX8FFuTkGHj0XGHeIbpzwnfjlJmQD/rbmSxgE399Gz42kAEbPMGtcd3fqF+SOzPOpOg/jv1bDHE1C6fiW4xzf7lEEa6CEenkiTF6e0p3U="
 )
 
+var roles = map[string]string{
+	"role0": Role0,
+	"role1": Role1,
+	"role2": Role2,
+	"role3": Role3,
+}
+
 func GetToken(path, method string) (string, error) {
-	m := map[string]string{
-		"role0": role0,
-		"role1": role1,
-		"role2": role2,
-		"role3": role3,
-	}
+	roleName := getRole(path, method)
 
-	r := getRole(path, method)
-
-	if r == "" {
+	if roleName == "" {
 		return "", fmt.Errorf("role not found for path '%s' and method %s", path, method)
 	}
 
-	return m[r], nil
+	return roles[roleName], nil
 }
 
 func getRole(path, method string) string {
