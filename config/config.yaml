@@ -341,6 +341,13 @@ checks:
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
+  authenticate:
+    type: authenticate
+    timeout: 5m
+    options:
+      role: role0
+      admin-password: test
+      restricted-group-name: restricted
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options 
