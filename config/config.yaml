@@ -141,7 +141,7 @@ bee-configs:
     tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
     tracing-service-name: "bee"
     transaction: ""
-    verbosity: 5
+    verbosity: 4
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
     allow-private-cidrs: true
   bootnode:
