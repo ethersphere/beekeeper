@@ -178,7 +178,7 @@ bee-configs:
     swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
     swap-initial-deposit: 500000000000000000
     transaction: ""
-    verbosity: 4
+    verbosity: 3
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
     warmup-time: 0s
     allow-private-cidrs: true
