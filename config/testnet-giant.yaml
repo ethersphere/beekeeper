@@ -98,9 +98,9 @@ bee-configs:
     p2p-quic-enable: false
     p2p-ws-enable: false
     password: "beekeeper"
-    payment-early: 10000000
+    payment-early: 50
     payment-threshold: 100000000
-    payment-tolerance: 500000000
+    payment-tolerance: 25
     postage-stamp-address: ""
     price-oracle-address: ""
     resolver-options: "https://cloudflare-eth.com"
