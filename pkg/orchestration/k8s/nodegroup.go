@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -153,6 +154,81 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStream
 	}()
 
 	return addressStream, nil
+}
+
+// Accounting returns NodeGroupAccounting
+func (g *NodeGroup) Accounting(ctx context.Context) (accounting orchestration.NodeGroupAccounting, err error) {
+	stream, err := g.AccountingStream(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("accounting stream: %w", err)
+	}
+
+	overlays, err := g.Overlays(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("overlays: %w", err)
+	}
+
+	var msgs []AccountingStreamMsg
+	for m := range stream {
+		msgs = append(msgs, m)
+	}
+
+	accounting = make(orchestration.NodeGroupAccounting)
+	for _, m := range msgs {
+		if m.Error != nil {
+			return nil, fmt.Errorf("%s: %w", m.Name, m.Error)
+		}
+
+		tmp := make(map[string]bee.Account)
+		for _, a := range m.Accounting.Accounting {
+			tmp[a.Peer] = a
+		}
+		accounting[overlays[m.Name].String()] = tmp
+	}
+
+	return
+}
+
+// AccountingStreamMsg represents message sent over the BalancesStream channel
+type AccountingStreamMsg struct {
+	Name       string
+	Accounting bee.Accounting
+	Error      error
+}
+
+// AccountingStream returns stream of accounting of all nodes in the node group
+func (g *NodeGroup) AccountingStream(ctx context.Context) (<-chan AccountingStreamMsg, error) {
+	stopped, err := g.StoppedNodes(ctx)
+	if err != nil && err != orchestration.ErrNotSet {
+		return nil, fmt.Errorf("stopped nodes: %w", err)
+	}
+
+	accountingStream := make(chan AccountingStreamMsg)
+	var wg sync.WaitGroup
+	for k, v := range g.nodes {
+		if contains(stopped, v.Name()) {
+			continue
+		}
+
+		wg.Add(1)
+		go func(n string, c *bee.Client) {
+			defer wg.Done()
+
+			a, err := c.Accounting(ctx)
+			accountingStream <- AccountingStreamMsg{
+				Name:       n,
+				Accounting: a,
+				Error:      err,
+			}
+		}(k, v.Client())
+	}
+
+	go func() {
+		wg.Wait()
+		close(accountingStream)
+	}()
+
+	return accountingStream, nil
 }
 
 // Balances returns NodeGroupBalances

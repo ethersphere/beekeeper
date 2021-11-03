@@ -144,6 +144,7 @@ var policies = [][]string{
 	{"maintainer", "/welcome-message", "(GET)|(POST)"},
 	{"maintainer", "/balances", "GET"},
 	{"maintainer", "/balances/*", "GET"},
+	{"maintainer", "/accounting", "GET"},
 	{"maintainer", "/chequebook/cashout/*", "GET"},
 	{"accountant", "/chequebook/cashout/*", "POST"},
 	{"accountant", "/chequebook/withdraw", "POST"},

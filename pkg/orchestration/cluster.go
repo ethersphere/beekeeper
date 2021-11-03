@@ -13,8 +13,10 @@ import (
 type Cluster interface {
 	AddNodeGroup(name string, o NodeGroupOptions)
 	Addresses(ctx context.Context) (addrs map[string]NodeGroupAddresses, err error)
+	Accounting(ctx context.Context) (accounting ClusterAccounting, err error)
 	Balances(ctx context.Context) (balances ClusterBalances, err error)
 	FlattenBalances(ctx context.Context) (balances NodeGroupBalances, err error)
+	FlattenAccounting(ctx context.Context) (accounting NodeGroupAccounting, err error)
 	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	Name() string
 	NodeGroups() (l map[string]NodeGroup)
@@ -56,6 +58,9 @@ type ClusterOptions struct {
 
 // ClusterAddresses represents addresses of all nodes in the cluster
 type ClusterAddresses map[string]NodeGroupAddresses
+
+// ClusterAccounting represents accounting of all nodes in the cluster
+type ClusterAccounting map[string]NodeGroupAccounting
 
 // ClusterBalances represents balances of all nodes in the cluster
 type ClusterBalances map[string]NodeGroupBalances

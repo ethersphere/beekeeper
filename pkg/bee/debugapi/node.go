@@ -28,6 +28,28 @@ func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error)
 	return
 }
 
+// Account represents node's account with a given peer
+type Account struct {
+	Balance               *bigint.BigInt `json:"balance"`
+	GhostBalance          *bigint.BigInt `json:"ghostBalance"`
+	ReservedBalance       *bigint.BigInt `json:"reservedBalance"`
+	ShadowReservedBalance *bigint.BigInt `json:"shadowReservedBalance"`
+	SurplusBalance        *bigint.BigInt `json:"surplusBalance"`
+	ThresholdReceived     *bigint.BigInt `json:"thresholdReceived"`
+	ThresholdGiven        *bigint.BigInt `json:"thresholdGiven"`
+}
+
+// Accounting represents node's accounts with all peers
+type Accounting struct {
+	Accounting map[string]Account `json:"peerData"`
+}
+
+// Accounting returns node's accounts with all peers
+func (n *NodeService) Accounting(ctx context.Context) (resp Accounting, err error) {
+	err = n.client.request(ctx, http.MethodGet, "/accounting", nil, &resp)
+	return
+}
+
 // Balance represents node's balance with a peer
 type Balance struct {
 	Balance *bigint.BigInt `json:"balance"`
