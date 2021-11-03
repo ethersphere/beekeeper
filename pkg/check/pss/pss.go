@@ -181,7 +181,7 @@ func listenWebsocket(ctx context.Context, host string, setHeader bool, topic str
 	var header http.Header
 	if setHeader {
 		header = make(http.Header)
-		header.Add("Authorization", "Bearer "+api.Role0)
+		header.Add("Authorization", "Bearer "+api.TokenConsumer)
 	}
 
 	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/pss/subscribe/%s", host, topic), header)

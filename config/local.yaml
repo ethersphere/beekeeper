@@ -365,6 +365,6 @@ checks:
     type: authenticate
     timeout: 5m
     options:
-      role: role0
+      role: consumer
       admin-password: test
       restricted-group-name: restricted
