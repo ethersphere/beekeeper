@@ -52,14 +52,6 @@ func (g *NodeGroup) AddNode(name string, o orchestration.NodeOptions) (err error
 		return fmt.Errorf("debug API URL %s: %w", name, err)
 	}
 
-	client := bee.NewClient(bee.ClientOptions{
-		APIURL:              aURL,
-		APIInsecureTLS:      g.cluster.apiInsecureTLS,
-		DebugAPIURL:         dURL,
-		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
-		Retry:               5,
-	})
-
 	// TODO: make more granular, check every sub-option
 	var config *orchestration.Config
 	if o.Config != nil {
@@ -67,6 +59,15 @@ func (g *NodeGroup) AddNode(name string, o orchestration.NodeOptions) (err error
 	} else {
 		config = g.opts.BeeConfig
 	}
+
+	client := bee.NewClient(bee.ClientOptions{
+		APIURL:              aURL,
+		APIInsecureTLS:      g.cluster.apiInsecureTLS,
+		DebugAPIURL:         dURL,
+		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
+		Retry:               5,
+		Restricted:          config.Restricted,
+	})
 
 	n := NewNode(name, orchestration.NodeOptions{
 		ClefKey:      o.ClefKey,

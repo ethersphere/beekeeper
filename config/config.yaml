@@ -12,6 +12,7 @@ clusters:
     debug-api-domain: dai.internal
     debug-api-insecure-tls: true
     debug-api-scheme: https
+    admin-password: test
     funding:
       eth: 0.1
       bzz: 100.0
@@ -340,6 +341,13 @@ checks:
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
+  authenticate:
+    type: authenticate
+    timeout: 5m
+    options:
+      role: consumer
+      admin-password: test
+      restricted-group-name: restricted
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options 

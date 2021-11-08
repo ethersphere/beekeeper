@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -132,7 +133,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	fmt.Printf("node %s: batched id %s\n", nodeAName, batchID)
 	time.Sleep(o.PostageWait)
 
-	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic)
+	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, nodeB.Config().Restricted, testTopic)
 	if err != nil {
 		cancel()
 		return err
@@ -170,14 +171,20 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	return nil
 }
 
-func listenWebsocket(ctx context.Context, host string, topic string) (<-chan string, func(), error) {
+func listenWebsocket(ctx context.Context, host string, setHeader bool, topic string) (<-chan string, func(), error) {
 
 	dialer := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: 45 * time.Second,
 	}
 
-	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/pss/subscribe/%s", host, topic), nil)
+	var header http.Header
+	if setHeader {
+		header = make(http.Header)
+		header.Add("Authorization", "Bearer "+api.TokenConsumer)
+	}
+
+	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/pss/subscribe/%s", host, topic), header)
 	if err != nil {
 		return nil, nil, err
 	}

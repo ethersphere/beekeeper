@@ -22,6 +22,7 @@ type Cluster struct {
 	DebugAPIScheme      *string                      `yaml:"debug-api-scheme"`
 	Funding             *Funding                     `yaml:"funding"`
 	NodeGroups          *map[string]ClusterNodeGroup `yaml:"node-groups"`
+	AdminPassword       *string                      `yaml:"admin-password"`
 }
 
 // ClusterNodeGroup represents node group in the cluster

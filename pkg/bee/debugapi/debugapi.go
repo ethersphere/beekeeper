@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 )
 
 const contentType = "application/json; charset=utf-8"
@@ -27,11 +28,14 @@ type Client struct {
 	Node     *NodeService
 	PingPong *PingPongService
 	Postage  *PostageService
+
+	restricted bool
 }
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
 	HTTPClient *http.Client
+	Restricted bool
 }
 
 // NewClient constructs a new Client.
@@ -43,7 +47,10 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 		o.HTTPClient = new(http.Client)
 	}
 
-	return newClient(httpClientWithTransport(baseURL, o.HTTPClient))
+	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
+	c.restricted = o.Restricted
+
+	return c
 }
 
 // newClient constructs a new *Client with the provided http Client, which
@@ -139,6 +146,14 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 		req.Header.Set("Content-Type", contentType)
 	}
 	req.Header.Set("Accept", contentType)
+
+	if c.restricted && req.Header.Get("Authorization") == "" {
+		key, err := api.GetToken(path, method)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
