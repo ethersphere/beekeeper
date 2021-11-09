@@ -311,11 +311,11 @@ checks:
     type: settlements
   smoke:
     options:
-      bytes: 0
-      node-group: bee
-      runs: 1
-      timeout: 0s
-      upload-node-count: 1
+      content-size: 5242880
+      iterations: 1
+      postage-amount: 1000
+      postage-depth: 16
+      sync-timeout: 1s
     timeout: 5m
     type: smoke
   soc:

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
@@ -13,27 +12,29 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// TODO: remove need for node group, use whole cluster instead
-
 // Options represents smoke test options
 type Options struct {
-	Bytes           int // how many bytes to upload each time
-	NodeGroup       string
-	Runs            int // how many runs to do
-	Seed            int64
-	Timeout         time.Duration
-	UploadNodeCount int
+	ContentSize   int
+	Iterations    int
+	RndSeed       int64
+	GasPrice      string
+	PostageAmount int64
+	PostageDepth  uint64
+	PostageLabel  string
+	SyncTimeout   time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		Bytes:           0,
-		NodeGroup:       "bee",
-		Runs:            1,
-		Seed:            0,
-		Timeout:         1 * time.Second,
-		UploadNodeCount: 1,
+		ContentSize:   5 * 1024 << 10,
+		Iterations:    1,
+		RndSeed:       0,
+		GasPrice:      "",
+		PostageAmount: 1000,
+		PostageDepth:  16,
+		PostageLabel:  "test-label",
+		SyncTimeout:   time.Second,
 	}
 }
 
@@ -55,84 +56,76 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("invalid options type")
 	}
 
-	fmt.Printf("seed: %d\n", o.Seed)
+	fmt.Println("random seed: ", o.RndSeed)
+	fmt.Println("content size: ", o.ContentSize)
 
-	ng, err := cluster.NodeGroup(o.NodeGroup)
+	rnd := random.PseudoGenerator(o.RndSeed)
+
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	var (
-		rnd         = random.PseudoGenerator(o.Seed)
-		r           = rand.New(rand.NewSource(o.Seed))
-		sortedNodes = ng.NodesSorted()
-	)
+	for i := 0; i < o.Iterations; i++ {
+		perm := rnd.Perm(cluster.Size())
+		txIdx := perm[0]
+		rxIdx := perm[1]
 
-	for i := 0; i < o.Runs; i++ {
-		uploader := r.Intn(len(sortedNodes))
-		nodeName := sortedNodes[uploader]
-		uClient, err := ng.NodeClient(nodeName)
-		if err != nil {
-			return err
+		if txIdx == rxIdx {
+			fmt.Println("warning: uploading node is the same as downloading node!")
 		}
 
-		fmt.Printf("run %d, uploader node is: %s\n", i, nodeName)
+		nn := cluster.NodeNames()
+		txName := nn[txIdx]
+		rxName := nn[rxIdx]
+		txClient := clients[txName]
+		rxClient := clients[rxName]
 
-		tr, err := uClient.CreateTag(ctx)
+		tr, err := txClient.CreateTag(ctx)
 		if err != nil {
-			return fmt.Errorf("get tag from node %s: %w", nodeName, err)
+			return fmt.Errorf("get tag from node %s: %w", txName, err)
 		}
 
-		data := make([]byte, o.Bytes)
+		batchID, err := txClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+		if err != nil {
+			return fmt.Errorf("node %s: unable to create batch id: %w", txName, err)
+		}
+		fmt.Printf("node %s: batch id %s\n", txName, batchID)
+
+		data := make([]byte, o.ContentSize)
 		if _, err := rnd.Read(data); err != nil {
 			return fmt.Errorf("create random data: %w", err)
 		}
 
-		addr, err := uClient.UploadBytes(ctx, data, api.UploadOptions{Pin: false, Tag: tr.Uid})
+		fmt.Printf("#%d: uplading to the node: %s\n", i, txName)
+		addr, err := txClient.UploadBytes(ctx, data, api.UploadOptions{Pin: false, Tag: tr.Uid, BatchID: batchID})
 		if err != nil {
-			return fmt.Errorf("upload to node %s: %w", nodeName, err)
+			return fmt.Errorf("upload to the node %s: %w", txName, err)
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, o.Timeout)
+		time.Sleep(5 * time.Second) // Wait for nodes to sync.
+
+		sCtx, cancel := context.WithTimeout(ctx, o.SyncTimeout)
 		defer cancel()
 
-		err = uClient.WaitSync(ctx, tr.Uid)
+		err = txClient.WaitSync(sCtx, tr.Uid)
 		if err != nil {
-			return fmt.Errorf("sync with node %s: %w", nodeName, err)
+			return fmt.Errorf("sync with the node %s: %w", txName, err)
 		}
 
-		// pick a random different node and try to download the content
-		n := randNot(r, len(sortedNodes), uploader)
-		downloadNode := sortedNodes[n]
-		dClient, err := ng.NodeClient(downloadNode)
+		fmt.Printf("#%d: downloading from the node: %s\n", i, rxName)
+		dd, err := rxClient.DownloadBytes(ctx, addr)
 		if err != nil {
-			return err
-		}
-
-		dd, err := dClient.DownloadBytes(ctx, addr)
-		if err != nil {
-			return fmt.Errorf("download from node %s: %w", nodeName, err)
+			return fmt.Errorf("download from node %s: %w", rxName, err)
 		}
 
 		if !bytes.Equal(data, dd) {
-			return fmt.Errorf("download data mismatch")
+			return fmt.Errorf("downloaded data mismatch")
 		}
 
-		fmt.Printf("Downloaded successfully from node: %s\n", downloadNode)
+		fmt.Printf("#%d: downloaded successfully from node: %s\n", i, rxName)
 	}
+
 	fmt.Println("smoke test completed successfully")
 	return nil
-}
-
-func randNot(r *rand.Rand, l, not int) int {
-	if l < 2 {
-		fmt.Println("Warning: downloading from same node!")
-		return 0
-	}
-	for {
-		pick := r.Intn(l)
-		if pick != not {
-			return pick
-		}
-	}
 }

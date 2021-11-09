@@ -466,20 +466,17 @@ func (g *NodeGroup) NodesClientsAll(ctx context.Context) map[string]*bee.Client 
 	return g.getClients()
 }
 
-// NodesSorted returns sorted list of node names in the node group
-func (g *NodeGroup) NodesSorted() (l []string) {
+// NodesSorted returns list of nodes sorted by names from the node group.
+func (g *NodeGroup) NodesSorted() []string {
 	nodes := g.getNodes()
-	l = make([]string, len(nodes))
 
-	i := 0
+	l := make([]string, 0, len(nodes))
 	for k := range g.nodes {
-		l[i] = k
-		i++
+		l = append(l, k)
 	}
-
 	sort.Strings(l)
 
-	return
+	return l
 }
 
 // Node returns node
