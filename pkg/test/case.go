@@ -78,6 +78,7 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, o CaseOpti
 		overlays: overlays,
 		nodes:    nodes,
 		rnd:      rnd,
+		options:  o,
 	}, nil
 }
 
