@@ -190,14 +190,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("create batch: %w", err)
 	}
 
-	_, err = client.UploadChunk(ctx, pinnedChunk.Data(), api.UploadOptions{Pin: true, BatchID: batchID})
+	_, err = client.UploadChunk(ctx, pinnedChunk.Data(), api.UploadOptions{Pin: true, BatchID: batchID, Deferred: true})
 	if err != nil {
 		return fmt.Errorf("unable to upload chunk: %w", err)
 	}
 	fmt.Printf("uploaded pinned chunk %q\n", pinnedChunk.Address())
 
 	for _, c := range lowValueChunks {
-		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID})
+		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID, Deferred: true})
 		if err != nil {
 			return fmt.Errorf("low value chunk: %w", err)
 		}
@@ -211,7 +211,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	for _, c := range lowValueHigherRadiusChunks {
-		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID}); err != nil {
+		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID, Deferred: true}); err != nil {
 			return fmt.Errorf("low value chunk: %w", err)
 		}
 	}
@@ -256,7 +256,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	highValueChunks := bee.GenerateNRandomChunksAt(rnd, overlay, 5, state.Radius)
 	for _, c := range highValueChunks {
-		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: highValueBatch}); err != nil {
+		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: highValueBatch, Deferred: true}); err != nil {
 			return fmt.Errorf("high value chunks: %w", err)
 		}
 	}
