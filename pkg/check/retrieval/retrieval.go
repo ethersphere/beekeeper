@@ -17,6 +17,7 @@ type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
 	GasPrice        string
 	PostageAmount   int64
+	PostageDepth    uint64
 	PostageLabel    string
 	PostageWait     time.Duration
 	Seed            int64
@@ -30,6 +31,7 @@ func NewDefaultOptions() Options {
 		GasPrice:        "",
 		PostageAmount:   1,
 		PostageLabel:    "test-label",
+		PostageDepth:    16,
 		PostageWait:     5 * time.Second,
 		Seed:            random.Int64(),
 		UploadNodeCount: 1,
@@ -62,6 +64,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		GasPrice:      o.GasPrice,
 		PostageAmount: o.PostageAmount,
 		PostageLabel:  o.PostageLabel,
+		PostageDepth:  o.PostageDepth,
 		PostageWait:   o.PostageWait,
 		Seed:          o.Seed,
 	}
