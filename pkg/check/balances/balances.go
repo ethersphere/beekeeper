@@ -73,6 +73,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		FileSize:      o.FileSize,
 		GasPrice:      o.GasPrice,
 		PostageAmount: o.PostageAmount,
+		PostageDepth:  o.PostageDepth,
 		PostageLabel:  o.PostageLabel,
 		PostageWait:   o.PostageWait,
 		Seed:          o.Seed,
