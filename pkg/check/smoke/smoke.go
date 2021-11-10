@@ -42,11 +42,13 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	metrics metrics
+}
 
 // NewCheck returns new check
 func NewCheck() beekeeper.Action {
-	return &Check{}
+	return &Check{newMetrics()}
 }
 
 // Check uploads given chunks on cluster and checks pushsync ability of the cluster
@@ -59,6 +61,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	fmt.Println("random seed: ", o.RndSeed)
 	fmt.Println("content size: ", o.ContentSize)
 
+	c.metrics.ContentSize.Set(float64(o.ContentSize))
+
 	rnd := random.PseudoGenerator(o.RndSeed)
 
 	clients, err := cluster.NodesClients(ctx)
@@ -67,6 +71,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	for i := 0; i < o.Iterations; i++ {
+
+		c.metrics.Runs.Inc()
+
 		perm := rnd.Perm(cluster.Size())
 		txIdx := perm[0]
 		rxIdx := perm[1]
@@ -97,11 +104,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return fmt.Errorf("create random data: %w", err)
 		}
 
+		now := time.Now()
+
 		fmt.Printf("#%d: uplading to the node: %s\n", i, txName)
 		addr, err := txClient.UploadBytes(ctx, data, api.UploadOptions{Pin: false, Tag: tr.Uid, BatchID: batchID})
 		if err != nil {
 			return fmt.Errorf("upload to the node %s: %w", txName, err)
 		}
+
+		c.metrics.UploadDuration.Set(time.Since(now).Seconds())
 
 		time.Sleep(5 * time.Second) // Wait for nodes to sync.
 
@@ -113,11 +124,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return fmt.Errorf("sync with the node %s: %w", txName, err)
 		}
 
+		now = time.Now()
+
 		fmt.Printf("#%d: downloading from the node: %s\n", i, rxName)
 		dd, err := rxClient.DownloadBytes(ctx, addr)
 		if err != nil {
 			return fmt.Errorf("download from node %s: %w", rxName, err)
 		}
+
+		c.metrics.DownloadDuration.Set(time.Since(now).Seconds())
 
 		if !bytes.Equal(data, dd) {
 			return fmt.Errorf("downloaded data mismatch")
