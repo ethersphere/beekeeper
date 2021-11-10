@@ -3,18 +3,21 @@ package smoke
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/google/uuid"
 )
 
 // Options represents smoke test options
 type Options struct {
-	ContentSize   int
+	ContentSize   int64
 	Iterations    int
 	RndSeed       int64
 	GasPrice      string
@@ -42,14 +45,16 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	metrics metrics
+}
 
 // NewCheck returns new check
 func NewCheck() beekeeper.Action {
-	return &Check{}
+	return &Check{newMetrics()}
 }
 
-// Check uploads given chunks on cluster and checks pushsync ability of the cluster
+// Run creates file of specified size that is uploaded and downloaded.
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
@@ -81,49 +86,45 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		txClient := clients[txName]
 		rxClient := clients[rxName]
 
-		tr, err := txClient.CreateTag(ctx)
-		if err != nil {
-			return fmt.Errorf("get tag from node %s: %w", txName, err)
-		}
-
 		batchID, err := txClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: unable to create batch id: %w", txName, err)
 		}
-		fmt.Printf("node %s: batch id %s\n", txName, batchID)
+		fmt.Printf("#%d: node %s: batch id %s\n", i, txName, batchID)
 
-		data := make([]byte, o.ContentSize)
-		if _, err := rnd.Read(data); err != nil {
-			return fmt.Errorf("create random data: %w", err)
-		}
+		file := bee.NewRandomFile(rnd, fmt.Sprintf("check_smoke-#%d-%s", i, uuid.New().String()), o.ContentSize)
 
-		fmt.Printf("#%d: uplading to the node: %s\n", i, txName)
-		addr, err := txClient.UploadBytes(ctx, data, api.UploadOptions{Pin: false, Tag: tr.Uid, BatchID: batchID})
+		fmt.Printf("#%d: uploading file %s to the node: %s\n", i, file.Name(), txName)
+		start := time.Now()
+		err = txClient.UploadFile(ctx, &file, api.UploadOptions{Pin: false, BatchID: batchID})
 		if err != nil {
 			return fmt.Errorf("upload to the node %s: %w", txName, err)
 		}
+		duration := time.Since(start)
+		c.metrics.FileUploadDuration.Observe(duration.Seconds())
+		fmt.Printf("#%d: upload done in %s\n", i, duration)
 
-		time.Sleep(5 * time.Second) // Wait for nodes to sync.
+		time.Sleep(o.SyncTimeout) // Wait for nodes to sync.
 
-		sCtx, cancel := context.WithTimeout(ctx, o.SyncTimeout)
-		defer cancel()
-
-		err = txClient.WaitSync(sCtx, tr.Uid)
-		if err != nil {
-			return fmt.Errorf("sync with the node %s: %w", txName, err)
-		}
-
-		fmt.Printf("#%d: downloading from the node: %s\n", i, rxName)
-		dd, err := rxClient.DownloadBytes(ctx, addr)
+		fmt.Printf("#%d: downloading file %s from the node: %s\n", i, file.Name(), rxName)
+		start = time.Now()
+		size, hash, err := rxClient.DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("download from node %s: %w", rxName, err)
 		}
+		duration = time.Since(start)
+		c.metrics.FileDownloadDuration.Observe(duration.Seconds())
+		fmt.Printf("#%d: download done in %s\n", i, duration)
 
-		if !bytes.Equal(data, dd) {
-			return fmt.Errorf("downloaded data mismatch")
+		if size != file.Size() {
+			return errors.New("downloaded file size mismatch")
 		}
 
-		fmt.Printf("#%d: downloaded successfully from node: %s\n", i, rxName)
+		if !bytes.Equal(hash, file.Hash()) {
+			return errors.New("downloaded file hash mismatch")
+		}
+
+		fmt.Printf("#%d: download successful\n", i)
 	}
 
 	fmt.Println("smoke test completed successfully")
