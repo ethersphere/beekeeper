@@ -133,6 +133,7 @@ var policies = [][]string{
 	{"maintainer", "/stamps/*", "GET"},
 	{"maintainer", "/stamps/*/*", "POST"},
 	{"maintainer", "/stamps/topup/*", "PATCH"},
+	{"maintainer", "/stamps/dilute/*", "PATCH"},
 	{"maintainer", "/addresses", "GET"},
 	{"maintainer", "/blocklist", "GET"},
 	{"maintainer", "/connect/*", "POST"},
