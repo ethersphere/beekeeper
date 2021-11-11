@@ -27,7 +27,7 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ContentSize:   5 * 1024 << 10,
+		ContentSize:   5000000,
 		Iterations:    1,
 		RndSeed:       0,
 		GasPrice:      "",
