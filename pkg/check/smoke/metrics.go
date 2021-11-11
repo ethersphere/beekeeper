@@ -6,23 +6,32 @@ import (
 )
 
 type metrics struct {
-	FileUploadDuration   prometheus.Histogram
-	FileDownloadDuration prometheus.Histogram
+	Iterations           prometheus.Counter
+	FileUploadDuration   prometheus.Gauge
+	FileDownloadDuration prometheus.Gauge
 }
 
 func newMetrics() metrics {
 	subsystem := "check_smoke"
 	return metrics{
-		FileUploadDuration: prometheus.NewHistogram(
-			prometheus.HistogramOpts{
+		Iterations: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "iterations",
+				Help:      "The total number of the test iterations.",
+			},
+		),
+		FileUploadDuration: prometheus.NewGauge(
+			prometheus.GaugeOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "file_upload_duration",
 				Help:      "File upload duration through the /bzz endpoint.",
 			},
 		),
-		FileDownloadDuration: prometheus.NewHistogram(
-			prometheus.HistogramOpts{
+		FileDownloadDuration: prometheus.NewGauge(
+			prometheus.GaugeOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "file_download_duration",

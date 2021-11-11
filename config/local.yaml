@@ -340,11 +340,11 @@ checks:
     type: settlements
   ci-smoke:
     options:
-      content-size: 5242880
+      content-size: 5000000
       iterations: 1
       postage-amount: 1000
       postage-depth: 16
-      sync-timeout: 1s
+      sync-timeout: 1m
     timeout: 5m
     type: smoke
   ci-soc:

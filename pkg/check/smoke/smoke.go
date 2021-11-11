@@ -30,14 +30,14 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ContentSize:   5 * 1024 << 10,
+		ContentSize:   5000000,
 		Iterations:    1,
 		RndSeed:       0,
 		GasPrice:      "",
 		PostageAmount: 1000,
 		PostageDepth:  16,
 		PostageLabel:  "test-label",
-		SyncTimeout:   time.Second,
+		SyncTimeout:   time.Minute,
 	}
 }
 
@@ -71,6 +71,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
+	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
 	for i := 0; i < o.Iterations; i++ {
 		perm := rnd.Perm(cluster.Size())
 		txIdx := perm[0]
@@ -100,9 +101,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		if err != nil {
 			return fmt.Errorf("upload to the node %s: %w", txName, err)
 		}
-		duration := time.Since(start)
-		c.metrics.FileUploadDuration.Observe(duration.Seconds())
-		fmt.Printf("#%d: upload done in %s\n", i, duration)
+		txDuration := time.Since(start)
+		fmt.Printf("#%d: upload done in %s\n", i, txDuration)
 
 		time.Sleep(o.SyncTimeout) // Wait for nodes to sync.
 
@@ -112,9 +112,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		if err != nil {
 			return fmt.Errorf("download from node %s: %w", rxName, err)
 		}
-		duration = time.Since(start)
-		c.metrics.FileDownloadDuration.Observe(duration.Seconds())
-		fmt.Printf("#%d: download done in %s\n", i, duration)
+		rxDuration := time.Since(start)
+		fmt.Printf("#%d: download done in %s\n", i, rxDuration)
 
 		if size != file.Size() {
 			return errors.New("downloaded file size mismatch")
@@ -124,7 +123,11 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return errors.New("downloaded file hash mismatch")
 		}
 
-		fmt.Printf("#%d: download successful\n", i)
+		// We want to update the metrics when no error has been
+		// encountered in order to avoid counter mismatch.
+		c.metrics.Iterations.Inc()
+		c.metrics.FileUploadDuration.Set(txDuration.Seconds())
+		c.metrics.FileDownloadDuration.Set(rxDuration.Seconds())
 	}
 
 	fmt.Println("smoke test completed successfully")
