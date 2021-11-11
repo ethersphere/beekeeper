@@ -15,6 +15,7 @@ func TestGetRole(t *testing.T) {
 		{desc: "one level", expectedRole: "consumer", path: "/bytes/123", method: "GET"},
 		{desc: "two levels", expectedRole: "maintainer", path: "/stamps/1/17", method: "POST"},
 		{desc: "topup", expectedRole: "maintainer", path: "/stamps/topup/d8e1c/100", method: "PATCH"},
+		{desc: "dilute", expectedRole: "maintainer", path: "/stamps/dilute/d8e1c/100", method: "PATCH"},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
