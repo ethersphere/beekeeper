@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"time"
 
@@ -180,7 +180,7 @@ func tarFiles(files []bee.File) (*bytes.Buffer, error) {
 			return nil, err
 		}
 
-		b, err := ioutil.ReadAll(file.DataReader())
+		b, err := io.ReadAll(file.DataReader())
 		if err != nil {
 			return nil, err
 		}

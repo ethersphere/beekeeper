@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -142,7 +141,7 @@ func (c *Client) DownloadBytes(ctx context.Context, a swarm.Address) (data []byt
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
 
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }
 
 // DownloadChunk downloads chunk from the node
@@ -152,7 +151,7 @@ func (c *Client) DownloadChunk(ctx context.Context, a swarm.Address, targets str
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
 
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }
 
 // DownloadFile downloads chunk from the node and returns it's size and hash
