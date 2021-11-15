@@ -7,8 +7,10 @@ import (
 
 type metrics struct {
 	Iterations           prometheus.Counter
-	FileUploadDuration   prometheus.Gauge
-	FileDownloadDuration prometheus.Gauge
+	FileUploadErrors     prometheus.Counter
+	FileDownloadErrors   prometheus.Counter
+	FileUploadDuration   prometheus.Histogram
+	FileDownloadDuration prometheus.Histogram
 }
 
 func newMetrics() metrics {
@@ -22,20 +24,36 @@ func newMetrics() metrics {
 				Help:      "The total number of the test iterations.",
 			},
 		),
-		FileUploadDuration: prometheus.NewGauge(
-			prometheus.GaugeOpts{
+		FileUploadErrors: prometheus.NewCounter(
+			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
-				Name:      "file_upload_duration",
-				Help:      "File upload duration through the /bzz endpoint.",
+				Name:      "upload_errors_count",
+				Help:      "The total number of errors encountered before successful upload.",
 			},
 		),
-		FileDownloadDuration: prometheus.NewGauge(
-			prometheus.GaugeOpts{
+		FileDownloadErrors: prometheus.NewCounter(
+			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
-				Name:      "file_download_duration",
-				Help:      "File download duration through the /bzz endpoint.",
+				Name:      "download_errors_count",
+				Help:      "The total number of errors encountered before successful download.",
+			},
+		),
+		FileUploadDuration: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "data_upload_duration",
+				Help:      "Data upload duration through the /bytes endpoint.",
+			},
+		),
+		FileDownloadDuration: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "data_download_duration",
+				Help:      "Data download duration through the /bytes endpoint.",
 			},
 		),
 	}

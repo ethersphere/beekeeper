@@ -7,37 +7,35 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/google/uuid"
 )
 
 // Options represents smoke test options
 type Options struct {
 	ContentSize   int64
-	Iterations    int
 	RndSeed       int64
-	GasPrice      string
 	PostageAmount int64
 	PostageDepth  uint64
-	PostageLabel  string
-	SyncTimeout   time.Duration
+	TxOnErrWait   time.Duration
+	RxOnErrWait   time.Duration
+	NodesSyncWait time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
 		ContentSize:   5000000,
-		Iterations:    1,
 		RndSeed:       0,
-		GasPrice:      "",
-		PostageAmount: 1000,
-		PostageDepth:  16,
-		PostageLabel:  "test-label",
-		SyncTimeout:   time.Minute,
+		PostageAmount: 1000000,
+		PostageDepth:  20,
+		TxOnErrWait:   10 * time.Second,
+		RxOnErrWait:   10 * time.Second,
+		NodesSyncWait: time.Minute,
 	}
 }
 
@@ -55,7 +53,7 @@ func NewCheck() beekeeper.Action {
 }
 
 // Run creates file of specified size that is uploaded and downloaded.
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -72,7 +70,28 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
-	for i := 0; i < o.Iterations; i++ {
+
+	var (
+		txErrors int
+		rxErrors int
+	)
+
+	// The test will restart itself every 12 hours, this is in order to
+	// create more meaningful metrics, so that we can apply prometheus
+	// functions to them.
+	ctx, cancel := context.WithTimeout(ctx, 12*time.Hour)
+	defer cancel()
+
+	test := &test{opt: o, ctx: ctx, clients: clients}
+
+	for i := 0; true; i++ {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			fmt.Printf("starting iteration: #%d\n", i)
+		}
+
 		perm := rnd.Perm(cluster.Size())
 		txIdx := perm[0]
 		rxIdx := perm[1]
@@ -84,52 +103,105 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		nn := cluster.NodeNames()
 		txName := nn[txIdx]
 		rxName := nn[rxIdx]
-		txClient := clients[txName]
-		rxClient := clients[rxName]
 
-		batchID, err := txClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
-		if err != nil {
-			return fmt.Errorf("node %s: unable to create batch id: %w", txName, err)
-		}
-		fmt.Printf("#%d: node %s: batch id %s\n", i, txName, batchID)
+		var (
+			txDuration time.Duration
+			rxDuration time.Duration
+			txData     []byte
+			rxData     []byte
+			address    swarm.Address
+		)
 
-		file := bee.NewRandomFile(rnd, fmt.Sprintf("check_smoke-#%d-%s", i, uuid.New().String()), o.ContentSize)
+		txData = make([]byte, o.ContentSize)
+		rnd.Read(txData)
 
-		fmt.Printf("#%d: uploading file %s to the node: %s\n", i, file.Name(), txName)
-		start := time.Now()
-		err = txClient.UploadFile(ctx, &file, api.UploadOptions{Pin: false, BatchID: batchID})
-		if err != nil {
-			return fmt.Errorf("upload to the node %s: %w", txName, err)
-		}
-		txDuration := time.Since(start)
-		fmt.Printf("#%d: upload done in %s\n", i, txDuration)
+		for txDuration == 0 {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+			}
 
-		time.Sleep(o.SyncTimeout) // Wait for nodes to sync.
-
-		fmt.Printf("#%d: downloading file %s from the node: %s\n", i, file.Name(), rxName)
-		start = time.Now()
-		size, hash, err := rxClient.DownloadFile(ctx, file.Address())
-		if err != nil {
-			return fmt.Errorf("download from node %s: %w", rxName, err)
-		}
-		rxDuration := time.Since(start)
-		fmt.Printf("#%d: download done in %s\n", i, rxDuration)
-
-		if size != file.Size() {
-			return errors.New("downloaded file size mismatch")
+			address, txDuration, err = test.upload(txName, txData)
+			if err != nil {
+				txErrors++
+				c.metrics.FileUploadErrors.Inc()
+				fmt.Printf("upload failed: %v\n", err)
+				fmt.Printf("retraing in: %v", o.TxOnErrWait)
+				time.Sleep(o.TxOnErrWait)
+			}
 		}
 
-		if !bytes.Equal(hash, file.Hash()) {
-			return errors.New("downloaded file hash mismatch")
+		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
+
+		for rxDuration == 0 {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+			}
+
+			rxData, rxDuration, err = test.download(rxName, address)
+			if err != nil {
+				rxErrors++
+				c.metrics.FileDownloadErrors.Inc()
+				fmt.Printf("download failed: %v\n", err)
+				fmt.Printf("retraing in: %v", o.RxOnErrWait)
+				time.Sleep(o.RxOnErrWait)
+			}
+		}
+
+		if !bytes.Equal(rxData, txData) {
+			return errors.New("uploaded data does not match downloaded data")
 		}
 
 		// We want to update the metrics when no error has been
 		// encountered in order to avoid counter mismatch.
 		c.metrics.Iterations.Inc()
-		c.metrics.FileUploadDuration.Set(txDuration.Seconds())
-		c.metrics.FileDownloadDuration.Set(rxDuration.Seconds())
+		c.metrics.FileUploadDuration.Observe(txDuration.Seconds())
+		c.metrics.FileDownloadDuration.Observe(rxDuration.Seconds())
 	}
 
 	fmt.Println("smoke test completed successfully")
 	return nil
+}
+
+type test struct {
+	opt     Options
+	ctx     context.Context
+	clients map[string]*bee.Client
+}
+
+func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
+	client := t.clients[cName]
+	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, "", "smoke-test")
+	if err != nil {
+		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
+	}
+	fmt.Printf("node %s: batch id %s\n", cName, batchID)
+
+	fmt.Printf("node %s: uploading data\n", cName)
+	start := time.Now()
+	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID})
+	if err != nil {
+		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
+	}
+	txDuration := time.Since(start)
+	fmt.Printf("node %s: upload done in %s\n", cName, txDuration)
+
+	return addr, txDuration, nil
+}
+
+func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration, error) {
+	client := t.clients[cName]
+	fmt.Printf("node %s: downloading data\n", cName)
+	start := time.Now()
+	data, err := client.DownloadBytes(t.ctx, addr)
+	if err != nil {
+		return nil, 0, fmt.Errorf("download from node %s: %w", cName, err)
+	}
+	rxDuration := time.Since(start)
+	fmt.Printf("node %s: download done in %s\n", cName, rxDuration)
+
+	return data, rxDuration, nil
 }

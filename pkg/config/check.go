@@ -385,13 +385,12 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ContentSize   *int64         `yaml:"content-size"`
-				Iterations    *int           `yaml:"iterations"`
 				RndSeed       *int64         `yaml:"rnd-seed"`
-				GasPrice      *string        `yaml:"gas-price"`
 				PostageAmount *int64         `yaml:"postage-amount"`
 				PostageDepth  *uint64        `yaml:"postage-depth"`
-				PostageLabel  *string        `yaml:"postage-label"`
-				SyncTimeout   *time.Duration `yaml:"sync-timeout"`
+				TxOnErrWait   *time.Duration `yaml:"tx-on-err-wait"`
+				RxOnErrWait   *time.Duration `yaml:"rx-on-err-wait"`
+				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
