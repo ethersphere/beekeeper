@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 
@@ -97,7 +97,7 @@ func (c *Config) merge() (err error) {
 // ReadDir reads given directory for YAML files and unmarshals them into Config
 func ReadDir(configDir string) (*Config, error) {
 	// read all files from the directory
-	yamlFiles, err := ioutil.ReadDir(configDir)
+	yamlFiles, err := os.ReadDir(configDir)
 	if err != nil {
 		return nil, fmt.Errorf("reading config dir: %w", err)
 	}
@@ -120,7 +120,7 @@ func ReadDir(configDir string) (*Config, error) {
 		}
 
 		// read file
-		yamlFile, err := ioutil.ReadFile(fullPath)
+		yamlFile, err := os.ReadFile(fullPath)
 		if err != nil {
 			return nil, fmt.Errorf("reading yaml file %s: %w ", file.Name(), err)
 		}
