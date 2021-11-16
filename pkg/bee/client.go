@@ -140,6 +140,7 @@ func (c *Client) DownloadBytes(ctx context.Context, a swarm.Address) (data []byt
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
+	defer r.Close()
 
 	return io.ReadAll(r)
 }
@@ -150,6 +151,7 @@ func (c *Client) DownloadChunk(ctx context.Context, a swarm.Address, targets str
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}
+	defer r.Close()
 
 	return io.ReadAll(r)
 }
@@ -160,6 +162,7 @@ func (c *Client) DownloadFile(ctx context.Context, a swarm.Address) (size int64,
 	if err != nil {
 		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
 	}
+	defer r.Close()
 
 	h := fileHasher()
 	size, err = io.Copy(h, r)
@@ -703,6 +706,7 @@ func (c *Client) DownloadManifestFile(ctx context.Context, a swarm.Address, path
 	if err != nil {
 		return 0, nil, fmt.Errorf("download manifest file %s: %w", path, err)
 	}
+	defer r.Close()
 
 	h := fileHasher()
 	size, err = io.Copy(h, r)
