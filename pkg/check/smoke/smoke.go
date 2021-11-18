@@ -71,11 +71,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
 
-	var (
-		txErrors int
-		rxErrors int
-	)
-
 	// The test will restart itself every 12 hours, this is in order to
 	// create more meaningful metrics, so that we can apply prometheus
 	// functions to them.
@@ -97,12 +92,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		rxIdx := perm[1]
 
 		if txIdx == rxIdx {
-			fmt.Println("warning: uploading node is the same as downloading node!")
+			continue
 		}
 
 		nn := cluster.NodeNames()
 		txName := nn[txIdx]
 		rxName := nn[rxIdx]
+
+		fmt.Printf("uploader: %s\n", txName)
+		fmt.Printf("downloader: %s\n", rxName)
 
 		var (
 			txDuration time.Duration
@@ -124,10 +122,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			address, txDuration, err = test.upload(txName, txData)
 			if err != nil {
-				txErrors++
-				c.metrics.FileUploadErrors.Inc()
+				c.metrics.UploadErrors.Inc()
 				fmt.Printf("upload failed: %v\n", err)
-				fmt.Printf("retraing in: %v", o.TxOnErrWait)
+				fmt.Printf("retrying in: %v\n", o.TxOnErrWait)
 				time.Sleep(o.TxOnErrWait)
 			}
 		}
@@ -143,10 +140,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			rxData, rxDuration, err = test.download(rxName, address)
 			if err != nil {
-				rxErrors++
-				c.metrics.FileDownloadErrors.Inc()
+				c.metrics.DownloadErrors.Inc()
 				fmt.Printf("download failed: %v\n", err)
-				fmt.Printf("retraing in: %v", o.RxOnErrWait)
+				fmt.Printf("retrying in: %v\n", o.RxOnErrWait)
 				time.Sleep(o.RxOnErrWait)
 			}
 		}
@@ -158,8 +154,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		// We want to update the metrics when no error has been
 		// encountered in order to avoid counter mismatch.
 		c.metrics.Iterations.Inc()
-		c.metrics.FileUploadDuration.Observe(txDuration.Seconds())
-		c.metrics.FileDownloadDuration.Observe(rxDuration.Seconds())
+		c.metrics.UploadDuration.Observe(txDuration.Seconds())
+		c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
 	}
 
 	fmt.Println("smoke test completed successfully")
