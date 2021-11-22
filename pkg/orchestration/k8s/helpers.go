@@ -36,9 +36,9 @@ p2p-addr: {{.P2PAddr}}
 p2p-quic-enable: {{.P2PQUICEnable}}
 p2p-ws-enable: {{.P2PWSEnable}}
 password: {{.Password}}
-payment-early: {{.PaymentEarly}}
+payment-early-percent: {{.PaymentEarly}}
 payment-threshold: {{.PaymentThreshold}}
-payment-tolerance: {{.PaymentTolerance}}
+payment-tolerance-percent: {{.PaymentTolerance}}
 postage-stamp-address: {{ .PostageStampAddress }}
 price-oracle-address: {{ .PriceOracleAddress }}
 resolver-options: {{.ResolverOptions}}

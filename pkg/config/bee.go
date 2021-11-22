@@ -37,9 +37,9 @@ type BeeConfig struct {
 	P2PQUICEnable              *bool          `yaml:"p2p-quic-enable"`
 	P2PWSEnable                *bool          `yaml:"pwp-ws-enable"`
 	Password                   *string        `yaml:"password"`
-	PaymentEarly               *uint64        `yaml:"payment-early"`
+	PaymentEarly               *uint64        `yaml:"payment-early-percent"`
 	PaymentThreshold           *uint64        `yaml:"payment-threshold"`
-	PaymentTolerance           *uint64        `yaml:"payment-tolerance"`
+	PaymentTolerance           *uint64        `yaml:"payment-tolerance-percent"`
 	PostageStampAddress        *string        `yaml:"postage-stamp-address"`
 	PriceOracleAddress         *string        `yaml:"price-oracle-address"`
 	ResolverOptions            *string        `yaml:"resolver-options"`

@@ -126,9 +126,9 @@ bee-configs:
     p2p-quic-enable: false
     p2p-ws-enable: false
     password: "beekeeper"
-    payment-early: 10000000
+    payment-early-percent: 50
     payment-threshold: 100000000
-    payment-tolerance: 500000000
+    payment-tolerance-percent: 25
     postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
     price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: ""
