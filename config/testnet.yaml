@@ -6,10 +6,10 @@ clusters:
     name: bee
     namespace: beekeeper
     disable-namespace: false
-    api-domain: dai.internal
+    api-domain: staging.internal
     api-insecure-tls: true
     api-scheme: https
-    debug-api-domain: dai.internal
+    debug-api-domain: staging.internal
     debug-api-insecure-tls: true
     debug-api-scheme: https
     funding:
