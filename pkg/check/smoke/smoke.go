@@ -153,7 +153,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		// We want to update the metrics when no error has been
 		// encountered in order to avoid counter mismatch.
-		c.metrics.Iterations.Inc()
 		c.metrics.UploadDuration.Observe(txDuration.Seconds())
 		c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
 	}

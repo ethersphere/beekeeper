@@ -6,7 +6,6 @@ import (
 )
 
 type metrics struct {
-	Iterations       prometheus.Counter
 	UploadErrors     prometheus.Counter
 	DownloadErrors   prometheus.Counter
 	UploadDuration   prometheus.Histogram
@@ -16,14 +15,6 @@ type metrics struct {
 func newMetrics() metrics {
 	subsystem := "check_smoke"
 	return metrics{
-		Iterations: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: m.Namespace,
-				Subsystem: subsystem,
-				Name:      "iterations",
-				Help:      "The total number of the test iterations.",
-			},
-		),
 		UploadErrors: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
