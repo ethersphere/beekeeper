@@ -371,8 +371,16 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 		return "", err
 	}
 
-	if len(batches) != 0 {
-		return batches[0].BatchID, nil
+	for _, b := range batches {
+		if !b.Exists {
+			continue
+		}
+		max := 1 << (b.Depth - b.BucketDepth)
+		hasFreeSlots := b.Utilization < uint32(max)
+
+		if b.Usable && b.BatchTTL > 0 && hasFreeSlots {
+			return b.BatchID, nil
+		}
 	}
 
 	return c.CreatePostageBatch(ctx, amount, depth, gasPrice, label, false)
