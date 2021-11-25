@@ -384,12 +384,13 @@ var Checks = map[string]CheckType{
 		NewAction: smoke.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				Bytes           *int           `yaml:"bytes"`
-				NodeGroup       *string        `yaml:"node-group"`
-				Runs            *int           `yaml:"runs"`
-				Seed            *int64         `yaml:"seed"`
-				Timeout         *time.Duration `yaml:"timeout"`
-				UploadNodeCount *int           `yaml:"upload-node-count"`
+				ContentSize   *int64         `yaml:"content-size"`
+				RndSeed       *int64         `yaml:"rnd-seed"`
+				PostageAmount *int64         `yaml:"postage-amount"`
+				PostageDepth  *uint64        `yaml:"postage-depth"`
+				TxOnErrWait   *time.Duration `yaml:"tx-on-err-wait"`
+				RxOnErrWait   *time.Duration `yaml:"rx-on-err-wait"`
+				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

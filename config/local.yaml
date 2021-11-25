@@ -338,6 +338,14 @@ checks:
       wait-before-download: 35s
     timeout: 5m
     type: settlements
+  ci-smoke:
+    options:
+      content-size: 5000000
+      postage-amount: 1000000
+      postage-depth: 20
+      nodes-sync-wait: 1m
+    timeout: 5m
+    type: smoke
   ci-soc:
     options:
       postage-amount: 1

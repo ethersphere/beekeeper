@@ -3,37 +3,39 @@ package smoke
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
+	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// TODO: remove need for node group, use whole cluster instead
-
 // Options represents smoke test options
 type Options struct {
-	Bytes           int // how many bytes to upload each time
-	NodeGroup       string
-	Runs            int // how many runs to do
-	Seed            int64
-	Timeout         time.Duration
-	UploadNodeCount int
+	ContentSize   int64
+	RndSeed       int64
+	PostageAmount int64
+	PostageDepth  uint64
+	TxOnErrWait   time.Duration
+	RxOnErrWait   time.Duration
+	NodesSyncWait time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		Bytes:           0,
-		NodeGroup:       "bee",
-		Runs:            1,
-		Seed:            0,
-		Timeout:         1 * time.Second,
-		UploadNodeCount: 1,
+		ContentSize:   5000000,
+		RndSeed:       0,
+		PostageAmount: 1000000,
+		PostageDepth:  20,
+		TxOnErrWait:   10 * time.Second,
+		RxOnErrWait:   10 * time.Second,
+		NodesSyncWait: time.Minute,
 	}
 }
 
@@ -41,98 +43,160 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	metrics metrics
+}
 
 // NewCheck returns new check
 func NewCheck() beekeeper.Action {
-	return &Check{}
+	return &Check{newMetrics()}
 }
 
-// Check uploads given chunks on cluster and checks pushsync ability of the cluster
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+// Run creates file of specified size that is uploaded and downloaded.
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 
-	fmt.Printf("seed: %d\n", o.Seed)
+	fmt.Println("random seed: ", o.RndSeed)
+	fmt.Println("content size: ", o.ContentSize)
 
-	ng, err := cluster.NodeGroup(o.NodeGroup)
+	rnd := random.PseudoGenerator(o.RndSeed)
+
+	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
 
-	var (
-		rnd         = random.PseudoGenerator(o.Seed)
-		r           = rand.New(rand.NewSource(o.Seed))
-		sortedNodes = ng.NodesSorted()
-	)
+	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
 
-	for i := 0; i < o.Runs; i++ {
-		uploader := r.Intn(len(sortedNodes))
-		nodeName := sortedNodes[uploader]
-		uClient, err := ng.NodeClient(nodeName)
-		if err != nil {
-			return err
+	// The test will restart itself every 12 hours, this is in order to
+	// create more meaningful metrics, so that we can apply prometheus
+	// functions to them.
+	ctx, cancel := context.WithTimeout(ctx, 12*time.Hour)
+	defer cancel()
+
+	test := &test{opt: o, ctx: ctx, clients: clients}
+
+	for i := 0; true; i++ {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			fmt.Printf("starting iteration: #%d\n", i)
 		}
 
-		fmt.Printf("run %d, uploader node is: %s\n", i, nodeName)
+		perm := rnd.Perm(cluster.Size())
+		txIdx := perm[0]
+		rxIdx := perm[1]
 
-		tr, err := uClient.CreateTag(ctx)
-		if err != nil {
-			return fmt.Errorf("get tag from node %s: %w", nodeName, err)
+		if txIdx == rxIdx {
+			continue
 		}
 
-		data := make([]byte, o.Bytes)
-		if _, err := rnd.Read(data); err != nil {
-			return fmt.Errorf("create random data: %w", err)
+		nn := cluster.NodeNames()
+		txName := nn[txIdx]
+		rxName := nn[rxIdx]
+
+		fmt.Printf("uploader: %s\n", txName)
+		fmt.Printf("downloader: %s\n", rxName)
+
+		var (
+			txDuration time.Duration
+			rxDuration time.Duration
+			txData     []byte
+			rxData     []byte
+			address    swarm.Address
+		)
+
+		txData = make([]byte, o.ContentSize)
+		rnd.Read(txData)
+
+		for txDuration == 0 {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+			}
+
+			address, txDuration, err = test.upload(txName, txData)
+			if err != nil {
+				c.metrics.UploadErrors.Inc()
+				fmt.Printf("upload failed: %v\n", err)
+				fmt.Printf("retrying in: %v\n", o.TxOnErrWait)
+				time.Sleep(o.TxOnErrWait)
+			}
 		}
 
-		addr, err := uClient.UploadBytes(ctx, data, api.UploadOptions{Pin: false, Tag: tr.Uid})
-		if err != nil {
-			return fmt.Errorf("upload to node %s: %w", nodeName, err)
+		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
+
+		for rxDuration == 0 {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+			}
+
+			rxData, rxDuration, err = test.download(rxName, address)
+			if err != nil {
+				c.metrics.DownloadErrors.Inc()
+				fmt.Printf("download failed: %v\n", err)
+				fmt.Printf("retrying in: %v\n", o.RxOnErrWait)
+				time.Sleep(o.RxOnErrWait)
+			}
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, o.Timeout)
-		defer cancel()
-
-		err = uClient.WaitSync(ctx, tr.Uid)
-		if err != nil {
-			return fmt.Errorf("sync with node %s: %w", nodeName, err)
+		if !bytes.Equal(rxData, txData) {
+			return errors.New("uploaded data does not match downloaded data")
 		}
 
-		// pick a random different node and try to download the content
-		n := randNot(r, len(sortedNodes), uploader)
-		downloadNode := sortedNodes[n]
-		dClient, err := ng.NodeClient(downloadNode)
-		if err != nil {
-			return err
-		}
-
-		dd, err := dClient.DownloadBytes(ctx, addr)
-		if err != nil {
-			return fmt.Errorf("download from node %s: %w", nodeName, err)
-		}
-
-		if !bytes.Equal(data, dd) {
-			return fmt.Errorf("download data mismatch")
-		}
-
-		fmt.Printf("Downloaded successfully from node: %s\n", downloadNode)
+		// We want to update the metrics when no error has been
+		// encountered in order to avoid counter mismatch.
+		c.metrics.UploadDuration.Observe(txDuration.Seconds())
+		c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
 	}
+
 	fmt.Println("smoke test completed successfully")
 	return nil
 }
 
-func randNot(r *rand.Rand, l, not int) int {
-	if l < 2 {
-		fmt.Println("Warning: downloading from same node!")
-		return 0
+type test struct {
+	opt     Options
+	ctx     context.Context
+	clients map[string]*bee.Client
+}
+
+func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
+	client := t.clients[cName]
+	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, "", "smoke-test")
+	if err != nil {
+		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
 	}
-	for {
-		pick := r.Intn(l)
-		if pick != not {
-			return pick
-		}
+	fmt.Printf("node %s: batch id %s\n", cName, batchID)
+
+	fmt.Printf("node %s: uploading data\n", cName)
+	start := time.Now()
+	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID})
+	if err != nil {
+		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
 	}
+	txDuration := time.Since(start)
+	fmt.Printf("node %s: upload done in %s\n", cName, txDuration)
+
+	return addr, txDuration, nil
+}
+
+func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration, error) {
+	client := t.clients[cName]
+	fmt.Printf("node %s: downloading data\n", cName)
+	start := time.Now()
+	data, err := client.DownloadBytes(t.ctx, addr)
+	if err != nil {
+		return nil, 0, fmt.Errorf("download from node %s: %w", cName, err)
+	}
+	rxDuration := time.Since(start)
+	fmt.Printf("node %s: download done in %s\n", cName, rxDuration)
+
+	return data, rxDuration, nil
 }

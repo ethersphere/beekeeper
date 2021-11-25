@@ -1,0 +1,37 @@
+# clusters defines clusters Beekeeper works with
+# clusters may inherit it's configuration from already defined cluster and override specific fields from it
+clusters:
+  mainnet:
+    _inherit: ""
+    name: bee
+    namespace: beekeeper
+    disable-namespace: true
+    api-domain: gateway.ethswarm.org
+    api-insecure-tls: true
+    api-scheme: https
+    debug-api-domain: bee-gateway.mainnet.internal
+    debug-api-insecure-tls: true
+    debug-api-scheme: https
+    funding:
+      eth: 0.1
+      gbzz: 2.0
+    node-groups:
+      bee:
+        mode: node
+        bee-config: mainnet
+        config: mainnet
+        count: 10
+
+# node-groups defines node groups that can be registered in the cluster
+# node-groups may inherit it's configuration from already defined node-group and override specific fields from it
+node-groups:
+  mainnet:
+    _inherit: "default"
+    persistence-enabled: true
+
+# bee-configs defines Bee configuration that can be assigned to node-groups
+# bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
+bee-configs:
+  mainnet:
+    _inherit: "default"
+    bootnodes: "/dnsaddr/mainnet.ethswarm.org"
