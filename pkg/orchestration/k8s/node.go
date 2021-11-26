@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 
+	"github.com/ethersphere/bee/pkg/crypto"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
@@ -535,4 +536,19 @@ func (n Node) Stop(ctx context.Context, namespace string) (err error) {
 
 	fmt.Printf("node %s is stopped in namespace %s\n", n.name, namespace)
 	return
+}
+
+func (n *Node) PregenerateSwarmKey() (overlayEth []byte, err error) {
+	key, err := crypto.GenerateSecp256k1Key()
+	if err != nil {
+		return nil, err
+	}
+
+	encrypted, err := encryptKey(key, n.config.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	n.swarmKey = string(encrypted)
+	return crypto.NewEthereumAddress(key.PublicKey)
 }

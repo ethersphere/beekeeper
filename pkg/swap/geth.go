@@ -182,6 +182,42 @@ func (g *GethClient) SendGBZZ(ctx context.Context, to string, amount float64) (t
 	return resp.Result, nil
 }
 
+func (g *GethClient) AttestOverlayEthAddress(ctx context.Context, ethAddr []byte) (tx string, err error) {
+	ethAccounts, err := g.ethAccounts(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get accounts: %w", err)
+	}
+
+	if !contains(ethAccounts, g.ethAccount) {
+		return "", fmt.Errorf("eth account %s not found", g.ethAccount)
+	}
+
+	req := ethRequest{
+		ID:      "0",
+		JsonRPC: "1.0",
+		Method:  "eth_sendTransaction",
+		Params: []ethRequestParams{{
+			From:     g.ethAccount,
+			To:       g.ethAccount,
+			Data:     fmt.Sprintf("0x%064x", ethAddr),
+			Gas:      addPrefix("0x", fmt.Sprintf("%x", BzzGasLimit)),
+			GasPrice: addPrefix("0x", fmt.Sprintf("%x", GasPrice)),
+		}},
+	}
+
+	resp := new(struct {
+		ID      string `json:"id"`
+		JsonRPC string `json:"jsonrpc"`
+		Result  string `json:"result"`
+	})
+
+	if err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+		return "", err
+	}
+
+	return resp.Result, nil
+}
+
 // ethAccounts returns list of accounts
 func (g *GethClient) ethAccounts(ctx context.Context) (a []string, err error) {
 	req := ethRequest{

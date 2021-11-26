@@ -235,9 +235,27 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
+	config := *n.Config()
+	if (!config.SwapEnable || !config.ChequebookEnable) && config.Transaction == "" && n.SwarmKey() == "" {
+		//g.cluster.swap.AttestOverlayEthAddress()
+		ethAddr, err := n.(*Node).PregenerateSwarmKey()
+		if err != nil {
+			return err
+		}
+
+		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, ethAddr)
+		if err != nil {
+			return err
+		}
+
+		time.Sleep(10 * time.Second)
+
+		config.Transaction = txHash
+	}
+
 	if err := n.Create(ctx, orchestration.CreateOptions{
 		// Bee configuration
-		Config: *n.Config(),
+		Config: config,
 		// Kubernetes configuration
 		Name:                      name,
 		Namespace:                 g.cluster.namespace,
