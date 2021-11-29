@@ -14,6 +14,9 @@ import (
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
 func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+
+	fmt.Println("retryDelay", o.RetryDelay)
+
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
@@ -53,7 +56,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 				if err == nil {
 					break
 				}
-				time.Sleep(5 * time.Second)
+				time.Sleep(o.RetryDelay)
 			}
 
 			if err != nil {
@@ -70,10 +73,13 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 			time.Sleep(o.RetryDelay)
 
 			node := clients[closestName]
-
-			synced, err := node.HasChunk(ctx, ref)
-			if err != nil {
-				return fmt.Errorf("node %s: %w", nodeName, err)
+			var synced bool
+			for i := 0; i < 3; i++ {
+				synced, _ = node.HasChunk(ctx, ref)
+				if synced {
+					break
+				}
+				time.Sleep(o.RetryDelay)
 			}
 			if !synced {
 				return fmt.Errorf("node %s chunk %s not found in the closest node %s", nodeName, ref.String(), closestAddress)
