@@ -29,8 +29,6 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 	}
 
 	lightNodes := cluster.LightNodeNames()
-	fmt.Println("light nodes:", lightNodes)
-	fmt.Println(o.RetryDelay)
 
 	for i := 0; i < o.UploadNodeCount && i < len(lightNodes); i++ {
 
