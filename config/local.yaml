@@ -295,7 +295,7 @@ checks:
       postage-depth: 16
       postage-wait: 5s
       retries: 5
-      retry-delay: 15s
+      retry-delay: 30s
       upload-node-count: 3
       exclude-node-group:
       - light
