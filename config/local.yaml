@@ -291,15 +291,14 @@ checks:
     options:
       chunks-per-node: 3
       mode: light-chunks
-      postage-amount: 1
+      postage-amount: 10000
       postage-depth: 16
-      postage-wait: 5s
       retries: 5
-      retry-delay: 30s
+      retry-delay: 1m
       upload-node-count: 3
       exclude-node-group:
       - light
-    timeout: 5m
+    timeout: 10m
     type: pushsync
   ci-retrieval:
     options:
