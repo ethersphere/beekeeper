@@ -15,8 +15,6 @@ import (
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
 func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 
-	fmt.Println("retryDelay", o.RetryDelay)
-
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	fmt.Printf("seed: %d\n", o.Seed)
 
