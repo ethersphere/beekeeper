@@ -31,23 +31,24 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 	}
 
 	for i, nodeName := range cluster.LightNodeNames() {
+
 		if i >= o.UploadNodeCount {
 			break
 		}
+
+		uploader := clients[nodeName]
+		batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+		if err != nil {
+			return fmt.Errorf("node %s: batch id %w", nodeName, err)
+		}
+		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-
-			uploader := clients[nodeName]
-
-			batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
-			if err != nil {
-				return fmt.Errorf("node %s: batch id %w", nodeName, err)
-			}
-			fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
 
 			var ref swarm.Address
 
@@ -58,24 +59,23 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 				}
 				time.Sleep(o.RetryDelay)
 			}
-
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
 			fmt.Printf("uploaded chunk %s to node %s\n", ref.String(), nodeName)
+
+			time.Sleep(o.RetryDelay)
+
 			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			fmt.Printf("closest node %s overlay %s\n", closestName, closestAddress)
 
-			time.Sleep(o.RetryDelay)
-
-			node := clients[closestName]
 			var synced bool
 			for i := 0; i < 3; i++ {
-				synced, _ = node.HasChunk(ctx, ref)
+				synced, _ = clients[closestName].HasChunk(ctx, ref)
 				if synced {
 					break
 				}
