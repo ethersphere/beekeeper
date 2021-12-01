@@ -15,7 +15,7 @@ import (
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
 func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 
-	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
+	rnd := random.PseudoGenerator(o.Seed)
 	fmt.Printf("seed: %d\n", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx, o.ExcludeNodeGroups...)
@@ -28,11 +28,21 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 		return err
 	}
 
-	for i, nodeName := range cluster.LightNodeNames() {
+	lightNodes := cluster.LightNodeNames()
 
-		if i >= o.UploadNodeCount {
-			break
+	// prepare postage batches
+	for i := 0; i < len(lightNodes); i++ {
+		nodeName := lightNodes[i]
+		batchID, err := clients[nodeName].GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+		if err != nil {
+			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
+		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+	}
+
+	for i := 0; i < o.UploadNodeCount && i < len(lightNodes); i++ {
+
+		nodeName := lightNodes[i]
 
 		uploader := clients[nodeName]
 		batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
@@ -43,7 +53,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {
-			chunk, err := bee.NewRandomChunk(rnds[i])
+			chunk, err := bee.NewRandomChunk(rnd)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -88,17 +98,18 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 			skipPeers := []swarm.Address{closestAddress}
 			// chunk should be replicated at least once either during forwarding or after storing
 			for range overlays {
+
 				name, address, err := chunk.ClosestNodeFromMap(overlays, skipPeers...)
 				skipPeers = append(skipPeers, address)
 				if err != nil {
 					continue
 				}
-				node := clients[name]
 
-				synced, err = node.HasChunk(ctx, ref)
+				synced, err = clients[name].HasChunk(ctx, ref)
 				if err != nil {
 					continue
 				}
+
 				if synced {
 					fmt.Printf("node %s chunk %s was replicated to node %s\n", name, ref.String(), address.String())
 					continue testCases

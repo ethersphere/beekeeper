@@ -254,9 +254,8 @@ checks:
     options:
       files-in-collection: 10
       max-pathname-length: 64
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
     timeout: 5m
     type: manifest
   ci-pingpong:
@@ -267,9 +266,8 @@ checks:
     options:
       address-prefix: 2
       node-count: 3
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       request-timeout: 5m
     timeout: 5m
     type: pss
@@ -277,9 +275,8 @@ checks:
     options:
       chunks-per-node: 3
       mode: chunks
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
@@ -291,11 +288,10 @@ checks:
     options:
       chunks-per-node: 3
       mode: light-chunks
-      postage-amount: 1
+      postage-amount: 10000
       postage-depth: 16
-      postage-wait: 5s
       retries: 5
-      retry-delay: 15s
+      retry-delay: 30s
       upload-node-count: 3
       exclude-node-group:
       - light
@@ -304,9 +300,8 @@ checks:
   ci-retrieval:
     options:
       chunks-per-node: 3
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       upload-node-count: 3
     timeout: 5m
     type: retrieval
@@ -316,9 +311,8 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 20
-      postage-wait: 5s
       threshold: 100000000
       upload-node-count: 3
       wait-before-download: 20s
@@ -330,9 +324,8 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 20
-      postage-wait: 5s
       threshold: 100000000
       upload-node-count: 3
       wait-before-download: 35s
@@ -348,9 +341,8 @@ checks:
     type: smoke
   ci-soc:
     options:
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       request-timeout: 5m
     timeout: 5m
     type: soc

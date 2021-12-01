@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -48,7 +47,6 @@ func (n beeV2) UploadFile(ctx context.Context, file File) error {
 		return fmt.Errorf("node %s: created batch id %w", n.name, err)
 	}
 	fmt.Printf("node %s: created batch id %s\n", n.name, batchID)
-	time.Sleep(n.o.PostageWait)
 
 	randomFile := bee.NewRandomFile(file.rand, file.name, file.size)
 	if err := n.client.UploadFile(ctx, &randomFile, api.UploadOptions{BatchID: batchID}); err != nil {

@@ -35,7 +35,6 @@ type Options struct {
 	NumberOfChunksToRepair int
 	PostageAmount          int64
 	PostageLabel           string
-	PostageWait            time.Duration
 	Seed                   int64
 }
 
@@ -47,7 +46,6 @@ func NewDefaultOptions() Options {
 		NumberOfChunksToRepair: 1,
 		PostageAmount:          1,
 		PostageLabel:           "test-label",
-		PostageWait:            5 * time.Second,
 		Seed:                   0,
 	}
 }
@@ -95,7 +93,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return fmt.Errorf("created batched id %w", err)
 		}
 		fmt.Printf("created batched id %s", batchID)
-		time.Sleep(o.PostageWait)
 
 		// upload the chunk in nodeA
 		ref, err := nodeA.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})

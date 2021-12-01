@@ -159,7 +159,6 @@ checks:
       file-size: 1048576 # 1mb = 1*1024*1024
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       upload-node-count: 3
       wait-before-download: 5s
     timeout: 5m
@@ -174,7 +173,6 @@ checks:
       node-group: bee
       number-of-chunks-to-repair: 1
       postage-amount: 1000
-      postage-wait: 5s
       seed: 
     timeout: 5m
     type: chunk-repair
@@ -185,7 +183,6 @@ checks:
       files-per-node: 1
       full: false
       postage-amount: 1000
-      postage-wait: 5s
       upload-node-count: 3
     timeout: 5m
     type: file-retrieval
@@ -217,7 +214,6 @@ checks:
       max-pathname-length: 64
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
     timeout: 5m
     type: manifest
   peer-count:
@@ -233,7 +229,6 @@ checks:
       node-count: 3
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       request-timeout: 5m
     timeout: 5m
     type: pss
@@ -241,7 +236,6 @@ checks:
     options:
       chunks-per-node: 1
       postage-amount: 1000
-      postage-wait: 5s
       replication-factor-threshold: 2
       upload-node-count: 1
     timeout: 5m
@@ -252,7 +246,6 @@ checks:
       mode: default
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       retries: 5
       retry-delay: 1s
       upload-node-count: 1
@@ -266,7 +259,6 @@ checks:
       exclude-node-group:
       - light
       postage-depth: 16
-      postage-wait: 5s
       retries: 5
       retry-delay: 1s
       upload-node-count: 1
@@ -280,7 +272,6 @@ checks:
       exclude-node-group:
       - light
       postage-depth: 16
-      postage-wait: 5s
       retries: 5
       retry-delay: 1s
       upload-node-count: 1
@@ -291,7 +282,6 @@ checks:
       chunks-per-node: 1
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       upload-node-count: 1
     timeout: 5m
     type: retrieval
@@ -303,7 +293,6 @@ checks:
       file-size: 1048576 # 1mb = 1*1024*1024
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       threshold: 10000000
       upload-node-count: 3
       wait-before-download: 5s
@@ -321,7 +310,6 @@ checks:
     options:
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       request-timeout: 5m
     timeout: 5m
     type: soc
@@ -357,7 +345,6 @@ simulations:
       gas-price: "10000000000"
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       retries: 5
       retry-delay: 1s
       seed: 
@@ -371,7 +358,6 @@ simulations:
       gas-price: "10000000000"
       postage-amount: 1000
       postage-depth: 16
-      postage-wait: 5s
       upload-node-count: 1
       upload-delay: 10s
     timeout: 5m

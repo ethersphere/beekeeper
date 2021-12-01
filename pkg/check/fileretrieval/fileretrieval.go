@@ -23,7 +23,6 @@ type Options struct {
 	GasPrice        string
 	PostageAmount   int64
 	PostageLabel    string
-	PostageWait     time.Duration
 	Seed            int64
 	UploadNodeCount int
 }
@@ -38,7 +37,6 @@ func NewDefaultOptions() Options {
 		GasPrice:        "",
 		PostageAmount:   1,
 		PostageLabel:    "test-label",
-		PostageWait:     5 * time.Second,
 		Seed:            0,
 		UploadNodeCount: 1,
 	}
@@ -102,7 +100,6 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
 			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-			time.Sleep(o.PostageWait)
 
 			t0 := time.Now()
 
@@ -176,7 +173,6 @@ func (c *Check) fullCheck(ctx context.Context, cluster orchestration.Cluster, o 
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
 			fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-			time.Sleep(o.PostageWait)
 
 			t0 := time.Now()
 			if err := clients[nodeName].UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {

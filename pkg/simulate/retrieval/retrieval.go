@@ -20,7 +20,6 @@ type Options struct {
 	PostageAmount   int64
 	PostageDepth    uint64
 	PostageLabel    string
-	PostageWait     time.Duration
 	Seed            int64
 	UploadNodeCount int
 	UploadDelay     time.Duration
@@ -34,7 +33,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:   1000,
 		PostageDepth:    16,
 		PostageLabel:    "test-label",
-		PostageWait:     5 * time.Second,
 		Seed:            random.Int64(),
 		UploadNodeCount: 1,
 		UploadDelay:     5 * time.Second,
@@ -87,7 +85,6 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 				continue
 			}
 			fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
-			time.Sleep(o.PostageWait)
 
 			for j := 0; j < o.ChunksPerNode; j++ {
 				chunk, err := bee.NewRandomChunk(rnds[i])

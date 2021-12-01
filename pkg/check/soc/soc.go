@@ -22,7 +22,6 @@ type Options struct {
 	PostageAmount  int64
 	PostageDepth   uint64
 	PostageLabel   string
-	PostageWait    time.Duration
 	RequestTimeout time.Duration
 }
 
@@ -33,7 +32,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:  1,
 		PostageDepth:   16,
 		PostageLabel:   "test-label",
-		PostageWait:    5 * time.Second,
 		RequestTimeout: 5 * time.Minute,
 	}
 }
@@ -111,7 +109,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}
 	fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
-	time.Sleep(o.PostageWait)
 
 	fmt.Printf("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
 	fmt.Printf("soc: owner %s\n", owner)

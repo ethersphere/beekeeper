@@ -26,7 +26,6 @@ type Options struct {
 	PostageAmount     int64
 	PostageDepth      uint64
 	PostageLabel      string
-	PostageWait       time.Duration
 	Seed              int64
 }
 
@@ -39,7 +38,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:     1,
 		PostageDepth:      16,
 		PostageLabel:      "test-label",
-		PostageWait:       5 * time.Second,
 		Seed:              0,
 	}
 }
@@ -98,7 +96,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("node %s: batch id %w", node, err)
 	}
 	fmt.Printf("node %s: batch id %s\n", node, batchID)
-	time.Sleep(o.PostageWait)
 
 	if err := client.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
