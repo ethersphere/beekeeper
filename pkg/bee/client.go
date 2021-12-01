@@ -378,7 +378,7 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 		max := 1 << (b.Depth - b.BucketDepth)
 		hasFreeSlots := b.Utilization < uint32(max)
 
-		if b.Usable && b.BatchTTL > 0 && hasFreeSlots {
+		if b.Usable && (b.BatchTTL == -1 || b.BatchTTL > 0) && hasFreeSlots {
 			return b.BatchID, nil
 		}
 	}

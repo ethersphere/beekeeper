@@ -19,7 +19,6 @@ type Options struct {
 	PostageAmount      int64
 	PostageDepth       uint64
 	PostageLabel       string
-	PostageWait        time.Duration
 	Seed               int64
 	UploadNodeCount    int
 	WaitBeforeDownload time.Duration
@@ -35,7 +34,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:      1,
 		PostageDepth:       16,
 		PostageLabel:       "test-label",
-		PostageWait:        5 * time.Second,
 		Seed:               0,
 		UploadNodeCount:    1,
 		WaitBeforeDownload: 5 * time.Second,
@@ -75,7 +73,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		PostageAmount: o.PostageAmount,
 		PostageDepth:  o.PostageDepth,
 		PostageLabel:  o.PostageLabel,
-		PostageWait:   o.PostageWait,
 		Seed:          o.Seed,
 	}
 

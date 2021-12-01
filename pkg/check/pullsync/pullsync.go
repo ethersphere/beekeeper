@@ -21,7 +21,6 @@ type Options struct {
 	GasPrice                   string
 	PostageAmount              int64
 	PostageLabel               string
-	PostageWait                time.Duration
 	ReplicationFactorThreshold int // minimal replication factor per chunk
 	Seed                       int64
 	UploadNodeCount            int
@@ -34,7 +33,6 @@ func NewDefaultOptions() Options {
 		GasPrice:                   "",
 		PostageAmount:              1,
 		PostageLabel:               "test-label",
-		PostageWait:                5 * time.Second,
 		ReplicationFactorThreshold: 2,
 		Seed:                       random.Int64(),
 		UploadNodeCount:            1,
@@ -93,7 +91,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 		}
 		fmt.Printf("node %s: created batched id %s\n", nodeName, batchID)
-		time.Sleep(o.PostageWait)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
 			var (

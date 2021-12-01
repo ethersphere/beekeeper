@@ -40,7 +40,6 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options) error 
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
 		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
-		time.Sleep(o.PostageWait)
 
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {

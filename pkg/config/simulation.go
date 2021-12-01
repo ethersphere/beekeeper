@@ -42,7 +42,6 @@ var Simulations = map[string]SimulationType{
 				PostageAmount        *int64         `yaml:"postage-amount"`
 				PostageDepth         *uint64        `yaml:"postage-depth"`
 				PostageLabel         *string        `yaml:"postage-label"`
-				PostageWait          *time.Duration `yaml:"postage-wait"`
 				Retries              *int           `yaml:"retries"`
 				RetryDelay           *time.Duration `yaml:"retry-delay"`
 				Seed                 *int64         `yaml:"seed"`
@@ -70,7 +69,6 @@ var Simulations = map[string]SimulationType{
 				PostageAmount   *int64         `yaml:"postage-amount"`
 				PostageDepth    *uint64        `yaml:"postage-depth"`
 				PostageLabel    *string        `yaml:"postage-label"`
-				PostageWait     *time.Duration `yaml:"postage-wait"`
 				Seed            *int64         `yaml:"seed"`
 				UploadNodeCount *int           `yaml:"upload-node-count"`
 				UploadDelay     *time.Duration `yaml:"upload-delay"`

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -30,7 +29,6 @@ type CaseOptions struct {
 	GasPrice      string
 	PostageAmount int64
 	PostageLabel  string
-	PostageWait   time.Duration
 	Seed          int64
 	PostageDepth  uint64
 }

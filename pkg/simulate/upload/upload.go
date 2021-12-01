@@ -24,7 +24,6 @@ type Options struct {
 	PostageAmount        int64
 	PostageDepth         uint64
 	PostageLabel         string
-	PostageWait          time.Duration
 	Retries              int
 	RetryDelay           time.Duration
 	Seed                 int64
@@ -40,7 +39,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:        1000,
 		PostageDepth:         16,
 		PostageLabel:         "test-label",
-		PostageWait:          5 * time.Second,
 		Retries:              5,
 		RetryDelay:           1 * time.Second,
 		Seed:                 0,
@@ -135,7 +133,6 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 						return fmt.Errorf("node %s: batch id %w", p, err)
 					}
 					fmt.Printf("node %s: batch id %s\n", p, batchID)
-					time.Sleep(o.PostageWait)
 
 					if err := n.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 						fmt.Printf("error: uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)

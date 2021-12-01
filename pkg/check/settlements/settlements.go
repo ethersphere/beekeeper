@@ -25,7 +25,6 @@ type Options struct {
 	PostageAmount      int64
 	PostageDepth       uint64
 	PostageLabel       string
-	PostageWait        time.Duration
 	Seed               int64
 	Threshold          int64 // balances treshold
 	UploadNodeCount    int
@@ -43,7 +42,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:      1,
 		PostageDepth:       16,
 		PostageLabel:       "test-label",
-		PostageWait:        5 * time.Second,
 		Seed:               0,
 		Threshold:          10000000000000,
 		UploadNodeCount:    1,
@@ -119,7 +117,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return fmt.Errorf("node %s: batch id %w", uNode, err)
 		}
 		fmt.Printf("node %s: batch id %s\n", uNode, batchID)
-		time.Sleep(o.PostageWait)
 
 		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("node %s: %w", uNode, err)

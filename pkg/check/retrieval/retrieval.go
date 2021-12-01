@@ -19,7 +19,6 @@ type Options struct {
 	PostageAmount   int64
 	PostageDepth    uint64
 	PostageLabel    string
-	PostageWait     time.Duration
 	Seed            int64
 	UploadNodeCount int
 }
@@ -32,7 +31,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:   1,
 		PostageLabel:    "test-label",
 		PostageDepth:    16,
-		PostageWait:     5 * time.Second,
 		Seed:            random.Int64(),
 		UploadNodeCount: 1,
 	}
@@ -65,7 +63,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		PostageAmount: o.PostageAmount,
 		PostageLabel:  o.PostageLabel,
 		PostageDepth:  o.PostageDepth,
-		PostageWait:   o.PostageWait,
 		Seed:          o.Seed,
 	}
 
@@ -81,8 +78,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		if err != nil {
 			return err
 		}
-
-		time.Sleep(o.PostageWait)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
 			// time upload

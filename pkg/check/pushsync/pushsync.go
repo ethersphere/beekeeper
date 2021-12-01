@@ -20,7 +20,6 @@ type Options struct {
 	PostageAmount     int64
 	PostageDepth      uint64
 	PostageLabel      string
-	PostageWait       time.Duration
 	Retries           int           // number of reties on problems
 	RetryDelay        time.Duration // retry delay duration
 	Seed              int64
@@ -101,7 +100,6 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
 		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
-		time.Sleep(o.PostageWait)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i])

@@ -24,7 +24,6 @@ type Options struct {
 	PostageAmount  int64
 	PostageDepth   uint64
 	PostageLabel   string
-	PostageWait    time.Duration
 	RequestTimeout time.Duration
 	Seed           int64
 }
@@ -38,7 +37,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:  1,
 		PostageDepth:   16,
 		PostageLabel:   "test-label",
-		PostageWait:    5 * time.Second,
 		RequestTimeout: 5 * time.Minute,
 		Seed:           random.Int64(),
 	}
@@ -131,7 +129,6 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 		return fmt.Errorf("node %s: batched id %w", nodeAName, err)
 	}
 	fmt.Printf("node %s: batched id %s\n", nodeAName, batchID)
-	time.Sleep(o.PostageWait)
 
 	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, nodeB.Config().Restricted, testTopic)
 	if err != nil {
