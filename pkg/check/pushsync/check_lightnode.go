@@ -30,6 +30,16 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 
 	lightNodes := cluster.LightNodeNames()
 
+	// prepare postage batches
+	for i := 0; i < len(lightNodes); i++ {
+		nodeName := lightNodes[i]
+		batchID, err := clients[nodeName].GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+		if err != nil {
+			return fmt.Errorf("node %s: batch id %w", nodeName, err)
+		}
+		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+	}
+
 	for i := 0; i < o.UploadNodeCount && i < len(lightNodes); i++ {
 
 		nodeName := lightNodes[i]
