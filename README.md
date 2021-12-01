@@ -96,7 +96,7 @@ checks:
       chunks-per-node: 1
       metrics-enabled:
       mode: chunks
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 16
       postage-wait: 5s
       retries: 5
@@ -109,7 +109,7 @@ checks:
       chunks-per-node: 1
       metrics-enabled:
       mode: light-chunks
-      postage-amount: 1
+      postage-amount: 1000
       postage-depth: 16
       postage-wait: 5s
       retries: 5
