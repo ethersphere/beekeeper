@@ -1,4 +1,4 @@
-package k8s
+package utils
 
 import (
 	"crypto/aes"
@@ -24,6 +24,23 @@ const (
 	scryptP     = 1
 	scryptDKLen = 32
 )
+
+func GenerateSwarmKey(password string) (swarmKey string, overlay []byte, err error) {
+	key, err := crypto.GenerateSecp256k1Key()
+	if err != nil {
+		return "", nil, err
+	}
+
+	encrypted, err := encryptKey(key, password)
+	if err != nil {
+		return "", nil, err
+	}
+
+	swarmKey = string(encrypted)
+	overlay, err = crypto.NewEthereumAddress(key.PublicKey)
+
+	return
+}
 
 // This format is compatible with Ethereum JSON v3 key file format.
 type encryptedKey struct {

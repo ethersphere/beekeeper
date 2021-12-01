@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
 )
 
 const nodeRetryTimeout = 5 * time.Second
@@ -235,27 +236,9 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	config := *n.Config()
-	if (!config.SwapEnable || !config.ChequebookEnable) && config.Transaction == "" && n.SwarmKey() == "" {
-		//g.cluster.swap.AttestOverlayEthAddress()
-		ethAddr, err := n.(*Node).PregenerateSwarmKey()
-		if err != nil {
-			return err
-		}
-
-		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, ethAddr)
-		if err != nil {
-			return err
-		}
-
-		time.Sleep(10 * time.Second)
-
-		config.Transaction = txHash
-	}
-
 	if err := n.Create(ctx, orchestration.CreateOptions{
 		// Bee configuration
-		Config: config,
+		Config: *n.Config(),
 		// Kubernetes configuration
 		Name:                      name,
 		Namespace:                 g.cluster.namespace,
@@ -667,6 +650,24 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
 func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
+	// pregenerate Swarm key in needed
+	if (!o.Config.SwapEnable || !o.Config.ChequebookEnable) && o.Config.Transaction == "" && o.SwarmKey == "" {
+		swarmKey, overlay, err := utils.GenerateSwarmKey(o.Config.Password)
+		if err != nil {
+			return fmt.Errorf("generate Swarm key for node %s: %w", name, err)
+		}
+
+		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, overlay)
+		if err != nil {
+			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
+		}
+
+		time.Sleep(10 * time.Second)
+
+		o.SwarmKey = swarmKey
+		o.Config.Transaction = txHash
+	}
+
 	if err := g.AddNode(name, o); err != nil {
 		return fmt.Errorf("add node %s: %w", name, err)
 	}
