@@ -39,7 +39,6 @@ func NewDefaultOptions() Options {
 		PostageAmount:     1,
 		PostageDepth:      16,
 		PostageLabel:      "test-label",
-		PostageWait:       5 * time.Second,
 		Seed:              0,
 	}
 }
