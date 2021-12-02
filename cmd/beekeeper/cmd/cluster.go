@@ -292,7 +292,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						nOptions.SwarmKey = v.Nodes[i].SwarmKey
 					}
 
-					if err := g.AddNode(nName, nOptions); err != nil {
+					if err := g.AddNode(ctx, nName, nOptions); err != nil {
 						return nil, fmt.Errorf("adding node %s: %w", nName, err)
 					}
 				}
@@ -346,7 +346,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 							nOptions.SwarmKey = v.Nodes[i].SwarmKey
 						}
 
-						if err := g.AddNode(nName, orchestration.NodeOptions{}); err != nil {
+						if err := g.AddNode(ctx, nName, orchestration.NodeOptions{}); err != nil {
 							return nil, fmt.Errorf("adding node %s: %w", nName, err)
 						}
 					}
@@ -354,7 +354,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					for i := 0; i < v.Count; i++ {
 						nName := fmt.Sprintf("%s-%d", ng, i)
 
-						if err := g.AddNode(nName, orchestration.NodeOptions{}); err != nil {
+						if err := g.AddNode(ctx, nName, orchestration.NodeOptions{}); err != nil {
 							return nil, fmt.Errorf("adding node %s: %w", nName, err)
 						}
 					}

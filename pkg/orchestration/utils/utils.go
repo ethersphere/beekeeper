@@ -25,7 +25,7 @@ const (
 	scryptDKLen = 32
 )
 
-func GenerateSwarmKey(password string) (swarmKey string, overlay []byte, err error) {
+func CreateSwarmKey(password string) (swarmKey string, overlay []byte, err error) {
 	key, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
 		return "", nil, err

@@ -42,7 +42,7 @@ func NewNodeGroup(name string, o orchestration.NodeGroupOptions) *NodeGroup {
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(name string, o orchestration.NodeOptions) (err error) {
+func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.NodeOptions) (err error) {
 	aURL, err := g.cluster.apiURL(name)
 	if err != nil {
 		return fmt.Errorf("API URL %s: %w", name, err)
@@ -69,6 +69,24 @@ func (g *NodeGroup) AddNode(name string, o orchestration.NodeOptions) (err error
 		Retry:               5,
 		Restricted:          config.Restricted,
 	})
+
+	// pregenerate Swarm key if needed
+	if o.SwarmKey == "" && config.Transaction == "" && (!config.SwapEnable || config.ChequebookEnable) {
+		swarmKey, overlay, err := utils.CreateSwarmKey(config.Password)
+		if err != nil {
+			return fmt.Errorf("create Swarm key for node %s: %w", name, err)
+		}
+
+		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, overlay)
+		if err != nil {
+			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
+		}
+
+		time.Sleep(10 * time.Second)
+
+		o.SwarmKey = swarmKey
+		config.Transaction = txHash
+	}
 
 	n := NewNode(name, orchestration.NodeOptions{
 		ClefKey:      o.ClefKey,
@@ -650,25 +668,7 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
 func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
-	// pregenerate Swarm key in needed
-	if (!o.Config.SwapEnable || !o.Config.ChequebookEnable) && o.Config.Transaction == "" && o.SwarmKey == "" {
-		swarmKey, overlay, err := utils.GenerateSwarmKey(o.Config.Password)
-		if err != nil {
-			return fmt.Errorf("generate Swarm key for node %s: %w", name, err)
-		}
-
-		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, overlay)
-		if err != nil {
-			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
-		}
-
-		time.Sleep(10 * time.Second)
-
-		o.SwarmKey = swarmKey
-		o.Config.Transaction = txHash
-	}
-
-	if err := g.AddNode(name, o); err != nil {
+	if err := g.AddNode(ctx, name, o); err != nil {
 		return fmt.Errorf("add node %s: %w", name, err)
 	}
 
