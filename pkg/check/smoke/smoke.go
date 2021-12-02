@@ -3,7 +3,6 @@ package smoke
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -148,7 +147,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 
 		if !bytes.Equal(rxData, txData) {
-			return errors.New("uploaded data does not match downloaded data")
+			c.metrics.DownloadErrors.Inc()
+			fmt.Println("uploaded data does not match downloaded data")
+			continue
 		}
 
 		// We want to update the metrics when no error has been
