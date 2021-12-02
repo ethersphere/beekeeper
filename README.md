@@ -213,14 +213,14 @@ Command **delete** deletes Bee infrastructure. It has two subcommands:
 
 Command **fund** makes BZZ tokens and ETH deposits to given Ethereum addresses.
 
-It has following flags:
+It has the following flags:
 
 ```
 --addresses strings          Bee node Ethereum addresses (must start with 0x)
---bzz-deposit float          BZZ tokens amount to deposit (default 100)
+--bzz-deposit float          BZZ tokens amount to deposit
 --bzz-token-address string   BZZ token address (default "0x6aab14fe9cccd64a502d23842d916eb5321c26e7")
 --eth-account string         ETH account address (default "0x62cab2b3b55f341f10348720ca18063cdb779ad5")
---eth-deposit float          ETH amount to deposit (default 0.01)
+--eth-deposit float          ETH amount to deposit
 --geth-url string            Geth node URL (default "http://geth-swap.geth-swap.dai.internal")
 --help                       help for fund
 --timeout duration           timeout (default 5m0s)
@@ -228,7 +228,7 @@ It has following flags:
 
 example:
 ```
-beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0
+beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0 --eth-deposit 0.01 --bzz-deposit 100
 ```
 
 ## print
