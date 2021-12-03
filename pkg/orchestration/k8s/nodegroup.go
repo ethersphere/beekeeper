@@ -54,11 +54,11 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 	}
 
 	// TODO: make more granular, check every sub-option
-	var config *orchestration.Config
+	var config orchestration.Config
 	if o.Config != nil {
-		config = o.Config
+		config = *o.Config
 	} else {
-		config = g.opts.BeeConfig
+		config = *g.opts.BeeConfig
 	}
 
 	client := bee.NewClient(bee.ClientOptions{
@@ -93,7 +93,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		ClefKey:      o.ClefKey,
 		ClefPassword: o.ClefPassword,
 		Client:       client,
-		Config:       config,
+		Config:       &config,
 		K8S:          g.k8s,
 		LibP2PKey:    o.LibP2PKey,
 		SwarmKey:     o.SwarmKey,
