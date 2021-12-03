@@ -86,7 +86,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 
 		o.SwarmKey = swarmKey
 		config.Transaction = txHash
-		fmt.Printf("overlay Ethereum address for node %s attested sucessfully: transaction: %s\n", name, txHash)
+		fmt.Printf("overlay Ethereum address for node %s attested successfully: transaction: %s\n", name, txHash)
 	}
 
 	n := NewNode(name, orchestration.NodeOptions{
