@@ -71,7 +71,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 	})
 
 	// pregenerate Swarm key if needed
-	if o.SwarmKey == "" && config.Transaction == "" && (!config.SwapEnable || config.ChequebookEnable) {
+	if o.SwarmKey == "" && config.Transaction == "" && (!config.SwapEnable || !config.ChequebookEnable) {
 		swarmKey, overlay, err := utils.CreateSwarmKey(config.Password)
 		if err != nil {
 			return fmt.Errorf("create Swarm key for node %s: %w", name, err)
@@ -86,6 +86,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 
 		o.SwarmKey = swarmKey
 		config.Transaction = txHash
+		fmt.Printf("overlay Ethereum address for node %s attested sucessfully: transaction: %s\n", name, txHash)
 	}
 
 	n := NewNode(name, orchestration.NodeOptions{
