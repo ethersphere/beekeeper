@@ -25,6 +25,7 @@ type Node interface {
 	Start(ctx context.Context, namespace string) (err error)
 	Stop(ctx context.Context, namespace string) (err error)
 	SwarmKey() string
+	SetSwarmKey(key string) Node
 }
 
 // NodeOptions holds optional parameters for the Node.

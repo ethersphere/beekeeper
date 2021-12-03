@@ -22,7 +22,7 @@ var _ orchestration.NodeGroup = (*NodeGroup)(nil)
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
 	name  string
-	nodes map[string]*Node
+	nodes map[string]orchestration.Node
 	opts  orchestration.NodeGroupOptions
 
 	// set when added to the cluster
@@ -36,7 +36,7 @@ type NodeGroup struct {
 func NewNodeGroup(name string, o orchestration.NodeGroupOptions) *NodeGroup {
 	return &NodeGroup{
 		name:  name,
-		nodes: make(map[string]*Node),
+		nodes: make(map[string]orchestration.Node),
 		opts:  o,
 	}
 }
@@ -69,25 +69,6 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		Retry:               5,
 		Restricted:          config.Restricted,
 	})
-
-	// pregenerate Swarm key if needed
-	if o.SwarmKey == "" && config.Transaction == "" && (!config.SwapEnable || !config.ChequebookEnable) {
-		swarmKey, overlay, err := utils.CreateSwarmKey(config.Password)
-		if err != nil {
-			return fmt.Errorf("create Swarm key for node %s: %w", name, err)
-		}
-
-		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, overlay)
-		if err != nil {
-			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
-		}
-
-		time.Sleep(10 * time.Second)
-
-		o.SwarmKey = swarmKey
-		config.Transaction = txHash
-		fmt.Printf("overlay Ethereum address for node %s attested successfully: transaction: %s\n", name, txHash)
-	}
 
 	n := NewNode(name, orchestration.NodeOptions{
 		ClefKey:      o.ClefKey,
@@ -650,6 +631,38 @@ func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err er
 	return n.Ready(ctx, g.cluster.namespace)
 }
 
+// PregenerateSwarmKey for a node if needed
+func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err error) {
+	n, err := g.getNode(name)
+	if err != nil {
+		return err
+	}
+
+	if n.SwarmKey() == "" && n.Config().Transaction == "" && (!n.Config().SwapEnable || !n.Config().ChequebookEnable) {
+		swarmKey, overlay, err := utils.CreateSwarmKey(n.Config().Password)
+		if err != nil {
+			return fmt.Errorf("create Swarm key for node %s: %w", name, err)
+		}
+
+		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, overlay)
+		if err != nil {
+			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
+		}
+
+		time.Sleep(10 * time.Second)
+
+		n.Config().Transaction = txHash
+
+		n = n.SetSwarmKey(swarmKey)
+		if err := g.setNode(name, n); err != nil {
+			return fmt.Errorf("setting node %s: %w", name, err)
+		}
+
+		fmt.Printf("overlay Ethereum address for node %s attested successfully: transaction: %s\n", name, txHash)
+	}
+	return
+}
+
 // RunningNodes returns list of running nodes
 // TODO: filter by labels
 func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err error) {
@@ -671,6 +684,10 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
 	if err := g.AddNode(ctx, name, o); err != nil {
 		return fmt.Errorf("add node %s: %w", name, err)
+	}
+
+	if err := g.PregenerateSwarmKey(ctx, name); err != nil {
+		return fmt.Errorf("pregenerate Swarm key for node %s: %w", name, err)
 	}
 
 	if err := g.CreateNode(ctx, name); err != nil {
@@ -949,11 +966,25 @@ func (g *NodeGroup) getNode(name string) (n orchestration.Node, err error) {
 	return
 }
 
-func (g *NodeGroup) getNodes() map[string]*Node {
+func (g *NodeGroup) getNodes() map[string]orchestration.Node {
 	g.lock.RLock()
 	nodes := g.nodes
 	g.lock.RUnlock()
 	return nodes
+}
+
+func (g *NodeGroup) setNode(name string, n orchestration.Node) (err error) {
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	_, ok := g.nodes[name]
+	if !ok {
+		return fmt.Errorf("node %s not found", name)
+	}
+
+	g.nodes[name] = n
+
+	return
 }
 
 func contains(list []string, find string) bool {

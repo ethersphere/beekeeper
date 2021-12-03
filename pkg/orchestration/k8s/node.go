@@ -97,6 +97,12 @@ func (n Node) SwarmKey() string {
 	return n.swarmKey
 }
 
+// SetSwarmKey sets node's Swarm key
+func (n Node) SetSwarmKey(key string) orchestration.Node {
+	n.swarmKey = key
+	return n
+}
+
 //
 
 func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
