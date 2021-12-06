@@ -19,4 +19,5 @@ type Client interface {
 	SendETH(ctx context.Context, to string, amount float64) (tx string, err error)
 	SendBZZ(ctx context.Context, to string, amount float64) (tx string, err error)
 	SendGBZZ(ctx context.Context, to string, amount float64) (tx string, err error)
+	AttestOverlayEthAddress(ctx context.Context, ethAddr []byte) (tx string, err error)
 }

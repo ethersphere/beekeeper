@@ -46,6 +46,7 @@ restricted: {{.Restricted}}
 token-encryption-key: {{.TokenEncryptionKey}}
 admin-password: {{.AdminPassword}}
 standalone: {{.Standalone}}
+chequebook-enable: {{.ChequebookEnable}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
 swap-deployment-gas-price: {{.SwapDeploymentGasPrice}}

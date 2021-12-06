@@ -133,6 +133,7 @@ bee-configs:
     price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
     resolver-options: ""
     standalone: false
+    chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://geth-swap.geth-swap:8546"
     swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"

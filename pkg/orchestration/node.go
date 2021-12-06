@@ -25,6 +25,7 @@ type Node interface {
 	Start(ctx context.Context, namespace string) (err error)
 	Stop(ctx context.Context, namespace string) (err error)
 	SwarmKey() string
+	SetSwarmKey(key string) Node
 }
 
 // NodeOptions holds optional parameters for the Node.
@@ -113,6 +114,7 @@ type Config struct {
 	TokenEncryptionKey         string        // username for API authentication
 	AdminPassword              string        // password hash for API authentication
 	Standalone                 bool          // whether we want the node to start with no listen addresses for p2p
+	ChequebookEnable           bool          // enable chequebook
 	SwapEnable                 bool          // enable swap
 	SwapEndpoint               string        // swap ethereum blockchain endpoint
 	SwapDeploymentGasPrice     string        // gas price in wei to use for deployment and funding

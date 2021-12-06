@@ -8,7 +8,7 @@ import (
 )
 
 type NodeGroup interface {
-	AddNode(name string, o NodeOptions) (err error)
+	AddNode(ctx context.Context, name string, o NodeOptions) (err error)
 	Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error)
 	Balances(ctx context.Context) (balances NodeGroupBalances, err error)
 	CreateNode(ctx context.Context, name string) (err error)

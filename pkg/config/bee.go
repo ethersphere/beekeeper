@@ -47,6 +47,7 @@ type BeeConfig struct {
 	TokenEncryptionKey         *string        `yaml:"token-encryption-key"`
 	AdminPassword              *string        `yaml:"admin-password"`
 	Standalone                 *bool          `yaml:"standalone"`
+	ChequebookEnable           *bool          `yaml:"chequebook-enable"`
 	SwapEnable                 *bool          `yaml:"swap-enable"`
 	SwapEndpoint               *string        `yaml:"swap-endpoint"`
 	SwapDeploymentGasPrice     *string        `yaml:"swap-deployment-gas-price"`
