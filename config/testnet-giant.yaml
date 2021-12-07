@@ -105,6 +105,7 @@ bee-configs:
     price-oracle-address: ""
     resolver-options: "https://cloudflare-eth.com"
     standalone: false
+    chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
     swap-factory-address: ""

@@ -183,6 +183,7 @@ bee-configs:
     token-encryption-key: ""
     admin-password: ""
     standalone: false
+    chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://geth-swap:8546"
     swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
