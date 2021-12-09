@@ -112,7 +112,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		txData = make([]byte, o.ContentSize)
 		rnd.Read(txData)
 
-		for txDuration == 0 {
+		for retries := 10; txDuration == 0 && retries > 0; retries-- {
 			select {
 			case <-ctx.Done():
 				return nil
@@ -128,9 +128,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			}
 		}
 
+		if txDuration == 0 {
+			continue
+		}
+
 		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
-		for rxDuration == 0 {
+		for retries := 10; rxDuration == 0 && retries > 0; retries-- {
 			select {
 			case <-ctx.Done():
 				return nil
@@ -144,6 +148,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				fmt.Printf("retrying in: %v\n", o.RxOnErrWait)
 				time.Sleep(o.RxOnErrWait)
 			}
+		}
+
+		if rxDuration == 0 {
+			continue
 		}
 
 		if !bytes.Equal(rxData, txData) {
