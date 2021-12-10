@@ -182,7 +182,7 @@ func (g *GethClient) SendGBZZ(ctx context.Context, to string, amount float64) (t
 	return resp.Result, nil
 }
 
-func (g *GethClient) AttestOverlayEthAddress(ctx context.Context, ethAddr []byte) (tx string, err error) {
+func (g *GethClient) AttestOverlayEthAddress(ctx context.Context, ethAddr string) (tx string, err error) {
 	ethAccounts, err := g.ethAccounts(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get accounts: %w", err)
@@ -199,7 +199,7 @@ func (g *GethClient) AttestOverlayEthAddress(ctx context.Context, ethAddr []byte
 		Params: []ethRequestParams{{
 			From:     g.ethAccount,
 			To:       g.ethAccount,
-			Data:     fmt.Sprintf("0x%064x", ethAddr),
+			Data:     fmt.Sprintf("0x%064s", ethAddr),
 			Gas:      addPrefix("0x", fmt.Sprintf("%x", BzzGasLimit)),
 			GasPrice: addPrefix("0x", fmt.Sprintf("%x", GasPrice)),
 		}},

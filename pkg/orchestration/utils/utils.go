@@ -11,8 +11,8 @@ import (
 	"io"
 
 	"github.com/ethersphere/bee/pkg/crypto"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/scrypt"
-	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -25,28 +25,26 @@ const (
 	scryptDKLen = 32
 )
 
-func CreateSwarmKey(password string) (swarmKey string, overlay []byte, err error) {
+func CreateSwarmKey(password string) (swarmKey string, err error) {
 	key, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
 
 	encrypted, err := encryptKey(key, password)
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
 
-	swarmKey = string(encrypted)
-	overlay, err = crypto.NewEthereumAddress(key.PublicKey)
-
-	return
+	return string(encrypted), nil
 }
 
 // This format is compatible with Ethereum JSON v3 key file format.
-type encryptedKey struct {
+type EncryptedKey struct {
 	Address string    `json:"address"`
 	Crypto  keyCripto `json:"crypto"`
 	Version int       `json:"version"`
+	Id      string    `json:"id"`
 }
 
 type keyCripto struct {
@@ -80,10 +78,11 @@ func encryptKey(k *ecdsa.PrivateKey, password string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(encryptedKey{
+	return json.Marshal(EncryptedKey{
 		Address: hex.EncodeToString(addr),
 		Crypto:  *kc,
 		Version: keyVersion,
+		Id:      uuid.NewString(),
 	})
 }
 
@@ -106,7 +105,10 @@ func encryptData(data, password []byte) (*keyCripto, error) {
 	if err != nil {
 		return nil, err
 	}
-	mac := sha3.Sum256(append(derivedKey[16:32], cipherText...))
+	mac, err := crypto.LegacyKeccak256(append(derivedKey[16:32], cipherText...))
+	if err != nil {
+		return nil, err
+	}
 
 	return &keyCripto{
 		Cipher:     "aes-128-ctr",

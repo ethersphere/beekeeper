@@ -28,6 +28,6 @@ func (n *NotSet) SendGBZZ(ctx context.Context, to string, amount float64) (tx st
 	return "", ErrNotSet
 }
 
-func (n *NotSet) AttestOverlayEthAddress(ctx context.Context, ethAddr []byte) (tx string, err error) {
+func (n *NotSet) AttestOverlayEthAddress(ctx context.Context, ethAddr string) (tx string, err error) {
 	return "", ErrNotSet
 }

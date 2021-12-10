@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
@@ -638,27 +639,60 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 		return err
 	}
 
-	if n.SwarmKey() == "" && n.Config().Transaction == "" && (!n.Config().SwapEnable || !n.Config().ChequebookEnable) {
-		swarmKey, overlay, err := utils.CreateSwarmKey(n.Config().Password)
-		if err != nil {
-			return fmt.Errorf("create Swarm key for node %s: %w", name, err)
+	if n.Config().Transaction == "" && (!n.Config().SwapEnable || !n.Config().ChequebookEnable) {
+		var swarmKey string
+
+		if n.Config().ClefSignerEnable {
+			if n.ClefKey() == "" {
+				password := n.ClefPassword()
+				if password == "" {
+					password = "clefbeesecret"
+					n = n.SetClefPassword(password)
+				}
+				swarmKey, err = utils.CreateSwarmKey(password)
+				if err != nil {
+					return fmt.Errorf("create Clef key for node %s: %w", name, err)
+				}
+
+				n = n.SetClefKey(swarmKey)
+
+				if err := g.setNode(name, n); err != nil {
+					return fmt.Errorf("setting node %s: %w", name, err)
+				}
+			} else {
+				swarmKey = n.ClefKey()
+			}
+		} else {
+			if n.SwarmKey() == "" {
+				swarmKey, err = utils.CreateSwarmKey(n.Config().Password)
+				if err != nil {
+					return fmt.Errorf("create Swarm key for node %s: %w", name, err)
+				}
+
+				n = n.SetSwarmKey(swarmKey)
+
+				if err := g.setNode(name, n); err != nil {
+					return fmt.Errorf("setting node %s: %w", name, err)
+				}
+			} else {
+				swarmKey = n.SwarmKey()
+			}
 		}
 
-		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, overlay)
+		var key utils.EncryptedKey
+		err = json.Unmarshal([]byte(swarmKey), &key)
+		if err != nil {
+			return err
+		}
+
+		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, key.Address)
 		if err != nil {
 			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
 		}
 
 		time.Sleep(10 * time.Second)
-
 		n.Config().Transaction = txHash
-
-		n = n.SetSwarmKey(swarmKey)
-		if err := g.setNode(name, n); err != nil {
-			return fmt.Errorf("setting node %s: %w", name, err)
-		}
-
-		fmt.Printf("overlay Ethereum address for node %s attested successfully: transaction: %s\n", name, txHash)
+		fmt.Printf("overlay Ethereum address %s for node %s attested successfully: transaction: %s\n", key.Address, name, txHash)
 	}
 	return
 }
