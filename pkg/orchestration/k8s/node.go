@@ -103,6 +103,18 @@ func (n Node) SetSwarmKey(key string) orchestration.Node {
 	return n
 }
 
+// SetClefKey sets node's Clef key
+func (n Node) SetClefKey(key string) orchestration.Node {
+	n.clefKey = key
+	return n
+}
+
+// SetClefKey sets node's Clef key
+func (n Node) SetClefPassword(password string) orchestration.Node {
+	n.clefPassword = password
+	return n
+}
+
 //
 
 func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
