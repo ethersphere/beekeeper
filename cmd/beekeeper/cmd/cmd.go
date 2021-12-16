@@ -11,11 +11,22 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/swap"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-const optionNameConfigDir = "config-dir"
+const (
+	optionNameConfigDir         = "config-dir"
+	optionNameConfigGitRepo     = "config-git-repo"
+	optionNameConfigGitBranch   = "config-git-branch"
+	optionNameConfigGitUsername = "config-git-username"
+	optionNameConfigGitToken    = "config-git-token"
+)
 
 func init() {
 	cobra.EnableCommandSorting = true
@@ -146,13 +157,44 @@ func (c *command) initConfig() (err error) {
 		return err
 	}
 
-	// read configuration directory
-	c.config, err = config.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
-	if err != nil {
-		return err
+	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
+		// read configuration from git repo
+		fs := memfs.New()
+		if _, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
+			Auth: &http.BasicAuth{
+				Username: c.globalConfig.GetString(optionNameConfigGitUsername),
+				Password: c.globalConfig.GetString(optionNameConfigGitToken),
+			},
+			Depth:         1,
+			Progress:      os.Stdout,
+			ReferenceName: plumbing.ReferenceName("refs/heads/" + c.globalConfig.GetString(optionNameConfigGitBranch)),
+			SingleBranch:  true,
+			URL:           c.globalConfig.GetString(optionNameConfigGitRepo),
+		}); err != nil {
+			return err
+		}
+
+		files, err := fs.ReadDir("/")
+		if err != nil {
+			return err
+		}
+		for _, file := range files {
+			if file.IsDir() {
+				continue
+			}
+			fmt.Println(file.Name())
+		}
+
+	} else {
+		// read configuration directory
+		c.config, err = config.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
+		if err != nil {
+			return err
+		}
 	}
 
-	return nil
+	return fmt.Errorf("OVER")
+	// return nil
 }
 
 func (c *command) setHomeDir() (err error) {
