@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 
 	"gopkg.in/yaml.v3"
@@ -94,14 +92,8 @@ func (c *Config) merge() (err error) {
 	return
 }
 
-// ReadDir reads given directory for YAML files and unmarshals them into Config
-func ReadDir(configDir string) (*Config, error) {
-	// read all files from the directory
-	yamlFiles, err := os.ReadDir(configDir)
-	if err != nil {
-		return nil, fmt.Errorf("reading config dir: %w", err)
-	}
-
+// Read reads given YAML files and unmarshals them into Config
+func Read(yamlFiles ...[]byte) (*Config, error) {
 	c := Config{
 		Clusters:    make(map[string]Cluster),
 		NodeGroups:  make(map[string]NodeGroup),
@@ -111,23 +103,9 @@ func ReadDir(configDir string) (*Config, error) {
 	}
 
 	for _, file := range yamlFiles {
-		// check if file is YAML
-		fullPath := filepath.Join(configDir + "/" + file.Name())
-		fileExt := filepath.Ext(fullPath)
-		if fileExt != ".yaml" && fileExt != ".yml" {
-			fmt.Printf("skipping file (not .yml nor .yaml): %s", fullPath)
-			continue
-		}
-
-		// read file
-		yamlFile, err := os.ReadFile(fullPath)
-		if err != nil {
-			return nil, fmt.Errorf("reading yaml file %s: %w ", file.Name(), err)
-		}
-
 		var tmp *Config
-		if err := yaml.Unmarshal(yamlFile, &tmp); err != nil {
-			return nil, fmt.Errorf("unmarshaling yaml file %s: %w", file.Name(), err)
+		if err := yaml.Unmarshal(file, &tmp); err != nil {
+			return nil, fmt.Errorf("unmarshaling yaml file: %w", err)
 		}
 
 		// join Clusters

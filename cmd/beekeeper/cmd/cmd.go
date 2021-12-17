@@ -25,7 +25,7 @@ const (
 	optionNameConfigGitRepo     = "config-git-repo"
 	optionNameConfigGitBranch   = "config-git-branch"
 	optionNameConfigGitUsername = "config-git-username"
-	optionNameConfigGitToken    = "config-git-token"
+	optionNameConfigGitPassword = "config-git-password"
 )
 
 func init() {
@@ -118,6 +118,10 @@ func (c *command) initGlobalFlags() {
 	globalFlags := c.root.PersistentFlags()
 	globalFlags.StringVar(&c.globalConfigFile, "config", "", "config file (default is $HOME/.beekeeper.yaml)")
 	globalFlags.String(optionNameConfigDir, filepath.Join(c.homeDir, "/.beekeeper/"), "config directory (default is $HOME/.beekeeper/)")
+	globalFlags.String(optionNameConfigGitRepo, "", "Git repository with configurations (uses config directory when Git repo is not specified) (default \"\")")
+	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
+	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
+	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
 }
 
 func (c *command) initConfig() (err error) {
@@ -163,38 +167,68 @@ func (c *command) initConfig() (err error) {
 		if _, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
 			Auth: &http.BasicAuth{
 				Username: c.globalConfig.GetString(optionNameConfigGitUsername),
-				Password: c.globalConfig.GetString(optionNameConfigGitToken),
+				Password: c.globalConfig.GetString(optionNameConfigGitPassword),
 			},
 			Depth:         1,
-			Progress:      os.Stdout,
 			ReferenceName: plumbing.ReferenceName("refs/heads/" + c.globalConfig.GetString(optionNameConfigGitBranch)),
 			SingleBranch:  true,
 			URL:           c.globalConfig.GetString(optionNameConfigGitRepo),
 		}); err != nil {
-			return err
+			return fmt.Errorf("cloning repo %s: %w ", c.globalConfig.GetString(optionNameConfigGitRepo), err)
 		}
 
-		files, err := fs.ReadDir("/")
+		files, err := fs.ReadDir(".")
 		if err != nil {
 			return err
 		}
+		yamlFiles := [][]byte{}
 		for _, file := range files {
-			if file.IsDir() {
+			if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml")) {
 				continue
 			}
-			fmt.Println(file.Name())
+			f, err := fs.Open(file.Name())
+			if err != nil {
+				return fmt.Errorf("opening file %s: %w ", file.Name(), err)
+			}
+			defer f.Close()
+
+			yamlFile := make([]byte, file.Size())
+			if _, err := f.Read(yamlFile); err != nil {
+				return fmt.Errorf("reading file %s: %w ", file.Name(), err)
+			}
+			yamlFiles = append(yamlFiles, yamlFile)
 		}
 
+		if c.config, err = config.Read(yamlFiles...); err != nil {
+			return err
+		}
 	} else {
-		// read configuration directory
-		c.config, err = config.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
+		// read configuration from directory
+		files, err := os.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
 		if err != nil {
+			return fmt.Errorf("reading config dir: %w", err)
+		}
+
+		yamlFiles := [][]byte{}
+		for _, file := range files {
+			fullPath := filepath.Join(c.globalConfig.GetString(optionNameConfigDir) + "/" + file.Name())
+			fileExt := filepath.Ext(fullPath)
+			if fileExt != ".yaml" && fileExt != ".yml" {
+				continue
+			}
+			yamlFile, err := os.ReadFile(fullPath)
+			if err != nil {
+				return fmt.Errorf("reading file %s: %w ", file.Name(), err)
+			}
+			yamlFiles = append(yamlFiles, yamlFile)
+		}
+
+		if c.config, err = config.Read(yamlFiles...); err != nil {
 			return err
 		}
 	}
 
-	return fmt.Errorf("OVER")
-	// return nil
+	return
 }
 
 func (c *command) setHomeDir() (err error) {
