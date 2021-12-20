@@ -11,11 +11,22 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/swap"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-const optionNameConfigDir = "config-dir"
+const (
+	optionNameConfigDir         = "config-dir"
+	optionNameConfigGitRepo     = "config-git-repo"
+	optionNameConfigGitBranch   = "config-git-branch"
+	optionNameConfigGitUsername = "config-git-username"
+	optionNameConfigGitPassword = "config-git-password"
+)
 
 func init() {
 	cobra.EnableCommandSorting = true
@@ -107,6 +118,19 @@ func (c *command) initGlobalFlags() {
 	globalFlags := c.root.PersistentFlags()
 	globalFlags.StringVar(&c.globalConfigFile, "config", "", "config file (default is $HOME/.beekeeper.yaml)")
 	globalFlags.String(optionNameConfigDir, filepath.Join(c.homeDir, "/.beekeeper/"), "config directory (default is $HOME/.beekeeper/)")
+	globalFlags.String(optionNameConfigGitRepo, "", "Git repository with configurations (uses config directory when Git repo is not specified) (default \"\")")
+	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
+	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
+	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
+}
+
+func (c *command) bindGlobalFlags() (err error) {
+	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword} {
+		if err := c.globalConfig.BindPFlag(flag, c.root.PersistentFlags().Lookup(flag)); err != nil {
+			return err
+		}
+	}
+	return
 }
 
 func (c *command) initConfig() (err error) {
@@ -140,19 +164,78 @@ func (c *command) initConfig() (err error) {
 	}
 
 	c.globalConfig = cfg
-
-	// bind flag for configuration directory
-	if err := cfg.BindPFlag(optionNameConfigDir, c.root.PersistentFlags().Lookup(optionNameConfigDir)); err != nil {
+	if err := c.bindGlobalFlags(); err != nil {
 		return err
 	}
 
-	// read configuration directory
-	c.config, err = config.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
-	if err != nil {
-		return err
+	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
+		// read configuration from git repo
+		fs := memfs.New()
+		if _, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
+			Auth: &http.BasicAuth{
+				Username: c.globalConfig.GetString(optionNameConfigGitUsername),
+				Password: c.globalConfig.GetString(optionNameConfigGitPassword),
+			},
+			Depth:         1,
+			ReferenceName: plumbing.ReferenceName("refs/heads/" + c.globalConfig.GetString(optionNameConfigGitBranch)),
+			SingleBranch:  true,
+			URL:           c.globalConfig.GetString(optionNameConfigGitRepo),
+		}); err != nil {
+			return fmt.Errorf("cloning repo %s: %w ", c.globalConfig.GetString(optionNameConfigGitRepo), err)
+		}
+
+		files, err := fs.ReadDir(".")
+		if err != nil {
+			return err
+		}
+		yamlFiles := [][]byte{}
+		for _, file := range files {
+			if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml")) {
+				continue
+			}
+			f, err := fs.Open(file.Name())
+			if err != nil {
+				return fmt.Errorf("opening file %s: %w ", file.Name(), err)
+			}
+			defer f.Close()
+
+			yamlFile := make([]byte, file.Size())
+			if _, err := f.Read(yamlFile); err != nil {
+				return fmt.Errorf("reading file %s: %w ", file.Name(), err)
+			}
+			yamlFiles = append(yamlFiles, yamlFile)
+		}
+
+		if c.config, err = config.Read(yamlFiles...); err != nil {
+			return err
+		}
+	} else {
+		// read configuration from directory
+		files, err := os.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
+		if err != nil {
+			return fmt.Errorf("reading config dir: %w", err)
+		}
+
+		yamlFiles := [][]byte{}
+		for _, file := range files {
+			fullPath := filepath.Join(c.globalConfig.GetString(optionNameConfigDir) + "/" + file.Name())
+			fileExt := filepath.Ext(fullPath)
+			if fileExt != ".yaml" && fileExt != ".yml" {
+				continue
+			}
+			yamlFile, err := os.ReadFile(fullPath)
+			if err != nil {
+				return fmt.Errorf("reading file %s: %w ", file.Name(), err)
+			}
+			yamlFiles = append(yamlFiles, yamlFile)
+		}
+
+		if c.config, err = config.Read(yamlFiles...); err != nil {
+			return err
+		}
 	}
 
-	return nil
+	return
 }
 
 func (c *command) setHomeDir() (err error) {
