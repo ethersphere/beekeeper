@@ -124,6 +124,15 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
 }
 
+func (c *command) bindGlobalFlags() (err error) {
+	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword} {
+		if err := c.globalConfig.BindPFlag(flag, c.root.PersistentFlags().Lookup(flag)); err != nil {
+			return err
+		}
+	}
+	return
+}
+
 func (c *command) initConfig() (err error) {
 	// set global configuration
 	cfg := viper.New()
@@ -155,9 +164,7 @@ func (c *command) initConfig() (err error) {
 	}
 
 	c.globalConfig = cfg
-
-	// bind flag for configuration directory
-	if err := cfg.BindPFlag(optionNameConfigDir, c.root.PersistentFlags().Lookup(optionNameConfigDir)); err != nil {
+	if err := c.bindGlobalFlags(); err != nil {
 		return err
 	}
 
