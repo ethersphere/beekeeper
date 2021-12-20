@@ -36,6 +36,10 @@ Location can also be set with **--config** flag.
 example:
 ```
 config-dir: <user home dir>/.beekeeper/
+config-git-repo: ""
+config-git-branch: main
+config-git-username: <GitHub username>
+config-git-password: <GitHub Personal Access Token>
 enable-k8s: true
 in-cluster: false
 kubeconfig: "~/.kube/config"
@@ -43,6 +47,12 @@ geth-url: http://geth-swap.geth-swap.dai.internal
 bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7 
 eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
 ```
+
+Beekeeper reads *config-dir* from a local machine by default, but it also supports reading *config-dir* from a Git repo. If field *config-git-repo* is set, it will override *config-dir* and configuration will be read from a Git repo.
+
+If *config-dir* is kept in a Git repo, field *config-git-repo* should point to it, along with *config-git-branch* specifying proper branch. Fields *config-git-username* and *config-git-password* can be set when repo is private.
+
+Official GitHub repository with Beekeepers configuration is **https://github.com/ethersphere/beekeeper-config**
 
 NOTE: command flags can be also set through the config file
 
