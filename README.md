@@ -52,7 +52,7 @@ Beekeeper reads *config-dir* from a local machine by default, but it also suppor
 
 If *config-dir* is kept in a Git repo, field *config-git-repo* should point to it, along with *config-git-branch* specifying proper branch. Fields *config-git-username* and *config-git-password* can be set when repo is private.
 
-Official GitHub repository with Beekeepers configuration is **https://github.com/ethersphere/beekeeper-config**
+Official GitHub repository with Beekeeper's configuration is **https://github.com/ethersphere/beekeeper-config**
 
 NOTE: command flags can be also set through the config file
 
