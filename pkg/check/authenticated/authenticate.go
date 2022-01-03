@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	test "github.com/ethersphere/beekeeper/pkg/test"
 )
 
 // Options represents check options
@@ -18,10 +19,8 @@ type Options struct {
 }
 
 // NewDefaultOptions returns new default options
-func NewDefaultOptions() Options {
-	return Options{
-		DryRun: false,
-	}
+func NewDefaultOptions() (opts Options) {
+	return
 }
 
 // compile check whether Check implements interface
@@ -32,7 +31,7 @@ type Check struct{}
 
 // NewCheck returns new check
 func NewCheck() beekeeper.Action {
-	return &Check{}
+	return new(Check)
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -47,48 +46,69 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	fmt.Println("running authenticated check")
 
-	restricted, err := cluster.NodeGroup(o.RestrictedGroupName)
+	caseOpts := test.CaseOptions{
+		AdminPassword:       o.AdminPassword,
+		RestrictedGroupName: o.RestrictedGroupName,
+		Role:                o.Role,
+	}
+
+	checkCase, err := test.NewCheckCase(ctx, cluster, caseOpts)
 	if err != nil {
 		return err
 	}
 
-	var node orchestration.Node
-	for _, node = range restricted.Nodes() {
-		client := node.Client()
+	// filter func
+	restricted := func(bee *test.BeeV2) bool {
+		return bee.Restricted()
+	}
+
+	// testing closure
+	checkAuth := testAuth(ctx, o)
+
+	// execute test
+	if err := checkCase.Bees().Filter(restricted).ForEach(checkAuth); err != nil {
+		return err
+	}
+
+	fmt.Println("authenticated check completed successfully")
+	return
+}
+
+func testAuth(ctx context.Context, o Options) test.ConsumeFunc {
+	return func(bee *test.BeeV2) error {
+		fmt.Println("testing authentication on", bee.Name())
 
 		// refresh with bad token
-		if _, err := client.Refresh(ctx, "bad-token"); err == nil {
+		if _, err := bee.RefreshAuthToken(ctx, "bad-token"); err == nil {
 			return errors.New("expected error when making a call while unauthenticated")
 		}
 
 		// auth with bad password
-		token, err := client.Authenticate(ctx, o.Role, "wrong-password")
+		token, err := bee.Authenticate(ctx, "wrong-password")
 		if err == nil {
 			return fmt.Errorf("expected error when authenticating with bad credentials")
 		}
 		if token != "" {
-			return fmt.Errorf("want empty token, got %s", token)
+			return fmt.Errorf("want empty token got %s", token)
 		}
 
 		// successful auth
-		token, err = client.Authenticate(ctx, o.Role, o.AdminPassword)
+		token, err = bee.Authenticate(ctx, o.AdminPassword)
 		if err != nil {
 			return fmt.Errorf("authenticate: %w", err)
 		}
 
 		// successful refresh
-		newToken, err := client.Refresh(ctx, token)
+		newToken, err := bee.RefreshAuthToken(ctx, token)
 		if err != nil {
 			return fmt.Errorf("refresh: %w", err)
 		}
-
-		if len(newToken) == 0 {
-			return fmt.Errorf("expected a new token, got: %v", newToken)
+		if newToken == "" {
+			return fmt.Errorf("got empty token, want %s", token)
 		}
-	}
 
-	fmt.Println("authenticated check completed successfully")
-	return
+		return nil
+	}
 }
 
 // dryRun does nothing

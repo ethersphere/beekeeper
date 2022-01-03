@@ -17,7 +17,7 @@ type CheckCase struct {
 	cluster  orchestration.Cluster
 	overlays orchestration.ClusterOverlays
 
-	nodes []beeV2
+	nodes []BeeV2
 
 	options CaseOptions
 	rnd     *rand.Rand
@@ -31,9 +31,13 @@ type CaseOptions struct {
 	PostageLabel  string
 	Seed          int64
 	PostageDepth  uint64
+
+	AdminPassword       string
+	RestrictedGroupName string
+	Role                string
 }
 
-func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, o CaseOptions) (*CheckCase, error) {
+func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts CaseOptions) (*CheckCase, error) {
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return nil, err
@@ -44,28 +48,28 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, o CaseOpti
 		return nil, err
 	}
 
-	rnd := random.PseudoGenerator(o.Seed)
-	fmt.Printf("Seed: %d\n", o.Seed)
+	rnd := random.PseudoGenerator(caseOpts.Seed)
+	fmt.Printf("Seed: %d\n", caseOpts.Seed)
 
 	flatOverlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rnds := random.PseudoGenerators(o.Seed, len(flatOverlays))
-	fmt.Printf("Seed: %d\n", o.Seed)
+	rnds := random.PseudoGenerators(caseOpts.Seed, len(flatOverlays))
+	fmt.Printf("Seed: %d\n", caseOpts.Seed)
 
 	var (
-		nodes []beeV2
+		nodes []BeeV2
 		count int
 	)
 	for name, addr := range flatOverlays {
-		nodes = append(nodes, beeV2{
+		nodes = append(nodes, BeeV2{
 			name:   name,
 			Addr:   addr,
 			client: clients[name],
 			rnd:    rnds[count],
-			o:      o,
+			opts:   caseOpts,
 		})
 		count++
 	}
@@ -77,15 +81,15 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, o CaseOpti
 		overlays: overlays,
 		nodes:    nodes,
 		rnd:      rnd,
-		options:  o,
+		options:  caseOpts,
 	}, nil
 }
 
-func (c *CheckCase) RandomBee() *beeV2 {
+func (c *CheckCase) RandomBee() *BeeV2 {
 	_, nodeName, overlay := c.overlays.Random(c.rnd)
 
-	return &beeV2{
-		o:       c.options,
+	return &BeeV2{
+		opts:    c.options,
 		name:    nodeName,
 		overlay: overlay,
 		client:  c.clients[nodeName],
@@ -100,11 +104,11 @@ type File struct {
 	size    int64
 }
 
-func (c *CheckCase) LastBee() *beeV2 {
+func (c *CheckCase) LastBee() *BeeV2 {
 	return &c.nodes[len(c.nodes)-1]
 }
 
-func (c *CheckCase) Bee(index int) *beeV2 {
+func (c *CheckCase) Bee(index int) *BeeV2 {
 	return &c.nodes[index]
 }
 

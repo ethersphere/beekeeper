@@ -11,8 +11,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 )
 
-type beeV2 struct {
-	o       CaseOptions
+type BeeV2 struct {
+	opts    CaseOptions
 	name    string
 	Addr    swarm.Address
 	rnd     *rand.Rand
@@ -20,72 +20,76 @@ type beeV2 struct {
 	client  *bee.Client
 }
 
-func (n *beeV2) Name() string {
-	return n.name
+func (b *BeeV2) Name() string {
+	return b.name
 }
 
-func (n *beeV2) DownloadChunk(ctx context.Context, ref swarm.Address) ([]byte, error) {
-	return n.client.DownloadChunk(ctx, ref, "")
+func (b *BeeV2) Restricted() bool {
+	return b.client.Config().Restricted
+}
+
+func (b *BeeV2) DownloadChunk(ctx context.Context, ref swarm.Address) ([]byte, error) {
+	return b.client.DownloadChunk(ctx, ref, "")
 }
 
 // NewRandomFile returns new pseudorandom file
-func (node *beeV2) UploadRandomFile(ctx context.Context) (File, error) {
-	name := fmt.Sprintf("%s-%s", node.o.FileName, node.name)
+func (b *BeeV2) UploadRandomFile(ctx context.Context) (File, error) {
+	name := fmt.Sprintf("%s-%s", b.opts.FileName, b.name)
 	file := File{
 		name: name,
-		rand: node.rnd,
-		size: node.o.FileSize,
+		rand: b.rnd,
+		size: b.opts.FileSize,
 	}
 
-	return file, node.UploadFile(ctx, file)
+	return file, b.UploadFile(ctx, file)
 }
 
-func (n beeV2) UploadFile(ctx context.Context, file File) error {
-	depth := 2 + bee.EstimatePostageBatchDepth(n.o.FileSize)
-	batchID, err := n.client.CreatePostageBatch(ctx, n.o.PostageAmount, depth, n.o.GasPrice, n.o.PostageLabel, false)
+func (b *BeeV2) UploadFile(ctx context.Context, file File) error {
+	depth := 2 + bee.EstimatePostageBatchDepth(b.opts.FileSize)
+	batchID, err := b.client.CreatePostageBatch(ctx, b.opts.PostageAmount, depth, b.opts.GasPrice, b.opts.PostageLabel, false)
 	if err != nil {
-		return fmt.Errorf("node %s: created batch id %w", n.name, err)
+		return fmt.Errorf("node %s: created batch id %w", b.name, err)
 	}
-	fmt.Printf("node %s: created batch id %s\n", n.name, batchID)
+	fmt.Printf("node %s: created batch id %s\n", b.name, batchID)
 
 	randomFile := bee.NewRandomFile(file.rand, file.name, file.size)
-	if err := n.client.UploadFile(ctx, &randomFile, api.UploadOptions{BatchID: batchID}); err != nil {
-		return fmt.Errorf("node %s: %w", n.name, err)
+	if err := b.client.UploadFile(ctx, &randomFile, api.UploadOptions{BatchID: batchID}); err != nil {
+		return fmt.Errorf("node %s: %w", b.name, err)
 	}
 
-	fmt.Println("Uploaded file to", n.name)
+	fmt.Println("Uploaded file to", b.name)
 
 	return nil
 }
 
-func (n beeV2) ExpectToHaveFile(ctx context.Context, file File) error {
-	size, hash, err := n.client.DownloadFile(ctx, file.address)
+func (b *BeeV2) ExpectToHaveFile(ctx context.Context, file File) error {
+	size, hash, err := b.client.DownloadFile(ctx, file.address)
 	if err != nil {
-		return fmt.Errorf("node %s: %w", n.name, err)
+		return fmt.Errorf("node %s: %w", b.name, err)
 	}
 
-	fmt.Println("Downloaded file from", n.name)
+	fmt.Println("Downloaded file from", b.name)
 
 	if !bytes.Equal(file.hash, hash) {
-		return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.address.String(), n.name, file.size, size)
+		return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.address.String(), b.name, file.size, size)
 	}
 
 	return nil
 }
 
-func (n *beeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
-	o := n.o
-	batchID, err := n.client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+func (b *BeeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
+	o := b.opts
+	batchID, err := b.client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {
-		return nil, fmt.Errorf("node %s: batch id %w", n.name, err)
+		return nil, fmt.Errorf("node %s: batch id %w", b.name, err)
 	}
-	fmt.Printf("node %s: batch id %s\n", n.name, batchID)
+	fmt.Printf("node %s: batch id %s\n", b.name, batchID)
 
 	return &ChunkUploader{
 		ctx:     ctx,
-		rnd:     n.rnd,
-		name:    n.name,
-		client:  n.client,
+		rnd:     b.rnd,
+		name:    b.name,
+		client:  b.client,
 		batchID: batchID,
 	}, nil
 }
