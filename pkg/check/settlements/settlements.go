@@ -252,12 +252,12 @@ func validateSettlements(overlays orchestration.NodeGroupOverlays, accounting or
 	// threshold validation
 	for node, v := range accounting {
 		for _, peerInfo := range v {
-			if peerInfo.Balance < -1*peerInfo.ThresholdReceived {
-				return fmt.Errorf("node %s has balance %d that exceeds received threshold %d", node, peerInfo.Balance, peerInfo.ThresholdReceived)
+			if peerInfo.Balance < -1*peerInfo.CurrentThresholdReceived {
+				return fmt.Errorf("node %s has balance %d that exceeds received threshold %d", node, peerInfo.Balance, peerInfo.CurrentThresholdReceived)
 			}
 
-			if peerInfo.Balance > peerInfo.ThresholdGiven {
-				return fmt.Errorf("node %s has balance %d that exceeds given threshold %d", node, peerInfo.Balance, peerInfo.ThresholdGiven)
+			if peerInfo.Balance > peerInfo.CurrentThresholdGiven {
+				return fmt.Errorf("node %s has balance %d that exceeds given threshold %d", node, peerInfo.Balance, peerInfo.CurrentThresholdGiven)
 			}
 		}
 	}

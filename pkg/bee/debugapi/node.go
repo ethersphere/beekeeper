@@ -30,13 +30,16 @@ func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error)
 
 // Account represents node's account with a given peer
 type Account struct {
-	Balance               *bigint.BigInt `json:"balance"`
-	GhostBalance          *bigint.BigInt `json:"ghostBalance"`
-	ReservedBalance       *bigint.BigInt `json:"reservedBalance"`
-	ShadowReservedBalance *bigint.BigInt `json:"shadowReservedBalance"`
-	SurplusBalance        *bigint.BigInt `json:"surplusBalance"`
-	ThresholdReceived     *bigint.BigInt `json:"thresholdReceived"`
-	ThresholdGiven        *bigint.BigInt `json:"thresholdGiven"`
+	Balance                  *bigint.BigInt `json:"balance"`
+	ConsumedBalance          *bigint.BigInt `json:"consumedBalance"`
+	GhostBalance             *bigint.BigInt `json:"ghostBalance"`
+	ReservedBalance          *bigint.BigInt `json:"reservedBalance"`
+	ShadowReservedBalance    *bigint.BigInt `json:"shadowReservedBalance"`
+	SurplusBalance           *bigint.BigInt `json:"surplusBalance"`
+	ThresholdReceived        *bigint.BigInt `json:"thresholdReceived"`
+	ThresholdGiven           *bigint.BigInt `json:"thresholdGiven"`
+	CurrentThresholdReceived *bigint.BigInt `json:"currentThresholdReceived"`
+	CurrentThresholdGiven    *bigint.BigInt `json:"currentThresholdGiven"`
 }
 
 // Accounting represents node's accounts with all peers
