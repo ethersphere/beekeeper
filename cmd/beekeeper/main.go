@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ethersphere/beekeeper/cmd/beekeeper/cmd"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 func main() {
