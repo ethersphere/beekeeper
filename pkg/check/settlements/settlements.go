@@ -29,6 +29,7 @@ type Options struct {
 	Seed               int64
 	Threshold          int64 // balances treshold
 	UploadNodeCount    int
+	WaitAfterUpload    time.Duration // seconds to wait before downloading a file
 	WaitBeforeDownload time.Duration // seconds to wait before downloading a file
 }
 
@@ -46,6 +47,7 @@ func NewDefaultOptions() Options {
 		Seed:               0,
 		Threshold:          10000000000000,
 		UploadNodeCount:    1,
+		WaitAfterUpload:    15 * time.Second,
 		WaitBeforeDownload: 5 * time.Second,
 	}
 }
@@ -129,6 +131,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return fmt.Errorf("node %s: %w", uNode, err)
 		}
 		c.logger.Infof("File %s uploaded successfully to node %s", file.Address().String(), overlays[uNode].String())
+
+		time.Sleep(o.WaitAfterUpload)
 
 		settlementsValid := false
 		// validate settlements after uploading a file
