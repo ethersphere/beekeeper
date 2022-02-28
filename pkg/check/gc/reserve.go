@@ -70,7 +70,7 @@ source files in the bee repo before the test is run.
 - Cluster must be fresh (i.e. no other previous transactions
   made on the underlying eth backend before the cluster is
   brought up)
-- Initial Radius(Default Depth) = 2
+- Initial Radius(Default Depth) = 0
 - Bucket Depth = 2
 - Reserve Capacity = 16 chunks
 - Cache Capacity = 10 chunks
@@ -96,7 +96,7 @@ A little bit about how the numbers make sense:
 *********************************************************
 
 - Buy an initial batch with depth 8 and amount 1 PLUR per
-  chunk. This makes the initial radius go from 2 to 4.
+  chunk. This makes the initial radius go from 0 to 4.
 - Upload 1 pinned chunk at bin 0 to the node.
 - Upload 10 chunks at the initial radius PO. These 10
   chunks will later be evicted from the reserve to the
