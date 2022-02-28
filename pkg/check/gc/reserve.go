@@ -70,7 +70,7 @@ source files in the bee repo before the test is run.
 - Cluster must be fresh (i.e. no other previous transactions
   made on the underlying eth backend before the cluster is
   brought up)
-- Initial Radius(Default Depth) = 2
+- Initial Radius(Default Depth) = 0
 - Bucket Depth = 2
 - Reserve Capacity = 16 chunks
 - Cache Capacity = 10 chunks
@@ -96,7 +96,7 @@ A little bit about how the numbers make sense:
 *********************************************************
 
 - Buy an initial batch with depth 8 and amount 1 PLUR per
-  chunk. This makes the initial radius go from 2 to 4.
+  chunk. This makes the initial radius go from 0 to 4.
 - Upload 1 pinned chunk at bin 0 to the node.
 - Upload 10 chunks at the initial radius PO. These 10
   chunks will later be evicted from the reserve to the
@@ -158,15 +158,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	const (
 		cheapBatchAmount     = 1
 		expensiveBatchAmount = 3
-		batchDepth           = uint64(8)         // the depth for the batches that we buy
-		initialRadius        = 2                 // initial reserve radius
-		higherRadius         = initialRadius + 1 // radius needed for the chunks that shouldnt be GCd
+		batchDepth           = uint64(8) // the depth for the batches that we buy
+
+		radiusAfterSecondBatch = 5
 	)
 
 	var (
 		pinnedChunk                = bee.GenerateRandomChunkAt(rnd, overlay, 0)
-		lowValueChunks             = bee.GenerateNRandomChunksAt(rnd, overlay, 10, initialRadius)
-		lowValueHigherRadiusChunks = bee.GenerateNRandomChunksAt(rnd, overlay, 10, higherRadius)
+		lowValueChunks             = bee.GenerateNRandomChunksAt(rnd, overlay, 10, radiusAfterSecondBatch-1)
+		lowValueHigherRadiusChunks = bee.GenerateNRandomChunksAt(rnd, overlay, 10, radiusAfterSecondBatch)
 	)
 
 	origState, err := client.ReserveState(ctx)
@@ -175,8 +175,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	// do some sanity checks to assure test setup is correct
-	if origState.Radius != initialRadius {
-		return fmt.Errorf("wrong initial radius, got %d want %d", origState.Radius, initialRadius)
+	if origState.Radius != 0 {
+		return fmt.Errorf("wrong initial radius, got %d want %d", origState.Radius, 0)
 	}
 	if origState.StorageRadius != 0 {
 		return fmt.Errorf("wrong initial storage radius, got %d want %d", origState.StorageRadius, 0)
@@ -186,6 +186,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
+	// radius is 4
 
 	_, err = client.UploadChunk(ctx, pinnedChunk.Data(), api.UploadOptions{Pin: true, BatchID: batchID, Deferred: true})
 	if err != nil {
@@ -200,12 +201,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 	}
 
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueChunks), batchDepth, cheapBatchAmount, initialRadius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius 4\n", len(lowValueChunks), batchDepth, cheapBatchAmount)
 
 	highValueBatch, err := client.CreatePostageBatch(ctx, expensiveBatchAmount, batchDepth, o.GasPrice, o.PostageLabel, true)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
+	// radius is 5
 
 	for _, c := range lowValueHigherRadiusChunks {
 		if _, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID, Deferred: true}); err != nil {
@@ -213,7 +215,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 	}
 
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(lowValueHigherRadiusChunks), batchDepth, cheapBatchAmount, higherRadius)
+	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius 5\n", len(lowValueHigherRadiusChunks), batchDepth, cheapBatchAmount)
 
 	// allow time to sleep so that chunks can get synced and then GCd
 	time.Sleep(5 * time.Second)
@@ -224,8 +226,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 	fmt.Println("Reserve state:", state)
 
-	if state.StorageRadius != 2 {
-		return fmt.Errorf("storage radius mismatch. got %d want %d", state.StorageRadius, 2)
+	if state.StorageRadius != state.Radius {
+		return fmt.Errorf("storage radius mismatch. got %d want %d", state.StorageRadius, state.Radius)
 	}
 
 	_, hasCount, err := client.HasChunks(ctx, bee.AddressOfChunk(lowValueChunks...))
