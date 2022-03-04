@@ -181,9 +181,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if origState.StorageRadius != 0 {
 		return fmt.Errorf("wrong initial storage radius, got %d want %d", origState.StorageRadius, 0)
 	}
-	if origState.Available != 16 {
-		return fmt.Errorf("wrong initial storage radius, got %d want %d", origState.Available, 16)
-	}
 
 	batchID, err := client.CreatePostageBatch(ctx, cheapBatchAmount, batchDepth, o.GasPrice, o.PostageLabel, true)
 	if err != nil {
