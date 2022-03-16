@@ -34,7 +34,10 @@ jobs:
             ${{ runner.OS }}-
       - name: Lint
         if: matrix.os == 'ubuntu-latest'
-        run: make lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.44.2
+          args: --timeout 10m
       - name: Vet
         if: matrix.os == 'ubuntu-latest'
         run: make vet
