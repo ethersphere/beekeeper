@@ -1,4 +1,4 @@
-FROM golang:1.16 AS build
+FROM golang:1.18 AS build
 
 WORKDIR /src
 # enable modules caching in separate layer
@@ -13,7 +13,7 @@ FROM debian:10.2-slim
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get install -y \
-        ca-certificates; \
+    ca-certificates; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*; \
     groupadd -r beekeeper --gid 999; \
