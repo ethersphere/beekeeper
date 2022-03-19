@@ -343,7 +343,6 @@ simulations:
     options:
       file-size: 1048576 # 1mb = 1*1024*1024
       file-count:
-      total-size:
       gas-price: '10000000000'
       postage-amount: 1000
       postage-depth: 16
@@ -351,8 +350,8 @@ simulations:
       retry-delay: 1s
       seed:
       timeout: 30s
-      upload-node-name: 'bee-0'
-      upload-node-percentage: 100
+      upload-node-name:
+      upload-node-percentage: 50
     timeout: 5m
     type: upload
   retrieval:

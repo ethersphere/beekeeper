@@ -39,7 +39,6 @@ var Simulations = map[string]SimulationType{
 			simulationOpts := new(struct {
 				FileSize             *int64         `yaml:"file-size"`
 				FileCount            *int64         `yaml:"file-count"`
-				TotalSize            *int64         `yaml:"total-size"`
 				GasPrice             *string        `yaml:"gas-price"`
 				PostageAmount        *int64         `yaml:"postage-amount"`
 				PostageDepth         *uint64        `yaml:"postage-depth"`

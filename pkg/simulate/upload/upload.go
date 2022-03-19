@@ -21,7 +21,6 @@ import (
 type Options struct {
 	FileSize             int64
 	FileCount            int64
-	TotalSize            int64
 	GasPrice             string
 	PostageAmount        int64
 	PostageDepth         uint64
@@ -37,9 +36,8 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		FileSize:             1,
+		FileSize:             1048576, // 1mb = 1*1024*1024
 		FileCount:            0,
-		TotalSize:            0,
 		GasPrice:             "",
 		PostageAmount:        1000,
 		PostageDepth:         16,
@@ -47,7 +45,7 @@ func NewDefaultOptions() Options {
 		Retries:              5,
 		RetryDelay:           1 * time.Second,
 		Seed:                 0,
-		Timeout:              5 * time.Minute,
+		Timeout:              1 * time.Minute,
 		UploadNodeName:       "",
 		UploadNodePercentage: 50,
 	}
@@ -71,9 +69,6 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-	fmt.Println("OPTIONS", o)
-
-	concurrency := 100
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -101,7 +96,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	}
 	sort.Strings(nodes)
 
-	// return fmt.Errorf("dummy")
+	concurrency := 100
 	rnds := random.PseudoGenerators(rnd.Int63(), len(nodes))
 
 	uGroup := new(errgroup.Group)
@@ -125,6 +120,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 				return fmt.Errorf("node %s: %w", n, err)
 			}
 
+			var fileCount int64
 			for {
 				file := bee.NewRandomFile(rnds[i], "filename", o.FileSize)
 				var batchID string
@@ -164,7 +160,13 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 					break
 				}
 
-				fmt.Printf("File %s uploaded successfully to node %s, batch ID %s\n", file.Address().String(), overlay, batchID)
+				fmt.Printf("File %s uploaded to node %s, batch ID %s\n", file.Address().String(), overlay, batchID)
+
+				fileCount++
+				if o.FileCount > 0 && fileCount >= o.FileCount {
+					fmt.Printf("Uploaded %d files to node %s\n", fileCount, n)
+					return nil
+				}
 			}
 		})
 	}
