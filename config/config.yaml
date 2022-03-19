@@ -2,7 +2,7 @@
 # clusters may inherit it's configuration from already defined cluster and override specific fields from it
 clusters:
   default:
-    _inherit: ""
+    _inherit: ''
     name: bee
     namespace: beekeeper
     disable-namespace: false
@@ -22,20 +22,20 @@ clusters:
         bee-config: bootnode
         config: default
         nodes:
-        - name: bootnode-0
-          bootnodes: /dns4/bootnode-1-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAmMw7Uj6vfraD9BYx3coDs6MK6pAmActE8fsfaZwigsaB6
-          # clef:
-          #   key: '{"address":"1c4bc31fb44362ee7523a715913ef88cb2124d9c","crypto":{"cipher":"aes-128-ctr","ciphertext":"d71ca74e969857e215fbf61b8474bcec90b54b87a77d9c4ba586471b98068510","cipherparams":{"iv":"a542cef23e0cd4cd3934d100f92dc0c6"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"d9fafd5fedbf0901a8b23581f8995ec72df2450f7f504019e450cc5a1d95b6aa"},"mac":"4da3db2eb5f363193786f19587d7f3312b873e9e7564a1eae42032aa603d11c7"},"id":"961e0366-c6b2-42d7-b96b-7d8efa622aaf","version":3}'
-          #   password: clefbeesecret
-          libp2p-key: '{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}'
-          swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
-        - name: bootnode-1
-          bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL
-          # clef:
-          #   key: '{"address":"9ce69a62ca736b28a08baf2aad48349d218f3182","crypto":{"cipher":"aes-128-ctr","ciphertext":"aada885f0cb71c315c6d9a5948db4ff2a6532474b9b434ea4180b8ddc12cec81","cipherparams":{"iv":"df719b7645ee3617a68e5691bd0e991d"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"b7bce85125a786cf8928fc46105aa9027cbb486437317f2a929702e795f7e554"},"mac":"f577f7ad401b00c832c677c2141538645da18397dcc6e3cd4b2e2f6ee5a60f28"},"id":"f6c14462-fc98-4807-a159-d514bdd61f7d","version":3}'
-          #   password: clefbeesecret
-          libp2p-key: '{"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f688ddcdfe88acbebef2037c68030b1a0a367a561333e5c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","crypto":{"cipher":"aes-128-ctr","ciphertext":"0d0ff25e9b03292e622c5a09ec00c2acb7ff5882f02dd2f00a26ac6d3292a434","cipherparams":{"iv":"cd4082caf63320b306fe885796ba224f"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a4d63d56c539eb3eff2a235090127486722fa2c836cf735d50d673b730cebc3f"},"mac":"aad40da9c1e742e2b01bb8f76ba99ace97ccb0539cea40e31eb6b9bb64a3f36a"},"version":3}'
-          swarm-key: '{"address":"ebe269e07161c68a942a3a7fce6b4ed66867d6f0","crypto":{"cipher":"aes-128-ctr","ciphertext":"06b550c35b46099aea8f6c9f799497d34bd5ebc13af79c7cdb2a1037227544ad","cipherparams":{"iv":"fa088e69b1849e40f190a5f69f0555f8"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"42b4f2815c0042d02eed916a7a74ecdc005f1f7eae0cfb5837c15f469df9ddba"},"mac":"23e3d0594ab94587258a33cc521edbde009b887a6f117ed7a3422d1c95123568"},"version":3}'
+          - name: bootnode-0
+            bootnodes: /dns4/bootnode-1-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAmMw7Uj6vfraD9BYx3coDs6MK6pAmActE8fsfaZwigsaB6
+            # clef:
+            #   key: '{"address":"1c4bc31fb44362ee7523a715913ef88cb2124d9c","crypto":{"cipher":"aes-128-ctr","ciphertext":"d71ca74e969857e215fbf61b8474bcec90b54b87a77d9c4ba586471b98068510","cipherparams":{"iv":"a542cef23e0cd4cd3934d100f92dc0c6"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"d9fafd5fedbf0901a8b23581f8995ec72df2450f7f504019e450cc5a1d95b6aa"},"mac":"4da3db2eb5f363193786f19587d7f3312b873e9e7564a1eae42032aa603d11c7"},"id":"961e0366-c6b2-42d7-b96b-7d8efa622aaf","version":3}'
+            #   password: clefbeesecret
+            libp2p-key: '{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}'
+            swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
+          - name: bootnode-1
+            bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL
+            # clef:
+            #   key: '{"address":"9ce69a62ca736b28a08baf2aad48349d218f3182","crypto":{"cipher":"aes-128-ctr","ciphertext":"aada885f0cb71c315c6d9a5948db4ff2a6532474b9b434ea4180b8ddc12cec81","cipherparams":{"iv":"df719b7645ee3617a68e5691bd0e991d"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"b7bce85125a786cf8928fc46105aa9027cbb486437317f2a929702e795f7e554"},"mac":"f577f7ad401b00c832c677c2141538645da18397dcc6e3cd4b2e2f6ee5a60f28"},"id":"f6c14462-fc98-4807-a159-d514bdd61f7d","version":3}'
+            #   password: clefbeesecret
+            libp2p-key: '{"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f688ddcdfe88acbebef2037c68030b1a0a367a561333e5c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","crypto":{"cipher":"aes-128-ctr","ciphertext":"0d0ff25e9b03292e622c5a09ec00c2acb7ff5882f02dd2f00a26ac6d3292a434","cipherparams":{"iv":"cd4082caf63320b306fe885796ba224f"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a4d63d56c539eb3eff2a235090127486722fa2c836cf735d50d673b730cebc3f"},"mac":"aad40da9c1e742e2b01bb8f76ba99ace97ccb0539cea40e31eb6b9bb64a3f36a"},"version":3}'
+            swarm-key: '{"address":"ebe269e07161c68a942a3a7fce6b4ed66867d6f0","crypto":{"cipher":"aes-128-ctr","ciphertext":"06b550c35b46099aea8f6c9f799497d34bd5ebc13af79c7cdb2a1037227544ad","cipherparams":{"iv":"fa088e69b1849e40f190a5f69f0555f8"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"42b4f2815c0042d02eed916a7a74ecdc005f1f7eae0cfb5837c15f469df9ddba"},"mac":"23e3d0594ab94587258a33cc521edbde009b887a6f117ed7a3422d1c95123568"},"version":3}'
       bee:
         mode: node
         bee-config: default
@@ -56,102 +56,101 @@ clusters:
         bee-config: light-node
         config: light-node
         count: 3
-        
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
 node-groups:
   default:
-    _inherit: ""
+    _inherit: ''
     clef-image: ethersphere/clef:latest
     clef-image-pull-policy: Always
     image: ethersphere/bee:latest
     image-pull-policy: Always
     image-pull-secrets: [regcred]
     ingress-annotations:
-      nginx.ingress.kubernetes.io/affinity: "cookie"
-      nginx.ingress.kubernetes.io/affinity-mode: "persistent"
-      nginx.ingress.kubernetes.io/proxy-body-size: "0"
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
-      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
-      nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
-      nginx.ingress.kubernetes.io/session-cookie-path: "default"
-      nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    ingress-class: "nginx-internal"
-    ingress-debug-class: "nginx-internal"
+      nginx.ingress.kubernetes.io/affinity: 'cookie'
+      nginx.ingress.kubernetes.io/affinity-mode: 'persistent'
+      nginx.ingress.kubernetes.io/proxy-body-size: '0'
+      nginx.ingress.kubernetes.io/proxy-read-timeout: '7200'
+      nginx.ingress.kubernetes.io/proxy-send-timeout: '7200'
+      nginx.ingress.kubernetes.io/session-cookie-max-age: '86400'
+      nginx.ingress.kubernetes.io/session-cookie-name: 'SWARMGATEWAY'
+      nginx.ingress.kubernetes.io/session-cookie-path: 'default'
+      nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    ingress-class: 'nginx-internal'
+    ingress-debug-class: 'nginx-internal'
     labels:
-      app.kubernetes.io/component: "node"
-      app.kubernetes.io/part-of: "bee"
-      app.kubernetes.io/version: "latest"
-    node-selector: 
-      node-group: "private"
+      app.kubernetes.io/component: 'node'
+      app.kubernetes.io/part-of: 'bee'
+      app.kubernetes.io/version: 'latest'
+    node-selector:
+      node-group: 'private'
     persistence-enabled: false
-    persistence-storage-class: "local-storage"
-    persistence-storage-request: "34Gi"
-    pod-management-policy: "OrderedReady"
-    resources-limit-cpu: "1"
+    persistence-storage-class: 'local-storage'
+    persistence-storage-request: '34Gi'
+    pod-management-policy: 'OrderedReady'
+    resources-limit-cpu: '1'
     resources-limit-memory: 2Gi
     resources-request-cpu: 750m
     resources-request-memory: 1Gi
-    restart-policy: "Always"
-    update-strategy: "RollingUpdate"
+    restart-policy: 'Always'
+    update-strategy: 'RollingUpdate'
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 # bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
 bee-configs:
   default:
-    _inherit: ""
-    api-addr: ":1633"
+    _inherit: ''
+    api-addr: ':1633'
     block-time: 1
-    bootnodes: ""
+    bootnodes: ''
     bootnode-mode: false
     cache-capacity: 1000000
     clef-signer-enable: false
-    clef-signer-endpoint: "http://localhost:8550"
-    cors-allowed-origins: ""
-    data-dir: "/home/bee/.bee"
+    clef-signer-endpoint: 'http://localhost:8550'
+    cors-allowed-origins: ''
+    data-dir: '/home/bee/.bee'
     db-open-files-limit: 200
     db-block-cache-capacity: 33554432
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
-    debug-api-addr: ":1635"
+    debug-api-addr: ':1635'
     debug-api-enable: true
     full-node: true
     gateway-mode: false
     global-pinning-enabled: true
-    nat-addr: ""
+    nat-addr: ''
     network-id: 1987
-    p2p-addr: ":1634"
+    p2p-addr: ':1634'
     p2p-quic-enable: false
     p2p-ws-enable: false
-    password: "beekeeper"
+    password: 'beekeeper'
     payment-early-percent: 50
     payment-threshold: 100000000
     payment-tolerance-percent: 25
-    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
-    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
-    resolver-options: ""
+    postage-stamp-address: '0x538e6de1d876bbcd5667085257bc92f7c808a0f3'
+    price-oracle-address: '0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2'
+    resolver-options: ''
     standalone: false
     chequebook-enable: true
     swap-enable: true
-    swap-endpoint: "ws://geth-swap.geth-swap:8546"
-    swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
-    swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
+    swap-endpoint: 'ws://geth-swap.geth-swap:8546'
+    swap-factory-address: '0x09ad42a7d020244920309ffa14ea376dd2d3b7d5'
+    swap-legacy-factory-addresses: '0x657241f4494a2f15ba75346e691d753a978c72df'
     swap-initial-deposit: 500000000000000000
     tracing-enabled: true
-    tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
-    tracing-service-name: "bee"
-    transaction: ""
+    tracing-endpoint: 'jaeger-operator-jaeger-agent.observability:6831'
+    tracing-service-name: 'bee'
+    transaction: ''
     verbosity: 5
-    welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
+    welcome-message: 'Welcome to the Swarm, you are Bee-ing connected!'
     allow-private-cidrs: true
   bootnode:
-    _inherit: "default"
+    _inherit: 'default'
     bootnode-mode: true
 
 # checks defines checks Beekeeper can execute against the cluster
-# type filed allows defining same check with different names and options 
+# type filed allows defining same check with different names and options
 checks:
   balances:
     options:
@@ -174,7 +173,7 @@ checks:
       node-group: bee
       number-of-chunks-to-repair: 1
       postage-amount: 1000
-      seed: 
+      seed:
     timeout: 5m
     type: chunk-repair
   file-retrieval:
@@ -192,12 +191,12 @@ checks:
     type: full-connectivity
     options:
       boot-nodes:
-      - bootnode  
+        - bootnode
       group-1:
-      - light
+        - light
       group-2:
-      - bee
-      - bootnode
+        - bee
+        - bootnode
   gc:
     options:
       cache-size: 10
@@ -258,7 +257,7 @@ checks:
       mode: chunks
       postage-amount: 1000
       exclude-node-group:
-      - light
+        - light
       postage-depth: 16
       retries: 5
       retry-delay: 1s
@@ -271,7 +270,7 @@ checks:
       mode: light-chunks
       postage-amount: 1000
       exclude-node-group:
-      - light
+        - light
       postage-depth: 16
       retries: 5
       retry-delay: 1s
@@ -338,25 +337,28 @@ checks:
       restricted-group-name: restricted
 
 # simulations defines simulations Beekeeper can execute against the cluster
-# type filed allows defining same simulation with different names and options 
+# type filed allows defining same simulation with different names and options
 simulations:
   upload:
     options:
       file-size: 1048576 # 1mb = 1*1024*1024
-      gas-price: "10000000000"
+      file-count:
+      total-size:
+      gas-price: '10000000000'
       postage-amount: 1000
       postage-depth: 16
       retries: 5
       retry-delay: 1s
-      seed: 
-      timeout: 5m
-      upload-node-percentage: 50
+      seed:
+      timeout: 30s
+      upload-node-name: 'bee-0'
+      upload-node-percentage: 100
     timeout: 5m
     type: upload
   retrieval:
     options:
       chunks-per-node: 1
-      gas-price: "10000000000"
+      gas-price: '10000000000'
       postage-amount: 1000
       postage-depth: 16
       upload-node-count: 1
@@ -367,8 +369,8 @@ simulations:
     options:
       postage-amount: 1000
       postage-depth: 20
-      seed: 
-      proxy-api-endpoint: "http://ethproxy.localhost"
+      seed:
+      proxy-api-endpoint: 'http://ethproxy.localhost'
     timeout: 5m
     type: pushsync
 
@@ -376,8 +378,7 @@ simulations:
 stages:
   static:
   default:
-    -
-      - node-group: bee
+    - - node-group: bee
         add: 2
         start: 0
         stop: 1
@@ -389,8 +390,7 @@ stages:
         stop: 3
         delete: 1
         with-funding: true
-    -
-      - node-group: bee
+    - - node-group: bee
         add: 3
         start: 1
         stop: 1
@@ -402,8 +402,7 @@ stages:
         stop: 2
         delete: 1
         with-funding: true
-    -
-      - node-group: bee
+    - - node-group: bee
         add: 4
         start: 1
         stop: 3

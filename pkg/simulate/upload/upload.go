@@ -20,6 +20,8 @@ import (
 // Options represents simulation options
 type Options struct {
 	FileSize             int64
+	FileCount            int64
+	TotalSize            int64
 	GasPrice             string
 	PostageAmount        int64
 	PostageDepth         uint64
@@ -28,6 +30,7 @@ type Options struct {
 	RetryDelay           time.Duration
 	Seed                 int64
 	Timeout              time.Duration
+	UploadNodeName       string
 	UploadNodePercentage int
 }
 
@@ -35,6 +38,8 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		FileSize:             1,
+		FileCount:            0,
+		TotalSize:            0,
 		GasPrice:             "",
 		PostageAmount:        1000,
 		PostageDepth:         16,
@@ -43,6 +48,7 @@ func NewDefaultOptions() Options {
 		RetryDelay:           1 * time.Second,
 		Seed:                 0,
 		Timeout:              5 * time.Minute,
+		UploadNodeName:       "",
 		UploadNodePercentage: 50,
 	}
 }
@@ -65,10 +71,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-
-	if o.UploadNodePercentage < 0 || o.UploadNodePercentage > 100 {
-		return fmt.Errorf("upload-nodes-percentage must be number between 0 and 100")
-	}
+	fmt.Println("OPTIONS", o)
 
 	concurrency := 100
 
@@ -77,23 +80,36 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 		return fmt.Errorf("node clients: %w", err)
 	}
 
-	nodeNames := []string{}
-	for k := range clients {
-		nodeNames = append(nodeNames, k)
-	}
-	sort.Strings(nodeNames)
-	nodeCount := int(math.Round(float64(len(clients)*o.UploadNodePercentage) / 100))
 	rnd := random.PseudoGenerator(o.Seed)
-	picked := randomPick(rnd, nodeNames, nodeCount)
 
-	rnds := random.PseudoGenerators(rnd.Int63(), nodeCount)
+	// choose nodes for upload
+	nodes := []string{}
+	if o.UploadNodeName != "" {
+		nodes = append(nodes, o.UploadNodeName)
+	} else {
+		if o.UploadNodePercentage < 0 || o.UploadNodePercentage > 100 {
+			return fmt.Errorf("upload-nodes-percentage must be number between 0 and 100")
+		}
+
+		allNodes := []string{}
+		for k := range clients {
+			allNodes = append(allNodes, k)
+		}
+
+		nodeCount := int(math.Round(float64(len(clients)*o.UploadNodePercentage) / 100))
+		nodes = randomPick(rnd, allNodes, nodeCount)
+	}
+	sort.Strings(nodes)
+
+	// return fmt.Errorf("dummy")
+	rnds := random.PseudoGenerators(rnd.Int63(), len(nodes))
 
 	uGroup := new(errgroup.Group)
 	uSemaphore := make(chan struct{}, concurrency)
-	for i, p := range picked {
+	for i, n := range nodes {
 		i := i
-		p := p
-		n := clients[p]
+		n := n
+		c := clients[n]
 
 		uSemaphore <- struct{}{}
 		uGroup.Go(func() error {
@@ -104,13 +120,14 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 			ctx, ctxCancel := context.WithTimeout(ctx, o.Timeout)
 			defer ctxCancel()
 
-			overlay, err := n.Overlay(ctx)
+			overlay, err := c.Overlay(ctx)
 			if err != nil {
-				return fmt.Errorf("node %s: %w", p, err)
+				return fmt.Errorf("node %s: %w", n, err)
 			}
 
 			for {
 				file := bee.NewRandomFile(rnds[i], "filename", o.FileSize)
+				var batchID string
 
 				retryCount := 0
 				for {
@@ -128,20 +145,26 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 						return ctx.Err()
 					}
 
-					batchID, err := n.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+					batchID, err = c.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 					if err != nil {
-						return fmt.Errorf("node %s: batch id %w", p, err)
+						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+							return nil
+						}
+						return fmt.Errorf("node %s: batch id %w", n, err)
 					}
-					fmt.Printf("node %s: batch id %s\n", p, batchID)
 
-					if err := n.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
-						fmt.Printf("error: uploading file %s to node %s: %v\n", file.Address().String(), overlay, err)
+					if err := c.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
+						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+							return nil
+						}
+						fmt.Printf("error: uploading file %s to node %s, batch ID %s: %v\n", file.Address().String(), overlay, batchID, err)
 						continue
 					}
+
 					break
 				}
 
-				fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlay)
+				fmt.Printf("File %s uploaded successfully to node %s, batch ID %s\n", file.Address().String(), overlay, batchID)
 			}
 		})
 	}
