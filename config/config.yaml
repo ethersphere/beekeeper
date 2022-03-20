@@ -40,7 +40,7 @@ clusters:
         mode: node
         bee-config: default
         config: default
-        count: 5
+        count: 3
         # nodes:
         # - clef:
         #     key: '{"address":"4558ab6d518bf60b813eeba3077eed986027c5da","crypto":{"cipher":"aes-128-ctr","ciphertext":"1bbeffa438a8b8fd592a46323fe0168d8d8e2625085ca8550023b5c0bd48a126","cipherparams":{"iv":"3f369a742a465aaf5e3025864639421a"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"4c2c1fde6491213ea3c6021c82a70327bc0a056569a6e7c2a3fda9e486c0f090"},"mac":"f733b77f675acf0539e7d3d60735408c6efd43893dc0d5b0f94124b0197f89dd"},"id":"1e526dc4-60bd-4c4d-897d-f284806abf2b","version":3}'
@@ -51,11 +51,11 @@ clusters:
         # - clef:
         #     key: '{"address":"59ad7a86e3115e50af278edb46917bb1d447172a","crypto":{"cipher":"aes-128-ctr","ciphertext":"0cade286ef24fba2f8272ff8f76aca11b572296d89e7e98adffadca950a9ae87","cipherparams":{"iv":"064b28702c7b6e8d3f6b5e384522bd9a"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"be9030a16c79c4fb77bbfc0b5597791e3cf3ad506abd7ccee48809fe2a98fea0"},"mac":"d91202f50ad0bd709cbc8da7195ce08510e7299d394761392af5f184ebe0b94f"},"id":"551210c5-c319-4f19-9179-d6e86a60c45d","version":3}'
         #     password: clefbeesecret
-      # light:
-      #   mode: node
-      #   bee-config: light-node
-      #   config: light-node
-      #   count: 3
+      light:
+        mode: node
+        bee-config: light-node
+        config: light-node
+        count: 3
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
