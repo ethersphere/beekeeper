@@ -37,9 +37,10 @@ var Simulations = map[string]SimulationType{
 		NewAction: upload.NewSimulation,
 		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
 			simulationOpts := new(struct {
-				FileSize             *int64         `yaml:"file-size"`
 				FileCount            *int64         `yaml:"file-count"`
 				GasPrice             *string        `yaml:"gas-price"`
+				MaxFileSize          *int64         `yaml:"max-file-size"`
+				MinFileSize          *int64         `yaml:"min-file-size"`
 				PostageAmount        *int64         `yaml:"postage-amount"`
 				PostageDepth         *uint64        `yaml:"postage-depth"`
 				PostageLabel         *string        `yaml:"postage-label"`

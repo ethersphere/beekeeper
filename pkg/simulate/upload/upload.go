@@ -19,9 +19,10 @@ import (
 
 // Options represents simulation options
 type Options struct {
-	FileSize             int64
 	FileCount            int64
 	GasPrice             string
+	MaxFileSize          int64
+	MinFileSize          int64
 	PostageAmount        int64
 	PostageDepth         uint64
 	PostageLabel         string
@@ -36,9 +37,10 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		FileSize:             1048576, // 1mb = 1*1024*1024
 		FileCount:            0,
 		GasPrice:             "",
+		MaxFileSize:          1048576, // 1mb = 1*1024*1024
+		MinFileSize:          1048576, // 1mb = 1*1024*1024
 		PostageAmount:        1000,
 		PostageDepth:         16,
 		PostageLabel:         "test-label",
@@ -68,6 +70,10 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
+	}
+
+	if o.MinFileSize > o.MaxFileSize {
+		return fmt.Errorf("file min size must be less or equal than file max size")
 	}
 
 	clients, err := cluster.NodesClients(ctx)
@@ -122,9 +128,11 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 
 			var fileCount int64
 			for {
-				file := bee.NewRandomFile(rnds[i], "filename", o.FileSize)
-				var batchID string
+				// set file size
+				fileSize := rnds[i].Int63n(o.MaxFileSize-o.MinFileSize+1) + o.MinFileSize
+				file := bee.NewRandomFile(rnds[i], "filename", fileSize)
 
+				var batchID string
 				retryCount := 0
 				for {
 					retryCount++
@@ -160,7 +168,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 					break
 				}
 
-				fmt.Printf("File %s uploaded to node %s, batch ID %s\n", file.Address().String(), overlay, batchID)
+				fmt.Printf("File %s (size %d) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, overlay, batchID)
 
 				fileCount++
 				if o.FileCount > 0 && fileCount >= o.FileCount {
