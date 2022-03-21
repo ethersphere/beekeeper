@@ -72,7 +72,7 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 	cmd.Flags().StringSlice(optionNameAddresses, nil, "Bee node Ethereum addresses (must start with 0x)")
 	cmd.Flags().String(optionNameBzzTokenAddress, "0x6aab14fe9cccd64a502d23842d916eb5321c26e7", "BZZ token address")
 	cmd.Flags().String(optionNameEthAccount, "0x62cab2b3b55f341f10348720ca18063cdb779ad5", "ETH account address")
-	cmd.Flags().String(optionNameGethURL, "http://geth-swap.geth-swap.dai.internal", "Geth node URL")
+	cmd.Flags().String(optionNameGethURL, "http://geth-swap.geth-swap.staging.internal", "Geth node URL")
 	cmd.Flags().Float64(optionNameBzzDeposit, 0, "BZZ tokens amount to deposit")
 	cmd.Flags().Float64(optionNameGBzzDeposit, 0, "gBZZ tokens amount to deposit")
 	cmd.Flags().Float64(optionNameEthDeposit, 0, "ETH amount to deposit")
