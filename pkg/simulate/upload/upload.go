@@ -161,7 +161,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 							return nil
 						}
-						fmt.Printf("error: uploading file %s to node %s, batch ID %s: %v\n", file.Address().String(), overlay, batchID, err)
+						fmt.Printf("error: uploading file %s (size %d) to node %s, batch ID %s: %v\n", file.Address().String(), fileSize, overlay, batchID, err)
 						continue
 					}
 
