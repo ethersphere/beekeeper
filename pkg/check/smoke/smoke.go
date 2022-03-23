@@ -1,7 +1,6 @@
 package smoke
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/google/go-cmp/cmp"
 )
 
 // Options represents smoke test options
@@ -154,9 +154,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
-		if !bytes.Equal(rxData, txData) {
+		if diff := cmp.Diff(rxData, txData); diff != "" {
 			c.metrics.DownloadErrors.Inc()
 			fmt.Println("uploaded data does not match downloaded data")
+			if rxLen, txLen := len(rxData), len(txData); rxLen != txLen {
+				fmt.Printf("length missmatch: rx length %d; tx length %d\n", rxLen, txLen)
+			}
+			fmt.Println(diff)
 			continue
 		}
 
@@ -166,7 +170,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
 	}
 
-	fmt.Println("smoke test completed successfully")
 	return nil
 }
 
