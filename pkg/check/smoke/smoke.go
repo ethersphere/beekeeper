@@ -1,6 +1,7 @@
 package smoke
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/google/go-cmp/cmp"
 )
 
 // Options represents smoke test options
@@ -154,13 +154,31 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
-		if diff := cmp.Diff(rxData, txData); diff != "" {
+		if !bytes.Equal(rxData, txData) {
 			c.metrics.DownloadErrors.Inc()
 			fmt.Println("uploaded data does not match downloaded data")
-			if rxLen, txLen := len(rxData), len(txData); rxLen != txLen {
-				fmt.Printf("length missmatch: rx length %d; tx length %d\n", rxLen, txLen)
+
+			rxLen, txLen := len(rxData), len(txData)
+			if rxLen != txLen {
+				fmt.Printf("length mismatch: rx length %d; tx length %d\n", rxLen, txLen)
+				if txLen < rxLen {
+					fmt.Println("length mismatch: rx length is bigger then tx length")
+					continue
+				}
 			}
-			fmt.Println(diff)
+
+			min := txLen
+			if min > rxLen {
+				min = rxLen
+			}
+			diff := len(txData[rxLen:])
+			for i := 0; i < min; i++ {
+				if txData[i] != rxData[i] {
+					diff++
+				}
+			}
+			fmt.Printf("data mismatch:found %d different bytes\n", diff)
+
 			continue
 		}
 
