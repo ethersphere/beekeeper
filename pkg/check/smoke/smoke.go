@@ -189,7 +189,7 @@ func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, 
 
 	fmt.Printf("node %s: uploading data\n", cName)
 	start := time.Now()
-	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Deferred: false})
+	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Deferred: true})
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
 	}
