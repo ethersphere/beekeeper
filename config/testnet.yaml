@@ -95,6 +95,7 @@ bee-configs:
     gateway-mode: false
     global-pinning-enabled: false
     nat-addr: ""
+    mainnet: false
     network-id: 10
     p2p-addr: ":1634"
     p2p-quic-enable: false
