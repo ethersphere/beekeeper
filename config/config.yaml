@@ -120,6 +120,7 @@ bee-configs:
     gateway-mode: false
     global-pinning-enabled: true
     nat-addr: ''
+    mainnet: false
     network-id: 1987
     p2p-addr: ':1634'
     p2p-quic-enable: false

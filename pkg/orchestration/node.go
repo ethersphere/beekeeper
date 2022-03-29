@@ -100,6 +100,7 @@ type Config struct {
 	FullNode                   bool          // cause the node to start in full mode
 	GatewayMode                bool          // disable a set of sensitive features in the api
 	GlobalPinningEnabled       bool          // enable global pinning
+	Mainnet                    bool          // enable mainnet
 	NATAddr                    string        // NAT exposed address
 	NetworkID                  uint64        // ID of the Swarm network
 	P2PAddr                    string        // P2P listen address

@@ -92,6 +92,7 @@ bee-configs:
     full-node: true
     gateway-mode: false
     global-pinning-enabled: false
+    mainnet: false
     nat-addr: ""
     network-id: 10
     p2p-addr: ":1634"
