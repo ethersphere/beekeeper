@@ -167,6 +167,7 @@ bee-configs:
     full-node: true
     gateway-mode: false
     global-pinning-enabled: true
+    mainnet: false
     nat-addr: ""
     network-id: 1987
     p2p-addr: ":1634"
@@ -197,47 +198,38 @@ bee-configs:
 
   bootnode-local:
     _inherit: "bee-local"
-    mainnet: false
     bootnode-mode: true
   bee-local-dns:
     _inherit: "bee-local"
-    mainnet: false
     bootnode: /dnsaddr/localhost
   bootnode-local-dns:
     _inherit: "bee-local"
-    mainnet: false
     bootnode: /dnsaddr/localhost
     bootnode-mode: true
   bee-local-light:
     _inherit: "bee-local"
-    mainnet: false
     bootnode: /dnsaddr/localhost
     full-node: false
   bee-local-clef:
     _inherit: "bee-local"
-    mainnet: false
     clef-signer-enable: true
     clef-signer-endpoint: "http://localhost:8550"
   bee-local-restricted:
     _inherit: "bee-local"
-    mainnet: false
     bootnode: /dnsaddr/localhost
     restricted: true
     token-encryption-key: testtest
     admin-password: $2a$12$Ltg3M2W53Xv9wwJ2.iAv4e4gWELrrr8D2dYat7wNdY2xArdmOSL1i
   bootnode-local-clef:
     _inherit: "bee-local"
-    mainnet: false
     clef-signer-enable: true
     clef-signer-endpoint: "http://localhost:8550"
     bootnode-mode: true
   bee-local-gc:
     _inherit: "bee-local"
-    mainnet: false
     cache-capacity: 10
   bootnode-local-gc:
     _inherit: "bee-local"
-    mainnet: false
     cache-capacity: 10
     bootnode-mode: true
 
