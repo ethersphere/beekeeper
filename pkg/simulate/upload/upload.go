@@ -168,7 +168,8 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 					break
 				}
 
-				fmt.Printf("File %s (size %d) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, overlay, batchID)
+				hash := file.CalculateHash()
+				fmt.Printf("File %s (size %d) (hash %s) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, hash, overlay, batchID)
 
 				fileCount++
 				if o.FileCount > 0 && fileCount >= o.FileCount {
