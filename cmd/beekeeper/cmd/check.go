@@ -88,12 +88,28 @@ func (c *command) initCheckCmd() (err error) {
 					metrics.RegisterCollectors(metricsPusher, r.Report()...)
 				}
 
-				// run check
-				if err := chk.Run(ctx, cluster, o); err != nil {
-					return fmt.Errorf("running check %s: %w", checkName, err)
+				if checkConfig.Timeout != nil {
+					ctx, cancel = context.WithTimeout(ctx, *checkConfig.Timeout)
+					defer cancel()
+				}
+
+				c := make(chan error, 1)
+
+				go func() {
+					c <- chk.Run(ctx, cluster, o)
+					close(c)
+				}()
+
+				select {
+				case <-ctx.Done():
+					return fmt.Errorf("running check %s: %w", checkName, ctx.Err())
+				case err = <-c:
+					if err != nil {
+						return fmt.Errorf("running check %s: %w", checkName, err)
+					}
+					return nil
 				}
 			}
-
 			return nil
 		},
 		PreRunE: c.preRunE,
