@@ -1,9 +1,7 @@
 package upload
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha1"
 	"errors"
 	"fmt"
 	"math"
@@ -18,10 +16,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"golang.org/x/sync/errgroup"
 )
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
 
 // Options represents simulation options
 type Options struct {
@@ -109,7 +103,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	sort.Strings(nodes)
 
 	concurrency := 100
-	rnds := random.PseudoGenerators(rnd.Int63(), len(nodes))
+	rnds := random.PseudoGenerators(time.Now().UnixNano(), len(nodes))
 
 	uGroup := new(errgroup.Group)
 	uSemaphore := make(chan struct{}, concurrency)
@@ -137,10 +131,6 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 				// set file size
 				fileSize := rnds[i].Int63n(o.MaxFileSize-o.MinFileSize+1) + o.MinFileSize
 				file := bee.NewRandomFile(rnds[i], "filename", fileSize)
-
-				buf := new(bytes.Buffer)
-				_, _ = buf.ReadFrom(file.DataReader())
-				hash := sha1.Sum(buf.Bytes())
 
 				var batchID string
 				retryCount := 0
@@ -178,7 +168,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 					break
 				}
 
-				fmt.Printf("File %s (size %d) (sha1 hash %x) (name %s) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, hash, file.Name(), n, batchID)
+				fmt.Printf("File %s (size %d) (name %s) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, file.Name(), n, batchID)
 
 				fileCount++
 				if o.FileCount > 0 && fileCount >= o.FileCount {
