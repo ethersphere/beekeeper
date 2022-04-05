@@ -44,7 +44,7 @@ func (f *File) CalculateHash() error {
 	h := fileHasher()
 
 	var buf bytes.Buffer
-	tee := io.TeeReader(f.DataReader(), &buf)
+	tee := io.TeeReader(f.dataReader, &buf)
 
 	_, err := io.Copy(h, tee)
 	if err != nil {

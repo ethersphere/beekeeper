@@ -131,6 +131,8 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 				// set file size
 				fileSize := rnds[i].Int63n(o.MaxFileSize-o.MinFileSize+1) + o.MinFileSize
 				file := bee.NewRandomFile(rnds[i], "filename", fileSize)
+				file.CalculateHash()
+				hash := file.Hash()
 
 				var batchID string
 				retryCount := 0
@@ -168,7 +170,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 					break
 				}
 
-				fmt.Printf("File %s (size %d) (name %s) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, file.Name(), n, batchID)
+				fmt.Printf("File %s (size %d) (sha3 %x) (name %s) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, hash, file.Name(), n, batchID)
 
 				fileCount++
 				if o.FileCount > 0 && fileCount >= o.FileCount {
