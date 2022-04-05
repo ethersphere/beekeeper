@@ -88,104 +88,131 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		perm := rnd.Perm(cluster.Size())
 		txIdx := perm[0]
-		rxIdx := perm[1]
 
-		if txIdx == rxIdx {
-			continue
-		}
+		resp := make(chan downloadRes, len(clients)-2)
 
-		nn := cluster.NodeNames()
-		txName := nn[txIdx]
-		rxName := nn[rxIdx]
+		for i := 2; i < len(clients); i++ {
+			rxIdx := perm[i]
 
-		fmt.Printf("uploader: %s\n", txName)
-		fmt.Printf("downloader: %s\n", rxName)
-
-		var (
-			txDuration time.Duration
-			rxDuration time.Duration
-			txData     []byte
-			rxData     []byte
-			address    swarm.Address
-		)
-
-		txData = make([]byte, o.ContentSize)
-		rnd.Read(txData)
-
-		for retries := 10; txDuration == 0 && retries > 0; retries-- {
-			select {
-			case <-ctx.Done():
-				return nil
-			default:
+			if txIdx == rxIdx {
+				continue
 			}
 
-			address, txDuration, err = test.upload(txName, txData)
-			if err != nil {
-				c.metrics.UploadErrors.Inc()
-				fmt.Printf("upload failed: %v\n", err)
-				fmt.Printf("retrying in: %v\n", o.TxOnErrWait)
-				time.Sleep(o.TxOnErrWait)
-			}
-		}
+			nn := cluster.NodeNames()
+			txName := nn[txIdx]
+			rxName := nn[rxIdx]
 
-		if txDuration == 0 {
-			continue
-		}
+			fmt.Printf("uploader: %s\n", txName)
+			fmt.Printf("downloader: %s\n", rxName)
 
-		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
+			var (
+				txDuration time.Duration
+				rxDuration time.Duration
+				txData     []byte
+				rxData     []byte
+				address    swarm.Address
+			)
 
-		for retries := 10; rxDuration == 0 && retries > 0; retries-- {
-			select {
-			case <-ctx.Done():
-				return nil
-			default:
-			}
+			txData = make([]byte, o.ContentSize)
+			rnd.Read(txData)
 
-			rxData, rxDuration, err = test.download(rxName, address)
-			if err != nil {
-				c.metrics.DownloadErrors.Inc()
-				fmt.Printf("download failed: %v\n", err)
-				fmt.Printf("retrying in: %v\n", o.RxOnErrWait)
-				time.Sleep(o.RxOnErrWait)
-			}
-		}
+			go func() {
+				for retries := 10; txDuration == 0 && retries > 0; retries-- {
+					select {
+					case <-ctx.Done():
+						resp <- downloadRes{}
+						return
+					default:
+					}
 
-		if rxDuration == 0 {
-			continue
-		}
-
-		if !bytes.Equal(rxData, txData) {
-			c.metrics.DownloadErrors.Inc()
-			fmt.Println("uploaded data does not match downloaded data")
-
-			rxLen, txLen := len(rxData), len(txData)
-			if rxLen != txLen {
-				fmt.Printf("length mismatch: rx length %d; tx length %d\n", rxLen, txLen)
-				if txLen < rxLen {
-					fmt.Println("length mismatch: rx length is bigger then tx length")
-					continue
+					address, txDuration, err = test.upload(txName, txData)
+					if err != nil {
+						c.metrics.UploadErrors.Inc()
+						fmt.Printf("upload failed: %v\n", err)
+						fmt.Printf("retrying in: %v\n", o.TxOnErrWait)
+						time.Sleep(o.TxOnErrWait)
+					}
 				}
-			}
 
-			min := txLen
-			if min > rxLen {
-				min = rxLen
-			}
-			diff := len(txData[rxLen:])
-			for i := 0; i < min; i++ {
-				if txData[i] != rxData[i] {
-					diff++
+				if txDuration == 0 {
+					resp <- downloadRes{
+						err: fmt.Errorf("upload failed: node: %s", rxName),
+					}
+					return
 				}
-			}
-			fmt.Printf("data mismatch:found %d different bytes\n", diff)
 
-			continue
+				time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
+
+				for retries := 10; rxDuration == 0 && retries > 0; retries-- {
+					select {
+					case <-ctx.Done():
+						resp <- downloadRes{
+							err: fmt.Errorf("canceled: node: %s", rxName),
+						}
+						return
+					default:
+					}
+
+					rxData, rxDuration, err = test.download(rxName, address)
+					if err != nil {
+						c.metrics.DownloadErrors.Inc()
+						fmt.Printf("retrying in: %v\n", o.RxOnErrWait)
+						time.Sleep(o.RxOnErrWait)
+					}
+				}
+
+				if rxDuration == 0 {
+					resp <- downloadRes{
+						err: fmt.Errorf("download failed: node: %s", rxName),
+					}
+					return
+				}
+
+				if !bytes.Equal(rxData, txData) {
+					c.metrics.DownloadErrors.Inc()
+
+					rxLen, txLen := len(rxData), len(txData)
+					if rxLen != txLen {
+						if txLen < rxLen {
+							resp <- downloadRes{
+								err: fmt.Errorf("length mismatch: rx length %d; tx length %d", rxLen, txLen),
+							}
+							return
+						}
+					}
+
+					min := txLen
+					if min > rxLen {
+						min = rxLen
+					}
+					diff := len(txData[rxLen:])
+					for i := 0; i < min; i++ {
+						if txData[i] != rxData[i] {
+							diff++
+						}
+					}
+
+					resp <- downloadRes{
+						err: fmt.Errorf("data mismatch:found %d different bytes", diff),
+					}
+
+					return
+				}
+
+				// We want to update the metrics when no error has been
+				// encountered in order to avoid counter mismatch.
+				c.metrics.UploadDuration.Observe(txDuration.Seconds())
+				c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
+
+				resp <- downloadRes{}
+			}()
 		}
 
-		// We want to update the metrics when no error has been
-		// encountered in order to avoid counter mismatch.
-		c.metrics.UploadDuration.Observe(txDuration.Seconds())
-		c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
+		for r := range resp {
+			if r.err != nil {
+				fmt.Println(err)
+			}
+		}
 	}
 
 	return nil
@@ -195,6 +222,10 @@ type test struct {
 	opt     Options
 	ctx     context.Context
 	clients map[string]*bee.Client
+}
+
+type downloadRes struct {
+	err error
 }
 
 func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
