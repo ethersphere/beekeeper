@@ -94,15 +94,12 @@ func (p *PostageService) PostageBatch(ctx context.Context, batchID string) (Post
 }
 
 type ReserveState struct {
-	Radius        uint8          `json:"radius"`
-	StorageRadius uint8          `json:"storageRadius"`
-	Available     int64          `json:"available"`
-	Outer         *bigint.BigInt `json:"outer"`
-	Inner         *bigint.BigInt `json:"inner"`
+	Radius        uint8 `json:"radius"`
+	StorageRadius uint8 `json:"storageRadius"`
 }
 
 func (rs ReserveState) String() string {
-	return fmt.Sprintf("Radius: %d, StorageRadius: %d, Available: %d, Outer: %v, Inner: %v", rs.Radius, rs.StorageRadius, rs.Available, rs.Outer, rs.Inner)
+	return fmt.Sprintf("Radius: %d, StorageRadius: %d", rs.Radius, rs.StorageRadius)
 }
 
 // Returns the batchstore reservestate of the node
