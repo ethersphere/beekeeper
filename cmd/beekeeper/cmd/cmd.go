@@ -18,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -267,7 +268,7 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 
 func (c *command) setK8S() (err error) {
 	if c.globalConfig.GetBool("enable-k8s") {
-		if c.k8sClient, err = k8s.NewClient(&k8s.ClientOptions{
+		if c.k8sClient, err = k8s.NewClient(kubernetes.NewForConfig, &k8s.ClientOptions{
 			InCluster:      c.globalConfig.GetBool("in-cluster"),
 			KubeconfigPath: c.globalConfig.GetString("kubeconfig"),
 		}); err != nil && err != k8s.ErrKubeconfigNotSet {
