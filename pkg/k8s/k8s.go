@@ -25,7 +25,7 @@ var ErrKubeconfigNotSet = errors.New("kubeconfig is not set")
 
 // Client manages communication with the Kubernetes
 type Client struct {
-	clientset *kubernetes.Clientset // Kubernetes client must handle authentication implicitly.
+	clientset kubernetes.Interface // Kubernetes client must handle authentication implicitly.
 
 	// Services that K8S provides
 	ConfigMap      *configmap.Client
@@ -41,12 +41,15 @@ type Client struct {
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
+	newForConfig   NewForConfig
 	InCluster      bool
 	KubeconfigPath string
 }
 
+type NewForConfig func(c *rest.Config) (*kubernetes.Clientset, error)
+
 // NewClient returns Kubernetes clientset
-func NewClient(o *ClientOptions) (c *Client, err error) {
+func NewClient(newForConfig NewForConfig, o *ClientOptions) (c *Client, err error) {
 	// set default options in case they are not provided
 	if o == nil {
 		o = &ClientOptions{
@@ -62,7 +65,7 @@ func NewClient(o *ClientOptions) (c *Client, err error) {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
 
-		clientset, err := kubernetes.NewForConfig(config)
+		clientset, err := newForConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
 		}
@@ -92,7 +95,7 @@ func NewClient(o *ClientOptions) (c *Client, err error) {
 		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := newForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
