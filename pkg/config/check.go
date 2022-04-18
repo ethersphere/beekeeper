@@ -237,19 +237,7 @@ var Checks = map[string]CheckType{
 	"pingpong": {
 		NewAction: pingpong.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
-			checkOpts := new(struct {
-				TimeLimit *time.Duration `yaml:"time-limit"`
-			})
-			
-			if err := check.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
-			}
 			opts := pingpong.NewDefaultOptions()
-
-			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
-				return nil, fmt.Errorf("applying options: %w", err)
-			}
-
 			return opts, nil
 		},
 	},

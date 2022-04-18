@@ -14,14 +14,11 @@ import (
 
 // Options represents check options
 type Options struct {
-	TimeLimit time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
-	return Options{
-		TimeLimit: 1 * time.Minute,
-	}
+	return Options{}
 }
 
 // compile check whether Check implements interface
