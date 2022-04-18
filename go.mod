@@ -3,6 +3,7 @@ module github.com/ethersphere/beekeeper
 go 1.18
 
 require (
+	github.com/ethereum/go-ethereum v1.10.5
 	github.com/ethersphere/bee v1.0.0
 	github.com/ethersphere/bmt v0.1.4
 	github.com/ethersphere/ethproxy v0.0.3
@@ -35,7 +36,6 @@ require (
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/ethereum/go-ethereum v1.10.5 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 // indirect
 	github.com/go-chi/chi v1.5.4 // indirect
