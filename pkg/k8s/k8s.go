@@ -45,10 +45,13 @@ type ClientOptions struct {
 	KubeconfigPath string
 }
 
-type NewForConfig func(c *rest.Config) (*kubernetes.Clientset, error)
+type (
+	NewForConfig    func(c *rest.Config) (*kubernetes.Clientset, error)
+	InClusterConfig func() (*rest.Config, error)
+)
 
 // NewClient returns Kubernetes clientset
-func NewClient(newForConfig NewForConfig, o *ClientOptions) (c *Client, err error) {
+func NewClient(newForConfig NewForConfig, inClusterConfig InClusterConfig, o *ClientOptions) (c *Client, err error) {
 	// set default options in case they are not provided
 	if o == nil {
 		o = &ClientOptions{
@@ -59,7 +62,7 @@ func NewClient(newForConfig NewForConfig, o *ClientOptions) (c *Client, err erro
 
 	// set in-cluster client
 	if o.InCluster {
-		config, err := rest.InClusterConfig()
+		config, err := inClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}

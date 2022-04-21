@@ -1,6 +1,8 @@
 package mocks
 
 import (
+	"fmt"
+
 	discovery "k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	admissionregistrationv1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
@@ -52,8 +54,26 @@ import (
 // compile simulation whether ClientsetMock implements interface
 var _ kubernetes.Interface = (*ClientsetMock)(nil)
 
-func NewForConfig(c *rest.Config) (*kubernetes.Clientset, error) {
+func (c *ClientMock) NewForConfig(*rest.Config) (*kubernetes.Clientset, error) {
+	if c.fail {
+		return nil, fmt.Errorf("mock error")
+	}
 	return &kubernetes.Clientset{}, nil
+}
+
+func (c *ClientMock) InClusterConfig() (*rest.Config, error) {
+	if c.fail {
+		return nil, fmt.Errorf("mock error")
+	}
+	return &rest.Config{}, nil
+}
+
+type ClientMock struct {
+	fail bool
+}
+
+func NewClientMock(fail bool) *ClientMock {
+	return &ClientMock{fail: fail}
 }
 
 type ClientsetMock struct{}

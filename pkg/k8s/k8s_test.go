@@ -5,58 +5,68 @@ import (
 	"testing"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
-	"k8s.io/client-go/kubernetes"
 )
 
 func TestNewClient(t *testing.T) {
 	testTable := []struct {
-		name         string
-		options      *ClientOptions
-		newForConfig NewForConfig
-		errorMsg     error
+		name            string
+		options         *ClientOptions
+		newForConfig    NewForConfig
+		inClusterConfig InClusterConfig
+		errorMsg        error
 	}{
 		{
-			name:         "default",
-			options:      nil,
-			errorMsg:     fmt.Errorf("creating Kubernetes clientset: no Auth Provider found for name \"oidc\""),
-			newForConfig: kubernetes.NewForConfig,
+			name:            "in_cluster_config_error",
+			options:         &ClientOptions{InCluster: true},
+			errorMsg:        fmt.Errorf("creating Kubernetes in-cluster client config: mock error"),
+			newForConfig:    mocks.NewClientMock(false).NewForConfig,
+			inClusterConfig: mocks.NewClientMock(true).InClusterConfig,
 		},
 		{
-			name:         "options_in_cluster_default_path",
-			options:      &ClientOptions{InCluster: true, KubeconfigPath: "~/.kube/config"},
-			errorMsg:     fmt.Errorf("creating Kubernetes in-cluster client config: unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined"),
-			newForConfig: kubernetes.NewForConfig,
+			name:            "in_cluster_clientset_error",
+			options:         &ClientOptions{InCluster: true},
+			errorMsg:        fmt.Errorf("creating Kubernetes in-cluster clientset: mock error"),
+			newForConfig:    mocks.NewClientMock(true).NewForConfig,
+			inClusterConfig: mocks.NewClientMock(false).InClusterConfig,
 		},
 		{
-			name:         "options_in_cluster_empty_path",
-			options:      &ClientOptions{InCluster: true, KubeconfigPath: ""},
-			errorMsg:     fmt.Errorf("creating Kubernetes in-cluster client config: unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined"),
-			newForConfig: kubernetes.NewForConfig,
+			name:            "in_cluster",
+			options:         &ClientOptions{InCluster: true},
+			newForConfig:    mocks.NewClientMock(false).NewForConfig,
+			inClusterConfig: mocks.NewClientMock(false).InClusterConfig,
 		},
-		// TODO fails to execute
+		{
+			name:            "not_in_cluster_default_path",
+			options:         nil,
+			newForConfig:    mocks.NewClientMock(false).NewForConfig,
+			inClusterConfig: mocks.NewClientMock(false).InClusterConfig,
+		},
+		// TODO panics when run in series, when run alone it works
 		// {
-		// 	name:         "options_not_in_cluster_different_path",
-		// 	options:      &ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/unit_test"},
-		// 	errorMsg:     fmt.Errorf("creating Kubernetes in-cluster client config: unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined"),
-		// 	newForConfig: kubernetes.NewForConfig,
+		// 	name:            "not_in_cluster_default_path_bad",
+		// 	options:         nil,
+		// 	newForConfig:    mocks.NewClientMock(true).NewForConfig,
+		// 	inClusterConfig: mocks.NewClientMock(false).InClusterConfig,
+		// 	errorMsg:        fmt.Errorf("creating Kubernetes clientset: mock error"),
+		// },
+		// TODO panics when run in series, when run alone it works
+		// {
+		// 	name:            "not_in_cluster_other_path",
+		// 	options:         &ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/test_example"},
+		// 	newForConfig:    mocks.NewClientMock(false).NewForConfig,
+		// 	inClusterConfig: mocks.NewClientMock(false).InClusterConfig,
+		// 	errorMsg:        fmt.Errorf("creating Kubernetes client config: CreateFile ~/.kube/test_example: The system cannot find the path specified."),
 		// },
 		{
-			name:         "options_not_in_cluster_empty_path",
-			options:      &ClientOptions{},
-			errorMsg:     ErrKubeconfigNotSet,
-			newForConfig: kubernetes.NewForConfig,
-		},
-		// TODO chek why test fails when series are run; if it is run alone, it works
-		{
-			name:         "default_mock_new_for_config",
-			options:      nil,
-			newForConfig: mocks.NewForConfig,
+			name:     "not_in_cluster_empty_path",
+			options:  &ClientOptions{},
+			errorMsg: ErrKubeconfigNotSet,
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			response, err := NewClient(test.newForConfig, test.options)
+			response, err := NewClient(test.newForConfig, test.inClusterConfig, test.options)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
