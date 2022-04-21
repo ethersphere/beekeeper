@@ -10,6 +10,10 @@ var _ corev1.CoreV1Interface = (*CoreV1Mock)(nil)
 
 type CoreV1Mock struct{}
 
+func NewCoreV1Mock() *CoreV1Mock {
+	return &CoreV1Mock{}
+}
+
 // ComponentStatuses implements v1.CoreV1Interface
 func (*CoreV1Mock) ComponentStatuses() corev1.ComponentStatusInterface {
 	panic("unimplemented")
@@ -17,7 +21,7 @@ func (*CoreV1Mock) ComponentStatuses() corev1.ComponentStatusInterface {
 
 // ConfigMaps implements v1.CoreV1Interface
 func (*CoreV1Mock) ConfigMaps(namespace string) corev1.ConfigMapInterface {
-	return &ConfigMapMock{}
+	return NewConfigMapMock()
 }
 
 // Endpoints implements v1.CoreV1Interface
@@ -37,7 +41,7 @@ func (*CoreV1Mock) LimitRanges(namespace string) corev1.LimitRangeInterface {
 
 // Namespaces implements v1.CoreV1Interface
 func (*CoreV1Mock) Namespaces() corev1.NamespaceInterface {
-	panic("unimplemented")
+	return NewNamespaceMock()
 }
 
 // Nodes implements v1.CoreV1Interface

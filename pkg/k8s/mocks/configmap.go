@@ -19,27 +19,30 @@ var _ corev1.ConfigMapInterface = (*ConfigMapMock)(nil)
 
 type ConfigMapMock struct{}
 
+func NewConfigMapMock() *ConfigMapMock {
+	return &ConfigMapMock{}
+}
+
 // Apply implements v1.ConfigMapInterface
 func (*ConfigMapMock) Apply(ctx context.Context, configMap *cofnigcorev1.ConfigMapApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ConfigMap, err error) {
 	panic("unimplemented")
 }
 
 // Create implements v1.ConfigMapInterface
-func (*ConfigMapMock) Create(ctx context.Context, configMap *v1.ConfigMap, opts metav1.CreateOptions) (*v1.ConfigMap, error) {
-	if configMap.ObjectMeta.Name != "create" {
+func (c *ConfigMapMock) Create(ctx context.Context, configMap *v1.ConfigMap, opts metav1.CreateOptions) (*v1.ConfigMap, error) {
+	if configMap.ObjectMeta.Name == "create_bad" {
 		return nil, fmt.Errorf("mock error: cannot create config map")
+	} else {
+		return nil, fmt.Errorf("mock error: unknown")
 	}
-	return &v1.ConfigMap{}, nil
 }
 
 // Delete implements v1.ConfigMapInterface
-func (*ConfigMapMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == "delete" {
-		return nil
-	} else if name == "delete_not_found" {
-		return errors.NewNotFound(schema.GroupResource{}, name)
-	} else {
+func (c *ConfigMapMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	if name == "delete_bad" {
 		return fmt.Errorf("mock error: cannot delete config map")
+	} else {
+		return errors.NewNotFound(schema.GroupResource{}, name)
 	}
 }
 
@@ -64,11 +67,9 @@ func (*ConfigMapMock) Patch(ctx context.Context, name string, pt types.PatchType
 }
 
 // Update implements v1.ConfigMapInterface
-func (*ConfigMapMock) Update(ctx context.Context, configMap *v1.ConfigMap, opts metav1.UpdateOptions) (*v1.ConfigMap, error) {
-	if configMap.ObjectMeta.Name == "update" {
-		return &v1.ConfigMap{}, nil
-	} else if configMap.ObjectMeta.Name == "update_bad" {
-		return nil, errors.NewBadRequest("mock error")
+func (c *ConfigMapMock) Update(ctx context.Context, configMap *v1.ConfigMap, opts metav1.UpdateOptions) (*v1.ConfigMap, error) {
+	if configMap.ObjectMeta.Name == "update_bad" {
+		return nil, errors.NewBadRequest("mock error: cannot update config map")
 	} else {
 		return nil, errors.NewNotFound(schema.GroupResource{}, configMap.ObjectMeta.Name)
 	}

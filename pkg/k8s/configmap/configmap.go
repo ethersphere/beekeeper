@@ -32,7 +32,7 @@ type Options struct {
 }
 
 // Set updates ConfigMap or creates it if it does not exist
-func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (cm *v1.ConfigMap, err error) {
 	spec := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -45,15 +45,15 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Data:       o.Data,
 	}
 
-	_, err = c.clientset.CoreV1().ConfigMaps(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	cm, err = c.clientset.CoreV1().ConfigMaps(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = c.clientset.CoreV1().ConfigMaps(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			cm, err = c.clientset.CoreV1().ConfigMaps(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating configmap %s in namespace %s: %w", name, namespace, err)
+				return nil, fmt.Errorf("creating configmap %s in namespace %s: %w", name, namespace, err)
 			}
 		} else {
-			return fmt.Errorf("updating configmap %s in namespace %s: %w", name, namespace, err)
+			return nil, fmt.Errorf("updating configmap %s in namespace %s: %w", name, namespace, err)
 		}
 	}
 

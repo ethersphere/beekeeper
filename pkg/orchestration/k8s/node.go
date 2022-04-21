@@ -125,7 +125,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 
 	configCM := o.Name
-	if err = n.k8s.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
+	if _, err = n.k8s.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Data: map[string]string{

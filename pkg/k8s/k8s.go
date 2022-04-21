@@ -41,7 +41,6 @@ type Client struct {
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
-	newForConfig   NewForConfig
 	InCluster      bool
 	KubeconfigPath string
 }

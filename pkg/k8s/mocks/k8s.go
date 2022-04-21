@@ -58,6 +58,10 @@ func NewForConfig(c *rest.Config) (*kubernetes.Clientset, error) {
 
 type ClientsetMock struct{}
 
+func NewClientsetMock() *ClientsetMock {
+	return &ClientsetMock{}
+}
+
 // AdmissionregistrationV1 implements kubernetes.Interface
 func (*ClientsetMock) AdmissionregistrationV1() admissionregistrationv1.AdmissionregistrationV1Interface {
 	panic("unimplemented")
@@ -149,8 +153,8 @@ func (*ClientsetMock) CoordinationV1beta1() coordinationv1beta1.CoordinationV1be
 }
 
 // CoreV1 implements kubernetes.Interface
-func (*ClientsetMock) CoreV1() corev1.CoreV1Interface {
-	return &CoreV1Mock{}
+func (c *ClientsetMock) CoreV1() corev1.CoreV1Interface {
+	return NewCoreV1Mock()
 }
 
 // Discovery implements kubernetes.Interface
