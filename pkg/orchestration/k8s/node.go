@@ -191,7 +191,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 
 	apiSvc := fmt.Sprintf("%s-api", o.Name)
-	if err := n.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -244,7 +244,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// debug service
 	debugSvc := fmt.Sprintf("%s-debug", o.Name)
-	if err := n.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -302,7 +302,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
-	if err := n.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -325,7 +325,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
-	if err := n.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{

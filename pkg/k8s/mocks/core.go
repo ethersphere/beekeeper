@@ -86,7 +86,7 @@ func (*CoreV1Mock) Secrets(namespace string) corev1.SecretInterface {
 
 // Services implements v1.CoreV1Interface
 func (*CoreV1Mock) Services(namespace string) corev1.ServiceInterface {
-	panic("unimplemented")
+	return NewServiceMock()
 }
 
 // ServiceAccounts implements v1.CoreV1Interface

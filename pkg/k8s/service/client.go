@@ -12,11 +12,11 @@ import (
 
 // Client manages communication with the Kubernetes Service.
 type Client struct {
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset *kubernetes.Clientset) *Client {
+func NewClient(clientset kubernetes.Interface) *Client {
 	return &Client{
 		clientset: clientset,
 	}
@@ -30,7 +30,7 @@ type Options struct {
 }
 
 // Set updates Service or creates it if it does not exist
-func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (svc *v1.Service, err error) {
 	spec := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -41,23 +41,23 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.ServiceSpec.ToK8S(),
 	}
 
-	svc, err := c.clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+	svc, err = c.clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = c.clientset.CoreV1().Services(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			svc, err = c.clientset.CoreV1().Services(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating service %s in namespace %s: %w", name, namespace, err)
+				return nil, fmt.Errorf("creating service %s in namespace %s: %w", name, namespace, err)
 			}
 			return
 		}
-		return fmt.Errorf("getting service %s in namespace %s: %w", name, namespace, err)
+		return nil, fmt.Errorf("getting service %s in namespace %s: %w", name, namespace, err)
 	}
 
 	spec.ResourceVersion = svc.ResourceVersion
 	spec.Spec.ClusterIP = svc.Spec.ClusterIP
-	_, err = c.clientset.CoreV1().Services(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	svc, err = c.clientset.CoreV1().Services(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("updating service %s in namespacee %s: %w", name, namespace, err)
+		return nil, fmt.Errorf("updating service %s in namespace %s: %w", name, namespace, err)
 	}
 
 	return
