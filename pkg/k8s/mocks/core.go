@@ -91,7 +91,7 @@ func (*CoreV1Mock) Services(namespace string) corev1.ServiceInterface {
 
 // ServiceAccounts implements v1.CoreV1Interface
 func (*CoreV1Mock) ServiceAccounts(namespace string) corev1.ServiceAccountInterface {
-	panic("unimplemented")
+	return NewServiceAccountMock()
 }
 
 // RESTClient implements v1.CoreV1Interface

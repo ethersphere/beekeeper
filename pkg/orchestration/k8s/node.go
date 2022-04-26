@@ -175,7 +175,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// service account
 	svcAccount := o.Name
-	if err := n.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
+	if _, err := n.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
 		Annotations:      o.Annotations,
 		Labels:           o.Labels,
 		ImagePullSecrets: o.ImagePullSecrets,
