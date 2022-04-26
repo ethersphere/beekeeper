@@ -146,7 +146,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		keysSecretData["swarm"] = o.SwarmKey
 	}
 
-	if err := n.k8s.Secret.Set(ctx, keysSecret, o.Namespace, secret.Options{
+	if _, err := n.k8s.Secret.Set(ctx, keysSecret, o.Namespace, secret.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		StringData:  keysSecretData,
@@ -163,7 +163,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 			"key":      o.ClefKey,
 			"password": o.ClefPassword,
 		}
-		if err := n.k8s.Secret.Set(ctx, clefSecret, o.Namespace, secret.Options{
+		if _, err := n.k8s.Secret.Set(ctx, clefSecret, o.Namespace, secret.Options{
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 			StringData:  clefSecretData,

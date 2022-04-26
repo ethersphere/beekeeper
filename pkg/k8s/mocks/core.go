@@ -56,7 +56,7 @@ func (*CoreV1Mock) PersistentVolumes() corev1.PersistentVolumeInterface {
 
 // PersistentVolumeClaims implements v1.CoreV1Interface
 func (*CoreV1Mock) PersistentVolumeClaims(namespace string) corev1.PersistentVolumeClaimInterface {
-	panic("unimplemented")
+	return NewPvcMock()
 }
 
 // Pods implements v1.CoreV1Interface
@@ -81,7 +81,7 @@ func (*CoreV1Mock) ResourceQuotas(namespace string) corev1.ResourceQuotaInterfac
 
 // Secrets implements v1.CoreV1Interface
 func (*CoreV1Mock) Secrets(namespace string) corev1.SecretInterface {
-	panic("unimplemented")
+	return NewSecretMock()
 }
 
 // Services implements v1.CoreV1Interface

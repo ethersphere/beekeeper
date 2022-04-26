@@ -16,9 +16,7 @@ import (
 // compile simulation whether ClientsetMock implements interface
 var _ typedv1.NamespaceInterface = (*NamespaceMock)(nil)
 
-type NamespaceMock struct {
-	Ns *v1.Namespace
-}
+type NamespaceMock struct{}
 
 func NewNamespaceMock() *NamespaceMock {
 	return &NamespaceMock{}
@@ -41,7 +39,6 @@ func (*NamespaceMock) ApplyStatus(ctx context.Context, namespace *corev1.Namespa
 
 // Create implements v1.NamespaceInterface
 func (nm *NamespaceMock) Create(ctx context.Context, namespace *v1.Namespace, opts metav1.CreateOptions) (*v1.Namespace, error) {
-	nm.Ns = namespace
 	return namespace, nil
 }
 
