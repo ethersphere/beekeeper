@@ -113,7 +113,9 @@ func checkKademliaD(topologies orchestration.ClusterTopologies) error {
 				}
 
 				if bin >= t.Depth {
-					nodes = append(nodes, b.ConnectedPeers...)
+					for _, nn := range b.ConnectedPeers {
+						nodes = append(nodes, nn.Address)
+					}
 				}
 			}
 
