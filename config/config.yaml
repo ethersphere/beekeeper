@@ -115,7 +115,7 @@ bee-configs:
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
     debug-api-addr: ':1635'
-    debug-api-enable: true
+    debug-api-enable: false
     full-node: true
     gateway-mode: false
     global-pinning-enabled: true

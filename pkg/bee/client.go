@@ -34,7 +34,6 @@ type Client struct {
 type ClientOptions struct {
 	APIURL              *url.URL
 	APIInsecureTLS      bool
-	DebugAPIURL         *url.URL
 	DebugAPIInsecureTLS bool
 	Retry               int
 	Restricted          bool
@@ -51,9 +50,7 @@ func NewClient(opts ClientOptions) (c *Client) {
 		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
 		}}, Restricted: opts.Restricted})
-	}
-	if opts.DebugAPIURL != nil {
-		c.debug = debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
+		c.debug = debugapi.NewClient(opts.APIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
 		}}, Restricted: opts.Restricted})
 	}
