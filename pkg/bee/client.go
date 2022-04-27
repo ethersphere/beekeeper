@@ -577,21 +577,23 @@ func (c *Client) ChequebookBalance(ctx context.Context) (resp ChequebookBalanceR
 
 // Topology represents Kademlia topology
 type Topology struct {
-	Overlay        swarm.Address
-	Connected      int
-	Population     int
-	NnLowWatermark int
-	Depth          int
-	Bins           map[string]Bin
-	LightNodes     Bin
+	Overlay             swarm.Address
+	Connected           int
+	Population          int
+	NnLowWatermark      int
+	Depth               int
+	Bins                map[string]Bin
+	LightNodes          Bin
+	Reachability        string `json:"reachability"`        // current reachability status
+	NetworkAvailability string `json:"networkAvailability"` // network availability
 }
 
 // Bin represents Kademlia bin
 type Bin struct {
-	Connected         int
-	ConnectedPeers    []swarm.Address
-	DisconnectedPeers []swarm.Address
-	Population        int
+	Population        int                 `json:"population"`
+	Connected         int                 `json:"connected"`
+	DisconnectedPeers []debugapi.PeerInfo `json:"disconnectedPeers"`
+	ConnectedPeers    []debugapi.PeerInfo `json:"connectedPeers"`
 }
 
 // Topology returns Kademlia topology
@@ -611,12 +613,14 @@ func (c *Client) Topology(ctx context.Context) (topology Topology, err error) {
 	}
 
 	topology = Topology{
-		Overlay:        t.BaseAddr,
-		Connected:      t.Connected,
-		Population:     t.Population,
-		NnLowWatermark: t.NnLowWatermark,
-		Depth:          t.Depth,
-		Bins:           make(map[string]Bin),
+		Overlay:             t.BaseAddr,
+		Connected:           t.Connected,
+		Population:          t.Population,
+		NnLowWatermark:      t.NnLowWatermark,
+		Depth:               t.Depth,
+		Bins:                make(map[string]Bin),
+		Reachability:        t.Reachability,
+		NetworkAvailability: t.NetworkAvailability,
 	}
 
 	for k, b := range t.Bins {

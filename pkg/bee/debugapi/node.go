@@ -188,22 +188,41 @@ func (n *NodeService) ChequebookBalance(ctx context.Context) (resp ChequebookBal
 
 // Topology represents Kademlia topology
 type Topology struct {
-	BaseAddr       swarm.Address  `json:"baseAddr"`
-	Population     int            `json:"population"`
-	Connected      int            `json:"connected"`
-	Timestamp      time.Time      `json:"timestamp"`
-	NnLowWatermark int            `json:"nnLowWatermark"`
-	Depth          int            `json:"depth"`
-	Bins           map[string]Bin `json:"bins"`
-	LightNodes     Bin            `json:"lightNodes"`
+	BaseAddr            swarm.Address  `json:"baseAddr"`
+	Population          int            `json:"population"`
+	Connected           int            `json:"connected"`
+	Timestamp           time.Time      `json:"timestamp"`
+	NnLowWatermark      int            `json:"nnLowWatermark"`
+	Depth               int            `json:"depth"`
+	Bins                map[string]Bin `json:"bins"`
+	LightNodes          Bin            `json:"lightNodes"`
+	Reachability        string         `json:"reachability"`        // current reachability status
+	NetworkAvailability string         `json:"networkAvailability"` // network availability
 }
 
 // Bin represents Kademlia bin
 type Bin struct {
-	Population        int             `json:"population"`
-	Connected         int             `json:"connected"`
-	DisconnectedPeers []swarm.Address `json:"disconnectedPeers"`
-	ConnectedPeers    []swarm.Address `json:"connectedPeers"`
+	Population        int        `json:"population"`
+	Connected         int        `json:"connected"`
+	DisconnectedPeers []PeerInfo `json:"disconnectedPeers"`
+	ConnectedPeers    []PeerInfo `json:"connectedPeers"`
+}
+
+// PeerInfo is a view of peer information exposed to a user.
+type PeerInfo struct {
+	Address swarm.Address       `json:"address"`
+	Metrics *MetricSnapshotView `json:"metrics,omitempty"`
+}
+
+// MetricSnapshotView represents snapshot of metrics counters in more human readable form.
+type MetricSnapshotView struct {
+	LastSeenTimestamp          int64   `json:"lastSeenTimestamp"`
+	SessionConnectionRetry     uint64  `json:"sessionConnectionRetry"`
+	ConnectionTotalDuration    float64 `json:"connectionTotalDuration"`
+	SessionConnectionDuration  float64 `json:"sessionConnectionDuration"`
+	SessionConnectionDirection string  `json:"sessionConnectionDirection"`
+	LatencyEWMA                int64   `json:"latencyEWMA"`
+	Reachability               string  `json:"reachability"`
 }
 
 // Topology returns Kademlia topology
