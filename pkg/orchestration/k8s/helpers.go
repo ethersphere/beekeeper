@@ -29,7 +29,7 @@ debug-api-addr: {{.DebugAPIAddr}}
 debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}
 gateway-mode: {{.GatewayMode}}
-global-pinning-enable: {{.GlobalPinningEnabled}}
+mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
 network-id: {{.NetworkID}}
 p2p-addr: {{.P2PAddr}}

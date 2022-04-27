@@ -166,7 +166,7 @@ bee-configs:
     debug-api-enable: true
     full-node: true
     gateway-mode: false
-    global-pinning-enabled: true
+    mainnet: false
     nat-addr: ""
     network-id: 1987
     p2p-addr: ":1634"

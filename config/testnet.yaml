@@ -93,8 +93,8 @@ bee-configs:
     debug-api-enable: true
     full-node: true
     gateway-mode: false
-    global-pinning-enabled: false
     nat-addr: ""
+    mainnet: false
     network-id: 10
     p2p-addr: ":1634"
     p2p-quic-enable: false
@@ -114,7 +114,7 @@ bee-configs:
     swap-legacy-factory-addresses: ""
     swap-initial-deposit: 10000000000000000
     tracing-enabled: false
-    tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
+    tracing-endpoint: "tempo-tempo-distributed-distributor.observability:6831"
     tracing-service-name: "bee"
     transaction: ""
     verbosity: 5

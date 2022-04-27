@@ -124,7 +124,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			}
 			for _, v := range topology.Bins {
 				for _, peer := range v.ConnectedPeers {
-					peer := peer
+					peer := peer.Address
 					pidx, found := findName(overlays, peer)
 					if !found {
 						return fmt.Errorf("1: not found in overlays: %v", peer)

@@ -3,6 +3,7 @@ package smoke
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"fmt"
 	"time"
 
@@ -29,7 +30,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		ContentSize:   5000000,
-		RndSeed:       0,
+		RndSeed:       time.Now().UnixNano(),
 		PostageAmount: 1000000,
 		PostageDepth:  20,
 		TxOnErrWait:   10 * time.Second,
@@ -110,7 +111,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		)
 
 		txData = make([]byte, o.ContentSize)
-		rnd.Read(txData)
+		if _, err := rand.Read(txData); err != nil {
+			fmt.Printf("unable to create random content: %v\n", err)
+			continue
+		}
 
 		for retries := 10; txDuration == 0 && retries > 0; retries-- {
 			select {
@@ -157,6 +161,23 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		if !bytes.Equal(rxData, txData) {
 			c.metrics.DownloadErrors.Inc()
 			fmt.Println("uploaded data does not match downloaded data")
+
+			rxLen, txLen := len(rxData), len(txData)
+			if rxLen != txLen {
+				fmt.Printf("length mismatch: rx length %d; tx length %d\n", rxLen, txLen)
+				if txLen < rxLen {
+					fmt.Println("length mismatch: rx length is bigger then tx length")
+				}
+				continue
+			}
+
+			var diff int
+			for i := range txData {
+				if txData[i] != rxData[i] {
+					diff++
+				}
+			}
+			fmt.Printf("data mismatch: found %d different bytes, ~%.2f%%\n", diff, float64(diff)/float64(txLen)*100)
 			continue
 		}
 
@@ -166,7 +187,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
 	}
 
-	fmt.Println("smoke test completed successfully")
 	return nil
 }
 

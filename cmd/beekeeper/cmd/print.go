@@ -87,7 +87,6 @@ var (
 			if err != nil {
 				return err
 			}
-			fmt.Println(topologies)
 
 			for ng, nt := range topologies {
 				fmt.Printf("Printing %s node group's topologies\n", ng)
