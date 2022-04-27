@@ -61,7 +61,7 @@ func (*CoreV1Mock) PersistentVolumeClaims(namespace string) corev1.PersistentVol
 
 // Pods implements v1.CoreV1Interface
 func (*CoreV1Mock) Pods(namespace string) corev1.PodInterface {
-	panic("unimplemented")
+	return NewPodMock()
 }
 
 // PodTemplates implements v1.CoreV1Interface
