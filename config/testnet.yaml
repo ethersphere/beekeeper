@@ -93,7 +93,6 @@ bee-configs:
     debug-api-enable: true
     full-node: true
     gateway-mode: false
-    global-pinning-enabled: false
     nat-addr: ""
     mainnet: false
     network-id: 10

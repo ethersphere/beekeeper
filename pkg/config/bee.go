@@ -30,7 +30,6 @@ type BeeConfig struct {
 	DebugAPIEnable             *bool          `yaml:"debug-api-enable"`
 	FullNode                   *bool          `yaml:"full-node"`
 	GatewayMode                *bool          `yaml:"gateway-mode"`
-	GlobalPinningEnabled       *bool          `yaml:"global-pinning-enabled"`
 	NATAddr                    *string        `yaml:"nat-addr"`
 	Mainnet                    *bool          `yaml:"mainnet"`
 	NetworkID                  *uint64        `yaml:"network-id"`
