@@ -214,7 +214,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// api service's ingress
 	apiIn := fmt.Sprintf("%s-api", o.Name)
-	if err := n.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
+	if _, err := n.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
@@ -265,7 +265,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// debug service's ingress
 	debugIn := fmt.Sprintf("%s-debug", o.Name)
-	if err := n.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
+	if _, err := n.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{

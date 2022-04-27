@@ -224,7 +224,7 @@ func (*ClientsetMock) InternalV1alpha1() internalv1alpha1.InternalV1alpha1Interf
 
 // NetworkingV1 implements kubernetes.Interface
 func (*ClientsetMock) NetworkingV1() networkingv1.NetworkingV1Interface {
-	panic("unimplemented")
+	return NewNetworkingV1MockMock()
 }
 
 // NetworkingV1beta1 implements kubernetes.Interface
