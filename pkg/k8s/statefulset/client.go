@@ -13,11 +13,11 @@ import (
 
 // Client manages communication with the Kubernetes StatefulSet.
 type Client struct {
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset *kubernetes.Clientset) *Client {
+func NewClient(clientset kubernetes.Interface) *Client {
 	return &Client{
 		clientset: clientset,
 	}
@@ -97,7 +97,7 @@ func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int
 }
 
 // Set updates StatefulSet or creates it if it does not exist
-func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (statefulSet *appsv1.StatefulSet, err error) {
 	spec := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -108,15 +108,15 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.Spec.ToK8S(),
 	}
 
-	_, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	statefulSet, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			statefulSet, err = c.clientset.AppsV1().StatefulSets(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating statefulset %s in namespace %s: %w", name, namespace, err)
+				return nil, fmt.Errorf("creating statefulset %s in namespace %s: %w", name, namespace, err)
 			}
 		} else {
-			return fmt.Errorf("updating statefulset %s in namespace %s: %w", name, namespace, err)
+			return nil, fmt.Errorf("updating statefulset %s in namespace %s: %w", name, namespace, err)
 		}
 	}
 

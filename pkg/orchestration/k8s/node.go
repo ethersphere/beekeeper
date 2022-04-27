@@ -366,7 +366,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := len(o.SwarmKey) > 0
 
-	if err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
+	if _, err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Spec: statefulset.StatefulSetSpec{

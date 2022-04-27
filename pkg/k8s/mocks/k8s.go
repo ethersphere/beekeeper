@@ -94,7 +94,7 @@ func (*ClientsetMock) AdmissionregistrationV1beta1() admissionregistrationv1beta
 
 // AppsV1 implements kubernetes.Interface
 func (*ClientsetMock) AppsV1() appsv1.AppsV1Interface {
-	panic("unimplemented")
+	return NewAppV1Mock()
 }
 
 // AppsV1beta1 implements kubernetes.Interface
