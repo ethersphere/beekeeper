@@ -112,7 +112,7 @@ bee-configs:
     swap-legacy-factory-addresses: ""
     swap-initial-deposit: 10000000000000000
     tracing-enabled: false
-    tracing-endpoint: "jaeger-operator-jaeger-agent.observability:6831"
+    tracing-endpoint: "tempo-tempo-distributed-distributor.observability:6831"
     tracing-service-name: "bee"
     transaction: ""
     verbosity: 5
