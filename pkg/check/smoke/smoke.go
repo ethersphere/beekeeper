@@ -3,7 +3,6 @@ package smoke
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"fmt"
 	"time"
 
@@ -111,10 +110,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		)
 
 		txData = make([]byte, o.ContentSize)
-		if _, err := rand.Read(txData); err != nil {
-			fmt.Printf("unable to create random content: %v\n", err)
-			continue
-		}
+		rnd.Read(txData)
 
 		for retries := 10; txDuration == 0 && retries > 0; retries-- {
 			select {
