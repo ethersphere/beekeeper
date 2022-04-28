@@ -250,10 +250,10 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		ServiceSpec: service.Spec{
 			Ports: service.Ports{{
 				AppProtocol: "TCP",
-				Name:        "debug",
+				Name:        "api",
 				Protocol:    "TCP",
-				Port:        portDebug,
-				TargetPort:  "debug",
+				Port:        portAPI,
+				TargetPort:  "api",
 			}},
 			Selector: o.Selector,
 			Type:     "ClusterIP",
@@ -275,7 +275,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 				Paths: ingress.Paths{{
 					Backend: ingress.Backend{
 						ServiceName: debugSvc,
-						ServicePort: "debug",
+						ServicePort: "api",
 					},
 					Path:     "/",
 					PathType: "ImplementationSpecific",
@@ -341,8 +341,8 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 					AppProtocol: "TCP",
 					Name:        "debug",
 					Protocol:    "TCP",
-					Port:        portDebug,
-					TargetPort:  "debug",
+					Port:        portAPI,
+					TargetPort:  "api",
 				},
 				{
 					AppProtocol: "TCP",
