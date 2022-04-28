@@ -339,13 +339,6 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 				},
 				{
 					AppProtocol: "TCP",
-					Name:        "debug",
-					Protocol:    "TCP",
-					Port:        portAPI,
-					TargetPort:  "api",
-				},
-				{
-					AppProtocol: "TCP",
 					Name:        "p2p",
 					Protocol:    "TCP",
 					Port:        portP2P,
