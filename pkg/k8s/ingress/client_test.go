@@ -28,6 +28,26 @@ func TestSet(t *testing.T) {
 			options: Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:      map[string]string{"label_1": "label_value_1"},
+				Spec: Spec{
+					Rules: []Rule{
+						{
+							Host: "host",
+							Paths: []Path{
+								{
+									Backend:  Backend{ServiceName: "sc_name", ServicePort: "9999"},
+									Path:     "/test",
+									PathType: "absolute",
+								},
+							},
+						},
+					},
+					TLS: []TLS{
+						{
+							Hosts:      []string{"host1", "host2"},
+							SecretName: "secret",
+						},
+					},
+				},
 			},
 		},
 		{
