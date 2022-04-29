@@ -536,7 +536,7 @@ func (n Node) Ready(ctx context.Context, namespace string) (ready bool, err erro
 }
 
 func (n Node) Start(ctx context.Context, namespace string) (err error) {
-	err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 1)
+	_, err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 1)
 	if err != nil {
 		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
 	}
@@ -546,7 +546,7 @@ func (n Node) Start(ctx context.Context, namespace string) (err error) {
 }
 
 func (n Node) Stop(ctx context.Context, namespace string) (err error) {
-	err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 0)
+	_, err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 0)
 	if err != nil {
 		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
 	}

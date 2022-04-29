@@ -18,10 +18,14 @@ import (
 // compile simulation whether ClientsetMock implements interface
 var _ appsv1.StatefulSetInterface = (*StatefulSetMock)(nil)
 
-type StatefulSetMock struct{}
+type StatefulSetMock struct {
+	ns string
+}
 
-func NewStatefulSetMock() *StatefulSetMock {
-	return &StatefulSetMock{}
+func NewStatefulSetMock(ns string) *StatefulSetMock {
+	return &StatefulSetMock{
+		ns: ns,
+	}
 }
 
 // Apply implements v1.StatefulSetInterface
@@ -71,8 +75,12 @@ func (*StatefulSetMock) GetScale(ctx context.Context, statefulSetName string, op
 }
 
 // List implements v1.StatefulSetInterface
-func (*StatefulSetMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.StatefulSetList, error) {
-	panic("unimplemented")
+func (ss *StatefulSetMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.StatefulSetList, error) {
+	if ss.ns == "bad_test" {
+		return nil, fmt.Errorf("mock error")
+	} else {
+		return nil, errors.NewNotFound(schema.GroupResource{}, ss.ns)
+	}
 }
 
 // Patch implements v1.StatefulSetInterface

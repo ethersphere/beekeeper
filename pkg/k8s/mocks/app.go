@@ -36,7 +36,7 @@ func (*AppV1Mock) ReplicaSets(namespace string) v1.ReplicaSetInterface {
 
 // StatefulSets implements v1.AppsV1Interface
 func (*AppV1Mock) StatefulSets(namespace string) v1.StatefulSetInterface {
-	return NewStatefulSetMock()
+	return NewStatefulSetMock(namespace)
 }
 
 // RESTClient implements v1.AppsV1Interface

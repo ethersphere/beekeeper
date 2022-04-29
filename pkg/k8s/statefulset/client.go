@@ -77,7 +77,7 @@ func (c *Client) RunningStatefulSets(ctx context.Context, namespace string) (run
 }
 
 // Scale scales StatefulSet
-func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int32) (err error) {
+func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int32) (sc *v1.Scale, err error) {
 	scale := &v1.Scale{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -88,9 +88,9 @@ func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int
 		},
 	}
 
-	_, err = c.clientset.AppsV1().StatefulSets(namespace).UpdateScale(ctx, name, scale, metav1.UpdateOptions{})
+	sc, err = c.clientset.AppsV1().StatefulSets(namespace).UpdateScale(ctx, name, scale, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("scaling statefulset %s in namespace %s: %w", name, namespace, err)
+		return nil, fmt.Errorf("scaling statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 
 	return
