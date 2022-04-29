@@ -28,6 +28,41 @@ func TestSet(t *testing.T) {
 			options: Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:      map[string]string{"label_1": "label_value_1"},
+				Spec: PersistentVolumeClaimSpec{
+					AccessModes:    []AccessMode{"1", "2"},
+					RequestStorage: "1Gi",
+					Selector: Selector{
+						MatchLabels: map[string]string{"label_1": "label_value_1"},
+						MatchExpressions: []LabelSelectorRequirement{
+							{
+								Key:      "label_1",
+								Operator: "==",
+								Values:   []string{"label_value_1"},
+							},
+						},
+					},
+					VolumeName: "volume_1",
+				},
+			},
+		},
+		{
+			name:      "create_pvc_spec_volume_mode_Block",
+			pvcName:   "test_pvc",
+			clientset: fake.NewSimpleClientset(),
+			options: Options{
+				Spec: PersistentVolumeClaimSpec{
+					VolumeMode: "Block",
+				},
+			},
+		},
+		{
+			name:      "create_pvc_spec_volume_mode_block",
+			pvcName:   "test_pvc",
+			clientset: fake.NewSimpleClientset(),
+			options: Options{
+				Spec: PersistentVolumeClaimSpec{
+					VolumeMode: "block",
+				},
 			},
 		},
 		{
@@ -71,6 +106,16 @@ func TestSet(t *testing.T) {
 					t.Fatalf("response is expected")
 				}
 
+				expectedSpec := test.options.Spec.toK8S()
+
+				if test.options.Spec.VolumeMode == "Block" || test.options.Spec.VolumeMode == "block" {
+					m := v1.PersistentVolumeBlock
+					expectedSpec.VolumeMode = &m
+				} else {
+					m := v1.PersistentVolumeFilesystem
+					expectedSpec.VolumeMode = &m
+				}
+
 				expected := &v1.PersistentVolumeClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        test.pvcName,
@@ -78,7 +123,7 @@ func TestSet(t *testing.T) {
 						Annotations: test.options.Annotations,
 						Labels:      test.options.Labels,
 					},
-					Spec: test.options.Spec.toK8S(),
+					Spec: expectedSpec,
 				}
 
 				if !reflect.DeepEqual(response, expected) {
