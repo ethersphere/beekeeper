@@ -26,8 +26,6 @@ type BeeConfig struct {
 	DbBlockCacheCapacity       *int           `yaml:"db-block-cache-capacity"`
 	DbWriteBufferSize          *int           `yaml:"db-write-buffer-size"`
 	DbDisableSeeksCompaction   *bool          `yaml:"db-disable-seeks-compaction"`
-	DebugAPIAddr               *string        `yaml:"debug-api-addr"`
-	DebugAPIEnable             *bool          `yaml:"debug-api-enable"`
 	FullNode                   *bool          `yaml:"full-node"`
 	GatewayMode                *bool          `yaml:"gateway-mode"`
 	GlobalPinningEnabled       *bool          `yaml:"global-pinning-enabled"`

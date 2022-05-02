@@ -9,9 +9,6 @@ clusters:
     api-domain: staging.internal
     api-insecure-tls: true
     api-scheme: https
-    debug-api-domain: staging.internal
-    debug-api-insecure-tls: true
-    debug-api-scheme: https
     funding:
       eth: 0.1
       gbzz: 2.0
@@ -87,8 +84,6 @@ bee-configs:
     db-block-cache-capacity: 33554432
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
-    debug-api-addr: ":1635"
-    debug-api-enable: false
     full-node: true
     gateway-mode: false
     global-pinning-enabled: false

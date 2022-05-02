@@ -7,8 +7,6 @@ clusters:
     disable-namespace: true
     api-domain: localhost
     api-scheme: http
-    debug-api-domain: localhost
-    debug-api-scheme: http
     admin-password: test
     funding:
       eth: 0.1
@@ -162,8 +160,6 @@ bee-configs:
     db-block-cache-capacity: 33554432
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
-    debug-api-addr: ":1635"
-    debug-api-enable: false
     full-node: true
     gateway-mode: false
     global-pinning-enabled: true

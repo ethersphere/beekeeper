@@ -39,19 +39,16 @@ type Cluster interface {
 
 // ClusterOptions represents Bee cluster options
 type ClusterOptions struct {
-	Annotations         map[string]string
-	APIDomain           string
-	APIInsecureTLS      bool
-	APIScheme           string
-	DebugAPIDomain      string
-	DebugAPIInsecureTLS bool
-	DebugAPIScheme      string
-	K8SClient           *k8s.Client
-	SwapClient          swap.Client
-	Labels              map[string]string
-	Namespace           string
-	DisableNamespace    bool
-	AdminPassword       string
+	Annotations      map[string]string
+	APIDomain        string
+	APIInsecureTLS   bool
+	APIScheme        string
+	K8SClient        *k8s.Client
+	SwapClient       swap.Client
+	Labels           map[string]string
+	Namespace        string
+	DisableNamespace bool
+	AdminPassword    string
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster

@@ -19,39 +19,33 @@ var _ orchestration.Cluster = (*Cluster)(nil)
 
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
-	name                string
-	annotations         map[string]string
-	apiDomain           string
-	apiInsecureTLS      bool
-	apiScheme           string
-	debugAPIDomain      string
-	debugAPIInsecureTLS bool
-	debugAPIScheme      string
-	k8s                 *k8s.Client
-	swap                swap.Client
-	labels              map[string]string
-	namespace           string
-	disableNamespace    bool                  // do not use namespace for node hostnames
-	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
+	name             string
+	annotations      map[string]string
+	apiDomain        string
+	apiInsecureTLS   bool
+	apiScheme        string
+	k8s              *k8s.Client
+	swap             swap.Client
+	labels           map[string]string
+	namespace        string
+	disableNamespace bool                  // do not use namespace for node hostnames
+	nodeGroups       map[string]*NodeGroup // set when groups are added to the cluster
 }
 
 // NewCluster returns new cluster
 func NewCluster(name string, o orchestration.ClusterOptions) *Cluster {
 	return &Cluster{
-		name:                name,
-		annotations:         o.Annotations,
-		apiDomain:           o.APIDomain,
-		apiInsecureTLS:      o.APIInsecureTLS,
-		apiScheme:           o.APIScheme,
-		debugAPIDomain:      o.DebugAPIDomain,
-		debugAPIInsecureTLS: o.DebugAPIInsecureTLS,
-		debugAPIScheme:      o.DebugAPIScheme,
-		k8s:                 o.K8SClient,
-		swap:                o.SwapClient,
-		labels:              o.Labels,
-		namespace:           o.Namespace,
-		disableNamespace:    o.DisableNamespace,
-		nodeGroups:          make(map[string]*NodeGroup),
+		name:             name,
+		annotations:      o.Annotations,
+		apiDomain:        o.APIDomain,
+		apiInsecureTLS:   o.APIInsecureTLS,
+		apiScheme:        o.APIScheme,
+		k8s:              o.K8SClient,
+		swap:             o.SwapClient,
+		labels:           o.Labels,
+		namespace:        o.Namespace,
+		disableNamespace: o.DisableNamespace,
+		nodeGroups:       make(map[string]*NodeGroup),
 	}
 }
 
@@ -430,12 +424,4 @@ func (c *Cluster) ingressHost(name string) string {
 		return fmt.Sprintf("%s.%s", name, c.apiDomain)
 	}
 	return fmt.Sprintf("%s.%s.%s", name, c.namespace, c.apiDomain)
-}
-
-// ingressHost generates host for node's DebugAPI ingress
-func (c *Cluster) ingressDebugHost(name string) string {
-	if c.disableNamespace {
-		return fmt.Sprintf("%s-debug.%s", name, c.debugAPIDomain)
-	}
-	return fmt.Sprintf("%s-debug.%s.%s", name, c.namespace, c.debugAPIDomain)
 }

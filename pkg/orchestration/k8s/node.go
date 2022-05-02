@@ -236,57 +236,6 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 	fmt.Printf("ingress %s is set in namespace %s\n", apiIn, o.Namespace)
 
-	// debug API
-	portDebug, err := parsePort(o.Config.DebugAPIAddr)
-	if err != nil {
-		return fmt.Errorf("parsing Debug port from config: %s", err)
-	}
-
-	// debug service
-	debugSvc := fmt.Sprintf("%s-debug", o.Name)
-	if err := n.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
-		Annotations: o.Annotations,
-		Labels:      o.Labels,
-		ServiceSpec: service.Spec{
-			Ports: service.Ports{{
-				AppProtocol: "TCP",
-				Name:        "api",
-				Protocol:    "TCP",
-				Port:        portAPI,
-				TargetPort:  "api",
-			}},
-			Selector: o.Selector,
-			Type:     "ClusterIP",
-		},
-	}); err != nil {
-		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
-	}
-	fmt.Printf("service %s is set in namespace %s\n", debugSvc, o.Namespace)
-
-	// debug service's ingress
-	debugIn := fmt.Sprintf("%s-debug", o.Name)
-	if err := n.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
-		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
-		Labels:      o.Labels,
-		Spec: ingress.Spec{
-			Class: o.IngressDebugClass,
-			Rules: ingress.Rules{{
-				Host: o.IngressDebugHost,
-				Paths: ingress.Paths{{
-					Backend: ingress.Backend{
-						ServiceName: debugSvc,
-						ServicePort: "api",
-					},
-					Path:     "/",
-					PathType: "ImplementationSpecific",
-				}},
-			}},
-		},
-	}); err != nil {
-		return fmt.Errorf("set ingress in namespace %s: %w", o.Namespace, err)
-	}
-	fmt.Printf("ingress %s is set in namespace %s\n", debugIn, o.Namespace)
-
 	// p2p service
 	portP2P, err := parsePort(o.Config.P2PAddr)
 	if err != nil {
@@ -387,7 +336,6 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 						Image:                  o.Image,
 						ImagePullPolicy:        o.ImagePullPolicy,
 						PortAPI:                portAPI,
-						PortDebug:              portDebug,
 						PortP2P:                portP2P,
 						PersistenceEnabled:     o.PersistenceEnabled,
 						ResourcesLimitCPU:      o.ResourcesLimitCPU,
@@ -458,20 +406,6 @@ func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	fmt.Printf("service %s is deleted in namespace %s\n", p2pSvc, namespace)
-
-	// debug service's ingress
-	debugIn := fmt.Sprintf("%s-debug", n.name)
-	if err := n.k8s.Ingress.Delete(ctx, debugIn, namespace); err != nil {
-		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
-	}
-	fmt.Printf("ingress %s is deleted in namespace %s\n", debugIn, namespace)
-
-	// debug service
-	debugSvc := fmt.Sprintf("%s-debug", n.name)
-	if err := n.k8s.Service.Delete(ctx, debugSvc, namespace); err != nil {
-		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
-	}
-	fmt.Printf("service %s is deleted in namespace %s\n", debugSvc, namespace)
 
 	// api service's ingress
 	apiIn := fmt.Sprintf("%s-api", n.name)

@@ -12,6 +12,12 @@ import (
 // ChunksService represents Bee's Chunks service
 type ChunksService service
 
+// Remove removed the chunk from the node's local store
+func (c *ChunksService) Remove(ctx context.Context, a swarm.Address) (err error) {
+	err = c.client.request(ctx, http.MethodDelete, "/chunks/"+a.String(), nil, nil)
+	return
+}
+
 // Download downloads data from the node
 func (c *ChunksService) Download(ctx context.Context, a swarm.Address, targets string) (resp io.ReadCloser, err error) {
 	if targets == "" {

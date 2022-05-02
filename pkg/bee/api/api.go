@@ -38,6 +38,11 @@ type Client struct {
 	SOC         *SOCService
 	Stewardship *StewardshipService
 	Auth        *AuthService
+
+	// Services that API provides.
+	Node     *NodeService
+	PingPong *PingPongService
+	Postage  *PostageService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -66,6 +71,9 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 func newClient(httpClient *http.Client) (c *Client) {
 	c = &Client{httpClient: httpClient}
 	c.service.client = c
+	c.Node = (*NodeService)(&c.service)
+	c.PingPong = (*PingPongService)(&c.service)
+	c.Postage = (*PostageService)(&c.service)
 	c.Bytes = (*BytesService)(&c.service)
 	c.Chunks = (*ChunksService)(&c.service)
 	c.Files = (*FilesService)(&c.service)

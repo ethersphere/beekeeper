@@ -95,8 +95,6 @@ type Config struct {
 	DbBlockCacheCapacity       int           // size of block cache of the database in bytes
 	DbWriteBufferSize          int           // size of the database write buffer in bytes
 	DbDisableSeeksCompaction   bool          // disables DB compactions triggered by seeks
-	DebugAPIAddr               string        // debug HTTP API listen address
-	DebugAPIEnable             bool          // enable debug HTTP API
 	FullNode                   bool          // cause the node to start in full mode
 	GatewayMode                bool          // disable a set of sensitive features in the api
 	GlobalPinningEnabled       bool          // enable global pinning

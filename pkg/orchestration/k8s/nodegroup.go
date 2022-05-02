@@ -58,11 +58,10 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 	}
 
 	client := bee.NewClient(bee.ClientOptions{
-		APIURL:              aURL,
-		APIInsecureTLS:      g.cluster.apiInsecureTLS,
-		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
-		Retry:               5,
-		Restricted:          config.Restricted,
+		APIURL:         aURL,
+		APIInsecureTLS: g.cluster.apiInsecureTLS,
+		Retry:          5,
+		Restricted:     config.Restricted,
 	})
 
 	n := NewNode(name, orchestration.NodeOptions{
@@ -250,7 +249,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		IngressHost:               g.cluster.ingressHost(name),
 		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
 		IngressDebugClass:         g.opts.IngressDebugClass,
-		IngressDebugHost:          g.cluster.ingressDebugHost(name),
+		IngressDebugHost:          g.cluster.ingressHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 n.LibP2PKey(),
 		NodeSelector:              g.opts.NodeSelector,

@@ -28,65 +28,65 @@ declare -x BEEKEEPER_BIN="../dist/beekeeper"
 
 _fullconnectivity() {
     echo "*** FULLCONNECTIVITY ***"
-    "${BEEKEEPER_BIN}" check fullconnectivity --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
+    "${BEEKEEPER_BIN}" check fullconnectivity --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}"
 }
 
 _pingpong() {
     echo "*** PINGPONG ***"
-    "${BEEKEEPER_BIN}" check pingpong --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
+    "${BEEKEEPER_BIN}" check pingpong --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}"
 }
 
 _balances() {
     echo "*** BALANCES ***"
-    "${BEEKEEPER_BIN}" check balances --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}"
+    "${BEEKEEPER_BIN}" check balances --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}"
 }
 
 _settlements() {
     echo "*** SETTLEMENTS ***"
-    "${BEEKEEPER_BIN}" check settlements --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" -t 50000000000 --upload-node-count "${REPLICA}" --expect-settlements=false
+    "${BEEKEEPER_BIN}" check settlements --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}" -t 50000000000 --upload-node-count "${REPLICA}" --expect-settlements=false
 }
 
 _cashout() {
     echo "*** CASHOUT ***"
-    "${BEEKEEPER_BIN}" check cashout --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
+    "${BEEKEEPER_BIN}" check cashout --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}"
 }
 
 _pushsync() {
     echo "*** PUSHSYNC ***"
-    "${BEEKEEPER_BIN}" check pushsync --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3
-    "${BEEKEEPER_BIN}" check pushsync --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3 --upload-chunks
+    "${BEEKEEPER_BIN}" check pushsync --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3
+    "${BEEKEEPER_BIN}" check pushsync --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3 --upload-chunks
 }
 
 _retrieval() {
     echo "*** RETRIEVAL ***"
-    "${BEEKEEPER_BIN}" check retrieval --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3
+    "${BEEKEEPER_BIN}" check retrieval --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3
 }
 
 _pullsync() {
     echo "*** PULLSYNC ***"
-    "${BEEKEEPER_BIN}" check pullsync --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3
+    "${BEEKEEPER_BIN}" check pullsync --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3
 }
 
 _chunkrepair() {
     echo "*** CHUNKREPAIR ***"
-    "${BEEKEEPER_BIN}" check chunkrepair --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
+    "${BEEKEEPER_BIN}" check chunkrepair --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}"
 }
 
 _manifest() {
     echo "*** MANIFEST ***"
-    "${BEEKEEPER_BIN}" check manifest --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
+    "${BEEKEEPER_BIN}" check manifest --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}"
 }
 
 _fileretrieval() {
     echo "*** FILERETRIEVAL ***"
-    "${BEEKEEPER_BIN}" check fileretrieval --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
+    "${BEEKEEPER_BIN}" check fileretrieval --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}"
 }
 
 _localpinning() {
     echo "*** LOCALPINNING ***"
-    "${BEEKEEPER_BIN}" check localpinning --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
-    "${BEEKEEPER_BIN}" check localpinning --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --large-file-disk-ratio 2
-    "${BEEKEEPER_BIN}" check localpinning --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --large-file-disk-ratio 2 --large-file-count 10
+    "${BEEKEEPER_BIN}" check localpinning --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}"
+    "${BEEKEEPER_BIN}" check localpinning --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}" --large-file-disk-ratio 2
+    "${BEEKEEPER_BIN}" check localpinning --api-scheme http --api-domain "${DOMAIN}" --node-count "${REPLICA}" --large-file-disk-ratio 2 --large-file-count 10
 }
 
 
