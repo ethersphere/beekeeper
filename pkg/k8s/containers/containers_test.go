@@ -9,6 +9,64 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+func TestToK8S_Containers(t *testing.T) {
+	testTable := []struct {
+		name               string
+		containers         Containers
+		expectedContainers []v1.Container
+	}{
+		{
+			name:       "default",
+			containers: Containers{{}},
+			expectedContainers: []v1.Container{
+				{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{},
+						Limits:   v1.ResourceList{},
+					},
+					SecurityContext: &v1.SecurityContext{
+						Privileged:     new(bool),
+						SELinuxOptions: &v1.SELinuxOptions{},
+						WindowsOptions: &v1.WindowsSecurityContextOptions{
+							GMSACredentialSpecName: func() *string {
+								name := ""
+								return &name
+							}(),
+							GMSACredentialSpec: func() *string {
+								spec := ""
+								return &spec
+							}(),
+							RunAsUserName: func() *string {
+								run := ""
+								return &run
+							}(),
+						},
+						RunAsUser:                new(int64),
+						RunAsNonRoot:             new(bool),
+						ReadOnlyRootFilesystem:   new(bool),
+						AllowPrivilegeEscalation: new(bool),
+						RunAsGroup:               new(int64),
+						ProcMount: func() *v1.ProcMountType {
+							procMountType := v1.ProcMountType("")
+							return &procMountType
+						}(),
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.name, func(t *testing.T) {
+			containers := test.containers.ToK8S()
+
+			if !reflect.DeepEqual(test.expectedContainers, containers) {
+				t.Errorf("response expected: %#v, got: %#v", test.expectedContainers, containers)
+			}
+		})
+	}
+}
+
 func TestToK8S(t *testing.T) {
 	var trueBoolPointer bool = true
 
@@ -17,43 +75,6 @@ func TestToK8S(t *testing.T) {
 		container Container
 		expected  v1.Container
 	}{
-		{
-			name:      "default",
-			container: Container{},
-			expected: v1.Container{
-				Resources: v1.ResourceRequirements{
-					Requests: v1.ResourceList{},
-					Limits:   v1.ResourceList{},
-				},
-				SecurityContext: &v1.SecurityContext{
-					Privileged:     new(bool),
-					SELinuxOptions: &v1.SELinuxOptions{},
-					WindowsOptions: &v1.WindowsSecurityContextOptions{
-						GMSACredentialSpecName: func() *string {
-							name := ""
-							return &name
-						}(),
-						GMSACredentialSpec: func() *string {
-							spec := ""
-							return &spec
-						}(),
-						RunAsUserName: func() *string {
-							run := ""
-							return &run
-						}(),
-					},
-					RunAsUser:                new(int64),
-					RunAsNonRoot:             new(bool),
-					ReadOnlyRootFilesystem:   new(bool),
-					AllowPrivilegeEscalation: new(bool),
-					RunAsGroup:               new(int64),
-					ProcMount: func() *v1.ProcMountType {
-						procMountType := v1.ProcMountType("")
-						return &procMountType
-					}(),
-				},
-			},
-		},
 		{
 			name: "init_all",
 			container: Container{
@@ -454,7 +475,7 @@ func TestToK8S(t *testing.T) {
 			},
 		},
 		{
-			name: "init_http_get",
+			name: "init_http_handlers",
 			container: Container{
 				Name: "container",
 				Lifecycle: Lifecycle{
@@ -700,7 +721,7 @@ func TestToK8S(t *testing.T) {
 			},
 		},
 		{
-			name: "init_tcp",
+			name: "init_tcp_handlers",
 			container: Container{
 				Name: "container",
 				Lifecycle: Lifecycle{
@@ -835,6 +856,54 @@ func TestToK8S(t *testing.T) {
 				Resources: v1.ResourceRequirements{
 					Requests: v1.ResourceList{},
 					Limits:   v1.ResourceList{},
+				},
+				SecurityContext: &v1.SecurityContext{
+					Privileged:     new(bool),
+					SELinuxOptions: &v1.SELinuxOptions{},
+					WindowsOptions: &v1.WindowsSecurityContextOptions{
+						GMSACredentialSpecName: func() *string {
+							name := ""
+							return &name
+						}(),
+						GMSACredentialSpec: func() *string {
+							spec := ""
+							return &spec
+						}(),
+						RunAsUserName: func() *string {
+							run := ""
+							return &run
+						}(),
+					},
+					RunAsUser:                new(int64),
+					RunAsNonRoot:             new(bool),
+					ReadOnlyRootFilesystem:   new(bool),
+					AllowPrivilegeEscalation: new(bool),
+					RunAsGroup:               new(int64),
+					ProcMount: func() *v1.ProcMountType {
+						procMountType := v1.ProcMountType("")
+						return &procMountType
+					}(),
+				},
+			},
+		},
+		{
+			name: "init_no_handlers",
+			container: Container{
+				Name: "container",
+				Lifecycle: Lifecycle{
+					PostStart: &Handler{},
+					PreStop:   &Handler{},
+				},
+			},
+			expected: v1.Container{
+				Name: "container",
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{},
+					Limits:   v1.ResourceList{},
+				},
+				Lifecycle: &v1.Lifecycle{
+					PostStart: &v1.Handler{},
+					PreStop:   &v1.Handler{},
 				},
 				SecurityContext: &v1.SecurityContext{
 					Privileged:     new(bool),

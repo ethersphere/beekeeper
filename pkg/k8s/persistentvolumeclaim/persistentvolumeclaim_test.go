@@ -142,9 +142,9 @@ func TestToK8s(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			pvc := test.pvcs.ToK8S()
-			if !reflect.DeepEqual(pvc, test.expectedPvcs) {
-				t.Errorf("response expected: %#v, got: %#v", test.expectedPvcs, pvc)
+			pvcs := test.pvcs.ToK8S()
+			if !reflect.DeepEqual(pvcs, test.expectedPvcs) {
+				t.Errorf("response expected: %#v, got: %#v", test.expectedPvcs, pvcs)
 			}
 		})
 	}
