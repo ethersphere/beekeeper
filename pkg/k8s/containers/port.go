@@ -7,10 +7,11 @@ type Ports []Port
 
 // toK8S converts Ports to Kuberntes client object
 func (ps Ports) toK8S() (l []v1.ContainerPort) {
-	l = make([]v1.ContainerPort, 0, len(ps))
-
-	for _, p := range ps {
-		l = append(l, p.toK8S())
+	if len(ps) > 0 {
+		l = make([]v1.ContainerPort, 0, len(ps))
+		for _, p := range ps {
+			l = append(l, p.toK8S())
+		}
 	}
 	return
 }

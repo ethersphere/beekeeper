@@ -31,6 +31,8 @@ func (sc *SecurityContext) toK8S() *v1.SecurityContext {
 		RunAsNonRoot:           &sc.RunAsNonRoot,
 		RunAsUser:              &sc.RunAsUser,
 		SELinuxOptions:         sc.SELinuxOptions.toK8S(),
+		WindowsOptions:         sc.WindowsOptions.toK8S(),
+		// SeccompProfile: , //TODO add?
 	}
 }
 
@@ -42,12 +44,16 @@ type Capabilities struct {
 
 // toK8S converts Capabilities to Kuberntes client object
 func (cap *Capabilities) toK8S() *v1.Capabilities {
+	if cap.Add == nil && cap.Drop == nil {
+		return nil
+	}
+
 	caps := v1.Capabilities{}
 	for _, a := range cap.Add {
 		caps.Add = append(caps.Add, v1.Capability(a))
 	}
 	for _, d := range cap.Drop {
-		caps.Add = append(caps.Drop, v1.Capability(d))
+		caps.Drop = append(caps.Drop, v1.Capability(d))
 	}
 	return &caps
 }
@@ -75,4 +81,12 @@ type WindowsOptions struct {
 	GMSACredentialSpecName string
 	GMSACredentialSpec     string
 	RunAsUserName          string
+}
+
+func (wo *WindowsOptions) toK8S() *v1.WindowsSecurityContextOptions {
+	return &v1.WindowsSecurityContextOptions{
+		GMSACredentialSpecName: &wo.GMSACredentialSpecName,
+		GMSACredentialSpec:     &wo.GMSACredentialSpec,
+		RunAsUserName:          &wo.RunAsUserName,
+	}
 }

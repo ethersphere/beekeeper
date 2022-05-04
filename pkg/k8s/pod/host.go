@@ -7,12 +7,12 @@ type HostAliases []HostAlias
 
 // toK8S converts HostAliases to Kuberntes client objects
 func (has HostAliases) toK8S() (l []v1.HostAlias) {
-	l = make([]v1.HostAlias, 0, len(has))
-
-	for _, h := range has {
-		l = append(l, h.toK8S())
+	if len(has) > 0 {
+		l = make([]v1.HostAlias, 0, len(has))
+		for _, h := range has {
+			l = append(l, h.toK8S())
+		}
 	}
-
 	return
 }
 
