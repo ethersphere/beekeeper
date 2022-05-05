@@ -28,9 +28,6 @@ func (pts *PodTemplateSpec) ToK8S() v1.PodTemplateSpec {
 	}
 }
 
-// PodSpecs represents Kubernetes PodSpecs
-type PodSpecs []PodSpec
-
 // PodSpec represents Kubernetes PodSpec
 type PodSpec struct {
 	Affinity                      Affinity
