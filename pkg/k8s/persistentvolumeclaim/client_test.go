@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
+	mock "github.com/ethersphere/beekeeper/mocks/k8s"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -83,13 +83,13 @@ func TestSet(t *testing.T) {
 		{
 			name:      "create_error",
 			pvcName:   "create_bad",
-			clientset: mocks.NewClientset(),
+			clientset: mock.NewClientset(),
 			errorMsg:  fmt.Errorf("creating pvc create_bad in namespace test: mock error: cannot create pvc"),
 		},
 		{
 			name:      "update_error",
 			pvcName:   "update_bad",
-			clientset: mocks.NewClientset(),
+			clientset: mock.NewClientset(),
 			errorMsg:  fmt.Errorf("updating pvc update_bad in namespace test: mock error: cannot update pvc"),
 		},
 	}
@@ -175,7 +175,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:      "delete_error",
 			pvcName:   "delete_bad",
-			clientset: mocks.NewClientset(),
+			clientset: mock.NewClientset(),
 			errorMsg:  fmt.Errorf("deleting pvc delete_bad in namespace test: mock error: cannot delete pvc"),
 		},
 	}

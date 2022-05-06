@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethersphere/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
+	mock "github.com/ethersphere/beekeeper/mocks/k8s"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -200,7 +200,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:      "delete_bad",
 			nsName:    "test",
-			clientset: mocks.NewClientset(),
+			clientset: mock.NewClientset(),
 			errorMsg:  fmt.Errorf("deleting namespace test: mock error: namespace \"test\" can not be deleted"),
 		},
 	}

@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
+	mock "github.com/ethersphere/beekeeper/mocks/k8s"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -68,13 +68,13 @@ func TestSet(t *testing.T) {
 		{
 			name:        "create_error",
 			ingressName: "create_bad",
-			clientset:   mocks.NewClientset(),
+			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("creating ingress create_bad in namespace test: mock error: cannot create ingress"),
 		},
 		{
 			name:        "update_error",
 			ingressName: "update_bad",
-			clientset:   mocks.NewClientset(),
+			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("updating ingress update_bad in namespace test: mock error: cannot update ingress"),
 		},
 	}
@@ -150,7 +150,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:        "delete_error",
 			ingressName: "delete_bad",
-			clientset:   mocks.NewClientset(),
+			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("deleting ingress delete_bad in namespace test: mock error: cannot delete ingress"),
 		},
 	}

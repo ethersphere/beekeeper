@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
+	mock "github.com/ethersphere/beekeeper/mocks/k8s"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,13 +65,13 @@ func TestSet(t *testing.T) {
 		{
 			name:            "create_error",
 			statefulsetName: "create_bad",
-			clientset:       mocks.NewClientset(),
+			clientset:       mock.NewClientset(),
 			errorMsg:        fmt.Errorf("creating statefulset create_bad in namespace test: mock error: cannot create statefulset"),
 		},
 		{
 			name:            "update_error",
 			statefulsetName: "update_bad",
-			clientset:       mocks.NewClientset(),
+			clientset:       mock.NewClientset(),
 			errorMsg:        fmt.Errorf("updating statefulset update_bad in namespace test: mock error: cannot update statefulset"),
 		},
 	}
@@ -159,7 +159,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:            "delete_error",
 			statefulsetName: "delete_bad",
-			clientset:       mocks.NewClientset(),
+			clientset:       mock.NewClientset(),
 			errorMsg:        fmt.Errorf("deleting statefulset delete_bad in namespace test: mock error: cannot delete statefulset"),
 		},
 	}
@@ -213,7 +213,7 @@ func TestReadyReplicas(t *testing.T) {
 		{
 			name:            "replicas_error",
 			statefulsetName: "statefulset_bad",
-			clientset:       mocks.NewClientset(),
+			clientset:       mock.NewClientset(),
 			errorMsg:        fmt.Errorf("getting ReadyReplicas from statefulset statefulset_bad in namespace test: mock error: bad request"),
 		},
 	}
@@ -281,12 +281,12 @@ func TestRunningStatefulSets(t *testing.T) {
 		{
 			name:      "not_found_in_namespace",
 			namespace: "test",
-			clientset: mocks.NewClientset(),
+			clientset: mock.NewClientset(),
 		},
 		{
 			name:      "wrong_namespace",
 			namespace: "bad_test",
-			clientset: mocks.NewClientset(),
+			clientset: mock.NewClientset(),
 			errorMsg:  fmt.Errorf("list statefulsets in namespace bad_test: mock error"),
 		},
 	}
@@ -443,12 +443,12 @@ func TestStoppedStatefulSets(t *testing.T) {
 		{
 			name:      "not_found_in_namespace",
 			namespace: "test",
-			clientset: mocks.NewClientset(),
+			clientset: mock.NewClientset(),
 		},
 		{
 			name:      "wrong_namespace",
 			namespace: "bad_test",
-			clientset: mocks.NewClientset(),
+			clientset: mock.NewClientset(),
 			errorMsg:  fmt.Errorf("list statefulsets in namespace bad_test: mock error"),
 		},
 	}
