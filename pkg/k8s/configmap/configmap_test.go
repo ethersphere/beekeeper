@@ -53,13 +53,13 @@ func TestSet(t *testing.T) {
 		{
 			name:       "create_error",
 			configName: "create_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("creating configmap create_bad in namespace test: mock error: cannot create config map"),
 		},
 		{
 			name:       "update_error",
 			configName: "update_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("updating configmap update_bad in namespace test: mock error: cannot update config map"),
 		},
 	}
@@ -137,7 +137,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:       "delete_error",
 			configName: "delete_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("deleting configmap delete_bad in namespace test: mock error: cannot delete config map"),
 		},
 	}

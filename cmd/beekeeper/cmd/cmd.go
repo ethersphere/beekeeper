@@ -271,7 +271,7 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 
 func (c *command) setK8S() (err error) {
 	if c.globalConfig.GetBool("enable-k8s") {
-		k8sFuncs := k8s.K8sClientFunctions{
+		funcs := k8s.ClientFunctions{
 			NewForConfig:         kubernetes.NewForConfig,
 			InClusterConfig:      rest.InClusterConfig,
 			BuildConfigFromFlags: clientcmd.BuildConfigFromFlags,
@@ -279,7 +279,7 @@ func (c *command) setK8S() (err error) {
 			FlagParse:            flag.Parse,
 			OsUserHomeDir:        os.UserHomeDir,
 		}
-		if c.k8sClient, err = k8s.NewClient(k8sFuncs, &k8s.ClientOptions{
+		if c.k8sClient, err = k8s.NewClient(funcs, &k8s.ClientOptions{
 			InCluster:      c.globalConfig.GetBool("in-cluster"),
 			KubeconfigPath: c.globalConfig.GetString("kubeconfig"),
 		}); err != nil && err != k8s.ErrKubeconfigNotSet {

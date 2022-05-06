@@ -16,21 +16,21 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ corev1.ServiceAccountInterface = (*ServiceAccountMock)(nil)
+var _ corev1.ServiceAccountInterface = (*ServiceAccount)(nil)
 
-type ServiceAccountMock struct{}
+type ServiceAccount struct{}
 
-func NewServiceAccountMock() *ServiceAccountMock {
-	return &ServiceAccountMock{}
+func NewServiceAccount() *ServiceAccount {
+	return &ServiceAccount{}
 }
 
 // Apply implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) Apply(ctx context.Context, serviceAccount *configcorev1.ServiceAccountApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceAccount, err error) {
+func (*ServiceAccount) Apply(ctx context.Context, serviceAccount *configcorev1.ServiceAccountApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceAccount, err error) {
 	panic("unimplemented")
 }
 
 // Create implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) Create(ctx context.Context, serviceAccount *v1.ServiceAccount, opts metav1.CreateOptions) (*v1.ServiceAccount, error) {
+func (*ServiceAccount) Create(ctx context.Context, serviceAccount *v1.ServiceAccount, opts metav1.CreateOptions) (*v1.ServiceAccount, error) {
 	if serviceAccount.ObjectMeta.Name == "create_bad" {
 		return nil, fmt.Errorf("mock error: cannot create service account")
 	} else {
@@ -39,12 +39,12 @@ func (*ServiceAccountMock) Create(ctx context.Context, serviceAccount *v1.Servic
 }
 
 // CreateToken implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) CreateToken(ctx context.Context, serviceAccountName string, tokenRequest *authenticationv1.TokenRequest, opts metav1.CreateOptions) (*authenticationv1.TokenRequest, error) {
+func (*ServiceAccount) CreateToken(ctx context.Context, serviceAccountName string, tokenRequest *authenticationv1.TokenRequest, opts metav1.CreateOptions) (*authenticationv1.TokenRequest, error) {
 	panic("unimplemented")
 }
 
 // Delete implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (*ServiceAccount) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	if name == "delete_bad" {
 		return fmt.Errorf("mock error: cannot delete service account")
 	} else {
@@ -53,27 +53,27 @@ func (*ServiceAccountMock) Delete(ctx context.Context, name string, opts metav1.
 }
 
 // DeleteCollection implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+func (*ServiceAccount) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	panic("unimplemented")
 }
 
 // Get implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ServiceAccount, error) {
+func (*ServiceAccount) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ServiceAccount, error) {
 	panic("unimplemented")
 }
 
 // List implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.ServiceAccountList, error) {
+func (*ServiceAccount) List(ctx context.Context, opts metav1.ListOptions) (*v1.ServiceAccountList, error) {
 	panic("unimplemented")
 }
 
 // Patch implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ServiceAccount, err error) {
+func (*ServiceAccount) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ServiceAccount, err error) {
 	panic("unimplemented")
 }
 
 // Update implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) Update(ctx context.Context, serviceAccount *v1.ServiceAccount, opts metav1.UpdateOptions) (*v1.ServiceAccount, error) {
+func (*ServiceAccount) Update(ctx context.Context, serviceAccount *v1.ServiceAccount, opts metav1.UpdateOptions) (*v1.ServiceAccount, error) {
 	if serviceAccount.ObjectMeta.Name == "update_bad" {
 		return nil, errors.NewBadRequest("mock error: cannot update service account")
 	} else {
@@ -82,6 +82,6 @@ func (*ServiceAccountMock) Update(ctx context.Context, serviceAccount *v1.Servic
 }
 
 // Watch implements v1.ServiceAccountInterface
-func (*ServiceAccountMock) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (*ServiceAccount) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }

@@ -200,7 +200,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:      "delete_bad",
 			nsName:    "test",
-			clientset: mocks.NewClientsetMock(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("deleting namespace test: mock error: namespace \"test\" can not be deleted"),
 		},
 	}

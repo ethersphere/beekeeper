@@ -16,30 +16,30 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ appsv1.StatefulSetInterface = (*StatefulSetMock)(nil)
+var _ appsv1.StatefulSetInterface = (*StatefulSet)(nil)
 
-type StatefulSetMock struct {
+type StatefulSet struct {
 	ns string
 }
 
-func NewStatefulSetMock(ns string) *StatefulSetMock {
-	return &StatefulSetMock{
+func NewStatefulSet(ns string) *StatefulSet {
+	return &StatefulSet{
 		ns: ns,
 	}
 }
 
 // Apply implements v1.StatefulSetInterface
-func (*StatefulSetMock) Apply(ctx context.Context, statefulSet *configappsv1.StatefulSetApplyConfiguration, opts metav1.ApplyOptions) (result *v1.StatefulSet, err error) {
+func (*StatefulSet) Apply(ctx context.Context, statefulSet *configappsv1.StatefulSetApplyConfiguration, opts metav1.ApplyOptions) (result *v1.StatefulSet, err error) {
 	panic("unimplemented")
 }
 
 // ApplyStatus implements v1.StatefulSetInterface
-func (*StatefulSetMock) ApplyStatus(ctx context.Context, statefulSet *configappsv1.StatefulSetApplyConfiguration, opts metav1.ApplyOptions) (result *v1.StatefulSet, err error) {
+func (*StatefulSet) ApplyStatus(ctx context.Context, statefulSet *configappsv1.StatefulSetApplyConfiguration, opts metav1.ApplyOptions) (result *v1.StatefulSet, err error) {
 	panic("unimplemented")
 }
 
 // Create implements v1.StatefulSetInterface
-func (*StatefulSetMock) Create(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.CreateOptions) (*v1.StatefulSet, error) {
+func (*StatefulSet) Create(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.CreateOptions) (*v1.StatefulSet, error) {
 	if statefulSet.ObjectMeta.Name == "create_bad" {
 		return nil, fmt.Errorf("mock error: cannot create statefulset")
 	} else {
@@ -48,7 +48,7 @@ func (*StatefulSetMock) Create(ctx context.Context, statefulSet *v1.StatefulSet,
 }
 
 // Delete implements v1.StatefulSetInterface
-func (*StatefulSetMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (*StatefulSet) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	if name == "delete_bad" {
 		return fmt.Errorf("mock error: cannot delete statefulset")
 	} else {
@@ -57,12 +57,12 @@ func (*StatefulSetMock) Delete(ctx context.Context, name string, opts metav1.Del
 }
 
 // DeleteCollection implements v1.StatefulSetInterface
-func (*StatefulSetMock) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+func (*StatefulSet) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	panic("unimplemented")
 }
 
 // Get implements v1.StatefulSetInterface
-func (*StatefulSetMock) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.StatefulSet, error) {
+func (*StatefulSet) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.StatefulSet, error) {
 	if name == "statefulset_bad" {
 		return nil, fmt.Errorf("mock error: bad request")
 	}
@@ -70,12 +70,12 @@ func (*StatefulSetMock) Get(ctx context.Context, name string, opts metav1.GetOpt
 }
 
 // GetScale implements v1.StatefulSetInterface
-func (*StatefulSetMock) GetScale(ctx context.Context, statefulSetName string, options metav1.GetOptions) (*autoscalingv1.Scale, error) {
+func (*StatefulSet) GetScale(ctx context.Context, statefulSetName string, options metav1.GetOptions) (*autoscalingv1.Scale, error) {
 	panic("unimplemented")
 }
 
 // List implements v1.StatefulSetInterface
-func (ss *StatefulSetMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.StatefulSetList, error) {
+func (ss *StatefulSet) List(ctx context.Context, opts metav1.ListOptions) (*v1.StatefulSetList, error) {
 	if ss.ns == "bad_test" {
 		return nil, fmt.Errorf("mock error")
 	} else {
@@ -84,12 +84,12 @@ func (ss *StatefulSetMock) List(ctx context.Context, opts metav1.ListOptions) (*
 }
 
 // Patch implements v1.StatefulSetInterface
-func (*StatefulSetMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.StatefulSet, err error) {
+func (*StatefulSet) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.StatefulSet, err error) {
 	panic("unimplemented")
 }
 
 // Update implements v1.StatefulSetInterface
-func (*StatefulSetMock) Update(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.UpdateOptions) (*v1.StatefulSet, error) {
+func (*StatefulSet) Update(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.UpdateOptions) (*v1.StatefulSet, error) {
 	if statefulSet.ObjectMeta.Name == "update_bad" {
 		return nil, errors.NewBadRequest("mock error: cannot update statefulset")
 	} else {
@@ -98,16 +98,16 @@ func (*StatefulSetMock) Update(ctx context.Context, statefulSet *v1.StatefulSet,
 }
 
 // UpdateScale implements v1.StatefulSetInterface
-func (*StatefulSetMock) UpdateScale(ctx context.Context, statefulSetName string, scale *autoscalingv1.Scale, opts metav1.UpdateOptions) (*autoscalingv1.Scale, error) {
+func (*StatefulSet) UpdateScale(ctx context.Context, statefulSetName string, scale *autoscalingv1.Scale, opts metav1.UpdateOptions) (*autoscalingv1.Scale, error) {
 	panic("unimplemented")
 }
 
 // UpdateStatus implements v1.StatefulSetInterface
-func (*StatefulSetMock) UpdateStatus(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.UpdateOptions) (*v1.StatefulSet, error) {
+func (*StatefulSet) UpdateStatus(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.UpdateOptions) (*v1.StatefulSet, error) {
 	panic("unimplemented")
 }
 
 // Watch implements v1.StatefulSetInterface
-func (*StatefulSetMock) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (*StatefulSet) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }

@@ -14,41 +14,41 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ typedv1.NamespaceInterface = (*NamespaceMock)(nil)
+var _ typedv1.NamespaceInterface = (*Namespace)(nil)
 
-type NamespaceMock struct{}
+type Namespace struct{}
 
-func NewNamespaceMock() *NamespaceMock {
-	return &NamespaceMock{}
+func NewNamespace() *Namespace {
+	return &Namespace{}
 }
 
 // Finalize implements v1.NamespaceInterface
-func (*NamespaceMock) Finalize(ctx context.Context, item *v1.Namespace, opts metav1.UpdateOptions) (*v1.Namespace, error) {
+func (*Namespace) Finalize(ctx context.Context, item *v1.Namespace, opts metav1.UpdateOptions) (*v1.Namespace, error) {
 	panic("unimplemented")
 }
 
 // Apply implements v1.NamespaceInterface
-func (*NamespaceMock) Apply(ctx context.Context, namespace *corev1.NamespaceApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Namespace, err error) {
+func (*Namespace) Apply(ctx context.Context, namespace *corev1.NamespaceApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Namespace, err error) {
 	panic("unimplemented")
 }
 
 // ApplyStatus implements v1.NamespaceInterface
-func (*NamespaceMock) ApplyStatus(ctx context.Context, namespace *corev1.NamespaceApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Namespace, err error) {
+func (*Namespace) ApplyStatus(ctx context.Context, namespace *corev1.NamespaceApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Namespace, err error) {
 	panic("unimplemented")
 }
 
 // Create implements v1.NamespaceInterface
-func (nm *NamespaceMock) Create(ctx context.Context, namespace *v1.Namespace, opts metav1.CreateOptions) (*v1.Namespace, error) {
+func (nm *Namespace) Create(ctx context.Context, namespace *v1.Namespace, opts metav1.CreateOptions) (*v1.Namespace, error) {
 	return namespace, nil
 }
 
 // Delete implements v1.NamespaceInterface
-func (*NamespaceMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (*Namespace) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return fmt.Errorf("mock error: namespace \"%s\" can not be deleted", name)
 }
 
 // Get implements v1.NamespaceInterface
-func (*NamespaceMock) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Namespace, error) {
+func (*Namespace) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Namespace, error) {
 	return &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
@@ -63,26 +63,26 @@ func (*NamespaceMock) Get(ctx context.Context, name string, opts metav1.GetOptio
 }
 
 // List implements v1.NamespaceInterface
-func (*NamespaceMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.NamespaceList, error) {
+func (*Namespace) List(ctx context.Context, opts metav1.ListOptions) (*v1.NamespaceList, error) {
 	panic("unimplemented")
 }
 
 // Patch implements v1.NamespaceInterface
-func (*NamespaceMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Namespace, err error) {
+func (*Namespace) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Namespace, err error) {
 	panic("unimplemented")
 }
 
 // Update implements v1.NamespaceInterface
-func (*NamespaceMock) Update(ctx context.Context, namespace *v1.Namespace, opts metav1.UpdateOptions) (*v1.Namespace, error) {
+func (*Namespace) Update(ctx context.Context, namespace *v1.Namespace, opts metav1.UpdateOptions) (*v1.Namespace, error) {
 	panic("unimplemented")
 }
 
 // UpdateStatus implements v1.NamespaceInterface
-func (*NamespaceMock) UpdateStatus(ctx context.Context, namespace *v1.Namespace, opts metav1.UpdateOptions) (*v1.Namespace, error) {
+func (*Namespace) UpdateStatus(ctx context.Context, namespace *v1.Namespace, opts metav1.UpdateOptions) (*v1.Namespace, error) {
 	panic("unimplemented")
 }
 
 // Watch implements v1.NamespaceInterface
-func (*NamespaceMock) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (*Namespace) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }

@@ -83,13 +83,13 @@ func TestSet(t *testing.T) {
 		{
 			name:      "create_error",
 			pvcName:   "create_bad",
-			clientset: mocks.NewClientsetMock(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("creating pvc create_bad in namespace test: mock error: cannot create pvc"),
 		},
 		{
 			name:      "update_error",
 			pvcName:   "update_bad",
-			clientset: mocks.NewClientsetMock(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("updating pvc update_bad in namespace test: mock error: cannot update pvc"),
 		},
 	}
@@ -175,7 +175,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:      "delete_error",
 			pvcName:   "delete_bad",
-			clientset: mocks.NewClientsetMock(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("deleting pvc delete_bad in namespace test: mock error: cannot delete pvc"),
 		},
 	}

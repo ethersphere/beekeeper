@@ -6,40 +6,40 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ v1.AppsV1Interface = (*AppV1Mock)(nil)
+var _ v1.AppsV1Interface = (*AppV1)(nil)
 
-type AppV1Mock struct{}
+type AppV1 struct{}
 
-func NewAppV1Mock() *AppV1Mock {
-	return &AppV1Mock{}
+func NewAppV1() *AppV1 {
+	return &AppV1{}
 }
 
 // ControllerRevisions implements v1.AppsV1Interface
-func (*AppV1Mock) ControllerRevisions(namespace string) v1.ControllerRevisionInterface {
+func (*AppV1) ControllerRevisions(namespace string) v1.ControllerRevisionInterface {
 	panic("unimplemented")
 }
 
 // DaemonSets implements v1.AppsV1Interface
-func (*AppV1Mock) DaemonSets(namespace string) v1.DaemonSetInterface {
+func (*AppV1) DaemonSets(namespace string) v1.DaemonSetInterface {
 	panic("unimplemented")
 }
 
 // Deployments implements v1.AppsV1Interface
-func (*AppV1Mock) Deployments(namespace string) v1.DeploymentInterface {
+func (*AppV1) Deployments(namespace string) v1.DeploymentInterface {
 	panic("unimplemented")
 }
 
 // ReplicaSets implements v1.AppsV1Interface
-func (*AppV1Mock) ReplicaSets(namespace string) v1.ReplicaSetInterface {
+func (*AppV1) ReplicaSets(namespace string) v1.ReplicaSetInterface {
 	panic("unimplemented")
 }
 
 // StatefulSets implements v1.AppsV1Interface
-func (*AppV1Mock) StatefulSets(namespace string) v1.StatefulSetInterface {
-	return NewStatefulSetMock(namespace)
+func (*AppV1) StatefulSets(namespace string) v1.StatefulSetInterface {
+	return NewStatefulSet(namespace)
 }
 
 // RESTClient implements v1.AppsV1Interface
-func (*AppV1Mock) RESTClient() rest.Interface {
+func (*AppV1) RESTClient() rest.Interface {
 	panic("unimplemented")
 }

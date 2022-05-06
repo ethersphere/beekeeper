@@ -15,21 +15,21 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ corev1.ConfigMapInterface = (*ConfigMapMock)(nil)
+var _ corev1.ConfigMapInterface = (*ConfigMap)(nil)
 
-type ConfigMapMock struct{}
+type ConfigMap struct{}
 
-func NewConfigMapMock() *ConfigMapMock {
-	return &ConfigMapMock{}
+func NewConfigMap() *ConfigMap {
+	return &ConfigMap{}
 }
 
 // Apply implements v1.ConfigMapInterface
-func (*ConfigMapMock) Apply(ctx context.Context, configMap *cofnigcorev1.ConfigMapApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ConfigMap, err error) {
+func (*ConfigMap) Apply(ctx context.Context, configMap *cofnigcorev1.ConfigMapApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ConfigMap, err error) {
 	panic("unimplemented")
 }
 
 // Create implements v1.ConfigMapInterface
-func (c *ConfigMapMock) Create(ctx context.Context, configMap *v1.ConfigMap, opts metav1.CreateOptions) (*v1.ConfigMap, error) {
+func (c *ConfigMap) Create(ctx context.Context, configMap *v1.ConfigMap, opts metav1.CreateOptions) (*v1.ConfigMap, error) {
 	if configMap.ObjectMeta.Name == "create_bad" {
 		return nil, fmt.Errorf("mock error: cannot create config map")
 	} else {
@@ -38,7 +38,7 @@ func (c *ConfigMapMock) Create(ctx context.Context, configMap *v1.ConfigMap, opt
 }
 
 // Delete implements v1.ConfigMapInterface
-func (c *ConfigMapMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (c *ConfigMap) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	if name == "delete_bad" {
 		return fmt.Errorf("mock error: cannot delete config map")
 	} else {
@@ -47,27 +47,27 @@ func (c *ConfigMapMock) Delete(ctx context.Context, name string, opts metav1.Del
 }
 
 // DeleteCollection implements v1.ConfigMapInterface
-func (*ConfigMapMock) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+func (*ConfigMap) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	panic("unimplemented")
 }
 
 // Get implements v1.ConfigMapInterface
-func (*ConfigMapMock) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConfigMap, error) {
+func (*ConfigMap) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConfigMap, error) {
 	panic("unimplemented")
 }
 
 // List implements v1.ConfigMapInterface
-func (*ConfigMapMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.ConfigMapList, error) {
+func (*ConfigMap) List(ctx context.Context, opts metav1.ListOptions) (*v1.ConfigMapList, error) {
 	panic("unimplemented")
 }
 
 // Patch implements v1.ConfigMapInterface
-func (*ConfigMapMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConfigMap, err error) {
+func (*ConfigMap) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConfigMap, err error) {
 	panic("unimplemented")
 }
 
 // Update implements v1.ConfigMapInterface
-func (c *ConfigMapMock) Update(ctx context.Context, configMap *v1.ConfigMap, opts metav1.UpdateOptions) (*v1.ConfigMap, error) {
+func (c *ConfigMap) Update(ctx context.Context, configMap *v1.ConfigMap, opts metav1.UpdateOptions) (*v1.ConfigMap, error) {
 	if configMap.ObjectMeta.Name == "update_bad" {
 		return nil, errors.NewBadRequest("mock error: cannot update config map")
 	} else {
@@ -76,6 +76,6 @@ func (c *ConfigMapMock) Update(ctx context.Context, configMap *v1.ConfigMap, opt
 }
 
 // Watch implements v1.ConfigMapInterface
-func (*ConfigMapMock) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (*ConfigMap) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }

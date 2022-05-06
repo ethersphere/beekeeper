@@ -15,21 +15,21 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ corev1.SecretInterface = (*SecretMock)(nil)
+var _ corev1.SecretInterface = (*Secret)(nil)
 
-type SecretMock struct{}
+type Secret struct{}
 
-func NewSecretMock() *SecretMock {
-	return &SecretMock{}
+func NewSecret() *Secret {
+	return &Secret{}
 }
 
 // Apply implements v1.SecretInterface
-func (*SecretMock) Apply(ctx context.Context, secret *configcorev1.SecretApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Secret, err error) {
+func (*Secret) Apply(ctx context.Context, secret *configcorev1.SecretApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Secret, err error) {
 	panic("unimplemented")
 }
 
 // Create implements v1.SecretInterface
-func (*SecretMock) Create(ctx context.Context, secret *v1.Secret, opts metav1.CreateOptions) (*v1.Secret, error) {
+func (*Secret) Create(ctx context.Context, secret *v1.Secret, opts metav1.CreateOptions) (*v1.Secret, error) {
 	if secret.ObjectMeta.Name == "create_bad" {
 		return nil, fmt.Errorf("mock error: cannot create secret")
 	} else {
@@ -38,7 +38,7 @@ func (*SecretMock) Create(ctx context.Context, secret *v1.Secret, opts metav1.Cr
 }
 
 // Delete implements v1.SecretInterface
-func (*SecretMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (*Secret) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	if name == "delete_bad" {
 		return fmt.Errorf("mock error: cannot delete secret")
 	} else {
@@ -47,27 +47,27 @@ func (*SecretMock) Delete(ctx context.Context, name string, opts metav1.DeleteOp
 }
 
 // DeleteCollection implements v1.SecretInterface
-func (*SecretMock) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+func (*Secret) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	panic("unimplemented")
 }
 
 // Get implements v1.SecretInterface
-func (*SecretMock) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Secret, error) {
+func (*Secret) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Secret, error) {
 	panic("unimplemented")
 }
 
 // List implements v1.SecretInterface
-func (*SecretMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.SecretList, error) {
+func (*Secret) List(ctx context.Context, opts metav1.ListOptions) (*v1.SecretList, error) {
 	panic("unimplemented")
 }
 
 // Patch implements v1.SecretInterface
-func (*SecretMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Secret, err error) {
+func (*Secret) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Secret, err error) {
 	panic("unimplemented")
 }
 
 // Update implements v1.SecretInterface
-func (*SecretMock) Update(ctx context.Context, secret *v1.Secret, opts metav1.UpdateOptions) (*v1.Secret, error) {
+func (*Secret) Update(ctx context.Context, secret *v1.Secret, opts metav1.UpdateOptions) (*v1.Secret, error) {
 	if secret.ObjectMeta.Name == "update_bad" {
 		return nil, errors.NewBadRequest("mock error: cannot update secret")
 	} else {
@@ -76,6 +76,6 @@ func (*SecretMock) Update(ctx context.Context, secret *v1.Secret, opts metav1.Up
 }
 
 // Watch implements v1.SecretInterface
-func (*SecretMock) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (*Secret) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }

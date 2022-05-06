@@ -43,7 +43,7 @@ type ClientOptions struct {
 	KubeconfigPath string
 }
 
-type K8sClientFunctions struct {
+type ClientFunctions struct {
 	NewForConfig         func(c *rest.Config) (*kubernetes.Clientset, error)
 	InClusterConfig      func() (*rest.Config, error)
 	BuildConfigFromFlags func(masterUrl string, kubeconfigPath string) (*rest.Config, error)
@@ -53,7 +53,7 @@ type K8sClientFunctions struct {
 }
 
 // NewClient returns Kubernetes clientset
-func NewClient(funcs K8sClientFunctions, o *ClientOptions) (c *Client, err error) {
+func NewClient(funcs ClientFunctions, o *ClientOptions) (c *Client, err error) {
 	// set default options in case they are not provided
 	if o == nil {
 		o = &ClientOptions{

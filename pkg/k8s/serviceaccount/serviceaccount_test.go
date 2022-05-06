@@ -55,13 +55,13 @@ func TestSet(t *testing.T) {
 		{
 			name:       "create_error",
 			secretName: "create_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("creating service account create_bad in namespace test: mock error: cannot create service account"),
 		},
 		{
 			name:       "update_error",
 			secretName: "update_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("updating service account update_bad in namespace test: mock error: cannot update service account"),
 		},
 	}
@@ -149,7 +149,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:       "delete_error",
 			secretName: "delete_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("deleting service account delete_bad in namespace test: mock error: cannot delete service account"),
 		},
 	}

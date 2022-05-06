@@ -68,13 +68,13 @@ func TestSet(t *testing.T) {
 		{
 			name:        "create_error",
 			ingressName: "create_bad",
-			clientset:   mocks.NewClientsetMock(),
+			clientset:   mocks.NewClientset(),
 			errorMsg:    fmt.Errorf("creating ingress create_bad in namespace test: mock error: cannot create ingress"),
 		},
 		{
 			name:        "update_error",
 			ingressName: "update_bad",
-			clientset:   mocks.NewClientsetMock(),
+			clientset:   mocks.NewClientset(),
 			errorMsg:    fmt.Errorf("updating ingress update_bad in namespace test: mock error: cannot update ingress"),
 		},
 	}
@@ -150,7 +150,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:        "delete_error",
 			ingressName: "delete_bad",
-			clientset:   mocks.NewClientsetMock(),
+			clientset:   mocks.NewClientset(),
 			errorMsg:    fmt.Errorf("deleting ingress delete_bad in namespace test: mock error: cannot delete ingress"),
 		},
 	}

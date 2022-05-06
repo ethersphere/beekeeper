@@ -48,13 +48,13 @@ func TestSet(t *testing.T) {
 		{
 			name:      "create_error",
 			podName:   "create_bad",
-			clientset: mocks.NewClientsetMock(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("creating pod create_bad in namespace test: mock error: cannot create pod"),
 		},
 		{
 			name:      "update_error",
 			podName:   "update_bad",
-			clientset: mocks.NewClientsetMock(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("updating pod update_bad in namespace test: mock error: cannot update pod"),
 		},
 	}
@@ -130,7 +130,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:      "delete_error",
 			podName:   "delete_bad",
-			clientset: mocks.NewClientsetMock(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("deleting pod delete_bad in namespace test: mock error: cannot delete pod"),
 		},
 	}

@@ -15,26 +15,26 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ corev1.PersistentVolumeClaimInterface = (*PvcMock)(nil)
+var _ corev1.PersistentVolumeClaimInterface = (*Pvc)(nil)
 
-type PvcMock struct{}
+type Pvc struct{}
 
-func NewPvcMock() *PvcMock {
-	return &PvcMock{}
+func NewPvc() *Pvc {
+	return &Pvc{}
 }
 
 // Apply implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) Apply(ctx context.Context, persistentVolumeClaim *configcorev1.PersistentVolumeClaimApplyConfiguration, opts metav1.ApplyOptions) (result *v1.PersistentVolumeClaim, err error) {
+func (*Pvc) Apply(ctx context.Context, persistentVolumeClaim *configcorev1.PersistentVolumeClaimApplyConfiguration, opts metav1.ApplyOptions) (result *v1.PersistentVolumeClaim, err error) {
 	panic("unimplemented")
 }
 
 // ApplyStatus implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) ApplyStatus(ctx context.Context, persistentVolumeClaim *configcorev1.PersistentVolumeClaimApplyConfiguration, opts metav1.ApplyOptions) (result *v1.PersistentVolumeClaim, err error) {
+func (*Pvc) ApplyStatus(ctx context.Context, persistentVolumeClaim *configcorev1.PersistentVolumeClaimApplyConfiguration, opts metav1.ApplyOptions) (result *v1.PersistentVolumeClaim, err error) {
 	panic("unimplemented")
 }
 
 // Create implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) Create(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.CreateOptions) (*v1.PersistentVolumeClaim, error) {
+func (*Pvc) Create(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.CreateOptions) (*v1.PersistentVolumeClaim, error) {
 	if persistentVolumeClaim.ObjectMeta.Name == "create_bad" {
 		return nil, fmt.Errorf("mock error: cannot create pvc")
 	} else {
@@ -43,7 +43,7 @@ func (*PvcMock) Create(ctx context.Context, persistentVolumeClaim *v1.Persistent
 }
 
 // Delete implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (*Pvc) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	if name == "delete_bad" {
 		return fmt.Errorf("mock error: cannot delete pvc")
 	} else {
@@ -52,27 +52,27 @@ func (*PvcMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptio
 }
 
 // DeleteCollection implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+func (*Pvc) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	panic("unimplemented")
 }
 
 // Get implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+func (*Pvc) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 	panic("unimplemented")
 }
 
 // List implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+func (*Pvc) List(ctx context.Context, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	panic("unimplemented")
 }
 
 // Patch implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.PersistentVolumeClaim, err error) {
+func (*Pvc) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.PersistentVolumeClaim, err error) {
 	panic("unimplemented")
 }
 
 // Update implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) Update(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.UpdateOptions) (*v1.PersistentVolumeClaim, error) {
+func (*Pvc) Update(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.UpdateOptions) (*v1.PersistentVolumeClaim, error) {
 	if persistentVolumeClaim.ObjectMeta.Name == "update_bad" {
 		return nil, errors.NewBadRequest("mock error: cannot update pvc")
 	} else {
@@ -81,11 +81,11 @@ func (*PvcMock) Update(ctx context.Context, persistentVolumeClaim *v1.Persistent
 }
 
 // UpdateStatus implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) UpdateStatus(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.UpdateOptions) (*v1.PersistentVolumeClaim, error) {
+func (*Pvc) UpdateStatus(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.UpdateOptions) (*v1.PersistentVolumeClaim, error) {
 	panic("unimplemented")
 }
 
 // Watch implements v1.PersistentVolumeClaimInterface
-func (*PvcMock) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (*Pvc) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }

@@ -6,30 +6,30 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ v1.NetworkingV1Interface = (*NetworkingV1Mock)(nil)
+var _ v1.NetworkingV1Interface = (*NetworkingV1)(nil)
 
-type NetworkingV1Mock struct{}
+type NetworkingV1 struct{}
 
-func NewNetworkingV1MockMock() *NetworkingV1Mock {
-	return &NetworkingV1Mock{}
+func NewNetworkingV1() *NetworkingV1 {
+	return &NetworkingV1{}
 }
 
 // Ingresses implements v1.NetworkingV1Interface
-func (*NetworkingV1Mock) Ingresses(namespace string) v1.IngressInterface {
-	return NewIngressMock()
+func (*NetworkingV1) Ingresses(namespace string) v1.IngressInterface {
+	return NewIngress()
 }
 
 // IngressClasses implements v1.NetworkingV1Interface
-func (*NetworkingV1Mock) IngressClasses() v1.IngressClassInterface {
+func (*NetworkingV1) IngressClasses() v1.IngressClassInterface {
 	panic("unimplemented")
 }
 
 // NetworkPolicies implements v1.NetworkingV1Interface
-func (*NetworkingV1Mock) NetworkPolicies(namespace string) v1.NetworkPolicyInterface {
+func (*NetworkingV1) NetworkPolicies(namespace string) v1.NetworkPolicyInterface {
 	panic("unimplemented")
 }
 
 // RESTClient implements v1.NetworkingV1Interface
-func (*NetworkingV1Mock) RESTClient() rest.Interface {
+func (*NetworkingV1) RESTClient() rest.Interface {
 	panic("unimplemented")
 }

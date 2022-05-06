@@ -11,43 +11,43 @@ func TestNewClient(t *testing.T) {
 	testTable := []struct {
 		name     string
 		options  *ClientOptions
-		k8sFuncs K8sClientFunctions
+		k8sFuncs ClientFunctions
 		errorMsg error
 	}{
 		{
 			name:     "in_cluster_config_error",
 			options:  &ClientOptions{InCluster: true},
 			errorMsg: fmt.Errorf("creating Kubernetes in-cluster client config: mock error"),
-			k8sFuncs: K8sClientFunctions{
-				NewForConfig:    mocks.NewClientMock(false).NewForConfig,
-				InClusterConfig: mocks.NewClientMock(true).InClusterConfig,
+			k8sFuncs: ClientFunctions{
+				NewForConfig:    mocks.NewClient(false).NewForConfig,
+				InClusterConfig: mocks.NewClient(true).InClusterConfig,
 			},
 		},
 		{
 			name:     "in_cluster_clientset_error",
 			options:  &ClientOptions{InCluster: true},
 			errorMsg: fmt.Errorf("creating Kubernetes in-cluster clientset: mock error"),
-			k8sFuncs: K8sClientFunctions{
-				NewForConfig:    mocks.NewClientMock(true).NewForConfig,
-				InClusterConfig: mocks.NewClientMock(false).InClusterConfig,
+			k8sFuncs: ClientFunctions{
+				NewForConfig:    mocks.NewClient(true).NewForConfig,
+				InClusterConfig: mocks.NewClient(false).InClusterConfig,
 			},
 		},
 		{
 			name:    "in_cluster",
 			options: &ClientOptions{InCluster: true},
-			k8sFuncs: K8sClientFunctions{
-				NewForConfig:    mocks.NewClientMock(false).NewForConfig,
-				InClusterConfig: mocks.NewClientMock(false).InClusterConfig,
+			k8sFuncs: ClientFunctions{
+				NewForConfig:    mocks.NewClient(false).NewForConfig,
+				InClusterConfig: mocks.NewClient(false).InClusterConfig,
 			},
 		},
 		{
 			name:    "not_in_cluster_default_path",
 			options: nil,
-			k8sFuncs: K8sClientFunctions{
-				NewForConfig:         mocks.NewClientMock(false).NewForConfig,
-				InClusterConfig:      mocks.NewClientMock(false).InClusterConfig,
-				OsUserHomeDir:        mocks.NewClientMock(false).OsUserHomeDir,
-				BuildConfigFromFlags: mocks.NewClientMock(false).BuildConfigFromFlags,
+			k8sFuncs: ClientFunctions{
+				NewForConfig:         mocks.NewClient(false).NewForConfig,
+				InClusterConfig:      mocks.NewClient(false).InClusterConfig,
+				OsUserHomeDir:        mocks.NewClient(false).OsUserHomeDir,
+				BuildConfigFromFlags: mocks.NewClient(false).BuildConfigFromFlags,
 				FlagString:           mocks.FlagString,
 				FlagParse:            mocks.FlagParse,
 			},
@@ -55,11 +55,11 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_default_path_fail_clientset",
 			options: nil,
-			k8sFuncs: K8sClientFunctions{
-				NewForConfig:         mocks.NewClientMock(true).NewForConfig,
-				InClusterConfig:      mocks.NewClientMock(false).InClusterConfig,
-				OsUserHomeDir:        mocks.NewClientMock(false).OsUserHomeDir,
-				BuildConfigFromFlags: mocks.NewClientMock(false).BuildConfigFromFlags,
+			k8sFuncs: ClientFunctions{
+				NewForConfig:         mocks.NewClient(true).NewForConfig,
+				InClusterConfig:      mocks.NewClient(false).InClusterConfig,
+				OsUserHomeDir:        mocks.NewClient(false).OsUserHomeDir,
+				BuildConfigFromFlags: mocks.NewClient(false).BuildConfigFromFlags,
 				FlagString:           mocks.FlagString,
 				FlagParse:            mocks.FlagParse,
 			},
@@ -68,11 +68,11 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_default_path_bad",
 			options: nil,
-			k8sFuncs: K8sClientFunctions{
-				NewForConfig:         mocks.NewClientMock(false).NewForConfig,
-				InClusterConfig:      mocks.NewClientMock(false).InClusterConfig,
-				OsUserHomeDir:        mocks.NewClientMock(false).OsUserHomeDir,
-				BuildConfigFromFlags: mocks.NewClientMock(true).BuildConfigFromFlags,
+			k8sFuncs: ClientFunctions{
+				NewForConfig:         mocks.NewClient(false).NewForConfig,
+				InClusterConfig:      mocks.NewClient(false).InClusterConfig,
+				OsUserHomeDir:        mocks.NewClient(false).OsUserHomeDir,
+				BuildConfigFromFlags: mocks.NewClient(true).BuildConfigFromFlags,
 				FlagString:           mocks.FlagString,
 				FlagParse:            mocks.FlagParse,
 			},
@@ -81,10 +81,10 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_other_path",
 			options: &ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/test_example"},
-			k8sFuncs: K8sClientFunctions{
-				NewForConfig:         mocks.NewClientMock(false).NewForConfig,
-				InClusterConfig:      mocks.NewClientMock(false).InClusterConfig,
-				BuildConfigFromFlags: mocks.NewClientMock(false).BuildConfigFromFlags,
+			k8sFuncs: ClientFunctions{
+				NewForConfig:         mocks.NewClient(false).NewForConfig,
+				InClusterConfig:      mocks.NewClient(false).InClusterConfig,
+				BuildConfigFromFlags: mocks.NewClient(false).BuildConfigFromFlags,
 				FlagString:           mocks.FlagString,
 				FlagParse:            mocks.FlagParse,
 			},
@@ -92,10 +92,10 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_fail_home_dir",
 			options: &ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/config"},
-			k8sFuncs: K8sClientFunctions{
-				NewForConfig:    mocks.NewClientMock(false).NewForConfig,
-				InClusterConfig: mocks.NewClientMock(false).InClusterConfig,
-				OsUserHomeDir:   mocks.NewClientMock(true).OsUserHomeDir,
+			k8sFuncs: ClientFunctions{
+				NewForConfig:    mocks.NewClient(false).NewForConfig,
+				InClusterConfig: mocks.NewClient(false).InClusterConfig,
+				OsUserHomeDir:   mocks.NewClient(true).OsUserHomeDir,
 			},
 			errorMsg: fmt.Errorf("obtaining user's home dir: mock error"),
 		},

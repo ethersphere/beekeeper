@@ -58,13 +58,13 @@ func TestSet(t *testing.T) {
 		{
 			name:       "create_error",
 			secretName: "create_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("creating secret create_bad in namespace test: mock error: cannot create secret"),
 		},
 		{
 			name:       "update_error",
 			secretName: "update_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("updating secret update_bad in namespace test: mock error: cannot update secret"),
 		},
 	}
@@ -143,7 +143,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:       "delete_error",
 			secretName: "delete_bad",
-			clientset:  mocks.NewClientsetMock(),
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("deleting secret delete_bad in namespace test: mock error: cannot delete secret"),
 		},
 	}

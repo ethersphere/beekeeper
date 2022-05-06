@@ -16,31 +16,31 @@ import (
 )
 
 // compile simulation whether ClientsetMock implements interface
-var _ corev1.ServiceInterface = (*ServiceMock)(nil)
+var _ corev1.ServiceInterface = (*Service)(nil)
 
-type ServiceMock struct{}
+type Service struct{}
 
-func NewServiceMock() *ServiceMock {
-	return &ServiceMock{}
+func NewService() *Service {
+	return &Service{}
 }
 
 // ProxyGet implements v1.ServiceInterface
-func (*ServiceMock) ProxyGet(scheme string, name string, port string, path string, params map[string]string) restclient.ResponseWrapper {
+func (*Service) ProxyGet(scheme string, name string, port string, path string, params map[string]string) restclient.ResponseWrapper {
 	panic("unimplemented")
 }
 
 // Apply implements v1.ServiceInterface
-func (*ServiceMock) Apply(ctx context.Context, service *configcorev1.ServiceApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Service, err error) {
+func (*Service) Apply(ctx context.Context, service *configcorev1.ServiceApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Service, err error) {
 	panic("unimplemented")
 }
 
 // ApplyStatus implements v1.ServiceInterface
-func (*ServiceMock) ApplyStatus(ctx context.Context, service *configcorev1.ServiceApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Service, err error) {
+func (*Service) ApplyStatus(ctx context.Context, service *configcorev1.ServiceApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Service, err error) {
 	panic("unimplemented")
 }
 
 // Create implements v1.ServiceInterface
-func (*ServiceMock) Create(ctx context.Context, service *v1.Service, opts metav1.CreateOptions) (*v1.Service, error) {
+func (*Service) Create(ctx context.Context, service *v1.Service, opts metav1.CreateOptions) (*v1.Service, error) {
 	if service.ObjectMeta.Name == "create_bad" {
 		return nil, fmt.Errorf("mock error: cannot create service")
 	} else {
@@ -49,7 +49,7 @@ func (*ServiceMock) Create(ctx context.Context, service *v1.Service, opts metav1
 }
 
 // Delete implements v1.ServiceInterface
-func (*ServiceMock) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (*Service) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	if name == "delete_bad" {
 		return fmt.Errorf("mock error: cannot delete service")
 	} else {
@@ -58,7 +58,7 @@ func (*ServiceMock) Delete(ctx context.Context, name string, opts metav1.DeleteO
 }
 
 // Get implements v1.ServiceInterface
-func (*ServiceMock) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Service, error) {
+func (*Service) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Service, error) {
 	if name == "create_bad" {
 		return nil, errors.NewNotFound(schema.GroupResource{}, name)
 	} else if name == "update_bad" {
@@ -72,17 +72,17 @@ func (*ServiceMock) Get(ctx context.Context, name string, opts metav1.GetOptions
 }
 
 // List implements v1.ServiceInterface
-func (*ServiceMock) List(ctx context.Context, opts metav1.ListOptions) (*v1.ServiceList, error) {
+func (*Service) List(ctx context.Context, opts metav1.ListOptions) (*v1.ServiceList, error) {
 	panic("unimplemented")
 }
 
 // Patch implements v1.ServiceInterface
-func (*ServiceMock) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Service, err error) {
+func (*Service) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Service, err error) {
 	panic("unimplemented")
 }
 
 // Update implements v1.ServiceInterface
-func (*ServiceMock) Update(ctx context.Context, service *v1.Service, opts metav1.UpdateOptions) (*v1.Service, error) {
+func (*Service) Update(ctx context.Context, service *v1.Service, opts metav1.UpdateOptions) (*v1.Service, error) {
 	if service.ObjectMeta.Name == "update_bad" {
 		return nil, errors.NewBadRequest("mock error: cannot update service")
 	} else {
@@ -91,11 +91,11 @@ func (*ServiceMock) Update(ctx context.Context, service *v1.Service, opts metav1
 }
 
 // UpdateStatus implements v1.ServiceInterface
-func (*ServiceMock) UpdateStatus(ctx context.Context, service *v1.Service, opts metav1.UpdateOptions) (*v1.Service, error) {
+func (*Service) UpdateStatus(ctx context.Context, service *v1.Service, opts metav1.UpdateOptions) (*v1.Service, error) {
 	panic("unimplemented")
 }
 
 // Watch implements v1.ServiceInterface
-func (*ServiceMock) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (*Service) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }
