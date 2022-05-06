@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
@@ -17,7 +16,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // ErrKubeconfigNotSet represents error when kubeconfig is empty string
@@ -45,13 +43,17 @@ type ClientOptions struct {
 	KubeconfigPath string
 }
 
-type (
-	NewForConfig    func(c *rest.Config) (*kubernetes.Clientset, error)
-	InClusterConfig func() (*rest.Config, error)
-)
+type K8sClientFunctions struct {
+	NewForConfig         func(c *rest.Config) (*kubernetes.Clientset, error)
+	InClusterConfig      func() (*rest.Config, error)
+	BuildConfigFromFlags func(masterUrl string, kubeconfigPath string) (*rest.Config, error)
+	FlagString           func(name string, value string, usage string) *string
+	FlagParse            func()
+	OsUserHomeDir        func() (string, error)
+}
 
 // NewClient returns Kubernetes clientset
-func NewClient(newForConfig NewForConfig, inClusterConfig InClusterConfig, o *ClientOptions) (c *Client, err error) {
+func NewClient(funcs K8sClientFunctions, o *ClientOptions) (c *Client, err error) {
 	// set default options in case they are not provided
 	if o == nil {
 		o = &ClientOptions{
@@ -62,12 +64,12 @@ func NewClient(newForConfig NewForConfig, inClusterConfig InClusterConfig, o *Cl
 
 	// set in-cluster client
 	if o.InCluster {
-		config, err := inClusterConfig()
+		config, err := funcs.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
 
-		clientset, err := newForConfig(config)
+		clientset, err := funcs.NewForConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
 		}
@@ -80,7 +82,7 @@ func NewClient(newForConfig NewForConfig, inClusterConfig InClusterConfig, o *Cl
 	if len(o.KubeconfigPath) == 0 {
 		return nil, ErrKubeconfigNotSet
 	} else if o.KubeconfigPath == "~/.kube/config" {
-		home, err := os.UserHomeDir()
+		home, err := funcs.OsUserHomeDir()
 		if err != nil {
 			return nil, fmt.Errorf("obtaining user's home dir: %w", err)
 		}
@@ -89,15 +91,15 @@ func NewClient(newForConfig NewForConfig, inClusterConfig InClusterConfig, o *Cl
 		configPath = o.KubeconfigPath
 	}
 
-	kubeconfig := flag.String("kubeconfig", configPath, "kubeconfig file")
+	kubeconfig := funcs.FlagString("kubeconfig", configPath, "kubeconfig file")
 	flag.Parse()
 
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	config, err := funcs.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 	}
 
-	clientset, err := newForConfig(config)
+	clientset, err := funcs.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}

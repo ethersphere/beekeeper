@@ -55,25 +55,45 @@ import (
 var _ kubernetes.Interface = (*ClientsetMock)(nil)
 
 func (c *ClientMock) NewForConfig(*rest.Config) (*kubernetes.Clientset, error) {
-	if c.fail {
+	if c.expectError {
 		return nil, fmt.Errorf("mock error")
 	}
 	return &kubernetes.Clientset{}, nil
 }
 
 func (c *ClientMock) InClusterConfig() (*rest.Config, error) {
-	if c.fail {
+	if c.expectError {
 		return nil, fmt.Errorf("mock error")
 	}
 	return &rest.Config{}, nil
 }
 
-type ClientMock struct {
-	fail bool
+func (c *ClientMock) BuildConfigFromFlags(masterUrl string, kubeconfigPath string) (*rest.Config, error) {
+	if c.expectError {
+		return nil, fmt.Errorf("mock error")
+	}
+	return &rest.Config{}, nil
 }
 
-func NewClientMock(fail bool) *ClientMock {
-	return &ClientMock{fail: fail}
+func (c *ClientMock) OsUserHomeDir() (string, error) {
+	if c.expectError {
+		return "", fmt.Errorf("mock error")
+	}
+	return "home", nil
+}
+
+func FlagString(name string, value string, usage string) *string {
+	return new(string)
+}
+
+func FlagParse() {}
+
+type ClientMock struct {
+	expectError bool
+}
+
+func NewClientMock(expectError bool) *ClientMock {
+	return &ClientMock{expectError: expectError}
 }
 
 type ClientsetMock struct{}

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"net/url"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -269,7 +271,15 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 
 func (c *command) setK8S() (err error) {
 	if c.globalConfig.GetBool("enable-k8s") {
-		if c.k8sClient, err = k8s.NewClient(kubernetes.NewForConfig, rest.InClusterConfig, &k8s.ClientOptions{
+		k8sFuncs := k8s.K8sClientFunctions{
+			NewForConfig:         kubernetes.NewForConfig,
+			InClusterConfig:      rest.InClusterConfig,
+			BuildConfigFromFlags: clientcmd.BuildConfigFromFlags,
+			FlagString:           flag.String,
+			FlagParse:            flag.Parse,
+			OsUserHomeDir:        os.UserHomeDir,
+		}
+		if c.k8sClient, err = k8s.NewClient(k8sFuncs, &k8s.ClientOptions{
 			InCluster:      c.globalConfig.GetBool("in-cluster"),
 			KubeconfigPath: c.globalConfig.GetString("kubeconfig"),
 		}); err != nil && err != k8s.ErrKubeconfigNotSet {
