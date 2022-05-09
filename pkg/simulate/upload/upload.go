@@ -32,6 +32,7 @@ type Options struct {
 	Timeout              time.Duration
 	UploadNodeName       string
 	UploadNodePercentage int
+	SyncUpload           bool
 }
 
 // NewDefaultOptions returns new default options
@@ -128,6 +129,13 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 
 			var fileCount int64
 			for {
+				var tag api.TagResponse
+				if o.SyncUpload {
+					if tag, err = c.CreateTag(ctx); err != nil {
+						return fmt.Errorf("create tag on node %s: %w", n, err)
+					}
+				}
+
 				// set file size
 				fileSize := rnds[i].Int63n(o.MaxFileSize-o.MinFileSize+1) + o.MinFileSize
 				file := bee.NewRandomFile(rnds[i], "filename", fileSize)
@@ -157,7 +165,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 						return fmt.Errorf("node %s: batch id %w", n, err)
 					}
 
-					if err := c.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
+					if err := c.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID, Tag: tag.Uid}); err != nil {
 						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 							return nil
 						}
@@ -174,6 +182,14 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 				if o.FileCount > 0 && fileCount >= o.FileCount {
 					fmt.Printf("Uploaded %d files to node %s\n", fileCount, n)
 					return nil
+				}
+
+				if o.SyncUpload {
+					if err = c.WaitSync(ctx, tag.Uid); err != nil {
+						fmt.Printf("sync with node %s: %v\n", n, err)
+						continue
+					}
+					fmt.Printf("file %s synced successfully with node %s\n", file.Address().String(), n)
 				}
 			}
 		})

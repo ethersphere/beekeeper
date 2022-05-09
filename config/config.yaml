@@ -353,6 +353,7 @@ simulations:
       timeout: 60s
       upload-node-name:
       upload-node-percentage: 50
+      sync-upload: false
     timeout: 5m
     type: upload
   retrieval:
