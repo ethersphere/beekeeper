@@ -10,10 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// type SwarmKey struct {
-// 	Address string
-// }
-
 func (c *command) initFundCmd() (err error) {
 	const (
 		optionNameAddresses       = "addresses"
