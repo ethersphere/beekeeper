@@ -43,7 +43,8 @@ type ClientOptions struct {
 	KubeconfigPath string
 }
 
-type ClientFunctions struct {
+// ClientSetup holds functions for configuration of the Client, when testing these functions are mocked
+type ClientSetup struct {
 	NewForConfig         func(c *rest.Config) (*kubernetes.Clientset, error)
 	InClusterConfig      func() (*rest.Config, error)
 	BuildConfigFromFlags func(masterUrl string, kubeconfigPath string) (*rest.Config, error)
@@ -53,7 +54,7 @@ type ClientFunctions struct {
 }
 
 // NewClient returns Kubernetes clientset
-func NewClient(funcs ClientFunctions, o *ClientOptions) (c *Client, err error) {
+func NewClient(s *ClientSetup, o *ClientOptions) (c *Client, err error) {
 	// set default options in case they are not provided
 	if o == nil {
 		o = &ClientOptions{
@@ -64,12 +65,12 @@ func NewClient(funcs ClientFunctions, o *ClientOptions) (c *Client, err error) {
 
 	// set in-cluster client
 	if o.InCluster {
-		config, err := funcs.InClusterConfig()
+		config, err := s.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
 
-		clientset, err := funcs.NewForConfig(config)
+		clientset, err := s.NewForConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
 		}
@@ -82,7 +83,7 @@ func NewClient(funcs ClientFunctions, o *ClientOptions) (c *Client, err error) {
 	if len(o.KubeconfigPath) == 0 {
 		return nil, ErrKubeconfigNotSet
 	} else if o.KubeconfigPath == "~/.kube/config" {
-		home, err := funcs.OsUserHomeDir()
+		home, err := s.OsUserHomeDir()
 		if err != nil {
 			return nil, fmt.Errorf("obtaining user's home dir: %w", err)
 		}
@@ -91,15 +92,15 @@ func NewClient(funcs ClientFunctions, o *ClientOptions) (c *Client, err error) {
 		configPath = o.KubeconfigPath
 	}
 
-	kubeconfig := funcs.FlagString("kubeconfig", configPath, "kubeconfig file")
+	kubeconfig := s.FlagString("kubeconfig", configPath, "kubeconfig file")
 	flag.Parse()
 
-	config, err := funcs.BuildConfigFromFlags("", *kubeconfig)
+	config, err := s.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 	}
 
-	clientset, err := funcs.NewForConfig(config)
+	clientset, err := s.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
