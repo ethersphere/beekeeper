@@ -19,39 +19,7 @@ func TestToK8S_Containers(t *testing.T) {
 			name:       "default",
 			containers: Containers{{}},
 			expectedContainers: []v1.Container{
-				{
-					Resources: v1.ResourceRequirements{
-						Requests: v1.ResourceList{},
-						Limits:   v1.ResourceList{},
-					},
-					SecurityContext: &v1.SecurityContext{
-						Privileged:     new(bool),
-						SELinuxOptions: &v1.SELinuxOptions{},
-						WindowsOptions: &v1.WindowsSecurityContextOptions{
-							GMSACredentialSpecName: func() *string {
-								name := ""
-								return &name
-							}(),
-							GMSACredentialSpec: func() *string {
-								spec := ""
-								return &spec
-							}(),
-							RunAsUserName: func() *string {
-								run := ""
-								return &run
-							}(),
-						},
-						RunAsUser:                new(int64),
-						RunAsNonRoot:             new(bool),
-						ReadOnlyRootFilesystem:   new(bool),
-						AllowPrivilegeEscalation: new(bool),
-						RunAsGroup:               new(int64),
-						ProcMount: func() *v1.ProcMountType {
-							procMountType := v1.ProcMountType("")
-							return &procMountType
-						}(),
-					},
-				},
+				newExpectedDefaultContainer(),
 			},
 		},
 	}
@@ -76,11 +44,39 @@ func TestToK8S(t *testing.T) {
 		expected  v1.Container
 	}{
 		{
-			name: "init_all",
+			name: "init_simple",
 			container: Container{
-				Name:    "container",
-				Args:    []string{"arg1", "arg2"},
-				Command: []string{"cmd1", "cmd2"},
+				Name:                     "container",
+				Args:                     []string{"arg1", "arg2"},
+				Command:                  []string{"cmd1", "cmd2"},
+				Image:                    "image",
+				ImagePullPolicy:          "imagePullPolicy",
+				Stdin:                    true,
+				StdinOnce:                true,
+				TerminationMessagePath:   "TerminationMessagePath",
+				TerminationMessagePolicy: "TerminationMessagePolicy",
+				TTY:                      true,
+				WorkingDir:               "WorkingDir",
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.Name = "container"
+				container.Image = "image"
+				container.Command = []string{"cmd1", "cmd2"}
+				container.Args = []string{"arg1", "arg2"}
+				container.WorkingDir = "WorkingDir"
+				container.TerminationMessagePath = "TerminationMessagePath"
+				container.TerminationMessagePolicy = "TerminationMessagePolicy"
+				container.ImagePullPolicy = "imagePullPolicy"
+				container.Stdin = true
+				container.StdinOnce = true
+				container.TTY = true
+				return container
+			}(),
+		},
+		{
+			name: "env",
+			container: Container{
 				Env: []EnvVar{
 					{
 						Name:  "dev",
@@ -108,202 +104,10 @@ func TestToK8S(t *testing.T) {
 						},
 					},
 				},
-				EnvFrom: []EnvFrom{
-					{
-						Prefix: "pre",
-						ConfigMap: ConfigMapRef{
-							Name:     "configMapName",
-							Optional: true,
-						},
-						Secret: SecretRef{
-							Name:     "secretName",
-							Optional: true,
-						},
-					},
-				},
-				Image:           "image",
-				ImagePullPolicy: "imagePullPolicy",
-				Lifecycle: Lifecycle{
-					PostStart: &Handler{
-						Exec: &ExecHandler{
-							Command: []string{"cmd_start1", "cmd_start2"},
-						},
-						HTTPGet: &HTTPGetHandler{
-							Host:   "host_start",
-							Path:   "path",
-							Port:   "10000",
-							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
-						},
-						TCPSocket: &TCPSocketHandler{
-							Host: "tcpHost_start",
-							Port: "10001",
-						},
-					},
-					PreStop: &Handler{
-						Exec: &ExecHandler{
-							Command: []string{"cmd_stop1", "cmd_stop2"},
-						},
-						HTTPGet: &HTTPGetHandler{
-							Host:   "host_stop",
-							Path:   "path",
-							Port:   "10002",
-							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
-						},
-						TCPSocket: &TCPSocketHandler{
-							Host: "tcpHost_stop",
-							Port: "10003",
-						},
-					},
-				},
-				LivenessProbe: Probe{
-					Exec: &ExecProbe{
-						FailureThreshold: 1,
-						Handler: ExecHandler{
-							Command: []string{"cmd_probe_1"},
-						},
-						InitialDelaySeconds: 2,
-						PeriodSeconds:       3,
-						SuccessThreshold:    4,
-						TimeoutSeconds:      5,
-					},
-				},
-				Ports: []Port{
-					{
-						Name:          "port",
-						ContainerPort: 12000,
-						HostIP:        "hostIp",
-						HostPort:      12001,
-						Protocol:      "http",
-					},
-				},
-				ReadinessProbe: Probe{
-					Exec: &ExecProbe{
-						FailureThreshold: 16,
-						Handler: ExecHandler{
-							Command: []string{"cmd_ready_1"},
-						},
-						InitialDelaySeconds: 17,
-						PeriodSeconds:       18,
-						SuccessThreshold:    19,
-						TimeoutSeconds:      20,
-					},
-				},
-				Resources: Resources{
-					Limit: Limit{
-						CPU:              "100",
-						Memory:           "101",
-						Storage:          "102",
-						EphemeralStorage: "103",
-					},
-					Request: Request{
-						CPU:              "200",
-						Memory:           "201",
-						Storage:          "202",
-						EphemeralStorage: "203",
-					},
-				},
-				SecurityContext: SecurityContext{
-					AllowPrivilegeEscalation: true,
-					Capabilities: Capabilities{
-						Add:  []string{"add"},
-						Drop: []string{"drop"},
-					},
-					Privileged:             true,
-					ProcMount:              "ProcMount",
-					ReadOnlyRootFilesystem: true,
-					RunAsGroup:             1,
-					RunAsNonRoot:           true,
-					RunAsUser:              2,
-					SELinuxOptions: SELinuxOptions{
-						User:  "user",
-						Role:  "role",
-						Type:  "type",
-						Level: "level",
-					},
-					WindowsOptions: WindowsOptions{
-						GMSACredentialSpecName: "name",
-						GMSACredentialSpec:     "spec",
-						RunAsUserName:          "run",
-					},
-				},
-				StartupProbe: Probe{
-					Exec: &ExecProbe{
-						FailureThreshold: 31,
-						Handler: ExecHandler{
-							Command: []string{"cmd_startup_1"},
-						},
-						InitialDelaySeconds: 32,
-						PeriodSeconds:       33,
-						SuccessThreshold:    34,
-						TimeoutSeconds:      35,
-					},
-				},
-				Stdin:                    true,
-				StdinOnce:                true,
-				TerminationMessagePath:   "TerminationMessagePath",
-				TerminationMessagePolicy: "TerminationMessagePolicy",
-				TTY:                      true,
-				VolumeDevices: []VolumeDevice{
-					{
-						Name:       "VolumeName",
-						DevicePath: "VolumeDevicePath",
-					},
-				},
-				VolumeMounts: []VolumeMount{
-					{
-						Name:      "VolumeMountName",
-						MountPath: "VolumeMountPath",
-						SubPath:   "VolumeMountSubPath",
-						ReadOnly:  true,
-					},
-				},
-				WorkingDir: "WorkingDir",
 			},
-			expected: v1.Container{
-				Name:       "container",
-				Image:      "image",
-				Command:    []string{"cmd1", "cmd2"},
-				Args:       []string{"arg1", "arg2"},
-				WorkingDir: "WorkingDir",
-				Ports: []v1.ContainerPort{
-					{
-						Name:          "port",
-						ContainerPort: 12000,
-						HostIP:        "hostIp",
-						HostPort:      12001,
-						Protocol:      "http",
-					},
-				},
-				EnvFrom: []v1.EnvFromSource{
-					{
-						Prefix: "pre",
-						ConfigMapRef: &v1.ConfigMapEnvSource{
-							LocalObjectReference: v1.LocalObjectReference{
-								Name: "configMapName",
-							},
-							Optional: &trueBoolPointer,
-						},
-						SecretRef: &v1.SecretEnvSource{
-							LocalObjectReference: v1.LocalObjectReference{
-								Name: "secretName",
-							},
-							Optional: &trueBoolPointer,
-						},
-					},
-				},
-				Env: []v1.EnvVar{
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.Env = []v1.EnvVar{
 					{
 						Name:  "dev",
 						Value: "default",
@@ -333,8 +137,535 @@ func TestToK8S(t *testing.T) {
 							},
 						},
 					},
+				}
+				return container
+			}(),
+		},
+		{
+			name: "env_from",
+			container: Container{
+				EnvFrom: []EnvFrom{
+					{
+						Prefix: "pre",
+						ConfigMap: ConfigMapRef{
+							Name:     "configMapName",
+							Optional: true,
+						},
+						Secret: SecretRef{
+							Name:     "secretName",
+							Optional: true,
+						},
+					},
 				},
-				Resources: v1.ResourceRequirements{
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.EnvFrom = []v1.EnvFromSource{
+					{
+						Prefix: "pre",
+						ConfigMapRef: &v1.ConfigMapEnvSource{
+							LocalObjectReference: v1.LocalObjectReference{
+								Name: "configMapName",
+							},
+							Optional: &trueBoolPointer,
+						},
+						SecretRef: &v1.SecretEnvSource{
+							LocalObjectReference: v1.LocalObjectReference{
+								Name: "secretName",
+							},
+							Optional: &trueBoolPointer,
+						},
+					},
+				}
+				return container
+			}(),
+		},
+		{
+			name: "lifecycle_exec",
+			container: Container{
+				Lifecycle: Lifecycle{
+					PostStart: &Handler{
+						Exec: &ExecHandler{
+							Command: []string{"cmd_start1", "cmd_start2"},
+						},
+						HTTPGet:   &HTTPGetHandler{},
+						TCPSocket: &TCPSocketHandler{},
+					},
+					PreStop: &Handler{
+						Exec: &ExecHandler{
+							Command: []string{"cmd_stop1", "cmd_stop2"},
+						},
+						HTTPGet:   &HTTPGetHandler{},
+						TCPSocket: &TCPSocketHandler{},
+					},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.Lifecycle = &v1.Lifecycle{
+					PostStart: &v1.Handler{
+						Exec: &v1.ExecAction{
+							Command: []string{"cmd_start1", "cmd_start2"},
+						},
+					},
+					PreStop: &v1.Handler{
+						Exec: &v1.ExecAction{
+							Command: []string{"cmd_stop1", "cmd_stop2"},
+						},
+					},
+				}
+				return container
+			}(),
+		},
+		{
+			name: "lifecycle_http",
+			container: Container{
+				Lifecycle: Lifecycle{
+					PostStart: &Handler{
+						HTTPGet: &HTTPGetHandler{
+							Host:   "host_start",
+							Path:   "path",
+							Port:   "10000",
+							Scheme: "scheme",
+							HTTPHeaders: []HTTPHeader{
+								{
+									Name:  "headerName",
+									Value: "headerValue",
+								},
+							},
+						},
+						TCPSocket: &TCPSocketHandler{},
+					},
+					PreStop: &Handler{
+						HTTPGet: &HTTPGetHandler{
+							Host:   "host_stop",
+							Path:   "path",
+							Port:   "10002",
+							Scheme: "scheme",
+							HTTPHeaders: []HTTPHeader{
+								{
+									Name:  "headerName",
+									Value: "headerValue",
+								},
+							},
+						},
+						TCPSocket: &TCPSocketHandler{},
+					},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.Lifecycle = &v1.Lifecycle{
+					PostStart: &v1.Handler{
+						HTTPGet: &v1.HTTPGetAction{
+							Host: "host_start",
+							Path: "path",
+							Port: intstr.IntOrString{
+								Type:   1,
+								IntVal: 0,
+								StrVal: "10000",
+							},
+							Scheme: "scheme",
+							HTTPHeaders: []v1.HTTPHeader{
+								{
+									Name:  "headerName",
+									Value: "headerValue",
+								},
+							},
+						},
+					},
+					PreStop: &v1.Handler{
+						HTTPGet: &v1.HTTPGetAction{
+							Host: "host_stop",
+							Path: "path",
+							Port: intstr.IntOrString{
+								Type:   1,
+								IntVal: 0,
+								StrVal: "10002",
+							},
+							Scheme: "scheme",
+							HTTPHeaders: []v1.HTTPHeader{
+								{
+									Name:  "headerName",
+									Value: "headerValue",
+								},
+							},
+						},
+					},
+				}
+				return container
+			}(),
+		},
+		{
+			name: "lifecycle_tcp",
+			container: Container{
+				Lifecycle: Lifecycle{
+					PostStart: &Handler{
+						TCPSocket: &TCPSocketHandler{
+							Host: "tcp_post_start",
+							Port: "10000",
+						},
+					},
+					PreStop: &Handler{
+						TCPSocket: &TCPSocketHandler{
+							Host: "tcp_pre_stop",
+							Port: "10000",
+						},
+					},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.Lifecycle = &v1.Lifecycle{
+					PostStart: &v1.Handler{
+						TCPSocket: &v1.TCPSocketAction{
+							Port: intstr.IntOrString{
+								Type:   1,
+								IntVal: 0,
+								StrVal: "10000",
+							},
+							Host: "tcp_post_start",
+						},
+					},
+					PreStop: &v1.Handler{
+						TCPSocket: &v1.TCPSocketAction{
+							Port: intstr.IntOrString{
+								Type:   1,
+								IntVal: 0,
+								StrVal: "10000",
+							},
+							Host: "tcp_pre_stop",
+						},
+					},
+				}
+				return container
+			}(),
+		},
+		{
+			name: "lifecycle_no_handlers",
+			container: Container{
+				Lifecycle: Lifecycle{
+					PostStart: &Handler{},
+					PreStop:   &Handler{},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.Lifecycle = &v1.Lifecycle{
+					PostStart: &v1.Handler{},
+					PreStop:   &v1.Handler{},
+				}
+				return container
+			}(),
+		},
+		{
+			name: "liveness_probe_exec",
+			container: Container{
+				LivenessProbe: Probe{
+					Exec: &ExecProbe{
+						FailureThreshold: 1,
+						Handler: ExecHandler{
+							Command: []string{"cmd_probe_1"},
+						},
+						InitialDelaySeconds: 2,
+						PeriodSeconds:       3,
+						SuccessThreshold:    4,
+						TimeoutSeconds:      5,
+					},
+					HTTPGet:   &HTTPGetProbe{},
+					TCPSocket: &TCPSocketProbe{},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.LivenessProbe = &v1.Probe{
+					Handler: v1.Handler{
+						Exec: &v1.ExecAction{
+							Command: []string{"cmd_probe_1"},
+						},
+					},
+					InitialDelaySeconds: 2,
+					TimeoutSeconds:      5,
+					PeriodSeconds:       3,
+					SuccessThreshold:    4,
+					FailureThreshold:    1,
+				}
+				return container
+			}(),
+		},
+		{
+			name: "liveness_probe_http",
+			container: Container{
+				LivenessProbe: Probe{
+					HTTPGet: &HTTPGetProbe{
+						FailureThreshold: 1,
+						Handler: HTTPGetHandler{
+							Host:   "http_host_lp",
+							Path:   "path",
+							Port:   "10000",
+							Scheme: "scheme",
+							HTTPHeaders: []HTTPHeader{
+								{
+									Name:  "headerName",
+									Value: "headerValue",
+								},
+							},
+						},
+						InitialDelaySeconds: 2,
+						PeriodSeconds:       3,
+						SuccessThreshold:    4,
+						TimeoutSeconds:      5,
+					},
+					TCPSocket: &TCPSocketProbe{},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.LivenessProbe = &v1.Probe{
+					Handler: v1.Handler{
+						HTTPGet: &v1.HTTPGetAction{
+							Path: "path",
+							Port: intstr.IntOrString{
+								Type:   1,
+								IntVal: 0,
+								StrVal: "10000",
+							},
+							Host:   "http_host_lp",
+							Scheme: "scheme",
+							HTTPHeaders: []v1.HTTPHeader{
+								{
+									Name:  "headerName",
+									Value: "headerValue",
+								},
+							},
+						},
+					},
+					InitialDelaySeconds: 2,
+					TimeoutSeconds:      5,
+					PeriodSeconds:       3,
+					SuccessThreshold:    4,
+					FailureThreshold:    1,
+				}
+				return container
+			}(),
+		},
+		{
+			name: "liveness_probe_tcp",
+			container: Container{
+				LivenessProbe: Probe{
+					TCPSocket: &TCPSocketProbe{
+						FailureThreshold: 1,
+						Handler: TCPSocketHandler{
+							Host: "tcp_lp",
+							Port: "10000",
+						},
+						InitialDelaySeconds: 2,
+						PeriodSeconds:       3,
+						SuccessThreshold:    4,
+						TimeoutSeconds:      5,
+					},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.LivenessProbe = &v1.Probe{
+					Handler: v1.Handler{
+						TCPSocket: &v1.TCPSocketAction{
+							Port: intstr.IntOrString{
+								Type:   1,
+								IntVal: 0,
+								StrVal: "10000",
+							},
+							Host: "tcp_lp",
+						},
+					},
+					InitialDelaySeconds: 2,
+					TimeoutSeconds:      5,
+					PeriodSeconds:       3,
+					SuccessThreshold:    4,
+					FailureThreshold:    1,
+				}
+				return container
+			}(),
+		},
+		{
+			name: "ports",
+			container: Container{
+				Ports: []Port{
+					{
+						Name:          "port",
+						ContainerPort: 12000,
+						HostIP:        "hostIp",
+						HostPort:      12001,
+						Protocol:      "http",
+					},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.Ports = []v1.ContainerPort{
+					{
+						Name:          "port",
+						ContainerPort: 12000,
+						HostIP:        "hostIp",
+						HostPort:      12001,
+						Protocol:      "http",
+					},
+				}
+				return container
+			}(),
+		},
+		{
+			name: "readiness_probe_exec",
+			container: Container{
+				ReadinessProbe: Probe{
+					Exec: &ExecProbe{
+						FailureThreshold: 16,
+						Handler: ExecHandler{
+							Command: []string{"cmd_ready_1"},
+						},
+						InitialDelaySeconds: 17,
+						PeriodSeconds:       18,
+						SuccessThreshold:    19,
+						TimeoutSeconds:      20,
+					},
+					HTTPGet:   &HTTPGetProbe{},
+					TCPSocket: &TCPSocketProbe{},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.ReadinessProbe = &v1.Probe{
+					Handler: v1.Handler{
+						Exec: &v1.ExecAction{
+							Command: []string{"cmd_ready_1"},
+						},
+					},
+					InitialDelaySeconds: 17,
+					TimeoutSeconds:      20,
+					PeriodSeconds:       18,
+					SuccessThreshold:    19,
+					FailureThreshold:    16,
+				}
+				return container
+			}(),
+		},
+		{
+			name: "readiness_probe_http",
+			container: Container{
+				ReadinessProbe: Probe{
+					HTTPGet: &HTTPGetProbe{
+						FailureThreshold: 6,
+						Handler: HTTPGetHandler{
+							Host:   "http_host_rp",
+							Path:   "path",
+							Port:   "10000",
+							Scheme: "scheme",
+							HTTPHeaders: []HTTPHeader{
+								{
+									Name:  "headerName",
+									Value: "headerValue",
+								},
+							},
+						},
+						InitialDelaySeconds: 7,
+						PeriodSeconds:       8,
+						SuccessThreshold:    9,
+						TimeoutSeconds:      10,
+					},
+					TCPSocket: &TCPSocketProbe{},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.ReadinessProbe = &v1.Probe{
+					Handler: v1.Handler{
+						HTTPGet: &v1.HTTPGetAction{
+							Path: "path",
+							Port: intstr.IntOrString{
+								Type:   1,
+								IntVal: 0,
+								StrVal: "10000",
+							},
+							Host:   "http_host_rp",
+							Scheme: "scheme",
+							HTTPHeaders: []v1.HTTPHeader{
+								{
+									Name:  "headerName",
+									Value: "headerValue",
+								},
+							},
+						},
+					},
+					InitialDelaySeconds: 7,
+					TimeoutSeconds:      10,
+					PeriodSeconds:       8,
+					SuccessThreshold:    9,
+					FailureThreshold:    6,
+				}
+				return container
+			}(),
+		},
+		{
+			name: "readiness_probe_tcp",
+			container: Container{
+				ReadinessProbe: Probe{
+					TCPSocket: &TCPSocketProbe{
+						FailureThreshold: 1,
+						Handler: TCPSocketHandler{
+							Host: "tcp_rp",
+							Port: "10000",
+						},
+						InitialDelaySeconds: 2,
+						PeriodSeconds:       3,
+						SuccessThreshold:    4,
+						TimeoutSeconds:      5,
+					},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.ReadinessProbe = &v1.Probe{
+					Handler: v1.Handler{
+						TCPSocket: &v1.TCPSocketAction{
+							Port: intstr.IntOrString{
+								Type:   1,
+								IntVal: 0,
+								StrVal: "10000",
+							},
+							Host: "tcp_rp",
+						},
+					},
+					InitialDelaySeconds: 2,
+					TimeoutSeconds:      5,
+					PeriodSeconds:       3,
+					SuccessThreshold:    4,
+					FailureThreshold:    1,
+				}
+				return container
+			}(),
+		},
+		{
+			name: "resources",
+			container: Container{
+				Resources: Resources{
+					Limit: Limit{
+						CPU:              "100",
+						Memory:           "101",
+						Storage:          "102",
+						EphemeralStorage: "103",
+					},
+					Request: Request{
+						CPU:              "200",
+						Memory:           "201",
+						Storage:          "202",
+						EphemeralStorage: "203",
+					},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.Resources = v1.ResourceRequirements{
 					Requests: v1.ResourceList{
 						v1.ResourceCPU:              resource.MustParse("200"),
 						v1.ResourceMemory:           resource.MustParse("201"),
@@ -347,75 +678,41 @@ func TestToK8S(t *testing.T) {
 						v1.ResourceStorage:          resource.MustParse("102"),
 						v1.ResourceEphemeralStorage: resource.MustParse("103"),
 					},
-				},
-				VolumeMounts: []v1.VolumeMount{
-					{
-						Name:      "VolumeMountName",
-						ReadOnly:  true,
-						MountPath: "VolumeMountPath",
-						SubPath:   "VolumeMountSubPath",
-						// MountPropagation: &"", //TODO not used
-						// SubPathExpr:      "", //TODO not used
+				}
+				return container
+			}(),
+		},
+		{
+			name: "security_context",
+			container: Container{
+				SecurityContext: SecurityContext{
+					AllowPrivilegeEscalation: true,
+					Capabilities: Capabilities{
+						Add:  []string{"add"},
+						Drop: []string{"drop"},
+					},
+					Privileged:             true,
+					ProcMount:              "ProcMount",
+					ReadOnlyRootFilesystem: true,
+					RunAsGroup:             1,
+					RunAsNonRoot:           true,
+					RunAsUser:              2,
+					SELinuxOptions: SELinuxOptions{
+						User:  "user",
+						Role:  "role",
+						Type:  "type",
+						Level: "level",
+					},
+					WindowsOptions: WindowsOptions{
+						GMSACredentialSpecName: "name",
+						GMSACredentialSpec:     "spec",
+						RunAsUserName:          "run",
 					},
 				},
-				VolumeDevices: []v1.VolumeDevice{
-					{
-						Name:       "VolumeName",
-						DevicePath: "VolumeDevicePath",
-					},
-				},
-				LivenessProbe: &v1.Probe{
-					Handler: v1.Handler{
-						Exec: &v1.ExecAction{
-							Command: []string{"cmd_probe_1"},
-						},
-					},
-					InitialDelaySeconds: 2,
-					TimeoutSeconds:      5,
-					PeriodSeconds:       3,
-					SuccessThreshold:    4,
-					FailureThreshold:    1,
-				},
-				ReadinessProbe: &v1.Probe{
-					Handler: v1.Handler{
-						Exec: &v1.ExecAction{
-							Command: []string{"cmd_ready_1"},
-						},
-					},
-					InitialDelaySeconds: 17,
-					TimeoutSeconds:      20,
-					PeriodSeconds:       18,
-					SuccessThreshold:    19,
-					FailureThreshold:    16,
-				},
-				StartupProbe: &v1.Probe{
-					Handler: v1.Handler{
-						Exec: &v1.ExecAction{
-							Command: []string{"cmd_startup_1"},
-						},
-					},
-					InitialDelaySeconds: 32,
-					TimeoutSeconds:      35,
-					PeriodSeconds:       33,
-					SuccessThreshold:    34,
-					FailureThreshold:    31,
-				},
-				Lifecycle: &v1.Lifecycle{
-					PostStart: &v1.Handler{
-						Exec: &v1.ExecAction{
-							Command: []string{"cmd_start1", "cmd_start2"},
-						},
-					},
-					PreStop: &v1.Handler{
-						Exec: &v1.ExecAction{
-							Command: []string{"cmd_stop1", "cmd_stop2"},
-						},
-					},
-				},
-				TerminationMessagePath:   "TerminationMessagePath",
-				TerminationMessagePolicy: "TerminationMessagePolicy",
-				ImagePullPolicy:          "imagePullPolicy",
-				SecurityContext: &v1.SecurityContext{
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.SecurityContext = &v1.SecurityContext{
 					Capabilities: &v1.Capabilities{
 						Add:  []v1.Capability{"add"},
 						Drop: []v1.Capability{"drop"},
@@ -468,88 +765,48 @@ func TestToK8S(t *testing.T) {
 						p := v1.ProcMountType("ProcMount")
 						return &p
 					}(),
-				},
-				Stdin:     true,
-				StdinOnce: true,
-				TTY:       true,
-			},
+				}
+				return container
+			}(),
 		},
 		{
-			name: "init_http_handlers",
+			name: "startup_probe_exec",
 			container: Container{
-				Name: "container",
-				Lifecycle: Lifecycle{
-					PostStart: &Handler{
-						HTTPGet: &HTTPGetHandler{
-							Host:   "host_start",
-							Path:   "path",
-							Port:   "10000",
-							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
+				StartupProbe: Probe{
+					Exec: &ExecProbe{
+						FailureThreshold: 31,
+						Handler: ExecHandler{
+							Command: []string{"cmd_startup_1"},
 						},
+						InitialDelaySeconds: 32,
+						PeriodSeconds:       33,
+						SuccessThreshold:    34,
+						TimeoutSeconds:      35,
 					},
-					PreStop: &Handler{
-						HTTPGet: &HTTPGetHandler{
-							Host:   "host_stop",
-							Path:   "path",
-							Port:   "10002",
-							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
-						},
-					},
+					HTTPGet:   &HTTPGetProbe{},
+					TCPSocket: &TCPSocketProbe{},
 				},
-				LivenessProbe: Probe{
-					HTTPGet: &HTTPGetProbe{
-						FailureThreshold: 1,
-						Handler: HTTPGetHandler{
-							Host:   "http_host_lp",
-							Path:   "path",
-							Port:   "10000",
-							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.StartupProbe = &v1.Probe{
+					Handler: v1.Handler{
+						Exec: &v1.ExecAction{
+							Command: []string{"cmd_startup_1"},
 						},
-						InitialDelaySeconds: 2,
-						PeriodSeconds:       3,
-						SuccessThreshold:    4,
-						TimeoutSeconds:      5,
 					},
-				},
-				ReadinessProbe: Probe{
-					HTTPGet: &HTTPGetProbe{
-						FailureThreshold: 6,
-						Handler: HTTPGetHandler{
-							Host:   "http_host_rp",
-							Path:   "path",
-							Port:   "10000",
-							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
-						},
-						InitialDelaySeconds: 7,
-						PeriodSeconds:       8,
-						SuccessThreshold:    9,
-						TimeoutSeconds:      10,
-					},
-				},
+					InitialDelaySeconds: 32,
+					TimeoutSeconds:      35,
+					PeriodSeconds:       33,
+					SuccessThreshold:    34,
+					FailureThreshold:    31,
+				}
+				return container
+			}(),
+		},
+		{
+			name: "startup_probe_http",
+			container: Container{
 				StartupProbe: Probe{
 					HTTPGet: &HTTPGetProbe{
 						FailureThreshold: 11,
@@ -570,61 +827,12 @@ func TestToK8S(t *testing.T) {
 						SuccessThreshold:    14,
 						TimeoutSeconds:      15,
 					},
+					TCPSocket: &TCPSocketProbe{},
 				},
 			},
-			expected: v1.Container{
-				Name: "container",
-				LivenessProbe: &v1.Probe{
-					Handler: v1.Handler{
-						HTTPGet: &v1.HTTPGetAction{
-							Path: "path",
-							Port: intstr.IntOrString{
-								Type:   1,
-								IntVal: 0,
-								StrVal: "10000",
-							},
-							Host:   "http_host_lp",
-							Scheme: "scheme",
-							HTTPHeaders: []v1.HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
-						},
-					},
-					InitialDelaySeconds: 2,
-					TimeoutSeconds:      5,
-					PeriodSeconds:       3,
-					SuccessThreshold:    4,
-					FailureThreshold:    1,
-				},
-				ReadinessProbe: &v1.Probe{
-					Handler: v1.Handler{
-						HTTPGet: &v1.HTTPGetAction{
-							Path: "path",
-							Port: intstr.IntOrString{
-								Type:   1,
-								IntVal: 0,
-								StrVal: "10000",
-							},
-							Host:   "http_host_rp",
-							Scheme: "scheme",
-							HTTPHeaders: []v1.HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
-						},
-					},
-					InitialDelaySeconds: 7,
-					TimeoutSeconds:      10,
-					PeriodSeconds:       8,
-					SuccessThreshold:    9,
-					FailureThreshold:    6,
-				},
-				StartupProbe: &v1.Probe{
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.StartupProbe = &v1.Probe{
 					Handler: v1.Handler{
 						HTTPGet: &v1.HTTPGetAction{
 							Path: "path",
@@ -648,122 +856,13 @@ func TestToK8S(t *testing.T) {
 					PeriodSeconds:       13,
 					SuccessThreshold:    14,
 					FailureThreshold:    11,
-				},
-				Lifecycle: &v1.Lifecycle{
-					PostStart: &v1.Handler{
-						HTTPGet: &v1.HTTPGetAction{
-							Host: "host_start",
-							Path: "path",
-							Port: intstr.IntOrString{
-								Type:   1,
-								IntVal: 0,
-								StrVal: "10000",
-							},
-							Scheme: "scheme",
-							HTTPHeaders: []v1.HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
-						},
-					},
-					PreStop: &v1.Handler{
-						HTTPGet: &v1.HTTPGetAction{
-							Host: "host_stop",
-							Path: "path",
-							Port: intstr.IntOrString{
-								Type:   1,
-								IntVal: 0,
-								StrVal: "10002",
-							},
-							Scheme: "scheme",
-							HTTPHeaders: []v1.HTTPHeader{
-								{
-									Name:  "headerName",
-									Value: "headerValue",
-								},
-							},
-						},
-					},
-				},
-				Resources: v1.ResourceRequirements{
-					Requests: v1.ResourceList{},
-					Limits:   v1.ResourceList{},
-				},
-				SecurityContext: &v1.SecurityContext{
-					Privileged:     new(bool),
-					SELinuxOptions: &v1.SELinuxOptions{},
-					WindowsOptions: &v1.WindowsSecurityContextOptions{
-						GMSACredentialSpecName: func() *string {
-							name := ""
-							return &name
-						}(),
-						GMSACredentialSpec: func() *string {
-							spec := ""
-							return &spec
-						}(),
-						RunAsUserName: func() *string {
-							run := ""
-							return &run
-						}(),
-					},
-					RunAsUser:                new(int64),
-					RunAsNonRoot:             new(bool),
-					ReadOnlyRootFilesystem:   new(bool),
-					AllowPrivilegeEscalation: new(bool),
-					RunAsGroup:               new(int64),
-					ProcMount: func() *v1.ProcMountType {
-						procMountType := v1.ProcMountType("")
-						return &procMountType
-					}(),
-				},
-			},
+				}
+				return container
+			}(),
 		},
 		{
-			name: "init_tcp_handlers",
+			name: "startup_probe_tcp",
 			container: Container{
-				Name: "container",
-				Lifecycle: Lifecycle{
-					PostStart: &Handler{
-						TCPSocket: &TCPSocketHandler{
-							Host: "tcp_post_start",
-							Port: "10000",
-						},
-					},
-					PreStop: &Handler{
-						TCPSocket: &TCPSocketHandler{
-							Host: "tcp_pre_stop",
-							Port: "10000",
-						},
-					},
-				},
-				LivenessProbe: Probe{
-					TCPSocket: &TCPSocketProbe{
-						FailureThreshold: 1,
-						Handler: TCPSocketHandler{
-							Host: "tcp_lp",
-							Port: "10000",
-						},
-						InitialDelaySeconds: 2,
-						PeriodSeconds:       3,
-						SuccessThreshold:    4,
-						TimeoutSeconds:      5,
-					},
-				},
-				ReadinessProbe: Probe{
-					TCPSocket: &TCPSocketProbe{
-						FailureThreshold: 1,
-						Handler: TCPSocketHandler{
-							Host: "tcp_rp",
-							Port: "10000",
-						},
-						InitialDelaySeconds: 2,
-						PeriodSeconds:       3,
-						SuccessThreshold:    4,
-						TimeoutSeconds:      5,
-					},
-				},
 				StartupProbe: Probe{
 					TCPSocket: &TCPSocketProbe{
 						FailureThreshold: 1,
@@ -778,43 +877,9 @@ func TestToK8S(t *testing.T) {
 					},
 				},
 			},
-			expected: v1.Container{
-				Name: "container",
-				LivenessProbe: &v1.Probe{
-					Handler: v1.Handler{
-						TCPSocket: &v1.TCPSocketAction{
-							Port: intstr.IntOrString{
-								Type:   1,
-								IntVal: 0,
-								StrVal: "10000",
-							},
-							Host: "tcp_lp",
-						},
-					},
-					InitialDelaySeconds: 2,
-					TimeoutSeconds:      5,
-					PeriodSeconds:       3,
-					SuccessThreshold:    4,
-					FailureThreshold:    1,
-				},
-				ReadinessProbe: &v1.Probe{
-					Handler: v1.Handler{
-						TCPSocket: &v1.TCPSocketAction{
-							Port: intstr.IntOrString{
-								Type:   1,
-								IntVal: 0,
-								StrVal: "10000",
-							},
-							Host: "tcp_rp",
-						},
-					},
-					InitialDelaySeconds: 2,
-					TimeoutSeconds:      5,
-					PeriodSeconds:       3,
-					SuccessThreshold:    4,
-					FailureThreshold:    1,
-				},
-				StartupProbe: &v1.Probe{
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.StartupProbe = &v1.Probe{
 					Handler: v1.Handler{
 						TCPSocket: &v1.TCPSocketAction{
 							Port: intstr.IntOrString{
@@ -830,109 +895,57 @@ func TestToK8S(t *testing.T) {
 					PeriodSeconds:       3,
 					SuccessThreshold:    4,
 					FailureThreshold:    1,
-				},
-				Lifecycle: &v1.Lifecycle{
-					PostStart: &v1.Handler{
-						TCPSocket: &v1.TCPSocketAction{
-							Port: intstr.IntOrString{
-								Type:   1,
-								IntVal: 0,
-								StrVal: "10000",
-							},
-							Host: "tcp_post_start",
-						},
-					},
-					PreStop: &v1.Handler{
-						TCPSocket: &v1.TCPSocketAction{
-							Port: intstr.IntOrString{
-								Type:   1,
-								IntVal: 0,
-								StrVal: "10000",
-							},
-							Host: "tcp_pre_stop",
-						},
-					},
-				},
-				Resources: v1.ResourceRequirements{
-					Requests: v1.ResourceList{},
-					Limits:   v1.ResourceList{},
-				},
-				SecurityContext: &v1.SecurityContext{
-					Privileged:     new(bool),
-					SELinuxOptions: &v1.SELinuxOptions{},
-					WindowsOptions: &v1.WindowsSecurityContextOptions{
-						GMSACredentialSpecName: func() *string {
-							name := ""
-							return &name
-						}(),
-						GMSACredentialSpec: func() *string {
-							spec := ""
-							return &spec
-						}(),
-						RunAsUserName: func() *string {
-							run := ""
-							return &run
-						}(),
-					},
-					RunAsUser:                new(int64),
-					RunAsNonRoot:             new(bool),
-					ReadOnlyRootFilesystem:   new(bool),
-					AllowPrivilegeEscalation: new(bool),
-					RunAsGroup:               new(int64),
-					ProcMount: func() *v1.ProcMountType {
-						procMountType := v1.ProcMountType("")
-						return &procMountType
-					}(),
-				},
-			},
+				}
+				return container
+			}(),
 		},
 		{
-			name: "init_no_handlers",
+			name: "volume_devices",
 			container: Container{
-				Name: "container",
-				Lifecycle: Lifecycle{
-					PostStart: &Handler{},
-					PreStop:   &Handler{},
-				},
-			},
-			expected: v1.Container{
-				Name: "container",
-				Resources: v1.ResourceRequirements{
-					Requests: v1.ResourceList{},
-					Limits:   v1.ResourceList{},
-				},
-				Lifecycle: &v1.Lifecycle{
-					PostStart: &v1.Handler{},
-					PreStop:   &v1.Handler{},
-				},
-				SecurityContext: &v1.SecurityContext{
-					Privileged:     new(bool),
-					SELinuxOptions: &v1.SELinuxOptions{},
-					WindowsOptions: &v1.WindowsSecurityContextOptions{
-						GMSACredentialSpecName: func() *string {
-							name := ""
-							return &name
-						}(),
-						GMSACredentialSpec: func() *string {
-							spec := ""
-							return &spec
-						}(),
-						RunAsUserName: func() *string {
-							run := ""
-							return &run
-						}(),
+				VolumeDevices: []VolumeDevice{
+					{
+						Name:       "VolumeName",
+						DevicePath: "VolumeDevicePath",
 					},
-					RunAsUser:                new(int64),
-					RunAsNonRoot:             new(bool),
-					ReadOnlyRootFilesystem:   new(bool),
-					AllowPrivilegeEscalation: new(bool),
-					RunAsGroup:               new(int64),
-					ProcMount: func() *v1.ProcMountType {
-						procMountType := v1.ProcMountType("")
-						return &procMountType
-					}(),
 				},
 			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.VolumeDevices = []v1.VolumeDevice{
+					{
+						Name:       "VolumeName",
+						DevicePath: "VolumeDevicePath",
+					},
+				}
+				return container
+			}(),
+		},
+		{
+			name: "volume_mounts",
+			container: Container{
+				VolumeMounts: []VolumeMount{
+					{
+						Name:      "VolumeMountName",
+						MountPath: "VolumeMountPath",
+						SubPath:   "VolumeMountSubPath",
+						ReadOnly:  true,
+					},
+				},
+			},
+			expected: func() v1.Container {
+				container := newExpectedDefaultContainer()
+				container.VolumeMounts = []v1.VolumeMount{
+					{
+						Name:      "VolumeMountName",
+						ReadOnly:  true,
+						MountPath: "VolumeMountPath",
+						SubPath:   "VolumeMountSubPath",
+						// MountPropagation: &"", //TODO not used
+						// SubPathExpr:      "", //TODO not used
+					},
+				}
+				return container
+			}(),
 		},
 	}
 
@@ -940,97 +953,45 @@ func TestToK8S(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			container := test.container.ToK8S()
 
-			if !reflect.DeepEqual(test.expected.Args, container.Args) {
-				t.Errorf("response Args expected: %#v, got: %#v", test.expected.Args, container.Args)
-			}
-
-			if !reflect.DeepEqual(test.expected.Command, container.Command) {
-				t.Errorf("response Command expected: %#v, got: %#v", test.expected.Command, container.Command)
-			}
-
-			if !reflect.DeepEqual(test.expected.Env, container.Env) {
-				t.Errorf("response Env expected: %#v, got: %#v", test.expected.Env, container.Env)
-			}
-
-			if !reflect.DeepEqual(test.expected.EnvFrom, container.EnvFrom) {
-				t.Errorf("response EnvFrom expected: %#v, got: %#v", test.expected.EnvFrom, container.EnvFrom)
-			}
-
-			if !reflect.DeepEqual(test.expected.Image, container.Image) {
-				t.Errorf("response Image expected: %#v, got: %#v", test.expected.Image, container.Image)
-			}
-
-			if !reflect.DeepEqual(test.expected.ImagePullPolicy, container.ImagePullPolicy) {
-				t.Errorf("response ImagePullPolicy expected: %#v, got: %#v", test.expected.ImagePullPolicy, container.ImagePullPolicy)
-			}
-
-			if !reflect.DeepEqual(test.expected.Lifecycle, container.Lifecycle) {
-				t.Errorf("response Lifecycle expected: %#v, got: %#v", test.expected.Lifecycle, container.Lifecycle)
-			}
-
-			if !reflect.DeepEqual(test.expected.LivenessProbe, container.LivenessProbe) {
-				t.Errorf("response LivenessProbe expected: %#v, got: %#v", test.expected.LivenessProbe, container.LivenessProbe)
-			}
-
-			if !reflect.DeepEqual(test.expected.Name, container.Name) {
-				t.Errorf("response Name expected: %#v, got: %#v", test.expected.Name, container.Name)
-			}
-
-			if !reflect.DeepEqual(test.expected.Ports, container.Ports) {
-				t.Errorf("response Ports expected: %#v, got: %#v", test.expected.Ports, container.Ports)
-			}
-
-			if !reflect.DeepEqual(test.expected.ReadinessProbe, container.ReadinessProbe) {
-				t.Errorf("response ReadinessProbe expected: %#v, got: %#v", test.expected.ReadinessProbe, container.ReadinessProbe)
-			}
-
-			if !reflect.DeepEqual(test.expected.Resources, container.Resources) {
-				t.Errorf("response Resources expected: %#v, got: %#v", test.expected.Resources, container.Resources)
-			}
-
-			if !reflect.DeepEqual(test.expected.SecurityContext, container.SecurityContext) {
-				t.Errorf("response SecurityContext expected: %#v, got: %#v", test.expected.SecurityContext, container.SecurityContext)
-			}
-
-			if !reflect.DeepEqual(test.expected.StartupProbe, container.StartupProbe) {
-				t.Errorf("response StartupProbe expected: %#v, got: %#v", test.expected.StartupProbe, container.StartupProbe)
-			}
-
-			if !reflect.DeepEqual(test.expected.Stdin, container.Stdin) {
-				t.Errorf("response Stdin expected: %#v, got: %#v", test.expected.Stdin, container.Stdin)
-			}
-
-			if !reflect.DeepEqual(test.expected.StdinOnce, container.StdinOnce) {
-				t.Errorf("response StdinOnce expected: %#v, got: %#v", test.expected.StdinOnce, container.StdinOnce)
-			}
-
-			if !reflect.DeepEqual(test.expected.TTY, container.TTY) {
-				t.Errorf("response TTY expected: %#v, got: %#v", test.expected.TTY, container.TTY)
-			}
-
-			if !reflect.DeepEqual(test.expected.TerminationMessagePath, container.TerminationMessagePath) {
-				t.Errorf("response TerminationMessagePath expected: %#v, got: %#v", test.expected.TerminationMessagePath, container.TerminationMessagePath)
-			}
-
-			if !reflect.DeepEqual(test.expected.TerminationMessagePolicy, container.TerminationMessagePolicy) {
-				t.Errorf("response TerminationMessagePolicy expected: %#v, got: %#v", test.expected.TerminationMessagePolicy, container.TerminationMessagePolicy)
-			}
-
-			if !reflect.DeepEqual(test.expected.VolumeDevices, container.VolumeDevices) {
-				t.Errorf("response VolumeDevices expected: %#v, got: %#v", test.expected.VolumeDevices, container.VolumeDevices)
-			}
-
-			if !reflect.DeepEqual(test.expected.VolumeMounts, container.VolumeMounts) {
-				t.Errorf("response VolumeMounts expected: %#v, got: %#v", test.expected.VolumeMounts, container.VolumeMounts)
-			}
-
-			if !reflect.DeepEqual(test.expected.WorkingDir, container.WorkingDir) {
-				t.Errorf("response WorkingDir expected: %#v, got: %#v", test.expected.WorkingDir, container.WorkingDir)
-			}
-
 			if !reflect.DeepEqual(test.expected, container) {
-				t.Error("response not as expected")
+				t.Errorf("response expected: %#v, got: %#v", test.expected, container)
 			}
 		})
+	}
+}
+
+func newExpectedDefaultContainer() v1.Container {
+	return v1.Container{
+		Resources: v1.ResourceRequirements{
+			Requests: v1.ResourceList{},
+			Limits:   v1.ResourceList{},
+		},
+		SecurityContext: &v1.SecurityContext{
+			Privileged:     new(bool),
+			SELinuxOptions: &v1.SELinuxOptions{},
+			WindowsOptions: &v1.WindowsSecurityContextOptions{
+				GMSACredentialSpecName: func() *string {
+					name := ""
+					return &name
+				}(),
+				GMSACredentialSpec: func() *string {
+					spec := ""
+					return &spec
+				}(),
+				RunAsUserName: func() *string {
+					run := ""
+					return &run
+				}(),
+			},
+			RunAsUser:                new(int64),
+			RunAsNonRoot:             new(bool),
+			ReadOnlyRootFilesystem:   new(bool),
+			AllowPrivilegeEscalation: new(bool),
+			RunAsGroup:               new(int64),
+			ProcMount: func() *v1.ProcMountType {
+				procMountType := v1.ProcMountType("")
+				return &procMountType
+			}(),
+		},
 	}
 }

@@ -43,7 +43,8 @@ type ClientOptions struct {
 	KubeconfigPath string
 }
 
-// ClientSetup holds functions for configuration of the Client, when testing these functions are mocked
+// ClientSetup holds functions for configuration of the Client.
+// Functions are extracted for being able to mock them for unit tests.
 type ClientSetup struct {
 	NewForConfig         func(c *rest.Config) (*kubernetes.Clientset, error)
 	InClusterConfig      func() (*rest.Config, error)
