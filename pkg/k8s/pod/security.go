@@ -32,7 +32,6 @@ func (psc *PodSecurityContext) toK8S() *v1.PodSecurityContext {
 		SupplementalGroups: psc.SupplementalGroups,
 		Sysctls:            psc.Sysctls.toK8S(),
 		WindowsOptions:     psc.WindowsOptions.toK8S(),
-		// SeccompProfile: , //TODO add?
 	}
 }
 

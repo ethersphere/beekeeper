@@ -940,8 +940,6 @@ func TestToK8S(t *testing.T) {
 						ReadOnly:  true,
 						MountPath: "VolumeMountPath",
 						SubPath:   "VolumeMountSubPath",
-						// MountPropagation: &"", //TODO not used
-						// SubPathExpr:      "", //TODO not used
 					},
 				}
 				return container

@@ -176,7 +176,6 @@ func TestToK8S(t *testing.T) {
 								LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label_2": "label_value_2"}},
 								Namespaces:    []string{"namespaces_2"},
 								TopologyKey:   "topology_key_2",
-								// NamespaceSelector: &metav1.LabelSelector{}, //TODO not used?
 							},
 						},
 						PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
@@ -186,7 +185,6 @@ func TestToK8S(t *testing.T) {
 									LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label_1": "label_value_1"}},
 									Namespaces:    []string{"namespaces_1"},
 									TopologyKey:   "topology_key_1",
-									// NamespaceSelector: &metav1.LabelSelector{}, //TODO not used?
 								},
 							},
 						},
@@ -231,7 +229,6 @@ func TestToK8S(t *testing.T) {
 								LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label_3": "label_value_3"}},
 								Namespaces:    []string{"namespaces_3"},
 								TopologyKey:   "topology_key_3",
-								// NamespaceSelector: &metav1.LabelSelector{}, //TODO not used?
 							},
 						},
 						PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
@@ -241,7 +238,6 @@ func TestToK8S(t *testing.T) {
 									LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label_4": "label_value_4"}},
 									Namespaces:    []string{"namespaces_4"},
 									TopologyKey:   "topology_key_4",
-									// NamespaceSelector: &metav1.LabelSelector{}, //TODO not used?
 								},
 							},
 						},

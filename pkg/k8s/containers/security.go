@@ -32,7 +32,6 @@ func (sc *SecurityContext) toK8S() *v1.SecurityContext {
 		RunAsUser:              &sc.RunAsUser,
 		SELinuxOptions:         sc.SELinuxOptions.toK8S(),
 		WindowsOptions:         sc.WindowsOptions.toK8S(),
-		// SeccompProfile: , //TODO add?
 	}
 }
 
