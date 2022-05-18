@@ -91,6 +91,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		txIdx := perm[0]
 		rxIdx := perm[1]
 
+		// if the upload and download nodes are the same, try again for a different peer
 		if txIdx == rxIdx {
 			continue
 		}
@@ -123,6 +124,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			default:
 			}
 
+			c.metrics.UploadAttempts.Inc()
+
 			address, txDuration, err = test.upload(txName, txData)
 			if err != nil {
 				c.metrics.UploadErrors.Inc()
@@ -145,6 +148,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			default:
 			}
 
+			c.metrics.DownloadAttempts.Inc()
+
 			rxData, rxDuration, err = test.download(rxName, address)
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
@@ -154,13 +159,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			}
 		}
 
+		// download error, skip comprarison below
 		if rxDuration == 0 {
 			continue
 		}
 
 		if !bytes.Equal(rxData, txData) {
-			c.metrics.DownloadErrors.Inc()
 			fmt.Println("uploaded data does not match downloaded data")
+
+			c.metrics.DownloadMismatch.Inc()
 
 			rxLen, txLen := len(rxData), len(txData)
 			if rxLen != txLen {
