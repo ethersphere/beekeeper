@@ -7,7 +7,10 @@ import (
 
 type metrics struct {
 	UploadErrors     prometheus.Counter
+	UploadAttempts   prometheus.Counter
 	DownloadErrors   prometheus.Counter
+	DownloadMismatch prometheus.Counter
+	DownloadAttempts prometheus.Counter
 	UploadDuration   prometheus.Histogram
 	DownloadDuration prometheus.Histogram
 }
@@ -15,12 +18,20 @@ type metrics struct {
 func newMetrics() metrics {
 	subsystem := "check_smoke"
 	return metrics{
-		UploadErrors: prometheus.NewCounter(
+		UploadAttempts: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
-				Name:      "upload_errors_count",
-				Help:      "The total number of errors encountered before successful upload.",
+				Name:      "upload_attempts",
+				Help:      "Number of upload attempts.",
+			},
+		),
+		DownloadAttempts: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "download_attempts",
+				Help:      "Number of download attempts.",
 			},
 		),
 		DownloadErrors: prometheus.NewCounter(
@@ -29,6 +40,14 @@ func newMetrics() metrics {
 				Subsystem: subsystem,
 				Name:      "download_errors_count",
 				Help:      "The total number of errors encountered before successful download.",
+			},
+		),
+		DownloadMismatch: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "download_mismatch",
+				Help:      "The total number of times uploaded data is different from downloaded data.",
 			},
 		),
 		UploadDuration: prometheus.NewHistogram(
