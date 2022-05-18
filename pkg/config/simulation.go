@@ -50,6 +50,7 @@ var Simulations = map[string]SimulationType{
 				Timeout              *time.Duration `yaml:"timeout"`
 				UploadNodeName       *string        `yaml:"upload-node-name"`
 				UploadNodePercentage *int           `yaml:"upload-node-percentage"`
+				SyncUpload           *bool          `yaml:"sync-upload"`
 			})
 			if err := simulation.Options.Decode(simulationOpts); err != nil {
 				return nil, fmt.Errorf("decoding simulation %s options: %w", simulation.Type, err)
