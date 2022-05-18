@@ -34,6 +34,14 @@ func newMetrics() metrics {
 				Help:      "Number of download attempts.",
 			},
 		),
+		UploadErrors: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "upload_errors_count",
+				Help:      "The total number of errors encountered before successful upload.",
+			},
+		),
 		DownloadErrors: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
