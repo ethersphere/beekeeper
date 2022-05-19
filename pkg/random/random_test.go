@@ -2,6 +2,7 @@ package random
 
 import (
 	"fmt"
+	"math/rand"
 	"reflect"
 	"testing"
 	"time"
@@ -143,4 +144,39 @@ func TestCryptoSource_Int63(t *testing.T) {
 func TestCryptoSource_Seed(t *testing.T) {
 	cs := cryptoSource{}
 	cs.Seed(10)
+}
+
+func FuzzPseudoGenerators(f *testing.F) {
+	f.Fuzz(func(t *testing.T, seed int64, n int) {
+		g := PseudoGenerators(seed, n)
+		if n <= 0 && g != nil {
+			t.Fatal("result slice should be nil")
+		}
+
+		if n > 0 {
+
+			if g == nil {
+				t.Fatal("result slice shouldn't be nil")
+			}
+
+			if len(g) != n {
+				t.Errorf("result slice length expected: %v, got: %v", n, len(g))
+			}
+
+			rnd := rand.New(rand.NewSource(seed))
+
+			for i := 0; i < n; i++ {
+				num := g[i].Int63()
+
+				expected := rand.New(rand.NewSource(rnd.Int63()))
+				if num != expected.Int63() {
+					t.Errorf("value not as expected")
+				}
+
+				if num == g[i].Int63() {
+					t.Errorf("calling method for index: %v shouldn't return again the same number", i)
+				}
+			}
+		}
+	})
 }
