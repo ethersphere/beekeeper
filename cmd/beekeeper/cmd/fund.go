@@ -33,6 +33,7 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-deposit 0.1`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			var addresses []string
+			var createdKeys []utils.EncryptedKey
 			if c.globalConfig.GetBool(optionNameAddressCreate) {
 				for i := 0; i < c.globalConfig.GetInt(optionNameAddressCount); i++ {
 					swarmKey, err := utils.CreateSwarmKey(c.globalConfig.GetString(optionNamePassword))
@@ -40,12 +41,18 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 						return fmt.Errorf("creating Swarm key: %w", err)
 					}
 
-					var key struct{ Address string }
+					var key utils.EncryptedKey
 					if err := json.Unmarshal([]byte(swarmKey), &key); err != nil {
 						return fmt.Errorf("unmarshaling Swarm address: %w", err)
 					}
 					addresses = append(addresses, "0x"+key.Address)
+					createdKeys = append(createdKeys, key)
 				}
+				k, err := json.MarshalIndent(createdKeys, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling Swarm keys: %w", err)
+				}
+				fmt.Printf("CREATED KEYS:\n%s\n", string(k))
 			} else if len(c.globalConfig.GetStringSlice(optionNameAddresses)) < 1 {
 				return fmt.Errorf("bee node Ethereum addresses not provided")
 			} else {
@@ -55,6 +62,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
+			fmt.Printf("\nFUNDED ADDRESSES:\n")
 			for _, a := range addresses {
 				fmt.Printf("address: %s\n", a)
 				// ETH funding
