@@ -22,6 +22,8 @@ func (c *command) initFundCmd() (err error) {
 		optionNameEthDeposit      = "eth-deposit"
 		optionNameGBzzDeposit     = "gBzz-deposit"
 		optionNamePassword        = "password"
+		optionNamePrintKeys       = "print-keys"
+		optionNamePrintAddresses  = "print-addresses"
 		optionNameTimeout         = "timeout"
 	)
 
@@ -48,11 +50,13 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					addresses = append(addresses, "0x"+key.Address)
 					createdKeys = append(createdKeys, key)
 				}
-				k, err := json.MarshalIndent(createdKeys, "", "  ")
-				if err != nil {
-					return fmt.Errorf("marshaling Swarm keys: %w", err)
+				if c.globalConfig.GetBool(optionNamePrintKeys) {
+					k, err := json.Marshal(createdKeys)
+					if err != nil {
+						return fmt.Errorf("marshaling Swarm keys: %w", err)
+					}
+					fmt.Printf("%s\n", k)
 				}
-				fmt.Printf("CREATED KEYS:\n%s\n", string(k))
 			} else if len(c.globalConfig.GetStringSlice(optionNameAddresses)) < 1 {
 				return fmt.Errorf("bee node Ethereum addresses not provided")
 			} else {
@@ -62,9 +66,10 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			fmt.Printf("\nFUNDED ADDRESSES:\n")
 			for _, a := range addresses {
-				fmt.Printf("address: %s\n", a)
+				if c.globalConfig.GetBool(optionNamePrintAddresses) {
+					fmt.Printf("address: %s\n", string(a))
+				}
 				// ETH funding
 				ethDeposit := c.globalConfig.GetFloat64(optionNameEthDeposit)
 				if ethDeposit > 0 {
@@ -109,6 +114,8 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 	cmd.Flags().Float64(optionNameGBzzDeposit, 0, "gBZZ tokens amount to deposit")
 	cmd.Flags().Float64(optionNameEthDeposit, 0, "ETH amount to deposit")
 	cmd.Flags().String(optionNamePassword, "beekeeper", "password for generating Ethereum addresses")
+	cmd.Flags().Bool(optionNamePrintKeys, false, "if enabled, prints created keys")
+	cmd.Flags().Bool(optionNamePrintAddresses, false, "if enabled, prints funded addresses")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "timeout")
 
 	c.root.AddCommand(cmd)
