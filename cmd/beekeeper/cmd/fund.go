@@ -69,7 +69,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 
 			for _, a := range addresses {
 				if c.globalConfig.GetBool(optionNamePrintAddresses) {
-					fmt.Printf("address: %s\n", string(a))
+					fmt.Printf("address: %s\n", a)
 				}
 				// ETH funding
 				ethDeposit := c.globalConfig.GetFloat64(optionNameEthDeposit)
