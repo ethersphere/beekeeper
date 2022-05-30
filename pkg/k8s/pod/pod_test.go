@@ -550,6 +550,38 @@ func TestToK8S(t *testing.T) {
 				return newPodSpec
 			}(),
 		},
+		{
+			name: "security_windows_options",
+			pts: PodTemplateSpec{
+				Spec: PodSpec{
+					PodSecurityContext: PodSecurityContext{
+						WindowsOptions: WindowsOptions{
+							GMSACredentialSpecName: "spec_name",
+							GMSACredentialSpec:     "spec",
+							RunAsUserName:          "user",
+						},
+					},
+				},
+			},
+			expected: func() v1.PodTemplateSpec {
+				newPodSpec := newDefaultPodSpec()
+				newPodSpec.Spec.SecurityContext.WindowsOptions = &v1.WindowsSecurityContextOptions{
+					GMSACredentialSpecName: func() *string {
+						name := "spec_name"
+						return &name
+					}(),
+					GMSACredentialSpec: func() *string {
+						spec := "spec"
+						return &spec
+					}(),
+					RunAsUserName: func() *string {
+						run := "user"
+						return &run
+					}(),
+				}
+				return newPodSpec
+			}(),
+		},
 	}
 
 	for _, test := range testTable {
@@ -572,20 +604,10 @@ func newDefaultPodSpec() v1.PodTemplateSpec {
 			ShareProcessNamespace:         new(bool),
 			SecurityContext: &v1.PodSecurityContext{
 				SELinuxOptions: &v1.SELinuxOptions{},
-				WindowsOptions: &v1.WindowsSecurityContextOptions{GMSACredentialSpecName: func() *string {
-					name := ""
-					return &name
-				}(), GMSACredentialSpec: func() *string {
-					spec := ""
-					return &spec
-				}(), RunAsUserName: func() *string {
-					run := ""
-					return &run
-				}()},
-				RunAsUser:    new(int64),
-				RunAsGroup:   new(int64),
-				RunAsNonRoot: new(bool),
-				FSGroup:      new(int64),
+				RunAsUser:      new(int64),
+				RunAsGroup:     new(int64),
+				RunAsNonRoot:   new(bool),
+				FSGroup:        new(int64),
 				FSGroupChangePolicy: func() *v1.PodFSGroupChangePolicy {
 					f := v1.PodFSGroupChangePolicy("")
 					return &f

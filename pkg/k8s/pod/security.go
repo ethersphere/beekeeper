@@ -88,6 +88,9 @@ type WindowsOptions struct {
 }
 
 func (wo *WindowsOptions) toK8S() *v1.WindowsSecurityContextOptions {
+	if wo.GMSACredentialSpecName == "" && wo.GMSACredentialSpec == "" && wo.RunAsUserName == "" {
+		return nil
+	}
 	return &v1.WindowsSecurityContextOptions{
 		GMSACredentialSpecName: &wo.GMSACredentialSpecName,
 		GMSACredentialSpec:     &wo.GMSACredentialSpec,

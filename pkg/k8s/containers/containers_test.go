@@ -965,22 +965,8 @@ func newExpectedDefaultContainer() v1.Container {
 			Limits:   v1.ResourceList{},
 		},
 		SecurityContext: &v1.SecurityContext{
-			Privileged:     new(bool),
-			SELinuxOptions: &v1.SELinuxOptions{},
-			WindowsOptions: &v1.WindowsSecurityContextOptions{
-				GMSACredentialSpecName: func() *string {
-					name := ""
-					return &name
-				}(),
-				GMSACredentialSpec: func() *string {
-					spec := ""
-					return &spec
-				}(),
-				RunAsUserName: func() *string {
-					run := ""
-					return &run
-				}(),
-			},
+			Privileged:               new(bool),
+			SELinuxOptions:           &v1.SELinuxOptions{},
 			RunAsUser:                new(int64),
 			RunAsNonRoot:             new(bool),
 			ReadOnlyRootFilesystem:   new(bool),
