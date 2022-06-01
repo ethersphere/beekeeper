@@ -20,7 +20,7 @@ func (c *command) initCreateK8SNamespace() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			name := args[0]
 
-			if err = c.k8sClient.Namespace.Create(cmd.Context(), name); err != nil {
+			if _, err = c.k8sClient.Namespace.Create(cmd.Context(), name); err != nil {
 				return fmt.Errorf("create namespace %s: %w", name, err)
 			}
 

@@ -125,7 +125,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 
 	configCM := o.Name
-	if err = n.k8s.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
+	if _, err = n.k8s.ConfigMap.Set(ctx, configCM, o.Namespace, configmap.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Data: map[string]string{
@@ -146,7 +146,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		keysSecretData["swarm"] = o.SwarmKey
 	}
 
-	if err := n.k8s.Secret.Set(ctx, keysSecret, o.Namespace, secret.Options{
+	if _, err := n.k8s.Secret.Set(ctx, keysSecret, o.Namespace, secret.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		StringData:  keysSecretData,
@@ -163,7 +163,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 			"key":      o.ClefKey,
 			"password": o.ClefPassword,
 		}
-		if err := n.k8s.Secret.Set(ctx, clefSecret, o.Namespace, secret.Options{
+		if _, err := n.k8s.Secret.Set(ctx, clefSecret, o.Namespace, secret.Options{
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 			StringData:  clefSecretData,
@@ -175,7 +175,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// service account
 	svcAccount := o.Name
-	if err := n.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
+	if _, err := n.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
 		Annotations:      o.Annotations,
 		Labels:           o.Labels,
 		ImagePullSecrets: o.ImagePullSecrets,
@@ -191,7 +191,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 
 	apiSvc := fmt.Sprintf("%s-api", o.Name)
-	if err := n.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -214,7 +214,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// api service's ingress
 	apiIn := fmt.Sprintf("%s-api", o.Name)
-	if err := n.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
+	if _, err := n.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
@@ -244,7 +244,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// debug service
 	debugSvc := fmt.Sprintf("%s-debug", o.Name)
-	if err := n.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -265,7 +265,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// debug service's ingress
 	debugIn := fmt.Sprintf("%s-debug", o.Name)
-	if err := n.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
+	if _, err := n.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
 		Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
 		Labels:      o.Labels,
 		Spec: ingress.Spec{
@@ -302,7 +302,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
-	if err := n.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -325,7 +325,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
-	if err := n.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -366,7 +366,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := len(o.SwarmKey) > 0
 
-	if err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
+	if _, err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Spec: statefulset.StatefulSetSpec{
@@ -536,7 +536,7 @@ func (n Node) Ready(ctx context.Context, namespace string) (ready bool, err erro
 }
 
 func (n Node) Start(ctx context.Context, namespace string) (err error) {
-	err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 1)
+	_, err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 1)
 	if err != nil {
 		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
 	}
@@ -546,7 +546,7 @@ func (n Node) Start(ctx context.Context, namespace string) (err error) {
 }
 
 func (n Node) Stop(ctx context.Context, namespace string) (err error) {
-	err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 0)
+	_, err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 0)
 	if err != nil {
 		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
 	}

@@ -66,12 +66,12 @@ type HTTPHeaders []HTTPHeader
 
 // toK8S converts HTTPHeaders to Kuberntes client objects
 func (hhs HTTPHeaders) toK8S() (l []v1.HTTPHeader) {
-	l = make([]v1.HTTPHeader, 0, len(hhs))
-
-	for _, h := range hhs {
-		l = append(l, h.toK8S())
+	if len(hhs) > 0 {
+		l = make([]v1.HTTPHeader, 0, len(hhs))
+		for _, h := range hhs {
+			l = append(l, h.toK8S())
+		}
 	}
-
 	return
 }
 

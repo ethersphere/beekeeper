@@ -7,12 +7,12 @@ type PodReadinessGates []PodReadinessGate
 
 // toK8S converts PodReadinessGates to Kuberntes client objects
 func (prgs PodReadinessGates) toK8S() (l []v1.PodReadinessGate) {
-	l = make([]v1.PodReadinessGate, 0, len(prgs))
-
-	for _, g := range prgs {
-		l = append(l, g.toK8S())
+	if len(prgs) > 0 {
+		l = make([]v1.PodReadinessGate, 0, len(prgs))
+		for _, g := range prgs {
+			l = append(l, g.toK8S())
+		}
 	}
-
 	return
 }
 

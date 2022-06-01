@@ -12,11 +12,11 @@ import (
 
 // Client manages communication with the Kubernetes PersistentVolumeClaims.
 type Client struct {
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset *kubernetes.Clientset) *Client {
+func NewClient(clientset kubernetes.Interface) *Client {
 	return &Client{
 		clientset: clientset,
 	}
@@ -30,7 +30,7 @@ type Options struct {
 }
 
 // Set updates PersistentVolumeClaim or it creates it if it does not exist
-func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (pvc *v1.PersistentVolumeClaim, err error) {
 	spec := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -41,17 +41,16 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.Spec.toK8S(),
 	}
 
-	_, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	pvc, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			pvc, err = c.clientset.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating pvc %s in namespace %s: %w", name, namespace, err)
+				return nil, fmt.Errorf("creating pvc %s in namespace %s: %w", name, namespace, err)
 			}
 		} else {
-			return fmt.Errorf("updating pvc %s in namespace %s: %w", name, namespace, err)
+			return nil, fmt.Errorf("updating pvc %s in namespace %s: %w", name, namespace, err)
 		}
-
 	}
 
 	return

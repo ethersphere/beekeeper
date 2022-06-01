@@ -10,13 +10,21 @@ type Lifecycle struct {
 
 // toK8S converts Lifecycle to Kuberntes client object
 func (l *Lifecycle) toK8S() *v1.Lifecycle {
-	if l.PostStart != nil {
-		postStart := l.PostStart.toK8S()
-		return &v1.Lifecycle{PostStart: &postStart}
-	} else if l.PreStop != nil {
-		preStop := l.PreStop.toK8S()
-		return &v1.Lifecycle{PreStop: &preStop}
-	} else {
+	if l.PostStart == nil && l.PreStop == nil {
 		return nil
 	}
+
+	var lifecycle v1.Lifecycle
+
+	if l.PostStart != nil {
+		postStart := l.PostStart.toK8S()
+		lifecycle.PostStart = &postStart
+	}
+
+	if l.PreStop != nil {
+		preStop := l.PreStop.toK8S()
+		lifecycle.PreStop = &preStop
+	}
+
+	return &lifecycle
 }

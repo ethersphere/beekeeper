@@ -9,6 +9,9 @@
 # Test binary, built with `go test -c`
 *.test
 
+# Test data directories, built with `go test -fuzz`
+testdata/
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
@@ -21,6 +24,7 @@ _test
 dist/
 .idea/
 .vscode/
+.vs/
 .DS_Store/
 tmp/
 

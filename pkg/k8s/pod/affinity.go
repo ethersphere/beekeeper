@@ -44,12 +44,12 @@ func (na *NodeAffinity) toK8S() *v1.NodeAffinity {
 type PreferredSchedulingTerms []PreferredSchedulingTerm
 
 func (psts PreferredSchedulingTerms) toK8S() (l []v1.PreferredSchedulingTerm) {
-	l = make([]v1.PreferredSchedulingTerm, 0, len(psts))
-
-	for _, p := range psts {
-		l = append(l, p.toK8S())
+	if len(psts) > 0 {
+		l = make([]v1.PreferredSchedulingTerm, 0, len(psts))
+		for _, p := range psts {
+			l = append(l, p.toK8S())
+		}
 	}
-
 	return
 }
 
@@ -84,12 +84,12 @@ type NodeSelectorTerms []NodeSelectorTerm
 
 // toK8S converts NodeSelectorTerms to Kuberntes client objects
 func (nsts NodeSelectorTerms) toK8S() (l []v1.NodeSelectorTerm) {
-	l = make([]v1.NodeSelectorTerm, 0, len(nsts))
-
-	for _, n := range nsts {
-		l = append(l, n.toK8S())
+	if len(nsts) > 0 {
+		l = make([]v1.NodeSelectorTerm, 0, len(nsts))
+		for _, n := range nsts {
+			l = append(l, n.toK8S())
+		}
 	}
-
 	return
 }
 
@@ -112,12 +112,12 @@ type NodeSelectorRequirements []NodeSelectorRequirement
 
 // toK8S converts Items to Kuberntes client object
 func (nsrs NodeSelectorRequirements) toK8S() (l []v1.NodeSelectorRequirement) {
-	l = make([]v1.NodeSelectorRequirement, 0, len(nsrs))
-
-	for _, n := range nsrs {
-		l = append(l, n.toK8S())
+	if len(nsrs) > 0 {
+		l = make([]v1.NodeSelectorRequirement, 0, len(nsrs))
+		for _, n := range nsrs {
+			l = append(l, n.toK8S())
+		}
 	}
-
 	return
 }
 
@@ -156,12 +156,12 @@ type PodAffinityTerms []PodAffinityTerm
 
 // toK8S converts PodAffinityTerms to Kuberntes client object
 func (pats PodAffinityTerms) toK8S() (l []v1.PodAffinityTerm) {
-	l = make([]v1.PodAffinityTerm, 0, len(pats))
-
-	for _, p := range pats {
-		l = append(l, p.toK8S())
+	if len(pats) > 0 {
+		l = make([]v1.PodAffinityTerm, 0, len(pats))
+		for _, p := range pats {
+			l = append(l, p.toK8S())
+		}
 	}
-
 	return
 }
 
@@ -186,12 +186,12 @@ type WeightedPodAffinityTerms []WeightedPodAffinityTerm
 
 // toK8S converts WeightedPodAffinityTerms to Kuberntes client object
 func (wpats WeightedPodAffinityTerms) toK8S() (l []v1.WeightedPodAffinityTerm) {
-	l = make([]v1.WeightedPodAffinityTerm, 0, len(wpats))
-
-	for _, w := range wpats {
-		l = append(l, w.toK8S())
+	if len(wpats) > 0 {
+		l = make([]v1.WeightedPodAffinityTerm, 0, len(wpats))
+		for _, w := range wpats {
+			l = append(l, w.toK8S())
+		}
 	}
-
 	return
 }
 

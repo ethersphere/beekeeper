@@ -12,11 +12,11 @@ import (
 
 // Client manages communication with the Kubernetes ServiceAccount.
 type Client struct {
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset *kubernetes.Clientset) *Client {
+func NewClient(clientset kubernetes.Interface) *Client {
 	return &Client{
 		clientset: clientset,
 	}
@@ -32,7 +32,7 @@ type Options struct {
 }
 
 // Set updates ServiceAccount or creates it if it does not exist
-func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (sa *v1.ServiceAccount, err error) {
 	spec := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -55,15 +55,15 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		}(),
 	}
 
-	_, err = c.clientset.CoreV1().ServiceAccounts(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	sa, err = c.clientset.CoreV1().ServiceAccounts(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = c.clientset.CoreV1().ServiceAccounts(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			sa, err = c.clientset.CoreV1().ServiceAccounts(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating service account %s in namespace %s: %w", name, namespace, err)
+				return nil, fmt.Errorf("creating service account %s in namespace %s: %w", name, namespace, err)
 			}
 		} else {
-			return fmt.Errorf("updating service account %s in namespace %s: %w", name, namespace, err)
+			return nil, fmt.Errorf("updating service account %s in namespace %s: %w", name, namespace, err)
 		}
 	}
 

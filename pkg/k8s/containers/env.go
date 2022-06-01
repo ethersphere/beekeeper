@@ -10,10 +10,11 @@ type EnvVars []EnvVar
 
 // toK8S converts EnvVars to Kuberntes client objects
 func (evs EnvVars) toK8S() (l []v1.EnvVar) {
-	l = make([]v1.EnvVar, 0, len(evs))
-
-	for _, e := range evs {
-		l = append(l, e.toK8S())
+	if len(evs) > 0 {
+		l = make([]v1.EnvVar, 0, len(evs))
+		for _, e := range evs {
+			l = append(l, e.toK8S())
+		}
 	}
 
 	return
@@ -73,7 +74,7 @@ type ResourceField struct {
 func (rf *ResourceField) toK8S() *v1.ResourceFieldSelector {
 	return &v1.ResourceFieldSelector{
 		ContainerName: rf.ContainerName,
-		Resource:      rf.ContainerName,
+		Resource:      rf.Resource,
 		Divisor:       resource.MustParse(rf.Divisor),
 	}
 }
@@ -114,12 +115,12 @@ func (sk *SecretKey) toK8S() *v1.SecretKeySelector {
 type EnvFroms []EnvFrom
 
 func (efs EnvFroms) toK8S() (l []v1.EnvFromSource) {
-	l = make([]v1.EnvFromSource, 0, len(efs))
-
-	for _, ef := range efs {
-		l = append(l, ef.toK8S())
+	if len(efs) > 0 {
+		l = make([]v1.EnvFromSource, 0, len(efs))
+		for _, ef := range efs {
+			l = append(l, ef.toK8S())
+		}
 	}
-
 	return
 }
 

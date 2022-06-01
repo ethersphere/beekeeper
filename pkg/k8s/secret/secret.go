@@ -12,11 +12,11 @@ import (
 
 // Client manages communication with the Kubernetes Secret.
 type Client struct {
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset *kubernetes.Clientset) *Client {
+func NewClient(clientset kubernetes.Interface) *Client {
 	return &Client{
 		clientset: clientset,
 	}
@@ -33,7 +33,7 @@ type Options struct {
 }
 
 // Set updates Secret of creates it if it does not exist
-func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (sc *v1.Secret, err error) {
 	spec := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -47,15 +47,15 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Type:       v1.SecretType(o.Type),
 	}
 
-	_, err = c.clientset.CoreV1().Secrets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	sc, err = c.clientset.CoreV1().Secrets(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = c.clientset.CoreV1().Secrets(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			sc, err = c.clientset.CoreV1().Secrets(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating secret %s in namespace %s: %w", name, namespace, err)
+				return nil, fmt.Errorf("creating secret %s in namespace %s: %w", name, namespace, err)
 			}
 		} else {
-			return fmt.Errorf("updating secret %s in namespace %s: %w", name, namespace, err)
+			return nil, fmt.Errorf("updating secret %s in namespace %s: %w", name, namespace, err)
 		}
 	}
 

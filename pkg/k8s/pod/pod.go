@@ -28,9 +28,6 @@ func (pts *PodTemplateSpec) ToK8S() v1.PodTemplateSpec {
 	}
 }
 
-// PodSpecs represents Kubernetes PodSpecs
-type PodSpecs []PodSpec
-
 // PodSpec represents Kubernetes PodSpec
 type PodSpec struct {
 	Affinity                      Affinity
@@ -81,9 +78,11 @@ func (p *PodSpec) toK8S() v1.PodSpec {
 		HostPID:                      p.HostPID,
 		HostIPC:                      p.HostIPC,
 		ImagePullSecrets: func() (l []v1.LocalObjectReference) {
-			l = make([]v1.LocalObjectReference, 0, len(p.ImagePullSecrets))
-			for _, i := range p.ImagePullSecrets {
-				l = append(l, v1.LocalObjectReference{Name: i})
+			if len(p.ImagePullSecrets) > 0 {
+				l = make([]v1.LocalObjectReference, 0, len(p.ImagePullSecrets))
+				for _, i := range p.ImagePullSecrets {
+					l = append(l, v1.LocalObjectReference{Name: i})
+				}
 			}
 			return
 		}(),

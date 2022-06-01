@@ -12,11 +12,11 @@ import (
 
 // Client manages communication with the Kubernetes Ingress.
 type Client struct {
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset *kubernetes.Clientset) *Client {
+func NewClient(clientset kubernetes.Interface) *Client {
 	return &Client{
 		clientset: clientset,
 	}
@@ -30,7 +30,7 @@ type Options struct {
 }
 
 // Set updates Ingress or creates it if it does not exist
-func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (err error) {
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (ing *v1.Ingress, err error) {
 	spec := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -41,15 +41,15 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (er
 		Spec: o.Spec.toK8S(),
 	}
 
-	_, err = c.clientset.NetworkingV1().Ingresses(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	ing, err = c.clientset.NetworkingV1().Ingresses(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = c.clientset.NetworkingV1().Ingresses(namespace).Create(ctx, spec, metav1.CreateOptions{})
+			ing, err = c.clientset.NetworkingV1().Ingresses(namespace).Create(ctx, spec, metav1.CreateOptions{})
 			if err != nil {
-				return fmt.Errorf("creating ingress %s in namespace %s: %w", name, namespace, err)
+				return nil, fmt.Errorf("creating ingress %s in namespace %s: %w", name, namespace, err)
 			}
 		} else {
-			return fmt.Errorf("updating ingress %s in namespace %s: %w", name, namespace, err)
+			return nil, fmt.Errorf("updating ingress %s in namespace %s: %w", name, namespace, err)
 		}
 	}
 

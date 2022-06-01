@@ -7,12 +7,12 @@ type EphemeralContainers []EphemeralContainer
 
 // ToK8S converts EphemeralContainers to Kuberntes client objects
 func (ecs EphemeralContainers) ToK8S() (l []v1.EphemeralContainer) {
-	l = make([]v1.EphemeralContainer, 0, len(ecs))
-
-	for _, e := range ecs {
-		l = append(l, e.ToK8S())
+	if len(ecs) > 0 {
+		l = make([]v1.EphemeralContainer, 0, len(ecs))
+		for _, e := range ecs {
+			l = append(l, e.ToK8S())
+		}
 	}
-
 	return
 }
 

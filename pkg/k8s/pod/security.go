@@ -31,6 +31,7 @@ func (psc *PodSecurityContext) toK8S() *v1.PodSecurityContext {
 		SELinuxOptions:     psc.SELinuxOptions.toK8S(),
 		SupplementalGroups: psc.SupplementalGroups,
 		Sysctls:            psc.Sysctls.toK8S(),
+		WindowsOptions:     psc.WindowsOptions.toK8S(),
 	}
 }
 
@@ -57,12 +58,12 @@ type Sysctls []Sysctl
 
 // toK8S converts Sysctls to Kuberntes client objects
 func (scs Sysctls) toK8S() (l []v1.Sysctl) {
-	l = make([]v1.Sysctl, 0, len(scs))
-
-	for _, s := range scs {
-		l = append(l, s.toK8S())
+	if len(scs) > 0 {
+		l = make([]v1.Sysctl, 0, len(scs))
+		for _, s := range scs {
+			l = append(l, s.toK8S())
+		}
 	}
-
 	return
 }
 
@@ -84,4 +85,15 @@ type WindowsOptions struct {
 	GMSACredentialSpecName string
 	GMSACredentialSpec     string
 	RunAsUserName          string
+}
+
+func (wo *WindowsOptions) toK8S() *v1.WindowsSecurityContextOptions {
+	if wo.GMSACredentialSpecName == "" && wo.GMSACredentialSpec == "" && wo.RunAsUserName == "" {
+		return nil
+	}
+	return &v1.WindowsSecurityContextOptions{
+		GMSACredentialSpecName: &wo.GMSACredentialSpecName,
+		GMSACredentialSpec:     &wo.GMSACredentialSpec,
+		RunAsUserName:          &wo.RunAsUserName,
+	}
 }
