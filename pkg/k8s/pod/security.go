@@ -22,6 +22,9 @@ func (psc *PodSecurityContext) toK8S() *v1.PodSecurityContext {
 	return &v1.PodSecurityContext{
 		FSGroup: &psc.FSGroup,
 		FSGroupChangePolicy: func() *v1.PodFSGroupChangePolicy {
+			if len(psc.FSGroupChangePolicy) == 0 {
+				return nil
+			}
 			f := v1.PodFSGroupChangePolicy(psc.FSGroupChangePolicy)
 			return &f
 		}(),
