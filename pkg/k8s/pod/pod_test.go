@@ -609,8 +609,7 @@ func newDefaultPodSpec() v1.PodTemplateSpec {
 				RunAsNonRoot:   new(bool),
 				FSGroup:        new(int64),
 				FSGroupChangePolicy: func() *v1.PodFSGroupChangePolicy {
-					f := v1.PodFSGroupChangePolicy("")
-					return &f
+					return nil
 				}(),
 			},
 			Affinity:           &v1.Affinity{},
