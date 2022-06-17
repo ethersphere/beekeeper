@@ -8,15 +8,15 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options) error {
-
+func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options, logger logging.Logger) error {
 	rnd := random.PseudoGenerator(o.Seed)
-	fmt.Printf("seed: %d\n", o.Seed)
+	logger.Infof("seed: %d\n", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx, o.ExcludeNodeGroups...)
 	if err != nil {
@@ -37,7 +37,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
-		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+		logger.Infof("node %s: batch id %s\n", nodeName, batchID)
 	}
 
 	for i := 0; i < o.UploadNodeCount && i < len(lightNodes); i++ {
@@ -49,11 +49,11 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
-		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+		logger.Infof("node %s: batch id %s\n", nodeName, batchID)
 
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {
-			chunk, err := bee.NewRandomChunk(rnd)
+			chunk, err := bee.NewRandomChunk(rnd, logger)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -71,7 +71,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			fmt.Printf("uploaded chunk %s to node %s\n", ref.String(), nodeName)
+			logger.Infof("uploaded chunk %s to node %s\n", ref.String(), nodeName)
 
 			time.Sleep(o.RetryDelay)
 
@@ -79,7 +79,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			fmt.Printf("closest node %s overlay %s\n", closestName, closestAddress)
+			logger.Infof("closest node %s overlay %s\n", closestName, closestAddress)
 
 			var synced bool
 			for i := 0; i < 3; i++ {
@@ -93,7 +93,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 				return fmt.Errorf("node %s chunk %s not found in the closest node %s", nodeName, ref.String(), closestAddress)
 			}
 
-			fmt.Printf("node %s chunk %s found in the closest node %s\n", nodeName, ref.String(), closestAddress)
+			logger.Infof("node %s chunk %s found in the closest node %s\n", nodeName, ref.String(), closestAddress)
 
 			skipPeers := []swarm.Address{closestAddress}
 			// chunk should be replicated at least once either during forwarding or after storing
@@ -111,7 +111,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 				}
 
 				if synced {
-					fmt.Printf("node %s chunk %s was replicated to node %s\n", name, ref.String(), address.String())
+					logger.Infof("node %s chunk %s was replicated to node %s\n", name, ref.String(), address.String())
 					continue testCases
 				}
 			}

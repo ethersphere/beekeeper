@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
 )
@@ -30,15 +31,18 @@ type NodeGroup struct {
 	cluster *Cluster
 	k8s     *k8s.Client
 
+	logger logging.Logger
+
 	lock sync.RWMutex
 }
 
 // NewNodeGroup returns new node group
-func NewNodeGroup(name string, o orchestration.NodeGroupOptions) *NodeGroup {
+func NewNodeGroup(name string, o orchestration.NodeGroupOptions, logger logging.Logger) *NodeGroup {
 	return &NodeGroup{
-		name:  name,
-		nodes: make(map[string]orchestration.Node),
-		opts:  o,
+		name:   name,
+		nodes:  make(map[string]orchestration.Node),
+		opts:   o,
+		logger: logger,
 	}
 }
 
@@ -69,7 +73,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
 		Retry:               5,
 		Restricted:          config.Restricted,
-	})
+	}, g.logger)
 
 	n := NewNode(name, orchestration.NodeOptions{
 		ClefKey:      o.ClefKey,
@@ -79,7 +83,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		K8S:          g.k8s,
 		LibP2PKey:    o.LibP2PKey,
 		SwarmKey:     o.SwarmKey,
-	})
+	}, g.logger)
 
 	g.addNode(n)
 
@@ -281,7 +285,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	n := NewNode(name, orchestration.NodeOptions{K8S: g.k8s})
+	n := NewNode(name, orchestration.NodeOptions{K8S: g.k8s}, g.logger)
 	if err := n.Delete(ctx, g.cluster.namespace); err != nil {
 		return err
 	}
@@ -326,7 +330,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.Fundi
 				time.Sleep(nodeRetryTimeout)
 				continue
 			}
-			fmt.Printf("%s funded with %.2f ETH, transaction: %s\n", name, o.Eth, tx)
+			g.logger.Infof("%s funded with %.2f ETH, transaction: %s\n", name, o.Eth, tx)
 			break
 		}
 	}
@@ -343,7 +347,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.Fundi
 				time.Sleep(nodeRetryTimeout)
 				continue
 			}
-			fmt.Printf("%s funded with %.2f BZZ, transaction: %s\n", name, o.Bzz, tx)
+			g.logger.Infof("%s funded with %.2f BZZ, transaction: %s\n", name, o.Bzz, tx)
 			break
 		}
 	}
@@ -360,7 +364,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.Fundi
 				time.Sleep(nodeRetryTimeout)
 				continue
 			}
-			fmt.Printf("%s funded with %.2f gBZZ, transaction: %s\n", name, o.GBzz, tx)
+			g.logger.Infof("%s funded with %.2f gBZZ, transaction: %s\n", name, o.GBzz, tx)
 			break
 		}
 	}
@@ -692,7 +696,7 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 
 		time.Sleep(10 * time.Second)
 		n.Config().Transaction = txHash
-		fmt.Printf("overlay Ethereum address %s for node %s attested successfully: transaction: %s\n", key.Address, name, txHash)
+		g.logger.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s\n", key.Address, name, txHash)
 	}
 	return
 }
@@ -833,7 +837,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	fmt.Printf("wait for %s to become ready\n", name)
+	g.logger.Infof("wait for %s to become ready\n", name)
 	for {
 		ok, err := g.NodeReady(ctx, name)
 		if err != nil {
@@ -841,11 +845,11 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		}
 
 		if ok {
-			fmt.Printf("%s is ready\n", name)
+			g.logger.Infof("%s is ready\n", name)
 			return nil
 		}
 
-		fmt.Printf("%s is not ready yet\n", name)
+		g.logger.Infof("%s is not ready yet\n", name)
 		time.Sleep(nodeRetryTimeout)
 	}
 }
@@ -861,7 +865,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	fmt.Printf("wait for %s to stop\n", name)
+	g.logger.Infof("wait for %s to stop\n", name)
 	for {
 		ok, err := g.NodeReady(ctx, name)
 		if err != nil {
@@ -869,11 +873,11 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		}
 
 		if !ok {
-			fmt.Printf("%s is stopped\n", name)
+			g.logger.Infof("%s is stopped\n", name)
 			return nil
 		}
 
-		fmt.Printf("%s is not stopped yet\n", name)
+		g.logger.Infof("%s is not stopped yet\n", name)
 		time.Sleep(nodeRetryTimeout)
 	}
 }

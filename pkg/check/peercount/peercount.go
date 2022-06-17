@@ -2,21 +2,25 @@ package peercount
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type Check struct{}
+// Check instance.
+type Check struct {
+	logger logging.Logger
+}
 
-// NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+// NewCheck returns a new check instance.
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -33,7 +37,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	clusterSize := cluster.Size()
 	for g, v := range peers {
 		for n, p := range v {
-			fmt.Printf("Node %s. Peers %d/%d. Address: %s\n", n, len(p), clusterSize-1, overlays[g][n])
+			c.logger.Infof("Node %s. Peers %d/%d. Address: %s\n", n, len(p), clusterSize-1, overlays[g][n])
 		}
 	}
 

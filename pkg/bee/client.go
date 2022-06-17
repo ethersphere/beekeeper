@@ -16,16 +16,17 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 const retryCount int = 5
 
 // Client manages communication with the Bee node
 type Client struct {
-	api   *api.Client
-	debug *debugapi.Client
-	opts  ClientOptions
-
+	api    *api.Client
+	debug  *debugapi.Client
+	opts   ClientOptions
+	logger logging.Logger
 	// number of times to retry call
 	retry int
 }
@@ -41,10 +42,11 @@ type ClientOptions struct {
 }
 
 // NewClient returns Bee client
-func NewClient(opts ClientOptions) (c *Client) {
+func NewClient(opts ClientOptions, logger logging.Logger) (c *Client) {
 	c = &Client{
-		retry: retryCount,
-		opts:  opts,
+		retry:  retryCount,
+		opts:   opts,
+		logger: logger,
 	}
 
 	if opts.APIURL != nil {
@@ -329,7 +331,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (before): %w", err)
 		}
-		fmt.Printf("reserve state (prior to buying the batch):\n%s\n", rs.String())
+		c.logger.Infof("reserve state (prior to buying the batch):\n%s\n", rs.String())
 	}
 	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
 	if err != nil {
@@ -359,8 +361,8 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (after): %w", err)
 		}
-		fmt.Printf("reserve state (after buying the batch):\n%s\n", rs.String())
-		fmt.Printf("created batch id %s with depth %d and amount %d\n", id, depth, amount)
+		c.logger.Infof("reserve state (after buying the batch):\n%s\n", rs.String())
+		c.logger.Infof("created batch id %s with depth %d and amount %d\n", id, depth, amount)
 	}
 	return id, nil
 }

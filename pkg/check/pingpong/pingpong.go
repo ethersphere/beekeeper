@@ -9,12 +9,12 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // Options represents check options
-type Options struct {
-}
+type Options struct{}
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
@@ -27,16 +27,20 @@ var _ beekeeper.Action = (*Check)(nil)
 // Check instance
 type Check struct {
 	metrics metrics
+	logger  logging.Logger
 }
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{newMetrics()}
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		metrics: newMetrics(),
+		logger:  logger,
+	}
 }
 
 // Run executes ping check
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interface{}) (err error) {
-	fmt.Println("running pingpong")
+	c.logger.Info("running pingpong")
 
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
@@ -53,17 +57,17 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interf
 					if t == 4 {
 						return fmt.Errorf("node %s: %w", n.Name, n.Error)
 					}
-					fmt.Printf("node %s: %v\n", n.Name, n.Error)
+					c.logger.Infof("node %s: %v\n", n.Name, n.Error)
 					continue
 				}
-				fmt.Printf("Node %s: %s Peer: %s RTT: %s\n", n.Name, n.Address, n.PeerAddress, n.RTT)
+				c.logger.Infof("Node %s: %s Peer: %s RTT: %s\n", n.Name, n.Address, n.PeerAddress, n.RTT)
 
 				rtt, err := time.ParseDuration(n.RTT)
 				if err != nil {
 					if t == 4 {
 						return fmt.Errorf("node %s: %w", n.Name, err)
 					}
-					fmt.Printf("node %s: %v\n", n.Name, err)
+					c.logger.Infof("node %s: %v\n", n.Name, err)
 					continue
 				}
 
@@ -74,7 +78,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interf
 		}
 	}
 
-	fmt.Println("pingpong check completed successfully")
+	c.logger.Info("pingpong check completed successfully")
 	return
 }
 

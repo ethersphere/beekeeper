@@ -8,6 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -50,11 +51,15 @@ var _ beekeeper.Action = (*Check)(nil)
 // Check instance
 type Check struct {
 	metrics metrics
+	logger  logging.Logger
 }
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{newMetrics()}
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		metrics: newMetrics(),
+		logger:  logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -65,19 +70,19 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	switch o.Mode {
 	case "chunks":
-		return checkChunks(ctx, cluster, o)
+		return checkChunks(ctx, cluster, o, c.logger)
 	case "light-chunks":
-		return checkLightChunks(ctx, cluster, o)
+		return checkLightChunks(ctx, cluster, o, c.logger)
 	default:
-		return c.defaultCheck(ctx, cluster, o)
+		return c.defaultCheck(ctx, cluster, o, c.logger)
 	}
 }
 
 // defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
-func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster, o Options) error {
-	fmt.Println("running pushsync")
+func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster, o Options, logger logging.Logger) error {
+	logger.Info("running pushsync")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
-	fmt.Printf("seed: %d\n", o.Seed)
+	logger.Infof("seed: %d\n", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -99,10 +104,10 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
-		fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+		logger.Infof("node %s: batch id %s\n", nodeName, batchID)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
-			chunk, err := bee.NewRandomChunk(rnds[i])
+			chunk, err := bee.NewRandomChunk(rnds[i], c.logger)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -113,7 +118,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
-			fmt.Printf("uploaded chunk %s to node %s\n", addr.String(), nodeName)
+			logger.Infof("uploaded chunk %s to node %s\n", addr.String(), nodeName)
 
 			c.metrics.UploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			c.metrics.UploadTimeGauge.WithLabelValues(overlays[nodeName].String(), addr.String()).Set(d0.Seconds())
@@ -123,7 +128,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			fmt.Printf("closest node %s overlay %s\n", closestName, closestAddress)
+			logger.Infof("closest node %s overlay %s\n", closestName, closestAddress)
 
 			checkRetryCount := 0
 
@@ -141,12 +146,12 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 				}
 				if !synced {
 					c.metrics.NotSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					fmt.Printf("node %s overlay %s chunk %s not found on the closest node. retrying...\n", closestName, overlays[closestName], addr.String())
+					logger.Infof("node %s overlay %s chunk %s not found on the closest node. retrying...\n", closestName, overlays[closestName], addr.String())
 					continue
 				}
 
 				c.metrics.SyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				fmt.Printf("node %s overlay %s chunk %s found on the closest node.\n", closestName, overlays[closestName], addr.String())
+				logger.Infof("node %s overlay %s chunk %s found on the closest node.\n", closestName, overlays[closestName], addr.String())
 
 				// check succeeded
 				break

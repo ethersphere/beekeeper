@@ -12,6 +12,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -19,10 +20,16 @@ import (
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance.
-type Check struct{}
+type Check struct {
+	logger logging.Logger
+}
 
 // NewCheck returns a new check instance.
-func NewCheck() beekeeper.Action { return &Check{} }
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
+}
 
 // Options groups a set of options that can be set for this check.
 type Options struct {
@@ -84,19 +91,19 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	fmt.Printf("%s: %s\n", node, overlays[node])
+	c.logger.Infof("%s: %s\n", node, overlays[node])
 
 	batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: unable to create batch id: %w", node, err)
 	}
-	fmt.Printf("node %s: batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: batch id %s\n", node, batchID)
 
 	contentAddr, err := client.UploadBytes(ctx, content, api.UploadOptions{BatchID: batchID})
 	if err != nil {
 		return fmt.Errorf("node %s: unable to upload content: %w", node, err)
 	}
-	fmt.Printf("node %s: content uploaded successfully: %s\n", node, addr)
+	c.logger.Infof("node %s: content uploaded successfully: %s\n", node, addr)
 
 	time.Sleep(5 * time.Second) // Wait for nodes to sync.
 
@@ -107,14 +114,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if !isRetrievable {
 		return fmt.Errorf("node %s: the uploaded content is not retrievable", node)
 	}
-	fmt.Printf("node %s: uploaded content is retrievable\n", node)
+	c.logger.Infof("node %s: uploaded content is retrievable\n", node)
 
 	rmChAddr := addresses[len(addresses)-1]
 	for node, nClient := range clients {
 		if err := nClient.RemoveChunk(ctx, rmChAddr); err != nil {
 			return fmt.Errorf("node %s: unable to remove chunk %s: %w", node, rmChAddr, err)
 		}
-		fmt.Printf("node %s: chunk %s removed\n", node, rmChAddr)
+		c.logger.Infof("node %s: chunk %s removed\n", node, rmChAddr)
 	}
 	isRetrievable, err = client.IsRetrievable(ctx, contentAddr)
 	if err != nil {
@@ -123,7 +130,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if isRetrievable {
 		return fmt.Errorf("node %s: the uploaded content is retrievable", node)
 	}
-	fmt.Printf("node %s: the uploaded content is not retrievable\n", node)
+	c.logger.Infof("node %s: the uploaded content is not retrievable\n", node)
 
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -11,12 +12,14 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +33,7 @@ const (
 	optionNameConfigGitBranch   = "config-git-branch"
 	optionNameConfigGitUsername = "config-git-username"
 	optionNameConfigGitPassword = "config-git-password"
+	optionNameVerbosity         = "verbosity"
 )
 
 func init() {
@@ -48,6 +52,8 @@ type command struct {
 	k8sClient *k8s.Client
 	// swap client
 	swapClient swap.Client
+	// logger
+	logger logging.Logger
 }
 
 type option func(*command)
@@ -75,6 +81,16 @@ func newCommand(opts ...option) (c *command, err error) {
 	}
 
 	c.initGlobalFlags()
+
+	v, err := c.root.PersistentFlags().GetString(optionNameVerbosity)
+	if err != nil {
+		return nil, fmt.Errorf("get verbosity: %w", err)
+	}
+	v = strings.ToLower(v)
+	c.logger, err = newLogger(c.root, v)
+	if err != nil {
+		return nil, fmt.Errorf("new logger: %w", err)
+	}
 
 	if err := c.initCheckCmd(); err != nil {
 		return nil, err
@@ -126,6 +142,7 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
+	globalFlags.String(optionNameVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
 }
 
 func (c *command) bindGlobalFlags() (err error) {
@@ -258,6 +275,7 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 	if err := c.globalConfig.BindPFlags(cmd.Flags()); err != nil {
 		return err
 	}
+
 	// set Kubernetes client
 	if err := c.setK8S(); err != nil {
 		return err
@@ -286,7 +304,7 @@ func (c *command) setK8S() (err error) {
 			KubeconfigPath: c.globalConfig.GetString("kubeconfig"),
 		}
 
-		if c.k8sClient, err = k8s.NewClient(s, o); err != nil && err != k8s.ErrKubeconfigNotSet {
+		if c.k8sClient, err = k8s.NewClient(s, o, c.logger); err != nil && err != k8s.ErrKubeconfigNotSet {
 			return fmt.Errorf("creating Kubernetes client: %w", err)
 		}
 	}
@@ -304,10 +322,31 @@ func (c *command) setSwapClient() (err error) {
 		c.swapClient = swap.NewGethClient(gethUrl, &swap.GethClientOptions{
 			BzzTokenAddress: c.globalConfig.GetString("bzz-token-address"),
 			EthAccount:      c.globalConfig.GetString("eth-account"),
-		})
+		}, c.logger)
 	} else {
 		c.swapClient = &swap.NotSet{}
 	}
 
 	return
+}
+
+func newLogger(cmd *cobra.Command, verbosity string) (logging.Logger, error) {
+	var logger logging.Logger
+	switch verbosity {
+	case "0", "silent":
+		logger = logging.New(io.Discard, 0)
+	case "1", "error":
+		logger = logging.New(cmd.OutOrStdout(), logrus.ErrorLevel)
+	case "2", "warn":
+		logger = logging.New(cmd.OutOrStdout(), logrus.WarnLevel)
+	case "3", "info":
+		logger = logging.New(cmd.OutOrStdout(), logrus.InfoLevel)
+	case "4", "debug":
+		logger = logging.New(cmd.OutOrStdout(), logrus.DebugLevel)
+	case "5", "trace":
+		logger = logging.New(cmd.OutOrStdout(), logrus.TraceLevel)
+	default:
+		return nil, fmt.Errorf("unknown verbosity level %q", verbosity)
+	}
+	return logger, nil
 }

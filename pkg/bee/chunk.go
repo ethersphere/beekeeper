@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/cac"
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
 	"golang.org/x/crypto/sha3"
 )
@@ -24,10 +25,11 @@ type Chunk struct {
 	address swarm.Address
 	data    []byte
 	span    int
+	logger  logging.Logger
 }
 
 // NewRandomChunk returns new pseudorandom chunk
-func NewRandomChunk(r *rand.Rand) (Chunk, error) {
+func NewRandomChunk(r *rand.Rand, logger logging.Logger) (Chunk, error) {
 	data := make([]byte, r.Intn(MaxChunkSize))
 	if _, err := r.Read(data); err != nil {
 		return Chunk{}, fmt.Errorf("create random chunk: %w", err)
@@ -38,7 +40,11 @@ func NewRandomChunk(r *rand.Rand) (Chunk, error) {
 	binary.LittleEndian.PutUint64(b, uint64(span))
 	data = append(b, data...)
 
-	c := Chunk{data: data, span: span}
+	c := Chunk{
+		data:   data,
+		span:   span,
+		logger: logger,
+	}
 	err := c.SetAddress()
 	return c, err
 }
@@ -105,7 +111,7 @@ func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err e
 // ClosestNodeFromMap returns chunk's closest node of a given map of nodes
 func (c *Chunk) ClosestNodeFromMap(nodes map[string]swarm.Address, skipNodes ...swarm.Address) (closestName string, closestAddress swarm.Address, err error) {
 	for k, v := range nodes {
-		fmt.Println(k, v)
+		c.logger.Info(k, v)
 	}
 	names := make([]string, 0, len(nodes))
 	addresses := make([]swarm.Address, 0, len(nodes))

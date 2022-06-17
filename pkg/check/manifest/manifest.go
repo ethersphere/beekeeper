@@ -14,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -45,12 +46,16 @@ func NewDefaultOptions() Options {
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type Check struct{}
+// Check instance.
+type Check struct {
+	logger logging.Logger
+}
 
-// NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+// NewCheck returns a new check instance.
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 var errManifest = errors.New("manifest data mismatch")
@@ -63,7 +68,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	rnd := random.PseudoGenerator(o.Seed)
 
-	fmt.Printf("Seed: %d\n", o.Seed)
+	c.logger.Infof("Seed: %d\n", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -95,7 +100,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", node, err)
 	}
-	fmt.Printf("node %s: batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: batch id %s\n", node, batchID)
 
 	if err := client.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
@@ -116,16 +121,16 @@ DOWNLOAD:
 
 		size, hash, err := node.DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
-			fmt.Printf("Node %s. Error retrieving file: %v\n", lastNode, err)
+			c.logger.Infof("Node %s. Error retrieving file: %v\n", lastNode, err)
 			goto DOWNLOAD
 		}
 
 		if !bytes.Equal(file.Hash(), hash) {
-			fmt.Printf("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s/%s\n", lastNode, i, file.Size(), size, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
+			c.logger.Infof("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s/%s\n", lastNode, i, file.Size(), size, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
 			return errManifest
 		}
 
-		fmt.Printf("Node %s. File %d retrieved successfully. Node: %s File: %s/%s\n", lastNode, i, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
+		c.logger.Infof("Node %s. File %d retrieved successfully. Node: %s File: %s/%s\n", lastNode, i, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
 		try = 0 // reset the retry counter for the next file
 	}
 
@@ -170,7 +175,7 @@ func tarFiles(files []bee.File) (*bytes.Buffer, error) {
 		// create tar header and write it
 		hdr := &tar.Header{
 			Name: file.Name(),
-			Mode: 0600,
+			Mode: 0o600,
 			Size: file.Size(),
 		}
 		if err := tw.WriteHeader(hdr); err != nil {

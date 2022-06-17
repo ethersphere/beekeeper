@@ -24,7 +24,7 @@ func (c *command) initCreateK8SNamespace() *cobra.Command {
 				return fmt.Errorf("create namespace %s: %w", name, err)
 			}
 
-			fmt.Printf("namespace %s created\n", name)
+			c.logger.Infof("namespace %s created\n", name)
 			return
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {

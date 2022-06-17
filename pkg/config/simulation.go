@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/simulate/pushsync"
 	"github.com/ethersphere/beekeeper/pkg/simulate/retrieval"
@@ -22,7 +23,7 @@ type Simulation struct {
 
 // SimulationType is used for linking beekeeper actions with simulation and it's proper options
 type SimulationType struct {
-	NewAction  func() beekeeper.Action
+	NewAction  func(logging.Logger) beekeeper.Action
 	NewOptions func(SimulationGlobalConfig, Simulation) (interface{}, error)
 }
 
@@ -146,6 +147,7 @@ func applySimulationConfig(global SimulationGlobalConfig, local, opts interface{
 			}
 		default:
 			if lv.Field(i).IsNil() {
+				// TODO logger
 				fmt.Printf("field %s not set, using default value\n", fieldName)
 			} else {
 				fieldType := lt.Field(i).Type

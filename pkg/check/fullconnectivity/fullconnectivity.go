@@ -7,18 +7,23 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type Check struct{}
+// Check instance.
+type Check struct {
+	logger logging.Logger
+}
 
-// NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+// NewCheck returns a new check instance.
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 type Options struct {
@@ -37,18 +42,18 @@ var errFullConnectivity = errors.New("full connectivity")
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	lightNodes := opts.(Options).LightNodeNames
 	bootNodes := opts.(Options).BootNodeNames
-	if err := checkFullNodesConnectivity(ctx, cluster, lightNodes, bootNodes); err != nil {
+	if err := c.checkFullNodesConnectivity(ctx, cluster, lightNodes, bootNodes); err != nil {
 		return fmt.Errorf("check full nodes: %w", err)
 	}
 	fullNodes := opts.(Options).FullNodeNames
-	if err := checkLightNodesConnectivity(ctx, cluster, fullNodes); err != nil {
+	if err := c.checkLightNodesConnectivity(ctx, cluster, fullNodes); err != nil {
 		return fmt.Errorf("check light nodes: %w", err)
 	}
 
 	return
 }
 
-func checkFullNodesConnectivity(ctx context.Context, cluster orchestration.Cluster, skipNodes, bootNodes []string) (err error) {
+func (c *Check) checkFullNodesConnectivity(ctx context.Context, cluster orchestration.Cluster, skipNodes, bootNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
@@ -76,18 +81,18 @@ func checkFullNodesConnectivity(ctx context.Context, cluster orchestration.Clust
 			allPeers := peers[group][node]
 
 			if len(allPeers) < expectedPeerCount {
-				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), expectedPeerCount, overlay)
+				c.logger.Infof("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), expectedPeerCount, overlay)
 				return errFullConnectivity
 			}
 
 			for _, p := range allPeers {
 				if !contains(overlays, p) {
-					fmt.Printf("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
+					c.logger.Infof("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
 					return errFullConnectivity
 				}
 			}
 
-			fmt.Printf("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), expectedPeerCount, overlay)
+			c.logger.Infof("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), expectedPeerCount, overlay)
 		}
 	}
 
@@ -104,7 +109,7 @@ func isBootNode(group string, bootnodes []string) bool {
 	return false
 }
 
-func checkLightNodesConnectivity(ctx context.Context, cluster orchestration.Cluster, skipNodes []string) (err error) {
+func (c *Check) checkLightNodesConnectivity(ctx context.Context, cluster orchestration.Cluster, skipNodes []string) (err error) {
 	overlays, err := cluster.Overlays(ctx)
 	if err != nil {
 		return err
@@ -125,18 +130,18 @@ func checkLightNodesConnectivity(ctx context.Context, cluster orchestration.Clus
 			allPeers := peers[group][node]
 
 			if len(allPeers) < 1 { // expected to be connected to the bootnode
-				fmt.Printf("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), 1, overlay)
+				c.logger.Infof("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), 1, overlay)
 				return errFullConnectivity
 			}
 
 			for _, p := range allPeers {
 				if !contains(overlays, p) {
-					fmt.Printf("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
+					c.logger.Infof("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
 					return errFullConnectivity
 				}
 			}
 
-			fmt.Printf("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), 1, overlay)
+			c.logger.Infof("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), 1, overlay)
 		}
 	}
 

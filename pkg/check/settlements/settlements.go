@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -52,12 +53,16 @@ func NewDefaultOptions() Options {
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type Check struct{}
+// Check instance.
+type Check struct {
+	logger logging.Logger
+}
 
-// NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+// NewCheck returns a new check instance.
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -67,13 +72,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if o.DryRun {
-		fmt.Println("running settlements (dry mode)")
-		return dryRun(ctx, cluster, o)
+		c.logger.Info("running settlements (dry mode)")
+		return dryRun(ctx, cluster, o, c.logger)
 	}
-	fmt.Println("running settlements")
+	c.logger.Info("running settlements")
 
 	rnd := random.PseudoGenerator(o.Seed)
-	fmt.Printf("Seed: %d\n", o.Seed)
+	c.logger.Infof("Seed: %d\n", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -89,10 +94,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return err
 	}
-	if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
+	if err := validateSettlements(o.Threshold, overlays, balances, settlements, c.logger); err != nil {
 		return fmt.Errorf("invalid initial settlements: %s", err.Error())
 	}
-	fmt.Println("Settlements are valid")
+	c.logger.Info("Settlements are valid")
 
 	var previousSettlements map[string]map[string]orchestration.SentReceived
 
@@ -103,7 +108,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	sortedNodes := cluster.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
-		var settlementsHappened = false
+		settlementsHappened := false
 		// upload file to random node
 		uIndex := rnd.Intn(cluster.Size())
 		uNode := sortedNodes[uIndex]
@@ -111,17 +116,17 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		client := clients[uNode]
 
-		fmt.Println("node", uNode)
+		c.logger.Info("node", uNode)
 		batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", uNode, err)
 		}
-		fmt.Printf("node %s: batch id %s\n", uNode, batchID)
+		c.logger.Infof("node %s: batch id %s\n", uNode, batchID)
 
 		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("node %s: %w", uNode, err)
 		}
-		fmt.Printf("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())
+		c.logger.Infof("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())
 
 		settlementsValid := false
 		// validate settlements after uploading a file
@@ -138,18 +143,18 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			if err != nil {
 				return err
 			}
-			if settlementsHaveHappened(settlements, previousSettlements) {
+			if settlementsHaveHappened(settlements, previousSettlements, c.logger) {
 				settlementsHappened = true
 			}
 
-			err = validateSettlements(o.Threshold, overlays, balances, settlements)
+			err = validateSettlements(o.Threshold, overlays, balances, settlements, c.logger)
 			if err != nil {
-				fmt.Printf("Invalid settlements after uploading a file: %s\n", err.Error())
-				fmt.Println("Retrying ...")
+				c.logger.Infof("Invalid settlements after uploading a file: %s\n", err.Error())
+				c.logger.Info("Retrying ...")
 				continue
 			}
 
-			fmt.Println("Settlements are valid")
+			c.logger.Info("Settlements are valid")
 			settlementsValid = true
 			break
 		}
@@ -169,7 +174,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		if !bytes.Equal(file.Hash(), hash) {
 			return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dNode].String(), file.Size(), size)
 		}
-		fmt.Printf("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dNode].String())
+		c.logger.Infof("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dNode].String())
 
 		settlementsValid = false
 		// validate settlements after downloading a file
@@ -187,14 +192,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				return err
 			}
 
-			if settlementsHaveHappened(settlements, previousSettlements) {
+			if settlementsHaveHappened(settlements, previousSettlements, c.logger) {
 				settlementsHappened = true
 			}
 
-			err = validateSettlements(o.Threshold, overlays, balances, settlements)
+			err = validateSettlements(o.Threshold, overlays, balances, settlements, c.logger)
 			if err != nil {
-				fmt.Printf("Invalid settlements after downloading a file: %s\n", err.Error())
-				fmt.Println("Retrying ...")
+				c.logger.Infof("Invalid settlements after downloading a file: %s\n", err.Error())
+				c.logger.Info("Retrying ...")
 				continue
 			}
 
@@ -202,7 +207,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				return errors.New("settlements have not happened")
 			}
 
-			fmt.Println("Settlements are valid")
+			c.logger.Info("Settlements are valid")
 			settlementsValid = true
 			break
 		}
@@ -216,7 +221,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 }
 
 // dryRun executes settlements validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options) (err error) {
+func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options, logger logging.Logger) (err error) {
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
@@ -232,16 +237,16 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options) (err 
 		return err
 	}
 
-	if err := validateSettlements(o.Threshold, overlays, balances, settlements); err != nil {
+	if err := validateSettlements(o.Threshold, overlays, balances, settlements, logger); err != nil {
 		return fmt.Errorf("invalid settlements")
 	}
-	fmt.Println("Settlements are valid")
+	logger.Info("Settlements are valid")
 
 	return
 }
 
 // validateSettlements checks if settlements are valid
-func validateSettlements(threshold int64, overlays orchestration.NodeGroupOverlays, balances orchestration.NodeGroupBalances, settlements orchestration.NodeGroupSettlements) (err error) {
+func validateSettlements(threshold int64, overlays orchestration.NodeGroupOverlays, balances orchestration.NodeGroupBalances, settlements orchestration.NodeGroupSettlements, logger logging.Logger) (err error) {
 	// threshold validation
 	for node, v := range balances {
 		for _, balance := range v {
@@ -257,10 +262,10 @@ func validateSettlements(threshold int64, overlays orchestration.NodeGroupOverla
 		for peer, balance := range v {
 			diff := balance + balances[peer][node]
 			if diff != 0 {
-				fmt.Printf("Node %s has asymmetric balance with peer %s\n", node, peer)
-				fmt.Printf("Node %s has balance %d with peer %s\n", node, balance, peer)
-				fmt.Printf("Peer %s has balance %d with node %s\n", peer, balances[peer][node], node)
-				fmt.Printf("Difference: %d\n", diff)
+				logger.Infof("Node %s has asymmetric balance with peer %s\n", node, peer)
+				logger.Infof("Node %s has balance %d with peer %s\n", node, balance, peer)
+				logger.Infof("Peer %s has balance %d with node %s\n", peer, balances[peer][node], node)
+				logger.Infof("Difference: %d\n", diff)
 				noBalanceSymmetry = true
 			}
 		}
@@ -275,27 +280,27 @@ func validateSettlements(threshold int64, overlays orchestration.NodeGroupOverla
 		for peer, settlement := range v {
 			diff := settlement.Received - settlements[peer][node].Sent
 			if diff != 0 {
-				fmt.Printf("Node %s has asymmetric settlement with peer %s\n", node, peer)
-				fmt.Printf("Node %s received %d from peer %s\n", node, settlement.Received, peer)
-				fmt.Printf("Peer %s sent %d to node %s\n", peer, settlements[peer][node].Sent, node)
-				fmt.Printf("Difference: %d\n", diff)
+				logger.Infof("Node %s has asymmetric settlement with peer %s\n", node, peer)
+				logger.Infof("Node %s received %d from peer %s\n", node, settlement.Received, peer)
+				logger.Infof("Peer %s sent %d to node %s\n", peer, settlements[peer][node].Sent, node)
+				logger.Infof("Difference: %d\n", diff)
 				nosettlementsSentymmetry = true
 			}
 		}
 	}
 	if nosettlementsSentymmetry {
-		fmt.Println("invalid settlements: no symmetry")
+		logger.Info("invalid settlements: no symmetry")
 	}
 
 	return
 }
 
 // settlementsHaveHappened checks if settlements have happened
-func settlementsHaveHappened(current, previous map[string]map[string]orchestration.SentReceived) bool {
+func settlementsHaveHappened(current, previous map[string]map[string]orchestration.SentReceived, logger logging.Logger) bool {
 	for node, v := range current {
 		for peer, settlement := range v {
 			if settlement.Received != previous[node][peer].Received || settlement.Sent != previous[node][peer].Sent {
-				fmt.Println("Settlements have happened")
+				logger.Info("Settlements have happened")
 				return true
 			}
 		}

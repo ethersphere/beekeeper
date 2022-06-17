@@ -50,8 +50,7 @@ func (c *command) initSimulateCmd() (err error) {
 			)
 
 			if metricsEnabled {
-				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace())
-
+				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.logger)
 				// cleanup executes when the calling context terminates
 				defer cleanup()
 			}
@@ -82,7 +81,7 @@ func (c *command) initSimulateCmd() (err error) {
 				}
 
 				// create simulation
-				sim := simulation.NewAction()
+				sim := simulation.NewAction(c.logger)
 				if s, ok := sim.(metrics.Reporter); ok && metricsEnabled {
 					metrics.RegisterCollectors(metricsPusher, s.Report()...)
 				}

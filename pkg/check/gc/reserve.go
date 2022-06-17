@@ -10,6 +10,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -37,12 +38,16 @@ func NewDefaultOptions() Options {
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type Check struct{}
+// Check instance.
+type Check struct {
+	logger logging.Logger
+}
 
-// NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+// NewCheck returns a new check instance.
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 /*
@@ -131,21 +136,20 @@ A little bit about how the numbers make sense:
 */
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
-
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 
 	rnd := random.PseudoGenerator(o.Seed)
-	fmt.Println("gc: reserve check")
-	fmt.Printf("Seed: %d\n", o.Seed)
+	c.logger.Info("gc: reserve check")
+	c.logger.Infof("Seed: %d\n", o.Seed)
 
 	node, err := cluster.RandomNode(ctx, rnd)
 	if err != nil {
 		return fmt.Errorf("random node: %w", err)
 	}
-	fmt.Printf("chosen node: %s\n", node.Name())
+	c.logger.Infof("chosen node: %s\n", node.Name())
 
 	client := node.Client()
 
@@ -192,7 +196,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("unable to upload chunk: %w", err)
 	}
-	fmt.Printf("uploaded pinned chunk %q\n", pinnedChunk.Address())
+	c.logger.Infof("uploaded pinned chunk %q\n", pinnedChunk.Address())
 
 	for _, c := range lowValueChunks {
 		_, err := client.UploadChunk(ctx, c.Data(), api.UploadOptions{BatchID: batchID, Deferred: true})
@@ -201,7 +205,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 	}
 
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius 4\n", len(lowValueChunks), batchDepth, cheapBatchAmount)
+	c.logger.Infof("uploaded %d chunks with batch depth %d, amount %d, at radius 4\n", len(lowValueChunks), batchDepth, cheapBatchAmount)
 
 	highValueBatch, err := client.CreatePostageBatch(ctx, expensiveBatchAmount, batchDepth, o.GasPrice, o.PostageLabel, true)
 	if err != nil {
@@ -215,7 +219,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 	}
 
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius 5\n", len(lowValueHigherRadiusChunks), batchDepth, cheapBatchAmount)
+	c.logger.Infof("uploaded %d chunks with batch depth %d, amount %d, at radius 5\n", len(lowValueHigherRadiusChunks), batchDepth, cheapBatchAmount)
 
 	// allow time to sleep so that chunks can get synced and then GCd
 	time.Sleep(5 * time.Second)
@@ -224,7 +228,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("reservestate: %w", err)
 	}
-	fmt.Println("Reserve state:", state)
+	c.logger.Info("Reserve state:", state)
 
 	if state.StorageRadius != state.Radius {
 		return fmt.Errorf("storage radius mismatch. got %d want %d", state.StorageRadius, state.Radius)
@@ -234,7 +238,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("low value chunk: %w", err)
 	}
-	fmt.Printf("retrieved low value chunks: %d, gc'd count: %d\n", hasCount, len(lowValueChunks)-hasCount)
+	c.logger.Infof("retrieved low value chunks: %d, gc'd count: %d\n", hasCount, len(lowValueChunks)-hasCount)
 
 	// cache size is 10 and we expect ten percent to be evicted
 	if hasCount != 9 {
@@ -246,7 +250,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("low value higher radius chunk: %w", err)
 	}
 
-	fmt.Printf("retrieved low value high radius chunks: %d, gc'd count: %d\n", hasCount, len(lowValueHigherRadiusChunks)-hasCount)
+	c.logger.Infof("retrieved low value high radius chunks: %d, gc'd count: %d\n", hasCount, len(lowValueHigherRadiusChunks)-hasCount)
 
 	// expect all chunks to be there
 	if hasCount != 10 {
@@ -259,14 +263,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return fmt.Errorf("high value chunks: %w", err)
 		}
 	}
-	fmt.Printf("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), batchDepth, expensiveBatchAmount, state.Radius)
+	c.logger.Infof("uploaded %d chunks with batch depth %d, amount %d, at radius %d\n", len(highValueChunks), batchDepth, expensiveBatchAmount, state.Radius)
 
 	_, hasCount, err = client.HasChunks(ctx, bee.AddressOfChunk(highValueChunks...))
 	if err != nil {
 		return fmt.Errorf("high value chunk: %w", err)
 	}
 
-	fmt.Printf("retrieved high value chunks: %d, gc'd count: %d\n", hasCount, len(highValueChunks)-hasCount)
+	c.logger.Infof("retrieved high value chunks: %d, gc'd count: %d\n", hasCount, len(highValueChunks)-hasCount)
 
 	if len(highValueChunks) != hasCount {
 		return fmt.Errorf("high value chunks were gc'd. Retrieved: %d, gc'd count: %d", hasCount, len(highValueChunks)-hasCount)

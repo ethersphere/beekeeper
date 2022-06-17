@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
@@ -27,16 +28,20 @@ func NewDefaultOptions() Options {
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type Check struct{}
+// Check instance.
+type Check struct {
+	logger logging.Logger
+}
 
-// NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+// NewCheck returns a new check instance.
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
-	fmt.Println("running kademlia")
+	c.logger.Info("running kademlia")
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -48,10 +53,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if o.Dynamic {
-		return checkKademliaD(topologies)
+		return checkKademliaD(topologies, c.logger)
 	}
 
-	return checkKademlia(topologies)
+	return checkKademlia(topologies, c.logger)
 }
 
 var (
@@ -60,21 +65,21 @@ var (
 	errKadmeliaBinDisconnected = errors.New("peers disconnected at proximity order >= depth. Peers: %s")
 )
 
-func checkKademlia(topologies orchestration.ClusterTopologies) error {
+func checkKademlia(topologies orchestration.ClusterTopologies, logger logging.Logger) error {
 	for _, v := range topologies {
 		for n, t := range v {
 			if t.Depth == 0 {
-				fmt.Printf("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
+				logger.Infof("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
 				return errKadmeliaNotHealthy
 			}
 
-			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
+			logger.Infof("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
 			for k, b := range t.Bins {
 				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
 				if err != nil {
 					return fmt.Errorf("node %s: %w", n, err)
 				}
-				fmt.Printf("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
+				logger.Infof("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
 				if binDepth < t.Depth && b.Connected < 1 {
 					return errKadmeliaBinConnected
 				}
@@ -92,7 +97,7 @@ func checkKademlia(topologies orchestration.ClusterTopologies) error {
 // checkKademliaD checks that for each topology, each node is connected to all
 // peers that are within depth and that are online. Online-ness is assumed by the list
 // of topologies (i.e. if we have the peer's topology, it is assumed it is online).
-func checkKademliaD(topologies orchestration.ClusterTopologies) error {
+func checkKademliaD(topologies orchestration.ClusterTopologies, logger logging.Logger) error {
 	overlays := allOverlays(topologies)
 	culprits := make(map[string][]swarm.Address)
 	for _, nodeGroup := range topologies {
@@ -104,12 +109,12 @@ func checkKademliaD(topologies orchestration.ClusterTopologies) error {
 			expNodes := nodesInDepth(uint8(t.Depth), t.Overlay, overlays)
 			var nodes []swarm.Address
 
-			fmt.Printf("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s. Expecting %d nodes within depth.\n", k, t.Population, t.Connected, t.Depth, t.Overlay, len(expNodes))
+			logger.Infof("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s. Expecting %d nodes within depth.\n", k, t.Population, t.Connected, t.Depth, t.Overlay, len(expNodes))
 
 			for k, b := range t.Bins {
 				bin, err := strconv.Atoi(strings.Split(k, "_")[1])
 				if err != nil {
-					fmt.Printf("Error: node %s: %v\n", k, err)
+					logger.Infof("Error: node %s: %v\n", k, err)
 				}
 
 				if bin >= t.Depth {

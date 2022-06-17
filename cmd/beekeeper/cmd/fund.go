@@ -56,7 +56,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					if err != nil {
 						return fmt.Errorf("marshaling Swarm keys: %w", err)
 					}
-					fmt.Printf("%s\n", k)
+					c.logger.Infof("%s\n", k)
 				}
 			} else if len(c.globalConfig.GetStringSlice(optionNameAddresses)) < 1 {
 				return fmt.Errorf("bee node Ethereum addresses not provided")
@@ -69,7 +69,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 
 			for _, a := range addresses {
 				if c.globalConfig.GetBool(optionNamePrintAddresses) {
-					fmt.Printf("address: %s\n", a)
+					c.logger.Infof("address: %s\n", a)
 				}
 				// ETH funding
 				ethDeposit := c.globalConfig.GetFloat64(optionNameEthDeposit)

@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/gorilla/websocket"
@@ -48,11 +49,15 @@ var _ beekeeper.Action = (*Check)(nil)
 // Check instance
 type Check struct {
 	metrics metrics
+	logger  logging.Logger
 }
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{newMetrics()}
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		metrics: newMetrics(),
+		logger:  logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -80,7 +85,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				continue
 			}
 
-			fmt.Printf("pss: test %d of %d\n", j+1, o.NodeCount)
+			c.logger.Infof("pss: test %d of %d\n", j+1, o.NodeCount)
 
 			if err := c.testPss(nodeAName, nodeBName, clients, o); err != nil {
 				return err
@@ -128,15 +133,15 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 		cancel()
 		return fmt.Errorf("node %s: batched id %w", nodeAName, err)
 	}
-	fmt.Printf("node %s: batched id %s\n", nodeAName, batchID)
+	c.logger.Infof("node %s: batched id %s\n", nodeAName, batchID)
 
-	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, nodeB.Config().Restricted, testTopic)
+	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, nodeB.Config().Restricted, testTopic, c.logger)
 	if err != nil {
 		cancel()
 		return err
 	}
 
-	fmt.Printf("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
+	c.logger.Infof("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
 
 	tStart := time.Now()
 	err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
@@ -149,7 +154,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	msg, ok := <-ch
 	if ok {
 		if msg == string(testData) {
-			fmt.Println("pss: websocket connection received correct message")
+			c.logger.Info("pss: websocket connection received correct message")
 			c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
 		} else {
 			err = errDataMismatch
@@ -168,8 +173,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	return nil
 }
 
-func listenWebsocket(ctx context.Context, host string, setHeader bool, topic string) (<-chan string, func(), error) {
-
+func listenWebsocket(ctx context.Context, host string, setHeader bool, topic string, logger logging.Logger) (<-chan string, func(), error) {
 	dialer := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: 45 * time.Second,
@@ -191,7 +195,7 @@ func listenWebsocket(ctx context.Context, host string, setHeader bool, topic str
 	go func() {
 		_, data, err := ws.ReadMessage()
 		if err != nil {
-			fmt.Printf("pss: websocket error %v\n", err)
+			logger.Infof("pss: websocket error %v\n", err)
 			close(ch)
 			return
 		}

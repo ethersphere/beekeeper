@@ -13,6 +13,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -24,9 +25,7 @@ const (
 	minNodesRequired = 3
 )
 
-var (
-	errLessNodesForTest = errors.New("node count is less than the minimum count required")
-)
+var errLessNodesForTest = errors.New("node count is less than the minimum count required")
 
 // Options represents check options
 type Options struct {
@@ -56,22 +55,26 @@ var _ beekeeper.Action = (*Check)(nil)
 // Check instance
 type Check struct {
 	metrics metrics
+	logger  logging.Logger
 }
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{newMetrics()}
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		metrics: newMetrics(),
+		logger:  logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
-	fmt.Println("running chunk repair")
+	c.logger.Info("running chunk repair")
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
 
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
-	fmt.Printf("Seed: %d\n", o.Seed)
+	c.logger.Infof("Seed: %d\n", o.Seed)
 
 	ng, err := cluster.NodeGroup(o.NodeGroup)
 	if err != nil {
@@ -79,7 +82,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 	for i := 0; i < o.NumberOfChunksToRepair; i++ {
 		// Pick node A, B, C and a chunk which is closest to B
-		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, ng, rnds[i])
+		nodeA, nodeB, nodeC, chunk, err := getNodes(ctx, ng, rnds[i], c.logger)
 		if err != nil {
 			return err
 		}
@@ -92,7 +95,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		if err != nil {
 			return fmt.Errorf("created batched id %w", err)
 		}
-		fmt.Printf("created batched id %s", batchID)
+		c.logger.Infof("created batched id %s", batchID)
 
 		// upload the chunk in nodeA
 		ref, err := nodeA.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
@@ -173,7 +176,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				return errors.New("chunk downloaded in NodeC does not have proper data")
 			}
 
-			fmt.Println("repaired chunk ", chunk.Address().String())
+			c.logger.Info("repaired chunk ", chunk.Address().String())
 			c.metrics.RepairedCounter.WithLabelValues(addressA.String()).Inc()
 			c.metrics.RepairedTimeGauge.WithLabelValues(addressA.String(), chunk.Address().String()).Set(d0.Seconds())
 			c.metrics.RepairedTimeHistogram.Observe(d0.Seconds())
@@ -186,7 +189,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 // getNodes get three nodes A, B, C and a chunk such that
 // NodeA's and NodeC's first byte of the address does not match
 // nodeB is the closest to the generated chunk in the cluster.
-func getNodes(ctx context.Context, ng orchestration.NodeGroup, rnd *rand.Rand) (*bee.Client, *bee.Client, *bee.Client, *bee.Chunk, error) {
+func getNodes(ctx context.Context, ng orchestration.NodeGroup, rnd *rand.Rand, logger logging.Logger) (*bee.Client, *bee.Client, *bee.Client, *bee.Chunk, error) {
 	var overlayA swarm.Address
 	var overlayB swarm.Address
 	var overlayC swarm.Address
@@ -211,7 +214,7 @@ func getNodes(ctx context.Context, ng orchestration.NodeGroup, rnd *rand.Rand) (
 	// find node B
 	// generate a chunk and pick the closest address from all the available addresses
 	for {
-		closestOverlay, c, err := getRandomChunkAndClosestNode(overlays, rnd)
+		closestOverlay, c, err := getRandomChunkAndClosestNode(overlays, rnd, logger)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
@@ -226,10 +229,10 @@ func getNodes(ctx context.Context, ng orchestration.NodeGroup, rnd *rand.Rand) (
 		chunk = c
 		break
 	}
-	fmt.Printf("overlayA: %s\n", overlayA.String())
-	fmt.Printf("overlayB: %s\n", overlayB.String())
-	fmt.Printf("overlayC: %s\n", overlayC.String())
-	fmt.Printf("chunk Address: %s\n", chunk.Address().String())
+	logger.Infof("overlayA: %s\n", overlayA.String())
+	logger.Infof("overlayB: %s\n", overlayB.String())
+	logger.Infof("overlayC: %s\n", overlayC.String())
+	logger.Infof("chunk Address: %s\n", chunk.Address().String())
 
 	// get the nodes for all the addresses
 	var nodeA *bee.Client
@@ -286,8 +289,8 @@ func deleteChunkFromAllNodes(ctx context.Context, ng orchestration.NodeGroup, ch
 
 // getRandomChunkAndClosestNode generates a random node and picks the closest node in the cluster, so that
 // when the chunk is uploaded anywhere in the cluster it lands in this node.
-func getRandomChunkAndClosestNode(overlays orchestration.NodeGroupOverlays, rnd *rand.Rand) (swarm.Address, *bee.Chunk, error) {
-	chunk, err := bee.NewRandomChunk(rnd)
+func getRandomChunkAndClosestNode(overlays orchestration.NodeGroupOverlays, rnd *rand.Rand, logger logging.Logger) (swarm.Address, *bee.Chunk, error) {
+	chunk, err := bee.NewRandomChunk(rnd, logger)
 	if err != nil {
 		return swarm.ZeroAddress, nil, err
 	}

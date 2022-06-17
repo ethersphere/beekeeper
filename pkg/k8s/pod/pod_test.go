@@ -582,6 +582,24 @@ func TestToK8S(t *testing.T) {
 				return newPodSpec
 			}(),
 		},
+		{
+			name: "security_fs_group_change_policy",
+			pts: PodTemplateSpec{
+				Spec: PodSpec{
+					PodSecurityContext: PodSecurityContext{
+						FSGroupChangePolicy: "test",
+					},
+				},
+			},
+			expected: func() v1.PodTemplateSpec {
+				newPodSpec := newDefaultPodSpec()
+				newPodSpec.Spec.SecurityContext.FSGroupChangePolicy = func() *v1.PodFSGroupChangePolicy {
+					f := v1.PodFSGroupChangePolicy("test")
+					return &f
+				}()
+				return newPodSpec
+			}(),
+		},
 	}
 
 	for _, test := range testTable {
@@ -608,9 +626,6 @@ func newDefaultPodSpec() v1.PodTemplateSpec {
 				RunAsGroup:     new(int64),
 				RunAsNonRoot:   new(bool),
 				FSGroup:        new(int64),
-				FSGroupChangePolicy: func() *v1.PodFSGroupChangePolicy {
-					return nil
-				}(),
 			},
 			Affinity:           &v1.Affinity{},
 			Priority:           new(int32),

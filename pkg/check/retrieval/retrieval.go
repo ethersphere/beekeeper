@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	test "github.com/ethersphere/beekeeper/pkg/test"
@@ -42,11 +43,15 @@ var _ beekeeper.Action = (*Check)(nil)
 // Check instance
 type Check struct {
 	metrics metrics
+	logger  logging.Logger
 }
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{newMetrics()}
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		metrics: newMetrics(),
+		logger:  logger,
+	}
 }
 
 var errRetrieval = errors.New("retrieval")
@@ -66,7 +71,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		Seed:          o.Seed,
 	}
 
-	checkCase, err := test.NewCheckCase(ctx, cluster, caseOpts)
+	checkCase, err := test.NewCheckCase(ctx, cluster, caseOpts, c.logger)
 	if err != nil {
 		return err
 	}
@@ -84,7 +89,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			t0 := time.Now()
 
 			chunk, err := uploader.UploadRandomChunk()
-
 			if err != nil {
 				return err
 			}
@@ -99,7 +103,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			t1 := time.Now()
 
 			data, err := lastBee.DownloadChunk(ctx, chunk.Addr())
-
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastBee.Name(), err)
 			}
@@ -112,15 +115,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			if !chunk.Equals(data) {
 				c.metrics.NotRetrievedCounter.WithLabelValues(uploader.Name()).Inc()
-				fmt.Printf("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastBee.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
+				c.logger.Infof("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastBee.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
 				if chunk.Contains(data) {
-					fmt.Printf("Downloaded data is subset of the uploaded data\n")
+					c.logger.Infof("Downloaded data is subset of the uploaded data\n")
 				}
 				return errRetrieval
 			}
 
 			c.metrics.RetrievedCounter.WithLabelValues(uploader.Name()).Inc()
-			fmt.Printf("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastBee.Name(), j, uploader.Name(), chunk.AddrString())
+			c.logger.Infof("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastBee.Name(), j, uploader.Name(), chunk.AddrString())
 		}
 	}
 

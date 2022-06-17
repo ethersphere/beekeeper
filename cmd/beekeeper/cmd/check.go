@@ -21,7 +21,6 @@ func (c *command) initCheckCmd() (err error) {
 		optionNameTimeout              = "timeout"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
 		// TODO: optionNameStages         = "stages"
-
 	)
 
 	cmd := &cobra.Command{
@@ -51,8 +50,7 @@ func (c *command) initCheckCmd() (err error) {
 			)
 
 			if metricsEnabled {
-				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace())
-
+				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.logger)
 				// cleanup executes when the calling context terminates
 				defer cleanup()
 			}
@@ -83,7 +81,7 @@ func (c *command) initCheckCmd() (err error) {
 				}
 
 				// create check
-				chk := check.NewAction()
+				chk := check.NewAction(c.logger)
 				if r, ok := chk.(metrics.Reporter); ok && metricsEnabled {
 					metrics.RegisterCollectors(metricsPusher, r.Report()...)
 				}
@@ -93,17 +91,17 @@ func (c *command) initCheckCmd() (err error) {
 					defer cancel()
 				}
 
-				c := make(chan error, 1)
+				ch := make(chan error, 1)
 
 				go func() {
-					c <- chk.Run(ctx, cluster, o)
-					close(c)
+					ch <- chk.Run(ctx, cluster, o)
+					close(ch)
 				}()
 
 				select {
 				case <-ctx.Done():
 					return fmt.Errorf("running check %s: %w", checkName, ctx.Err())
-				case err = <-c:
+				case err = <-ch:
 					if err != nil {
 						return fmt.Errorf("running check %s: %w", checkName, err)
 					}

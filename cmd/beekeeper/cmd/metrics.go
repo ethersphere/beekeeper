@@ -1,16 +1,16 @@
 package cmd
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/prometheus/common/expfmt"
 )
 
 // newMetricsPusher returns a new metrics pusher and a cleanup function.
-func newMetricsPusher(pusherAddress, job string) (*push.Pusher, func()) {
+func newMetricsPusher(pusherAddress, job string, logger logging.Logger) (*push.Pusher, func()) {
 	metricsPusher := push.New(pusherAddress, job)
 	metricsPusher.Format(expfmt.FmtText)
 
@@ -28,7 +28,7 @@ func newMetricsPusher(pusherAddress, job string) (*push.Pusher, func()) {
 				return
 			case <-time.After(time.Second):
 				if err := metricsPusher.Push(); err != nil {
-					fmt.Printf("metrics pusher periodic push: %v\n", err)
+					logger.Debugf("metrics pusher periodic push: %v\n", err)
 				}
 			}
 		}
@@ -38,7 +38,7 @@ func newMetricsPusher(pusherAddress, job string) (*push.Pusher, func()) {
 		wg.Wait()
 		// push metrics before returning
 		if err := metricsPusher.Push(); err != nil {
-			fmt.Printf("metrics pusher push: %v\n", err)
+			logger.Infof("metrics pusher push: %v\n", err)
 		}
 	}
 	return metricsPusher, cleanupFn

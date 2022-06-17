@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
@@ -30,11 +31,15 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	logger logging.Logger
+}
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 type CashoutAction struct {
@@ -99,7 +104,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 						oldBalance:      chequebookBalance.TotalBalance,
 					})
 
-					fmt.Printf("cashing out for peer %s on %s in transaction %s\n", peerOverlay, node, txHash)
+					c.logger.Infof("cashing out for peer %s on %s in transaction %s\n", peerOverlay, node, txHash)
 				}
 			}
 		}
@@ -120,7 +125,7 @@ LOOP:
 			}
 
 			if cashoutStatus.Result == nil {
-				fmt.Printf("transaction %s not yet confirmed\n", action.transactionHash)
+				c.logger.Infof("transaction %s not yet confirmed\n", action.transactionHash)
 				continue LOOP
 			}
 
