@@ -27,6 +27,7 @@ type Logger interface {
 	WithFields(fields logrus.Fields) *logrus.Entry
 	WriterLevel(logrus.Level) *io.PipeWriter
 	NewEntry() *logrus.Entry
+	GetLevel() string
 }
 
 type logger struct {
@@ -51,4 +52,8 @@ func New(w io.Writer, level logrus.Level) Logger {
 
 func (l *logger) NewEntry() *logrus.Entry {
 	return logrus.NewEntry(l.Logger)
+}
+
+func (l *logger) GetLevel() string {
+	return l.Level.String()
 }

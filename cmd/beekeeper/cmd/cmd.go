@@ -82,16 +82,6 @@ func newCommand(opts ...option) (c *command, err error) {
 
 	c.initGlobalFlags()
 
-	v, err := c.root.PersistentFlags().GetString(optionNameVerbosity)
-	if err != nil {
-		return nil, fmt.Errorf("get verbosity: %w", err)
-	}
-	v = strings.ToLower(v)
-	c.logger, err = newLogger(c.root, v)
-	if err != nil {
-		return nil, fmt.Errorf("new logger: %w", err)
-	}
-
 	if err := c.initCheckCmd(); err != nil {
 		return nil, err
 	}
@@ -188,6 +178,17 @@ func (c *command) initConfig() (err error) {
 	if err := c.bindGlobalFlags(); err != nil {
 		return err
 	}
+
+	v, err := c.root.Flags().GetString(optionNameVerbosity)
+	if err != nil {
+		return fmt.Errorf("get verbosity: %w", err)
+	}
+	v = strings.ToLower(v)
+	c.logger, err = newLogger(c.root, v)
+	if err != nil {
+		return fmt.Errorf("new logger: %w", err)
+	}
+	c.logger.Infof("verbosity log level: %v", c.logger.GetLevel())
 
 	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
 		// read configuration from git repo
