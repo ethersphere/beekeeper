@@ -92,7 +92,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		)
 	}
 
-	c.logger.Infof("node %s: created new batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: created new batch id %s", node, batchID)
 
 	err = client.TopUpPostageBatch(ctx, batchID, o.PostageTopupAmount, o.GasPrice)
 	if err != nil {
@@ -123,7 +123,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		)
 	}
 
-	c.logger.Infof("node %s: topped up batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: topped up batch id %s", node, batchID)
 
 	depthChange := o.PostageNewDepth - o.PostageDepth
 
@@ -156,7 +156,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		)
 	}
 
-	c.logger.Infof("node %s: diluted batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: diluted batch id %s", node, batchID)
 
 	return
 }

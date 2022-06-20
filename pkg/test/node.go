@@ -52,7 +52,7 @@ func (b *BeeV2) UploadFile(ctx context.Context, file File) error {
 	if err != nil {
 		return fmt.Errorf("node %s: created batch id %w", b.name, err)
 	}
-	b.logger.Infof("node %s: created batch id %s\n", b.name, batchID)
+	b.logger.Infof("node %s: created batch id %s", b.name, batchID)
 
 	randomFile := bee.NewRandomFile(file.rand, file.name, file.size)
 	if err := b.client.UploadFile(ctx, &randomFile, api.UploadOptions{BatchID: batchID}); err != nil {
@@ -85,7 +85,7 @@ func (b *BeeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("node %s: batch id %w", b.name, err)
 	}
-	b.logger.Infof("node %s: batch id %s\n", b.name, batchID)
+	b.logger.Infof("node %s: batch id %s", b.name, batchID)
 
 	return &ChunkUploader{
 		ctx:     ctx,

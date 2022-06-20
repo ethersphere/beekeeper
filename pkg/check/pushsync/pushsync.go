@@ -74,15 +74,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	case "light-chunks":
 		return checkLightChunks(ctx, cluster, o, c.logger)
 	default:
-		return c.defaultCheck(ctx, cluster, o, c.logger)
+		return c.defaultCheck(ctx, cluster, o)
 	}
 }
 
 // defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
-func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster, o Options, logger logging.Logger) error {
-	logger.Info("running pushsync")
+func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+	c.logger.Info("running pushsync")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
-	logger.Infof("seed: %d\n", o.Seed)
+	c.logger.Infof("seed: %d", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -104,7 +104,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
-		logger.Infof("node %s: batch id %s\n", nodeName, batchID)
+		c.logger.Infof("node %s: batch id %s", nodeName, batchID)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
 			chunk, err := bee.NewRandomChunk(rnds[i], c.logger)
@@ -118,7 +118,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			d0 := time.Since(t0)
-			logger.Infof("uploaded chunk %s to node %s\n", addr.String(), nodeName)
+			c.logger.Infof("uploaded chunk %s to node %s", addr.String(), nodeName)
 
 			c.metrics.UploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			c.metrics.UploadTimeGauge.WithLabelValues(overlays[nodeName].String(), addr.String()).Set(d0.Seconds())
@@ -128,7 +128,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			logger.Infof("closest node %s overlay %s\n", closestName, closestAddress)
+			c.logger.Infof("closest node %s overlay %s", closestName, closestAddress)
 
 			checkRetryCount := 0
 
@@ -146,12 +146,12 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 				}
 				if !synced {
 					c.metrics.NotSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					logger.Infof("node %s overlay %s chunk %s not found on the closest node. retrying...\n", closestName, overlays[closestName], addr.String())
+					c.logger.Infof("node %s overlay %s chunk %s not found on the closest node. retrying...", closestName, overlays[closestName], addr.String())
 					continue
 				}
 
 				c.metrics.SyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				logger.Infof("node %s overlay %s chunk %s found on the closest node.\n", closestName, overlays[closestName], addr.String())
+				c.logger.Infof("node %s overlay %s chunk %s found on the closest node.", closestName, overlays[closestName], addr.String())
 
 				// check succeeded
 				break

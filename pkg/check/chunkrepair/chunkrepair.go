@@ -74,7 +74,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	rnds := random.PseudoGenerators(o.Seed, o.NumberOfChunksToRepair)
-	c.logger.Infof("Seed: %d\n", o.Seed)
+	c.logger.Infof("Seed: %d", o.Seed)
 
 	ng, err := cluster.NodeGroup(o.NodeGroup)
 	if err != nil {
@@ -229,10 +229,10 @@ func getNodes(ctx context.Context, ng orchestration.NodeGroup, rnd *rand.Rand, l
 		chunk = c
 		break
 	}
-	logger.Infof("overlayA: %s\n", overlayA.String())
-	logger.Infof("overlayB: %s\n", overlayB.String())
-	logger.Infof("overlayC: %s\n", overlayC.String())
-	logger.Infof("chunk Address: %s\n", chunk.Address().String())
+	logger.Infof("overlayA: %s", overlayA.String())
+	logger.Infof("overlayB: %s", overlayB.String())
+	logger.Infof("overlayC: %s", overlayC.String())
+	logger.Infof("chunk Address: %s", chunk.Address().String())
 
 	// get the nodes for all the addresses
 	var nodeA *bee.Client

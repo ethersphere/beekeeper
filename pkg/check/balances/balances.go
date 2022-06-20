@@ -181,10 +181,10 @@ func validateBalances(balances map[string]map[string]int64, logger logging.Logge
 		for peer, balance := range v {
 			diff := balance + balances[peer][node]
 			if diff != 0 {
-				logger.Infof("Node %s has asymmetric balance with peer %s\n", node, peer)
-				logger.Infof("Node %s has balance %d with peer %s\n", node, balance, peer)
-				logger.Infof("Peer %s has balance %d with node %s\n", peer, balances[peer][node], node)
-				logger.Infof("Difference: %d\n", diff)
+				logger.Infof("Node %s has asymmetric balance with peer %s", node, peer)
+				logger.Infof("Node %s has balance %d with peer %s", node, balance, peer)
+				logger.Infof("Peer %s has balance %d with node %s", peer, balances[peer][node], node)
+				logger.Infof("Difference: %d", diff)
 				noSymmetry = true
 			}
 		}

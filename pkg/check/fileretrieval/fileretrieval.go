@@ -80,7 +80,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 	c.logger.Info("running file retrieval")
 
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
-	c.logger.Infof("Seed: %d\n", o.Seed)
+	c.logger.Infof("Seed: %d", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -104,7 +104,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
-			c.logger.Infof("node %s: created batched id %s\n", nodeName, batchID)
+			c.logger.Infof("node %s: created batched id %s", nodeName, batchID)
 
 			t0 := time.Now()
 
@@ -136,12 +136,12 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 
 			if !bytes.Equal(file.Hash(), hash) {
 				c.metrics.NotRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				c.logger.Infof("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s\n", nodeName, j, file.Size(), size, overlays[nodeName].String(), file.Address().String())
+				c.logger.Infof("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s", nodeName, j, file.Size(), size, overlays[nodeName].String(), file.Address().String())
 				return errFileRetrieval
 			}
 
 			c.metrics.RetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-			c.logger.Infof("Node %s. File %d retrieved successfully. Node: %s File: %s\n", nodeName, j, overlays[nodeName].String(), file.Address().String())
+			c.logger.Infof("Node %s. File %d retrieved successfully. Node: %s File: %s", nodeName, j, overlays[nodeName].String(), file.Address().String())
 		}
 	}
 
@@ -153,7 +153,7 @@ func (c *Check) fullCheck(ctx context.Context, cluster orchestration.Cluster, o 
 	c.logger.Info("running file retrieval (full mode)")
 
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
-	c.logger.Infof("Seed: %d\n", o.Seed)
+	c.logger.Infof("Seed: %d", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -177,7 +177,7 @@ func (c *Check) fullCheck(ctx context.Context, cluster orchestration.Cluster, o 
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
-			c.logger.Infof("node %s: created batched id %s\n", nodeName, batchID)
+			c.logger.Infof("node %s: created batched id %s", nodeName, batchID)
 
 			t0 := time.Now()
 			if err := clients[nodeName].UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
@@ -208,12 +208,12 @@ func (c *Check) fullCheck(ctx context.Context, cluster orchestration.Cluster, o 
 
 				if !bytes.Equal(file.Hash(), hash) {
 					c.metrics.NotRetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-					c.logger.Infof("Node %s. File %d not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d Node: %s Download node: %s File: %s\n", nodeName, j, n, file.Size(), size, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
+					c.logger.Infof("Node %s. File %d not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d Node: %s Download node: %s File: %s", nodeName, j, n, file.Size(), size, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
 					return errFileRetrieval
 				}
 
 				c.metrics.RetrievedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
-				c.logger.Infof("Node %s. File %d retrieved successfully from node %s. Node: %s Download node: %s File: %s\n", nodeName, j, n, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
+				c.logger.Infof("Node %s. File %d retrieved successfully from node %s. Node: %s Download node: %s File: %s", nodeName, j, n, overlays[nodeName].String(), overlays[n].String(), file.Address().String())
 			}
 		}
 	}

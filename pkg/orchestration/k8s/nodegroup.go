@@ -330,7 +330,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.Fundi
 				time.Sleep(nodeRetryTimeout)
 				continue
 			}
-			g.logger.Infof("%s funded with %.2f ETH, transaction: %s\n", name, o.Eth, tx)
+			g.logger.Infof("%s funded with %.2f ETH, transaction: %s", name, o.Eth, tx)
 			break
 		}
 	}
@@ -347,7 +347,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.Fundi
 				time.Sleep(nodeRetryTimeout)
 				continue
 			}
-			g.logger.Infof("%s funded with %.2f BZZ, transaction: %s\n", name, o.Bzz, tx)
+			g.logger.Infof("%s funded with %.2f BZZ, transaction: %s", name, o.Bzz, tx)
 			break
 		}
 	}
@@ -364,7 +364,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.Fundi
 				time.Sleep(nodeRetryTimeout)
 				continue
 			}
-			g.logger.Infof("%s funded with %.2f gBZZ, transaction: %s\n", name, o.GBzz, tx)
+			g.logger.Infof("%s funded with %.2f gBZZ, transaction: %s", name, o.GBzz, tx)
 			break
 		}
 	}
@@ -696,7 +696,7 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 
 		time.Sleep(10 * time.Second)
 		n.Config().Transaction = txHash
-		g.logger.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s\n", key.Address, name, txHash)
+		g.logger.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s", key.Address, name, txHash)
 	}
 	return
 }
@@ -837,7 +837,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	g.logger.Infof("wait for %s to become ready\n", name)
+	g.logger.Infof("wait for %s to become ready", name)
 	for {
 		ok, err := g.NodeReady(ctx, name)
 		if err != nil {
@@ -845,11 +845,11 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		}
 
 		if ok {
-			g.logger.Infof("%s is ready\n", name)
+			g.logger.Infof("%s is ready", name)
 			return nil
 		}
 
-		g.logger.Infof("%s is not ready yet\n", name)
+		g.logger.Infof("%s is not ready yet", name)
 		time.Sleep(nodeRetryTimeout)
 	}
 }
@@ -865,7 +865,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	g.logger.Infof("wait for %s to stop\n", name)
+	g.logger.Infof("wait for %s to stop", name)
 	for {
 		ok, err := g.NodeReady(ctx, name)
 		if err != nil {
@@ -873,11 +873,11 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		}
 
 		if !ok {
-			g.logger.Infof("%s is stopped\n", name)
+			g.logger.Infof("%s is stopped", name)
 			return nil
 		}
 
-		g.logger.Infof("%s is not stopped yet\n", name)
+		g.logger.Infof("%s is not stopped yet", name)
 		time.Sleep(nodeRetryTimeout)
 	}
 }

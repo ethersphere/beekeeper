@@ -24,7 +24,7 @@ func (c *command) initDeleteK8SNamespace() *cobra.Command {
 				return fmt.Errorf("delete namespace %s: %w", name, err)
 			}
 
-			c.logger.Infof("namespace %s deleted\n", name)
+			c.logger.Infof("namespace %s deleted", name)
 			return
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {

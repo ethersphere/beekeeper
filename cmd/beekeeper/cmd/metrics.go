@@ -28,7 +28,7 @@ func newMetricsPusher(pusherAddress, job string, logger logging.Logger) (*push.P
 				return
 			case <-time.After(time.Second):
 				if err := metricsPusher.Push(); err != nil {
-					logger.Debugf("metrics pusher periodic push: %v\n", err)
+					logger.Debugf("metrics pusher periodic push: %v", err)
 				}
 			}
 		}
@@ -38,7 +38,7 @@ func newMetricsPusher(pusherAddress, job string, logger logging.Logger) (*push.P
 		wg.Wait()
 		// push metrics before returning
 		if err := metricsPusher.Push(); err != nil {
-			logger.Infof("metrics pusher push: %v\n", err)
+			logger.Infof("metrics pusher push: %v", err)
 		}
 	}
 	return metricsPusher, cleanupFn

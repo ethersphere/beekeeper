@@ -174,27 +174,27 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 							return nil
 						}
-						s.logger.Infof("error: uploading file %s (size %d) to node %s, batch ID %s: %v\n", file.Address().String(), fileSize, overlay, batchID, err)
+						s.logger.Infof("error: uploading file %s (size %d) to node %s, batch ID %s: %v", file.Address().String(), fileSize, overlay, batchID, err)
 						continue
 					}
 
 					break
 				}
 
-				s.logger.Infof("File %s (size %d) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, overlay, batchID)
+				s.logger.Infof("File %s (size %d) uploaded to node %s, batch ID %s", file.Address().String(), fileSize, overlay, batchID)
 
 				fileCount++
 				if o.FileCount > 0 && fileCount >= o.FileCount {
-					s.logger.Infof("Uploaded %d files to node %s\n", fileCount, n)
+					s.logger.Infof("Uploaded %d files to node %s", fileCount, n)
 					return nil
 				}
 
 				if o.SyncUpload {
 					if err = c.WaitSync(ctx, tag.Uid); err != nil {
-						s.logger.Infof("sync with node %s: %v\n", n, err)
+						s.logger.Infof("sync with node %s: %v", n, err)
 						continue
 					}
-					s.logger.Infof("file %s synced successfully with node %s\n", file.Address().String(), n)
+					s.logger.Infof("file %s synced successfully with node %s", file.Address().String(), n)
 				}
 			}
 		})

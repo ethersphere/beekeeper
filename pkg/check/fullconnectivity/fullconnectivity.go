@@ -81,18 +81,18 @@ func (c *Check) checkFullNodesConnectivity(ctx context.Context, cluster orchestr
 			allPeers := peers[group][node]
 
 			if len(allPeers) < expectedPeerCount {
-				c.logger.Infof("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), expectedPeerCount, overlay)
+				c.logger.Infof("Node %s. Failed. Peers %d/%d. Address: %s", node, len(allPeers), expectedPeerCount, overlay)
 				return errFullConnectivity
 			}
 
 			for _, p := range allPeers {
 				if !contains(overlays, p) {
-					c.logger.Infof("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
+					c.logger.Infof("Node %s. Failed. Invalid peer: %s. Node: %s", node, p.String(), overlay)
 					return errFullConnectivity
 				}
 			}
 
-			c.logger.Infof("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), expectedPeerCount, overlay)
+			c.logger.Infof("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s", node, len(allPeers), expectedPeerCount, overlay)
 		}
 	}
 
@@ -130,18 +130,18 @@ func (c *Check) checkLightNodesConnectivity(ctx context.Context, cluster orchest
 			allPeers := peers[group][node]
 
 			if len(allPeers) < 1 { // expected to be connected to the bootnode
-				c.logger.Infof("Node %s. Failed. Peers %d/%d. Address: %s\n", node, len(allPeers), 1, overlay)
+				c.logger.Infof("Node %s. Failed. Peers %d/%d. Address: %s", node, len(allPeers), 1, overlay)
 				return errFullConnectivity
 			}
 
 			for _, p := range allPeers {
 				if !contains(overlays, p) {
-					c.logger.Infof("Node %s. Failed. Invalid peer: %s. Node: %s\n", node, p.String(), overlay)
+					c.logger.Infof("Node %s. Failed. Invalid peer: %s. Node: %s", node, p.String(), overlay)
 					return errFullConnectivity
 				}
 			}
 
-			c.logger.Infof("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s\n", node, len(allPeers), 1, overlay)
+			c.logger.Infof("Node %s. Passed. Peers %d/%d. All peers are valid. Node: %s", node, len(allPeers), 1, overlay)
 		}
 	}
 

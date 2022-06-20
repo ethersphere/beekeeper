@@ -115,15 +115,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			if !chunk.Equals(data) {
 				c.metrics.NotRetrievedCounter.WithLabelValues(uploader.Name()).Inc()
-				c.logger.Infof("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s\n", lastBee.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
+				c.logger.Infof("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s", lastBee.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
 				if chunk.Contains(data) {
-					c.logger.Infof("Downloaded data is subset of the uploaded data\n")
+					c.logger.Infof("Downloaded data is subset of the uploaded data")
 				}
 				return errRetrieval
 			}
 
 			c.metrics.RetrievedCounter.WithLabelValues(uploader.Name()).Inc()
-			c.logger.Infof("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s\n", lastBee.Name(), j, uploader.Name(), chunk.AddrString())
+			c.logger.Infof("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s", lastBee.Name(), j, uploader.Name(), chunk.AddrString())
 		}
 	}
 

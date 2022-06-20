@@ -129,7 +129,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 
 			nodeIP := GetIPFromUnderlays(nodeAddr.Underlay)
 
-			s.logger.Infof("freezing block number for node %s ip %s\n", n, nodeIP)
+			s.logger.Infof("freezing block number for node %s ip %s", n, nodeIP)
 
 			cancelID, err := proxy.Execute(proxyClient.BlockNumberFreeze, nodeIP)
 			if err != nil {
@@ -151,7 +151,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 		index := rnd.Intn(len(uploadNames))
 		uploadName := uploadNames[index]
 		uploadNode := clients[uploadName]
-		s.logger.Infof("using node %s as uploader\n", uploadName)
+		s.logger.Infof("using node %s as uploader", uploadName)
 
 		err := uploadChunks(ctx, rnd, o, uploadNode, chunks)
 		if err != nil {
@@ -168,13 +168,13 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 			downloadName := randomCmp(rnd, uploadName, names)
 			downloadNode := clients[downloadName]
 
-			s.logger.Infof("using node %s as downloader\n", downloadName)
+			s.logger.Infof("using node %s as downloader", downloadName)
 
 			downloaded = downloadChunks(ctx, o, uploaded, downloadNode, chunks)
 
-			s.logger.Infof("%d out of %d_malfunctioning backends\n", malfunctionEth, len(names))
-			s.logger.Infof("uploaded to %s %d chunks\n", uploadName, uploaded)
-			s.logger.Infof("downloaded from %s %d chunks\n", downloadName, downloaded)
+			s.logger.Infof("%d out of %d_malfunctioning backends", malfunctionEth, len(names))
+			s.logger.Infof("uploaded to %s %d chunks", uploadName, uploaded)
+			s.logger.Infof("downloaded from %s %d chunks", downloadName, downloaded)
 
 			s.metrics.DownloadCount.WithLabelValues(metricStr).Inc()
 

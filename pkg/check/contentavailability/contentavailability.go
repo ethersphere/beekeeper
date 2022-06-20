@@ -91,19 +91,19 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	c.logger.Infof("%s: %s\n", node, overlays[node])
+	c.logger.Infof("%s: %s", node, overlays[node])
 
 	batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: unable to create batch id: %w", node, err)
 	}
-	c.logger.Infof("node %s: batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: batch id %s", node, batchID)
 
 	contentAddr, err := client.UploadBytes(ctx, content, api.UploadOptions{BatchID: batchID})
 	if err != nil {
 		return fmt.Errorf("node %s: unable to upload content: %w", node, err)
 	}
-	c.logger.Infof("node %s: content uploaded successfully: %s\n", node, addr)
+	c.logger.Infof("node %s: content uploaded successfully: %s", node, addr)
 
 	time.Sleep(5 * time.Second) // Wait for nodes to sync.
 
@@ -114,14 +114,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if !isRetrievable {
 		return fmt.Errorf("node %s: the uploaded content is not retrievable", node)
 	}
-	c.logger.Infof("node %s: uploaded content is retrievable\n", node)
+	c.logger.Infof("node %s: uploaded content is retrievable", node)
 
 	rmChAddr := addresses[len(addresses)-1]
 	for node, nClient := range clients {
 		if err := nClient.RemoveChunk(ctx, rmChAddr); err != nil {
 			return fmt.Errorf("node %s: unable to remove chunk %s: %w", node, rmChAddr, err)
 		}
-		c.logger.Infof("node %s: chunk %s removed\n", node, rmChAddr)
+		c.logger.Infof("node %s: chunk %s removed", node, rmChAddr)
 	}
 	isRetrievable, err = client.IsRetrievable(ctx, contentAddr)
 	if err != nil {
@@ -130,7 +130,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if isRetrievable {
 		return fmt.Errorf("node %s: the uploaded content is retrievable", node)
 	}
-	c.logger.Infof("node %s: the uploaded content is not retrievable\n", node)
+	c.logger.Infof("node %s: the uploaded content is not retrievable", node)
 
 	return nil
 }

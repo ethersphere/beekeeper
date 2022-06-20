@@ -85,7 +85,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				continue
 			}
 
-			c.logger.Infof("pss: test %d of %d\n", j+1, o.NodeCount)
+			c.logger.Infof("pss: test %d of %d", j+1, o.NodeCount)
 
 			if err := c.testPss(nodeAName, nodeBName, clients, o); err != nil {
 				return err
@@ -133,7 +133,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 		cancel()
 		return fmt.Errorf("node %s: batched id %w", nodeAName, err)
 	}
-	c.logger.Infof("node %s: batched id %s\n", nodeAName, batchID)
+	c.logger.Infof("node %s: batched id %s", nodeAName, batchID)
 
 	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, nodeB.Config().Restricted, testTopic, c.logger)
 	if err != nil {
@@ -141,7 +141,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 		return err
 	}
 
-	c.logger.Infof("pss: sending test data to node %s and listening on node %s\n", nodeAName, nodeBName)
+	c.logger.Infof("pss: sending test data to node %s and listening on node %s", nodeAName, nodeBName)
 
 	tStart := time.Now()
 	err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
@@ -195,7 +195,7 @@ func listenWebsocket(ctx context.Context, host string, setHeader bool, topic str
 	go func() {
 		_, data, err := ws.ReadMessage()
 		if err != nil {
-			logger.Infof("pss: websocket error %v\n", err)
+			logger.Infof("pss: websocket error %v", err)
 			close(ch)
 			return
 		}

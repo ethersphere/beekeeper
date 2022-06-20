@@ -68,7 +68,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	rnd := random.PseudoGenerator(o.Seed)
 
-	c.logger.Infof("Seed: %d\n", o.Seed)
+	c.logger.Infof("Seed: %d", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -100,7 +100,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", node, err)
 	}
-	c.logger.Infof("node %s: batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: batch id %s", node, batchID)
 
 	if err := client.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %d: %w", 0, err)
@@ -121,16 +121,16 @@ DOWNLOAD:
 
 		size, hash, err := node.DownloadManifestFile(ctx, tarFile.Address(), file.Name())
 		if err != nil {
-			c.logger.Infof("Node %s. Error retrieving file: %v\n", lastNode, err)
+			c.logger.Infof("Node %s. Error retrieving file: %v", lastNode, err)
 			goto DOWNLOAD
 		}
 
 		if !bytes.Equal(file.Hash(), hash) {
-			c.logger.Infof("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s/%s\n", lastNode, i, file.Size(), size, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
+			c.logger.Infof("Node %s. File %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s File: %s/%s", lastNode, i, file.Size(), size, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
 			return errManifest
 		}
 
-		c.logger.Infof("Node %s. File %d retrieved successfully. Node: %s File: %s/%s\n", lastNode, i, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
+		c.logger.Infof("Node %s. File %d retrieved successfully. Node: %s File: %s/%s", lastNode, i, overlays[lastNode].String(), tarFile.Address().String(), file.Name())
 		try = 0 // reset the retry counter for the next file
 	}
 

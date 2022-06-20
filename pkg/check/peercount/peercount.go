@@ -37,7 +37,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	clusterSize := cluster.Size()
 	for g, v := range peers {
 		for n, p := range v {
-			c.logger.Infof("Node %s. Peers %d/%d. Address: %s\n", n, len(p), clusterSize-1, overlays[g][n])
+			c.logger.Infof("Node %s. Peers %d/%d. Address: %s", n, len(p), clusterSize-1, overlays[g][n])
 		}
 	}
 

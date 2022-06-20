@@ -69,13 +69,13 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 		}
 
 		for ng, na := range addresses {
-			logger.Infof("Printing %s node group's addresses\n", ng)
+			logger.Infof("Printing %s node group's addresses", ng)
 			for n, a := range na {
-				logger.Infof("Node %s. ethereum: %s\n", n, a.Ethereum)
-				logger.Infof("Node %s. public key: %s\n", n, a.PublicKey)
-				logger.Infof("Node %s. overlay: %s\n", n, a.Overlay)
+				logger.Infof("Node %s. ethereum: %s", n, a.Ethereum)
+				logger.Infof("Node %s. public key: %s", n, a.PublicKey)
+				logger.Infof("Node %s. overlay: %s", n, a.Overlay)
 				for _, u := range a.Underlay {
-					logger.Infof("Node %s. underlay: %s\n", n, u)
+					logger.Infof("Node %s. underlay: %s", n, u)
 				}
 			}
 		}
@@ -89,9 +89,9 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 		}
 
 		for ng, nt := range topologies {
-			logger.Infof("Printing %s node group's topologies\n", ng)
+			logger.Infof("Printing %s node group's topologies", ng)
 			for n, t := range nt {
-				logger.Infof("Node %s. overlay: %s depth: %d\n", n, t.Overlay, t.Depth)
+				logger.Infof("Node %s. overlay: %s depth: %d", n, t.Overlay, t.Depth)
 			}
 		}
 
@@ -104,9 +104,9 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 		}
 
 		for ng, no := range overlays {
-			logger.Infof("Printing %s node group's overlays\n", ng)
+			logger.Infof("Printing %s node group's overlays", ng)
 			for n, o := range no {
-				logger.Infof("Node %s. %s\n", n, o.String())
+				logger.Infof("Node %s. %s", n, o.String())
 			}
 		}
 
@@ -119,10 +119,10 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 		}
 
 		for ng, np := range peers {
-			logger.Infof("Printing %s node group's peers\n", ng)
+			logger.Infof("Printing %s node group's peers", ng)
 			for n, a := range np {
 				for _, p := range a {
-					logger.Infof("Node %s. %s\n", n, p)
+					logger.Infof("Node %s. %s", n, p)
 				}
 			}
 		}
@@ -135,15 +135,15 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 		}
 
 		for ng, nt := range topologies {
-			logger.Infof("Printing %s node group's topologies\n", ng)
+			logger.Infof("Printing %s node group's topologies", ng)
 			for n, t := range nt {
-				logger.Infof("Node %s. overlay: %s\n", n, t.Overlay)
-				logger.Infof("Node %s. population: %d\n", n, t.Population)
-				logger.Infof("Node %s. connected: %d\n", n, t.Connected)
-				logger.Infof("Node %s. depth: %d\n", n, t.Depth)
-				logger.Infof("Node %s. nnLowWatermark: %d\n", n, t.NnLowWatermark)
+				logger.Infof("Node %s. overlay: %s", n, t.Overlay)
+				logger.Infof("Node %s. population: %d", n, t.Population)
+				logger.Infof("Node %s. connected: %d", n, t.Connected)
+				logger.Infof("Node %s. depth: %d", n, t.Depth)
+				logger.Infof("Node %s. nnLowWatermark: %d", n, t.NnLowWatermark)
 				for k, v := range t.Bins {
-					logger.Infof("Node %s. %s %+v\n", n, k, v)
+					logger.Infof("Node %s. %s %+v", n, k, v)
 				}
 			}
 		}

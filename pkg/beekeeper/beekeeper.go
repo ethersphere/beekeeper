@@ -38,7 +38,7 @@ type Actions struct {
 
 // Run runs check against the cluster
 func Run(ctx context.Context, cluster orchestration.Cluster, action Action, options interface{}, stages []Stage, seed int64, logger logging.Logger) (err error) {
-	logger.Infof("root seed: %d\n", seed)
+	logger.Infof("root seed: %d", seed)
 
 	if err := action.Run(ctx, cluster, options); err != nil {
 		return err
@@ -51,7 +51,7 @@ func Run(ctx context.Context, cluster orchestration.Cluster, action Action, opti
 				waitDeleted = true
 			}
 
-			logger.Infof("stage %d, node group %s, add %d, delete %d, start %d, stop %d\n", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
+			logger.Infof("stage %d, node group %s, add %d, delete %d, start %d, stop %d", i, u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 
 			rnd := random.PseudoGenerator(seed)
 			ng, err := cluster.NodeGroup(u.NodeGroup)
@@ -78,14 +78,14 @@ func Run(ctx context.Context, cluster orchestration.Cluster, action Action, opti
 
 // RunConcurrently runs check against the cluster, cluster updates are executed concurrently
 func RunConcurrently(ctx context.Context, cluster orchestration.Cluster, action Action, options interface{}, stages []Stage, buffer int, seed int64, logger logging.Logger) (err error) {
-	logger.Infof("root seed: %d\n", seed)
+	logger.Infof("root seed: %d", seed)
 
 	if err := action.Run(ctx, cluster, options); err != nil {
 		return err
 	}
 
 	for i, s := range stages {
-		logger.Infof("starting stage %d\n", i)
+		logger.Infof("starting stage %d", i)
 		buffers := weightedBuffers(buffer, s)
 		rnds := random.PseudoGenerators(seed, len(s))
 
@@ -106,7 +106,7 @@ func RunConcurrently(ctx context.Context, cluster orchestration.Cluster, action 
 					<-stageSemaphore
 				}()
 
-				logger.Infof("node group %s, add %d, delete %d, start %d, stop %d\n", u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
+				logger.Infof("node group %s, add %d, delete %d, start %d, stop %d", u.NodeGroup, u.Actions.AddCount, u.Actions.DeleteCount, u.Actions.StartCount, u.Actions.StopCount)
 				ng, err := cluster.NodeGroup(u.NodeGroup)
 				if err != nil {
 					return err
@@ -115,7 +115,7 @@ func RunConcurrently(ctx context.Context, cluster orchestration.Cluster, action 
 					return err
 				}
 
-				logger.Infof("node group %s updated successfully\n", u.NodeGroup)
+				logger.Infof("node group %s updated successfully", u.NodeGroup)
 				return nil
 			})
 		}
@@ -178,7 +178,7 @@ func updateNodeGroup(ctx context.Context, ng orchestration.NodeGroup, a Actions,
 		if err != nil {
 			return fmt.Errorf("get node %s overlay: %w", n, err)
 		}
-		logger.Infof("node %s (%s) is added\n", n, overlay)
+		logger.Infof("node %s (%s) is added", n, overlay)
 	}
 
 	// delete nodes
@@ -194,7 +194,7 @@ func updateNodeGroup(ctx context.Context, ng orchestration.NodeGroup, a Actions,
 		if err := ng.DeleteNode(ctx, n); err != nil {
 			return fmt.Errorf("delete node %s: %w", n, err)
 		}
-		logger.Infof("node %s (%s) is deleted\n", n, overlay)
+		logger.Infof("node %s (%s) is deleted", n, overlay)
 	}
 
 	// start nodes
@@ -210,7 +210,7 @@ func updateNodeGroup(ctx context.Context, ng orchestration.NodeGroup, a Actions,
 		if err != nil {
 			return fmt.Errorf("get node %s overlay: %w", n, err)
 		}
-		logger.Infof("node %s (%s) is started\n", n, overlay)
+		logger.Infof("node %s (%s) is started", n, overlay)
 	}
 
 	// stop nodes
@@ -226,7 +226,7 @@ func updateNodeGroup(ctx context.Context, ng orchestration.NodeGroup, a Actions,
 		if err := ng.StopNode(ctx, n); err != nil {
 			return fmt.Errorf("stop node %s: %w", n, err)
 		}
-		logger.Infof("node %s (%s) is stopped\n", n, overlay)
+		logger.Infof("node %s (%s) is stopped", n, overlay)
 	}
 
 	return
@@ -283,7 +283,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
-			logger.Infof("node %s (%s) is added\n", n, overlay)
+			logger.Infof("node %s (%s) is added", n, overlay)
 			return nil
 		})
 	}
@@ -308,7 +308,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup
 			if err := ng.DeleteNode(ctx, n); err != nil {
 				return fmt.Errorf("delete node %s: %w", n, err)
 			}
-			logger.Infof("node %s (%s) is deleted\n", n, overlay)
+			logger.Infof("node %s (%s) is deleted", n, overlay)
 			return nil
 		})
 	}
@@ -333,7 +333,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup
 			if err != nil {
 				return fmt.Errorf("get node %s overlay: %w", n, err)
 			}
-			logger.Infof("node %s (%s) is started\n", n, overlay)
+			logger.Infof("node %s (%s) is started", n, overlay)
 			return nil
 		})
 	}
@@ -358,7 +358,7 @@ func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup
 			if err := ng.StopNode(ctx, n); err != nil {
 				return fmt.Errorf("stop node %s: %w", n, err)
 			}
-			logger.Infof("node %s (%s) is stopped\n", n, overlay)
+			logger.Infof("node %s (%s) is stopped", n, overlay)
 			return nil
 		})
 	}

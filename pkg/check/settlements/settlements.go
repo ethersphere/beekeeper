@@ -78,7 +78,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	c.logger.Info("running settlements")
 
 	rnd := random.PseudoGenerator(o.Seed)
-	c.logger.Infof("Seed: %d\n", o.Seed)
+	c.logger.Infof("Seed: %d", o.Seed)
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -121,12 +121,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", uNode, err)
 		}
-		c.logger.Infof("node %s: batch id %s\n", uNode, batchID)
+		c.logger.Infof("node %s: batch id %s", uNode, batchID)
 
 		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
 			return fmt.Errorf("node %s: %w", uNode, err)
 		}
-		c.logger.Infof("File %s uploaded successfully to node %s\n", file.Address().String(), overlays[uNode].String())
+		c.logger.Infof("File %s uploaded successfully to node %s", file.Address().String(), overlays[uNode].String())
 
 		settlementsValid := false
 		// validate settlements after uploading a file
@@ -149,7 +149,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			err = validateSettlements(o.Threshold, overlays, balances, settlements, c.logger)
 			if err != nil {
-				c.logger.Infof("Invalid settlements after uploading a file: %s\n", err.Error())
+				c.logger.Infof("Invalid settlements after uploading a file: %s", err.Error())
 				c.logger.Info("Retrying ...")
 				continue
 			}
@@ -174,7 +174,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		if !bytes.Equal(file.Hash(), hash) {
 			return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.Address().String(), overlays[dNode].String(), file.Size(), size)
 		}
-		c.logger.Infof("File %s downloaded successfully from node %s\n", file.Address().String(), overlays[dNode].String())
+		c.logger.Infof("File %s downloaded successfully from node %s", file.Address().String(), overlays[dNode].String())
 
 		settlementsValid = false
 		// validate settlements after downloading a file
@@ -198,7 +198,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			err = validateSettlements(o.Threshold, overlays, balances, settlements, c.logger)
 			if err != nil {
-				c.logger.Infof("Invalid settlements after downloading a file: %s\n", err.Error())
+				c.logger.Infof("Invalid settlements after downloading a file: %s", err.Error())
 				c.logger.Info("Retrying ...")
 				continue
 			}
@@ -262,10 +262,10 @@ func validateSettlements(threshold int64, overlays orchestration.NodeGroupOverla
 		for peer, balance := range v {
 			diff := balance + balances[peer][node]
 			if diff != 0 {
-				logger.Infof("Node %s has asymmetric balance with peer %s\n", node, peer)
-				logger.Infof("Node %s has balance %d with peer %s\n", node, balance, peer)
-				logger.Infof("Peer %s has balance %d with node %s\n", peer, balances[peer][node], node)
-				logger.Infof("Difference: %d\n", diff)
+				logger.Infof("Node %s has asymmetric balance with peer %s", node, peer)
+				logger.Infof("Node %s has balance %d with peer %s", node, balance, peer)
+				logger.Infof("Peer %s has balance %d with node %s", peer, balances[peer][node], node)
+				logger.Infof("Difference: %d", diff)
 				noBalanceSymmetry = true
 			}
 		}
@@ -280,10 +280,10 @@ func validateSettlements(threshold int64, overlays orchestration.NodeGroupOverla
 		for peer, settlement := range v {
 			diff := settlement.Received - settlements[peer][node].Sent
 			if diff != 0 {
-				logger.Infof("Node %s has asymmetric settlement with peer %s\n", node, peer)
-				logger.Infof("Node %s received %d from peer %s\n", node, settlement.Received, peer)
-				logger.Infof("Peer %s sent %d to node %s\n", peer, settlements[peer][node].Sent, node)
-				logger.Infof("Difference: %d\n", diff)
+				logger.Infof("Node %s has asymmetric settlement with peer %s", node, peer)
+				logger.Infof("Node %s received %d from peer %s", node, settlement.Received, peer)
+				logger.Infof("Peer %s sent %d to node %s", peer, settlements[peer][node].Sent, node)
+				logger.Infof("Difference: %d", diff)
 				nosettlementsSentymmetry = true
 			}
 		}

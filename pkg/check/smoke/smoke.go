@@ -89,7 +89,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		case <-ctx.Done():
 			return nil
 		default:
-			c.logger.Infof("starting iteration: #%d\n", i)
+			c.logger.Infof("starting iteration: #%d", i)
 		}
 
 		perm := rnd.Perm(cluster.Size())
@@ -105,8 +105,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		txName := nn[txIdx]
 		rxName := nn[rxIdx]
 
-		c.logger.Infof("uploader: %s\n", txName)
-		c.logger.Infof("downloader: %s\n", rxName)
+		c.logger.Infof("uploader: %s", txName)
+		c.logger.Infof("downloader: %s", rxName)
 
 		var (
 			txDuration time.Duration
@@ -118,7 +118,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		txData = make([]byte, o.ContentSize)
 		if _, err := rand.Read(txData); err != nil {
-			c.logger.Infof("unable to create random content: %v\n", err)
+			c.logger.Infof("unable to create random content: %v", err)
 			continue
 		}
 
@@ -134,8 +134,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			address, txDuration, err = test.upload(txName, txData)
 			if err != nil {
 				c.metrics.UploadErrors.Inc()
-				c.logger.Infof("upload failed: %v\n", err)
-				c.logger.Infof("retrying in: %v\n", o.TxOnErrWait)
+				c.logger.Infof("upload failed: %v", err)
+				c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 				time.Sleep(o.TxOnErrWait)
 			}
 		}
@@ -158,8 +158,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			rxData, rxDuration, err = test.download(rxName, address)
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
-				c.logger.Infof("download failed: %v\n", err)
-				c.logger.Infof("retrying in: %v\n", o.RxOnErrWait)
+				c.logger.Infof("download failed: %v", err)
+				c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 				time.Sleep(o.RxOnErrWait)
 			}
 		}
@@ -176,7 +176,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			rxLen, txLen := len(rxData), len(txData)
 			if rxLen != txLen {
-				c.logger.Infof("length mismatch: rx length %d; tx length %d\n", rxLen, txLen)
+				c.logger.Infof("length mismatch: rx length %d; tx length %d", rxLen, txLen)
 				if txLen < rxLen {
 					c.logger.Info("length mismatch: rx length is bigger then tx length")
 				}
@@ -189,7 +189,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 					diff++
 				}
 			}
-			c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%\n", diff, float64(diff)/float64(txLen)*100)
+			c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
 			continue
 		}
 
@@ -215,30 +215,30 @@ func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, 
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
 	}
-	t.logger.Infof("node %s: batch id %s\n", cName, batchID)
+	t.logger.Infof("node %s: batch id %s", cName, batchID)
 
-	t.logger.Infof("node %s: uploading data\n", cName)
+	t.logger.Infof("node %s: uploading data", cName)
 	start := time.Now()
 	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Deferred: false})
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
 	}
 	txDuration := time.Since(start)
-	t.logger.Infof("node %s: upload done in %s\n", cName, txDuration)
+	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
 
 	return addr, txDuration, nil
 }
 
 func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration, error) {
 	client := t.clients[cName]
-	t.logger.Infof("node %s: downloading data\n", cName)
+	t.logger.Infof("node %s: downloading data", cName)
 	start := time.Now()
 	data, err := client.DownloadBytes(t.ctx, addr)
 	if err != nil {
 		return nil, 0, fmt.Errorf("download from node %s: %w", cName, err)
 	}
 	rxDuration := time.Since(start)
-	t.logger.Infof("node %s: download done in %s\n", cName, rxDuration)
+	t.logger.Infof("node %s: download done in %s", cName, rxDuration)
 
 	return data, rxDuration, nil
 }

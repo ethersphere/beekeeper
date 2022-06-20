@@ -69,17 +69,17 @@ func checkKademlia(topologies orchestration.ClusterTopologies, logger logging.Lo
 	for _, v := range topologies {
 		for n, t := range v {
 			if t.Depth == 0 {
-				logger.Infof("Node %s. Kademlia not healthy. Depth %d. Node: %s\n", n, t.Depth, t.Overlay)
+				logger.Infof("Node %s. Kademlia not healthy. Depth %d. Node: %s", n, t.Depth, t.Overlay)
 				return errKadmeliaNotHealthy
 			}
 
-			logger.Infof("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s\n", n, t.Population, t.Connected, t.Depth, t.Overlay)
+			logger.Infof("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s", n, t.Population, t.Connected, t.Depth, t.Overlay)
 			for k, b := range t.Bins {
 				binDepth, err := strconv.Atoi(strings.Split(k, "_")[1])
 				if err != nil {
 					return fmt.Errorf("node %s: %w", n, err)
 				}
-				logger.Infof("Bin %d. Population: %d. Connected: %d.\n", binDepth, b.Population, b.Connected)
+				logger.Infof("Bin %d. Population: %d. Connected: %d.", binDepth, b.Population, b.Connected)
 				if binDepth < t.Depth && b.Connected < 1 {
 					return errKadmeliaBinConnected
 				}
@@ -109,12 +109,12 @@ func checkKademliaD(topologies orchestration.ClusterTopologies, logger logging.L
 			expNodes := nodesInDepth(uint8(t.Depth), t.Overlay, overlays)
 			var nodes []swarm.Address
 
-			logger.Infof("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s. Expecting %d nodes within depth.\n", k, t.Population, t.Connected, t.Depth, t.Overlay, len(expNodes))
+			logger.Infof("Node %s. Population: %d. Connected: %d. Depth: %d. Node: %s. Expecting %d nodes within depth.", k, t.Population, t.Connected, t.Depth, t.Overlay, len(expNodes))
 
 			for k, b := range t.Bins {
 				bin, err := strconv.Atoi(strings.Split(k, "_")[1])
 				if err != nil {
-					logger.Infof("Error: node %s: %v\n", k, err)
+					logger.Infof("Error: node %s: %v", k, err)
 				}
 
 				if bin >= t.Depth {

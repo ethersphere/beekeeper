@@ -113,26 +113,26 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}
-	c.logger.Infof("node %s: batch id %s\n", nodeName, batchID)
+	c.logger.Infof("node %s: batch id %s", nodeName, batchID)
 
-	c.logger.Infof("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
-	c.logger.Infof("soc: owner %s\n", owner)
-	c.logger.Infof("soc: id %s\n", id)
-	c.logger.Infof("soc: sig %s\n", sig)
+	c.logger.Infof("soc: submitting soc chunk %s to node %s", sch.Address().String(), nodeName)
+	c.logger.Infof("soc: owner %s", owner)
+	c.logger.Infof("soc: id %s", id)
+	c.logger.Infof("soc: sig %s", sig)
 
 	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data(), batchID)
 	if err != nil {
 		return err
 	}
 
-	c.logger.Infof("soc: chunk uploaded to node %s\n", nodeName)
+	c.logger.Infof("soc: chunk uploaded to node %s", nodeName)
 
 	retrieved, err := node.DownloadChunk(ctx, ref, "")
 	if err != nil {
 		return err
 	}
 
-	c.logger.Infof("soc: chunk retrieved from node %s\n", nodeName)
+	c.logger.Infof("soc: chunk retrieved from node %s", nodeName)
 
 	if !bytes.Equal(retrieved, chunkData) {
 		return errors.New("soc: retrieved chunk data does NOT match soc chunk")

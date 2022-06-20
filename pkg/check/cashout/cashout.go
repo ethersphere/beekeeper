@@ -104,7 +104,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 						oldBalance:      chequebookBalance.TotalBalance,
 					})
 
-					c.logger.Infof("cashing out for peer %s on %s in transaction %s\n", peerOverlay, node, txHash)
+					c.logger.Infof("cashing out for peer %s on %s in transaction %s", peerOverlay, node, txHash)
 				}
 			}
 		}
@@ -125,7 +125,7 @@ LOOP:
 			}
 
 			if cashoutStatus.Result == nil {
-				c.logger.Infof("transaction %s not yet confirmed\n", action.transactionHash)
+				c.logger.Infof("transaction %s not yet confirmed", action.transactionHash)
 				continue LOOP
 			}
 

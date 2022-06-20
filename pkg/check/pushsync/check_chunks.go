@@ -14,10 +14,10 @@ import (
 )
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, logger logging.Logger) error {
-	logger.Info("running pushsync (chunks mode)")
+func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logging.Logger) error {
+	l.Info("running pushsync (chunks mode)")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
-	logger.Infof("seed: %d\n", o.Seed)
+	l.Infof("seed: %d", o.Seed)
 
 	overlays, err := c.FlattenOverlays(ctx, o.ExcludeNodeGroups...)
 	if err != nil {
@@ -40,11 +40,11 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, logger
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}
-		logger.Infof("node %s: batch id %s\n", nodeName, batchID)
+		l.Infof("node %s: batch id %s", nodeName, batchID)
 
 	testCases:
 		for j := 0; j < o.ChunksPerNode; j++ {
-			chunk, err := bee.NewRandomChunk(rnds[i], logger)
+			chunk, err := bee.NewRandomChunk(rnds[i], l)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
@@ -54,13 +54,13 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, logger
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
-			logger.Infof("uploaded chunk %s to node %s\n", ref.String(), nodeName)
+			l.Infof("uploaded chunk %s to node %s", ref.String(), nodeName)
 
 			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-			logger.Infof("closest node %s overlay %s\n", closestName, closestAddress)
+			l.Infof("closest node %s overlay %s", closestName, closestAddress)
 
 			time.Sleep(o.RetryDelay)
 			synced, err := clients[closestName].HasChunk(ctx, ref)
@@ -71,7 +71,7 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, logger
 				return fmt.Errorf("node %s chunk %s not found in the closest node %s", nodeName, ref.String(), closestAddress)
 			}
 
-			logger.Infof("node %s chunk %s found in the closest node %s\n", nodeName, ref.String(), closestAddress)
+			l.Infof("node %s chunk %s found in the closest node %s", nodeName, ref.String(), closestAddress)
 
 			uploaderAddr, err := uploader.Overlay(ctx)
 			if err != nil {
@@ -91,7 +91,7 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, logger
 					continue
 				}
 				if synced {
-					logger.Infof("node %s chunk %s was replicated to node %s\n", name, ref.String(), address.String())
+					l.Infof("node %s chunk %s was replicated to node %s", name, ref.String(), address.String())
 					continue testCases
 				}
 			}

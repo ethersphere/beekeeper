@@ -57,17 +57,17 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interf
 					if t == 4 {
 						return fmt.Errorf("node %s: %w", n.Name, n.Error)
 					}
-					c.logger.Infof("node %s: %v\n", n.Name, n.Error)
+					c.logger.Infof("node %s: %v", n.Name, n.Error)
 					continue
 				}
-				c.logger.Infof("Node %s: %s Peer: %s RTT: %s\n", n.Name, n.Address, n.PeerAddress, n.RTT)
+				c.logger.Infof("Node %s: %s Peer: %s RTT: %s", n.Name, n.Address, n.PeerAddress, n.RTT)
 
 				rtt, err := time.ParseDuration(n.RTT)
 				if err != nil {
 					if t == 4 {
 						return fmt.Errorf("node %s: %w", n.Name, err)
 					}
-					c.logger.Infof("node %s: %v\n", n.Name, err)
+					c.logger.Infof("node %s: %v", n.Name, err)
 					continue
 				}
 

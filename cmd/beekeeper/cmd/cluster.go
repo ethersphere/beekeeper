@@ -24,7 +24,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 
 	// delete node groups
 	for ng, v := range clusterConfig.GetNodeGroups() {
-		c.logger.Infof("deleting %s node group\n", ng)
+		c.logger.Infof("deleting %s node group", ng)
 		ngConfig, ok := cfg.NodeGroups[v.Config]
 		if !ok {
 			return fmt.Errorf("node group profile %s not defined", v.Config)
