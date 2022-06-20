@@ -33,7 +33,7 @@ const (
 	optionNameConfigGitBranch   = "config-git-branch"
 	optionNameConfigGitUsername = "config-git-username"
 	optionNameConfigGitPassword = "config-git-password"
-	optionNameVerbosity         = "verbosity"
+	optionNameConfigVerbosity   = "verbosity"
 )
 
 func init() {
@@ -132,11 +132,11 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
-	globalFlags.String(optionNameVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
+	globalFlags.String(optionNameConfigVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
 }
 
 func (c *command) bindGlobalFlags() (err error) {
-	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword} {
+	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameConfigVerbosity} {
 		if err := c.globalConfig.BindPFlag(flag, c.root.PersistentFlags().Lookup(flag)); err != nil {
 			return err
 		}
@@ -179,16 +179,15 @@ func (c *command) initConfig() (err error) {
 		return err
 	}
 
-	v, err := c.root.Flags().GetString(optionNameVerbosity)
-	if err != nil {
-		return fmt.Errorf("get verbosity: %w", err)
+	verbosity := c.globalConfig.GetString(optionNameConfigVerbosity)
+	if verbosity != "" {
+		verbosity = strings.ToLower(verbosity)
+		c.logger, err = newLogger(c.root, verbosity)
+		if err != nil {
+			return fmt.Errorf("new logger: %w", err)
+		}
+		c.logger.Infof("verbosity log level: %v", c.logger.GetLevel())
 	}
-	v = strings.ToLower(v)
-	c.logger, err = newLogger(c.root, v)
-	if err != nil {
-		return fmt.Errorf("new logger: %w", err)
-	}
-	c.logger.Infof("verbosity log level: %v", c.logger.GetLevel())
 
 	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
 		// read configuration from git repo
