@@ -179,6 +179,7 @@ func (c *command) initConfig() (err error) {
 		return err
 	}
 
+	// init logger
 	verbosity := c.globalConfig.GetString(optionNameConfigVerbosity)
 	if verbosity != "" {
 		verbosity = strings.ToLower(verbosity)

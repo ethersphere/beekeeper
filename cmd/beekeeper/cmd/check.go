@@ -55,6 +55,11 @@ func (c *command) initCheckCmd() (err error) {
 				defer cleanup()
 			}
 
+			// logger metrics
+			if l, ok := c.logger.(metrics.Reporter); ok && metricsEnabled {
+				metrics.RegisterCollectors(metricsPusher, l.Report()...)
+			}
+
 			// set global config
 			checkGlobalConfig := config.CheckGlobalConfig{
 				Seed: c.globalConfig.GetInt64(optionNameSeed),

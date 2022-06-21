@@ -5,7 +5,8 @@
 package logging
 
 import (
-	m "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/bee/pkg/metrics"
+	mm "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
@@ -26,31 +27,31 @@ func newMetrics() metrics {
 
 	return metrics{
 		ErrorCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: m.Namespace,
+			Namespace: mm.Namespace,
 			Subsystem: subsystem,
 			Name:      "error_count",
 			Help:      "Number ERROR log messages.",
 		}),
 		WarnCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: m.Namespace,
+			Namespace: mm.Namespace,
 			Subsystem: subsystem,
 			Name:      "warn_count",
 			Help:      "Number WARN log messages.",
 		}),
 		InfoCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: m.Namespace,
+			Namespace: mm.Namespace,
 			Subsystem: subsystem,
 			Name:      "info_count",
 			Help:      "Number INFO log messages.",
 		}),
 		DebugCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: m.Namespace,
+			Namespace: mm.Namespace,
 			Subsystem: subsystem,
 			Name:      "debug_count",
 			Help:      "Number DEBUG log messages.",
 		}),
 		TraceCount: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: m.Namespace,
+			Namespace: mm.Namespace,
 			Subsystem: subsystem,
 			Name:      "trace_count",
 			Help:      "Number TRACE log messages.",
@@ -58,7 +59,7 @@ func newMetrics() metrics {
 	}
 }
 
-func (l *logger) Metrics() []prometheus.Collector {
+func (l *logger) Report() []prometheus.Collector {
 	return m.PrometheusCollectorsFromFields(l.metrics)
 }
 
