@@ -28,12 +28,17 @@ import (
 )
 
 const (
-	optionNameConfigDir         = "config-dir"
-	optionNameConfigGitRepo     = "config-git-repo"
-	optionNameConfigGitBranch   = "config-git-branch"
-	optionNameConfigGitUsername = "config-git-username"
-	optionNameConfigGitPassword = "config-git-password"
-	optionNameConfigVerbosity   = "verbosity"
+	optionNameConfigDir          = "config-dir"
+	optionNameConfigGitRepo      = "config-git-repo"
+	optionNameConfigGitBranch    = "config-git-branch"
+	optionNameConfigGitUsername  = "config-git-username"
+	optionNameConfigGitPassword  = "config-git-password"
+	optionNameLogVerbosity       = "log-verbosity"
+	optionNameTracingEnabled     = "tracing-enable"
+	optionNameTracingEndpoint    = "tracing-endpoint"
+	optionNameTracingHost        = "tracing-host"
+	optionNameTracingPort        = "tracing-port"
+	optionNameTracingServiceName = "tracing-service-name"
 )
 
 func init() {
@@ -132,11 +137,16 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
-	globalFlags.String(optionNameConfigVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
+	globalFlags.String(optionNameLogVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
+	globalFlags.Bool(optionNameTracingEnabled, false, "enable tracing")
+	globalFlags.String(optionNameTracingEndpoint, "tempo-tempo-distributed-distributor.observability:6831", "endpoint to send tracing data")
+	globalFlags.String(optionNameTracingHost, "", "host to send tracing data")
+	globalFlags.String(optionNameTracingPort, "", "port to send tracing data")
+	globalFlags.String(optionNameTracingServiceName, "beekeeper", "service name identifier for tracing")
 }
 
 func (c *command) bindGlobalFlags() (err error) {
-	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameConfigVerbosity} {
+	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameLogVerbosity} {
 		if err := c.globalConfig.BindPFlag(flag, c.root.PersistentFlags().Lookup(flag)); err != nil {
 			return err
 		}
@@ -180,7 +190,7 @@ func (c *command) initConfig() (err error) {
 	}
 
 	// init logger
-	verbosity := c.globalConfig.GetString(optionNameConfigVerbosity)
+	verbosity := c.globalConfig.GetString(optionNameLogVerbosity)
 	if verbosity != "" {
 		verbosity = strings.ToLower(verbosity)
 		c.logger, err = newLogger(c.root, verbosity)

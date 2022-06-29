@@ -1,7 +1,13 @@
 enable-k8s: true
 in-cluster: false
 geth-url: http://geth-swap.localhost
-bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7 
+bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7
 eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
 kubeconfig: "~/.kube/config"
 # config-dir: ""
+log-verbosity: "info"
+tracing-enable: false
+tracing-endpoint: tempo-tempo-distributed-distributor.observability:6831
+# tracing-host: 127.0.0.1
+# tracing-port: 6831
+tracing-service-name: beekeeper

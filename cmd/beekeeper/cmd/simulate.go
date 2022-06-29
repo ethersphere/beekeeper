@@ -3,10 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/metrics"
+	"github.com/ethersphere/beekeeper/pkg/tracing"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 )
@@ -60,6 +63,21 @@ func (c *command) initSimulateCmd() (err error) {
 				metrics.RegisterCollectors(metricsPusher, l.Report()...)
 			}
 
+			// tracing
+			tracingEndpoint := c.globalConfig.GetString(optionNameTracingEndpoint)
+			if c.globalConfig.IsSet(optionNameTracingHost) && c.globalConfig.IsSet(optionNameTracingPort) {
+				tracingEndpoint = strings.Join([]string{c.globalConfig.GetString(optionNameTracingHost), c.globalConfig.GetString(optionNameTracingPort)}, ":")
+			}
+			tracer, tracerCloser, err := tracing.NewTracer(&tracing.Options{
+				Enabled:     c.globalConfig.GetBool(optionNameTracingEnabled),
+				Endpoint:    tracingEndpoint,
+				ServiceName: c.globalConfig.GetString(optionNameTracingServiceName),
+			})
+			if err != nil {
+				return fmt.Errorf("tracer: %w", err)
+			}
+			defer tracerCloser.Close()
+
 			// set global config
 			simulationGlobalConfig := config.SimulationGlobalConfig{
 				Seed: c.globalConfig.GetInt64(optionNameSeed),
@@ -87,6 +105,7 @@ func (c *command) initSimulateCmd() (err error) {
 
 				// create simulation
 				sim := simulation.NewAction(c.logger)
+				sim = beekeeper.NewActionMiddleware(tracer, sim, simulationName)
 				if s, ok := sim.(metrics.Reporter); ok && metricsEnabled {
 					metrics.RegisterCollectors(metricsPusher, s.Report()...)
 				}
