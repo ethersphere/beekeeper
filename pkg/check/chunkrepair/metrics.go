@@ -1,8 +1,7 @@
 package chunkrepair
 
 import (
-	m "github.com/ethersphere/bee/pkg/metrics"
-	mm "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -17,7 +16,7 @@ func newMetrics() metrics {
 	return metrics{
 		RepairedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_repaired_count",
 				Help:      "Number of chunks repaired.",
@@ -26,7 +25,7 @@ func newMetrics() metrics {
 		),
 		RepairedTimeGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_repaired_duration_seconds",
 				Help:      "chunk repaired duration Gauge.",
@@ -35,7 +34,7 @@ func newMetrics() metrics {
 		),
 		RepairedTimeHistogram: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_repaired_seconds",
 				Help:      "Chunk repaired duration Histogram.",

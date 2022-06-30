@@ -1,8 +1,7 @@
 package pingpong
 
 import (
-	m "github.com/ethersphere/bee/pkg/metrics"
-	mm "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -16,7 +15,7 @@ func newMetrics() metrics {
 	return metrics{
 		RttGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "rtt_duration_seconds",
 				Help:      "Ping round-trip time duration Gauge.",
@@ -25,7 +24,7 @@ func newMetrics() metrics {
 		),
 		RttHistogram: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "rtt_seconds",
 				Help:      "Ping round-trip time duration Histogram.",

@@ -1,8 +1,7 @@
 package pushsync
 
 import (
-	m "github.com/ethersphere/bee/pkg/metrics"
-	mm "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -19,7 +18,7 @@ func newMetrics() metrics {
 	return metrics{
 		UploadedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunks_uploaded_count",
 				Help:      "Number of uploaded chunks.",
@@ -28,7 +27,7 @@ func newMetrics() metrics {
 		),
 		UploadTimeGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_upload_duration_seconds",
 				Help:      "Chunk upload duration Gauge.",
@@ -37,7 +36,7 @@ func newMetrics() metrics {
 		),
 		UploadTimeHistogram: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_upload_seconds",
 				Help:      "Chunk upload duration Histogram.",
@@ -45,7 +44,7 @@ func newMetrics() metrics {
 		),
 		SyncedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunks_synced_count",
 				Help:      "Number of chunks that has been synced with the closest node.",
@@ -54,7 +53,7 @@ func newMetrics() metrics {
 		),
 		NotSyncedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunks_not_synced_count",
 				Help:      "Number of chunks that has not been synced with the closest node.",
