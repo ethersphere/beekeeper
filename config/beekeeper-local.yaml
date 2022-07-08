@@ -11,3 +11,4 @@ tracing-endpoint: tempo-tempo-distributed-distributor.observability:6831
 # tracing-host: 127.0.0.1
 # tracing-port: 6831
 tracing-service-name: beekeeper
+loki-endpoint: "http://loki.testnet.internal/loki/api/v1/push"

@@ -34,6 +34,7 @@ const (
 	optionNameConfigGitUsername  = "config-git-username"
 	optionNameConfigGitPassword  = "config-git-password"
 	optionNameLogVerbosity       = "log-verbosity"
+	optionNameLokiEndpoint       = "loki-endpoint"
 	optionNameTracingEnabled     = "tracing-enable"
 	optionNameTracingEndpoint    = "tracing-endpoint"
 	optionNameTracingHost        = "tracing-host"
@@ -138,6 +139,7 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
 	globalFlags.String(optionNameLogVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
+	globalFlags.String(optionNameLokiEndpoint, "http://loki.testnet.internal/loki/api/v1/push", "loki http endpoint for pushing local logs")
 	globalFlags.Bool(optionNameTracingEnabled, false, "enable tracing")
 	globalFlags.String(optionNameTracingEndpoint, "tempo-tempo-distributed-distributor.observability:6831", "endpoint to send tracing data")
 	globalFlags.String(optionNameTracingHost, "", "host to send tracing data")
@@ -146,7 +148,7 @@ func (c *command) initGlobalFlags() {
 }
 
 func (c *command) bindGlobalFlags() (err error) {
-	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameLogVerbosity} {
+	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameLogVerbosity, optionNameLokiEndpoint} {
 		if err := c.globalConfig.BindPFlag(flag, c.root.PersistentFlags().Lookup(flag)); err != nil {
 			return err
 		}
@@ -191,9 +193,10 @@ func (c *command) initConfig() (err error) {
 
 	// init logger
 	verbosity := c.globalConfig.GetString(optionNameLogVerbosity)
+	lokiEndpoint := c.globalConfig.GetString(optionNameLokiEndpoint)
 	if verbosity != "" {
 		verbosity = strings.ToLower(verbosity)
-		c.logger, err = newLogger(c.root, verbosity)
+		c.logger, err = newLogger(c.root, verbosity, lokiEndpoint)
 		if err != nil {
 			return fmt.Errorf("new logger: %w", err)
 		}
@@ -341,21 +344,21 @@ func (c *command) setSwapClient() (err error) {
 	return
 }
 
-func newLogger(cmd *cobra.Command, verbosity string) (logging.Logger, error) {
+func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string) (logging.Logger, error) {
 	var logger logging.Logger
 	switch verbosity {
 	case "0", "silent":
-		logger = logging.New(io.Discard, 0)
+		logger = logging.New(io.Discard, 0, "")
 	case "1", "error":
-		logger = logging.New(cmd.OutOrStdout(), logrus.ErrorLevel)
+		logger = logging.New(cmd.OutOrStdout(), logrus.ErrorLevel, lokiEndpoint)
 	case "2", "warn":
-		logger = logging.New(cmd.OutOrStdout(), logrus.WarnLevel)
+		logger = logging.New(cmd.OutOrStdout(), logrus.WarnLevel, lokiEndpoint)
 	case "3", "info":
-		logger = logging.New(cmd.OutOrStdout(), logrus.InfoLevel)
+		logger = logging.New(cmd.OutOrStdout(), logrus.InfoLevel, lokiEndpoint)
 	case "4", "debug":
-		logger = logging.New(cmd.OutOrStdout(), logrus.DebugLevel)
+		logger = logging.New(cmd.OutOrStdout(), logrus.DebugLevel, lokiEndpoint)
 	case "5", "trace":
-		logger = logging.New(cmd.OutOrStdout(), logrus.TraceLevel)
+		logger = logging.New(cmd.OutOrStdout(), logrus.TraceLevel, lokiEndpoint)
 	default:
 		return nil, fmt.Errorf("unknown verbosity level %q", verbosity)
 	}

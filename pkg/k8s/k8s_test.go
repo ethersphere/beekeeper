@@ -110,7 +110,7 @@ func TestNewClient(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			response, err := NewClient(test.k8sFuncs, test.options, logging.New(io.Discard, 0))
+			response, err := NewClient(test.k8sFuncs, test.options, logging.New(io.Discard, 0, ""))
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())

@@ -35,15 +35,22 @@ type logger struct {
 	metrics metrics
 }
 
-func New(w io.Writer, level logrus.Level) Logger {
+func New(w io.Writer, level logrus.Level, lokiEndpoint string) Logger {
 	l := logrus.New()
 	l.SetOutput(w)
 	l.SetLevel(level)
 	l.Formatter = &logrus.TextFormatter{
 		FullTimestamp: true,
 	}
+
 	metrics := newMetrics()
 	l.AddHook(metrics)
+
+	if lokiEndpoint != "" {
+		loki := newLoki(lokiEndpoint)
+		l.AddHook(loki)
+	}
+
 	return &logger{
 		Logger:  l,
 		metrics: metrics,
