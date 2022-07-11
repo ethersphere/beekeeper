@@ -45,9 +45,7 @@ func (l LokiHook) Fire(entry *logrus.Entry) error {
 	if err != nil {
 		return fmt.Errorf("loki format failed: %s", err.Error())
 	}
-
 	stream.AddEntry(entry.Time, string(msg))
-	stream.AddLabel("log_level", entry.Level.String())
 	stream.AddLabel("hostname", l.hostname)
 
 	batch := loki.NewBatch()

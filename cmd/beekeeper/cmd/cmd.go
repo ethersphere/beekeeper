@@ -139,7 +139,7 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
 	globalFlags.String(optionNameLogVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
-	globalFlags.String(optionNameLokiEndpoint, "http://loki.testnet.internal/loki/api/v1/push", "loki http endpoint for pushing local logs")
+	globalFlags.String(optionNameLokiEndpoint, "", "loki http endpoint for pushing local logs (use http://loki.testnet.internal/loki/api/v1/push)")
 	globalFlags.Bool(optionNameTracingEnabled, false, "enable tracing")
 	globalFlags.String(optionNameTracingEndpoint, "tempo-tempo-distributed-distributor.observability:6831", "endpoint to send tracing data")
 	globalFlags.String(optionNameTracingHost, "", "host to send tracing data")
