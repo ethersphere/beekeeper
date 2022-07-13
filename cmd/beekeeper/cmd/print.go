@@ -18,8 +18,8 @@ func (c *command) initPrintCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "print",
 		Short: "prints information about a Bee cluster",
-		Long: `Prints information about a Bee cluster: addresses, depths, overlays, peers, topologies
-Requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies`,
+		Long: `Prints information about a Bee cluster: addresses, depths, nodes, overlays, peers, topologies
+Requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
@@ -93,6 +93,15 @@ var (
 				for n, t := range nt {
 					fmt.Printf("Node %s. overlay: %s depth: %d\n", n, t.Overlay, t.Depth)
 				}
+			}
+
+			return
+		},
+		"nodes": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
+			nodes := cluster.NodeNames()
+
+			for _, n := range nodes {
+				fmt.Printf("%s\n", n)
 			}
 
 			return
