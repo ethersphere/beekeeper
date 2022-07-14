@@ -81,7 +81,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 func testAuth(ctx context.Context, o Options, logger logging.Logger) test.ConsumeFunc {
 	return func(bee *test.BeeV2) error {
-		logger.Info("testing authentication on", bee.Name())
+		logger.Info("testing authentication on %s", bee.Name())
 
 		// refresh with bad token
 		if _, err := bee.RefreshAuthToken(ctx, "bad-token"); err == nil {
