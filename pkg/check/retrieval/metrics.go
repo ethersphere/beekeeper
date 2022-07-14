@@ -1,8 +1,7 @@
 package retrieval
 
 import (
-	m "github.com/ethersphere/bee/pkg/metrics"
-	mm "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -22,7 +21,7 @@ func newMetrics() metrics {
 	return metrics{
 		UploadedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunks_uploaded_count",
 				Help:      "Number of uploaded chunks.",
@@ -31,7 +30,7 @@ func newMetrics() metrics {
 		),
 		UploadTimeGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_upload_duration_seconds",
 				Help:      "Chunk upload duration Gauge.",
@@ -40,7 +39,7 @@ func newMetrics() metrics {
 		),
 		UploadTimeHistogram: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_upload_seconds",
 				Help:      "Chunk upload duration Histogram.",
@@ -49,7 +48,7 @@ func newMetrics() metrics {
 		),
 		DownloadedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunks_downloaded_count",
 				Help:      "Number of downloaded chunks.",
@@ -58,7 +57,7 @@ func newMetrics() metrics {
 		),
 		DownloadTimeGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_download_duration_seconds",
 				Help:      "Chunk download duration Gauge.",
@@ -67,7 +66,7 @@ func newMetrics() metrics {
 		),
 		DownloadTimeHistogram: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunk_download_seconds",
 				Help:      "Chunk download duration Histogram.",
@@ -76,7 +75,7 @@ func newMetrics() metrics {
 		),
 		RetrievedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunks_retrieved_count",
 				Help:      "Number of chunks that has been retrieved.",
@@ -85,7 +84,7 @@ func newMetrics() metrics {
 		),
 		NotRetrievedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "chunks_not_retrieved_count",
 				Help:      "Number of chunks that has not been retrieved.",

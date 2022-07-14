@@ -3,10 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/metrics"
+	"github.com/ethersphere/beekeeper/pkg/tracing"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +24,6 @@ func (c *command) initCheckCmd() (err error) {
 		optionNameTimeout              = "timeout"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
 		// TODO: optionNameStages         = "stages"
-
 	)
 
 	cmd := &cobra.Command{
@@ -51,11 +53,30 @@ func (c *command) initCheckCmd() (err error) {
 			)
 
 			if metricsEnabled {
-				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace())
-
+				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.logger)
 				// cleanup executes when the calling context terminates
 				defer cleanup()
 			}
+
+			// logger metrics
+			if l, ok := c.logger.(metrics.Reporter); ok && metricsEnabled {
+				metrics.RegisterCollectors(metricsPusher, l.Report()...)
+			}
+
+			// tracing
+			tracingEndpoint := c.globalConfig.GetString(optionNameTracingEndpoint)
+			if c.globalConfig.IsSet(optionNameTracingHost) && c.globalConfig.IsSet(optionNameTracingPort) {
+				tracingEndpoint = strings.Join([]string{c.globalConfig.GetString(optionNameTracingHost), c.globalConfig.GetString(optionNameTracingPort)}, ":")
+			}
+			tracer, tracerCloser, err := tracing.NewTracer(&tracing.Options{
+				Enabled:     c.globalConfig.GetBool(optionNameTracingEnabled),
+				Endpoint:    tracingEndpoint,
+				ServiceName: c.globalConfig.GetString(optionNameTracingServiceName),
+			})
+			if err != nil {
+				return fmt.Errorf("tracer: %w", err)
+			}
+			defer tracerCloser.Close()
 
 			// set global config
 			checkGlobalConfig := config.CheckGlobalConfig{
@@ -83,7 +104,8 @@ func (c *command) initCheckCmd() (err error) {
 				}
 
 				// create check
-				chk := check.NewAction()
+				chk := check.NewAction(c.logger)
+				chk = beekeeper.NewActionMiddleware(tracer, chk, checkName)
 				if r, ok := chk.(metrics.Reporter); ok && metricsEnabled {
 					metrics.RegisterCollectors(metricsPusher, r.Report()...)
 				}
@@ -93,17 +115,17 @@ func (c *command) initCheckCmd() (err error) {
 					defer cancel()
 				}
 
-				c := make(chan error, 1)
+				ch := make(chan error, 1)
 
 				go func() {
-					c <- chk.Run(ctx, cluster, o)
-					close(c)
+					ch <- chk.Run(ctx, cluster, o)
+					close(ch)
 				}()
 
 				select {
 				case <-ctx.Done():
 					return fmt.Errorf("running check %s: %w", checkName, ctx.Err())
-				case err = <-c:
+				case err = <-ch:
 					if err != nil {
 						return fmt.Errorf("running check %s: %w", checkName, err)
 					}

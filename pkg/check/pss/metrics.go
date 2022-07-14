@@ -1,8 +1,7 @@
 package pss
 
 import (
-	m "github.com/ethersphere/bee/pkg/metrics"
-	mm "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -15,7 +14,7 @@ func newMetrics() metrics {
 	return metrics{
 		SendAndReceiveGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "pss_total_duration",
 				Help:      "total duration between sending a message and receiving it on the other end.",

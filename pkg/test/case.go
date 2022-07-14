@@ -2,11 +2,11 @@ package bee
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -16,6 +16,7 @@ type CheckCase struct {
 	clients  map[string]*bee.Client
 	cluster  orchestration.Cluster
 	overlays orchestration.ClusterOverlays
+	logger   logging.Logger
 
 	nodes []BeeV2
 
@@ -37,7 +38,7 @@ type CaseOptions struct {
 	Role                string
 }
 
-func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts CaseOptions) (*CheckCase, error) {
+func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts CaseOptions, logger logging.Logger) (*CheckCase, error) {
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return nil, err
@@ -49,7 +50,7 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 	}
 
 	rnd := random.PseudoGenerator(caseOpts.Seed)
-	fmt.Printf("Seed: %d\n", caseOpts.Seed)
+	logger.Infof("Seed: %d", caseOpts.Seed)
 
 	flatOverlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -57,7 +58,7 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 	}
 
 	rnds := random.PseudoGenerators(caseOpts.Seed, len(flatOverlays))
-	fmt.Printf("Seed: %d\n", caseOpts.Seed)
+	logger.Infof("Seed: %d", caseOpts.Seed)
 
 	var (
 		nodes []BeeV2
@@ -82,6 +83,7 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 		nodes:    nodes,
 		rnd:      rnd,
 		options:  caseOpts,
+		logger:   logger,
 	}, nil
 }
 
@@ -93,6 +95,7 @@ func (c *CheckCase) RandomBee() *BeeV2 {
 		name:    nodeName,
 		overlay: overlay,
 		client:  c.clients[nodeName],
+		logger:  c.logger,
 	}
 }
 

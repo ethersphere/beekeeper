@@ -13,6 +13,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	proxyClient "github.com/ethersphere/ethproxy/pkg/api/client"
@@ -62,16 +63,19 @@ var _ beekeeper.Action = (*Simulation)(nil)
 // Simulation instance
 type Simulation struct {
 	metrics metrics
+	logger  logging.Logger
 }
 
 // NewSimulation returns new upload simulation
-func NewSimulation() beekeeper.Action {
-	return &Simulation{newMetrics("")}
+func NewSimulation(logger logging.Logger) beekeeper.Action {
+	return &Simulation{
+		metrics: newMetrics(""),
+		logger:  logger,
+	}
 }
 
 // Run executes upload stress
 func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
-
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -125,7 +129,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 
 			nodeIP := GetIPFromUnderlays(nodeAddr.Underlay)
 
-			fmt.Printf("freezing block number for node %s ip %s\n", n, nodeIP)
+			s.logger.Infof("freezing block number for node %s ip %s", n, nodeIP)
 
 			cancelID, err := proxy.Execute(proxyClient.BlockNumberFreeze, nodeIP)
 			if err != nil {
@@ -147,7 +151,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 		index := rnd.Intn(len(uploadNames))
 		uploadName := uploadNames[index]
 		uploadNode := clients[uploadName]
-		fmt.Printf("using node %s as uploader\n", uploadName)
+		s.logger.Infof("using node %s as uploader", uploadName)
 
 		err := uploadChunks(ctx, rnd, o, uploadNode, chunks)
 		if err != nil {
@@ -164,13 +168,13 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 			downloadName := randomCmp(rnd, uploadName, names)
 			downloadNode := clients[downloadName]
 
-			fmt.Printf("using node %s as downloader\n", downloadName)
+			s.logger.Infof("using node %s as downloader", downloadName)
 
 			downloaded = downloadChunks(ctx, o, uploaded, downloadNode, chunks)
 
-			fmt.Printf("%d out of %d_malfunctioning backends\n", malfunctionEth, len(names))
-			fmt.Printf("uploaded to %s %d chunks\n", uploadName, uploaded)
-			fmt.Printf("downloaded from %s %d chunks\n", downloadName, downloaded)
+			s.logger.Infof("%d out of %d_malfunctioning backends", malfunctionEth, len(names))
+			s.logger.Infof("uploaded to %s %d chunks", uploadName, uploaded)
+			s.logger.Infof("downloaded from %s %d chunks", downloadName, downloaded)
 
 			s.metrics.DownloadCount.WithLabelValues(metricStr).Inc()
 

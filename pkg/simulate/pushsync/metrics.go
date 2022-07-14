@@ -1,8 +1,7 @@
 package pushsync
 
 import (
-	m "github.com/ethersphere/bee/pkg/metrics"
-	mm "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -18,7 +17,7 @@ func newMetrics(runID string) metrics {
 	return metrics{
 		UploadedChunks: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -30,7 +29,7 @@ func newMetrics(runID string) metrics {
 		),
 		DownloadedChunks: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -42,7 +41,7 @@ func newMetrics(runID string) metrics {
 		),
 		DownloadCount: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,

@@ -13,6 +13,7 @@ import (
 	"github.com/ethersphere/bee/pkg/crypto"
 	"github.com/ethersphere/bee/pkg/soc"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
@@ -39,12 +40,16 @@ func NewDefaultOptions() Options {
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type Check struct{}
+// Check instance.
+type Check struct {
+	logger logging.Logger
+}
 
-// NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+// NewCheck returns a new check instance.
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -108,26 +113,26 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}
-	fmt.Printf("node %s: batch id %s\n", nodeName, batchID)
+	c.logger.Infof("node %s: batch id %s", nodeName, batchID)
 
-	fmt.Printf("soc: submitting soc chunk %s to node %s\n", sch.Address().String(), nodeName)
-	fmt.Printf("soc: owner %s\n", owner)
-	fmt.Printf("soc: id %s\n", id)
-	fmt.Printf("soc: sig %s\n", sig)
+	c.logger.Infof("soc: submitting soc chunk %s to node %s", sch.Address().String(), nodeName)
+	c.logger.Infof("soc: owner %s", owner)
+	c.logger.Infof("soc: id %s", id)
+	c.logger.Infof("soc: sig %s", sig)
 
 	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data(), batchID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("soc: chunk uploaded to node %s\n", nodeName)
+	c.logger.Infof("soc: chunk uploaded to node %s", nodeName)
 
 	retrieved, err := node.DownloadChunk(ctx, ref, "")
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("soc: chunk retrieved from node %s\n", nodeName)
+	c.logger.Infof("soc: chunk retrieved from node %s", nodeName)
 
 	if !bytes.Equal(retrieved, chunkData) {
 		return errors.New("soc: retrieved chunk data does NOT match soc chunk")
