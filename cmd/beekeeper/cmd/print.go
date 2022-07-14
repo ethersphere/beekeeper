@@ -19,11 +19,11 @@ func (c *command) initPrintCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "print",
 		Short: "prints information about a Bee cluster",
-		Long: `Prints information about a Bee cluster: addresses, depths, nodes, overlays, peers, topologies
-Requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies`,
+		Long: `Prints information about a Bee cluster: addresses, depths, overlays, peers, topologies
+Requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
-				return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies")
+				return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
 			}
 
 			for k := range printFuncs {
@@ -32,7 +32,7 @@ Requires exactly one argument from the following list: addresses, depths, nodes,
 				}
 			}
 
-			return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies")
+			return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
@@ -93,15 +93,6 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 			for n, t := range nt {
 				logger.Infof("Node %s. overlay: %s depth: %d", n, t.Overlay, t.Depth)
 			}
-		}
-
-		return
-	},
-	"nodes": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
-		nodes := cluster.NodeNames()
- 
-		for _, n := range nodes {
-			logger.Infof("%s\n", n)
 		}
 
 		return
