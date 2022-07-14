@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/ethersphere/bee/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
@@ -24,6 +25,7 @@ var ErrKubeconfigNotSet = errors.New("kubeconfig is not set")
 // Client manages communication with the Kubernetes
 type Client struct {
 	clientset kubernetes.Interface // Kubernetes client must handle authentication implicitly.
+	logger    logging.Logger
 
 	// Services that K8S provides
 	ConfigMap      *configmap.Client
@@ -55,7 +57,7 @@ type ClientSetup struct {
 }
 
 // NewClient returns Kubernetes clientset
-func NewClient(s *ClientSetup, o *ClientOptions) (c *Client, err error) {
+func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Client, err error) {
 	// set default options in case they are not provided
 	if o == nil {
 		o = &ClientOptions{
@@ -76,7 +78,7 @@ func NewClient(s *ClientSetup, o *ClientOptions) (c *Client, err error) {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
 		}
 
-		return newClient(clientset), nil
+		return newClient(clientset, logger), nil
 	}
 
 	// set client
@@ -106,13 +108,16 @@ func NewClient(s *ClientSetup, o *ClientOptions) (c *Client, err error) {
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
 
-	return newClient(clientset), nil
+	return newClient(clientset, logger), nil
 }
 
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all other services.
-func newClient(clientset *kubernetes.Clientset) (c *Client) {
-	c = &Client{clientset: clientset}
+func newClient(clientset *kubernetes.Clientset, logger logging.Logger) (c *Client) {
+	c = &Client{
+		clientset: clientset,
+		logger:    logger,
+	}
 
 	c.ConfigMap = configmap.NewClient(clientset)
 	c.Ingress = ingress.NewClient(clientset)

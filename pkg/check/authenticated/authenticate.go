@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	test "github.com/ethersphere/beekeeper/pkg/test"
 )
@@ -27,11 +28,15 @@ func NewDefaultOptions() (opts Options) {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	logger logging.Logger
+}
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return new(Check)
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -41,10 +46,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if o.DryRun {
-		return dryRun(ctx, cluster, o)
+		return dryRun(ctx, cluster, o, c.logger)
 	}
 
-	fmt.Println("running authenticated check")
+	c.logger.Info("running authenticated check")
 
 	caseOpts := test.CaseOptions{
 		AdminPassword:       o.AdminPassword,
@@ -52,7 +57,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		Role:                o.Role,
 	}
 
-	checkCase, err := test.NewCheckCase(ctx, cluster, caseOpts)
+	checkCase, err := test.NewCheckCase(ctx, cluster, caseOpts, c.logger)
 	if err != nil {
 		return err
 	}
@@ -63,20 +68,20 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	// testing closure
-	checkAuth := testAuth(ctx, o)
+	checkAuth := testAuth(ctx, o, c.logger)
 
 	// execute test
 	if err := checkCase.Bees().Filter(restricted).ForEach(checkAuth); err != nil {
 		return err
 	}
 
-	fmt.Println("authenticated check completed successfully")
+	c.logger.Info("authenticated check completed successfully")
 	return
 }
 
-func testAuth(ctx context.Context, o Options) test.ConsumeFunc {
+func testAuth(ctx context.Context, o Options, logger logging.Logger) test.ConsumeFunc {
 	return func(bee *test.BeeV2) error {
-		fmt.Println("testing authentication on", bee.Name())
+		logger.Info("testing authentication on", bee.Name())
 
 		// refresh with bad token
 		if _, err := bee.RefreshAuthToken(ctx, "bad-token"); err == nil {
@@ -112,7 +117,7 @@ func testAuth(ctx context.Context, o Options) test.ConsumeFunc {
 }
 
 // dryRun does nothing
-func dryRun(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
-	fmt.Println("running authenticated check (dry run mode)")
-	return nil //success
+func dryRun(ctx context.Context, cluster orchestration.Cluster, opts interface{}, logger logging.Logger) error {
+	logger.Info("running authenticated check (dry run mode)")
+	return nil // success
 }

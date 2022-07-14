@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
@@ -45,11 +46,15 @@ var _ beekeeper.Action = (*Check)(nil)
 // Check instance
 type Check struct {
 	metrics metrics
+	logger  logging.Logger
 }
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{newMetrics()}
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		metrics: newMetrics(),
+		logger:  logger,
+	}
 }
 
 // Run creates file of specified size that is uploaded and downloaded.
@@ -59,8 +64,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("invalid options type")
 	}
 
-	fmt.Println("random seed: ", o.RndSeed)
-	fmt.Println("content size: ", o.ContentSize)
+	c.logger.Info("random seed: ", o.RndSeed)
+	c.logger.Info("content size: ", o.ContentSize)
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 
@@ -77,14 +82,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	ctx, cancel := context.WithTimeout(ctx, 12*time.Hour)
 	defer cancel()
 
-	test := &test{opt: o, ctx: ctx, clients: clients}
+	test := &test{opt: o, ctx: ctx, clients: clients, logger: c.logger}
 
 	for i := 0; true; i++ {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-			fmt.Printf("starting iteration: #%d\n", i)
+			c.logger.Infof("starting iteration: #%d", i)
 		}
 
 		perm := rnd.Perm(cluster.Size())
@@ -100,8 +105,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		txName := nn[txIdx]
 		rxName := nn[rxIdx]
 
-		fmt.Printf("uploader: %s\n", txName)
-		fmt.Printf("downloader: %s\n", rxName)
+		c.logger.Infof("uploader: %s", txName)
+		c.logger.Infof("downloader: %s", rxName)
 
 		var (
 			txDuration time.Duration
@@ -113,7 +118,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		txData = make([]byte, o.ContentSize)
 		if _, err := rand.Read(txData); err != nil {
-			fmt.Printf("unable to create random content: %v\n", err)
+			c.logger.Infof("unable to create random content: %v", err)
 			continue
 		}
 
@@ -129,8 +134,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			address, txDuration, err = test.upload(txName, txData)
 			if err != nil {
 				c.metrics.UploadErrors.Inc()
-				fmt.Printf("upload failed: %v\n", err)
-				fmt.Printf("retrying in: %v\n", o.TxOnErrWait)
+				c.logger.Infof("upload failed: %v", err)
+				c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 				time.Sleep(o.TxOnErrWait)
 			}
 		}
@@ -153,8 +158,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			rxData, rxDuration, err = test.download(rxName, address)
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
-				fmt.Printf("download failed: %v\n", err)
-				fmt.Printf("retrying in: %v\n", o.RxOnErrWait)
+				c.logger.Infof("download failed: %v", err)
+				c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 				time.Sleep(o.RxOnErrWait)
 			}
 		}
@@ -165,15 +170,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 
 		if !bytes.Equal(rxData, txData) {
-			fmt.Println("uploaded data does not match downloaded data")
+			c.logger.Info("uploaded data does not match downloaded data")
 
 			c.metrics.DownloadMismatch.Inc()
 
 			rxLen, txLen := len(rxData), len(txData)
 			if rxLen != txLen {
-				fmt.Printf("length mismatch: rx length %d; tx length %d\n", rxLen, txLen)
+				c.logger.Infof("length mismatch: rx length %d; tx length %d", rxLen, txLen)
 				if txLen < rxLen {
-					fmt.Println("length mismatch: rx length is bigger then tx length")
+					c.logger.Info("length mismatch: rx length is bigger then tx length")
 				}
 				continue
 			}
@@ -184,7 +189,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 					diff++
 				}
 			}
-			fmt.Printf("data mismatch: found %d different bytes, ~%.2f%%\n", diff, float64(diff)/float64(txLen)*100)
+			c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
 			continue
 		}
 
@@ -201,6 +206,7 @@ type test struct {
 	opt     Options
 	ctx     context.Context
 	clients map[string]*bee.Client
+	logger  logging.Logger
 }
 
 func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
@@ -209,30 +215,30 @@ func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, 
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
 	}
-	fmt.Printf("node %s: batch id %s\n", cName, batchID)
+	t.logger.Infof("node %s: batch id %s", cName, batchID)
 
-	fmt.Printf("node %s: uploading data\n", cName)
+	t.logger.Infof("node %s: uploading data", cName)
 	start := time.Now()
 	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Deferred: false})
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
 	}
 	txDuration := time.Since(start)
-	fmt.Printf("node %s: upload done in %s\n", cName, txDuration)
+	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
 
 	return addr, txDuration, nil
 }
 
 func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration, error) {
 	client := t.clients[cName]
-	fmt.Printf("node %s: downloading data\n", cName)
+	t.logger.Infof("node %s: downloading data", cName)
 	start := time.Now()
 	data, err := client.DownloadBytes(t.ctx, addr)
 	if err != nil {
 		return nil, 0, fmt.Errorf("download from node %s: %w", cName, err)
 	}
 	rxDuration := time.Since(start)
-	fmt.Printf("node %s: download done in %s\n", cName, rxDuration)
+	t.logger.Infof("node %s: download done in %s", cName, rxDuration)
 
 	return data, rxDuration, nil
 }

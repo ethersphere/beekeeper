@@ -26,6 +26,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"gopkg.in/yaml.v3"
 )
@@ -39,7 +40,7 @@ type Check struct {
 
 // CheckType is used for linking beekeeper actions with check and it's proper options
 type CheckType struct {
-	NewAction  func() beekeeper.Action                             // links check with beekeeper action
+	NewAction  func(logging.Logger) beekeeper.Action               // links check with beekeeper action
 	NewOptions func(CheckGlobalConfig, Check) (interface{}, error) // check options
 }
 
@@ -509,6 +510,7 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err er
 			}
 		default:
 			if lv.Field(i).IsNil() {
+				// TODO logger
 				fmt.Printf("field %s not set, using default value\n", fieldName)
 			} else {
 				fieldType := lt.Field(i).Type

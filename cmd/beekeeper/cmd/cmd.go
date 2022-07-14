@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -11,12 +12,14 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -25,11 +28,18 @@ import (
 )
 
 const (
-	optionNameConfigDir         = "config-dir"
-	optionNameConfigGitRepo     = "config-git-repo"
-	optionNameConfigGitBranch   = "config-git-branch"
-	optionNameConfigGitUsername = "config-git-username"
-	optionNameConfigGitPassword = "config-git-password"
+	optionNameConfigDir          = "config-dir"
+	optionNameConfigGitRepo      = "config-git-repo"
+	optionNameConfigGitBranch    = "config-git-branch"
+	optionNameConfigGitUsername  = "config-git-username"
+	optionNameConfigGitPassword  = "config-git-password"
+	optionNameLogVerbosity       = "log-verbosity"
+	optionNameLokiEndpoint       = "loki-endpoint"
+	optionNameTracingEnabled     = "tracing-enable"
+	optionNameTracingEndpoint    = "tracing-endpoint"
+	optionNameTracingHost        = "tracing-host"
+	optionNameTracingPort        = "tracing-port"
+	optionNameTracingServiceName = "tracing-service-name"
 )
 
 func init() {
@@ -48,6 +58,8 @@ type command struct {
 	k8sClient *k8s.Client
 	// swap client
 	swapClient swap.Client
+	// logger
+	logger logging.Logger
 }
 
 type option func(*command)
@@ -126,10 +138,17 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
+	globalFlags.String(optionNameLogVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
+	globalFlags.String(optionNameLokiEndpoint, "", "loki http endpoint for pushing local logs (use http://loki.testnet.internal/loki/api/v1/push)")
+	globalFlags.Bool(optionNameTracingEnabled, false, "enable tracing")
+	globalFlags.String(optionNameTracingEndpoint, "tempo-tempo-distributed-distributor.observability:6831", "endpoint to send tracing data")
+	globalFlags.String(optionNameTracingHost, "", "host to send tracing data")
+	globalFlags.String(optionNameTracingPort, "", "port to send tracing data")
+	globalFlags.String(optionNameTracingServiceName, "beekeeper", "service name identifier for tracing")
 }
 
 func (c *command) bindGlobalFlags() (err error) {
-	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword} {
+	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameLogVerbosity, optionNameLokiEndpoint} {
 		if err := c.globalConfig.BindPFlag(flag, c.root.PersistentFlags().Lookup(flag)); err != nil {
 			return err
 		}
@@ -170,6 +189,18 @@ func (c *command) initConfig() (err error) {
 	c.globalConfig = cfg
 	if err := c.bindGlobalFlags(); err != nil {
 		return err
+	}
+
+	// init logger
+	verbosity := c.globalConfig.GetString(optionNameLogVerbosity)
+	lokiEndpoint := c.globalConfig.GetString(optionNameLokiEndpoint)
+	if verbosity != "" {
+		verbosity = strings.ToLower(verbosity)
+		c.logger, err = newLogger(c.root, verbosity, lokiEndpoint)
+		if err != nil {
+			return fmt.Errorf("new logger: %w", err)
+		}
+		c.logger.Infof("verbosity log level: %v", c.logger.GetLevel())
 	}
 
 	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
@@ -258,6 +289,7 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 	if err := c.globalConfig.BindPFlags(cmd.Flags()); err != nil {
 		return err
 	}
+
 	// set Kubernetes client
 	if err := c.setK8S(); err != nil {
 		return err
@@ -286,7 +318,7 @@ func (c *command) setK8S() (err error) {
 			KubeconfigPath: c.globalConfig.GetString("kubeconfig"),
 		}
 
-		if c.k8sClient, err = k8s.NewClient(s, o); err != nil && err != k8s.ErrKubeconfigNotSet {
+		if c.k8sClient, err = k8s.NewClient(s, o, c.logger); err != nil && err != k8s.ErrKubeconfigNotSet {
 			return fmt.Errorf("creating Kubernetes client: %w", err)
 		}
 	}
@@ -304,10 +336,31 @@ func (c *command) setSwapClient() (err error) {
 		c.swapClient = swap.NewGethClient(gethUrl, &swap.GethClientOptions{
 			BzzTokenAddress: c.globalConfig.GetString("bzz-token-address"),
 			EthAccount:      c.globalConfig.GetString("eth-account"),
-		})
+		}, c.logger)
 	} else {
 		c.swapClient = &swap.NotSet{}
 	}
 
 	return
+}
+
+func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string) (logging.Logger, error) {
+	var logger logging.Logger
+	switch verbosity {
+	case "0", "silent":
+		logger = logging.New(io.Discard, 0, "")
+	case "1", "error":
+		logger = logging.New(cmd.OutOrStdout(), logrus.ErrorLevel, lokiEndpoint)
+	case "2", "warn":
+		logger = logging.New(cmd.OutOrStdout(), logrus.WarnLevel, lokiEndpoint)
+	case "3", "info":
+		logger = logging.New(cmd.OutOrStdout(), logrus.InfoLevel, lokiEndpoint)
+	case "4", "debug":
+		logger = logging.New(cmd.OutOrStdout(), logrus.DebugLevel, lokiEndpoint)
+	case "5", "trace":
+		logger = logging.New(cmd.OutOrStdout(), logrus.TraceLevel, lokiEndpoint)
+	default:
+		return nil, fmt.Errorf("unknown verbosity level %q", verbosity)
+	}
+	return logger, nil
 }

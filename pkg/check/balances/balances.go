@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	test "github.com/ethersphere/beekeeper/pkg/test"
 )
@@ -44,11 +45,15 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
-type Check struct{}
+type Check struct {
+	logger logging.Logger
+}
 
 // NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -58,11 +63,11 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if o.DryRun {
-		fmt.Println("running balances (dry mode)")
-		return dryRun(ctx, cluster, o)
+		c.logger.Info("running balances (dry mode)")
+		return dryRun(ctx, cluster, o, c.logger)
 	}
 
-	fmt.Println("running balances")
+	c.logger.Info("running balances")
 
 	var checkCase *test.CheckCase
 
@@ -76,7 +81,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		Seed:          o.Seed,
 	}
 
-	if checkCase, err = test.NewCheckCase(ctx, cluster, caseOpts); err != nil {
+	if checkCase, err = test.NewCheckCase(ctx, cluster, caseOpts, c.logger); err != nil {
 		return err
 	}
 
@@ -86,11 +91,11 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	// initial validation
-	if err := validateBalances(balances); err != nil {
+	if err := validateBalances(balances, c.logger); err != nil {
 		return fmt.Errorf("invalid initial balances: %v", err)
 	}
 
-	fmt.Println("Balances are valid")
+	c.logger.Info("Balances are valid")
 
 	// repeats
 	for i := 0; i < o.UploadNodeCount; i++ {
@@ -107,7 +112,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return err
 		}
 
-		if err := expectBalancesHaveChanged(ctx, balances, newBalances); err != nil {
+		if err := expectBalancesHaveChanged(ctx, balances, newBalances, c.logger); err != nil {
 			return err
 		}
 
@@ -123,7 +128,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return err
 		}
 
-		if err := expectBalancesHaveChanged(ctx, balances, newBalances); err != nil {
+		if err := expectBalancesHaveChanged(ctx, balances, newBalances, c.logger); err != nil {
 			return err
 		}
 	}
@@ -132,35 +137,35 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 }
 
 // dryRun executes balances validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options) (err error) {
+func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options, logger logging.Logger) (err error) {
 	balances, err := cluster.Balances(ctx)
 	if err != nil {
 		return err
 	}
 
 	flatBalances := flattenBalances(balances)
-	if err := validateBalances(flatBalances); err != nil {
+	if err := validateBalances(flatBalances, logger); err != nil {
 		return fmt.Errorf("invalid balances")
 	}
 
-	fmt.Println("Balances are valid")
+	logger.Info("Balances are valid")
 
 	return
 }
 
-func expectBalancesHaveChanged(ctx context.Context, balances, newBalances orchestration.NodeGroupBalances) error {
+func expectBalancesHaveChanged(ctx context.Context, balances, newBalances orchestration.NodeGroupBalances, logger logging.Logger) error {
 	for t := 0; t < 5; t++ {
 		time.Sleep(2 * time.Duration(t) * time.Second)
 
-		balancesHaveChanged(newBalances, balances)
+		balancesHaveChanged(newBalances, balances, logger)
 
-		if err := validateBalances(newBalances); err != nil {
-			fmt.Println("Invalid balances after downloading a file:", err)
-			fmt.Println("Retrying ...", t)
+		if err := validateBalances(newBalances, logger); err != nil {
+			logger.Info("Invalid balances after downloading a file:", err)
+			logger.Info("Retrying ...", t)
 			continue
 		}
 
-		fmt.Println("Balances are valid")
+		logger.Info("Balances are valid")
 
 		break
 	}
@@ -169,17 +174,17 @@ func expectBalancesHaveChanged(ctx context.Context, balances, newBalances orches
 }
 
 // validateBalances checks balances symmetry
-func validateBalances(balances map[string]map[string]int64) (err error) {
+func validateBalances(balances map[string]map[string]int64, logger logging.Logger) (err error) {
 	var noSymmetry bool
 
 	for node, v := range balances {
 		for peer, balance := range v {
 			diff := balance + balances[peer][node]
 			if diff != 0 {
-				fmt.Printf("Node %s has asymmetric balance with peer %s\n", node, peer)
-				fmt.Printf("Node %s has balance %d with peer %s\n", node, balance, peer)
-				fmt.Printf("Peer %s has balance %d with node %s\n", peer, balances[peer][node], node)
-				fmt.Printf("Difference: %d\n", diff)
+				logger.Infof("Node %s has asymmetric balance with peer %s", node, peer)
+				logger.Infof("Node %s has balance %d with peer %s", node, balance, peer)
+				logger.Infof("Peer %s has balance %d with node %s", peer, balances[peer][node], node)
+				logger.Infof("Difference: %d", diff)
 				noSymmetry = true
 			}
 		}
@@ -192,16 +197,16 @@ func validateBalances(balances map[string]map[string]int64) (err error) {
 }
 
 // balancesHaveChanged checks if balances have changed
-func balancesHaveChanged(current, previous orchestration.NodeGroupBalances) {
+func balancesHaveChanged(current, previous orchestration.NodeGroupBalances, logger logging.Logger) {
 	for node, v := range current {
 		for peer, balance := range v {
 			if balance != previous[node][peer] {
-				fmt.Println("Balances have changed")
+				logger.Info("Balances have changed")
 				return
 			}
 		}
 	}
-	fmt.Println("Balances have not changed")
+	logger.Info("Balances have not changed")
 }
 
 // flattenBalances convenience function

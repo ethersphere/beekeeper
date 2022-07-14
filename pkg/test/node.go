@@ -9,6 +9,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 type BeeV2 struct {
@@ -18,6 +19,7 @@ type BeeV2 struct {
 	rnd     *rand.Rand
 	overlay swarm.Address
 	client  *bee.Client
+	logger  logging.Logger
 }
 
 func (b *BeeV2) Name() string {
@@ -50,14 +52,14 @@ func (b *BeeV2) UploadFile(ctx context.Context, file File) error {
 	if err != nil {
 		return fmt.Errorf("node %s: created batch id %w", b.name, err)
 	}
-	fmt.Printf("node %s: created batch id %s\n", b.name, batchID)
+	b.logger.Infof("node %s: created batch id %s", b.name, batchID)
 
 	randomFile := bee.NewRandomFile(file.rand, file.name, file.size)
 	if err := b.client.UploadFile(ctx, &randomFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return fmt.Errorf("node %s: %w", b.name, err)
 	}
 
-	fmt.Println("Uploaded file to", b.name)
+	b.logger.Info("Uploaded file to", b.name)
 
 	return nil
 }
@@ -68,7 +70,7 @@ func (b *BeeV2) ExpectToHaveFile(ctx context.Context, file File) error {
 		return fmt.Errorf("node %s: %w", b.name, err)
 	}
 
-	fmt.Println("Downloaded file from", b.name)
+	b.logger.Info("Downloaded file from", b.name)
 
 	if !bytes.Equal(file.hash, hash) {
 		return fmt.Errorf("file %s not retrieved successfully from node %s. Uploaded size: %d Downloaded size: %d", file.address.String(), b.name, file.size, size)
@@ -83,7 +85,7 @@ func (b *BeeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("node %s: batch id %w", b.name, err)
 	}
-	fmt.Printf("node %s: batch id %s\n", b.name, batchID)
+	b.logger.Infof("node %s: batch id %s", b.name, batchID)
 
 	return &ChunkUploader{
 		ctx:     ctx,
@@ -91,5 +93,6 @@ func (b *BeeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 		name:    b.name,
 		client:  b.client,
 		batchID: batchID,
+		logger:  b.logger,
 	}, nil
 }

@@ -20,11 +20,11 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	clusterOptions.K8SClient = c.k8sClient
 	clusterOptions.SwapClient = c.swapClient
 
-	cluster := orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions)
+	cluster := orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions, c.logger)
 
 	// delete node groups
 	for ng, v := range clusterConfig.GetNodeGroups() {
-		fmt.Printf("deleting %s node group\n", ng)
+		c.logger.Infof("deleting %s node group", ng)
 		ngConfig, ok := cfg.NodeGroups[v.Config]
 		if !ok {
 			return fmt.Errorf("node group profile %s not defined", v.Config)
@@ -114,7 +114,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	clusterOptions.K8SClient = c.k8sClient
 	clusterOptions.SwapClient = c.swapClient
 
-	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions)
+	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions, c.logger)
 
 	if start {
 		bootnodes := ""

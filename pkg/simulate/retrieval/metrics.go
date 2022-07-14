@@ -1,8 +1,7 @@
 package retrieval
 
 import (
-	m "github.com/ethersphere/bee/pkg/metrics"
-	mm "github.com/ethersphere/beekeeper/pkg/metrics"
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -29,7 +28,7 @@ func newMetrics(runID string) metrics {
 	return metrics{
 		UploadedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -41,7 +40,7 @@ func newMetrics(runID string) metrics {
 		),
 		NotUploadedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -53,7 +52,7 @@ func newMetrics(runID string) metrics {
 		),
 		UploadTimeGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -65,7 +64,7 @@ func newMetrics(runID string) metrics {
 		),
 		UploadTimeHistogram: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -77,7 +76,7 @@ func newMetrics(runID string) metrics {
 		),
 		DownloadedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -89,7 +88,7 @@ func newMetrics(runID string) metrics {
 		),
 		NotDownloadedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -101,7 +100,7 @@ func newMetrics(runID string) metrics {
 		),
 		DownloadTimeGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -113,7 +112,7 @@ func newMetrics(runID string) metrics {
 		),
 		DownloadTimeHistogram: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -125,7 +124,7 @@ func newMetrics(runID string) metrics {
 		),
 		RetrievedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -137,7 +136,7 @@ func newMetrics(runID string) metrics {
 		),
 		NotRetrievedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -149,7 +148,7 @@ func newMetrics(runID string) metrics {
 		),
 		SyncedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -161,7 +160,7 @@ func newMetrics(runID string) metrics {
 		),
 		NotSyncedCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -173,7 +172,7 @@ func newMetrics(runID string) metrics {
 		),
 		SyncTagsTimeGauge: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,
@@ -185,7 +184,7 @@ func newMetrics(runID string) metrics {
 		),
 		SyncTagsTimeHistogram: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: mm.Namespace,
+				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				ConstLabels: prometheus.Labels{
 					"run": runID,

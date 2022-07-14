@@ -6,6 +6,7 @@ import (
 	mbig "math/big"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
@@ -36,12 +37,16 @@ func NewDefaultOptions() Options {
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type Check struct{}
+// Check instance.
+type Check struct {
+	logger logging.Logger
+}
 
-// NewCheck returns new check
-func NewCheck() beekeeper.Action {
-	return &Check{}
+// NewCheck returns a new check instance.
+func NewCheck(logger logging.Logger) beekeeper.Action {
+	return &Check{
+		logger: logger,
+	}
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -87,7 +92,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		)
 	}
 
-	fmt.Printf("node %s: created new batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: created new batch id %s", node, batchID)
 
 	err = client.TopUpPostageBatch(ctx, batchID, o.PostageTopupAmount, o.GasPrice)
 	if err != nil {
@@ -118,7 +123,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		)
 	}
 
-	fmt.Printf("node %s: topped up batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: topped up batch id %s", node, batchID)
 
 	depthChange := o.PostageNewDepth - o.PostageDepth
 
@@ -151,7 +156,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		)
 	}
 
-	fmt.Printf("node %s: diluted batch id %s\n", node, batchID)
+	c.logger.Infof("node %s: diluted batch id %s", node, batchID)
 
 	return
 }

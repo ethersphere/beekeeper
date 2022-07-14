@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 type ChunkUploader struct {
@@ -16,6 +17,7 @@ type ChunkUploader struct {
 	client  *bee.Client
 	batchID string
 	Overlay string
+	logger  logging.Logger
 }
 
 func (c *ChunkUploader) Name() string {
@@ -23,7 +25,7 @@ func (c *ChunkUploader) Name() string {
 }
 
 func (cu *ChunkUploader) UploadRandomChunk() (*chunkV2, error) {
-	chunk, err := bee.NewRandomChunk(cu.rnd)
+	chunk, err := bee.NewRandomChunk(cu.rnd, cu.logger)
 	if err != nil {
 		return nil, fmt.Errorf("node %s: %w", cu.name, err)
 	}

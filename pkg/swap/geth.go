@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 // compile check whether GethClient implements Swap interface
@@ -17,6 +19,7 @@ type GethClient struct {
 	bzzTokenAddress string
 	ethAccount      string
 	httpClient      *http.Client // HTTP client must handle authentication implicitly
+	logger          logging.Logger
 }
 
 // GethClientOptions holds optional parameters for the GethClient
@@ -27,7 +30,7 @@ type GethClientOptions struct {
 }
 
 // NewClient constructs a new Client.
-func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
+func NewGethClient(baseURL *url.URL, o *GethClientOptions, logger logging.Logger) (gc *GethClient) {
 	if o == nil {
 		o = new(GethClientOptions)
 	}
@@ -44,10 +47,11 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions) (c *GethClient) {
 		o.EthAccount = EthAccount
 	}
 
-	c = &GethClient{
+	gc = &GethClient{
 		bzzTokenAddress: o.BzzTokenAddress,
 		ethAccount:      o.EthAccount,
 		httpClient:      httpClientWithTransport(baseURL, o.HTTPClient),
+		logger:          logger,
 	}
 
 	return

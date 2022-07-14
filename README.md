@@ -46,6 +46,8 @@ kubeconfig: "~/.kube/config"
 geth-url: http://geth-swap.geth-swap.dai.internal
 bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7 
 eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
+log-verbosity: "info"
+loki-endpoint: http://loki.testnet.internal/loki/api/v1/push
 ```
 
 Beekeeper reads *config-dir* from a local machine by default, but it also supports reading *config-dir* from a Git repo. If field *config-git-repo* is set, it will override *config-dir* and configuration will be read from a Git repo.
@@ -152,14 +154,14 @@ Command **check** runs ingegration tests on a Bee cluster.
 It has following flags:
 
 ```
---checks strings        list of checks to execute (default [pingpong])
---cluster-name string   cluster name (default "default")
---create-cluster        creates cluster before executing checks
---help                  help for check
---metrics-enabled       enable metrics
---seed int              seed, -1 for random (default -1)
---timeout duration      timeout (default 30m0s)
---with-funding          fund nodes (default false)
+--checks strings                  list of checks to execute (default [pingpong])
+--cluster-name string             cluster name (default "default")
+--create-cluster                  creates cluster before executing checks
+--help                            help for check
+--metrics-enabled                 enable metrics
+--metrics-pusher-address string   prometheus metrics pusher address (default "pushgateway.staging.internal")
+--seed int                        seed, -1 for random (default -1)
+--timeout duration                timeout (default 30m0s)
 ```
 
 example:
@@ -270,14 +272,14 @@ Command **simulate** runs simulations on a Bee cluster.
 It has following flags:
 
 ```
---cluster-name string   cluster name (default "default")
---create-cluster        creates cluster before executing simulations
---help                  help for check
---metrics-enabled       enable metrics
---seed int              seed, -1 for random (default -1)
---simulations strings   list of simulations to execute (default [upload])
---timeout duration      timeout (default 30m0s)
---with-funding          fund nodes (default false)
+--cluster-name string             cluster name (default "default")
+--create-cluster                  creates cluster before executing simulations
+--help                            help for check
+--metrics-enabled                 enable metrics
+--metrics-pusher-address string   prometheus metrics pusher address (default "pushgateway.staging.internal")
+--seed int                        seed, -1 for random (default -1)
+--simulations strings             list of simulations to execute (default [upload])
+--timeout duration                timeout (default 30m0s)
 ```
 
 example:
@@ -292,4 +294,25 @@ Command **version** prints version number.
 example:
 ```
 beekeeper version
+```
+
+# Global flags
+
+Global flags can be used with any command.
+
+example:
+```
+--config string                 config file (default is $HOME/.beekeeper.yaml)
+--config-dir string             config directory (default is $HOME/.beekeeper/) (default "C:\\Users\\ljubi\\.beekeeper")
+--config-git-branch string      Git branch (default "main")
+--config-git-password string    Git password or personal access tokens (needed for private repos)
+--config-git-repo string        Git repository with configurations (uses config directory when Git repo is not specified) (default "")
+--config-git-username string    Git username (needed for private repos)
+--log-verbosity string          log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace (default "info")
+--loki-endpoint string          loki http endpoint for pushing local logs (use http://loki.testnet.internal/loki/api/v1/push)
+--tracing-enable                enable tracing
+--tracing-endpoint string       endpoint to send tracing data (default "tempo-tempo-distributed-distributor.observability:6831")
+--tracing-host string           host to send tracing data
+--tracing-port string           port to send tracing data
+--tracing-service-name string   service name identifier for tracing (default "beekeeper")
 ```

@@ -10,6 +10,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
@@ -33,10 +34,11 @@ type Cluster struct {
 	namespace           string
 	disableNamespace    bool                  // do not use namespace for node hostnames
 	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
+	logger              logging.Logger
 }
 
 // NewCluster returns new cluster
-func NewCluster(name string, o orchestration.ClusterOptions) *Cluster {
+func NewCluster(name string, o orchestration.ClusterOptions, logger logging.Logger) *Cluster {
 	return &Cluster{
 		name:                name,
 		annotations:         o.Annotations,
@@ -52,12 +54,13 @@ func NewCluster(name string, o orchestration.ClusterOptions) *Cluster {
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,
 		nodeGroups:          make(map[string]*NodeGroup),
+		logger:              logger,
 	}
 }
 
 // AddNodeGroup adds new node group to the cluster
 func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
-	g := NewNodeGroup(name, o)
+	g := NewNodeGroup(name, o, c.logger)
 	g.cluster = c
 	g.k8s = c.k8s
 	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)

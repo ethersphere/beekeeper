@@ -12,6 +12,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"golang.org/x/sync/errgroup"
@@ -58,16 +59,20 @@ func NewDefaultOptions() Options {
 var _ beekeeper.Action = (*Simulation)(nil)
 
 // Simulation instance
-type Simulation struct{}
+type Simulation struct {
+	logger logging.Logger
+}
 
 // NewSimulation returns new upload simulation
-func NewSimulation() beekeeper.Action {
-	return &Simulation{}
+func NewSimulation(logger logging.Logger) beekeeper.Action {
+	return &Simulation{
+		logger: logger,
+	}
 }
 
 // Run executes upload stress
 func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
-	fmt.Println("running upload simulation")
+	s.logger.Info("running upload simulation")
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -169,27 +174,27 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 							return nil
 						}
-						fmt.Printf("error: uploading file %s (size %d) to node %s, batch ID %s: %v\n", file.Address().String(), fileSize, overlay, batchID, err)
+						s.logger.Infof("error: uploading file %s (size %d) to node %s, batch ID %s: %v", file.Address().String(), fileSize, overlay, batchID, err)
 						continue
 					}
 
 					break
 				}
 
-				fmt.Printf("File %s (size %d) uploaded to node %s, batch ID %s\n", file.Address().String(), fileSize, overlay, batchID)
+				s.logger.Infof("File %s (size %d) uploaded to node %s, batch ID %s", file.Address().String(), fileSize, overlay, batchID)
 
 				fileCount++
 				if o.FileCount > 0 && fileCount >= o.FileCount {
-					fmt.Printf("Uploaded %d files to node %s\n", fileCount, n)
+					s.logger.Infof("Uploaded %d files to node %s", fileCount, n)
 					return nil
 				}
 
 				if o.SyncUpload {
 					if err = c.WaitSync(ctx, tag.Uid); err != nil {
-						fmt.Printf("sync with node %s: %v\n", n, err)
+						s.logger.Infof("sync with node %s: %v", n, err)
 						continue
 					}
-					fmt.Printf("file %s synced successfully with node %s\n", file.Address().String(), n)
+					s.logger.Infof("file %s synced successfully with node %s", file.Address().String(), n)
 				}
 			}
 		})
@@ -199,7 +204,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 		return err
 	}
 
-	fmt.Println("upload stress completed successfully")
+	s.logger.Info("upload stress completed successfully")
 	return
 }
 
