@@ -71,6 +71,7 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 			client: clients[name],
 			rnd:    rnds[count],
 			opts:   caseOpts,
+			logger: logger,
 		})
 		count++
 	}
