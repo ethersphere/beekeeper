@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/spf13/cobra"
 )
@@ -19,11 +18,11 @@ func (c *command) initPrintCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "print",
 		Short: "prints information about a Bee cluster",
-		Long: `Prints information about a Bee cluster: addresses, depths, overlays, peers, topologies
-Requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies`,
+		Long: `Prints information about a Bee cluster: addresses, depths, nodes, overlays, peers, topologies
+Requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
-				return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
+				return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies")
 			}
 
 			for k := range printFuncs {
@@ -32,7 +31,7 @@ Requires exactly one argument from the following list: addresses, depths, overla
 				}
 			}
 
-			return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, overlays, peers, topologies")
+			return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies")
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
@@ -48,7 +47,7 @@ Requires exactly one argument from the following list: addresses, depths, overla
 				return fmt.Errorf("printing %s not implemented", args[0])
 			}
 
-			return f(ctx, cluster, c.logger)
+			return f(ctx, cluster)
 		},
 		PreRunE: c.preRunE,
 	}
@@ -61,93 +60,104 @@ Requires exactly one argument from the following list: addresses, depths, overla
 	return nil
 }
 
-var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Cluster, logger logging.Logger) (err error){
-	"addresses": func(ctx context.Context, cluster orchestration.Cluster, logger logging.Logger) (err error) {
-		addresses, err := cluster.Addresses(ctx)
-		if err != nil {
-			return err
-		}
+var (
+	printFuncs = map[string]func(ctx context.Context, cluster orchestration.Cluster) (err error){
+		"addresses": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
+			addresses, err := cluster.Addresses(ctx)
+			if err != nil {
+				return err
+			}
 
-		for ng, na := range addresses {
-			logger.Infof("Printing %s node group's addresses", ng)
-			for n, a := range na {
-				logger.Infof("Node %s. ethereum: %s", n, a.Ethereum)
-				logger.Infof("Node %s. public key: %s", n, a.PublicKey)
-				logger.Infof("Node %s. overlay: %s", n, a.Overlay)
-				for _, u := range a.Underlay {
-					logger.Infof("Node %s. underlay: %s", n, u)
+			for ng, na := range addresses {
+				fmt.Printf("Printing %s node group's addresses\n", ng)
+				for n, a := range na {
+					fmt.Printf("Node %s. ethereum: %s\n", n, a.Ethereum)
+					fmt.Printf("Node %s. public key: %s\n", n, a.PublicKey)
+					fmt.Printf("Node %s. overlay: %s\n", n, a.Overlay)
+					for _, u := range a.Underlay {
+						fmt.Printf("Node %s. underlay: %s\n", n, u)
+					}
 				}
 			}
-		}
 
-		return
-	},
-	"depths": func(ctx context.Context, cluster orchestration.Cluster, logger logging.Logger) (err error) {
-		topologies, err := cluster.Topologies(ctx)
-		if err != nil {
-			return err
-		}
-
-		for ng, nt := range topologies {
-			logger.Infof("Printing %s node group's topologies", ng)
-			for n, t := range nt {
-				logger.Infof("Node %s. overlay: %s depth: %d", n, t.Overlay, t.Depth)
+			return
+		},
+		"depths": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
+			topologies, err := cluster.Topologies(ctx)
+			if err != nil {
+				return err
 			}
-		}
 
-		return
-	},
-	"overlays": func(ctx context.Context, cluster orchestration.Cluster, logger logging.Logger) (err error) {
-		overlays, err := cluster.Overlays(ctx)
-		if err != nil {
-			return err
-		}
-
-		for ng, no := range overlays {
-			logger.Infof("Printing %s node group's overlays", ng)
-			for n, o := range no {
-				logger.Infof("Node %s. %s", n, o.String())
-			}
-		}
-
-		return
-	},
-	"peers": func(ctx context.Context, cluster orchestration.Cluster, logger logging.Logger) (err error) {
-		peers, err := cluster.Peers(ctx)
-		if err != nil {
-			return err
-		}
-
-		for ng, np := range peers {
-			logger.Infof("Printing %s node group's peers", ng)
-			for n, a := range np {
-				for _, p := range a {
-					logger.Infof("Node %s. %s", n, p)
+			for ng, nt := range topologies {
+				fmt.Printf("Printing %s node group's topologies\n", ng)
+				for n, t := range nt {
+					fmt.Printf("Node %s. overlay: %s depth: %d\n", n, t.Overlay, t.Depth)
 				}
 			}
-		}
-		return
-	},
-	"topologies": func(ctx context.Context, cluster orchestration.Cluster, logger logging.Logger) (err error) {
-		topologies, err := cluster.Topologies(ctx)
-		if err != nil {
-			return err
-		}
 
-		for ng, nt := range topologies {
-			logger.Infof("Printing %s node group's topologies", ng)
-			for n, t := range nt {
-				logger.Infof("Node %s. overlay: %s", n, t.Overlay)
-				logger.Infof("Node %s. population: %d", n, t.Population)
-				logger.Infof("Node %s. connected: %d", n, t.Connected)
-				logger.Infof("Node %s. depth: %d", n, t.Depth)
-				logger.Infof("Node %s. nnLowWatermark: %d", n, t.NnLowWatermark)
-				for k, v := range t.Bins {
-					logger.Infof("Node %s. %s %+v", n, k, v)
+			return
+		},
+		"nodes": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
+			nodes := cluster.NodeNames()
+
+			for _, n := range nodes {
+				fmt.Printf("%s\n", n)
+			}
+
+			return
+		},
+		"overlays": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
+			overlays, err := cluster.Overlays(ctx)
+			if err != nil {
+				return err
+			}
+
+			for ng, no := range overlays {
+				fmt.Printf("Printing %s node group's overlays\n", ng)
+				for n, o := range no {
+					fmt.Printf("Node %s. %s\n", n, o.String())
 				}
 			}
-		}
 
-		return
-	},
-}
+			return
+		},
+		"peers": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
+			peers, err := cluster.Peers(ctx)
+			if err != nil {
+				return err
+			}
+
+			for ng, np := range peers {
+				fmt.Printf("Printing %s node group's peers\n", ng)
+				for n, a := range np {
+					for _, p := range a {
+						fmt.Printf("Node %s. %s\n", n, p)
+					}
+				}
+			}
+			return
+		},
+		"topologies": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
+			topologies, err := cluster.Topologies(ctx)
+			if err != nil {
+				return err
+			}
+
+			for ng, nt := range topologies {
+				fmt.Printf("Printing %s node group's topologies\n", ng)
+				for n, t := range nt {
+					fmt.Printf("Node %s. overlay: %s\n", n, t.Overlay)
+					fmt.Printf("Node %s. population: %d\n", n, t.Population)
+					fmt.Printf("Node %s. connected: %d\n", n, t.Connected)
+					fmt.Printf("Node %s. depth: %d\n", n, t.Depth)
+					fmt.Printf("Node %s. nnLowWatermark: %d\n", n, t.NnLowWatermark)
+					for k, v := range t.Bins {
+						fmt.Printf("Node %s. %s %+v\n", n, k, v)
+					}
+				}
+			}
+
+			return
+		},
+	}
+)
