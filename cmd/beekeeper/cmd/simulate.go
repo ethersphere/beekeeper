@@ -105,10 +105,10 @@ func (c *command) initSimulateCmd() (err error) {
 
 				// create simulation
 				sim := simulation.NewAction(c.logger)
-				sim = beekeeper.NewActionMiddleware(tracer, sim, simulationName)
 				if s, ok := sim.(metrics.Reporter); ok && metricsEnabled {
 					metrics.RegisterCollectors(metricsPusher, s.Report()...)
 				}
+				sim = beekeeper.NewActionMiddleware(tracer, sim, simulationName)
 
 				// run simulation
 				if err := sim.Run(ctx, cluster, o); err != nil {

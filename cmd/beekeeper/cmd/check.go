@@ -105,10 +105,10 @@ func (c *command) initCheckCmd() (err error) {
 
 				// create check
 				chk := check.NewAction(c.logger)
-				chk = beekeeper.NewActionMiddleware(tracer, chk, checkName)
 				if r, ok := chk.(metrics.Reporter); ok && metricsEnabled {
 					metrics.RegisterCollectors(metricsPusher, r.Report()...)
 				}
+				chk = beekeeper.NewActionMiddleware(tracer, chk, checkName)
 
 				if checkConfig.Timeout != nil {
 					ctx, cancel = context.WithTimeout(ctx, *checkConfig.Timeout)
