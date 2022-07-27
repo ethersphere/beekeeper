@@ -176,7 +176,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			rxLen, txLen := len(rxData), len(txData)
 			if rxLen != txLen {
-				c.logger.Infof("length mismatch: rx length %d; tx length %d", rxLen, txLen)
+				c.logger.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
 				if txLen < rxLen {
 					c.logger.Info("length mismatch: rx length is bigger then tx length")
 				}
@@ -215,9 +215,7 @@ func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, 
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
 	}
-	t.logger.Infof("node %s: batch id %s", cName, batchID)
-
-	t.logger.Infof("node %s: uploading data", cName)
+	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
 	start := time.Now()
 	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Deferred: false})
 	if err != nil {
@@ -231,7 +229,7 @@ func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, 
 
 func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration, error) {
 	client := t.clients[cName]
-	t.logger.Infof("node %s: downloading data", cName)
+	t.logger.Infof("node %s: downloading address %s", cName, addr)
 	start := time.Now()
 	data, err := client.DownloadBytes(t.ctx, addr)
 	if err != nil {
