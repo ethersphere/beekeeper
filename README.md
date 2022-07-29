@@ -16,6 +16,12 @@ make binary
 cp dist/beekeeper /usr/local/bin/beekeeper
 ```
 
+# Run unit tests
+Runs available unit tests in pkg folder
+```
+make test
+```
+
 # Configuration
 
 Beekeeper is configured with:
