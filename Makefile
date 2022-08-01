@@ -35,7 +35,7 @@ test-race:
 
 .PHONY: test
 test:
-	$(GO) test -v ./...
+	$(GO) test -v ./pkg/...
 
 .PHONY: build
 build: export CGO_ENABLED=0
