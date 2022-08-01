@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
@@ -78,7 +77,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					if err != nil {
 						return fmt.Errorf("send eth: %w", err)
 					}
-					fmt.Fprintf(os.Stderr, "%s funded with %.2f ETH, transaction: %s\n", a, ethDeposit, tx)
+					c.logger.Infof("%s funded with %.2f ETH, transaction: %s\n", a, ethDeposit, tx)
 				}
 				// BZZ funding
 				bzzDeposit := c.globalConfig.GetFloat64(optionNameBzzDeposit)
@@ -87,7 +86,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					if err != nil {
 						return fmt.Errorf("deposit bzz: %w", err)
 					}
-					fmt.Fprintf(os.Stderr, "%s funded with %.2f BZZ, transaction: %s\n", a, bzzDeposit, tx)
+					c.logger.Infof("%s funded with %.2f BZZ, transaction: %s\n", a, bzzDeposit, tx)
 				}
 				// gBZZ funding
 				gBzzDeposit := c.globalConfig.GetFloat64(optionNameGBzzDeposit)
@@ -96,7 +95,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					if err != nil {
 						return fmt.Errorf("deposit gBzz: %w", err)
 					}
-					fmt.Fprintf(os.Stderr, "%s funded with %.2f gBZZ, transaction: %s\n", a, gBzzDeposit, tx)
+					c.logger.Infof("%s funded with %.2f gBZZ, transaction: %s\n", a, gBzzDeposit, tx)
 				}
 			}
 
