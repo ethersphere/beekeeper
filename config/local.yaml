@@ -360,7 +360,7 @@ checks:
     options:
       postage-amount: 1000
       postage-depth: 17
-      postage-topup-amount: 1100
+      postage-topup-amount: 2100
       postage-new-depth: 18
   ci-authenticate:
     type: authenticate
