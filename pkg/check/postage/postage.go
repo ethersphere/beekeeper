@@ -26,7 +26,7 @@ func NewDefaultOptions() Options {
 	return Options{
 		GasPrice:           "",
 		PostageAmount:      1000,
-		PostageTopupAmount: 100,
+		PostageTopupAmount: 1100,
 		PostageDepth:       17,
 		PostageNewDepth:    18,
 		PostageLabel:       "test-label",
@@ -77,7 +77,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	if batch.Amount.Int64() != o.PostageAmount {
 		return fmt.Errorf(
-			"invalid batch amount expected %d got %d, batch %s",
+			"create: invalid batch amount, expected %d got %d, batch %s",
 			o.PostageAmount,
 			batch.Amount.Int64(),
 			batchID,
@@ -85,14 +85,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 	if batch.Depth != uint8(o.PostageDepth) {
 		return fmt.Errorf(
-			"invalid batch amount expected %d got %d, batch %s",
+			"create: invalid batch depth, expected %d got %d, batch %s",
 			o.PostageDepth,
 			batch.Depth,
 			batchID,
 		)
 	}
 
-	c.logger.Infof("node %s: created new batch id %s", node, batchID)
+	c.logger.Infof("node %s: created new batch id %s, amount %d, depth %d", node, batchID, o.PostageAmount, o.PostageDepth)
+
+	c.logger.Infof("node %s: top up with amount %d", node, o.PostageTopupAmount)
 
 	err = client.TopUpPostageBatch(ctx, batchID, o.PostageTopupAmount, o.GasPrice)
 	if err != nil {
@@ -108,7 +110,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	if batch.Amount.Int64() != newAmount {
 		return fmt.Errorf(
-			"invalid batch amount expected %d got %d, batch %s",
+			"topup: invalid batch amount, expected %d got %d, batch %s",
 			newAmount,
 			batch.Amount.Int64(),
 			batchID,
@@ -116,7 +118,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 	if batch.Depth != uint8(o.PostageDepth) {
 		return fmt.Errorf(
-			"invalid batch amount expected %d got %d, batch %s",
+			"topup: invalid batch depth, expected %d got %d, batch %s",
 			o.PostageDepth,
 			batch.Depth,
 			batchID,
@@ -141,7 +143,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	if batch.Amount.Cmp(newValue2) != 0 {
 		return fmt.Errorf(
-			"invalid batch amount expected %d got %d, batch %s",
+			"dilute: invalid batch amount, expected %d got %d, batch %s",
 			newValue2.Int64(),
 			batch.Amount.Int64(),
 			batchID,
@@ -149,7 +151,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 	if batch.Depth != uint8(o.PostageNewDepth) {
 		return fmt.Errorf(
-			"invalid batch amount expected %d got %d, batch %s",
+			"dilute: invalid batch depth, expected %d got %d, batch %s",
 			o.PostageNewDepth,
 			batch.Depth,
 			batchID,
