@@ -84,7 +84,7 @@ func (p *PostageService) PostageBatches(ctx context.Context) ([]PostageStampResp
 	return resp.Stamps, nil
 }
 
-func (p *PostageService) PostageBatch(ctx context.Context, batchID string) (PostageStampResponse, error) {
+func (p *PostageService) PostageStamp(ctx context.Context, batchID string) (PostageStampResponse, error) {
 	var resp PostageStampResponse
 	err := p.client.request(ctx, http.MethodGet, "/stamps/"+batchID, nil, &resp)
 	if err != nil {

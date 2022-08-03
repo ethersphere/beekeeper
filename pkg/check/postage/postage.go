@@ -3,7 +3,6 @@ package postage
 import (
 	"context"
 	"fmt"
-	mbig "math/big"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -70,7 +69,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("node %s: batch id %w", node, err)
 	}
 
-	batch, err := client.PostageBatch(ctx, batchID)
+	batch, err := client.PostageStamp(ctx, batchID)
 	if err != nil {
 		return fmt.Errorf("failed getting postage batch %w", err)
 	}
@@ -101,7 +100,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("failed topping up batch %s with amount %d gas %s: %w", batchID, o.PostageTopupAmount, o.GasPrice, err)
 	}
 
-	batch, err = client.PostageBatch(ctx, batchID)
+	batch, err = client.PostageStamp(ctx, batchID)
 	if err != nil {
 		return fmt.Errorf("failed getting postage batch %w", err)
 	}
@@ -127,28 +126,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	c.logger.Infof("node %s: topped up batch id %s", node, batchID)
 
-	depthChange := o.PostageNewDepth - o.PostageDepth
-
-	newValue2 := mbig.NewInt(0).Div(mbig.NewInt(newAmount), mbig.NewInt(int64(1<<depthChange)))
-
 	err = client.DilutePostageBatch(ctx, batchID, o.PostageNewDepth, o.GasPrice)
 	if err != nil {
 		return fmt.Errorf("failed topping up batch %s with amount %d gas %s: %w", batchID, o.PostageTopupAmount, o.GasPrice, err)
 	}
 
-	batch, err = client.PostageBatch(ctx, batchID)
+	batch, err = client.PostageStamp(ctx, batchID)
 	if err != nil {
 		return fmt.Errorf("failed getting postage batch %w", err)
 	}
 
-	if batch.Amount.Cmp(newValue2) != 0 {
-		return fmt.Errorf(
-			"dilute: invalid batch amount, expected %d got %d, batch %s",
-			newValue2.Int64(),
-			batch.Amount.Int64(),
-			batchID,
-		)
-	}
 	if batch.Depth != uint8(o.PostageNewDepth) {
 		return fmt.Errorf(
 			"dilute: invalid batch depth, expected %d got %d, batch %s",
