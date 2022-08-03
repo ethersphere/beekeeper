@@ -194,14 +194,11 @@ func (c *command) initConfig() (err error) {
 	// init logger
 	verbosity := c.globalConfig.GetString(optionNameLogVerbosity)
 	lokiEndpoint := c.globalConfig.GetString(optionNameLokiEndpoint)
-	if verbosity != "" {
-		verbosity = strings.ToLower(verbosity)
-		c.logger, err = newLogger(c.root, verbosity, lokiEndpoint)
-		if err != nil {
-			return fmt.Errorf("new logger: %w", err)
-		}
-		c.logger.Infof("verbosity log level: %v", c.logger.GetLevel())
+	c.logger, err = newLogger(c.root, verbosity, lokiEndpoint)
+	if err != nil {
+		return fmt.Errorf("new logger: %w", err)
 	}
+	c.logger.Infof("verbosity log level: %v", c.logger.GetLevel())
 
 	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
 		// read configuration from git repo
@@ -346,7 +343,7 @@ func (c *command) setSwapClient() (err error) {
 
 func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string) (logging.Logger, error) {
 	var logger logging.Logger
-	switch verbosity {
+	switch strings.ToLower(verbosity) {
 	case "0", "silent":
 		logger = logging.New(io.Discard, 0, "")
 	case "1", "error":
@@ -360,7 +357,7 @@ func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string) (logging.Logg
 	case "5", "trace":
 		logger = logging.New(cmd.OutOrStdout(), logrus.TraceLevel, lokiEndpoint)
 	default:
-		return nil, fmt.Errorf("unknown verbosity level %q", verbosity)
+		return nil, fmt.Errorf("unknown %s level %q, use help to check flag usage options", optionNameLogVerbosity, verbosity)
 	}
 	return logger, nil
 }
