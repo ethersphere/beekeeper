@@ -342,7 +342,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	// wait for the stamp to become usable
 	for i := 0; i < 60; i++ {
 		time.Sleep(1 * time.Second)
-		state, err := c.debug.Postage.PostageBatch(ctx, id)
+		state, err := c.debug.Postage.PostageStamp(ctx, id)
 		if err != nil {
 			continue
 		}
@@ -393,14 +393,14 @@ func (c *Client) PostageBatches(ctx context.Context) ([]debugapi.PostageStampRes
 	return c.debug.Postage.PostageBatches(ctx)
 }
 
-// PostageBatch returns the batch by ID
-func (c *Client) PostageBatch(ctx context.Context, batchID string) (debugapi.PostageStampResponse, error) {
-	return c.debug.Postage.PostageBatch(ctx, batchID)
+// PostageStamp returns the batch by ID
+func (c *Client) PostageStamp(ctx context.Context, batchID string) (debugapi.PostageStampResponse, error) {
+	return c.debug.Postage.PostageStamp(ctx, batchID)
 }
 
 // TopupPostageBatch tops up the given batch with the amount per chunk
 func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount int64, gasPrice string) error {
-	batch, err := c.PostageBatch(ctx, batchID)
+	batch, err := c.PostageStamp(ctx, batchID)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve batch details: %w", err)
 	}
@@ -413,7 +413,7 @@ func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount i
 	for i := 0; i < 60; i++ {
 		time.Sleep(time.Second)
 
-		b, err := c.PostageBatch(ctx, batchID)
+		b, err := c.PostageStamp(ctx, batchID)
 		if err != nil {
 			return err
 		}
@@ -429,7 +429,7 @@ func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount i
 
 // DilutePostageBatch dilutes the given batch by increasing the depth
 func (c *Client) DilutePostageBatch(ctx context.Context, batchID string, depth uint64, gasPrice string) error {
-	batch, err := c.debug.Postage.PostageBatch(ctx, batchID)
+	batch, err := c.debug.Postage.PostageStamp(ctx, batchID)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve batch details: %w", err)
 	}
@@ -442,7 +442,7 @@ func (c *Client) DilutePostageBatch(ctx context.Context, batchID string, depth u
 	for i := 0; i < 60; i++ {
 		time.Sleep(time.Second)
 
-		b, err := c.debug.Postage.PostageBatch(ctx, batchID)
+		b, err := c.debug.Postage.PostageStamp(ctx, batchID)
 		if err != nil {
 			return err
 		}
