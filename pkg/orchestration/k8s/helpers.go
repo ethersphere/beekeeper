@@ -423,6 +423,8 @@ func mergeMaps(a, b map[string]string) map[string]string {
 }
 
 func parsePort(port string) (int32, error) {
-	p, err := strconv.ParseInt(strings.Split(port, ":")[1], 10, 32)
+	li := strings.LastIndex(port, ":")
+	str := port[li+1:]
+	p, err := strconv.ParseInt(str, 10, 32)
 	return int32(p), err
 }
