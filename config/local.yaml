@@ -149,7 +149,7 @@ node-groups:
 bee-configs:
   bee-local:
     _inherit: ""
-    api-addr: ":1633"
+    api-addr: "[::]:1633"
     block-time: 1
     bootnodes: ""
     bootnode-mode: false
@@ -162,7 +162,7 @@ bee-configs:
     db-block-cache-capacity: 33554432
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
-    debug-api-addr: ":1635"
+    debug-api-addr: "[::]:1635"
     debug-api-enable: true
     full-node: true
     gateway-mode: false
