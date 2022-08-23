@@ -67,7 +67,6 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 }
 
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
-	c.logger.Info("running chunk repair")
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

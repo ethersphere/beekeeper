@@ -67,8 +67,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return dryRun(ctx, cluster, o, c.logger)
 	}
 
-	c.logger.Info("running balances")
-
 	var checkCase *test.CheckCase
 
 	caseOpts := test.CaseOptions{

@@ -12,7 +12,11 @@ all: build lint vet test-race binary
 binary: export CGO_ENABLED=0
 binary: dist FORCE
 	$(GO) version
+ifeq ($(OS),Windows_NT)
+	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o dist/beekeeper.exe ./cmd/beekeeper
+else
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o dist/beekeeper ./cmd/beekeeper
+endif
 
 dist:
 	mkdir $@
