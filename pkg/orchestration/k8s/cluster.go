@@ -85,6 +85,43 @@ func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]orchestration
 	return
 }
 
+// Accounting returns ClusterAccounting
+func (c *Cluster) Accounting(ctx context.Context) (accounting orchestration.ClusterAccounting, err error) {
+	accounting = make(orchestration.ClusterAccounting)
+
+	for k, v := range c.nodeGroups {
+		a, err := v.Accounting(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", k, err)
+		}
+
+		accounting[k] = a
+	}
+
+	return
+}
+
+// FlattenBalances returns aggregated NodeGroupBalances
+func (c *Cluster) FlattenAccounting(ctx context.Context) (accounting orchestration.NodeGroupAccounting, err error) {
+	a, err := c.Accounting(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	accounting = make(orchestration.NodeGroupAccounting)
+
+	for _, v := range a {
+		for n, acc := range v {
+			if _, found := accounting[n]; found {
+				return nil, fmt.Errorf("key %s already present", n)
+			}
+			accounting[n] = acc
+		}
+	}
+
+	return
+}
+
 // Balances returns ClusterBalances
 func (c *Cluster) Balances(ctx context.Context) (balances orchestration.ClusterBalances, err error) {
 	balances = make(orchestration.ClusterBalances)

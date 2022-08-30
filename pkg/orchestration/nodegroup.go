@@ -10,6 +10,7 @@ import (
 type NodeGroup interface {
 	AddNode(ctx context.Context, name string, o NodeOptions) (err error)
 	Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error)
+	Accounting(ctx context.Context) (infos NodeGroupAccounting, err error)
 	Balances(ctx context.Context) (balances NodeGroupBalances, err error)
 	CreateNode(ctx context.Context, name string) (err error)
 	DeleteNode(ctx context.Context, name string) (err error)
@@ -64,6 +65,9 @@ type NodeGroupOptions struct {
 
 // NodeGroupAddresses represents addresses of all nodes in the node group
 type NodeGroupAddresses map[string]bee.Addresses
+
+// NodeGroupAccounting represents accounting of all nodes in the node group
+type NodeGroupAccounting map[string]map[string]bee.Account
 
 // NodeGroupBalances represents balances of all nodes in the node group
 type NodeGroupBalances map[string]map[string]int64

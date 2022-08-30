@@ -95,6 +95,52 @@ func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
 	}, nil
 }
 
+// Account represents node's account with a given peer
+type Account struct {
+	Balance                  int64
+	ConsumedBalance          int64
+	GhostBalance             int64
+	Peer                     string
+	ReservedBalance          int64
+	ShadowReservedBalance    int64
+	SurplusBalance           int64
+	ThresholdGiven           int64
+	ThresholdReceived        int64
+	CurrentThresholdGiven    int64
+	CurrentThresholdReceived int64
+}
+
+// Accounting represents node's accounts with all peers
+type Accounting struct {
+	Accounting []Account
+}
+
+// Accounting returns node's accounts with all peers
+func (c *Client) Accounting(ctx context.Context) (resp Accounting, err error) {
+	r, err := c.debug.Node.Accounting(ctx)
+	if err != nil {
+		return Accounting{}, fmt.Errorf("get accounting: %w", err)
+	}
+
+	for peer, b := range r.Accounting {
+		resp.Accounting = append(resp.Accounting, Account{
+			Balance:                  b.Balance.Int64(),
+			ConsumedBalance:          b.ConsumedBalance.Int64(),
+			ThresholdReceived:        b.ThresholdReceived.Int64(),
+			ThresholdGiven:           b.ThresholdGiven.Int64(),
+			SurplusBalance:           b.SurplusBalance.Int64(),
+			CurrentThresholdReceived: b.CurrentThresholdReceived.Int64(),
+			CurrentThresholdGiven:    b.CurrentThresholdGiven.Int64(),
+			ReservedBalance:          b.ReservedBalance.Int64(),
+			ShadowReservedBalance:    b.ShadowReservedBalance.Int64(),
+			GhostBalance:             b.GhostBalance.Int64(),
+			Peer:                     peer,
+		})
+	}
+
+	return
+}
+
 // Balance represents node's balance with peer
 type Balance struct {
 	Balance int64
@@ -128,8 +174,8 @@ func (c *Client) Balances(ctx context.Context) (resp Balances, err error) {
 
 	for _, b := range r.Balances {
 		resp.Balances = append(resp.Balances, Balance{
-			Balance: b.Balance.Int64(),
 			Peer:    b.Peer,
+			Balance: b.Balance.Int64(),
 		})
 	}
 

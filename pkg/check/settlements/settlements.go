@@ -29,6 +29,7 @@ type Options struct {
 	Seed               int64
 	Threshold          int64 // balances treshold
 	UploadNodeCount    int
+	WaitAfterUpload    time.Duration // seconds to wait before downloading a file
 	WaitBeforeDownload time.Duration // seconds to wait before downloading a file
 }
 
@@ -46,6 +47,7 @@ func NewDefaultOptions() Options {
 		Seed:               0,
 		Threshold:          10000000000000,
 		UploadNodeCount:    1,
+		WaitAfterUpload:    15 * time.Second,
 		WaitBeforeDownload: 5 * time.Second,
 	}
 }
@@ -85,15 +87,17 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	// Initial settlement validation
-	balances, err := cluster.FlattenBalances(ctx)
+	accounting, err := cluster.FlattenAccounting(ctx)
 	if err != nil {
 		return err
 	}
+
 	settlements, err := cluster.FlattenSettlements(ctx)
 	if err != nil {
 		return err
 	}
-	if err := validateSettlements(o.Threshold, overlays, balances, settlements, c.logger); err != nil {
+
+	if err := validateSettlements(overlays, accounting, settlements, c.logger); err != nil {
 		return fmt.Errorf("invalid initial settlements: %s", err.Error())
 	}
 	c.logger.Info("Settlements are valid")
@@ -127,13 +131,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 		c.logger.Infof("File %s uploaded successfully to node %s", file.Address().String(), overlays[uNode].String())
 
+		time.Sleep(o.WaitAfterUpload)
+
 		settlementsValid := false
 		// validate settlements after uploading a file
 		previousSettlements = settlements
 		for t := 0; t < 7; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = cluster.FlattenBalances(ctx)
+			accounting, err = cluster.FlattenAccounting(ctx)
 			if err != nil {
 				return err
 			}
@@ -146,7 +152,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				settlementsHappened = true
 			}
 
-			err = validateSettlements(o.Threshold, overlays, balances, settlements, c.logger)
+			err = validateSettlements(overlays, accounting, settlements, c.logger)
 			if err != nil {
 				c.logger.Infof("Invalid settlements after uploading a file: %s", err.Error())
 				c.logger.Info("Retrying ...")
@@ -181,7 +187,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		for t := 0; t < 7; t++ {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
-			balances, err = cluster.FlattenBalances(ctx)
+			accounting, err = cluster.FlattenAccounting(ctx)
 			if err != nil {
 				return err
 			}
@@ -195,7 +201,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				settlementsHappened = true
 			}
 
-			err = validateSettlements(o.Threshold, overlays, balances, settlements, c.logger)
+			err = validateSettlements(overlays, accounting, settlements, c.logger)
 			if err != nil {
 				c.logger.Infof("Invalid settlements after downloading a file: %s", err.Error())
 				c.logger.Info("Retrying ...")
@@ -226,7 +232,7 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options, logge
 		return err
 	}
 
-	balances, err := cluster.FlattenBalances(ctx)
+	accounting, err := cluster.FlattenAccounting(ctx)
 	if err != nil {
 		return err
 	}
@@ -236,7 +242,7 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options, logge
 		return err
 	}
 
-	if err := validateSettlements(o.Threshold, overlays, balances, settlements, logger); err != nil {
+	if err := validateSettlements(overlays, accounting, settlements, logger); err != nil {
 		return fmt.Errorf("invalid settlements")
 	}
 	logger.Info("Settlements are valid")
@@ -245,26 +251,30 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options, logge
 }
 
 // validateSettlements checks if settlements are valid
-func validateSettlements(threshold int64, overlays orchestration.NodeGroupOverlays, balances orchestration.NodeGroupBalances, settlements orchestration.NodeGroupSettlements, logger logging.Logger) (err error) {
+func validateSettlements(overlays orchestration.NodeGroupOverlays, accounting orchestration.NodeGroupAccounting, settlements orchestration.NodeGroupSettlements, logger logging.Logger) (err error) {
 	// threshold validation
-	for node, v := range balances {
-		for _, balance := range v {
-			if balance > threshold {
-				return fmt.Errorf("node %s has balance %d that exceeds threshold %d", node, balance, threshold)
+	for node, v := range accounting {
+		for _, peerInfo := range v {
+			if peerInfo.Balance < -1*peerInfo.CurrentThresholdReceived {
+				return fmt.Errorf("node %s has balance %d that exceeds received threshold %d", node, peerInfo.Balance, peerInfo.CurrentThresholdReceived)
+			}
+
+			if peerInfo.Balance > peerInfo.CurrentThresholdGiven {
+				return fmt.Errorf("node %s has balance %d that exceeds given threshold %d", node, peerInfo.Balance, peerInfo.CurrentThresholdGiven)
 			}
 		}
 	}
 
 	// check balance symmetry
 	var noBalanceSymmetry bool
-	for node, v := range balances {
-		for peer, balance := range v {
-			diff := balance + balances[peer][node]
+	for node, v := range accounting {
+		for peer, peerInfo := range v {
+			diff := peerInfo.Balance + accounting[peer][node].Balance
 			if diff != 0 {
-				logger.Infof("Node %s has asymmetric balance with peer %s", node, peer)
-				logger.Infof("Node %s has balance %d with peer %s", node, balance, peer)
-				logger.Infof("Peer %s has balance %d with node %s", peer, balances[peer][node], node)
-				logger.Infof("Difference: %d", diff)
+				logger.Infof("Node %s has asymmetric balance with peer %s\n", node, peer)
+				logger.Infof("Node %s has balance %d with peer %s\n", node, peerInfo.Balance, peer)
+				logger.Infof("Peer %s has balance %d with node %s\n", peer, accounting[peer][node].Balance, node)
+				logger.Infof("Difference: %d\n", diff)
 				noBalanceSymmetry = true
 			}
 		}
