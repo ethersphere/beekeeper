@@ -77,8 +77,6 @@ var errFileRetrieval = errors.New("file retrieval")
 
 // defaultCheck uploads files on cluster and downloads them from the last node in the cluster
 func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster, o Options) (err error) {
-	c.logger.Info("running file retrieval")
-
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	c.logger.Infof("Seed: %d", o.Seed)
 

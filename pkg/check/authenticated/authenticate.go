@@ -46,10 +46,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if o.DryRun {
-		return dryRun(ctx, cluster, o, c.logger)
+		c.logger.Info("running authenticated check (dry run mode)")
+		return dryRun(ctx, cluster, o)
 	}
-
-	c.logger.Info("running authenticated check")
 
 	caseOpts := test.CaseOptions{
 		AdminPassword:       o.AdminPassword,
@@ -75,7 +74,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	c.logger.Info("authenticated check completed successfully")
 	return
 }
 
@@ -117,7 +115,6 @@ func testAuth(ctx context.Context, o Options, logger logging.Logger) test.Consum
 }
 
 // dryRun does nothing
-func dryRun(ctx context.Context, cluster orchestration.Cluster, opts interface{}, logger logging.Logger) error {
-	logger.Info("running authenticated check (dry run mode)")
+func dryRun(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
 	return nil // success
 }

@@ -75,7 +75,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		c.logger.Info("running settlements (dry mode)")
 		return dryRun(ctx, cluster, o, c.logger)
 	}
-	c.logger.Info("running settlements")
 
 	rnd := random.PseudoGenerator(o.Seed)
 	c.logger.Infof("Seed: %d", o.Seed)

@@ -40,8 +40,6 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 
 // Run executes ping check
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interface{}) (err error) {
-	c.logger.Info("running pingpong")
-
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
 		nodesClients, err := ng.NodesClients(ctx)
@@ -77,8 +75,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interf
 			}
 		}
 	}
-
-	c.logger.Info("pingpong check completed successfully")
 	return
 }
 

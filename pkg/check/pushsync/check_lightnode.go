@@ -15,6 +15,7 @@ import (
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
 func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options, l logging.Logger) error {
+	l.Info("running pushsync (light-chunks mode)")
 	rnd := random.PseudoGenerator(o.Seed)
 	l.Infof("seed: %d", o.Seed)
 

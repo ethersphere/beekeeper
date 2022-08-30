@@ -80,7 +80,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 // defaultCheck uploads given chunks on cluster and checks pushsync ability of the cluster
 func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster, o Options) error {
-	c.logger.Info("running pushsync")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	c.logger.Infof("seed: %d", o.Seed)
 

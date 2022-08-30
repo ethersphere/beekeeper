@@ -85,10 +85,11 @@ func (c *command) initCheckCmd() (err error) {
 
 			// run checks
 			for _, checkName := range c.globalConfig.GetStringSlice(optionNameChecks) {
+				checkName = strings.TrimSpace(checkName)
 				// get configuration
 				checkConfig, ok := c.config.Checks[checkName]
 				if !ok {
-					return fmt.Errorf("check %s doesn't exist", checkName)
+					return fmt.Errorf("check '%s' doesn't exist", checkName)
 				}
 
 				// choose check type
@@ -115,8 +116,9 @@ func (c *command) initCheckCmd() (err error) {
 					defer cancel()
 				}
 
-				ch := make(chan error, 1)
+				c.logger.Infof("running check: %s", checkName)
 
+				ch := make(chan error, 1)
 				go func() {
 					ch <- chk.Run(ctx, cluster, o)
 					close(ch)
@@ -129,7 +131,7 @@ func (c *command) initCheckCmd() (err error) {
 					if err != nil {
 						return fmt.Errorf("running check %s: %w", checkName, err)
 					}
-					return nil
+					c.logger.Infof("%s check completed successfully", checkName)
 				}
 			}
 			return nil
