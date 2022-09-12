@@ -6,7 +6,7 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 )
 
-const MinimumBatchDepth = 2
+const MinimumBatchDepth = 16
 
 func EstimatePostageBatchDepth(contentLength int64) uint64 {
 	depth := uint64(math.Log2(float64(calculateNumberOfChunks(contentLength, false))))
