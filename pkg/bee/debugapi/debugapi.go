@@ -12,6 +12,7 @@ import (
 
 	"github.com/ethersphere/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 const contentType = "application/json; charset=utf-8"
@@ -22,6 +23,7 @@ var userAgent = "beekeeper/" + beekeeper.Version
 type Client struct {
 	httpClient *http.Client // HTTP client must handle authentication implicitly.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
+	logger     logging.Logger
 
 	// Services that API provides.
 	Node     *NodeService
@@ -38,7 +40,7 @@ type ClientOptions struct {
 }
 
 // NewClient constructs a new Client.
-func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
+func NewClient(baseURL *url.URL, o *ClientOptions, logger logging.Logger) (c *Client) {
 	if o == nil {
 		o = new(ClientOptions)
 	}
@@ -46,7 +48,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 		o.HTTPClient = new(http.Client)
 	}
 
-	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
+	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient), logger)
 	c.restricted = o.Restricted
 
 	return c
@@ -54,8 +56,8 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all API services.
-func newClient(httpClient *http.Client) (c *Client) {
-	c = &Client{httpClient: httpClient}
+func newClient(httpClient *http.Client, logger logging.Logger) (c *Client) {
+	c = &Client{httpClient: httpClient, logger: logger}
 	c.service.client = c
 	c.Node = (*NodeService)(&c.service)
 	c.PingPong = (*PingPongService)(&c.service)

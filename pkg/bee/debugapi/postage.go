@@ -37,6 +37,7 @@ type postageStampsResponse struct {
 // Sends a create postage request to a node that returns the batchID
 func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (batchID string, err error) {
 	url := fmt.Sprintf("/stamps/%d/%d?label=%s", amount, depth, label)
+	p.client.logger.Infof("url: %s", url)
 	var resp postageResponse
 	if gasPrice != "" {
 		h := http.Header{}

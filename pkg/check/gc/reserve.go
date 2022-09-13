@@ -160,10 +160,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	overlay := addr.Overlay
 
 	const (
-		cheapBatchAmount     = 1
-		expensiveBatchAmount = 3
-		batchDepth           = uint64(8) // the depth for the batches that we buy
-
+		cheapBatchAmount       = 1
+		expensiveBatchAmount   = 3
+		batchDepth             = uint64(8) // the depth for the batches that we buy
 		radiusAfterSecondBatch = 5
 	)
 
