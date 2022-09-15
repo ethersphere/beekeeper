@@ -126,6 +126,10 @@ func (c *command) initCheckCmd() (err error) {
 
 				select {
 				case <-ctx.Done():
+					deadline, ok := ctx.Deadline()
+					if ok {
+						return fmt.Errorf("running check %s: %w: deadline %v", checkName, ctx.Err(), deadline)
+					}
 					return fmt.Errorf("running check %s: %w", checkName, ctx.Err())
 				case err = <-ch:
 					if err != nil {
