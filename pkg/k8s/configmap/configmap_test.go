@@ -1,4 +1,4 @@
-package configmap
+package configmap_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -17,7 +18,7 @@ func TestSet(t *testing.T) {
 	testTable := []struct {
 		name       string
 		configName string
-		options    Options
+		options    configmap.Options
 		clientset  kubernetes.Interface
 		errorMsg   error
 	}{
@@ -25,7 +26,7 @@ func TestSet(t *testing.T) {
 			name:       "create_config_map",
 			configName: "test_config_map",
 			clientset:  fake.NewSimpleClientset(),
-			options: Options{
+			options: configmap.Options{
 				Immutable:   true,
 				Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:      map[string]string{"label_1": "label_value_1"},
@@ -46,7 +47,7 @@ func TestSet(t *testing.T) {
 				BinaryData: map[string][]byte{"bd_1": {1, 2, 3}},
 				Data:       map[string]string{"data_1": "data_value_1"},
 			}),
-			options: Options{
+			options: configmap.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_X", "annotation_2": "annotation_value_2"},
 			},
 		},
@@ -66,7 +67,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := configmap.NewClient(test.clientset)
 			response, err := client.Set(context.Background(), test.configName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -144,7 +145,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := configmap.NewClient(test.clientset)
 			err := client.Delete(context.Background(), test.configName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
