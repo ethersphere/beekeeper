@@ -25,6 +25,7 @@ type Options struct {
 	TxOnErrWait   time.Duration
 	RxOnErrWait   time.Duration
 	NodesSyncWait time.Duration
+	Duration      time.Duration
 }
 
 // NewDefaultOptions returns new default options
@@ -37,6 +38,7 @@ func NewDefaultOptions() Options {
 		TxOnErrWait:   10 * time.Second,
 		RxOnErrWait:   10 * time.Second,
 		NodesSyncWait: time.Minute,
+		Duration:      12 * time.Hour,
 	}
 }
 
@@ -76,10 +78,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
 
-	// The test will restart itself every 12 hours, this is in order to
-	// create more meaningful metrics, so that we can apply prometheus
+	// The test will restart itself every 12 hours (default, if not specified diferrently in config),
+	// this is in order to create more meaningful metrics, so that we can apply prometheus
 	// functions to them.
-	ctx, cancel := context.WithTimeout(ctx, 12*time.Hour)
+	ctx, cancel := context.WithTimeout(ctx, o.Duration)
 	defer cancel()
 
 	test := &test{opt: o, ctx: ctx, clients: clients, logger: c.logger}

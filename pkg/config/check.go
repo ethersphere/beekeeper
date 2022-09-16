@@ -383,6 +383,7 @@ var Checks = map[string]CheckType{
 				TxOnErrWait   *time.Duration `yaml:"tx-on-err-wait"`
 				RxOnErrWait   *time.Duration `yaml:"rx-on-err-wait"`
 				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
+				Duration      *time.Duration `yaml:"duration"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

@@ -2,7 +2,7 @@
 # clusters may inherit it's configuration from already defined cluster and override specific fields from it
 clusters:
   default:
-    _inherit: ''
+    _inherit: ""
     name: bee
     namespace: beekeeper
     disable-namespace: false
@@ -61,92 +61,92 @@ clusters:
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
 node-groups:
   default:
-    _inherit: ''
+    _inherit: ""
     clef-image: ethersphere/clef:latest
     clef-image-pull-policy: Always
     image: ethersphere/bee:latest
     image-pull-policy: Always
     image-pull-secrets: [regcred]
     ingress-annotations:
-      nginx.ingress.kubernetes.io/affinity: 'cookie'
-      nginx.ingress.kubernetes.io/affinity-mode: 'persistent'
-      nginx.ingress.kubernetes.io/proxy-body-size: '0'
-      nginx.ingress.kubernetes.io/proxy-read-timeout: '7200'
-      nginx.ingress.kubernetes.io/proxy-send-timeout: '7200'
-      nginx.ingress.kubernetes.io/session-cookie-max-age: '86400'
-      nginx.ingress.kubernetes.io/session-cookie-name: 'SWARMGATEWAY'
-      nginx.ingress.kubernetes.io/session-cookie-path: 'default'
-      nginx.ingress.kubernetes.io/ssl-redirect: 'true'
-    ingress-class: 'nginx-internal'
-    ingress-debug-class: 'nginx-internal'
+      nginx.ingress.kubernetes.io/affinity: "cookie"
+      nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
+      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
+      nginx.ingress.kubernetes.io/session-cookie-path: "default"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    ingress-class: "nginx-internal"
+    ingress-debug-class: "nginx-internal"
     labels:
-      app.kubernetes.io/component: 'node'
-      app.kubernetes.io/part-of: 'bee'
-      app.kubernetes.io/version: 'latest'
+      app.kubernetes.io/component: "node"
+      app.kubernetes.io/part-of: "bee"
+      app.kubernetes.io/version: "latest"
     node-selector:
-      node-group: 'private'
+      node-group: "private"
     persistence-enabled: false
-    persistence-storage-class: 'local-storage'
-    persistence-storage-request: '34Gi'
-    pod-management-policy: 'OrderedReady'
-    resources-limit-cpu: '1'
+    persistence-storage-class: "local-storage"
+    persistence-storage-request: "34Gi"
+    pod-management-policy: "OrderedReady"
+    resources-limit-cpu: "1"
     resources-limit-memory: 2Gi
     resources-request-cpu: 750m
     resources-request-memory: 1Gi
-    restart-policy: 'Always'
-    update-strategy: 'RollingUpdate'
+    restart-policy: "Always"
+    update-strategy: "RollingUpdate"
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 # bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
 bee-configs:
   default:
-    _inherit: ''
-    api-addr: ':1633'
+    _inherit: ""
+    api-addr: ":1633"
     block-time: 1
-    bootnodes: ''
+    bootnodes: ""
     bootnode-mode: false
     cache-capacity: 1000000
     clef-signer-enable: false
-    clef-signer-endpoint: 'http://localhost:8550'
-    cors-allowed-origins: ''
-    data-dir: '/home/bee/.bee'
+    clef-signer-endpoint: "http://localhost:8550"
+    cors-allowed-origins: ""
+    data-dir: "/home/bee/.bee"
     db-open-files-limit: 200
     db-block-cache-capacity: 33554432
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
-    debug-api-addr: ':1635'
+    debug-api-addr: ":1635"
     debug-api-enable: true
     full-node: true
     gateway-mode: false
-    nat-addr: ''
+    nat-addr: ""
     mainnet: false
     network-id: 1987
-    p2p-addr: ':1634'
+    p2p-addr: ":1634"
     p2p-quic-enable: false
     p2p-ws-enable: false
-    password: 'beekeeper'
+    password: "beekeeper"
     payment-early-percent: 50
     payment-threshold: 13500000
     payment-tolerance-percent: 25
-    postage-stamp-address: '0x538e6de1d876bbcd5667085257bc92f7c808a0f3'
-    price-oracle-address: '0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2'
-    resolver-options: ''
+    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
+    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
+    resolver-options: ""
     standalone: false
     chequebook-enable: true
     swap-enable: true
-    swap-endpoint: 'ws://geth-swap.geth-swap:8546'
-    swap-factory-address: '0x09ad42a7d020244920309ffa14ea376dd2d3b7d5'
-    swap-legacy-factory-addresses: '0x657241f4494a2f15ba75346e691d753a978c72df'
+    swap-endpoint: "ws://geth-swap.geth-swap:8546"
+    swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
+    swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
     swap-initial-deposit: 500000000000000000
     tracing-enabled: true
-    tracing-endpoint: 'tempo-tempo-distributed-distributor.observability:6831'
-    tracing-service-name: 'bee'
-    transaction: ''
+    tracing-endpoint: "tempo-tempo-distributed-distributor.observability:6831"
+    tracing-service-name: "bee"
+    transaction: ""
     verbosity: 5
-    welcome-message: 'Welcome to the Swarm, you are Bee-ing connected!'
+    welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
     allow-private-cidrs: true
   bootnode:
-    _inherit: 'default'
+    _inherit: "default"
     bootnode-mode: true
 
 # checks defines checks Beekeeper can execute against the cluster
@@ -304,6 +304,7 @@ checks:
       postage-amount: 1000000
       postage-depth: 20
       nodes-sync-wait: 1m
+      duration: 12h
     timeout: 5m
     type: smoke
   soc:
@@ -342,7 +343,7 @@ simulations:
   upload:
     options:
       file-count:
-      gas-price: '10000000000'
+      gas-price: "10000000000"
       max-file-size: 2097152 # 2mb = 2*1024*1024
       min-file-size: 1048576 # 1mb = 1*1024*1024
       postage-amount: 1000
@@ -359,7 +360,7 @@ simulations:
   retrieval:
     options:
       chunks-per-node: 1
-      gas-price: '10000000000'
+      gas-price: "10000000000"
       postage-amount: 1000
       postage-depth: 16
       upload-node-count: 1
@@ -371,7 +372,7 @@ simulations:
       postage-amount: 1000
       postage-depth: 20
       seed:
-      proxy-api-endpoint: 'http://ethproxy.localhost'
+      proxy-api-endpoint: "http://ethproxy.localhost"
     timeout: 5m
     type: pushsync
 
