@@ -1,4 +1,4 @@
-package k8s
+package k8s_test
 
 import (
 	"fmt"
@@ -6,38 +6,39 @@ import (
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 func TestNewClient(t *testing.T) {
 	testTable := []struct {
 		name     string
-		options  *ClientOptions
-		k8sFuncs *ClientSetup
+		options  *k8s.ClientOptions
+		k8sFuncs *k8s.ClientSetup
 		errorMsg error
 	}{
 		{
 			name:     "in_cluster_config_error",
-			options:  &ClientOptions{InCluster: true},
+			options:  &k8s.ClientOptions{InCluster: true},
 			errorMsg: fmt.Errorf("creating Kubernetes in-cluster client config: mock error"),
-			k8sFuncs: &ClientSetup{
+			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
 				InClusterConfig: mock.NewClient(true).InClusterConfig,
 			},
 		},
 		{
 			name:     "in_cluster_clientset_error",
-			options:  &ClientOptions{InCluster: true},
+			options:  &k8s.ClientOptions{InCluster: true},
 			errorMsg: fmt.Errorf("creating Kubernetes in-cluster clientset: mock error"),
-			k8sFuncs: &ClientSetup{
+			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(true).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
 			},
 		},
 		{
 			name:    "in_cluster",
-			options: &ClientOptions{InCluster: true},
-			k8sFuncs: &ClientSetup{
+			options: &k8s.ClientOptions{InCluster: true},
+			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
 			},
@@ -45,7 +46,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_default_path",
 			options: nil,
-			k8sFuncs: &ClientSetup{
+			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:         mock.NewClient(false).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
 				OsUserHomeDir:        mock.NewClient(false).OsUserHomeDir,
@@ -57,7 +58,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_default_path_fail_clientset",
 			options: nil,
-			k8sFuncs: &ClientSetup{
+			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:         mock.NewClient(true).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
 				OsUserHomeDir:        mock.NewClient(false).OsUserHomeDir,
@@ -70,7 +71,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_default_path_bad",
 			options: nil,
-			k8sFuncs: &ClientSetup{
+			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:         mock.NewClient(false).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
 				OsUserHomeDir:        mock.NewClient(false).OsUserHomeDir,
@@ -82,8 +83,8 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:    "not_in_cluster_other_path",
-			options: &ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/test_example"},
-			k8sFuncs: &ClientSetup{
+			options: &k8s.ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/test_example"},
+			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:         mock.NewClient(false).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
 				BuildConfigFromFlags: mock.NewClient(false).BuildConfigFromFlags,
@@ -93,8 +94,8 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:    "not_in_cluster_fail_home_dir",
-			options: &ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/config"},
-			k8sFuncs: &ClientSetup{
+			options: &k8s.ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/config"},
+			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
 				OsUserHomeDir:   mock.NewClient(true).OsUserHomeDir,
@@ -103,14 +104,14 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:     "not_in_cluster_empty_path",
-			options:  &ClientOptions{},
-			errorMsg: ErrKubeconfigNotSet,
+			options:  &k8s.ClientOptions{},
+			errorMsg: k8s.ErrKubeconfigNotSet,
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			response, err := NewClient(test.k8sFuncs, test.options, logging.New(io.Discard, 0, ""))
+			response, err := k8s.NewClient(test.k8sFuncs, test.options, logging.New(io.Discard, 0, ""))
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())

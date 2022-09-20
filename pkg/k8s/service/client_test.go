@@ -1,4 +1,4 @@
-package service
+package service_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -17,7 +18,7 @@ func TestSet(t *testing.T) {
 	testTable := []struct {
 		name        string
 		serviceName string
-		options     Options
+		options     service.Options
 		clientset   kubernetes.Interface
 		errorMsg    error
 	}{
@@ -25,7 +26,7 @@ func TestSet(t *testing.T) {
 			name:        "create_service",
 			serviceName: "test_service",
 			clientset:   fake.NewSimpleClientset(),
-			options: Options{
+			options: service.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:      map[string]string{"label_1": "label_value_1"},
 			},
@@ -41,7 +42,7 @@ func TestSet(t *testing.T) {
 					Labels:      map[string]string{"label_1": "label_value_1"},
 				},
 			}),
-			options: Options{
+			options: service.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_X", "annotation_2": "annotation_value_2"},
 			},
 		},
@@ -49,9 +50,9 @@ func TestSet(t *testing.T) {
 			name:        "spec_ports",
 			serviceName: "test_service",
 			clientset:   fake.NewSimpleClientset(),
-			options: Options{
-				ServiceSpec: Spec{
-					Ports: []Port{
+			options: service.Options{
+				ServiceSpec: service.Spec{
+					Ports: []service.Port{
 						{
 							Name: "http8080", Port: 8080, AppProtocol: "http", Nodeport: 80, Protocol: "http", TargetPort: "80",
 						},
@@ -84,7 +85,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := service.NewClient(test.clientset)
 			response, err := client.Set(context.Background(), test.serviceName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -160,7 +161,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := service.NewClient(test.clientset)
 			err := client.Delete(context.Background(), test.serviceName, "test")
 			if test.errorMsg == nil {
 				if err != nil {

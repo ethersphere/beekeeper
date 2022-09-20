@@ -1,4 +1,4 @@
-package serviceaccount
+package serviceaccount_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -17,7 +18,7 @@ func TestSet(t *testing.T) {
 	testTable := []struct {
 		name       string
 		secretName string
-		options    Options
+		options    serviceaccount.Options
 		clientset  kubernetes.Interface
 		errorMsg   error
 	}{
@@ -25,7 +26,7 @@ func TestSet(t *testing.T) {
 			name:       "create_service_account",
 			secretName: "test_service_account",
 			clientset:  fake.NewSimpleClientset(),
-			options: Options{
+			options: serviceaccount.Options{
 				Annotations:                  map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:                       map[string]string{"label_1": "label_value_1"},
 				AutomountServiceAccountToken: true,
@@ -44,7 +45,7 @@ func TestSet(t *testing.T) {
 					Labels:      map[string]string{"label_1": "label_value_1"},
 				},
 			}),
-			options: Options{
+			options: serviceaccount.Options{
 				Annotations:                  map[string]string{"annotation_1": "annotation_value_updated"},
 				Labels:                       map[string]string{"label_1": "label_value_updated"},
 				AutomountServiceAccountToken: true,
@@ -68,7 +69,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := serviceaccount.NewClient(test.clientset)
 			response, err := client.Set(context.Background(), test.secretName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -156,7 +157,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := serviceaccount.NewClient(test.clientset)
 			err := client.Delete(context.Background(), test.secretName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
