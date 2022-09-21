@@ -6,8 +6,8 @@ import (
 
 // Backend represents Kubernetes IngressBackend
 type Backend struct {
-	ServiceName string
-	ServicePort string
+	ServiceName     string
+	ServicePortName string
 }
 
 // toK8S converts Backend to Kuberntes client object
@@ -16,7 +16,7 @@ func (b *Backend) toK8S() v1.IngressBackend {
 		Service: &v1.IngressServiceBackend{
 			Name: b.ServiceName,
 			Port: v1.ServiceBackendPort{
-				Name: b.ServicePort, // TODO check why mapped on name and not on number?
+				Name: b.ServicePortName,
 			},
 		},
 	}

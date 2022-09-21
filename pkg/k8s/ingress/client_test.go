@@ -32,16 +32,12 @@ func TestSet(t *testing.T) {
 				Labels:      map[string]string{"label_1": "label_value_1"},
 				Spec: ingress.Spec{
 					Class: "class",
-					Backend: ingress.Backend{
-						ServiceName: "service_name",
-						ServicePort: "service_port",
-					},
 					Rules: []ingress.Rule{
 						{
 							Host: "host",
 							Paths: []ingress.Path{
 								{
-									Backend:  ingress.Backend{ServiceName: "sc_name", ServicePort: "9999"},
+									Backend:  ingress.Backend{ServiceName: "sc_name", ServicePortName: "9999"},
 									Path:     "/test",
 									PathType: "absolute",
 								},

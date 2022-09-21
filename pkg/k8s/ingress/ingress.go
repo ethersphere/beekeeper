@@ -4,10 +4,9 @@ import v1 "k8s.io/api/networking/v1"
 
 // Spec represents Kubernetes IngressSpec
 type Spec struct {
-	Class   string
-	Backend Backend // TODO check the role of this here, seems not needed
-	TLS     TLSs
-	Rules   Rules
+	Class string
+	TLS   TLSs
+	Rules Rules
 }
 
 // toK8S converts IngressSpec to Kuberntes client object
