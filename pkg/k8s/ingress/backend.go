@@ -16,7 +16,7 @@ func (b *Backend) toK8S() v1.IngressBackend {
 		Service: &v1.IngressServiceBackend{
 			Name: b.ServiceName,
 			Port: v1.ServiceBackendPort{
-				Name: b.ServicePort,
+				Name: b.ServicePort, // TODO check why mapped on name and not on number?
 			},
 		},
 	}
