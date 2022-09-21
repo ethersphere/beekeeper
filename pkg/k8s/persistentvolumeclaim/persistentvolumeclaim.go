@@ -1,6 +1,8 @@
 package persistentvolumeclaim
 
 import (
+	"strings"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,12 +13,12 @@ type PersistentVolumeClaims []PersistentVolumeClaim
 
 // ToK8S converts PersistentVolumeClaims to Kuberntes client objects
 func (ps PersistentVolumeClaims) ToK8S() (l []v1.PersistentVolumeClaim) {
-	l = make([]v1.PersistentVolumeClaim, 0, len(ps))
-
-	for _, p := range ps {
-		l = append(l, p.ToK8S())
+	if len(ps) > 0 {
+		l = make([]v1.PersistentVolumeClaim, 0, len(ps))
+		for _, p := range ps {
+			l = append(l, p.toK8S())
+		}
 	}
-
 	return
 }
 
@@ -29,8 +31,8 @@ type PersistentVolumeClaim struct {
 	Spec        PersistentVolumeClaimSpec
 }
 
-// ToK8S converts PersistentVolumeClaim to Kuberntes client object
-func (pvc PersistentVolumeClaim) ToK8S() v1.PersistentVolumeClaim {
+// toK8S converts PersistentVolumeClaim to Kuberntes client object
+func (pvc PersistentVolumeClaim) toK8S() v1.PersistentVolumeClaim {
 	return v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        pvc.Name,
@@ -72,7 +74,7 @@ func (pvcs PersistentVolumeClaimSpec) toK8S() v1.PersistentVolumeClaimSpec {
 		StorageClassName: &pvcs.StorageClass,
 		VolumeName:       pvcs.VolumeName,
 		VolumeMode: func() *v1.PersistentVolumeMode {
-			if pvcs.VolumeMode == "Block" || pvcs.VolumeMode == "block" {
+			if strings.ToLower(pvcs.VolumeMode) == "block" {
 				m := v1.PersistentVolumeBlock
 				return &m
 			}
