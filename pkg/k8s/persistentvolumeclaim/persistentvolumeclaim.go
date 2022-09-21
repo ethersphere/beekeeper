@@ -62,9 +62,9 @@ func (pvcs PersistentVolumeClaimSpec) toK8S() v1.PersistentVolumeClaimSpec {
 		AccessModes: pvcs.AccessModes.toK8S(),
 		DataSource:  pvcs.DataSource.toK8S(),
 		Resources: v1.ResourceRequirements{
-			Requests: func() v1.ResourceList {
-				m := map[v1.ResourceName]resource.Quantity{}
+			Requests: func() (m v1.ResourceList) {
 				if len(pvcs.RequestStorage) > 0 {
+					m = make(map[v1.ResourceName]resource.Quantity)
 					m[v1.ResourceStorage] = resource.MustParse(pvcs.RequestStorage)
 				}
 				return m
@@ -74,7 +74,7 @@ func (pvcs PersistentVolumeClaimSpec) toK8S() v1.PersistentVolumeClaimSpec {
 		StorageClassName: &pvcs.StorageClass,
 		VolumeName:       pvcs.VolumeName,
 		VolumeMode: func() *v1.PersistentVolumeMode {
-			if strings.ToLower(pvcs.VolumeMode) == "block" {
+			if strings.EqualFold(pvcs.VolumeMode, "block") {
 				m := v1.PersistentVolumeBlock
 				return &m
 			}

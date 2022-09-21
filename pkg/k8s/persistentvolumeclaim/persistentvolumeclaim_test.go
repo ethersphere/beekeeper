@@ -95,7 +95,7 @@ func TestToK8s(t *testing.T) {
 			pvcs: pvc.PersistentVolumeClaims{
 				{
 					Spec: pvc.PersistentVolumeClaimSpec{
-						VolumeMode: "block",
+						VolumeMode: "Block",
 					},
 				},
 			},
@@ -103,10 +103,6 @@ func TestToK8s(t *testing.T) {
 				{
 					Spec: v1.PersistentVolumeClaimSpec{
 						Selector: &metav1.LabelSelector{},
-						Resources: v1.ResourceRequirements{
-							Limits:   nil,
-							Requests: map[v1.ResourceName]resource.Quantity{},
-						},
 						VolumeMode: func() *v1.PersistentVolumeMode {
 							m := v1.PersistentVolumeBlock
 							return &m

@@ -9,7 +9,6 @@ import (
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
 	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaim"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -34,10 +33,6 @@ func TestSet(t *testing.T) {
 			},
 			expectedSpec: v1.PersistentVolumeClaimSpec{
 				Selector: &metav1.LabelSelector{},
-				Resources: v1.ResourceRequirements{
-					Limits:   nil,
-					Requests: map[v1.ResourceName]resource.Quantity{},
-				},
 				VolumeMode: func() *v1.PersistentVolumeMode {
 					m := v1.PersistentVolumeFilesystem
 					return &m
@@ -64,10 +59,6 @@ func TestSet(t *testing.T) {
 			},
 			expectedSpec: v1.PersistentVolumeClaimSpec{
 				Selector: &metav1.LabelSelector{},
-				Resources: v1.ResourceRequirements{
-					Limits:   nil,
-					Requests: map[v1.ResourceName]resource.Quantity{},
-				},
 				VolumeMode: func() *v1.PersistentVolumeMode {
 					m := v1.PersistentVolumeFilesystem
 					return &m
