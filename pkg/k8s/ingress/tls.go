@@ -7,12 +7,13 @@ type TLSs []TLS
 
 // toK8S converts TLSs to Kuberntes client objects
 func (ts TLSs) toK8S() (l []v1.IngressTLS) {
-	l = make([]v1.IngressTLS, 0, len(ts))
+	if len(ts) > 0 {
+		l = make([]v1.IngressTLS, 0, len(ts))
 
-	for _, t := range ts {
-		l = append(l, t.toK8S())
+		for _, t := range ts {
+			l = append(l, t.toK8S())
+		}
 	}
-
 	return
 }
 
@@ -25,10 +26,7 @@ type TLS struct {
 // toK8S converts TLS to Kuberntes client object
 func (t *TLS) toK8S() (tls v1.IngressTLS) {
 	return v1.IngressTLS{
-		Hosts: func() (hosts []string) {
-			hosts = append(hosts, t.Hosts...)
-			return
-		}(),
+		Hosts:      t.Hosts,
 		SecretName: t.SecretName,
 	}
 }
