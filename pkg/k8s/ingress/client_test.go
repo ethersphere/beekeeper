@@ -32,7 +32,11 @@ func TestSet(t *testing.T) {
 				Labels:      map[string]string{"label_1": "label_value_1"},
 				Spec: ingress.Spec{
 					Class: "class",
+<<<<<<< HEAD
 					Backend: ingress.Backend{
+=======
+					Backend: ingress.Backend{ // TODO check the role of this Backend?
+>>>>>>> b4fa6307dbb77ede76aa4cd74c9402481398037d
 						ServiceName: "service_name",
 						ServicePort: "service_port",
 					},
