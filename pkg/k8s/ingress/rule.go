@@ -7,12 +7,13 @@ type Rules []Rule
 
 // toK8S converts Rules to Kuberntes client objects
 func (rs Rules) toK8S() (l []v1.IngressRule) {
-	l = make([]v1.IngressRule, 0, len(rs))
+	if len(rs) > 0 {
+		l = make([]v1.IngressRule, 0, len(rs))
 
-	for _, r := range rs {
-		l = append(l, r.toK8S())
+		for _, r := range rs {
+			l = append(l, r.toK8S())
+		}
 	}
-
 	return
 }
 
@@ -39,12 +40,13 @@ type Paths []Path
 
 // toK8S converts Paths to Kuberntes client objects
 func (ps Paths) toK8S() (l []v1.HTTPIngressPath) {
-	l = make([]v1.HTTPIngressPath, 0, len(ps))
+	if len(ps) > 0 {
+		l = make([]v1.HTTPIngressPath, 0, len(ps))
 
-	for _, p := range ps {
-		l = append(l, p.toK8S())
+		for _, p := range ps {
+			l = append(l, p.toK8S())
+		}
 	}
-
 	return
 }
 
