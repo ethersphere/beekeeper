@@ -1,9 +1,10 @@
-package pod
+package pod_test
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,36 +13,36 @@ import (
 func TestToK8S(t *testing.T) {
 	testTable := []struct {
 		name     string
-		pts      PodTemplateSpec
+		pts      pod.PodTemplateSpec
 		expected v1.PodTemplateSpec
 	}{
 		{
 			name:     "default",
-			pts:      PodTemplateSpec{},
-			expected: newDefaultPodSpec(),
+			pts:      pod.PodTemplateSpec{},
+			expected: newDefaultPodTemplateSpec(),
 		},
 		{
 			name: "image_pull_secrets",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
 					ImagePullSecrets: []string{"test_1", "test_2"},
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.ImagePullSecrets = []v1.LocalObjectReference{{Name: "test_1"}, {Name: "test_2"}}
 				return newPodSpec
 			}(),
 		},
 		{
 			name: "preemption_policy",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
 					PreemptionPolicy: "test",
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.PreemptionPolicy = func() *v1.PreemptionPolicy {
 					pp := v1.PreemptionPolicy("test")
 					return &pp
@@ -51,21 +52,21 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "node_affinity",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Affinity: Affinity{
-						NodeAffinity: &NodeAffinity{
-							PreferredDuringSchedulingIgnoredDuringExecution: PreferredSchedulingTerms{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Affinity: pod.Affinity{
+						NodeAffinity: &pod.NodeAffinity{
+							PreferredDuringSchedulingIgnoredDuringExecution: pod.PreferredSchedulingTerms{
 								{
-									Preference: NodeSelectorTerm{
-										MatchExpressions: NodeSelectorRequirements{
+									Preference: pod.NodeSelectorTerm{
+										MatchExpressions: pod.NodeSelectorRequirements{
 											{
 												Key:      "key_1",
 												Operator: "operator_1",
 												Values:   []string{"value_1"},
 											},
 										},
-										MatchFields: NodeSelectorRequirements{
+										MatchFields: pod.NodeSelectorRequirements{
 											{
 												Key:      "key_2",
 												Operator: "operator_2",
@@ -76,17 +77,17 @@ func TestToK8S(t *testing.T) {
 									Weight: 1,
 								},
 							},
-							RequiredDuringSchedulingIgnoredDuringExecution: NodeSelector{
-								NodeSelectorTerms: NodeSelectorTerms{
+							RequiredDuringSchedulingIgnoredDuringExecution: pod.NodeSelector{
+								NodeSelectorTerms: pod.NodeSelectorTerms{
 									{
-										MatchExpressions: NodeSelectorRequirements{
+										MatchExpressions: pod.NodeSelectorRequirements{
 											{
 												Key:      "key_3",
 												Operator: "operator_3",
 												Values:   []string{"value_3"},
 											},
 										},
-										MatchFields: NodeSelectorRequirements{
+										MatchFields: pod.NodeSelectorRequirements{
 											{
 												Key:      "key_4",
 												Operator: "operator_4",
@@ -101,7 +102,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Affinity = &v1.Affinity{
 					NodeAffinity: &v1.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: []v1.PreferredSchedulingTerm{
@@ -142,13 +143,13 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "pod_affinity",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Affinity: Affinity{
-						PodAffinity: &PodAffinity{
-							PreferredDuringSchedulingIgnoredDuringExecution: WeightedPodAffinityTerms{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Affinity: pod.Affinity{
+						PodAffinity: &pod.PodAffinity{
+							PreferredDuringSchedulingIgnoredDuringExecution: pod.WeightedPodAffinityTerms{
 								{
-									PodAffinityTerm: PodAffinityTerm{
+									PodAffinityTerm: pod.PodAffinityTerm{
 										LabelSelector: map[string]string{"label_1": "label_value_1"},
 										Namespaces:    []string{"namespaces_1"},
 										TopologyKey:   "topology_key_1",
@@ -156,7 +157,7 @@ func TestToK8S(t *testing.T) {
 									Weight: 1,
 								},
 							},
-							RequiredDuringSchedulingIgnoredDuringExecution: PodAffinityTerms{
+							RequiredDuringSchedulingIgnoredDuringExecution: pod.PodAffinityTerms{
 								{
 									LabelSelector: map[string]string{"label_2": "label_value_2"},
 									Namespaces:    []string{"namespaces_2"},
@@ -168,7 +169,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Affinity = &v1.Affinity{
 					PodAffinity: &v1.PodAffinity{
 						RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
@@ -195,20 +196,20 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "pod_anti_affinity",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Affinity: Affinity{
-						PodAntiAffinity: &PodAntiAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: PodAffinityTerms{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Affinity: pod.Affinity{
+						PodAntiAffinity: &pod.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: pod.PodAffinityTerms{
 								{
 									LabelSelector: map[string]string{"label_3": "label_value_3"},
 									Namespaces:    []string{"namespaces_3"},
 									TopologyKey:   "topology_key_3",
 								},
 							},
-							PreferredDuringSchedulingIgnoredDuringExecution: WeightedPodAffinityTerms{
+							PreferredDuringSchedulingIgnoredDuringExecution: pod.WeightedPodAffinityTerms{
 								{
-									PodAffinityTerm: PodAffinityTerm{
+									PodAffinityTerm: pod.PodAffinityTerm{
 										LabelSelector: map[string]string{"label_4": "label_value_4"},
 										Namespaces:    []string{"namespaces_4"},
 										TopologyKey:   "topology_key_4",
@@ -221,7 +222,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Affinity = &v1.Affinity{
 					PodAntiAffinity: &v1.PodAntiAffinity{
 						RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
@@ -248,12 +249,12 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "dns_config",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					DNSConfig: PodDNSConfig{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					DNSConfig: pod.PodDNSConfig{
 						Nameservers: []string{"server_1"},
 						Searches:    []string{"search_1"},
-						Options: []PodDNSConfigOption{
+						Options: []pod.PodDNSConfigOption{
 							{
 								Name:  "option_1",
 								Value: "value_1",
@@ -263,7 +264,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.DNSConfig = &v1.PodDNSConfig{
 					Nameservers: []string{"server_1"},
 					Searches:    []string{"search_1"},
@@ -282,9 +283,9 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "host_aliases",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					HostAliases: HostAliases{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					HostAliases: pod.HostAliases{
 						{
 							IP:        "8.8.8.8",
 							Hostnames: []string{"host"},
@@ -293,7 +294,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.HostAliases = []v1.HostAlias{{
 					IP:        "8.8.8.8",
 					Hostnames: []string{"host"},
@@ -303,15 +304,15 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "pod_readiness_gate",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					ReadinessGates: PodReadinessGates{{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					ReadinessGates: pod.PodReadinessGates{{
 						ConditionType: "condition",
 					}},
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.ReadinessGates = []v1.PodReadinessGate{{
 					ConditionType: "condition",
 				}}
@@ -320,9 +321,9 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "tolerations",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Tolerations: Tolerations{{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Tolerations: pod.Tolerations{{
 						Key:               "key",
 						Operator:          "operator",
 						Value:             "value",
@@ -332,7 +333,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Tolerations = []v1.Toleration{{
 					Key:      "key",
 					Operator: "operator",
@@ -348,9 +349,9 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "topology_spread_constraints",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					TopologySpreadConstraints: TopologySpreadConstraints{{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					TopologySpreadConstraints: pod.TopologySpreadConstraints{{
 						MaxSkew:           1,
 						TopologyKey:       "topology_key",
 						WhenUnsatisfiable: "when_unsatisfiable",
@@ -359,7 +360,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.TopologySpreadConstraints = []v1.TopologySpreadConstraint{{
 					MaxSkew:           1,
 					TopologyKey:       "topology_key",
@@ -374,10 +375,10 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "volumes_empty_dir",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Volumes: Volumes{{
-						EmptyDir: &EmptyDirVolume{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Volumes: pod.Volumes{{
+						EmptyDir: &pod.EmptyDirVolume{
 							Name:      "name",
 							Medium:    "Memory",
 							SizeLimit: "1",
@@ -386,7 +387,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Volumes = []v1.Volume{{
 					Name: "name",
 					VolumeSource: v1.VolumeSource{
@@ -404,10 +405,10 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "volumes_empty_dir_no_size_limit",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Volumes: Volumes{{
-						EmptyDir: &EmptyDirVolume{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Volumes: pod.Volumes{{
+						EmptyDir: &pod.EmptyDirVolume{
 							Name:   "name",
 							Medium: "Memory",
 						},
@@ -415,7 +416,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Volumes = []v1.Volume{{
 					Name: "name",
 					VolumeSource: v1.VolumeSource{
@@ -430,14 +431,14 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "volumes_config_map",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Volumes: Volumes{{
-						ConfigMap: &ConfigMapVolume{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Volumes: pod.Volumes{{
+						ConfigMap: &pod.ConfigMapVolume{
 							Name:          "name",
 							ConfigMapName: "cm_name",
 							DefaultMode:   1,
-							Items: []Item{{
+							Items: []pod.Item{{
 								Key:   "key",
 								Value: "value",
 							}},
@@ -447,7 +448,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Volumes = []v1.Volume{{
 					Name: "name",
 					VolumeSource: v1.VolumeSource{
@@ -474,14 +475,14 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "volumes_secret",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Volumes: Volumes{{
-						Secret: &SecretVolume{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Volumes: pod.Volumes{{
+						Secret: &pod.SecretVolume{
 							Name:        "name",
 							SecretName:  "secret_name",
 							DefaultMode: 1,
-							Items: []Item{{
+							Items: []pod.Item{{
 								Key:   "key",
 								Value: "value",
 							}},
@@ -491,7 +492,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Volumes = []v1.Volume{{
 					Name: "name",
 					VolumeSource: v1.VolumeSource{
@@ -518,23 +519,23 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "volumes_not_defined",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					Volumes: Volumes{{}},
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					Volumes: pod.Volumes{{}},
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.Volumes = []v1.Volume{{}}
 				return newPodSpec
 			}(),
 		},
 		{
 			name: "security_sysctl",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					PodSecurityContext: PodSecurityContext{
-						Sysctls: Sysctls{{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					PodSecurityContext: pod.PodSecurityContext{
+						Sysctls: pod.Sysctls{{
 							Name:  "name",
 							Value: "value",
 						}},
@@ -542,7 +543,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.SecurityContext.Sysctls = []v1.Sysctl{{
 					Name:  "name",
 					Value: "value",
@@ -552,10 +553,10 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "security_windows_options",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					PodSecurityContext: PodSecurityContext{
-						WindowsOptions: WindowsOptions{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					PodSecurityContext: pod.PodSecurityContext{
+						WindowsOptions: pod.WindowsOptions{
 							GMSACredentialSpecName: "spec_name",
 							GMSACredentialSpec:     "spec",
 							RunAsUserName:          "user",
@@ -564,7 +565,7 @@ func TestToK8S(t *testing.T) {
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.SecurityContext.WindowsOptions = &v1.WindowsSecurityContextOptions{
 					GMSACredentialSpecName: func() *string {
 						name := "spec_name"
@@ -584,15 +585,15 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "security_fs_group_change_policy",
-			pts: PodTemplateSpec{
-				Spec: PodSpec{
-					PodSecurityContext: PodSecurityContext{
+			pts: pod.PodTemplateSpec{
+				Spec: pod.PodSpec{
+					PodSecurityContext: pod.PodSecurityContext{
 						FSGroupChangePolicy: "test",
 					},
 				},
 			},
 			expected: func() v1.PodTemplateSpec {
-				newPodSpec := newDefaultPodSpec()
+				newPodSpec := newDefaultPodTemplateSpec()
 				newPodSpec.Spec.SecurityContext.FSGroupChangePolicy = func() *v1.PodFSGroupChangePolicy {
 					f := v1.PodFSGroupChangePolicy("test")
 					return &f
@@ -613,7 +614,7 @@ func TestToK8S(t *testing.T) {
 	}
 }
 
-func newDefaultPodSpec() v1.PodTemplateSpec {
+func newDefaultPodTemplateSpec() v1.PodTemplateSpec {
 	return v1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{},
 		Spec: v1.PodSpec{
