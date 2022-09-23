@@ -511,7 +511,6 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err er
 			}
 		default:
 			if lv.Field(i).IsNil() {
-				// TODO logger
 				fmt.Printf("field %s not set, using default value\n", fieldName)
 			} else {
 				fieldType := lt.Field(i).Type

@@ -1,4 +1,4 @@
-package ingress
+package ingress_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -15,36 +16,76 @@ import (
 
 func TestSet(t *testing.T) {
 	testTable := []struct {
-		name        string
-		ingressName string
-		options     Options
-		clientset   kubernetes.Interface
-		errorMsg    error
+		name         string
+		ingressName  string
+		options      ingress.Options
+		clientset    kubernetes.Interface
+		expectedSpec v1.IngressSpec
+		errorMsg     error
 	}{
 		{
 			name:        "create_ingress",
 			ingressName: "test_ingress",
 			clientset:   fake.NewSimpleClientset(),
-			options: Options{
+			options: ingress.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:      map[string]string{"label_1": "label_value_1"},
-				Spec: Spec{
-					Rules: []Rule{
+				Spec: ingress.Spec{
+					Class: "class",
+					Rules: []ingress.Rule{
 						{
 							Host: "host",
-							Paths: []Path{
+							Paths: []ingress.Path{
 								{
-									Backend:  Backend{ServiceName: "sc_name", ServicePort: "9999"},
+									Backend:  ingress.Backend{ServiceName: "sc_name", ServicePortName: "9999"},
 									Path:     "/test",
 									PathType: "absolute",
 								},
 							},
 						},
 					},
-					TLS: []TLS{
+					TLS: []ingress.TLS{
 						{
 							Hosts:      []string{"host1", "host2"},
 							SecretName: "secret",
+						},
+					},
+				},
+			},
+			expectedSpec: v1.IngressSpec{
+				IngressClassName: func() *string {
+					class := "class"
+					return &class
+				}(),
+				TLS: []v1.IngressTLS{
+					{
+						Hosts:      []string{"host1", "host2"},
+						SecretName: "secret",
+					},
+				},
+				Rules: []v1.IngressRule{
+					{
+						Host: "host",
+						IngressRuleValue: v1.IngressRuleValue{
+							HTTP: &v1.HTTPIngressRuleValue{
+								Paths: []v1.HTTPIngressPath{
+									{
+										Backend: v1.IngressBackend{
+											Service: &v1.IngressServiceBackend{
+												Name: "sc_name",
+												Port: v1.ServiceBackendPort{
+													Name: "9999",
+												},
+											},
+										},
+										Path: "/test",
+										PathType: func() *v1.PathType {
+											pt := v1.PathType("absolute")
+											return &pt
+										}(),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -61,9 +102,10 @@ func TestSet(t *testing.T) {
 					Labels:      map[string]string{"label_1": "label_value_1"},
 				},
 			}),
-			options: Options{
+			options: ingress.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_X", "annotation_2": "annotation_value_2"},
 			},
+			expectedSpec: v1.IngressSpec{},
 		},
 		{
 			name:        "create_error",
@@ -81,7 +123,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := ingress.NewClient(test.clientset)
 			response, err := client.Set(context.Background(), test.ingressName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -98,11 +140,10 @@ func TestSet(t *testing.T) {
 						Annotations: test.options.Annotations,
 						Labels:      test.options.Labels,
 					},
-					Spec: test.options.Spec.toK8S(),
+					Spec: test.expectedSpec,
 				}
-
-				if !reflect.DeepEqual(response, expected) {
-					t.Errorf("response expected: %q, got: %q", response, expected)
+				if !reflect.DeepEqual(*response, *expected) {
+					t.Errorf("response expected: %#v, got: %#v", expected, response)
 				}
 
 			} else {
@@ -157,7 +198,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := ingress.NewClient(test.clientset)
 			err := client.Delete(context.Background(), test.ingressName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
@@ -174,3 +215,25 @@ func TestDelete(t *testing.T) {
 		})
 	}
 }
+
+// func TestToK8s(t *testing.T) {
+// 	testTable := []struct {
+// 		name     string
+// 		options  ingress.Options
+// 		errorMsg error
+// 	}{
+// 		{
+// 			name:     "test",
+// 			options:  ingress.Options{},
+// 			errorMsg: nil,
+// 		},
+// 	}
+
+// 	for _, test := range testTable {
+// 		t.Run(test.name, func(t *testing.T) {
+// 			ingresSpec := test.options.Spec.ToK8S()
+// 			if len(ingresSpec.Rules) == 0 {
+// 			}
+// 		})
+// 	}
+// }

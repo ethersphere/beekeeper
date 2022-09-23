@@ -1,4 +1,4 @@
-package pod
+package pod_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -17,7 +18,7 @@ func TestSet(t *testing.T) {
 	testTable := []struct {
 		name      string
 		podName   string
-		options   Options
+		options   pod.Options
 		clientset kubernetes.Interface
 		errorMsg  error
 	}{
@@ -25,7 +26,7 @@ func TestSet(t *testing.T) {
 			name:      "create_pod",
 			podName:   "test_pod",
 			clientset: fake.NewSimpleClientset(),
-			options: Options{
+			options: pod.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:      map[string]string{"label_1": "label_value_1"},
 			},
@@ -41,7 +42,7 @@ func TestSet(t *testing.T) {
 					Labels:      map[string]string{"label_1": "label_value_1"},
 				},
 			}),
-			options: Options{
+			options: pod.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_X", "annotation_2": "annotation_value_2"},
 			},
 		},
@@ -61,7 +62,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := pod.NewClient(test.clientset)
 			response, err := client.Set(context.Background(), test.podName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -78,7 +79,7 @@ func TestSet(t *testing.T) {
 						Annotations: test.options.Annotations,
 						Labels:      test.options.Labels,
 					},
-					Spec: test.options.PodSpec.toK8S(),
+					Spec: newDefaultPodTemplateSpec().Spec,
 				}
 
 				if !reflect.DeepEqual(response, expected) {
@@ -137,7 +138,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := pod.NewClient(test.clientset)
 			err := client.Delete(context.Background(), test.podName, "test")
 			if test.errorMsg == nil {
 				if err != nil {

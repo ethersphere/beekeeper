@@ -1,21 +1,22 @@
-package containers
+package containers_test
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s/containers"
 	v1 "k8s.io/api/core/v1"
 )
 
 func Test_EphemeralContainers_ToK8S(t *testing.T) {
 	testTable := []struct {
 		name               string
-		containers         EphemeralContainers
+		containers         containers.EphemeralContainers
 		expectedContainers []v1.EphemeralContainer
 	}{
 		{
 			name: "default",
-			containers: EphemeralContainers{
+			containers: containers.EphemeralContainers{
 				{
 					TargetContainerName: "test",
 				},

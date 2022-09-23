@@ -1,4 +1,4 @@
-package statefulset
+package statefulset_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +19,7 @@ func TestSet(t *testing.T) {
 	testTable := []struct {
 		name            string
 		statefulsetName string
-		options         Options
+		options         statefulset.Options
 		clientset       kubernetes.Interface
 		errorMsg        error
 	}{
@@ -26,7 +27,7 @@ func TestSet(t *testing.T) {
 			name:            "create_statefulset",
 			statefulsetName: "test_statefulset",
 			clientset:       fake.NewSimpleClientset(),
-			options: Options{
+			options: statefulset.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:      map[string]string{"label_1": "label_value_1"},
 			},
@@ -42,7 +43,7 @@ func TestSet(t *testing.T) {
 					Labels:      map[string]string{"label_1": "label_value_1"},
 				},
 			}),
-			options: Options{
+			options: statefulset.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_X", "annotation_2": "annotation_value_2"},
 			},
 		},
@@ -57,9 +58,9 @@ func TestSet(t *testing.T) {
 					Labels:      map[string]string{"label_1": "label_value_1"},
 				},
 			}),
-			options: Options{
+			options: statefulset.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_X", "annotation_2": "annotation_value_2"},
-				Spec:        StatefulSetSpec{UpdateStrategy: UpdateStrategy{Type: "OnDelete"}},
+				Spec:        statefulset.StatefulSetSpec{UpdateStrategy: statefulset.UpdateStrategy{Type: "OnDelete"}},
 			},
 		},
 		{
@@ -78,7 +79,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset)
 			response, err := client.Set(context.Background(), test.statefulsetName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -166,7 +167,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset)
 			err := client.Delete(context.Background(), test.statefulsetName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
@@ -220,7 +221,7 @@ func TestReadyReplicas(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset)
 			ready, err := client.ReadyReplicas(context.Background(), test.statefulsetName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
@@ -293,7 +294,7 @@ func TestRunningStatefulSets(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset)
 			response, err := client.RunningStatefulSets(context.Background(), test.namespace)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -368,7 +369,7 @@ func TestScale(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset)
 			response, err := client.Scale(context.Background(), test.statefulSetName, test.namespace, 3)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -455,7 +456,7 @@ func TestStoppedStatefulSets(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset)
 			response, err := client.StoppedStatefulSets(context.Background(), test.namespace)
 			if test.errorMsg == nil {
 				if err != nil {

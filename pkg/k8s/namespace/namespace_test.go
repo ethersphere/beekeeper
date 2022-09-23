@@ -1,4 +1,4 @@
-package namespace
+package namespace_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethersphere/beekeeper"
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,7 +31,7 @@ func TestCreate(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := namespace.NewClient(test.clientset)
 			response, err := client.Create(context.Background(), test.nsName)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -75,7 +76,7 @@ func TestUpdate(t *testing.T) {
 		name      string
 		nsName    string
 		clientset kubernetes.Interface
-		otpions   Options
+		otpions   namespace.Options
 		errorMsg  error
 	}{
 		{
@@ -92,7 +93,7 @@ func TestUpdate(t *testing.T) {
 					},
 				},
 			}),
-			otpions: Options{
+			otpions: namespace.Options{
 				Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 				Labels:      map[string]string{"label_1": "label_value_1"},
 			},
@@ -101,7 +102,7 @@ func TestUpdate(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := namespace.NewClient(test.clientset)
 			response, err := client.Update(context.Background(), test.nsName, test.otpions)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -207,7 +208,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := NewClient(test.clientset)
+			client := namespace.NewClient(test.clientset)
 			err := client.Delete(context.Background(), test.nsName)
 			if test.errorMsg == nil {
 				if err != nil {

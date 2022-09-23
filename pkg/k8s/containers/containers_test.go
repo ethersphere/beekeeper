@@ -1,9 +1,10 @@
-package containers
+package containers_test
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s/containers"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -12,12 +13,12 @@ import (
 func TestToK8S_Containers(t *testing.T) {
 	testTable := []struct {
 		name               string
-		containers         Containers
+		containers         containers.Containers
 		expectedContainers []v1.Container
 	}{
 		{
 			name:       "default",
-			containers: Containers{{}},
+			containers: containers.Containers{{}},
 			expectedContainers: []v1.Container{
 				newExpectedDefaultContainer(),
 			},
@@ -40,12 +41,12 @@ func TestToK8S(t *testing.T) {
 
 	testTable := []struct {
 		name      string
-		container Container
+		container containers.Container
 		expected  v1.Container
 	}{
 		{
 			name: "init_simple",
-			container: Container{
+			container: containers.Container{
 				Name:                     "container",
 				Args:                     []string{"arg1", "arg2"},
 				Command:                  []string{"cmd1", "cmd2"},
@@ -76,27 +77,27 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "env",
-			container: Container{
-				Env: []EnvVar{
+			container: containers.Container{
+				Env: []containers.EnvVar{
 					{
 						Name:  "dev",
 						Value: "default",
-						ValueFrom: ValueFrom{
-							Field: Field{
+						ValueFrom: containers.ValueFrom{
+							Field: containers.Field{
 								APIVersion: "v1",
 								Path:       "/path",
 							},
-							ResourceField: ResourceField{
+							ResourceField: containers.ResourceField{
 								ContainerName: "containerName",
 								Resource:      "resource",
 								Divisor:       "1Gi",
 							},
-							ConfigMap: ConfigMapKey{
+							ConfigMap: containers.ConfigMapKey{
 								ConfigMapName: "configMapName",
 								Key:           "key",
 								Optional:      true,
 							},
-							Secret: SecretKey{
+							Secret: containers.SecretKey{
 								SecretName: "secretName",
 								Key:        "key",
 								Optional:   true,
@@ -143,15 +144,15 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "env_from",
-			container: Container{
-				EnvFrom: []EnvFrom{
+			container: containers.Container{
+				EnvFrom: []containers.EnvFrom{
 					{
 						Prefix: "pre",
-						ConfigMap: ConfigMapRef{
+						ConfigMap: containers.ConfigMapRef{
 							Name:     "configMapName",
 							Optional: true,
 						},
-						Secret: SecretRef{
+						Secret: containers.SecretRef{
 							Name:     "secretName",
 							Optional: true,
 						},
@@ -182,21 +183,21 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "lifecycle_exec",
-			container: Container{
-				Lifecycle: Lifecycle{
-					PostStart: &Handler{
-						Exec: &ExecHandler{
+			container: containers.Container{
+				Lifecycle: containers.Lifecycle{
+					PostStart: &containers.Handler{
+						Exec: &containers.ExecHandler{
 							Command: []string{"cmd_start1", "cmd_start2"},
 						},
-						HTTPGet:   &HTTPGetHandler{},
-						TCPSocket: &TCPSocketHandler{},
+						HTTPGet:   &containers.HTTPGetHandler{},
+						TCPSocket: &containers.TCPSocketHandler{},
 					},
-					PreStop: &Handler{
-						Exec: &ExecHandler{
+					PreStop: &containers.Handler{
+						Exec: &containers.ExecHandler{
 							Command: []string{"cmd_stop1", "cmd_stop2"},
 						},
-						HTTPGet:   &HTTPGetHandler{},
-						TCPSocket: &TCPSocketHandler{},
+						HTTPGet:   &containers.HTTPGetHandler{},
+						TCPSocket: &containers.TCPSocketHandler{},
 					},
 				},
 			},
@@ -219,37 +220,37 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "lifecycle_http",
-			container: Container{
-				Lifecycle: Lifecycle{
-					PostStart: &Handler{
-						HTTPGet: &HTTPGetHandler{
+			container: containers.Container{
+				Lifecycle: containers.Lifecycle{
+					PostStart: &containers.Handler{
+						HTTPGet: &containers.HTTPGetHandler{
 							Host:   "host_start",
 							Path:   "path",
 							Port:   "10000",
 							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
+							HTTPHeaders: []containers.HTTPHeader{
 								{
 									Name:  "headerName",
 									Value: "headerValue",
 								},
 							},
 						},
-						TCPSocket: &TCPSocketHandler{},
+						TCPSocket: &containers.TCPSocketHandler{},
 					},
-					PreStop: &Handler{
-						HTTPGet: &HTTPGetHandler{
+					PreStop: &containers.Handler{
+						HTTPGet: &containers.HTTPGetHandler{
 							Host:   "host_stop",
 							Path:   "path",
 							Port:   "10002",
 							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
+							HTTPHeaders: []containers.HTTPHeader{
 								{
 									Name:  "headerName",
 									Value: "headerValue",
 								},
 							},
 						},
-						TCPSocket: &TCPSocketHandler{},
+						TCPSocket: &containers.TCPSocketHandler{},
 					},
 				},
 			},
@@ -298,16 +299,16 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "lifecycle_tcp",
-			container: Container{
-				Lifecycle: Lifecycle{
-					PostStart: &Handler{
-						TCPSocket: &TCPSocketHandler{
+			container: containers.Container{
+				Lifecycle: containers.Lifecycle{
+					PostStart: &containers.Handler{
+						TCPSocket: &containers.TCPSocketHandler{
 							Host: "tcp_post_start",
 							Port: "10000",
 						},
 					},
-					PreStop: &Handler{
-						TCPSocket: &TCPSocketHandler{
+					PreStop: &containers.Handler{
+						TCPSocket: &containers.TCPSocketHandler{
 							Host: "tcp_pre_stop",
 							Port: "10000",
 						},
@@ -343,10 +344,10 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "lifecycle_no_handlers",
-			container: Container{
-				Lifecycle: Lifecycle{
-					PostStart: &Handler{},
-					PreStop:   &Handler{},
+			container: containers.Container{
+				Lifecycle: containers.Lifecycle{
+					PostStart: &containers.Handler{},
+					PreStop:   &containers.Handler{},
 				},
 			},
 			expected: func() v1.Container {
@@ -360,11 +361,11 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "liveness_probe_exec",
-			container: Container{
-				LivenessProbe: Probe{
-					Exec: &ExecProbe{
+			container: containers.Container{
+				LivenessProbe: containers.Probe{
+					Exec: &containers.ExecProbe{
 						FailureThreshold: 1,
-						Handler: ExecHandler{
+						Handler: containers.ExecHandler{
 							Command: []string{"cmd_probe_1"},
 						},
 						InitialDelaySeconds: 2,
@@ -372,8 +373,8 @@ func TestToK8S(t *testing.T) {
 						SuccessThreshold:    4,
 						TimeoutSeconds:      5,
 					},
-					HTTPGet:   &HTTPGetProbe{},
-					TCPSocket: &TCPSocketProbe{},
+					HTTPGet:   &containers.HTTPGetProbe{},
+					TCPSocket: &containers.TCPSocketProbe{},
 				},
 			},
 			expected: func() v1.Container {
@@ -395,16 +396,16 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "liveness_probe_http",
-			container: Container{
-				LivenessProbe: Probe{
-					HTTPGet: &HTTPGetProbe{
+			container: containers.Container{
+				LivenessProbe: containers.Probe{
+					HTTPGet: &containers.HTTPGetProbe{
 						FailureThreshold: 1,
-						Handler: HTTPGetHandler{
+						Handler: containers.HTTPGetHandler{
 							Host:   "http_host_lp",
 							Path:   "path",
 							Port:   "10000",
 							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
+							HTTPHeaders: []containers.HTTPHeader{
 								{
 									Name:  "headerName",
 									Value: "headerValue",
@@ -416,7 +417,7 @@ func TestToK8S(t *testing.T) {
 						SuccessThreshold:    4,
 						TimeoutSeconds:      5,
 					},
-					TCPSocket: &TCPSocketProbe{},
+					TCPSocket: &containers.TCPSocketProbe{},
 				},
 			},
 			expected: func() v1.Container {
@@ -451,11 +452,11 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "liveness_probe_tcp",
-			container: Container{
-				LivenessProbe: Probe{
-					TCPSocket: &TCPSocketProbe{
+			container: containers.Container{
+				LivenessProbe: containers.Probe{
+					TCPSocket: &containers.TCPSocketProbe{
 						FailureThreshold: 1,
-						Handler: TCPSocketHandler{
+						Handler: containers.TCPSocketHandler{
 							Host: "tcp_lp",
 							Port: "10000",
 						},
@@ -490,8 +491,8 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "ports",
-			container: Container{
-				Ports: []Port{
+			container: containers.Container{
+				Ports: []containers.Port{
 					{
 						Name:          "port",
 						ContainerPort: 12000,
@@ -517,11 +518,11 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "readiness_probe_exec",
-			container: Container{
-				ReadinessProbe: Probe{
-					Exec: &ExecProbe{
+			container: containers.Container{
+				ReadinessProbe: containers.Probe{
+					Exec: &containers.ExecProbe{
 						FailureThreshold: 16,
-						Handler: ExecHandler{
+						Handler: containers.ExecHandler{
 							Command: []string{"cmd_ready_1"},
 						},
 						InitialDelaySeconds: 17,
@@ -529,8 +530,8 @@ func TestToK8S(t *testing.T) {
 						SuccessThreshold:    19,
 						TimeoutSeconds:      20,
 					},
-					HTTPGet:   &HTTPGetProbe{},
-					TCPSocket: &TCPSocketProbe{},
+					HTTPGet:   &containers.HTTPGetProbe{},
+					TCPSocket: &containers.TCPSocketProbe{},
 				},
 			},
 			expected: func() v1.Container {
@@ -552,16 +553,16 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "readiness_probe_http",
-			container: Container{
-				ReadinessProbe: Probe{
-					HTTPGet: &HTTPGetProbe{
+			container: containers.Container{
+				ReadinessProbe: containers.Probe{
+					HTTPGet: &containers.HTTPGetProbe{
 						FailureThreshold: 6,
-						Handler: HTTPGetHandler{
+						Handler: containers.HTTPGetHandler{
 							Host:   "http_host_rp",
 							Path:   "path",
 							Port:   "10000",
 							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
+							HTTPHeaders: []containers.HTTPHeader{
 								{
 									Name:  "headerName",
 									Value: "headerValue",
@@ -573,7 +574,7 @@ func TestToK8S(t *testing.T) {
 						SuccessThreshold:    9,
 						TimeoutSeconds:      10,
 					},
-					TCPSocket: &TCPSocketProbe{},
+					TCPSocket: &containers.TCPSocketProbe{},
 				},
 			},
 			expected: func() v1.Container {
@@ -608,11 +609,11 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "readiness_probe_tcp",
-			container: Container{
-				ReadinessProbe: Probe{
-					TCPSocket: &TCPSocketProbe{
+			container: containers.Container{
+				ReadinessProbe: containers.Probe{
+					TCPSocket: &containers.TCPSocketProbe{
 						FailureThreshold: 1,
-						Handler: TCPSocketHandler{
+						Handler: containers.TCPSocketHandler{
 							Host: "tcp_rp",
 							Port: "10000",
 						},
@@ -647,15 +648,15 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "resources",
-			container: Container{
-				Resources: Resources{
-					Limit: Limit{
+			container: containers.Container{
+				Resources: containers.Resources{
+					Limit: containers.Limit{
 						CPU:              "100",
 						Memory:           "101",
 						Storage:          "102",
 						EphemeralStorage: "103",
 					},
-					Request: Request{
+					Request: containers.Request{
 						CPU:              "200",
 						Memory:           "201",
 						Storage:          "202",
@@ -684,10 +685,10 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "security_context",
-			container: Container{
-				SecurityContext: SecurityContext{
+			container: containers.Container{
+				SecurityContext: containers.SecurityContext{
 					AllowPrivilegeEscalation: true,
-					Capabilities: Capabilities{
+					Capabilities: containers.Capabilities{
 						Add:  []string{"add"},
 						Drop: []string{"drop"},
 					},
@@ -697,13 +698,13 @@ func TestToK8S(t *testing.T) {
 					RunAsGroup:             1,
 					RunAsNonRoot:           true,
 					RunAsUser:              2,
-					SELinuxOptions: SELinuxOptions{
+					SELinuxOptions: containers.SELinuxOptions{
 						User:  "user",
 						Role:  "role",
 						Type:  "type",
 						Level: "level",
 					},
-					WindowsOptions: WindowsOptions{
+					WindowsOptions: containers.WindowsOptions{
 						GMSACredentialSpecName: "name",
 						GMSACredentialSpec:     "spec",
 						RunAsUserName:          "run",
@@ -771,11 +772,11 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "startup_probe_exec",
-			container: Container{
-				StartupProbe: Probe{
-					Exec: &ExecProbe{
+			container: containers.Container{
+				StartupProbe: containers.Probe{
+					Exec: &containers.ExecProbe{
 						FailureThreshold: 31,
-						Handler: ExecHandler{
+						Handler: containers.ExecHandler{
 							Command: []string{"cmd_startup_1"},
 						},
 						InitialDelaySeconds: 32,
@@ -783,8 +784,8 @@ func TestToK8S(t *testing.T) {
 						SuccessThreshold:    34,
 						TimeoutSeconds:      35,
 					},
-					HTTPGet:   &HTTPGetProbe{},
-					TCPSocket: &TCPSocketProbe{},
+					HTTPGet:   &containers.HTTPGetProbe{},
+					TCPSocket: &containers.TCPSocketProbe{},
 				},
 			},
 			expected: func() v1.Container {
@@ -806,16 +807,16 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "startup_probe_http",
-			container: Container{
-				StartupProbe: Probe{
-					HTTPGet: &HTTPGetProbe{
+			container: containers.Container{
+				StartupProbe: containers.Probe{
+					HTTPGet: &containers.HTTPGetProbe{
 						FailureThreshold: 11,
-						Handler: HTTPGetHandler{
+						Handler: containers.HTTPGetHandler{
 							Host:   "http_host_sp",
 							Path:   "path",
 							Port:   "10000",
 							Scheme: "scheme",
-							HTTPHeaders: []HTTPHeader{
+							HTTPHeaders: []containers.HTTPHeader{
 								{
 									Name:  "headerName",
 									Value: "headerValue",
@@ -827,7 +828,7 @@ func TestToK8S(t *testing.T) {
 						SuccessThreshold:    14,
 						TimeoutSeconds:      15,
 					},
-					TCPSocket: &TCPSocketProbe{},
+					TCPSocket: &containers.TCPSocketProbe{},
 				},
 			},
 			expected: func() v1.Container {
@@ -862,11 +863,11 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "startup_probe_tcp",
-			container: Container{
-				StartupProbe: Probe{
-					TCPSocket: &TCPSocketProbe{
+			container: containers.Container{
+				StartupProbe: containers.Probe{
+					TCPSocket: &containers.TCPSocketProbe{
 						FailureThreshold: 1,
-						Handler: TCPSocketHandler{
+						Handler: containers.TCPSocketHandler{
 							Host: "tcp_sp",
 							Port: "10000",
 						},
@@ -901,8 +902,8 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "volume_devices",
-			container: Container{
-				VolumeDevices: []VolumeDevice{
+			container: containers.Container{
+				VolumeDevices: []containers.VolumeDevice{
 					{
 						Name:       "VolumeName",
 						DevicePath: "VolumeDevicePath",
@@ -922,8 +923,8 @@ func TestToK8S(t *testing.T) {
 		},
 		{
 			name: "volume_mounts",
-			container: Container{
-				VolumeMounts: []VolumeMount{
+			container: containers.Container{
+				VolumeMounts: []containers.VolumeMount{
 					{
 						Name:      "VolumeMountName",
 						MountPath: "VolumeMountPath",

@@ -227,8 +227,8 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 				Host: o.IngressHost,
 				Paths: ingress.Paths{{
 					Backend: ingress.Backend{
-						ServiceName: apiSvc,
-						ServicePort: "api",
+						ServiceName:     apiSvc,
+						ServicePortName: "api",
 					},
 					Path:     "/",
 					PathType: "ImplementationSpecific",
@@ -278,8 +278,8 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 				Host: o.IngressDebugHost,
 				Paths: ingress.Paths{{
 					Backend: ingress.Backend{
-						ServiceName: debugSvc,
-						ServicePort: "debug",
+						ServiceName:     debugSvc,
+						ServicePortName: "debug",
 					},
 					Path:     "/",
 					PathType: "ImplementationSpecific",
