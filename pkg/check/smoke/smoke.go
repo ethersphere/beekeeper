@@ -18,14 +18,17 @@ import (
 
 // Options represents smoke test options
 type Options struct {
-	ContentSize   int64
-	RndSeed       int64
-	PostageAmount int64
-	PostageDepth  uint64
-	TxOnErrWait   time.Duration
-	RxOnErrWait   time.Duration
-	NodesSyncWait time.Duration
-	Duration      time.Duration
+	ContentSize     int64
+	RndSeed         int64
+	PostageAmount   int64
+	PostageDepth    uint64
+	TxOnErrWait     time.Duration
+	RxOnErrWait     time.Duration
+	NodesSyncWait   time.Duration
+	Duration        time.Duration
+	DownloaderCount int
+	UploadGroup     []string
+	DownloadGroup   []string
 }
 
 // NewDefaultOptions returns new default options
@@ -54,7 +57,7 @@ type Check struct {
 // NewCheck returns new check
 func NewCheck(logger logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: newMetrics(),
+		metrics: newMetrics("check_smoke"),
 		logger:  logger,
 	}
 }
