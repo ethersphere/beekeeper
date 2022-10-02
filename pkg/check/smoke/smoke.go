@@ -18,17 +18,19 @@ import (
 
 // Options represents smoke test options
 type Options struct {
-	ContentSize     int64
-	RndSeed         int64
-	PostageAmount   int64
-	PostageDepth    uint64
-	TxOnErrWait     time.Duration
-	RxOnErrWait     time.Duration
-	NodesSyncWait   time.Duration
-	Duration        time.Duration
+	ContentSize   int64
+	RndSeed       int64
+	PostageAmount int64
+	PostageDepth  uint64
+	TxOnErrWait   time.Duration
+	RxOnErrWait   time.Duration
+	NodesSyncWait time.Duration
+	Duration      time.Duration
+	// load test params
+	UploaderCount   int
+	UploadGroups    []string
 	DownloaderCount int
-	UploadGroup     []string
-	DownloadGroup   []string
+	DownloadGroups  []string
 }
 
 // NewDefaultOptions returns new default options

@@ -3,7 +3,7 @@ package smoke
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"errors"
 	"math/rand"
 	"sync"
 	"time"
@@ -36,7 +36,11 @@ func NewLoadCheck(logger logging.Logger) beekeeper.Action {
 func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
 	o, ok := opts.(Options)
 	if !ok {
-		return fmt.Errorf("invalid options type")
+		return errors.New("invalid options type")
+	}
+
+	if o.UploaderCount == 0 || len(o.UploadGroups) == 0 {
+		return errors.New("no uploaders requested, quiting")
 	}
 
 	c.logger.Info("random seed: ", o.RndSeed)
@@ -54,20 +58,17 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 	test := &test{opt: o, ctx: ctx, clients: clients, logger: c.logger}
 
-	uploaders := selectNames(cluster, o.UploadGroup...)
-	downloaders := selectNames(cluster, o.DownloadGroup...)
+	uploaders := selectNames(cluster, o.UploadGroups...)
+	downloaders := selectNames(cluster, o.DownloadGroups...)
 
 	for i := 0; true; i++ {
 		select {
 		case <-ctx.Done():
+			c.logger.Info("we are done")
 			return nil
 		default:
 			c.logger.Infof("starting iteration: #%d", i)
 		}
-
-		txNames := pick(1, uploaders, cluster, rnd) // for now we only upload to one node
-
-		c.logger.Infof("uploader: %s", txNames)
 
 		var (
 			txDuration time.Duration
@@ -81,34 +82,56 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 			continue
 		}
 
-		txName := txNames[0]
+		txNames := pick(o.UploaderCount, uploaders, rnd)
 
-		for retries := 10; txDuration == 0 && retries > 0; retries-- {
-			select {
-			case <-ctx.Done():
-				return nil
-			default:
-			}
+		c.logger.Infof("uploader: %s", txNames)
 
-			c.metrics.UploadAttempts.Inc()
+		var upload sync.WaitGroup
+		for i := 0; i < o.UploaderCount; i++ {
+			txName := txNames[i]
+			upload.Add(1)
+			go func() {
+				defer upload.Done()
+				for retries := 10; txDuration == 0 && retries > 0; retries-- {
+					select {
+					case <-ctx.Done():
+						c.logger.Info("we are done")
+						return
+					default:
+					}
 
-			address, txDuration, err = test.upload(txName, txData)
-			if err != nil {
-				c.metrics.UploadErrors.Inc()
-				c.logger.Infof("upload failed: %v", err)
-				c.logger.Infof("retrying in: %v", o.TxOnErrWait)
-				time.Sleep(o.TxOnErrWait)
-			}
+					c.metrics.UploadAttempts.Inc()
+					var duration time.Duration
+					c.logger.Infof("uploading to: %s", txName)
+					address, duration, err = test.upload(txName, txData)
+					if err != nil {
+						c.metrics.UploadErrors.Inc()
+						c.logger.Infof("upload failed: %v", err)
+						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
+						time.Sleep(o.TxOnErrWait)
+						return
+					}
+					txDuration += duration // dirty
+				}
+			}()
 		}
+
+		upload.Wait()
 
 		if txDuration == 0 {
 			continue
 		}
 
+		c.logger.Infof("sleeping for: %v seconds", o.NodesSyncWait.Seconds())
 		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
-		for count := 5; count < o.DownloaderCount && count < len(downloaders); count *= 2 {
-			rxNames := pick(count, downloaders, cluster, rnd)
+		// iterate over the entire cluster and download the file
+		for from := 0; from < len(downloaders); from += o.DownloaderCount {
+			to := o.DownloaderCount
+			if from+to > len(downloaders) {
+				to = len(downloaders) - from
+			}
+			rxNames := downloaders[from : from+to]
 			c.logger.Infof("downloaders: %s", rxNames)
 
 			var wg sync.WaitGroup
@@ -185,28 +208,15 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	return nil
 }
 
-func pick(count int, nn []string, cluster orchestration.Cluster, rnd *rand.Rand) (names []string) {
-	for i := 0; i < count; i++ {
-	RNG:
-		index := rnd.Intn(len(nn))
-		name := nn[index]
-		if contains(names, name) {
-			goto RNG
-		}
-		names = append(names, name)
+func pick(count int, nn []string, rnd *rand.Rand) (names []string) {
+	var seq RandomInts
+
+	randomSeq := seq.Generate(count, len(nn), rnd)
+	for _, i := range randomSeq {
+		names = append(names, nn[i])
 	}
 
 	return
-}
-
-func contains(in []string, target string) bool {
-	for _, name := range in {
-		if name == target {
-			return true
-		}
-	}
-
-	return false
 }
 
 func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
@@ -216,6 +226,28 @@ func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
 			panic(err)
 		}
 		selected = append(selected, ng.NodesSorted()...)
+	}
+
+	rand.Shuffle(len(selected), func(i, j int) {
+		tmp := selected[i]
+		selected[i] = selected[j]
+		selected[j] = tmp
+	})
+
+	return
+}
+
+type RandomInts map[int]struct{}
+
+func (r RandomInts) Generate(size, ceiling int, rnd *rand.Rand) (out []int) {
+	if r == nil {
+		r = make(RandomInts)
+	}
+	for len(r) < size {
+		r[rnd.Intn(ceiling)] = struct{}{}
+	}
+	for k := range r {
+		out = append(out, k)
 	}
 
 	return

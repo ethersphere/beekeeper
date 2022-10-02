@@ -409,9 +409,10 @@ var Checks = map[string]CheckType{
 				RxOnErrWait     *time.Duration `yaml:"rx-on-err-wait"`
 				NodesSyncWait   *time.Duration `yaml:"nodes-sync-wait"`
 				Duration        *time.Duration `yaml:"duration"`
+				UploaderCount   *int           `yaml:"uploader-count"`
+				UploadGroups    *[]string      `yaml:"upload-groups"`
 				DownloaderCount *int           `yaml:"downloader-count"`
-				DownloadGroup   *[]string      `yaml:"download-group"`
-				UploadGroup     *[]string      `yaml:"upload-group"`
+				DownloadGroups  *[]string      `yaml:"download-groups"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
