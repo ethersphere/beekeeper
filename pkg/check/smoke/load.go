@@ -82,16 +82,20 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 			continue
 		}
 
-		txNames := pick(o.UploaderCount, uploaders, rnd)
+		txNames := movingWindow(i, o.UploaderCount, uploaders, rnd)
 
 		c.logger.Infof("uploader: %s", txNames)
 
-		var upload sync.WaitGroup
+		var (
+			upload sync.WaitGroup
+			once   sync.Once
+		)
+		upload.Add(1)
+
 		for i := 0; i < o.UploaderCount; i++ {
 			txName := txNames[i]
-			upload.Add(1)
 			go func() {
-				defer upload.Done()
+				defer once.Do(func() { upload.Done() }) // don't wait for all uploads
 				for retries := 10; txDuration == 0 && retries > 0; retries-- {
 					select {
 					case <-ctx.Done():
@@ -127,11 +131,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 		// iterate over the entire cluster and download the file
 		for from := 0; from < len(downloaders); from += o.DownloaderCount {
-			to := o.DownloaderCount
-			if from+to > len(downloaders) {
-				to = len(downloaders) - from
-			}
-			rxNames := downloaders[from : from+to]
+			rxNames := movingWindow(i, o.DownloaderCount, downloaders, rnd)
 			c.logger.Infof("downloaders: %s", rxNames)
 
 			var wg sync.WaitGroup
@@ -208,15 +208,24 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	return nil
 }
 
-func pick(count int, nn []string, rnd *rand.Rand) (names []string) {
-	var seq RandomInts
-
-	randomSeq := seq.Generate(count, len(nn), rnd)
-	for _, i := range randomSeq {
-		names = append(names, nn[i])
+func movingWindow(iteration, count int, peers []string, rnd *rand.Rand) []string {
+	if count >= len(peers) {
+		return peers
 	}
 
-	return
+	from := iteration * count
+	if from >= len(peers) {
+		times := from / len(peers)
+		from = from - times*len(peers)
+	}
+
+	to := from + count
+	if to > len(peers) {
+		to = len(peers)
+		return peers[from:to]
+	}
+
+	return peers[from:to]
 }
 
 func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
