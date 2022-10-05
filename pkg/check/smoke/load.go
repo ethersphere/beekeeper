@@ -208,10 +208,11 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 }
 
 func pickRandom(count int, peers []string, rnd *rand.Rand) (names []string) {
-	var seq RandomInts
+	seq := randomIntSeq(count, len(peers), rnd)
 	for i := range seq {
 		names = append(names, peers[i])
 	}
+
 	return
 }
 
@@ -233,15 +234,13 @@ func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
 	return
 }
 
-type RandomInts map[int]struct{}
+func randomIntSeq(size, ceiling int, rnd *rand.Rand) (out []int) {
+	r := make(map[int]struct{}, size)
 
-func (r RandomInts) Generate(size, ceiling int, rnd *rand.Rand) (out []int) {
-	if r == nil {
-		r = make(RandomInts)
-	}
 	for len(r) < size {
 		r[rnd.Intn(ceiling)] = struct{}{}
 	}
+
 	for k := range r {
 		out = append(out, k)
 	}
