@@ -211,7 +211,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 func pickRandom(count int, peers []string) (names []string) {
 	seq := randomIntSeq(count, len(peers))
-	for i := range seq {
+	for _, i := range seq {
 		names = append(names, peers[i])
 	}
 
