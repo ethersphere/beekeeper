@@ -92,8 +92,8 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		)
 		upload.Add(1)
 
-		for i := 0; i < o.UploaderCount; i++ {
-			txName := txNames[i]
+		for _, txName := range txNames {
+			txName := txName
 			go func() {
 				defer once.Do(func() { upload.Done() }) // don't wait for all uploads
 				for retries := 10; txDuration == 0 && retries > 0; retries-- {
@@ -129,80 +129,79 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		c.logger.Infof("sleeping for: %v seconds", o.NodesSyncWait.Seconds())
 		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
-		// iterate over the entire cluster and download the file
-		for from := 0; from < len(downloaders); from += o.DownloaderCount {
-			rxNames := movingWindow(i, o.DownloaderCount, downloaders, rnd)
-			c.logger.Infof("downloaders: %s", rxNames)
+		// pick a batch of downloaders
+		rxNames := movingWindow(i, o.DownloaderCount, downloaders, rnd)
+		c.logger.Infof("downloaders: %s", rxNames)
 
-			var wg sync.WaitGroup
+		var wg sync.WaitGroup
 
-			for _, rxName := range rxNames {
-				rxName := rxName
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
+		for _, rxName := range rxNames {
+			rxName := rxName
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
 
-					var (
-						rxDuration time.Duration
-						rxData     []byte
-					)
+				var (
+					rxDuration time.Duration
+					rxData     []byte
+				)
 
-					for retries := 10; rxDuration == 0 && retries > 0; retries-- {
-						select {
-						case <-ctx.Done():
-							c.logger.Infof("context done in retry: %v", retries)
-							return
-						default:
-						}
-
-						c.metrics.DownloadAttempts.Inc()
-
-						rxData, rxDuration, err = test.download(rxName, address)
-						if err != nil {
-							c.metrics.DownloadErrors.Inc()
-							c.logger.Infof("download failed: %v", err)
-							c.logger.Infof("retrying in: %v", o.RxOnErrWait)
-							time.Sleep(o.RxOnErrWait)
-						}
+				for retries := 10; rxDuration == 0 && retries > 0; retries-- {
+					select {
+					case <-ctx.Done():
+						c.logger.Infof("context done in retry: %v", retries)
+						return
+					default:
 					}
 
-					// download error, skip comprarison below
-					if rxDuration == 0 {
+					c.metrics.DownloadAttempts.Inc()
+
+					rxData, rxDuration, err = test.download(rxName, address)
+					if err != nil {
+						c.metrics.DownloadErrors.Inc()
+						c.logger.Infof("download failed: %v", err)
+						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
+						time.Sleep(o.RxOnErrWait)
+					}
+				}
+
+				// download error, skip comprarison below
+				if rxDuration == 0 {
+					return
+				}
+
+				if !bytes.Equal(rxData, txData) {
+					c.logger.Info("uploaded data does not match downloaded data")
+
+					c.metrics.DownloadMismatch.Inc()
+
+					rxLen, txLen := len(rxData), len(txData)
+					if rxLen != txLen {
+						c.logger.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
+						if txLen < rxLen {
+							c.logger.Info("length mismatch: rx length is bigger then tx length")
+						}
 						return
 					}
 
-					if !bytes.Equal(rxData, txData) {
-						c.logger.Info("uploaded data does not match downloaded data")
-
-						c.metrics.DownloadMismatch.Inc()
-
-						rxLen, txLen := len(rxData), len(txData)
-						if rxLen != txLen {
-							c.logger.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
-							if txLen < rxLen {
-								c.logger.Info("length mismatch: rx length is bigger then tx length")
-							}
-							return
+					var diff int
+					for i := range txData {
+						if txData[i] != rxData[i] {
+							diff++
 						}
-
-						var diff int
-						for i := range txData {
-							if txData[i] != rxData[i] {
-								diff++
-							}
-						}
-						c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
-						return
 					}
+					c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
+					return
+				}
 
-					// We want to update the metrics when no error has been
-					// encountered in order to avoid counter mismatch.
-					c.metrics.UploadDuration.Observe(txDuration.Seconds())
-					c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
-				}()
-			}
-			wg.Wait()
+				// We want to update the metrics when no error has been
+				// encountered in order to avoid counter mismatch.
+				c.metrics.UploadDuration.Observe(txDuration.Seconds())
+				c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
+			}()
 		}
+
+		wg.Wait()
 	}
 
 	return nil
