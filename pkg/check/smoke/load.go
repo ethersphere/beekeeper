@@ -12,8 +12,11 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/random"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*LoadCheck)(nil)
@@ -45,8 +48,6 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 	c.logger.Info("random seed: ", o.RndSeed)
 	c.logger.Info("content size: ", o.ContentSize)
-
-	rnd := random.PseudoGenerator(o.RndSeed)
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -82,7 +83,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 			continue
 		}
 
-		txNames := pickRandom(o.UploaderCount, uploaders, rnd)
+		txNames := pickRandom(o.UploaderCount, uploaders)
 
 		c.logger.Infof("uploader: %s", txNames)
 
@@ -90,6 +91,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 			upload sync.WaitGroup
 			once   sync.Once
 		)
+
 		upload.Add(1)
 
 		for _, txName := range txNames {
@@ -130,7 +132,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
 		// pick a batch of downloaders
-		rxNames := pickRandom(o.DownloaderCount, downloaders, rnd)
+		rxNames := pickRandom(o.DownloaderCount, downloaders)
 		c.logger.Infof("downloaders: %s", rxNames)
 
 		var wg sync.WaitGroup
@@ -207,8 +209,8 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	return nil
 }
 
-func pickRandom(count int, peers []string, rnd *rand.Rand) (names []string) {
-	seq := randomIntSeq(count, len(peers), rnd)
+func pickRandom(count int, peers []string) (names []string) {
+	seq := randomIntSeq(count, len(peers))
 	for i := range seq {
 		names = append(names, peers[i])
 	}
@@ -234,11 +236,11 @@ func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
 	return
 }
 
-func randomIntSeq(size, ceiling int, rnd *rand.Rand) (out []int) {
+func randomIntSeq(size, ceiling int) (out []int) {
 	r := make(map[int]struct{}, size)
 
 	for len(r) < size {
-		r[rnd.Intn(ceiling)] = struct{}{}
+		r[rand.Intn(ceiling)] = struct{}{}
 	}
 
 	for k := range r {
