@@ -82,7 +82,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 			continue
 		}
 
-		txNames := movingWindow(i, o.UploaderCount, uploaders, rnd)
+		txNames := pickRandom(o.UploaderCount, uploaders, rnd)
 
 		c.logger.Infof("uploader: %s", txNames)
 
@@ -130,7 +130,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
 		// pick a batch of downloaders
-		rxNames := movingWindow(i, o.DownloaderCount, downloaders, rnd)
+		rxNames := pickRandom(o.DownloaderCount, downloaders, rnd)
 		c.logger.Infof("downloaders: %s", rxNames)
 
 		var wg sync.WaitGroup
@@ -207,24 +207,12 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	return nil
 }
 
-func movingWindow(iteration, count int, peers []string, rnd *rand.Rand) []string {
-	if count >= len(peers) {
-		return peers
+func pickRandom(count int, peers []string, rnd *rand.Rand) (names []string) {
+	var seq RandomInts
+	for i := range seq {
+		names = append(names, peers[i])
 	}
-
-	from := iteration * count
-	if from >= len(peers) {
-		times := from / len(peers)
-		from = from - times*len(peers)
-	}
-
-	to := from + count
-	if to > len(peers) {
-		to = len(peers)
-		return peers[from:to]
-	}
-
-	return peers[from:to]
+	return
 }
 
 func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
