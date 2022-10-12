@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/ethersphere/bee/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
@@ -15,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
