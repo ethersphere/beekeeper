@@ -131,8 +131,8 @@ github.com/ethersphere/bee v1.8.2 h1:x1mV79bXt55qe5VH3YZSTC8nybFUDXQVeDBraqA/jsY
 github.com/ethersphere/bee v1.8.2/go.mod h1:exDy53guDqm8onpyPai9BWCMjmOawHVly7pscVRiCmQ=
 github.com/ethersphere/bmt v0.1.4 h1:+rkWYNtMgDx6bkNqGdWu+U9DgGI1rRZplpSW3YhBr1Q=
 github.com/ethersphere/bmt v0.1.4/go.mod h1:Yd8ft1U69WDuHevZc/rwPxUv1rzPSMpMnS6xbU53aY8=
-github.com/ethersphere/ethproxy v0.0.4 h1:3R+YK51lu8/EAmrgm1VWYT+x1OYh+HiDLvD98XiGpSY=
-github.com/ethersphere/ethproxy v0.0.4/go.mod h1:7mkVRK3+Mte00jLxFAbUQ/cBepAzwTYpkE64ItCLZYw=
+github.com/ethersphere/ethproxy v0.0.5 h1:j5Mkm45jqmkET6NwGaJtaxOSFbhoAfOKzHiwHl6DBT0=
+github.com/ethersphere/ethproxy v0.0.5/go.mod h1:7mkVRK3+Mte00jLxFAbUQ/cBepAzwTYpkE64ItCLZYw=
 github.com/evanphx/json-patch v4.9.0+incompatible h1:kLcOMZeuLAJvL2BPWLMIj5oaZQobrkAqrL+WFZwQses=
 github.com/evanphx/json-patch v4.9.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568/go.mod h1:xEzjJPgXI435gkrCt3MPfRiAkVrwSbHsst4LCFVfpJc=
