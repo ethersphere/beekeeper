@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 const (
@@ -26,6 +27,7 @@ type Client struct {
 	httpClient *http.Client // HTTP client must handle authentication implicitly.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 	restricted bool
+	log        logging.Logger
 
 	// Services that API provides.
 	Bytes       *BytesService
@@ -47,7 +49,7 @@ type ClientOptions struct {
 }
 
 // NewClient constructs a new Client.
-func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
+func NewClient(baseURL *url.URL, o *ClientOptions, log logging.Logger) (c *Client) {
 	if o == nil {
 		o = new(ClientOptions)
 	}
@@ -55,7 +57,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 		o.HTTPClient = new(http.Client)
 	}
 
-	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
+	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient), log)
 	c.restricted = o.Restricted
 
 	return
@@ -63,7 +65,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all API services.
-func newClient(httpClient *http.Client) (c *Client) {
+func newClient(httpClient *http.Client, log logging.Logger) (c *Client) {
 	c = &Client{httpClient: httpClient}
 	c.service.client = c
 	c.Bytes = (*BytesService)(&c.service)
@@ -76,6 +78,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.SOC = (*SOCService)(&c.service)
 	c.Stewardship = (*StewardshipService)(&c.service)
 	c.Auth = (*AuthService)(&c.service)
+	c.log = log
 	return c
 }
 
@@ -141,6 +144,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 		}
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
+	c.log.Info("api host: %s, url: %s", req.Host, req.URL)
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
