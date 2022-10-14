@@ -157,8 +157,6 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 
-	c.log.Infof("debug api host: %s, url: %s", req.Host, req.URL)
-
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
