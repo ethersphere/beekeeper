@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
+	"github.com/ethersphere/beekeeper/pkg/k8s/customresource"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
+	"github.com/ethersphere/beekeeper/pkg/k8s/ingressroute"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	"github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaim"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
@@ -16,6 +18,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 )
 
@@ -37,6 +40,7 @@ type Client struct {
 	ServiceAccount *serviceaccount.Client
 	Service        *service.Client
 	StatefulSet    *statefulset.Client
+	IngressRoute   *ingressroute.Client
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -78,7 +82,12 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
 		}
 
-		return newClient(clientset, logger), nil
+		apiClientset, err := customresource.NewForConfig(config)
+		if err != nil {
+			return nil, fmt.Errorf("creating Kubernetes api in-cluster clientset: %w", err)
+		}
+
+		return newClient(clientset, apiClientset, logger), nil
 	}
 
 	// set client
@@ -108,12 +117,17 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
 
-	return newClient(clientset, logger), nil
+	apiClientset, err := customresource.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("creating Kubernetes api clientset: %w", err)
+	}
+
+	return newClient(clientset, apiClientset, logger), nil
 }
 
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all other services.
-func newClient(clientset *kubernetes.Clientset, logger logging.Logger) (c *Client) {
+func newClient(clientset *kubernetes.Clientset, apiClientset *customresource.CustomResourceClient, logger logging.Logger) (c *Client) {
 	c = &Client{
 		clientset: clientset,
 		logger:    logger,
@@ -128,6 +142,9 @@ func newClient(clientset *kubernetes.Clientset, logger logging.Logger) (c *Clien
 	c.ServiceAccount = serviceaccount.NewClient(clientset)
 	c.Service = service.NewClient(clientset)
 	c.StatefulSet = statefulset.NewClient(clientset)
+	c.IngressRoute = ingressroute.NewClient(apiClientset)
+
+	customresource.AddToScheme(scheme.Scheme)
 
 	return c
 }
