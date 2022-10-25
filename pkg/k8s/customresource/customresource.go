@@ -21,12 +21,14 @@ type ingressRouteClient struct {
 	ns         string
 }
 
+const IngressRouteResource = "ingressroute"
+
 func (c *ingressRouteClient) List(ctx context.Context, opts metav1.ListOptions) (*IngressRouteList, error) {
 	result := IngressRouteList{}
 	err := c.restClient.
 		Get().
 		Namespace(c.ns).
-		Resource("ingressroutes").
+		Resource(IngressRouteResource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do(ctx).
 		Into(&result)
@@ -39,7 +41,7 @@ func (c *ingressRouteClient) Get(ctx context.Context, name string, opts metav1.G
 	err := c.restClient.
 		Get().
 		Namespace(c.ns).
-		Resource("ingressroutes").
+		Resource(IngressRouteResource).
 		Name(name).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do(ctx).
@@ -53,7 +55,7 @@ func (c *ingressRouteClient) Create(ctx context.Context, ingressRoute *IngressRo
 	err := c.restClient.
 		Post().
 		Namespace(c.ns).
-		Resource("ingressroutes").
+		Resource(IngressRouteResource).
 		Body(ingressRoute).
 		Do(ctx).
 		Into(&result)
@@ -66,7 +68,7 @@ func (c *ingressRouteClient) Watch(ctx context.Context, opts metav1.ListOptions)
 	return c.restClient.
 		Get().
 		Namespace(c.ns).
-		Resource("ingressroutes").
+		Resource(IngressRouteResource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch(ctx)
 }

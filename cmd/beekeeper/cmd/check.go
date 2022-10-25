@@ -133,7 +133,8 @@ func (c *command) initCheckCmd() (err error) {
 					return fmt.Errorf("running check %s: %w", checkName, ctx.Err())
 				case err = <-ch:
 					if err != nil {
-						return fmt.Errorf("running check %s: %w", checkName, err)
+						c.logger.Infof("running check %s: %s", checkName, err.Error())
+						// return fmt.Errorf("running check %s: %w", checkName, err)
 					}
 					c.logger.Infof("%s check completed successfully", checkName)
 				}
