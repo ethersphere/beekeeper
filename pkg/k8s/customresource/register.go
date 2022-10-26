@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	GroupName    = "traefik.containo.us/v1alpha1"
+	GroupName    = "traefik.containo.us"
 	GroupVersion = "v1alpha1"
 )
 
