@@ -31,7 +31,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 	spec := &customresource.IngressRoute{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "IngressRoute",
-			APIVersion: "traefik.containo.us/v1alpha1",
+			APIVersion: "traefik.containo.us",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,

@@ -21,7 +21,7 @@ type ingressRouteClient struct {
 	ns         string
 }
 
-const IngressRouteResource = "ingressroute"
+const IngressRouteResource = "ingressroutes"
 
 func (c *ingressRouteClient) List(ctx context.Context, opts metav1.ListOptions) (*IngressRouteList, error) {
 	result := IngressRouteList{}
