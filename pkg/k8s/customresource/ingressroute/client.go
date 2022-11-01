@@ -3,17 +3,16 @@ package ingressroute
 import (
 	"context"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/customresource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Client manages communication with the Kubernetes Ingress.
 type Client struct {
-	clientset customresource.Interface
+	clientset Interface
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset customresource.Interface) *Client {
+func NewClient(clientset Interface) *Client {
 	return &Client{
 		clientset: clientset,
 	}
@@ -23,12 +22,12 @@ func NewClient(clientset customresource.Interface) *Client {
 type Options struct {
 	Annotations map[string]string
 	Labels      map[string]string
-	Spec        customresource.IngressRouteSpec
+	Spec        IngressRouteSpec
 }
 
 // Set updates Ingress or creates it if it does not exist
-func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (ing *customresource.IngressRoute, err error) {
-	spec := &customresource.IngressRoute{
+func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (ing *IngressRoute, err error) {
+	spec := &IngressRoute{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "IngressRoute",
 			APIVersion: "traefik.containo.us",
@@ -39,7 +38,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 			Annotations: o.Annotations,
 			Labels:      o.Labels,
 		},
-		Spec: customresource.IngressRouteSpec{
+		Spec: IngressRouteSpec{
 			Routes: o.Spec.Routes,
 		},
 	}

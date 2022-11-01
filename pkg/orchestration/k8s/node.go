@@ -9,9 +9,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
-	"github.com/ethersphere/beekeeper/pkg/k8s/customresource"
+	"github.com/ethersphere/beekeeper/pkg/k8s/customresource/ingressroute"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
-	"github.com/ethersphere/beekeeper/pkg/k8s/ingressroute"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
@@ -224,12 +223,12 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		if _, err := n.k8s.IngressRoute.Set(ctx, apiIn, o.Namespace, ingressroute.Options{
 			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 			Labels:      o.Labels,
-			Spec: customresource.IngressRouteSpec{
-				Routes: []customresource.Route{
+			Spec: ingressroute.IngressRouteSpec{
+				Routes: []ingressroute.Route{
 					{
 						Kind:  "Rule",
 						Match: fmt.Sprintf("Host(`%s.localhost`) && PathPrefix(`/`)", apiIn),
-						Services: []customresource.Service{
+						Services: []ingressroute.Service{
 							{
 								Kind:      "Service",
 								Name:      apiIn,
@@ -303,12 +302,12 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		if _, err := n.k8s.IngressRoute.Set(ctx, debugIn, o.Namespace, ingressroute.Options{
 			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 			Labels:      o.Labels,
-			Spec: customresource.IngressRouteSpec{
-				Routes: []customresource.Route{
+			Spec: ingressroute.IngressRouteSpec{
+				Routes: []ingressroute.Route{
 					{
 						Kind:  "Rule",
 						Match: fmt.Sprintf("Host(`%s.localhost`) && PathPrefix(`/`)", debugIn),
-						Services: []customresource.Service{
+						Services: []ingressroute.Service{
 							{
 								Kind:      "Service",
 								Name:      debugIn,

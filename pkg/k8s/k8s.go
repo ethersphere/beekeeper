@@ -6,9 +6,8 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
-	"github.com/ethersphere/beekeeper/pkg/k8s/customresource"
+	"github.com/ethersphere/beekeeper/pkg/k8s/customresource/ingressroute"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
-	"github.com/ethersphere/beekeeper/pkg/k8s/ingressroute"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	"github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaim"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
@@ -82,7 +81,7 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
 		}
 
-		apiClientset, err := customresource.NewForConfig(config)
+		apiClientset, err := ingressroute.NewForConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes api in-cluster clientset: %w", err)
 		}
@@ -117,7 +116,7 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
 
-	apiClientset, err := customresource.NewForConfig(config)
+	apiClientset, err := ingressroute.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes api clientset: %w", err)
 	}
@@ -127,7 +126,7 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all other services.
-func newClient(clientset *kubernetes.Clientset, apiClientset *customresource.CustomResourceClient, logger logging.Logger) (c *Client) {
+func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.CustomResourceClient, logger logging.Logger) (c *Client) {
 	c = &Client{
 		clientset: clientset,
 		logger:    logger,
@@ -144,7 +143,7 @@ func newClient(clientset *kubernetes.Clientset, apiClientset *customresource.Cus
 	c.StatefulSet = statefulset.NewClient(clientset)
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 
-	customresource.AddToScheme(scheme.Scheme)
+	ingressroute.AddToScheme(scheme.Scheme)
 
 	return c
 }

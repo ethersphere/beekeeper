@@ -1,4 +1,4 @@
-package customresource
+package ingressroute
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"

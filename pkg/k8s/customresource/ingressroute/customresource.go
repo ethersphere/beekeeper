@@ -1,4 +1,4 @@
-package customresource
+package ingressroute
 
 import (
 	"context"
