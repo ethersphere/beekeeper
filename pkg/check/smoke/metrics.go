@@ -15,8 +15,7 @@ type metrics struct {
 	DownloadDuration prometheus.Histogram
 }
 
-func newMetrics() metrics {
-	subsystem := "check_smoke"
+func newMetrics(subsystem string) metrics {
 	return metrics{
 		UploadAttempts: prometheus.NewCounter(
 			prometheus.CounterOpts{
@@ -78,5 +77,9 @@ func newMetrics() metrics {
 }
 
 func (c *Check) Report() []prometheus.Collector {
+	return m.PrometheusCollectorsFromFields(c.metrics)
+}
+
+func (c *LoadCheck) Report() []prometheus.Collector {
 	return m.PrometheusCollectorsFromFields(c.metrics)
 }

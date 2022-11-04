@@ -26,6 +26,11 @@ type Options struct {
 	RxOnErrWait   time.Duration
 	NodesSyncWait time.Duration
 	Duration      time.Duration
+	// load test params
+	UploaderCount   int
+	UploadGroups    []string
+	DownloaderCount int
+	DownloadGroups  []string
 }
 
 // NewDefaultOptions returns new default options
@@ -54,7 +59,7 @@ type Check struct {
 // NewCheck returns new check
 func NewCheck(logger logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: newMetrics(),
+		metrics: newMetrics("check_smoke"),
 		logger:  logger,
 	}
 }
