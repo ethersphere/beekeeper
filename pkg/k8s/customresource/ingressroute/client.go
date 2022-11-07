@@ -15,10 +15,6 @@ type Client struct {
 // NewClient constructs a new Client.
 func NewClient(clientset Interface) *Client {
 	AddToScheme(scheme.Scheme)
-	// err := ingressroute.AddToScheme(scheme.Scheme)
-	// if err != nil {
-	// 	c.logger.Errorf("ingress route add to scheme failed: %s", err.Error())
-	// }
 
 	return &Client{
 		clientset: clientset,

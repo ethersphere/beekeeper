@@ -1,75 +1,74 @@
 package ingressroute
 
 import (
+	"context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 )
 
-var (
-	_ runtime.Object = (*IngressRoute)(nil)
-	_ runtime.Object = (*IngressRouteList)(nil)
-)
-
-type IngressRouteSpec struct {
-	Routes []Route `json:"routes"`
+type IngressRouteInterface interface {
+	List(ctx context.Context, opts metav1.ListOptions) (*IngressRouteList, error)
+	Get(ctx context.Context, name string, options metav1.GetOptions) (*IngressRoute, error)
+	Create(ctx context.Context, ir *IngressRoute) (*IngressRoute, error)
+	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 }
 
-type IngressRoute struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec IngressRouteSpec `json:"spec"`
+type ingressRouteClient struct {
+	restClient rest.Interface
+	ns         string
 }
 
-type IngressRouteList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+const IngressRouteResource = "ingressroutes"
 
-	Items []IngressRoute `json:"items"`
+func (c *ingressRouteClient) List(ctx context.Context, opts metav1.ListOptions) (*IngressRouteList, error) {
+	result := IngressRouteList{}
+	err := c.restClient.
+		Get().
+		Namespace(c.ns).
+		Resource(IngressRouteResource).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do(ctx).
+		Into(&result)
+
+	return &result, err
 }
 
-type Route struct {
-	Kind     string    `json:"kind"`
-	Match    string    `json:"match"`
-	Services []Service `json:"services"`
+func (c *ingressRouteClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*IngressRoute, error) {
+	result := IngressRoute{}
+	err := c.restClient.
+		Get().
+		Namespace(c.ns).
+		Resource(IngressRouteResource).
+		Name(name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do(ctx).
+		Into(&result)
+
+	return &result, err
 }
 
-type Service struct {
-	Kind      string `json:"kind"`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Port      string `json:"port"`
+func (c *ingressRouteClient) Create(ctx context.Context, ingressRoute *IngressRoute) (*IngressRoute, error) {
+	result := IngressRoute{}
+	err := c.restClient.
+		Post().
+		Namespace(c.ns).
+		Resource(IngressRouteResource).
+		Body(ingressRoute).
+		Do(ctx).
+		Into(&result)
+
+	return &result, err
 }
 
-// DeepCopyObject implements runtime.Object
-func (in *IngressRouteList) DeepCopyObject() runtime.Object {
-	out := IngressRouteList{}
-	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
-
-	if in.Items != nil {
-		out.Items = make([]IngressRoute, len(in.Items))
-		for i := range in.Items {
-			in.Items[i].DeepCopyInto(&out.Items[i])
-		}
-	}
-
-	return &out
-}
-
-// DeepCopyObject implements runtime.Object
-func (ir *IngressRoute) DeepCopyObject() runtime.Object {
-	out := IngressRoute{}
-	ir.DeepCopyInto(&out)
-	return &out
-}
-
-// DeepCopyInto copies all properties of this object into another object of the
-// same type that is provided as a pointer.
-func (in *IngressRoute) DeepCopyInto(out *IngressRoute) {
-	out.TypeMeta = in.TypeMeta
-	out.ObjectMeta = in.ObjectMeta
-	out.Spec = in.Spec
-	copy(out.Spec.Routes, in.Spec.Routes)
+func (c *ingressRouteClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.restClient.
+		Get().
+		Namespace(c.ns).
+		Resource(IngressRouteResource).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch(ctx)
 }

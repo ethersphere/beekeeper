@@ -142,10 +142,5 @@ func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.Custo
 	c.StatefulSet = statefulset.NewClient(clientset)
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 
-	// err := ingressroute.AddToScheme(scheme.Scheme)
-	// if err != nil {
-	// 	c.logger.Errorf("ingress route add to scheme failed: %s", err.Error())
-	// }
-
 	return c
 }
