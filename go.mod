@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/ethereum/go-ethereum v1.10.25
-	github.com/ethersphere/bee v1.8.2
+	github.com/ethersphere/bee v1.9.0
 	github.com/ethersphere/bmt v0.1.4
 	github.com/ethersphere/ethproxy v0.0.5
 	github.com/go-git/go-billy/v5 v5.3.1
