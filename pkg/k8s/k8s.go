@@ -17,7 +17,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 )
 
@@ -144,10 +143,10 @@ func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.Custo
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 
 	///TODO check if this is required?
-	err := ingressroute.AddToScheme(scheme.Scheme)
-	if err != nil {
-		c.logger.Errorf("ingress route add to scheme failed: %s", err.Error())
-	}
+	// err := ingressroute.AddToScheme(scheme.Scheme)
+	// if err != nil {
+	// 	c.logger.Errorf("ingress route add to scheme failed: %s", err.Error())
+	// }
 
 	return c
 }
