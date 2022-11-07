@@ -4,6 +4,7 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 // Client manages communication with the Kubernetes Ingress.
@@ -13,6 +14,12 @@ type Client struct {
 
 // NewClient constructs a new Client.
 func NewClient(clientset Interface) *Client {
+	AddToScheme(scheme.Scheme)
+	// err := ingressroute.AddToScheme(scheme.Scheme)
+	// if err != nil {
+	// 	c.logger.Errorf("ingress route add to scheme failed: %s", err.Error())
+	// }
+
 	return &Client{
 		clientset: clientset,
 	}
@@ -30,7 +37,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 	spec := &IngressRoute{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "IngressRoute",
-			APIVersion: "traefik.containo.us",
+			APIVersion: GroupName,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,

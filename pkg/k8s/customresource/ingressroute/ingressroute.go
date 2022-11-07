@@ -73,19 +73,3 @@ func (in *IngressRoute) DeepCopyInto(out *IngressRoute) {
 	out.Spec = in.Spec
 	copy(out.Spec.Routes, in.Spec.Routes)
 }
-
-// apiVersion: traefik.containo.us/v1alpha1
-// kind: IngressRoute
-// metadata:
-//   creationTimestamp: null
-//   name: bootnode-0-api
-//   namespace: local
-// spec:
-//   routes:
-//   - kind: Rule
-//     match: Host(`bootnode-0.localhost`) && PathPrefix(`/`)
-//     services:
-//     - kind: Service
-//       name: bootnode-0-api
-//       namespace: local
-//       port: api
