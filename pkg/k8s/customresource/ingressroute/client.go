@@ -4,7 +4,6 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 // Client manages communication with the Kubernetes Ingress.
@@ -14,8 +13,6 @@ type Client struct {
 
 // NewClient constructs a new Client.
 func NewClient(clientset Interface) *Client {
-	AddToScheme(scheme.Scheme)
-
 	return &Client{
 		clientset: clientset,
 	}
