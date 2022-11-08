@@ -26,6 +26,12 @@ type Options struct {
 	RxOnErrWait   time.Duration
 	NodesSyncWait time.Duration
 	Duration      time.Duration
+	// load test params
+	UploaderCount   int
+	UploadGroups    []string
+	DownloaderCount int
+	DownloadGroups  []string
+	GasPrice        string
 }
 
 // NewDefaultOptions returns new default options
@@ -39,6 +45,7 @@ func NewDefaultOptions() Options {
 		RxOnErrWait:   10 * time.Second,
 		NodesSyncWait: time.Minute,
 		Duration:      12 * time.Hour,
+		GasPrice:      "100000000000",
 	}
 }
 
@@ -54,7 +61,7 @@ type Check struct {
 // NewCheck returns new check
 func NewCheck(logger logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: newMetrics(),
+		metrics: newMetrics("check_smoke"),
 		logger:  logger,
 	}
 }
@@ -213,7 +220,7 @@ type test struct {
 
 func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
 	client := t.clients[cName]
-	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, "", "smoke-test")
+	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test")
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
 	}

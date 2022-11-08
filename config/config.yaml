@@ -307,6 +307,22 @@ checks:
       duration: 12h
     timeout: 5m
     type: smoke
+  load:
+    options:
+      content-size: 5000000
+      postage-amount: 1000000
+      gas-price: "10000000000"
+      postage-depth: 20
+      nodes-sync-wait: 1m
+      duration: 12h
+      downloader-count: 3
+      upload-group: 
+        - gateway
+      download-group:
+        - bee
+        - light
+    timeout: 12h
+    type: load
   soc:
     options:
       postage-amount: 1000

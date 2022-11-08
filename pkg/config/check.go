@@ -397,6 +397,36 @@ var Checks = map[string]CheckType{
 			return opts, nil
 		},
 	},
+	"load": {
+		NewAction: smoke.NewLoadCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				ContentSize     *int64         `yaml:"content-size"`
+				RndSeed         *int64         `yaml:"rnd-seed"`
+				PostageAmount   *int64         `yaml:"postage-amount"`
+				PostageDepth    *uint64        `yaml:"postage-depth"`
+				GasPrice        *string        `yaml:"gas-price"`
+				TxOnErrWait     *time.Duration `yaml:"tx-on-err-wait"`
+				RxOnErrWait     *time.Duration `yaml:"rx-on-err-wait"`
+				NodesSyncWait   *time.Duration `yaml:"nodes-sync-wait"`
+				Duration        *time.Duration `yaml:"duration"`
+				UploaderCount   *int           `yaml:"uploader-count"`
+				UploadGroups    *[]string      `yaml:"upload-groups"`
+				DownloaderCount *int           `yaml:"downloader-count"`
+				DownloadGroups  *[]string      `yaml:"download-groups"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := smoke.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
 	"soc": {
 		NewAction: soc.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
