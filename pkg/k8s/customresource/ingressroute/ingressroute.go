@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// IngressRouteInterface has methods to work with IngressRoute resources.
 type IngressRouteInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*IngressRouteList, error)
 	Get(ctx context.Context, name string, options metav1.GetOptions) (*IngressRoute, error)
@@ -17,6 +18,7 @@ type IngressRouteInterface interface {
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 }
 
+// ingressRouteClient implements IngressRouteInterface.
 type ingressRouteClient struct {
 	restClient rest.Interface
 	ns         string
@@ -24,6 +26,7 @@ type ingressRouteClient struct {
 
 const IngressRouteResource string = "ingressroutes"
 
+// List takes label and field selectors, and returns the list of IngressRoutes that match those selectors.
 func (c *ingressRouteClient) List(ctx context.Context, opts metav1.ListOptions) (*IngressRouteList, error) {
 	result := IngressRouteList{}
 	err := c.restClient.
@@ -37,6 +40,7 @@ func (c *ingressRouteClient) List(ctx context.Context, opts metav1.ListOptions) 
 	return &result, err
 }
 
+// Get takes name of the IngressRoute, and returns the corresponding IngressRoute object, and an error if there is any.
 func (c *ingressRouteClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*IngressRoute, error) {
 	result := IngressRoute{}
 	err := c.restClient.
@@ -51,7 +55,7 @@ func (c *ingressRouteClient) Get(ctx context.Context, name string, opts metav1.G
 	return &result, err
 }
 
-// Create takes the representation of a customResourceDefinition and creates it.  Returns the server's representation of the customResourceDefinition, and an error, if there is any.
+// Create takes the representation of a IngressRoute and creates it.  Returns the server's representation of the IngressRoute, and an error, if there is any.
 func (c *ingressRouteClient) Create(ctx context.Context, ingressRoute *IngressRoute) (*IngressRoute, error) {
 	result := IngressRoute{}
 	err := c.restClient.
@@ -65,6 +69,7 @@ func (c *ingressRouteClient) Create(ctx context.Context, ingressRoute *IngressRo
 	return &result, err
 }
 
+// Watch returns a watch.Interface that watches the requested IngressRoute.
 func (c *ingressRouteClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.restClient.
@@ -75,7 +80,7 @@ func (c *ingressRouteClient) Watch(ctx context.Context, opts metav1.ListOptions)
 		Watch(ctx)
 }
 
-// Delete takes name of the ingressRouteClient and deletes it. Returns an error if one occurs.
+// Delete takes name of the IngressRoute and deletes it. Returns an error if one occurs.
 func (c *ingressRouteClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.restClient.
 		Delete().
