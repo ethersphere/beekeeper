@@ -534,6 +534,12 @@ func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 	}
 	n.logger.Infof("ingress %s is deleted in namespace %s", debugIn, namespace)
 
+	// debug service's ingress route
+	if err := n.k8s.IngressRoute.Delete(ctx, debugIn, namespace); err != nil {
+		return fmt.Errorf("deleting ingress route in namespace %s: %w", namespace, err)
+	}
+	n.logger.Infof("ingress route %s is deleted in namespace %s", debugIn, namespace)
+
 	// debug service
 	debugSvc := fmt.Sprintf("%s-debug", n.name)
 	if err := n.k8s.Service.Delete(ctx, debugSvc, namespace); err != nil {
@@ -547,6 +553,12 @@ func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
 	}
 	n.logger.Infof("ingress %s is deleted in namespace %s", apiIn, namespace)
+
+	// api service's ingress route
+	if err := n.k8s.IngressRoute.Delete(ctx, apiIn, namespace); err != nil {
+		return fmt.Errorf("deleting ingress route in namespace %s: %w", namespace, err)
+	}
+	n.logger.Infof("ingress route %s is deleted in namespace %s", apiIn, namespace)
 
 	// api service
 	apiSvc := fmt.Sprintf("%s-api", n.name)

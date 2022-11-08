@@ -2,7 +2,9 @@ package ingressroute
 
 import (
 	"context"
+	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,5 +45,18 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 		},
 	}
 	ing, err = c.clientset.IngressRoutes(namespace).Create(ctx, spec)
+	return
+}
+
+// Delete deletes IngressRoute
+func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+	err = c.clientset.IngressRoutes(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("deleting ingress route %s in namespace %s: %w", name, namespace, err)
+	}
+
 	return
 }

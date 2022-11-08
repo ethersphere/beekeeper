@@ -14,6 +14,7 @@ type IngressRouteInterface interface {
 	Get(ctx context.Context, name string, options metav1.GetOptions) (*IngressRoute, error)
 	Create(ctx context.Context, ir *IngressRoute) (*IngressRoute, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 }
 
 type ingressRouteClient struct {
@@ -50,6 +51,7 @@ func (c *ingressRouteClient) Get(ctx context.Context, name string, opts metav1.G
 	return &result, err
 }
 
+// Create takes the representation of a customResourceDefinition and creates it.  Returns the server's representation of the customResourceDefinition, and an error, if there is any.
 func (c *ingressRouteClient) Create(ctx context.Context, ingressRoute *IngressRoute) (*IngressRoute, error) {
 	result := IngressRoute{}
 	err := c.restClient.
@@ -71,4 +73,16 @@ func (c *ingressRouteClient) Watch(ctx context.Context, opts metav1.ListOptions)
 		Resource(IngressRouteResource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch(ctx)
+}
+
+// Delete takes name of the ingressRouteClient and deletes it. Returns an error if one occurs.
+func (c *ingressRouteClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	return c.restClient.
+		Delete().
+		Namespace(c.ns).
+		Resource(IngressRouteResource).
+		Name(name).
+		Body(&opts).
+		Do(ctx).
+		Error()
 }
