@@ -256,7 +256,7 @@ checks:
       files-in-collection: 10
       max-pathname-length: 64
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
     timeout: 5m
     type: manifest
   ci-pingpong:
@@ -268,7 +268,7 @@ checks:
       address-prefix: 2
       node-count: 3
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
       request-timeout: 5m
     timeout: 5m
     type: pss
@@ -277,7 +277,7 @@ checks:
       chunks-per-node: 3
       mode: chunks
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
@@ -290,7 +290,7 @@ checks:
       chunks-per-node: 3
       mode: light-chunks
       postage-amount: 10000
-      postage-depth: 16
+      postage-depth: 17
       retries: 5
       retry-delay: 30s
       upload-node-count: 3
@@ -302,7 +302,7 @@ checks:
     options:
       chunks-per-node: 3
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
       upload-node-count: 3
     timeout: 5m
     type: retrieval
@@ -343,7 +343,7 @@ checks:
   ci-soc:
     options:
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
       request-timeout: 5m
     timeout: 5m
     type: soc
@@ -353,7 +353,7 @@ checks:
     options:
       content-size: 16384
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
   ci-postage:
     type: postage
     timeout: 5m
