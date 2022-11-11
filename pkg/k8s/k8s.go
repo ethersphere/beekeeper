@@ -82,7 +82,7 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 
 		apiClientset, err := ingressroute.NewForConfig(config)
 		if err != nil {
-			return nil, fmt.Errorf("creating Kubernetes api in-cluster clientset: %w", err)
+			return nil, fmt.Errorf("creating custom resource Kubernetes api in-cluster clientset: %w", err)
 		}
 
 		return newClient(clientset, apiClientset, logger), nil
@@ -117,7 +117,7 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 
 	apiClientset, err := ingressroute.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("creating Kubernetes api clientset: %w", err)
+		return nil, fmt.Errorf("creating custom resource Kubernetes api clientset: %w", err)
 	}
 
 	return newClient(clientset, apiClientset, logger), nil

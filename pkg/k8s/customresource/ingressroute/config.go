@@ -1,6 +1,8 @@
 package ingressroute
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -22,7 +24,12 @@ func NewForConfig(c *rest.Config) (*CustomResourceClient, error) {
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 	client, err := rest.RESTClientFor(&config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create rest client failed: %w", err)
+	}
+
+	err = AddToScheme(scheme.Scheme)
+	if err != nil {
+		return nil, fmt.Errorf("register type definitions failed: %w", err)
 	}
 
 	return &CustomResourceClient{restClient: client}, nil
