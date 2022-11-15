@@ -227,7 +227,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 				Routes: []ingressroute.Route{
 					{
 						Kind:  "Rule",
-						Match: fmt.Sprintf("Host(`%s.localhost`) && PathPrefix(`/`)", apiIn),
+						Match: fmt.Sprintf("Host(\"%s.localhost\") && PathPrefix(\"/\")", o.Name),
 						Services: []ingressroute.Service{
 							{
 								Kind:      "Service",
@@ -296,7 +296,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 	n.logger.Infof("service %s is set in namespace %s", debugSvc, o.Namespace)
 
-	if o.IngressClass == "traefik" {
+	if o.IngressDebugClass == "traefik" {
 		// debug service's ingressroute
 		debugIn := fmt.Sprintf("%s-debug", o.Name)
 		if _, err := n.k8s.IngressRoute.Set(ctx, debugIn, o.Namespace, ingressroute.Options{
@@ -306,7 +306,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 				Routes: []ingressroute.Route{
 					{
 						Kind:  "Rule",
-						Match: fmt.Sprintf("Host(`%s.localhost`) && PathPrefix(`/`)", debugIn),
+						Match: fmt.Sprintf("Host(\"%s.localhost\") && PathPrefix(\"/\")", debugIn),
 						Services: []ingressroute.Service{
 							{
 								Kind:      "Service",
