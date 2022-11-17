@@ -201,7 +201,7 @@ checks:
     options:
       cache-size: 10
       reserve-size: 16
-    timeout: 5m
+    timeout: 10m
     type: gc
   kademlia:
     options:
