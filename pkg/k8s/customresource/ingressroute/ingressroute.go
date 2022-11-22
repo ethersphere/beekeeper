@@ -14,6 +14,7 @@ type IngressRouteInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*IngressRouteList, error)
 	Get(ctx context.Context, name string, options metav1.GetOptions) (*IngressRoute, error)
 	Create(ctx context.Context, ir *IngressRoute) (*IngressRoute, error)
+	Update(ctx context.Context, ir *IngressRoute) (*IngressRoute, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 }
@@ -66,6 +67,20 @@ func (c *ingressRouteClient) Create(ctx context.Context, ingressRoute *IngressRo
 		Do(ctx).
 		Into(&result)
 
+	return &result, err
+}
+
+// Update takes the representation of a ingressRoute and updates it. Returns the server's representation of the ingressRoute, and an error, if there is any.
+func (c *ingressRouteClient) Update(ctx context.Context, ir *IngressRoute) (*IngressRoute, error) {
+	result := IngressRoute{}
+	err := c.restClient.
+		Put().
+		Namespace(c.ns).
+		Resource(IngressRouteResource).
+		Name(ir.Name).
+		Body(ir).
+		Do(ctx).
+		Into(&result)
 	return &result, err
 }
 

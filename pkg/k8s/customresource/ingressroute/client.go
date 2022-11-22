@@ -44,7 +44,18 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 			Routes: o.Spec.Routes,
 		},
 	}
-	ing, err = c.clientset.IngressRoutes(namespace).Create(ctx, spec)
+
+	ing, err = c.clientset.IngressRoutes(namespace).Update(ctx, spec)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			ing, err = c.clientset.IngressRoutes(namespace).Create(ctx, spec)
+			if err != nil {
+				return nil, fmt.Errorf("creating ingress route %s in namespace %s: %w", name, namespace, err)
+			}
+		} else {
+			return nil, fmt.Errorf("updating ingress route %s in namespace %s: %w", name, namespace, err)
+		}
+	}
 	return
 }
 
