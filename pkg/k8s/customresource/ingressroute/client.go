@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Client manages communication with the Kubernetes Ingress.
+// Client manages communication with the Traefik IngressRoute.
 type Client struct {
 	clientset Interface
 }
@@ -27,7 +27,7 @@ type Options struct {
 	Spec        IngressRouteSpec
 }
 
-// Set updates Ingress or creates it if it does not exist
+// Set updates IngressRoute or creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (ing *IngressRoute, err error) {
 	spec := &IngressRoute{
 		TypeMeta: metav1.TypeMeta{
