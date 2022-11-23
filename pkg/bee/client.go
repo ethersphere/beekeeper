@@ -377,7 +377,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (before): %w", err)
 		}
-		c.logger.Infof("reserve state (prior to buying the batch):\n%s", rs.String())
+		c.logger.Infof("reserve state (prior to buying the batch):%s", rs.String())
 	}
 	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
 	if err != nil {

@@ -117,9 +117,11 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					if time.Since(start) > o.MaxUseBatch || batchID == "" { // force buy new batch
 						batchID, err = clients[txName].CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "load-test", true)
 						if err != nil {
-							c.logger.Infof("unable to batch: %v", err)
+							c.logger.Errorf("create new batch: %v", err)
 							return
 						}
+
+						c.logger.Infof("using the new batch: %v", batchID)
 						start = time.Now()
 					}
 
