@@ -113,13 +113,17 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					var duration time.Duration
 					c.logger.Infof("uploading to: %s", txName)
 
-					var forceNewBatch []bool
-					if time.Since(start) > o.MaxUseBatch { // force buy new batch
-						forceNewBatch = []bool{true}
+					var batchID string
+					if time.Since(start) > o.MaxUseBatch || batchID == "" { // force buy new batch
+						batchID, err = clients[txName].CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "load-test", true)
+						if err != nil {
+							c.logger.Infof("unable to batch: %v", err)
+							return
+						}
 						start = time.Now()
 					}
 
-					address, duration, err = test.upload(txName, txData, forceNewBatch...)
+					address, duration, err = test.uploadWithBatch(txName, txData, batchID)
 					if err != nil {
 						c.metrics.UploadErrors.Inc()
 						c.logger.Infof("upload failed: %v", err)
