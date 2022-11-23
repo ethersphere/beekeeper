@@ -48,6 +48,9 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 	c.logger.Info("random seed: ", o.RndSeed)
 	c.logger.Info("content size: ", o.ContentSize)
+	c.logger.Info("max batch lifespan: ", o.MaxUseBatch)
+
+	start := time.Now()
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -109,7 +112,14 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					c.metrics.UploadAttempts.Inc()
 					var duration time.Duration
 					c.logger.Infof("uploading to: %s", txName)
-					address, duration, err = test.upload(txName, txData)
+
+					var forceNewBatch []bool
+					if time.Since(start) > o.MaxUseBatch { // force buy new batch
+						forceNewBatch = []bool{true}
+						start = time.Now()
+					}
+
+					address, duration, err = test.upload(txName, txData, forceNewBatch...)
 					if err != nil {
 						c.metrics.UploadErrors.Inc()
 						c.logger.Infof("upload failed: %v", err)

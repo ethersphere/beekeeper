@@ -32,6 +32,7 @@ type Options struct {
 	DownloaderCount int
 	DownloadGroups  []string
 	GasPrice        string
+	MaxUseBatch     time.Duration
 }
 
 // NewDefaultOptions returns new default options
@@ -46,6 +47,7 @@ func NewDefaultOptions() Options {
 		NodesSyncWait: time.Minute,
 		Duration:      12 * time.Hour,
 		GasPrice:      "100000000000",
+		MaxUseBatch:   time.Hour,
 	}
 }
 
@@ -218,9 +220,17 @@ type test struct {
 	logger  logging.Logger
 }
 
-func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
+func (t *test) upload(cName string, data []byte, forceNewBatch ...bool) (swarm.Address, time.Duration, error) {
 	client := t.clients[cName]
-	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test")
+	var (
+		batchID string
+		err     error
+	)
+	if len(forceNewBatch) > 0 {
+		batchID, err = client.CreatePostageBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test", true)
+	} else {
+		batchID, err = client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test")
+	}
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
 	}
