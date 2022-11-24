@@ -45,16 +45,24 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 		},
 	}
 
-	ing, err = c.clientset.IngressRoutes(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	getObj, err := c.clientset.IngressRoutes(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			ing, err = c.clientset.IngressRoutes(namespace).Create(ctx, spec)
 			if err != nil {
 				return nil, fmt.Errorf("creating ingress route %s in namespace %s: %w", name, namespace, err)
 			}
+			return
 		} else {
-			return nil, fmt.Errorf("updating ingress route %s in namespace %s: %w", name, namespace, err)
+			return nil, fmt.Errorf("getting ingress route %s in namespace %s: %w", name, namespace, err)
 		}
+	}
+
+	spec.ResourceVersion = getObj.GetResourceVersion()
+
+	ing, err = c.clientset.IngressRoutes(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("updating ingress route %s in namespace %s: %w", name, namespace, err)
 	}
 	return
 }
