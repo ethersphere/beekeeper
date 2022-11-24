@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Client manages communication with the Kubernetes Ingress.
+// Client manages communication with the Traefik IngressRoute.
 type Client struct {
 	clientset Interface
 }
@@ -27,7 +27,7 @@ type Options struct {
 	Spec        IngressRouteSpec
 }
 
-// Set updates Ingress or creates it if it does not exist
+// Set updates IngressRoute or creates it if it does not exist
 func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (ing *IngressRoute, err error) {
 	spec := &IngressRoute{
 		TypeMeta: metav1.TypeMeta{
@@ -44,7 +44,26 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 			Routes: o.Spec.Routes,
 		},
 	}
-	ing, err = c.clientset.IngressRoutes(namespace).Create(ctx, spec)
+
+	getObj, err := c.clientset.IngressRoutes(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			ing, err = c.clientset.IngressRoutes(namespace).Create(ctx, spec)
+			if err != nil {
+				return nil, fmt.Errorf("creating ingress route %s in namespace %s: %w", name, namespace, err)
+			}
+			return
+		} else {
+			return nil, fmt.Errorf("getting ingress route %s in namespace %s: %w", name, namespace, err)
+		}
+	}
+
+	spec.ResourceVersion = getObj.GetResourceVersion()
+
+	ing, err = c.clientset.IngressRoutes(namespace).Update(ctx, spec, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("updating ingress route %s in namespace %s: %w", name, namespace, err)
+	}
 	return
 }
 
