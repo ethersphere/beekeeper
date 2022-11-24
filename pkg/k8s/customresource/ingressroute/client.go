@@ -45,7 +45,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 		},
 	}
 
-	ing, err = c.clientset.IngressRoutes(namespace).Update(ctx, spec)
+	ing, err = c.clientset.IngressRoutes(namespace).Update(ctx, spec, metav1.UpdateOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			ing, err = c.clientset.IngressRoutes(namespace).Create(ctx, spec)
