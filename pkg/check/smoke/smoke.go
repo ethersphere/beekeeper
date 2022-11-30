@@ -47,7 +47,7 @@ func NewDefaultOptions() Options {
 		NodesSyncWait: time.Minute,
 		Duration:      12 * time.Hour,
 		GasPrice:      "100000000000",
-		MaxUseBatch:   time.Hour,
+		MaxUseBatch:   time.Hour * 3,
 	}
 }
 
