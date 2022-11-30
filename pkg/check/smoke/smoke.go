@@ -32,6 +32,7 @@ type Options struct {
 	DownloaderCount int
 	DownloadGroups  []string
 	GasPrice        string
+	MaxUseBatch     time.Duration
 }
 
 // NewDefaultOptions returns new default options
@@ -46,6 +47,7 @@ func NewDefaultOptions() Options {
 		NodesSyncWait: time.Minute,
 		Duration:      12 * time.Hour,
 		GasPrice:      "100000000000",
+		MaxUseBatch:   time.Hour,
 	}
 }
 
@@ -216,6 +218,20 @@ type test struct {
 	ctx     context.Context
 	clients map[string]*bee.Client
 	logger  logging.Logger
+}
+
+func (t *test) uploadWithBatch(cName string, data []byte, batchID string) (swarm.Address, time.Duration, error) {
+	client := t.clients[cName]
+	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
+	start := time.Now()
+	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Deferred: false})
+	if err != nil {
+		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
+	}
+	txDuration := time.Since(start)
+	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
+
+	return addr, txDuration, nil
 }
 
 func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
