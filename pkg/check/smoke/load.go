@@ -131,7 +131,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					var batchID string
 
 					if b, ok := batches[txName]; ok {
-						batchID = string(b.batchID)
+						batchID = b.batchID
 						batchesMtx.Unlock()
 					} else {
 						batchesMtx.Unlock()
