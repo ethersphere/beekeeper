@@ -42,6 +42,9 @@ type BeeConfig struct {
 	PaymentTolerance           *uint64        `yaml:"payment-tolerance-percent"`
 	PostageStampAddress        *string        `yaml:"postage-stamp-address"`
 	PriceOracleAddress         *string        `yaml:"price-oracle-address"`
+	RedistributionAddress      *string        `yaml:"redistribution-address"`
+	StakingAddress             *string        `yaml:"staking-address"`
+	StorageIncentivesEnable    *string        `yaml:"storage-incentives-enable"`
 	ResolverOptions            *string        `yaml:"resolver-options"`
 	Restricted                 *bool          `yaml:"restricted"`
 	TokenEncryptionKey         *string        `yaml:"token-encryption-key"`
