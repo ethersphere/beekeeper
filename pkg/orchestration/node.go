@@ -122,6 +122,9 @@ type Config struct {
 	SwapDeploymentGasPrice     string        // gas price in wei to use for deployment and funding
 	SwapFactoryAddress         string        // swap factory address
 	SwapLegacyFactoryAddresses string        // swap legacy factory addresses
+	RedistributionAddress      string        // redistribution address
+	StakingAddress             string        // staking address
+	StorageIncentivesEnable    string        // storage incentives enable flag
 	SwapInitialDeposit         uint64        // initial deposit if deploying a new chequebook
 	TracingEnabled             bool          // enable tracing
 	TracingEndpoint            string        // endpoint to send tracing data

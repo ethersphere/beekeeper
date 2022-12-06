@@ -41,6 +41,9 @@ payment-threshold: {{.PaymentThreshold}}
 payment-tolerance-percent: {{.PaymentTolerance}}
 postage-stamp-address: {{ .PostageStampAddress }}
 price-oracle-address: {{ .PriceOracleAddress }}
+redistribution-address: {{ .RedistributionAddress }}
+staking-address: {{ .StakingAddress }}
+storage-incentives-enable: {{ .StorageIncentivesEnable }}
 resolver-options: {{.ResolverOptions}}
 restricted: {{.Restricted}}
 token-encryption-key: {{.TokenEncryptionKey}}
