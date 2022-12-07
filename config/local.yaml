@@ -283,6 +283,7 @@ checks:
       upload-node-count: 3
       exclude-node-group:
       - light
+      - bootnode
     timeout: 5m
     type: pushsync
   ci-pushsync-light-chunks:
@@ -296,6 +297,7 @@ checks:
       upload-node-count: 3
       exclude-node-group:
       - light
+      - bootnode
     timeout: 5m
     type: pushsync
   ci-retrieval:
