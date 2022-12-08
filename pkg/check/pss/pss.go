@@ -21,7 +21,6 @@ import (
 type Options struct {
 	AddressPrefix  int
 	GasPrice       string
-	NodeCount      int
 	PostageAmount  int64
 	PostageDepth   uint64
 	PostageLabel   string
@@ -34,7 +33,6 @@ func NewDefaultOptions() Options {
 	return Options{
 		AddressPrefix:  1,
 		GasPrice:       "",
-		NodeCount:      1,
 		PostageAmount:  1,
 		PostageDepth:   16,
 		PostageLabel:   "test-label",
@@ -71,21 +69,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	sortedNodes := cluster.NodeNames()
-	if o.NodeCount > len(sortedNodes) {
-		o.NodeCount = len(sortedNodes)
-	}
+	for j, nodeAName := range shuffle(cluster.FullNodeNames()) {
 
-	for j, nodeAName := range shuffle(cluster.NodeNames()) {
-		if j >= o.NodeCount {
-			break
-		}
 		for _, nodeBName := range shuffle(cluster.FullNodeNames()) {
 			if nodeAName == nodeBName {
 				continue
 			}
 
-			c.logger.Infof("pss: test %d of %d", j+1, o.NodeCount)
+			c.logger.Infof("pss: test %d of %d", j+1, len(cluster.FullNodeNames()))
 
 			if err := c.testPss(nodeAName, nodeBName, clients, o); err != nil {
 				return err
