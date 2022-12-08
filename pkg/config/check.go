@@ -246,9 +246,9 @@ var Checks = map[string]CheckType{
 		NewAction: pss.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
+				Count          *int64         `yaml:"count"`
 				AddressPrefix  *int           `yaml:"address-prefix"`
 				GasPrice       *string        `yaml:"gas-price"`
-				NodeCount      *int           `yaml:"node-count"`
 				PostageAmount  *int64         `yaml:"postage-amount"`
 				PostageDepth   *uint64        `yaml:"postage-depth"`
 				PostageLabel   *string        `yaml:"postage-label"`

@@ -245,7 +245,8 @@ func (c *Cluster) LightNodeNames() (names []string) {
 // FullNodeNames returns a list of full node names
 func (c *Cluster) FullNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
-		if node.Config().FullNode {
+		cfg := node.Config()
+		if cfg.FullNode && !cfg.BootnodeMode {
 			names = append(names, name)
 		}
 	}
