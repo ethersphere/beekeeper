@@ -265,8 +265,8 @@ checks:
     type: pingpong
   ci-pss:
     options:
+      count: 3
       address-prefix: 2
-      node-count: 3
       postage-amount: 1000
       postage-depth: 17
       request-timeout: 5m

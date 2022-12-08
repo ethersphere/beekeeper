@@ -19,6 +19,7 @@ import (
 
 // Options represents check options
 type Options struct {
+	Count          int64
 	AddressPrefix  int
 	GasPrice       string
 	PostageAmount  int64
@@ -31,6 +32,7 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
+		Count:          1,
 		AddressPrefix:  1,
 		GasPrice:       "",
 		PostageAmount:  1,
@@ -69,32 +71,30 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	for j, nodeAName := range shuffle(cluster.FullNodeNames()) {
+	r := random.PseudoGenerator(o.Seed)
+	fullNodeNames := cluster.FullNodeNames()
 
-		for _, nodeBName := range shuffle(cluster.FullNodeNames()) {
-			if nodeAName == nodeBName {
-				continue
-			}
+	for i := 0; i < int(o.Count); i++ {
+		c.logger.Infof("pss: test %d of %d", i, o.Count)
 
-			c.logger.Infof("pss: test %d of %d", j+1, len(cluster.FullNodeNames()))
+		nodeNameA := pickRandom(r, fullNodeNames, "")
+		nodeNameB := pickRandom(r, fullNodeNames, nodeNameA)
 
-			if err := c.testPss(nodeAName, nodeBName, clients, o); err != nil {
-				return err
-			}
-
-			break
+		if err := c.testPss(nodeNameA, nodeNameB, clients, o); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func shuffle(names []string) []string {
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(names), func(i, j int) {
-		names[i], names[j] = names[j], names[i]
-	})
-	return names
+func pickRandom(r *rand.Rand, names []string, skip string) string {
+	for {
+		i := r.Int31n(int32(len(names)))
+		if names[i] != skip {
+			return names[i]
+		}
+	}
 }
 
 var (
