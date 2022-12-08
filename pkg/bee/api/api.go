@@ -40,7 +40,6 @@ type Client struct {
 	SOC         *SOCService
 	Stewardship *StewardshipService
 	Auth        *AuthService
-	Stake       *StakingService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -79,7 +78,6 @@ func newClient(httpClient *http.Client, log logging.Logger) (c *Client) {
 	c.SOC = (*SOCService)(&c.service)
 	c.Stewardship = (*StewardshipService)(&c.service)
 	c.Auth = (*AuthService)(&c.service)
-	c.Stake = (*StakingService)(&c.service)
 	c.log = log
 	return c
 }

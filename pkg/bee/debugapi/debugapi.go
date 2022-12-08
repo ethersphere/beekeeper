@@ -25,10 +25,10 @@ type Client struct {
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
-	Node     *NodeService
-	PingPong *PingPongService
-	Postage  *PostageService
-
+	Node       *NodeService
+	PingPong   *PingPongService
+	Postage    *PostageService
+	Stake      *StakingService
 	restricted bool
 	log        logging.Logger
 }
@@ -62,6 +62,7 @@ func newClient(httpClient *http.Client, log logging.Logger) (c *Client) {
 	c.Node = (*NodeService)(&c.service)
 	c.PingPong = (*PingPongService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
+	c.Stake = (*StakingService)(&c.service)
 	c.log = log
 	return c
 }

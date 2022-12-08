@@ -2,6 +2,7 @@ package stake
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -9,15 +10,21 @@ import (
 	"math/big"
 )
 
+var (
+	ErrInsufficientStakeAmount = errors.New("insufficient stake amount")
+)
+
 // Options represents stake options
 type Options struct {
-	Amount *big.Int
+	Amount             *big.Int
+	InsufficientAmount *big.Int
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		Amount: big.NewInt(100000000000000000),
+		Amount:             big.NewInt(100000000000000000),
+		InsufficientAmount: big.NewInt(102400),
 	}
 }
 
@@ -47,7 +54,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	sortedNodes := cluster.NodeNames()
+	sortedNodes := cluster.FullNodeNames()
 	node := sortedNodes[1]
 	c.logger.Infof("checking stake for node %s", node)
 	client := clients[node]
@@ -65,5 +72,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("expected withdraw stake to be %v, got %v", o.Amount, withdrawStake)
 	}
 
+	_, err = client.DepositStake(ctx, o.InsufficientAmount)
+	if !errors.Is(err, ErrInsufficientStakeAmount) {
+		return fmt.Errorf("expected error %v, got %v", ErrInsufficientStakeAmount, err)
+	}
 	return nil
 }

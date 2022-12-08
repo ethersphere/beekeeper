@@ -822,10 +822,10 @@ func (c *Client) Refresh(ctx context.Context, securityToken string) (string, err
 
 // DepositStake deposits stake
 func (c *Client) DepositStake(ctx context.Context, amount *big.Int) (string, error) {
-	return c.api.Stake.DepositStake(ctx, amount)
+	return c.debug.Stake.DepositStake(ctx, amount)
 }
 
 // WithdrawStake withdraws stake
 func (c *Client) WithdrawStake(ctx context.Context) (*big.Int, error) {
-	return c.api.Stake.GetStakedAmount(ctx)
+	return c.debug.Stake.GetStakedAmount(ctx)
 }
