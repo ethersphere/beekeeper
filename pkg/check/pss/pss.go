@@ -74,11 +74,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	r := random.PseudoGenerator(o.Seed)
 	fullNodeNames := cluster.FullNodeNames()
 
-	for i := 0; i < int(o.Count); i++ {
-		c.logger.Infof("pss: test %d of %d", i, o.Count)
+	if len(fullNodeNames) < 2 {
+		return fmt.Errorf("pss test require at least 2 full nodes")
+	}
 
-		nodeNameA := pickRandom(r, fullNodeNames, "")
-		nodeNameB := pickRandom(r, fullNodeNames, nodeNameA)
+	for i := 0; i < int(o.Count); i++ {
+		c.logger.Infof("pss: test %d of %d", i+1, o.Count)
+
+		nodeNameA := pickAtRandom(r, fullNodeNames, "")
+		nodeNameB := pickAtRandom(r, fullNodeNames, nodeNameA)
 
 		if err := c.testPss(nodeNameA, nodeNameB, clients, o); err != nil {
 			return err
@@ -88,7 +92,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	return nil
 }
 
-func pickRandom(r *rand.Rand, names []string, skip string) string {
+func pickAtRandom(r *rand.Rand, names []string, skip string) string {
 	for {
 		i := r.Int31n(int32(len(names)))
 		if names[i] != skip {
