@@ -39,6 +39,7 @@ password: {{.Password}}
 payment-early-percent: {{.PaymentEarly}}
 payment-threshold: {{.PaymentThreshold}}
 payment-tolerance-percent: {{.PaymentTolerance}}
+postage-stamp-start-block: {{ .PostageStampStartBlock }}
 postage-stamp-address: {{ .PostageStampAddress }}
 postage-stamp-start-block: {{ .PostageContractStartBlock }}
 price-oracle-address: {{ .PriceOracleAddress }}
