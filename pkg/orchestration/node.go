@@ -110,6 +110,7 @@ type Config struct {
 	PaymentThreshold           uint64        // threshold in BZZ where you expect to get paid from your peers
 	PaymentTolerance           uint64        // excess debt above payment threshold in BZZ where you disconnect from your peer
 	PostageStampAddress        string        // postage stamp address
+	PostageContractStartBlock  uint64        // postage stamp address
 	PriceOracleAddress         string        // price Oracle address
 	ResolverOptions            string        // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
 	Restricted                 bool          // start node in restricted mode
