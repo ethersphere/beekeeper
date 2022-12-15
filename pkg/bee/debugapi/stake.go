@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+
+	"github.com/ethersphere/beekeeper/pkg/bigint"
 )
 
 // StakingService represents Bee's staking service
 type StakingService service
 
 type getStakeResponse struct {
-	StakedAmount *big.Int `json:"stakedAmount"`
+	StakedAmount *bigint.BigInt `json:"stakedAmount"`
 }
 type stakeDepositResponse struct {
 	TxHash string `json:"txhash"`
@@ -34,5 +36,5 @@ func (s *StakingService) GetStakedAmount(ctx context.Context) (stakedAmount *big
 	if err != nil {
 		return nil, err
 	}
-	return r.StakedAmount, nil
+	return r.StakedAmount.Int, nil
 }
