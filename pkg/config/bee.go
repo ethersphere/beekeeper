@@ -40,7 +40,6 @@ type BeeConfig struct {
 	PaymentEarly               *uint64        `yaml:"payment-early-percent"`
 	PaymentThreshold           *uint64        `yaml:"payment-threshold"`
 	PaymentTolerance           *uint64        `yaml:"payment-tolerance-percent"`
-	PostageStampStartBlock     *uint64        `yaml:"postage-stamp-start-block"`
 	PostageStampAddress        *string        `yaml:"postage-stamp-address"`
 	PostageContractStartBlock  *uint64        `yaml:"postage-stamp-start-block"`
 	PriceOracleAddress         *string        `yaml:"price-oracle-address"`
