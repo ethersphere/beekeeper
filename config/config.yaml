@@ -356,6 +356,11 @@ checks:
       role: consumer
       admin-password: test
       restricted-group-name: restricted
+  stake:
+    type: stake
+    timeout: 5m
+    options:
+      amount: 1000000000000000000
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options
