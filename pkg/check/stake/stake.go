@@ -2,16 +2,13 @@ package stake
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"math/big"
+
+	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"math/big"
-)
-
-var (
-	ErrInsufficientStakeAmount = errors.New("insufficient stake amount")
 )
 
 // Options represents stake options
@@ -73,8 +70,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	_, err = client.DepositStake(ctx, o.InsufficientAmount)
-	if !errors.Is(err, ErrInsufficientStakeAmount) {
-		return fmt.Errorf("expected error %v, got %v", ErrInsufficientStakeAmount, err)
+
+	if !debugapi.IsHTTPStatusErrorCode(err, 400) {
+		return fmt.Errorf("expected code %v, got %v", 400, err)
 	}
+
 	return nil
 }
