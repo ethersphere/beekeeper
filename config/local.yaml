@@ -375,3 +375,8 @@ checks:
       role: consumer
       admin-password: test
       restricted-group-name: restricted
+  ci-stake:
+    type: stake
+    timeout: 5m
+    options:
+      amount: 1000000000000000000
