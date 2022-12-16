@@ -168,4 +168,6 @@ var policies = [][]string{
 	{"consumer", "/chunks/stream", "GET"},
 	{"creator", "/stewardship/*", "GET"},
 	{"consumer", "/stewardship/*", "PUT"},
+	{"maintainer", "/stake/*", "POST"},
+	{"maintainer", "/stake", "GET"},
 }
