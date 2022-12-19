@@ -84,17 +84,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	_, err = client.WithdrawStake(ctx)
-	if err != nil {
-		return fmt.Errorf("withdraw stake: %w", err)
-	}
-
-	withdrawStake, err := client.GetStake(ctx)
-	if err != nil {
-		return fmt.Errorf("get final stake amount: %w", err)
-	}
-
-	if withdrawStake.Cmp(big.NewInt(0)) != 0 {
-		return fmt.Errorf("expected withdraw stake to be %v, got %v", o.Amount, withdrawStake)
+	if err == nil {
+		return errors.New("expected error on withdraw from running contract")
 	}
 
 	_, err = client.DepositStake(ctx, o.InsufficientAmount)
