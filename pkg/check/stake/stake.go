@@ -2,6 +2,7 @@ package stake
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -58,21 +59,48 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	_, err = client.DepositStake(ctx, o.Amount)
 	if err != nil {
-		return err
-	}
-	withdrawStake, err := client.WithdrawStake(ctx)
-	if err != nil {
-		return err
+		return fmt.Errorf("initial stake deposit: %w", err)
 	}
 
-	if withdrawStake.Cmp(o.Amount) == 0 {
+	currentStake, err := client.GetStake(ctx)
+	if err != nil {
+		return fmt.Errorf("get initial stake amount: %w", err)
+	}
+
+	if currentStake.Cmp(o.Amount) == 0 {
+		return fmt.Errorf("expected stake amount to be %v, got %v", o.Amount, currentStake)
+	}
+
+	// can not stake less than previously staked
+	_, err = client.DepositStake(ctx, new(big.Int).Sub(o.Amount, big.NewInt(1)))
+	if err == nil {
+		return errors.New("expected deposit stake to fail")
+	}
+
+	// should allow depositing more
+	_, err = client.DepositStake(ctx, new(big.Int).Add(o.Amount, big.NewInt(1)))
+	if err != nil {
+		return fmt.Errorf("increase stake amount: %w", err)
+	}
+
+	_, err = client.WithdrawStake(ctx)
+	if err != nil {
+		return fmt.Errorf("withdraw stake: %w", err)
+	}
+
+	withdrawStake, err := client.GetStake(ctx)
+	if err != nil {
+		return fmt.Errorf("get final stake amount: %w", err)
+	}
+
+	if withdrawStake.Cmp(big.NewInt(0)) != 0 {
 		return fmt.Errorf("expected withdraw stake to be %v, got %v", o.Amount, withdrawStake)
 	}
 
 	_, err = client.DepositStake(ctx, o.InsufficientAmount)
 
 	if !debugapi.IsHTTPStatusErrorCode(err, 400) {
-		return fmt.Errorf("expected code %v, got %v", 400, err)
+		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %v", 400, err)
 	}
 
 	return nil
