@@ -169,5 +169,5 @@ var policies = [][]string{
 	{"creator", "/stewardship/*", "GET"},
 	{"consumer", "/stewardship/*", "PUT"},
 	{"maintainer", "/stake/*", "POST"},
-	{"maintainer", "/stake", "GET"},
+	{"maintainer", "/stake", "(GET)|(DELETE)"},
 }
