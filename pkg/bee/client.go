@@ -825,7 +825,12 @@ func (c *Client) DepositStake(ctx context.Context, amount *big.Int) (string, err
 	return c.debug.Stake.DepositStake(ctx, amount)
 }
 
-// WithdrawStake withdraws stake
-func (c *Client) WithdrawStake(ctx context.Context) (*big.Int, error) {
+// GetStake returns stake amount
+func (c *Client) GetStake(ctx context.Context) (*big.Int, error) {
 	return c.debug.Stake.GetStakedAmount(ctx)
+}
+
+// WithdrawStake withdraws stake
+func (c *Client) WithdrawStake(ctx context.Context) (string, error) {
+	return c.debug.Stake.WithdrawStake(ctx)
 }

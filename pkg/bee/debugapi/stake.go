@@ -18,6 +18,9 @@ type getStakeResponse struct {
 type stakeDepositResponse struct {
 	TxHash string `json:"txhash"`
 }
+type stakeWithdrawResponse struct {
+	TxHash string `json:"txhash"`
+}
 
 // DepositStake deposits stake
 func (s *StakingService) DepositStake(ctx context.Context, amount *big.Int) (txHash string, err error) {
@@ -37,4 +40,14 @@ func (s *StakingService) GetStakedAmount(ctx context.Context) (stakedAmount *big
 		return nil, err
 	}
 	return r.StakedAmount.Int, nil
+}
+
+// WithdrawStake withdraws stake
+func (s *StakingService) WithdrawStake(ctx context.Context) (txHash string, err error) {
+	r := new(stakeWithdrawResponse)
+	err = s.client.requestJSON(ctx, http.MethodDelete, "/stake", nil, r)
+	if err != nil {
+		return "", err
+	}
+	return r.TxHash, nil
 }
