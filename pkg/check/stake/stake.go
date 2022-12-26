@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -16,6 +18,10 @@ import (
 type Options struct {
 	Amount             *big.Int
 	InsufficientAmount *big.Int
+	ContractAddr       string
+	CallerPrivateKey   string
+	GethURL            string
+	GethChainID        *big.Int
 }
 
 // NewDefaultOptions returns new default options
@@ -23,6 +29,7 @@ func NewDefaultOptions() Options {
 	return Options{
 		Amount:             big.NewInt(100000000000000000),
 		InsufficientAmount: big.NewInt(102400),
+		GethChainID:        big.NewInt(12345),
 	}
 }
 
@@ -41,10 +48,29 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 	}
 }
 
+var zero = big.NewInt(0)
+
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return err
+	}
+
+	s, geth, err := newStake(o)
+	if err != nil {
+		return fmt.Errorf("new stakeing: %w", err)
+	}
+
+	stake, err := newSession(s, geth, o)
+	if err != nil {
+		return fmt.Errorf("new staking contract session: %w", err)
+	}
+
+	if paused, err := stake.Paused(); err != nil {
+		return fmt.Errorf("chack if contract is paused: %w", err)
+	} else if paused {
+		c.logger.Info("contract is paused, skipping")
+		return nil
 	}
 
 	clients, err := cluster.NodesClients(ctx)
@@ -57,41 +83,90 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	c.logger.Infof("checking stake for node %s", node)
 	client := clients[node]
 
+	if err := expectStakeAmountIs(ctx, client, zero); err != nil {
+		return errors.New("check initial staked amount")
+	}
+
+	// depositing insufficient amount should fail
+	_, err = client.DepositStake(ctx, o.InsufficientAmount)
+
+	if !debugapi.IsHTTPStatusErrorCode(err, 400) {
+		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %v", 400, err)
+	}
+
+	if err := expectStakeAmountIs(ctx, client, zero); err != nil {
+		return err
+	}
+
+	// depositing sufficient amount should succeed
 	_, err = client.DepositStake(ctx, o.Amount)
 	if err != nil {
 		return fmt.Errorf("initial stake deposit: %w", err)
 	}
 
-	currentStake, err := client.GetStake(ctx)
-	if err != nil {
-		return fmt.Errorf("get initial stake amount: %w", err)
+	if err := expectStakeAmountIs(ctx, client, o.Amount); err != nil {
+		return err
 	}
 
-	if currentStake.Cmp(o.Amount) == 0 {
-		return fmt.Errorf("expected stake amount to be %v, got %v", o.Amount, currentStake)
-	}
+	// should allow increasing the stake amount
+	stakedAmount := new(big.Int).Add(o.Amount, big.NewInt(1))
 
-	// can not stake less than previously staked
-	_, err = client.DepositStake(ctx, new(big.Int).Sub(o.Amount, big.NewInt(1)))
-	if err == nil {
-		return errors.New("expected deposit stake to fail")
-	}
-
-	// should allow depositing more
-	_, err = client.DepositStake(ctx, new(big.Int).Add(o.Amount, big.NewInt(1)))
+	_, err = client.DepositStake(ctx, big.NewInt(1))
 	if err != nil {
 		return fmt.Errorf("increase stake amount: %w", err)
 	}
 
-	_, err = client.WithdrawStake(ctx)
-	if err == nil {
-		return errors.New("expected error on withdraw from running contract")
+	if err := expectStakeAmountIs(ctx, client, stakedAmount); err != nil {
+		return err
 	}
 
-	_, err = client.DepositStake(ctx, o.InsufficientAmount)
+	// should not allow withdrawing from a running contract
+	_, err = client.WithdrawStake(ctx)
+	if err == nil {
+		return errors.New("withdraw from running contract should fail")
+	}
 
-	if !debugapi.IsHTTPStatusErrorCode(err, 400) {
-		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %v", 400, err)
+	if err := expectStakeAmountIs(ctx, client, stakedAmount); err != nil {
+		return err
+	}
+
+	tx, err := stake.Pause()
+	if err != nil {
+		return fmt.Errorf("pause contract: %w", err)
+	}
+
+	_, err = bind.WaitMined(ctx, geth, tx)
+	if err != nil {
+		return fmt.Errorf("watch tx: %w", err)
+	}
+
+	defer func() {
+		if _, err := stake.UnPause(); err != nil {
+			c.logger.Errorf("unpause contract: %v", err)
+		}
+	}()
+
+	// successful withdraw should set the staked amount to 0
+	_, err = client.WithdrawStake(ctx)
+	if err != nil {
+		return fmt.Errorf("withdraw from paused contract: %w", err)
+	}
+
+	if err := expectStakeAmountIs(ctx, client, zero); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func expectStakeAmountIs(ctx context.Context, client *bee.Client, expected *big.Int) error {
+	current, err := client.GetStake(ctx)
+	if err != nil {
+		return fmt.Errorf("get stake amount: %w", err)
+	}
+
+	if current.Cmp(expected) != 0 {
+		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, current)
 	}
 
 	return nil

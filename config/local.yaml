@@ -168,7 +168,7 @@ bee-configs:
     gateway-mode: false
     mainnet: false
     nat-addr: ""
-    network-id: 1987
+    network-id: 12345
     p2p-addr: ":1634"
     p2p-quic-enable: false
     p2p-ws-enable: false
@@ -380,3 +380,8 @@ checks:
     timeout: 5m
     options:
       amount: 1000000000000000000
+      insufficient-amount: 102400
+      contract-addr: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
+      private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
+      geth-url: "http://geth-swap.localhost"
+      geth-chain-id: 12345

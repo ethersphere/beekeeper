@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"github.com/ethersphere/beekeeper/pkg/check/stake"
 	"math/big"
 	"reflect"
 	"time"
+
+	"github.com/ethersphere/beekeeper/pkg/check/stake"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/check/authenticated"
@@ -497,7 +498,12 @@ var Checks = map[string]CheckType{
 		NewAction: stake.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				Amount *big.Int `yaml:"amount"`
+				Amount             *big.Int `yaml:"amount"`
+				InsufficientAmount *big.Int `yaml:"insufficient-amount"`
+				ContractAddr       *string  `yaml:"contract-addr"`
+				CallerPrivateKey   *string  `yaml:"private-key"`
+				GethURL            *string  `yaml:"geth-url"`
+				GethChainID        *big.Int `yaml:"geth-chain-id"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
