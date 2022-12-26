@@ -385,3 +385,12 @@ checks:
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
       geth-url: "http://geth-swap.localhost"
       geth-chain-id: 12345
+  ci-redistribution:
+    options:
+      contract-addr: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
+      private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
+      geth-url: "http://geth-swap.localhost"
+      geth-chain-id: 12345
+      from-block: 0
+    timeout: 5m
+    type: redistribution

@@ -227,6 +227,10 @@ checks:
     options:
     timeout: 5m
     type: pingpong
+  redistribution:
+    options:
+    timeout: 5m
+    type: redistribution
   pss:
     options:
       address-prefix: 2
