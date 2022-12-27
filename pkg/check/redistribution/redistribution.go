@@ -92,6 +92,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		fromBlock = it.Event.Raw.BlockNumber
 		commitsCount := it.Event.Count
 
+	FilterCountReveals:
 		crit, err := contract.FilterCountReveals(&bind.FilterOpts{
 			Context: ctx,
 			Start:   fromBlock - 1,
@@ -105,13 +106,19 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			c.logger.Info("count reveals: fast forward...")
 		}
 
-		revealsCount := crit.Event.Count
-		if commitsCount.Cmp(revealsCount) != 0 {
-			c.logger.Infof("finished iteration %d, got equal commit/reveals: %d", i, commitsCount.Int64())
-			return fmt.Errorf("want reveals: %d, got %d", commitsCount.Int64(), revealsCount.Int64())
+		if crit.Event == nil {
+			c.logger.Info("count reveals: no event found, retrying...")
+			time.Sleep(5 * time.Second)
+			goto FilterCountReveals
 		}
 
-		c.logger.Infof("finished iteration %d, got equal commit/reveals: %d", i, commitsCount.Int64())
+		revealsCount := crit.Event.Count
+		if commitsCount.Cmp(revealsCount) != 0 {
+			c.logger.Errorf("want reveals: %d, got %d", commitsCount.Int64(), revealsCount.Int64())
+		} else {
+			c.logger.Infof("finished iteration %d, got equal commit/reveals: %d", i, commitsCount.Int64())
+		}
+
 		i++
 	}
 }
