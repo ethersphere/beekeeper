@@ -120,7 +120,7 @@ bee-configs:
     gateway-mode: false
     nat-addr: ""
     mainnet: false
-    network-id: 1987
+    network-id: 12345
     p2p-addr: ":1634"
     p2p-quic-enable: false
     p2p-ws-enable: false

@@ -109,13 +109,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	sortedNodes := cluster.NodeNames()
+	sortedNodes := cluster.FullNodeNames()
+
 	for i := 0; i < o.UploadNodeCount; i++ {
 		settlementsHappened := false
-		// upload file to random node
-		uIndex := rnd.Intn(cluster.Size())
-		uNode := sortedNodes[uIndex]
-		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%d", o.FileName, uIndex), o.FileSize)
+
+		uNode := pickAtRandom(rnd, sortedNodes, "")
+		file := bee.NewRandomFile(rnd, fmt.Sprintf("%s-%s", o.FileName, uNode), o.FileSize)
 
 		client := clients[uNode]
 
@@ -170,8 +170,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		time.Sleep(o.WaitBeforeDownload)
 		// download file from random node
-		dIndex := randomIndex(rnd, cluster.Size(), uIndex)
-		dNode := sortedNodes[dIndex]
+
+		dNode := pickAtRandom(rnd, sortedNodes, uNode)
 		size, hash, err := clients[dNode].DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %s: %w", dNode, err)
@@ -304,6 +304,15 @@ func validateSettlements(overlays orchestration.NodeGroupOverlays, accounting or
 	return
 }
 
+func pickAtRandom(r *rand.Rand, names []string, skip string) string {
+	for {
+		i := r.Int31n(int32(len(names)))
+		if names[i] != skip {
+			return names[i]
+		}
+	}
+}
+
 // settlementsHaveHappened checks if settlements have happened
 func settlementsHaveHappened(current, previous map[string]map[string]orchestration.SentReceived, logger logging.Logger) bool {
 	for node, v := range current {
@@ -316,17 +325,4 @@ func settlementsHaveHappened(current, previous map[string]map[string]orchestrati
 	}
 
 	return false
-}
-
-// randomIndex finds random index <max and not equal to unallowed
-func randomIndex(rnd *rand.Rand, max int, unallowed int) (index int) {
-	found := false
-	for !found {
-		index = rnd.Intn(max)
-		if index != unallowed {
-			found = true
-		}
-	}
-
-	return
 }
