@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +36,16 @@ func (*Pod) Evict(ctx context.Context, eviction *policy.Eviction) error {
 	panic("unimplemented")
 }
 
+// EvictV1 implements v1.PodInterface
+func (*Pod) EvictV1(ctx context.Context, eviction *policyv1.Eviction) error {
+	panic("unimplemented")
+}
+
+// EvictV1beta1 implements v1.PodInterface
+func (*Pod) EvictV1beta1(ctx context.Context, eviction *policy.Eviction) error {
+	panic("unimplemented")
+}
+
 // GetLogs implements v1.PodInterface
 func (*Pod) GetLogs(name string, opts *v1.PodLogOptions) *restclient.Request {
 	panic("unimplemented")
@@ -52,6 +63,41 @@ func (*Pod) Apply(ctx context.Context, pod *configcorev1.PodApplyConfiguration, 
 
 // ApplyStatus implements v1.PodInterface
 func (*Pod) ApplyStatus(ctx context.Context, pod *configcorev1.PodApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Pod, err error) {
+	panic("unimplemented")
+}
+
+// DeleteCollection implements v1.PodInterface
+func (*Pod) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	panic("unimplemented")
+}
+
+// Get implements v1.PodInterface
+func (*Pod) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Pod, error) {
+	panic("unimplemented")
+}
+
+// List implements v1.PodInterface
+func (*Pod) List(ctx context.Context, opts metav1.ListOptions) (*v1.PodList, error) {
+	panic("unimplemented")
+}
+
+// Patch implements v1.PodInterface
+func (*Pod) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Pod, err error) {
+	panic("unimplemented")
+}
+
+// UpdateEphemeralContainers implements v1.PodInterface
+func (*Pod) UpdateEphemeralContainers(ctx context.Context, podName string, pod *v1.Pod, opts metav1.UpdateOptions) (*v1.Pod, error) {
+	panic("unimplemented")
+}
+
+// UpdateStatus implements v1.PodInterface
+func (*Pod) UpdateStatus(ctx context.Context, pod *v1.Pod, opts metav1.UpdateOptions) (*v1.Pod, error) {
+	panic("unimplemented")
+}
+
+// Watch implements v1.PodInterface
+func (*Pod) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	panic("unimplemented")
 }
 
@@ -73,31 +119,6 @@ func (*Pod) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) 
 	}
 }
 
-// DeleteCollection implements v1.PodInterface
-func (*Pod) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	panic("unimplemented")
-}
-
-// Get implements v1.PodInterface
-func (*Pod) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Pod, error) {
-	panic("unimplemented")
-}
-
-// GetEphemeralContainers implements v1.PodInterface
-func (*Pod) GetEphemeralContainers(ctx context.Context, podName string, options metav1.GetOptions) (*v1.EphemeralContainers, error) {
-	panic("unimplemented")
-}
-
-// List implements v1.PodInterface
-func (*Pod) List(ctx context.Context, opts metav1.ListOptions) (*v1.PodList, error) {
-	panic("unimplemented")
-}
-
-// Patch implements v1.PodInterface
-func (*Pod) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Pod, err error) {
-	panic("unimplemented")
-}
-
 // Update implements v1.PodInterface
 func (*Pod) Update(ctx context.Context, pod *v1.Pod, opts metav1.UpdateOptions) (*v1.Pod, error) {
 	if pod.ObjectMeta.Name == "update_bad" {
@@ -105,19 +126,4 @@ func (*Pod) Update(ctx context.Context, pod *v1.Pod, opts metav1.UpdateOptions) 
 	} else {
 		return nil, errors.NewNotFound(schema.GroupResource{}, pod.ObjectMeta.Name)
 	}
-}
-
-// UpdateEphemeralContainers implements v1.PodInterface
-func (*Pod) UpdateEphemeralContainers(ctx context.Context, podName string, ephemeralContainers *v1.EphemeralContainers, opts metav1.UpdateOptions) (*v1.EphemeralContainers, error) {
-	panic("unimplemented")
-}
-
-// UpdateStatus implements v1.PodInterface
-func (*Pod) UpdateStatus(ctx context.Context, pod *v1.Pod, opts metav1.UpdateOptions) (*v1.Pod, error) {
-	panic("unimplemented")
-}
-
-// Watch implements v1.PodInterface
-func (*Pod) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	panic("unimplemented")
 }

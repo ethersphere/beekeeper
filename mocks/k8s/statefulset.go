@@ -12,6 +12,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	configappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applyconfigurationsautoscalingv1 "k8s.io/client-go/applyconfigurations/autoscaling/v1"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
@@ -26,6 +27,11 @@ func NewStatefulSet(ns string) *StatefulSet {
 	return &StatefulSet{
 		ns: ns,
 	}
+}
+
+// ApplyScale implements v1.StatefulSetInterface
+func (*StatefulSet) ApplyScale(ctx context.Context, statefulSetName string, scale *applyconfigurationsautoscalingv1.ScaleApplyConfiguration, opts metav1.ApplyOptions) (*autoscalingv1.Scale, error) {
+	panic("unimplemented")
 }
 
 // Apply implements v1.StatefulSetInterface

@@ -18,7 +18,6 @@ type Spec struct {
 	Selector                      map[string]string
 	SessionAffinity               string
 	SessionAffinityTimeoutSeconds int32
-	TopologyKeys                  []string
 	Type                          string
 }
 
@@ -40,8 +39,7 @@ func (s *Spec) ToK8S() v1.ServiceSpec {
 				TimeoutSeconds: &s.SessionAffinityTimeoutSeconds,
 			},
 		},
-		TopologyKeys: s.TopologyKeys,
-		Type:         v1.ServiceType(s.Type),
+		Type: v1.ServiceType(s.Type),
 	}
 }
 
@@ -79,5 +77,4 @@ func (p *Port) toK8S() v1.ServicePort {
 		Protocol:    v1.Protocol(p.Protocol),
 		TargetPort:  intstr.FromString(p.TargetPort),
 	}
-
 }
