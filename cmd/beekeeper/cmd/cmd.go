@@ -220,7 +220,7 @@ func (c *command) initConfig() (err error) {
 		if err != nil {
 			return err
 		}
-		yamlFiles := [][]byte{}
+		yamlFiles := []config.YamlFile{}
 		for _, file := range files {
 			if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml")) {
 				continue
@@ -235,10 +235,13 @@ func (c *command) initConfig() (err error) {
 			if _, err := f.Read(yamlFile); err != nil {
 				return fmt.Errorf("reading file %s: %w ", file.Name(), err)
 			}
-			yamlFiles = append(yamlFiles, yamlFile)
+			yamlFiles = append(yamlFiles, config.YamlFile{
+				Name:    file.Name(),
+				Content: yamlFile,
+			})
 		}
 
-		if c.config, err = config.Read(yamlFiles...); err != nil {
+		if c.config, err = config.Read(c.logger, yamlFiles); err != nil {
 			return err
 		}
 	} else {
@@ -248,7 +251,7 @@ func (c *command) initConfig() (err error) {
 			return fmt.Errorf("reading config dir: %w", err)
 		}
 
-		yamlFiles := [][]byte{}
+		yamlFiles := []config.YamlFile{}
 		for _, file := range files {
 			fullPath := filepath.Join(c.globalConfig.GetString(optionNameConfigDir) + "/" + file.Name())
 			fileExt := filepath.Ext(fullPath)
@@ -259,10 +262,13 @@ func (c *command) initConfig() (err error) {
 			if err != nil {
 				return fmt.Errorf("reading file %s: %w ", file.Name(), err)
 			}
-			yamlFiles = append(yamlFiles, yamlFile)
+			yamlFiles = append(yamlFiles, config.YamlFile{
+				Name:    file.Name(),
+				Content: yamlFile,
+			})
 		}
 
-		if c.config, err = config.Read(yamlFiles...); err != nil {
+		if c.config, err = config.Read(c.logger, yamlFiles); err != nil {
 			return err
 		}
 	}
