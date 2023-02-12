@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"gopkg.in/yaml.v3"
 )
 
@@ -16,9 +18,25 @@ type Config struct {
 	Simulations map[string]Simulation `yaml:"simulations"`
 }
 
+type YamlFile struct {
+	Name    string
+	Content []byte
+}
+
 // Inherit is struct used for implementing inheritance in Config objects
 type Inherit struct {
 	ParentName string `yaml:"_inherit"`
+}
+
+func (c *Config) PrintYaml(w io.Writer) (err error) {
+	if c == nil {
+		return fmt.Errorf("config not initialized")
+	}
+	enc := yaml.NewEncoder(w)
+	if err := enc.Encode(c); err != nil {
+		return fmt.Errorf("config can not be encoded: %s", err.Error())
+	}
+	return
 }
 
 // merge combines Config objects using inheritance
@@ -93,7 +111,7 @@ func (c *Config) merge() (err error) {
 }
 
 // Read reads given YAML files and unmarshals them into Config
-func Read(yamlFiles ...[]byte) (*Config, error) {
+func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 	c := Config{
 		Clusters:    make(map[string]Cluster),
 		NodeGroups:  make(map[string]NodeGroup),
@@ -104,7 +122,7 @@ func Read(yamlFiles ...[]byte) (*Config, error) {
 
 	for _, file := range yamlFiles {
 		var tmp *Config
-		if err := yaml.Unmarshal(file, &tmp); err != nil {
+		if err := yaml.Unmarshal(file.Content, &tmp); err != nil {
 			return nil, fmt.Errorf("unmarshaling yaml file: %w", err)
 		}
 
@@ -113,6 +131,8 @@ func Read(yamlFiles ...[]byte) (*Config, error) {
 			_, ok := c.Clusters[k]
 			if !ok {
 				c.Clusters[k] = v
+			} else {
+				log.Warningf("cluster '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
 		// join NodeGroups
@@ -120,6 +140,8 @@ func Read(yamlFiles ...[]byte) (*Config, error) {
 			_, ok := c.NodeGroups[k]
 			if !ok {
 				c.NodeGroups[k] = v
+			} else {
+				log.Warningf("node group '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
 		// join BeeConfigs
@@ -127,6 +149,8 @@ func Read(yamlFiles ...[]byte) (*Config, error) {
 			_, ok := c.BeeConfigs[k]
 			if !ok {
 				c.BeeConfigs[k] = v
+			} else {
+				log.Warningf("bee config '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
 		// join Checks
@@ -134,6 +158,8 @@ func Read(yamlFiles ...[]byte) (*Config, error) {
 			_, ok := c.Checks[k]
 			if !ok {
 				c.Checks[k] = v
+			} else {
+				log.Warningf("check '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
 		// join Simulations
@@ -141,6 +167,8 @@ func Read(yamlFiles ...[]byte) (*Config, error) {
 			_, ok := c.Simulations[k]
 			if !ok {
 				c.Simulations[k] = v
+			} else {
+				log.Warningf("simulation '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
 	}
