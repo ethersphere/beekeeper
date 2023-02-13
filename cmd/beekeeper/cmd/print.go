@@ -33,7 +33,7 @@ Requires exactly one argument from the following list: addresses, depths, nodes,
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			// no need to setup cluster in case of config print
+			// no need to setup cluster in case of print config
 			if args[0] == "config" {
 				if err := c.config.PrintYaml(os.Stdout); err != nil {
 					return fmt.Errorf("config can not be printed: %s", err.Error())
@@ -57,7 +57,7 @@ Requires exactly one argument from the following list: addresses, depths, nodes,
 			return f(ctx, cluster)
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			// skip setup in case of config print
+			// skip setup in case of print config
 			if args[0] == "config" {
 				return
 			}
@@ -171,8 +171,8 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 
 		return
 	},
-	// add it to print funcs and do nothing (required to check if argument exists)
 	// print config prints configuration used to setup cluster
+	// add it to print funcs and do nothing (required to check if argument exists)
 	"config": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 		return
 	},
