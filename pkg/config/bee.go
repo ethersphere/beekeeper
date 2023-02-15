@@ -29,10 +29,12 @@ type BeeConfig struct {
 	DebugAPIAddr               *string        `yaml:"debug-api-addr"`
 	DebugAPIEnable             *bool          `yaml:"debug-api-enable"`
 	FullNode                   *bool          `yaml:"full-node"`
+	GatewayMode                *bool          `yaml:"gateway-mode"`
 	NATAddr                    *string        `yaml:"nat-addr"`
 	Mainnet                    *bool          `yaml:"mainnet"`
 	NetworkID                  *uint64        `yaml:"network-id"`
 	P2PAddr                    *string        `yaml:"p2p-addr"`
+	P2PQUICEnable              *bool          `yaml:"p2p-quic-enable"`
 	P2PWSEnable                *bool          `yaml:"pwp-ws-enable"`
 	Password                   *string        `yaml:"password"`
 	PaymentEarly               *uint64        `yaml:"payment-early-percent"`
@@ -48,6 +50,7 @@ type BeeConfig struct {
 	Restricted                 *bool          `yaml:"restricted"`
 	TokenEncryptionKey         *string        `yaml:"token-encryption-key"`
 	AdminPassword              *string        `yaml:"admin-password"`
+	Standalone                 *bool          `yaml:"standalone"`
 	ChequebookEnable           *bool          `yaml:"chequebook-enable"`
 	SwapEnable                 *bool          `yaml:"swap-enable"`
 	SwapEndpoint               *string        `yaml:"swap-endpoint"`
@@ -58,6 +61,7 @@ type BeeConfig struct {
 	TracingEnabled             *bool          `yaml:"tracing-enabled"`
 	TracingEndpoint            *string        `yaml:"tracing-endpoint"`
 	TracingServiceName         *string        `yaml:"tracing-service-name"`
+	Transaction                *string        `yaml:"transaction"`
 	Verbosity                  *uint64        `yaml:"verbosity"`
 	WelcomeMessage             *string        `yaml:"welcome-message"`
 	WarmupTime                 *time.Duration `yaml:"warmup-time"`

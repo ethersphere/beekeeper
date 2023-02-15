@@ -719,7 +719,7 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 		return err
 	}
 
-	if !n.Config().SwapEnable || !n.Config().ChequebookEnable {
+	if n.Config().Transaction == "" && (!n.Config().SwapEnable || !n.Config().ChequebookEnable) {
 		var swarmKey string
 
 		if n.Config().ClefSignerEnable {
@@ -771,6 +771,7 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 		}
 
 		time.Sleep(10 * time.Second)
+		n.Config().Transaction = txHash
 		g.logger.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s", key.Address, name, txHash)
 	}
 	return

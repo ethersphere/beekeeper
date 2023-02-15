@@ -98,10 +98,12 @@ type Config struct {
 	DebugAPIAddr               string        // debug HTTP API listen address
 	DebugAPIEnable             bool          // enable debug HTTP API
 	FullNode                   bool          // cause the node to start in full mode
+	GatewayMode                bool          // disable a set of sensitive features in the api
 	Mainnet                    bool          // enable mainnet
 	NATAddr                    string        // NAT exposed address
 	NetworkID                  uint64        // ID of the Swarm network
 	P2PAddr                    string        // P2P listen address
+	P2PQUICEnable              bool          // enable P2P QUIC transport
 	P2PWSEnable                bool          // enable P2P WebSocket transport
 	Password                   string        // password for decrypting keys
 	PaymentEarly               uint64        // amount in BZZ below the peers payment threshold when we initiate settlement
@@ -114,6 +116,7 @@ type Config struct {
 	Restricted                 bool          // start node in restricted mode
 	TokenEncryptionKey         string        // username for API authentication
 	AdminPassword              string        // password hash for API authentication
+	Standalone                 bool          // whether we want the node to start with no listen addresses for p2p
 	ChequebookEnable           bool          // enable chequebook
 	SwapEnable                 bool          // enable swap
 	SwapEndpoint               string        // swap ethereum blockchain endpoint
@@ -127,6 +130,7 @@ type Config struct {
 	TracingEnabled             bool          // enable tracing
 	TracingEndpoint            string        // endpoint to send tracing data
 	TracingServiceName         string        // service name identifier for tracing
+	Transaction                string        // proof-of-identity transaction hash
 	Verbosity                  uint64        // log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace
 	WelcomeMessage             string        // send a welcome message string during handshakes
 	WarmupTime                 time.Duration // warmup time pull/pushsync protocols
