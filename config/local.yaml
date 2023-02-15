@@ -165,12 +165,10 @@ bee-configs:
     debug-api-addr: ":1635"
     debug-api-enable: true
     full-node: true
-    gateway-mode: false
     mainnet: false
     nat-addr: ""
     network-id: 12345
     p2p-addr: ":1634"
-    p2p-quic-enable: false
     p2p-ws-enable: false
     password: "beekeeper"
     payment-early-percent: 50
@@ -186,14 +184,12 @@ bee-configs:
     restricted: false
     token-encryption-key: ""
     admin-password: ""
-    standalone: false
     chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://geth-swap:8546"
     swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
     swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
     swap-initial-deposit: 500000000000000000
-    transaction: ""
     verbosity: 5
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
     warmup-time: 0s
