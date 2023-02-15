@@ -90,12 +90,10 @@ bee-configs:
     debug-api-addr: ":1635"
     debug-api-enable: true
     full-node: true
-    gateway-mode: false
     mainnet: false
     nat-addr: ""
     network-id: 10
     p2p-addr: ":1634"
-    p2p-quic-enable: false
     p2p-ws-enable: false
     password: "beekeeper"
     payment-early-percent: 50
@@ -104,7 +102,6 @@ bee-configs:
     postage-stamp-address: ""
     price-oracle-address: ""
     resolver-options: "https://cloudflare-eth.com"
-    standalone: false
     chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
@@ -114,7 +111,6 @@ bee-configs:
     tracing-enabled: false
     tracing-endpoint: "tempo-tempo-distributed-distributor.observability:6831"
     tracing-service-name: "bee"
-    transaction: ""
     verbosity: 5
     welcome-message: "Welcome to the giant!"
     allow-private-cidrs: true

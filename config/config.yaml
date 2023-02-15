@@ -117,12 +117,10 @@ bee-configs:
     debug-api-addr: ":1635"
     debug-api-enable: true
     full-node: true
-    gateway-mode: false
     nat-addr: ""
     mainnet: false
     network-id: 12345
     p2p-addr: ":1634"
-    p2p-quic-enable: false
     p2p-ws-enable: false
     password: "beekeeper"
     payment-early-percent: 50
@@ -135,7 +133,6 @@ bee-configs:
     staking-address: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
     redistribution-address: "0x56e442f99cafd7c890c404c1f8c16d38a569e41a"
     resolver-options: ""
-    standalone: false
     chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://geth-swap.geth-swap:8546"
@@ -145,7 +142,6 @@ bee-configs:
     tracing-enabled: true
     tracing-endpoint: "tempo-tempo-distributed-distributor.observability:6831"
     tracing-service-name: "bee"
-    transaction: ""
     verbosity: 5
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
     allow-private-cidrs: true

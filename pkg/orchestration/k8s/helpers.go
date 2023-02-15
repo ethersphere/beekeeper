@@ -28,12 +28,10 @@ db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
 debug-api-addr: {{.DebugAPIAddr}}
 debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}
-gateway-mode: {{.GatewayMode}}
 mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
 network-id: {{.NetworkID}}
 p2p-addr: {{.P2PAddr}}
-p2p-quic-enable: {{.P2PQUICEnable}}
 p2p-ws-enable: {{.P2PWSEnable}}
 password: {{.Password}}
 payment-early-percent: {{.PaymentEarly}}
@@ -49,7 +47,6 @@ resolver-options: {{.ResolverOptions}}
 restricted: {{.Restricted}}
 token-encryption-key: {{.TokenEncryptionKey}}
 admin-password: {{.AdminPassword}}
-standalone: {{.Standalone}}
 chequebook-enable: {{.ChequebookEnable}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
@@ -60,7 +57,6 @@ swap-initial-deposit: {{.SwapInitialDeposit}}
 tracing-enable: {{.TracingEnabled}}
 tracing-endpoint: {{.TracingEndpoint}}
 tracing-service-name: {{.TracingServiceName}}
-transaction: {{.Transaction}}
 verbosity: {{.Verbosity}}
 welcome-message: {{.WelcomeMessage}}
 warmup-time: {{.WarmupTime}}
