@@ -228,8 +228,8 @@ func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts containers.Vo
 	if o.LibP2PEnabled {
 		volumeMounts = append(volumeMounts, containers.VolumeMount{
 			Name:      "libp2p-key",
-			MountPath: "home/bee/.bee/keys/libp2p.key",
-			SubPath:   "libp2p.key",
+			MountPath: "home/bee/.bee/keys/libp2p_v2.key",
+			SubPath:   "libp2p_v2.key",
 			ReadOnly:  true,
 		})
 	}
@@ -337,7 +337,7 @@ func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
 				SecretName: o.KeysSecret,
 				Items: pod.Items{{
 					Key:   "libp2p",
-					Value: "libp2p.key",
+					Value: "libp2p_v2.key",
 				}},
 			},
 		})
