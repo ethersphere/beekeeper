@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -52,6 +53,10 @@ func (sk SwarmKey) GetEthAddress() (string, error) {
 	err := json.Unmarshal([]byte(sk), &skj)
 	if err != nil {
 		return "", fmt.Errorf("unmarshal swarm key address: %s", err.Error())
+	}
+
+	if skj.Address != "" && !strings.HasPrefix(skj.Address, "0x") {
+		skj.Address = fmt.Sprintf("0x%s", skj.Address)
 	}
 
 	return skj.Address, nil
