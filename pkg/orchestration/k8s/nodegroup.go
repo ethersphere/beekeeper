@@ -376,6 +376,7 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.NodeO
 	var a bee.Addresses
 	if f.Eth > 0 || f.Bzz > 0 || f.GBzz > 0 {
 		a.Ethereum, _ = o.SwarmKey.GetEthAddress()
+		// TODO check for error, check if SwarmKey is necessary in config
 		// 0xf176839c150e52fe30e5c2b5c648465c6fdfa532
 		if a.Ethereum == "" {
 			retries := 5
