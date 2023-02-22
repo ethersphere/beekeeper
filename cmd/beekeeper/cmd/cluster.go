@@ -162,7 +162,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
 					}
 					if len(v.Nodes[i].SwarmKey) > 0 {
-						nOptions.SwarmKey = v.Nodes[i].SwarmKey
+						nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
 					}
 
 					errGroup.Go(func() error {
@@ -221,7 +221,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 							nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
 						}
 						if len(v.Nodes[i].SwarmKey) > 0 {
-							nOptions.SwarmKey = v.Nodes[i].SwarmKey
+							nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
 						}
 
 						errGroup.Go(func() error {
@@ -289,7 +289,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
 					}
 					if len(v.Nodes[i].SwarmKey) > 0 {
-						nOptions.SwarmKey = v.Nodes[i].SwarmKey
+						nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
 					}
 
 					if err := g.AddNode(ctx, nName, nOptions); err != nil {
@@ -343,7 +343,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 							nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
 						}
 						if len(v.Nodes[i].SwarmKey) > 0 {
-							nOptions.SwarmKey = v.Nodes[i].SwarmKey
+							nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
 						}
 
 						if err := g.AddNode(ctx, nName, orchestration.NodeOptions{}); err != nil {

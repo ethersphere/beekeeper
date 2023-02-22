@@ -59,7 +59,7 @@ func NewNode(name string, opts orchestration.NodeOptions, logger logging.Logger)
 		n.libP2PKey = opts.LibP2PKey
 	}
 	if len(opts.SwarmKey) > 0 {
-		n.swarmKey = opts.SwarmKey
+		n.swarmKey = opts.SwarmKey.ToString()
 	}
 	if opts.K8S != nil {
 		n.k8s = opts.K8S

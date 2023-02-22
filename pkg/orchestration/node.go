@@ -2,7 +2,9 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -30,6 +32,31 @@ type Node interface {
 	SetClefPassword(key string) Node
 }
 
+// SwarmKey is string that contains addresses.
+type SwarmKey string
+
+func (sk SwarmKey) ToString() string {
+	return string(sk)
+}
+
+// SwarmKeyJson is json string for SwarmKey.
+type SwarmKeyJson struct {
+	Address string `json:"address"`
+	// TODO add other properties if needed
+}
+
+// GetEthAddress extracts ethereum address from SwarmKey.
+func (sk SwarmKey) GetEthAddress() (string, error) {
+	var skj SwarmKeyJson
+
+	err := json.Unmarshal([]byte(sk), &skj)
+	if err != nil {
+		return "", fmt.Errorf("unmarshal swarm key address: %s", err.Error())
+	}
+
+	return skj.Address, nil
+}
+
 // NodeOptions holds optional parameters for the Node.
 type NodeOptions struct {
 	ClefKey      string
@@ -38,7 +65,7 @@ type NodeOptions struct {
 	Config       *Config
 	K8S          *k8s.Client
 	LibP2PKey    string
-	SwarmKey     string
+	SwarmKey     SwarmKey
 }
 
 // CreateOptions represents available options for creating node
