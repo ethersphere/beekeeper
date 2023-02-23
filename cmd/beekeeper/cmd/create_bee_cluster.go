@@ -20,9 +20,10 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
-
+			start := time.Now()
 			_, err = c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, true)
-
+			elapsed := time.Since(start)
+			c.logger.Infof("cluster setup took %s", elapsed)
 			return err
 		},
 		PreRunE: c.preRunE,

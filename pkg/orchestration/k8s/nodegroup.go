@@ -376,8 +376,6 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.NodeO
 	var a bee.Addresses
 	if f.Eth > 0 || f.Bzz > 0 || f.GBzz > 0 {
 		a.Ethereum, _ = o.SwarmKey.GetEthAddress()
-		// TODO check for error, check if SwarmKey is necessary in config
-		// 0xf176839c150e52fe30e5c2b5c648465c6fdfa532
 		if a.Ethereum == "" {
 			retries := 5
 			for {
@@ -801,6 +799,8 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
 func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
+	g.logger.Infof("starting setup node: %s", name)
+
 	if err := g.AddNode(ctx, name, o); err != nil {
 		return fmt.Errorf("add node %s: %w", name, err)
 	}

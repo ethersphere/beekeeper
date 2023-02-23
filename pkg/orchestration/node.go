@@ -33,6 +33,7 @@ type Node interface {
 	SetClefPassword(key string) Node
 }
 
+// TODO check the name of type, maybe should be better to call Key
 // SwarmKey is string that contains addresses.
 type SwarmKey string
 
@@ -40,6 +41,7 @@ func (sk SwarmKey) ToString() string {
 	return string(sk)
 }
 
+// TODO check the name of type, maybe should be better to call Key
 // SwarmKeyJson is json string for SwarmKey.
 type SwarmKeyJson struct {
 	Address string `json:"address"`

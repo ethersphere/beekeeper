@@ -176,6 +176,8 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 			}
 		}
 
+		errGroup := new(errgroup.Group)
+
 		for ng, v := range clusterConfig.GetNodeGroups() {
 			ngConfig, ok := cfg.NodeGroups[v.Config]
 			if !ok {
@@ -200,7 +202,6 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				if err != nil {
 					return nil, err
 				}
-				errGroup := new(errgroup.Group)
 
 				if len(v.Nodes) > 0 {
 					for i := 0; i < len(v.Nodes); i++ {
@@ -238,12 +239,13 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 						})
 					}
 				}
-
-				if err := errGroup.Wait(); err != nil {
-					return nil, fmt.Errorf("starting node group %s: %w", ng, err)
-				}
 			}
 		}
+
+		if err := errGroup.Wait(); err != nil {
+			return nil, fmt.Errorf("starting node groups: %w", err)
+		}
+
 	} else {
 		bootnodes := ""
 		for ng, v := range clusterConfig.GetNodeGroups() {
