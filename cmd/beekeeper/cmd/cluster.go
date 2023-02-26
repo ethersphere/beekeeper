@@ -116,42 +116,104 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions, c.logger)
 
-	if start {
-		bootnodes := ""
-		for ng, v := range clusterConfig.GetNodeGroups() {
-			ngConfig, ok := cfg.NodeGroups[v.Config]
+	for ng, v := range clusterConfig.GetNodeGroups() {
+		ngConfig, ok := cfg.NodeGroups[v.Config]
+		if !ok {
+			return nil, fmt.Errorf("node group profile %s not defined", v.Config)
+		}
+
+		if v.Mode == "bootnode" { // TODO: implement standalone mode
+			beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
 			if !ok {
-				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
+				return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 			}
 
-			if v.Mode == "bootnode" { // TODO: implement standalone mode
-				// add node group to the cluster
-				cluster.AddNodeGroup(ng, ngConfig.Export())
+			// add node group to the cluster
+			cluster.AddNodeGroup(ng, ngConfig.Export())
 
-				// start nodes in the node group
-				g, err := cluster.NodeGroup(ng)
-				if err != nil {
-					return nil, err
+			// start nodes in the node group
+			g, err := cluster.NodeGroup(ng)
+			if err != nil {
+				return nil, err
+			}
+			errGroup := new(errgroup.Group)
+			for i := 0; i < len(v.Nodes); i++ {
+				// set node name
+				nName := fmt.Sprintf("%s-%d", ng, i)
+				if len(v.Nodes[i].Name) > 0 {
+					nName = v.Nodes[i].Name
 				}
-				errGroup := new(errgroup.Group)
+
+				// set bootnodes
+				bConfig := beeConfig.Export()
+				bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
+
+				// set NodeOptions
+				nOptions := orchestration.NodeOptions{
+					Config: &bConfig,
+				}
+				if len(v.Nodes[i].Clef.Key) > 0 {
+					nOptions.ClefKey = v.Nodes[i].Clef.Key
+				}
+				if len(v.Nodes[i].Clef.Password) > 0 {
+					nOptions.ClefPassword = v.Nodes[i].Clef.Password
+				}
+				if len(v.Nodes[i].LibP2PKey) > 0 {
+					nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
+				}
+				if len(v.Nodes[i].SwarmKey) > 0 {
+					nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
+				}
+
+				errGroup.Go(func() error {
+					if start {
+						return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
+					} else {
+						return g.AddNode(ctx, nName, nOptions)
+					}
+				})
+			}
+
+			if err := errGroup.Wait(); err != nil {
+				return nil, fmt.Errorf("starting node group %s: %w", ng, err)
+			}
+		}
+	}
+
+	errGroup := new(errgroup.Group)
+
+	for ng, v := range clusterConfig.GetNodeGroups() {
+		ngConfig, ok := cfg.NodeGroups[v.Config]
+		if !ok {
+			return nil, fmt.Errorf("node group profile %s not defined", v.Config)
+		}
+
+		if v.Mode != "bootnode" { // TODO: support standalone nodes
+
+			if _, ok := cfg.BeeConfigs[v.BeeConfig]; !ok {
+				return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
+			}
+
+			// add node group to the cluster
+			cluster.AddNodeGroup(ng, ngConfig.Export())
+
+			// start nodes in the node group
+			g, err := cluster.NodeGroup(ng)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(v.Nodes) > 0 {
 				for i := 0; i < len(v.Nodes); i++ {
+					c.logger.Infof("HERE IS THE NODE: %s", v.Nodes[i].Name)
+
 					// set node name
 					nName := fmt.Sprintf("%s-%d", ng, i)
 					if len(v.Nodes[i].Name) > 0 {
 						nName = v.Nodes[i].Name
 					}
-					// set bootnodes
-					beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
-					if !ok {
-						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
-					}
-					bConfig := beeConfig.Export()
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
-					bootnodes += bConfig.Bootnodes + " "
 					// set NodeOptions
-					nOptions := orchestration.NodeOptions{
-						Config: &bConfig,
-					}
+					nOptions := orchestration.NodeOptions{}
 					if len(v.Nodes[i].Clef.Key) > 0 {
 						nOptions.ClefKey = v.Nodes[i].Clef.Key
 					}
@@ -166,203 +228,32 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					}
 
 					errGroup.Go(func() error {
-						return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
+						if start {
+							return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
+						} else {
+							return g.AddNode(ctx, nName, nOptions)
+						}
 					})
 				}
-
-				if err := errGroup.Wait(); err != nil {
-					return nil, fmt.Errorf("starting node group %s: %w", ng, err)
-				}
-			}
-		}
-
-		errGroup := new(errgroup.Group)
-
-		for ng, v := range clusterConfig.GetNodeGroups() {
-			ngConfig, ok := cfg.NodeGroups[v.Config]
-			if !ok {
-				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
-			}
-
-			if v.Mode != "bootnode" { // TODO: support standalone nodes
-				// set bootnodes
-				beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
-				if !ok {
-					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
-				}
-				bConfig := beeConfig.Export()
-				bConfig.Bootnodes = bootnodes
-				// add node group to the cluster
-				ngOptions := ngConfig.Export()
-				ngOptions.BeeConfig = &bConfig
-				cluster.AddNodeGroup(ng, ngOptions)
-
-				// start nodes in the node group
-				g, err := cluster.NodeGroup(ng)
-				if err != nil {
-					return nil, err
-				}
-
-				if len(v.Nodes) > 0 {
-					for i := 0; i < len(v.Nodes); i++ {
-						// set node name
-						nName := fmt.Sprintf("%s-%d", ng, i)
-						if len(v.Nodes[i].Name) > 0 {
-							nName = v.Nodes[i].Name
-						}
-						// set NodeOptions
-						nOptions := orchestration.NodeOptions{}
-						if len(v.Nodes[i].Clef.Key) > 0 {
-							nOptions.ClefKey = v.Nodes[i].Clef.Key
-						}
-						if len(v.Nodes[i].Clef.Password) > 0 {
-							nOptions.ClefPassword = v.Nodes[i].Clef.Password
-						}
-						if len(v.Nodes[i].LibP2PKey) > 0 {
-							nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
-						}
-						if len(v.Nodes[i].SwarmKey) > 0 {
-							nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
-						}
-
-						errGroup.Go(func() error {
-							return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
-						})
-					}
-				} else {
-					for i := 0; i < v.Count; i++ {
-						// set node name
-						nName := fmt.Sprintf("%s-%d", ng, i)
-
-						errGroup.Go(func() error {
-							return g.SetupNode(ctx, nName, orchestration.NodeOptions{}, clusterConfig.Funding.Export())
-						})
-					}
-				}
-			}
-		}
-
-		if err := errGroup.Wait(); err != nil {
-			return nil, fmt.Errorf("starting node groups: %w", err)
-		}
-
-	} else {
-		bootnodes := ""
-		for ng, v := range clusterConfig.GetNodeGroups() {
-			ngConfig, ok := cfg.NodeGroups[v.Config]
-			if !ok {
-				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
-			}
-
-			if v.Mode == "bootnode" { // TODO: support standalone nodes
-				// add node group to the cluster
-				cluster.AddNodeGroup(ng, ngConfig.Export())
-
-				// add nodes to the node group
-				g, err := cluster.NodeGroup(ng)
-				if err != nil {
-					return nil, err
-				}
-				for i := 0; i < len(v.Nodes); i++ {
+			} else {
+				for i := 0; i < v.Count; i++ {
 					// set node name
 					nName := fmt.Sprintf("%s-%d", ng, i)
-					if len(v.Nodes[i].Name) > 0 {
-						nName = v.Nodes[i].Name
-					}
-					// set bootnodes
-					beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
-					if !ok {
-						return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
-					}
-					bConfig := beeConfig.Export()
-					bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
-					bootnodes += bConfig.Bootnodes + " "
-					// set NodeOptions
-					nOptions := orchestration.NodeOptions{
-						Config: &bConfig,
-					}
-					if len(v.Nodes[i].Clef.Key) > 0 {
-						nOptions.ClefKey = v.Nodes[i].Clef.Key
-					}
-					if len(v.Nodes[i].Clef.Password) > 0 {
-						nOptions.ClefPassword = v.Nodes[i].Clef.Password
-					}
-					if len(v.Nodes[i].LibP2PKey) > 0 {
-						nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
-					}
-					if len(v.Nodes[i].SwarmKey) > 0 {
-						nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
-					}
 
-					if err := g.AddNode(ctx, nName, nOptions); err != nil {
-						return nil, fmt.Errorf("adding node %s: %w", nName, err)
-					}
+					errGroup.Go(func() error {
+						if start {
+							return g.SetupNode(ctx, nName, orchestration.NodeOptions{}, clusterConfig.Funding.Export())
+						} else {
+							return g.AddNode(ctx, nName, orchestration.NodeOptions{})
+						}
+					})
 				}
 			}
 		}
+	}
 
-		for ng, v := range clusterConfig.GetNodeGroups() {
-			ngConfig, ok := cfg.NodeGroups[v.Config]
-			if !ok {
-				return nil, fmt.Errorf("node group profile %s not defined", v.Config)
-			}
-
-			if v.Mode != "bootnode" { // TODO: support standalone nodes
-				// set bootnodes
-				beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
-				if !ok {
-					return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
-				}
-				bConfig := beeConfig.Export()
-				bConfig.Bootnodes = bootnodes
-				// add node group to the cluster
-				gOptions := ngConfig.Export()
-				gOptions.BeeConfig = &bConfig
-				cluster.AddNodeGroup(ng, gOptions)
-
-				// add nodes to the node group
-				g, err := cluster.NodeGroup(ng)
-				if err != nil {
-					return nil, err
-				}
-
-				if len(v.Nodes) > 0 {
-					for i := 0; i < len(v.Nodes); i++ {
-						// set node name
-						nName := fmt.Sprintf("%s-%d", ng, i)
-						if len(v.Nodes[i].Name) > 0 {
-							nName = v.Nodes[i].Name
-						}
-						// set NodeOptions
-						nOptions := orchestration.NodeOptions{}
-						if len(v.Nodes[i].Clef.Key) > 0 {
-							nOptions.ClefKey = v.Nodes[i].Clef.Key
-						}
-						if len(v.Nodes[i].Clef.Password) > 0 {
-							nOptions.ClefPassword = v.Nodes[i].Clef.Password
-						}
-						if len(v.Nodes[i].LibP2PKey) > 0 {
-							nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
-						}
-						if len(v.Nodes[i].SwarmKey) > 0 {
-							nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
-						}
-
-						if err := g.AddNode(ctx, nName, orchestration.NodeOptions{}); err != nil {
-							return nil, fmt.Errorf("adding node %s: %w", nName, err)
-						}
-					}
-				} else {
-					for i := 0; i < v.Count; i++ {
-						nName := fmt.Sprintf("%s-%d", ng, i)
-
-						if err := g.AddNode(ctx, nName, orchestration.NodeOptions{}); err != nil {
-							return nil, fmt.Errorf("adding node %s: %w", nName, err)
-						}
-					}
-				}
-			}
-		}
+	if err := errGroup.Wait(); err != nil {
+		return nil, fmt.Errorf("starting node groups: %w", err)
 	}
 
 	return
