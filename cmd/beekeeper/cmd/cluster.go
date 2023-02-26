@@ -117,6 +117,8 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions, c.logger)
 	bootnodes := ""
 
+	errGroup := new(errgroup.Group)
+
 	for ng, v := range clusterConfig.GetNodeGroups() {
 		ngConfig, ok := cfg.NodeGroups[v.Config]
 		if !ok {
@@ -137,34 +139,34 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 			if err != nil {
 				return nil, err
 			}
-			errGroup := new(errgroup.Group)
-			for i := 0; i < len(v.Nodes); i++ {
+
+			for i, node := range v.Nodes {
 				// set node name
 				nName := fmt.Sprintf("%s-%d", ng, i)
-				if len(v.Nodes[i].Name) > 0 {
-					nName = v.Nodes[i].Name
+				if len(node.Name) > 0 {
+					nName = node.Name
 				}
 
 				// set bootnodes
 				bConfig := beeConfig.Export()
-				bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
+				bConfig.Bootnodes = fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
 				bootnodes += bConfig.Bootnodes + " "
 
 				// set NodeOptions
 				nOptions := orchestration.NodeOptions{
 					Config: &bConfig,
 				}
-				if len(v.Nodes[i].Clef.Key) > 0 {
-					nOptions.ClefKey = v.Nodes[i].Clef.Key
+				if len(node.Clef.Key) > 0 {
+					nOptions.ClefKey = node.Clef.Key
 				}
-				if len(v.Nodes[i].Clef.Password) > 0 {
-					nOptions.ClefPassword = v.Nodes[i].Clef.Password
+				if len(node.Clef.Password) > 0 {
+					nOptions.ClefPassword = node.Clef.Password
 				}
-				if len(v.Nodes[i].LibP2PKey) > 0 {
-					nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
+				if len(node.LibP2PKey) > 0 {
+					nOptions.LibP2PKey = node.LibP2PKey
 				}
-				if len(v.Nodes[i].SwarmKey) > 0 {
-					nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
+				if len(node.SwarmKey) > 0 {
+					nOptions.SwarmKey = orchestration.SwarmKey(node.SwarmKey)
 				}
 
 				errGroup.Go(func() error {
@@ -175,14 +177,12 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					}
 				})
 			}
-
-			if err := errGroup.Wait(); err != nil {
-				return nil, fmt.Errorf("starting node group %s: %w", ng, err)
-			}
 		}
 	}
 
-	errGroup := new(errgroup.Group)
+	if err := errGroup.Wait(); err != nil {
+		return nil, fmt.Errorf("starting node group bootnode: %w", err)
+	}
 
 	for ng, v := range clusterConfig.GetNodeGroups() {
 		ngConfig, ok := cfg.NodeGroups[v.Config]
@@ -198,7 +198,6 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 			}
 
 			bConfig := beeConfig.Export()
-			c.logger.Infof("BOOTNODES: %s", bootnodes)
 			bConfig.Bootnodes = bootnodes
 			// add node group to the cluster
 			ngOptions := ngConfig.Export()
