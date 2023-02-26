@@ -115,6 +115,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	clusterOptions.SwapClient = c.swapClient
 
 	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions, c.logger)
+	bootnodes := ""
 
 	for ng, v := range clusterConfig.GetNodeGroups() {
 		ngConfig, ok := cfg.NodeGroups[v.Config]
@@ -147,6 +148,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				// set bootnodes
 				bConfig := beeConfig.Export()
 				bConfig.Bootnodes = fmt.Sprintf(v.Nodes[i].Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
+				bootnodes += bConfig.Bootnodes + " "
 
 				// set NodeOptions
 				nOptions := orchestration.NodeOptions{
@@ -189,13 +191,19 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		}
 
 		if v.Mode != "bootnode" { // TODO: support standalone nodes
-
-			if _, ok := cfg.BeeConfigs[v.BeeConfig]; !ok {
+			// set bootnodes
+			beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
+			if !ok {
 				return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
 			}
 
+			bConfig := beeConfig.Export()
+			c.logger.Infof("BOOTNODES: %s", bootnodes)
+			bConfig.Bootnodes = bootnodes
 			// add node group to the cluster
-			cluster.AddNodeGroup(ng, ngConfig.Export())
+			ngOptions := ngConfig.Export()
+			ngOptions.BeeConfig = &bConfig
+			cluster.AddNodeGroup(ng, ngOptions)
 
 			// start nodes in the node group
 			g, err := cluster.NodeGroup(ng)
