@@ -210,39 +210,37 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				return nil, err
 			}
 
-			if len(v.Nodes) > 0 {
-				for i := 0; i < len(v.Nodes); i++ {
-					c.logger.Infof("HERE IS THE NODE: %s", v.Nodes[i].Name)
-
-					// set node name
-					nName := fmt.Sprintf("%s-%d", ng, i)
-					if len(v.Nodes[i].Name) > 0 {
-						nName = v.Nodes[i].Name
-					}
-					// set NodeOptions
-					nOptions := orchestration.NodeOptions{}
-					if len(v.Nodes[i].Clef.Key) > 0 {
-						nOptions.ClefKey = v.Nodes[i].Clef.Key
-					}
-					if len(v.Nodes[i].Clef.Password) > 0 {
-						nOptions.ClefPassword = v.Nodes[i].Clef.Password
-					}
-					if len(v.Nodes[i].LibP2PKey) > 0 {
-						nOptions.LibP2PKey = v.Nodes[i].LibP2PKey
-					}
-					if len(v.Nodes[i].SwarmKey) > 0 {
-						nOptions.SwarmKey = orchestration.SwarmKey(v.Nodes[i].SwarmKey)
-					}
-
-					errGroup.Go(func() error {
-						if start {
-							return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
-						} else {
-							return g.AddNode(ctx, nName, nOptions)
-						}
-					})
+			for i, node := range v.Nodes {
+				// set node name
+				nName := fmt.Sprintf("%s-%d", ng, i)
+				if len(node.Name) > 0 {
+					nName = node.Name
 				}
-			} else {
+				// set NodeOptions
+				nOptions := orchestration.NodeOptions{}
+				if len(node.Clef.Key) > 0 {
+					nOptions.ClefKey = node.Clef.Key
+				}
+				if len(node.Clef.Password) > 0 {
+					nOptions.ClefPassword = node.Clef.Password
+				}
+				if len(node.LibP2PKey) > 0 {
+					nOptions.LibP2PKey = node.LibP2PKey
+				}
+				if len(node.SwarmKey) > 0 {
+					nOptions.SwarmKey = orchestration.SwarmKey(node.SwarmKey)
+				}
+
+				errGroup.Go(func() error {
+					if start {
+						return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
+					} else {
+						return g.AddNode(ctx, nName, nOptions)
+					}
+				})
+			}
+
+			if len(v.Nodes) == 0 {
 				for i := 0; i < v.Count; i++ {
 					// set node name
 					nName := fmt.Sprintf("%s-%d", ng, i)
