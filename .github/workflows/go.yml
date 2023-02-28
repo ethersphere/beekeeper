@@ -8,37 +8,35 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go: [1.18]
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - name: Setup Go
-        uses: actions/setup-go@v2
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/setup-go@v3
         with:
-          go-version: ${{ matrix.go }}
+          cache: false
+          go-version-file: go.mod
+      - name: Setup Go
+        if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
+        uses: actions/setup-go@v3
+        with:
+          cache: true
+          go-version-file: go.mod
       - name: Set git to use LF
         # make sure that line endings are not converted on windows
         # as gofmt linter will report that they need to be changed
         run: git config --global core.autocrlf false
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 1
-      - name: Cache Go modules
-        uses: actions/cache@v1
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-build-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.OS }}-build-${{ env.cache-name }}-
-            ${{ runner.OS }}-build-
-            ${{ runner.OS }}-
       - name: Lint
         if: matrix.os == 'ubuntu-latest'
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.46
-          args: --timeout 10m --go=1.18
-          skip-cache: true
+          version: v1.49
+          args: --timeout 10m
+          skip-cache: false
       - name: Vet
         if: matrix.os == 'ubuntu-latest'
         run: make vet
