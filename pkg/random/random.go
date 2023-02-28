@@ -26,21 +26,21 @@ func PseudoGenerators(seed int64, n int) (g []*rand.Rand) {
 
 // Int64 returns random int64
 func Int64() int64 {
-	var src cryptoSource
+	var src CryptoSource
 	rnd := rand.New(src)
 	return rnd.Int63()
 }
 
-// cryptoSource is used to create random source
-type cryptoSource struct{}
+// CryptoSource is used to create random source
+type CryptoSource struct{}
 
-func (s cryptoSource) Seed(seed int64) {}
+func (s CryptoSource) Seed(seed int64) {}
 
-func (s cryptoSource) Int63() int64 {
+func (s CryptoSource) Int63() int64 {
 	return int64(s.Uint64() & ^uint64(1<<63))
 }
 
-func (s cryptoSource) Uint64() (v uint64) {
+func (s CryptoSource) Uint64() (v uint64) {
 	err := binary.Read(crand.Reader, binary.BigEndian, &v)
 	if err != nil {
 		log.Fatal(err)

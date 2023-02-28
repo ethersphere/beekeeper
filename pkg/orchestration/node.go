@@ -33,28 +33,26 @@ type Node interface {
 	SetClefPassword(key string) Node
 }
 
-// TODO check the name of type, maybe should be better to call Key
-// SwarmKey is string that contains addresses.
-type SwarmKey string
+// EncryptedKey is part of Ethereum JSON v3 key file format.
+type EncryptedKey string
 
-func (sk SwarmKey) ToString() string {
-	return string(sk)
+func (ek EncryptedKey) ToString() string {
+	return string(ek)
 }
 
-// TODO check the name of type, maybe should be better to call Key
-// SwarmKeyJson is json string for SwarmKey.
-type SwarmKeyJson struct {
+// EncryptedKeyJson is json string for EncryptedKey.
+type EncryptedKeyJson struct {
 	Address string `json:"address"`
-	// TODO add other properties if needed
+	// TODO map complete key to Ethereum JSON v3 key file format
 }
 
-// GetEthAddress extracts ethereum address from SwarmKey.
-func (sk SwarmKey) GetEthAddress() (string, error) {
-	var skj SwarmKeyJson
+// GetEthAddress extracts ethereum address from EncryptedKey.
+func (ek EncryptedKey) GetEthAddress() (string, error) {
+	var skj EncryptedKeyJson
 
-	err := json.Unmarshal([]byte(sk), &skj)
+	err := json.Unmarshal([]byte(ek), &skj)
 	if err != nil {
-		return "", fmt.Errorf("unmarshal swarm key address: %s", err.Error())
+		return "", fmt.Errorf("unmarshal swarm encrypted key address: %s", err.Error())
 	}
 
 	if skj.Address != "" && !strings.HasPrefix(skj.Address, "0x") {
@@ -72,7 +70,7 @@ type NodeOptions struct {
 	Config       *Config
 	K8S          *k8s.Client
 	LibP2PKey    string
-	SwarmKey     SwarmKey
+	SwarmKey     EncryptedKey
 }
 
 // CreateOptions represents available options for creating node
