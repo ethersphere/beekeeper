@@ -166,7 +166,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					nOptions.LibP2PKey = node.LibP2PKey
 				}
 				if len(node.SwarmKey) > 0 {
-					nOptions.SwarmKey = orchestration.SwarmKey(node.SwarmKey)
+					nOptions.SwarmKey = orchestration.EncryptedKey(node.SwarmKey)
 				}
 
 				errGroup.Go(func() error {
@@ -228,7 +228,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					nOptions.LibP2PKey = node.LibP2PKey
 				}
 				if len(node.SwarmKey) > 0 {
-					nOptions.SwarmKey = orchestration.SwarmKey(node.SwarmKey)
+					nOptions.SwarmKey = orchestration.EncryptedKey(node.SwarmKey)
 				}
 
 				errGroup.Go(func() error {
