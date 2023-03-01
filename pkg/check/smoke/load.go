@@ -3,6 +3,7 @@ package smoke
 import (
 	"bytes"
 	"context"
+	crand "crypto/rand"
 	"errors"
 	"math/rand"
 	"sync"
@@ -15,7 +16,7 @@ import (
 )
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // compile check whether Check implements interface
@@ -87,7 +88,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		)
 
 		txData = make([]byte, o.ContentSize)
-		if _, err := rand.Read(txData); err != nil {
+		if _, err := crand.Read(txData); err != nil {
 			c.logger.Infof("unable to create random content: %v", err)
 			continue
 		}
