@@ -1,0 +1,383 @@
+# clusters defines clusters Beekeeper works with
+clusters:
+  anatol:
+    _inherit: ""
+    name: bee
+    namespace: anatol
+    disable-namespace: true
+    api-domain: anatol.testnet.internal
+    api-scheme: http
+    debug-api-domain: anatol.testnet.internal
+    debug-api-scheme: http
+    admin-password: test
+    funding:
+      eth: 0.1
+      bzz: 100.0
+    node-groups:
+      bootnode:
+        mode: bootnode
+        bee-config: bootnode-anatol
+        config: anatol
+        nodes:  
+        - name: bootnode-0
+          bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/QmaHzvd3iZduu275CMkMVZKwbsjXSyH3GJRj4UvFJApKcb
+          # clef-key: '{"address":"1c4bc31fb44362ee7523a715913ef88cb2124d9c","crypto":{"cipher":"aes-128-ctr","ciphertext":"d71ca74e969857e215fbf61b8474bcec90b54b87a77d9c4ba586471b98068510","cipherparams":{"iv":"a542cef23e0cd4cd3934d100f92dc0c6"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"d9fafd5fedbf0901a8b23581f8995ec72df2450f7f504019e450cc5a1d95b6aa"},"mac":"4da3db2eb5f363193786f19587d7f3312b873e9e7564a1eae42032aa603d11c7"},"id":"961e0366-c6b2-42d7-b96b-7d8efa622aaf","version":3}'
+          # clef-password: clefbeesecret
+          libp2p-key: '{"address":"04dc9cda619711d288c38e21757ac4eaf2fbd1cbb7f2a921d8a82d53a82277434fc50a0b2854813045f4cf6247c5807914b230c41f67bf8eb0227225d43b087e9e","crypto":{"cipher":"aes-128-ctr","ciphertext":"f2aae99d5b3572c190f7bc4178394afa770d8e67000f6cec54e99128dcff0608d6ca5b8b0132dfd2eb051c8681cebfd27e8851415264511ef606658d68c3490a92f6c19e0556e200457b5f951c9f38abca51e2efe00aa396e5af9eda8b59e99cf8d0ba1c0bba8e9ab05deee06d24e469f3335c0e3b76e17eaf","cipherparams":{"iv":"94a90c8d2dd87904412a794d66a9248b"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"e0edfa802e5ce2cc96eef2c108d3265567afd893a5de929e6af70eea050f17a5"},"mac":"115d5d9956bc658e3eeb9028d8f40d0a3cf24c60b3fb7d86c1312ca272fbd7cf"},"version":3,"id":"625447cd-3c1d-45af-ae89-ad3f2622319b"}'
+          swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
+      bee:
+        bee-config: bee-anatol
+        config: anatol
+        count: 2
+        mode: node
+  anatol-dns:
+    _inherit: "anatol"
+    node-groups:
+      bootnode:
+        mode: bootnode
+        bee-config: bootnode-anatol-dns
+        config: anatol-dns
+        nodes:  
+        - name: bootnode-0
+          bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/QmaHzvd3iZduu275CMkMVZKwbsjXSyH3GJRj4UvFJApKcb
+          libp2p-key: '{"address":"04dc9cda619711d288c38e21757ac4eaf2fbd1cbb7f2a921d8a82d53a82277434fc50a0b2854813045f4cf6247c5807914b230c41f67bf8eb0227225d43b087e9e","crypto":{"cipher":"aes-128-ctr","ciphertext":"f2aae99d5b3572c190f7bc4178394afa770d8e67000f6cec54e99128dcff0608d6ca5b8b0132dfd2eb051c8681cebfd27e8851415264511ef606658d68c3490a92f6c19e0556e200457b5f951c9f38abca51e2efe00aa396e5af9eda8b59e99cf8d0ba1c0bba8e9ab05deee06d24e469f3335c0e3b76e17eaf","cipherparams":{"iv":"94a90c8d2dd87904412a794d66a9248b"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"e0edfa802e5ce2cc96eef2c108d3265567afd893a5de929e6af70eea050f17a5"},"mac":"115d5d9956bc658e3eeb9028d8f40d0a3cf24c60b3fb7d86c1312ca272fbd7cf"},"version":3,"id":"625447cd-3c1d-45af-ae89-ad3f2622319b"}'
+          swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
+      bee:
+        bee-config: bee-anatol-dns
+        config: anatol-dns
+        count: 2
+        mode: node
+      light:
+        bee-config: bee-anatol-light
+        config: anatol-light
+        count: 2
+        mode: node
+      restricted:
+        mode: node
+        bee-config: bee-anatol-restricted
+        config: bee-anatol-restricted
+        count: 1
+  anatol-clef:
+    _inherit: "anatol"
+    node-groups:
+      bootnode:
+        mode: bootnode
+        bee-config: bootnode-anatol-clef
+        config: anatol-clef
+        nodes:
+        - name: bootnode-0
+          bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL
+          libp2p-key: '{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}'
+          clef:
+            key: '{"address":"1c4bc31fb44362ee7523a715913ef88cb2124d9c","crypto":{"cipher":"aes-128-ctr","ciphertext":"d71ca74e969857e215fbf61b8474bcec90b54b87a77d9c4ba586471b98068510","cipherparams":{"iv":"a542cef23e0cd4cd3934d100f92dc0c6"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"d9fafd5fedbf0901a8b23581f8995ec72df2450f7f504019e450cc5a1d95b6aa"},"mac":"4da3db2eb5f363193786f19587d7f3312b873e9e7564a1eae42032aa603d11c7"},"id":"961e0366-c6b2-42d7-b96b-7d8efa622aaf","version":3}'
+            password: clefbeesecret
+      bee:
+        bee-config: bee-anatol-clef
+        config: anatol-clef
+        mode: node
+        nodes:
+        - clef:
+            key: '{"address":"4558ab6d518bf60b813eeba3077eed986027c5da","crypto":{"cipher":"aes-128-ctr","ciphertext":"1bbeffa438a8b8fd592a46323fe0168d8d8e2625085ca8550023b5c0bd48a126","cipherparams":{"iv":"3f369a742a465aaf5e3025864639421a"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"4c2c1fde6491213ea3c6021c82a70327bc0a056569a6e7c2a3fda9e486c0f090"},"mac":"f733b77f675acf0539e7d3d60735408c6efd43893dc0d5b0f94124b0197f89dd"},"id":"1e526dc4-60bd-4c4d-897d-f284806abf2b","version":3}'
+            password: clefbeesecret
+        - clef:
+            key: '{"address":"24d7ed323121dedde08d1a9bbd9d054b839daeb8","crypto":{"cipher":"aes-128-ctr","ciphertext":"ea7572730209e815078fd6a32abce9cceeeb2aabe44908bc212005cd3e705ed0","cipherparams":{"iv":"05d4ef77ecfe7a95b970b04998314303"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"6b3b75689f29a6cbe458cafdadddbb42e2b4256e9729570fb4b1077a09a1b9fb"},"mac":"729d8049519daee7559a856fc11f9166fffe9ceef3533f288ba335d9fdcab392"},"id":"009aafd5-e803-46c0-a061-bf314a81cf79","version":3}'
+            password: clefbeesecret
+  anatol-gc:
+    _inherit: "anatol"
+    node-groups:
+      bootnode:
+        mode: bootnode
+        bee-config: bootnode-anatol-gc
+        config: anatol-gc
+        nodes:  
+        - name: bootnode-0
+          bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL
+          libp2p-key: '{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}'
+          swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
+      bee:
+        bee-config: bee-anatol-gc
+        config: anatol-gc
+        count: 2
+        mode: node
+
+# node-groups defines node groups that can be registered in the cluster
+node-groups:
+  anatol:
+    _inherit: ""
+    clef-image: ethersphere/clef:latest
+    clef-image-pull-policy: Always
+    image: ethersphere/bee:latest
+    image-pull-policy: Always
+    ingress-annotations:
+      nginx.ingress.kubernetes.io/affinity: "cookie"
+      nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
+      nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+      nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
+      nginx.ingress.kubernetes.io/session-cookie-path: "default"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    ingress-class: "nginx-internal"
+    ingress-debug-class: "nginx-internal"
+    labels:
+      app.kubernetes.io/component: "node"
+      app.kubernetes.io/part-of: "bee"
+      app.kubernetes.io/version: "latest"
+    node-selector: 
+      node-group: "private"
+    persistence-enabled: false
+    pod-management-policy: "OrderedReady"
+    resources-limit-cpu: "250m"
+    resources-limit-memory: 0.5Gi
+    resources-request-cpu: 150m
+    resources-request-memory: 0.25Gi
+    restart-policy: "Always"
+    update-strategy: "RollingUpdate"
+  anatol-dns:
+    _inherit: "anatol"
+  anatol-clef:
+    _inherit: "anatol"
+  anatol-gc:
+    _inherit: "anatol"
+  anatol-light:
+    _inherit: "anatol"
+  bee-anatol-restricted:
+    _inherit: "anatol"
+
+# bee-configs defines Bee configuration that can be assigned to node-groups
+bee-configs:
+  bee-anatol:
+    _inherit: ""
+    api-addr: ":1633"
+    block-time: 1
+    bootnodes: ""
+    bootnode-mode: false
+    cache-capacity: 20000
+    clef-signer-enable: false
+    clef-signer-endpoint: ""
+    cors-allowed-origins: ""
+    data-dir: "/home/bee/.bee"
+    db-open-files-limit: 200
+    db-block-cache-capacity: 33554432
+    db-write-buffer-size: 33554432
+    db-disable-seeks-compaction: false
+    debug-api-addr: ":1635"
+    debug-api-enable: true
+    full-node: true
+    mainnet: false
+    nat-addr: ""
+    network-id: 12345
+    p2p-addr: ":1634"
+    p2p-ws-enable: false
+    password: "beekeeper"
+    payment-early-percent: 50
+    payment-threshold: 13500000
+    payment-tolerance-percent: 25
+    storage-incentives-enable: true
+    postage-stamp-start-block: 1
+    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
+    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
+    staking-address: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
+    redistribution-address: "0x56e442f99cafd7c890c404c1f8c16d38a569e41a"
+    resolver-options: ""
+    restricted: false
+    token-encryption-key: ""
+    admin-password: ""
+    chequebook-enable: true
+    swap-enable: true
+    swap-endpoint: "ws://geth-geth-swap:8546"
+    swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
+    swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
+    swap-initial-deposit: 500000000000000000
+    verbosity: 5
+    welcome-message: "Welcome to the Swarm, this is a anatol cluster!"
+    warmup-time: 0s
+    allow-private-cidrs: true
+
+  bootnode-anatol:
+    _inherit: "bee-anatol"
+    bootnode-mode: true
+  bee-anatol-dns:
+    _inherit: "bee-anatol"
+    bootnode: /dnsaddr/localhost
+  bootnode-anatol-dns:
+    _inherit: "bee-anatol"
+    bootnode: /dnsaddr/localhost
+    bootnode-mode: true
+  bee-anatol-light:
+    _inherit: "bee-anatol"
+    bootnode: /dnsaddr/localhost
+    full-node: false
+  bee-anatol-clef:
+    _inherit: "bee-anatol"
+    clef-signer-enable: true
+    clef-signer-endpoint: "http://localhost:8550"
+  bee-anatol-restricted:
+    _inherit: "bee-anatol"
+    bootnode: /dnsaddr/localhost
+    restricted: true
+    token-encryption-key: testtest
+    admin-password: $2a$12$Ltg3M2W53Xv9wwJ2.iAv4e4gWELrrr8D2dYat7wNdY2xArdmOSL1i
+  bootnode-anatol-clef:
+    _inherit: "bee-anatol"
+    clef-signer-enable: true
+    clef-signer-endpoint: "http://localhost:8550"
+    bootnode-mode: true
+  bee-anatol-gc:
+    _inherit: "bee-anatol"
+    cache-capacity: 10
+  bootnode-anatol-gc:
+    _inherit: "bee-anatol"
+    cache-capacity: 10
+    bootnode-mode: true
+
+# Anatol checks
+checks:
+  anatol-full-connectivity:
+    timeout: 5m
+    type: full-connectivity
+    options:
+      boot-nodes:
+      - bootnode  
+      group-1:
+      - light
+      group-2:
+      - bee
+      - bootnode
+  anatol-gc:
+    options:
+      cache-size: 10
+      reserve-size: 16
+    timeout: 5m
+    type: gc
+  anatol-manifest:
+    options:
+      files-in-collection: 10
+      max-pathname-length: 64
+      postage-amount: 1000
+      postage-depth: 17
+    timeout: 5m
+    type: manifest
+  anatol-pingpong:
+    options:
+    timeout: 5m
+    type: pingpong
+  anatol-pss:
+    options:
+      count: 3
+      address-prefix: 2
+      postage-amount: 1000
+      postage-depth: 17
+      request-timeout: 5m
+    timeout: 5m
+    type: pss
+  anatol-pushsync-chunks:
+    options:
+      chunks-per-node: 3
+      mode: chunks
+      postage-amount: 1000
+      postage-depth: 17
+      retries: 5
+      retry-delay: 15s
+      upload-node-count: 3
+      exclude-node-group:
+      - light
+      - bootnode
+    timeout: 5m
+    type: pushsync
+  anatol-pushsync-light-chunks:
+    options:
+      chunks-per-node: 3
+      mode: light-chunks
+      postage-amount: 10000
+      postage-depth: 17
+      retries: 5
+      retry-delay: 30s
+      upload-node-count: 3
+      exclude-node-group:
+      - light
+      - bootnode
+    timeout: 5m
+    type: pushsync
+  anatol-retrieval:
+    options:
+      chunks-per-node: 3
+      postage-amount: 1000
+      postage-depth: 17
+      upload-node-count: 3
+    timeout: 5m
+    type: retrieval
+  anatol-settlements:
+    options:
+      dry-run: false
+      expect-settlements: true
+      file-name: settlements
+      file-size: 14680064 # 14mb = 14*1024*1024
+      postage-amount: 1000
+      postage-depth: 20
+      threshold: 100000000
+      upload-node-count: 3
+      wait-before-download: 20s
+    timeout: 10m
+    type: settlements
+  anatol-settlements-clef:
+    options:
+      dry-run: false
+      expect-settlements: true
+      file-name: settlements
+      file-size: 14680064 # 14mb = 14*1024*1024
+      postage-amount: 1000
+      postage-depth: 20
+      threshold: 100000000
+      upload-node-count: 3
+      wait-before-download: 35s
+    timeout: 10m
+    type: settlements
+  anatol-smoke:
+    options:
+      content-size: 5000000
+      postage-amount: 1000000
+      postage-depth: 20
+      nodes-sync-wait: 1m
+    timeout: 5m
+    type: smoke
+  anatol-soc:
+    options:
+      postage-amount: 1000
+      postage-depth: 17
+      request-timeout: 5m
+    timeout: 5m
+    type: soc
+  anatol-content-availability:
+    type: content-availability
+    timeout: 5m
+    options:
+      content-size: 16384
+      postage-amount: 1000
+      postage-depth: 17
+  anatol-postage:
+    type: postage
+    timeout: 5m
+    options:
+      postage-amount: 1000
+      postage-depth: 17
+      postage-topup-amount: 100
+      postage-new-depth: 18
+  anatol-authenticate:
+    type: authenticate
+    timeout: 5m
+    options:
+      role: consumer
+      admin-password: test
+      restricted-group-name: restricted
+  anatol-stake:
+    type: stake
+    timeout: 5m
+    options:
+      amount: 1000000000000000000
+      insufficient-amount: 102400
+      contract-addr: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
+      private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
+      geth-url: "http://geth-swap.anatol.testnet.internal"
+      geth-chain-id: 12345
