@@ -18,6 +18,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 // ErrKubeconfigNotSet represents error when kubeconfig is empty string
@@ -109,6 +110,9 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 	}
+
+	// TODO rate limiter, create semaphore that will limit the number of active requests
+	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(50, 200)
 
 	clientset, err := s.NewForConfig(config)
 	if err != nil {
