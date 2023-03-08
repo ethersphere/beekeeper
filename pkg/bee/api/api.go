@@ -17,6 +17,7 @@ const (
 	apiVersion              = "v1"
 	contentType             = "application/json; charset=utf-8"
 	postageStampBatchHeader = "Swarm-Postage-Batch-Id"
+	deferredUploadHeader    = "Swarm-Deferred-Upload"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
