@@ -57,6 +57,30 @@ func (c *Client) ReadyReplicas(ctx context.Context, name, namespace string) (rea
 	return
 }
 
+// ReadyWatch returns number of Pods created by the StatefulSet controller that have a ReadyWatch Condition
+func (c *Client) ReadyWatch(ctx context.Context, name, namespace string) (ready int32, err error) {
+	watcher, err := c.clientset.AppsV1().StatefulSets(namespace).Watch(ctx, metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("metadata.name=%s", name),
+	})
+	if err != nil {
+		return 0, fmt.Errorf("getting ready from statefulset %s in namespace %s: %w", name, namespace, err)
+	}
+
+	defer watcher.Stop()
+
+	// Loop through events from the watcher
+	for event := range watcher.ResultChan() {
+		// Extract the StatefulSet from the event
+		statefulSet, ok := event.Object.(*appsv1.StatefulSet)
+		if ok && statefulSet.Status.Replicas == statefulSet.Status.ReadyReplicas {
+			ready = statefulSet.Status.ReadyReplicas
+			return
+		}
+	}
+
+	return
+}
+
 // RunningStatefulSets returns names of running StatefulSets
 func (c *Client) RunningStatefulSets(ctx context.Context, namespace string) (running []string, err error) {
 	statefulSets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
