@@ -27,10 +27,10 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 	var resp BytesUploadResponse
 	h := http.Header{}
 	if o.Pin {
-		h.Add("Swarm-Pin", "true")
+		h.Add(swarmPinHeader, "true")
 	}
 	if o.Tag != 0 {
-		h.Add("Swarm-Tag", strconv.FormatUint(uint64(o.Tag), 10))
+		h.Add(swarmTagHeader, strconv.FormatUint(uint64(o.Tag), 10))
 	}
 	h.Add(deferredUploadHeader, strconv.FormatBool(!o.Direct))
 	h.Add(postageStampBatchHeader, o.BatchID)
