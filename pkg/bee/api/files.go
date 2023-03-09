@@ -29,10 +29,10 @@ func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, 
 	header.Set("Content-Type", "application/octet-stream")
 	header.Set("Content-Length", strconv.FormatInt(size, 10))
 	if o.Pin {
-		header.Set("Swarm-Pin", "true")
+		header.Set(swarmPinHeader, "true")
 	}
 	if o.Tag != 0 {
-		header.Set("Swarm-Tag", strconv.FormatUint(uint64(o.Tag), 10))
+		header.Set(swarmTagHeader, strconv.FormatUint(uint64(o.Tag), 10))
 	}
 	header.Set(postageStampBatchHeader, o.BatchID)
 

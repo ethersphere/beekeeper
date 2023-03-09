@@ -31,10 +31,10 @@ func (c *ChunksService) Upload(ctx context.Context, data []byte, o UploadOptions
 	var resp ChunksUploadResponse
 	h := http.Header{}
 	if o.Pin {
-		h.Add("Swarm-Pin", "true")
+		h.Add(swarmPinHeader, "true")
 	}
-	if o.Deferred {
-		h.Add("Swarm-Deferred-Upload", "true")
+	if o.Direct {
+		h.Add(deferredUploadHeader, "false")
 	}
 	h.Add(postageStampBatchHeader, o.BatchID)
 	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks", h, bytes.NewReader(data), &resp)

@@ -17,6 +17,9 @@ const (
 	apiVersion              = "v1"
 	contentType             = "application/json; charset=utf-8"
 	postageStampBatchHeader = "Swarm-Postage-Batch-Id"
+	deferredUploadHeader    = "Swarm-Deferred-Upload"
+	swarmPinHeader          = "Swarm-Pin"
+	swarmTagHeader          = "Swarm-Tag"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -301,8 +304,8 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 type UploadOptions struct {
-	Pin      bool
-	Tag      uint32
-	BatchID  string
-	Deferred bool
+	Pin     bool
+	Tag     uint32
+	BatchID string
+	Direct  bool
 }
