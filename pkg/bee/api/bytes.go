@@ -32,7 +32,7 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 	if o.Tag != 0 {
 		h.Add("Swarm-Tag", strconv.FormatUint(uint64(o.Tag), 10))
 	}
-	h.Add(deferredUploadHeader, strconv.FormatBool(o.Deferred))
+	h.Add(deferredUploadHeader, strconv.FormatBool(!o.Direct))
 	h.Add(postageStampBatchHeader, o.BatchID)
 	err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
 	return resp, err

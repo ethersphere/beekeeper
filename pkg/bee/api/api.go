@@ -302,8 +302,8 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 type UploadOptions struct {
-	Pin      bool
-	Tag      uint32
-	BatchID  string
-	Deferred bool
+	Pin     bool
+	Tag     uint32
+	BatchID string
+	Direct  bool
 }
