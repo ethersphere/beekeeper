@@ -224,7 +224,7 @@ func (t *test) uploadWithBatch(cName string, data []byte, batchID string) (swarm
 	client := t.clients[cName]
 	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
 	start := time.Now()
-	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Deferred: false})
+	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
 	}
@@ -242,7 +242,7 @@ func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, 
 	}
 	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
 	start := time.Now()
-	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Deferred: false})
+	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
 	}
