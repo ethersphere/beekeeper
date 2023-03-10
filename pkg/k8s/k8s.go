@@ -4,6 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/customresource/ingressroute"
@@ -111,8 +113,12 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 	}
 
-	// TODO rate limiter, create semaphore that will limit the number of active requests
 	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(50, 200)
+
+	// Wrap the default transport with our custom transport.
+	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return NewCustomTransport(rt, config)
+	}
 
 	clientset, err := s.NewForConfig(config)
 	if err != nil {
@@ -125,6 +131,60 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 	}
 
 	return newClient(clientset, apiClientset, logger), nil
+}
+
+// customTransport is an example custom transport that wraps the default transport
+// and adds some custom behavior.
+type customTransport struct {
+	base         http.RoundTripper
+	semaphore    chan struct{}
+	qps          float64
+	burst        int
+	lastReqTime  time.Time
+	requestCount int
+}
+
+func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Acquire the semaphore to limit the number of concurrent requests.
+	t.semaphore <- struct{}{}
+	defer func() {
+		<-t.semaphore
+	}()
+
+	// Limit the request rate using QPS and burst limits.
+	now := time.Now()
+	if t.requestCount >= t.burst || now.Sub(t.lastReqTime).Seconds() < 1/t.qps {
+		time.Sleep(time.Duration(1/t.qps-now.Sub(t.lastReqTime).Seconds()) * time.Second)
+		t.requestCount = 0
+	}
+	t.requestCount++
+	t.lastReqTime = now
+
+	// Forward the request to the base transport.
+	resp, err := t.base.RoundTrip(req)
+	// TODO retry?
+	// if err != nil {
+	// 	// retry
+	// 	if strings.Contains(err.Error(), "context deadline exceeded (Client.Timeout exceeded while awaiting headers)") {
+	// 		fmt.Printf("RETRY: %s", err.Error())
+	// 		resp, err = t.base.RoundTrip(req)
+	// 	} else {
+	// 		fmt.Printf("ERROR: %s", err.Error())
+	// 	}
+	// }
+
+	return resp, err
+}
+
+func NewCustomTransport(base http.RoundTripper, config *rest.Config) http.RoundTripper {
+	qps := float64(config.QPS)
+	burst := config.Burst
+	return &customTransport{
+		base:      base,
+		semaphore: make(chan struct{}, 10),
+		qps:       qps,
+		burst:     burst,
+	}
 }
 
 // newClient constructs a new *Client with the provided http Client, which
