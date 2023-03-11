@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/customresource/ingressroute"
@@ -59,6 +58,14 @@ type ClientSetup struct {
 	FlagString           func(name string, value string, usage string) *string
 	FlagParse            func()
 	OsUserHomeDir        func() (string, error)
+}
+
+// customTransport is an example custom transport that wraps the default transport
+// and adds some custom behavior.
+type customTransport struct {
+	base        http.RoundTripper
+	semaphore   chan struct{}
+	rateLimiter flowcontrol.RateLimiter
 }
 
 // NewClient returns Kubernetes clientset
@@ -117,7 +124,7 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 
 	// Wrap the default transport with our custom transport.
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return NewCustomTransport(rt, config, logger)
+		return NewCustomTransport(rt, config)
 	}
 
 	clientset, err := s.NewForConfig(config)
@@ -131,56 +138,6 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 	}
 
 	return newClient(clientset, apiClientset, logger), nil
-}
-
-// customTransport is an example custom transport that wraps the default transport
-// and adds some custom behavior.
-type customTransport struct {
-	base         http.RoundTripper
-	semaphore    chan struct{}
-	qps          float64
-	burst        int
-	lastReqTime  time.Time
-	requestCount int
-	rateLimiter  flowcontrol.RateLimiter
-	logger       logging.Logger
-}
-
-func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Acquire the semaphore to limit the number of concurrent requests.
-	t.semaphore <- struct{}{}
-	defer func() {
-		<-t.semaphore
-	}()
-
-	// // Limit the request rate using QPS and burst limits.
-	// now := time.Now()
-	// if t.requestCount >= t.burst || now.Sub(t.lastReqTime).Seconds() < 1/t.qps {
-	// 	time.Sleep(time.Duration(1/t.qps-now.Sub(t.lastReqTime).Seconds()) * time.Second)
-	// 	t.requestCount = 0
-	// }
-	// t.requestCount++
-	// t.lastReqTime = now
-
-	t.rateLimiter.Accept()
-
-	// Forward the request to the base transport.
-	resp, err := t.base.RoundTrip(req)
-
-	return resp, err
-}
-
-func NewCustomTransport(base http.RoundTripper, config *rest.Config, logger logging.Logger) http.RoundTripper {
-	qps := float64(config.QPS)
-	burst := config.Burst
-	return &customTransport{
-		base:        base,
-		semaphore:   make(chan struct{}, 10),
-		qps:         qps,
-		burst:       burst,
-		rateLimiter: config.RateLimiter,
-		logger:      logger,
-	}
 }
 
 // newClient constructs a new *Client with the provided http Client, which
@@ -203,4 +160,27 @@ func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.Custo
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 
 	return c
+}
+
+func NewCustomTransport(base http.RoundTripper, config *rest.Config) http.RoundTripper {
+	return &customTransport{
+		base:        base,
+		semaphore:   make(chan struct{}, 10),
+		rateLimiter: config.RateLimiter,
+	}
+}
+
+func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Acquire the semaphore to limit the number of concurrent requests.
+	t.semaphore <- struct{}{}
+	defer func() {
+		<-t.semaphore
+	}()
+
+	t.rateLimiter.Accept()
+
+	// Forward the request to the base transport.
+	resp, err := t.base.RoundTrip(req)
+
+	return resp, err
 }
