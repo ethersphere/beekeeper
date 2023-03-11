@@ -601,7 +601,7 @@ func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 
 func (n Node) Ready(ctx context.Context, namespace string) (ready bool, err error) {
 	// r, err := n.k8s.StatefulSet.ReadyReplicas(ctx, n.name, namespace)
-	r, err := n.k8s.StatefulSet.ReadyWatch(ctx, n.name, namespace)
+	r, err := n.k8s.StatefulSet.ReadyReplicasWatch(ctx, n.name, namespace)
 	if err != nil {
 		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", n.name, namespace, err)
 	}

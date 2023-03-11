@@ -57,8 +57,8 @@ func (c *Client) ReadyReplicas(ctx context.Context, name, namespace string) (rea
 	return
 }
 
-// ReadyWatch returns number of Pods created by the StatefulSet controller that have a ReadyWatch Condition
-func (c *Client) ReadyWatch(ctx context.Context, name, namespace string) (ready int32, err error) {
+// ReadyReplicasWatch returns number of Pods created by the StatefulSet controller that have a Ready Condition by watching events
+func (c *Client) ReadyReplicasWatch(ctx context.Context, name, namespace string) (ready int32, err error) {
 	watcher, err := c.clientset.AppsV1().StatefulSets(namespace).Watch(ctx, metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("metadata.name=%s", name),
 	})
@@ -77,24 +77,6 @@ func (c *Client) ReadyWatch(ctx context.Context, name, namespace string) (ready 
 			return
 		}
 	}
-
-	// timer := time.NewTimer(10 * time.Second)
-
-	// for {
-	// 	select {
-	// 	case event, ok := <-watcher.ResultChan():
-	// 		if !ok {
-	// 			return
-	// 		}
-	// 		statefulSet, ok := event.Object.(*appsv1.StatefulSet)
-	// 		if ok && statefulSet.Status.Replicas == statefulSet.Status.ReadyReplicas {
-	// 			ready = statefulSet.Status.ReadyReplicas
-	// 			return
-	// 		}
-	// 	case <-timer.C:
-	// 		return
-	// 	}
-	// }
 
 	return
 }
