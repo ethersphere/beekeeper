@@ -113,11 +113,11 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 	}
 
-	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(50, 200)
+	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(50, 100)
 
 	// Wrap the default transport with our custom transport.
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return NewCustomTransport(rt, config)
+		return NewCustomTransport(rt, config, logger)
 	}
 
 	clientset, err := s.NewForConfig(config)
@@ -142,6 +142,8 @@ type customTransport struct {
 	burst        int
 	lastReqTime  time.Time
 	requestCount int
+	rateLimiter  flowcontrol.RateLimiter
+	logger       logging.Logger
 }
 
 func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -151,39 +153,33 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		<-t.semaphore
 	}()
 
-	// Limit the request rate using QPS and burst limits.
-	now := time.Now()
-	if t.requestCount >= t.burst || now.Sub(t.lastReqTime).Seconds() < 1/t.qps {
-		time.Sleep(time.Duration(1/t.qps-now.Sub(t.lastReqTime).Seconds()) * time.Second)
-		t.requestCount = 0
-	}
-	t.requestCount++
-	t.lastReqTime = now
+	// // Limit the request rate using QPS and burst limits.
+	// now := time.Now()
+	// if t.requestCount >= t.burst || now.Sub(t.lastReqTime).Seconds() < 1/t.qps {
+	// 	time.Sleep(time.Duration(1/t.qps-now.Sub(t.lastReqTime).Seconds()) * time.Second)
+	// 	t.requestCount = 0
+	// }
+	// t.requestCount++
+	// t.lastReqTime = now
+
+	t.rateLimiter.Accept()
 
 	// Forward the request to the base transport.
 	resp, err := t.base.RoundTrip(req)
-	// TODO retry?
-	// if err != nil {
-	// 	// retry
-	// 	if strings.Contains(err.Error(), "context deadline exceeded (Client.Timeout exceeded while awaiting headers)") {
-	// 		fmt.Printf("RETRY: %s", err.Error())
-	// 		resp, err = t.base.RoundTrip(req)
-	// 	} else {
-	// 		fmt.Printf("ERROR: %s", err.Error())
-	// 	}
-	// }
 
 	return resp, err
 }
 
-func NewCustomTransport(base http.RoundTripper, config *rest.Config) http.RoundTripper {
+func NewCustomTransport(base http.RoundTripper, config *rest.Config, logger logging.Logger) http.RoundTripper {
 	qps := float64(config.QPS)
 	burst := config.Burst
 	return &customTransport{
-		base:      base,
-		semaphore: make(chan struct{}, 10),
-		qps:       qps,
-		burst:     burst,
+		base:        base,
+		semaphore:   make(chan struct{}, 10),
+		qps:         qps,
+		burst:       burst,
+		rateLimiter: config.RateLimiter,
+		logger:      logger,
 	}
 }
 

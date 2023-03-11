@@ -78,6 +78,24 @@ func (c *Client) ReadyWatch(ctx context.Context, name, namespace string) (ready 
 		}
 	}
 
+	// timer := time.NewTimer(10 * time.Second)
+
+	// for {
+	// 	select {
+	// 	case event, ok := <-watcher.ResultChan():
+	// 		if !ok {
+	// 			return
+	// 		}
+	// 		statefulSet, ok := event.Object.(*appsv1.StatefulSet)
+	// 		if ok && statefulSet.Status.Replicas == statefulSet.Status.ReadyReplicas {
+	// 			ready = statefulSet.Status.ReadyReplicas
+	// 			return
+	// 		}
+	// 	case <-timer.C:
+	// 		return
+	// 	}
+	// }
+
 	return
 }
 
