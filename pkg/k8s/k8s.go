@@ -78,46 +78,36 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 		}
 	}
 
-	// set in-cluster client
+	var config *rest.Config
+
 	if o.InCluster {
-		config, err := s.InClusterConfig()
+		// set in-cluster client
+		config, err = s.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
-
-		clientset, err := s.NewForConfig(config)
-		if err != nil {
-			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
-		}
-
-		apiClientset, err := ingressroute.NewForConfig(config)
-		if err != nil {
-			return nil, fmt.Errorf("creating custom resource Kubernetes api in-cluster clientset: %w", err)
-		}
-
-		return newClient(clientset, apiClientset, logger), nil
-	}
-
-	// set client
-	configPath := ""
-	if len(o.KubeconfigPath) == 0 {
-		return nil, ErrKubeconfigNotSet
-	} else if o.KubeconfigPath == "~/.kube/config" {
-		home, err := s.OsUserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("obtaining user's home dir: %w", err)
-		}
-		configPath = home + "/.kube/config"
 	} else {
-		configPath = o.KubeconfigPath
-	}
+		// set client
+		configPath := ""
+		if len(o.KubeconfigPath) == 0 {
+			return nil, ErrKubeconfigNotSet
+		} else if o.KubeconfigPath == "~/.kube/config" {
+			home, err := s.OsUserHomeDir()
+			if err != nil {
+				return nil, fmt.Errorf("obtaining user's home dir: %w", err)
+			}
+			configPath = home + "/.kube/config"
+		} else {
+			configPath = o.KubeconfigPath
+		}
 
-	kubeconfig := s.FlagString("kubeconfig", configPath, "kubeconfig file")
-	flag.Parse()
+		kubeconfig := s.FlagString("kubeconfig", configPath, "kubeconfig file")
+		flag.Parse()
 
-	config, err := s.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
+		config, err = s.BuildConfigFromFlags("", *kubeconfig)
+		if err != nil {
+			return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
+		}
 	}
 
 	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(50, 100)
