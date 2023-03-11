@@ -3,6 +3,7 @@ package k8s_test
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
@@ -119,6 +120,22 @@ func TestNewClient(t *testing.T) {
 				if response == nil {
 					t.Errorf("response expected, got nil")
 				}
+
+				// Get the value of the struct using reflection.
+				val := reflect.ValueOf(response)
+				val = val.Elem()
+
+				// Iterate over the fields of the struct.
+				for i := 0; i < val.NumField(); i++ {
+					// Get the value of the field.
+					fieldVal := val.Field(i)
+
+					// Check if the field is nil.
+					if fieldVal.IsNil() {
+						t.Errorf("nil not expected for '%s' property", val.Type().Field(i).Name)
+					}
+				}
+
 			} else {
 				if err == nil {
 					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
