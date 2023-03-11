@@ -29,7 +29,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:     "in_cluster_clientset_error",
 			options:  &k8s.ClientOptions{InCluster: true},
-			errorMsg: fmt.Errorf("creating Kubernetes in-cluster clientset: mock error"),
+			errorMsg: fmt.Errorf("creating Kubernetes clientset: mock error"),
 			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(true).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
