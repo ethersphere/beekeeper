@@ -3,10 +3,13 @@ package k8s_test
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"reflect"
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"k8s.io/client-go/util/flowcontrol"
+
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
@@ -149,4 +152,42 @@ func TestNewClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRoundTripper(t *testing.T) {
+	mockTransport := &mock.MockRoundTripper{}
+	client := mock.NewClient(false)
+	config, _ := client.InClusterConfig()
+	config.RateLimiter = flowcontrol.NewFakeAlwaysRateLimiter()
+
+	// Create a new instance of the wrapped RoundTripper and pass in the mock RoundTripper.
+	wrappedTransport := k8s.NewCustomTransport(mockTransport, config)
+
+	t.Run("successful_request", func(t *testing.T) {
+		// Set up the mock to return a successful response.
+		mockTransport.RoundTripFunc = func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       http.NoBody,
+			}, nil
+		}
+		// Make a request using the wrapped RoundTripper.
+		_, err := wrappedTransport.RoundTrip(&http.Request{})
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	})
+
+	t.Run("failed_request", func(t *testing.T) {
+		// Set up the mock to return an error.
+		mockTransport.RoundTripFunc = func(req *http.Request) (*http.Response, error) {
+			return nil, fmt.Errorf("Failed to send request")
+		}
+
+		// Make a request using the wrapped RoundTripper.
+		_, err := wrappedTransport.RoundTrip(&http.Request{})
+		if err == nil {
+			t.Errorf("Expected an error but got none")
+		}
+	})
 }
