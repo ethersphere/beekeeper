@@ -14,7 +14,7 @@ type NodeGroup interface {
 	Balances(ctx context.Context) (balances NodeGroupBalances, err error)
 	CreateNode(ctx context.Context, name string) (err error)
 	DeleteNode(ctx context.Context, name string) (err error)
-	Fund(ctx context.Context, name string, o FundingOptions) (err error)
+	Fund(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
 	GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	Name() string
 	Nodes() map[string]Node

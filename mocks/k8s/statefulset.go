@@ -115,5 +115,33 @@ func (*StatefulSet) UpdateStatus(ctx context.Context, statefulSet *v1.StatefulSe
 
 // Watch implements v1.StatefulSetInterface
 func (*StatefulSet) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	panic("unimplemented")
+	switch {
+	case opts.FieldSelector == "metadata.name=statefulset_bad":
+		return nil, fmt.Errorf("mock error: bad request")
+	case opts.FieldSelector == "metadata.name=test_statefulset":
+		watcher := watch.NewFake()
+		go func() {
+			watcher.Add(&v1.StatefulSet{
+				Status: v1.StatefulSetStatus{
+					Replicas:      1,
+					ReadyReplicas: 1,
+				},
+			})
+		}()
+		return watcher, nil
+	case opts.FieldSelector == "metadata.name=test_statefulset_not_ready":
+		watcher := watch.NewFake()
+		go func() {
+			defer watcher.Stop()
+			watcher.Add(&v1.StatefulSet{
+				Status: v1.StatefulSetStatus{
+					Replicas:      0,
+					ReadyReplicas: 1,
+				},
+			})
+		}()
+		return watcher, nil
+	default:
+		return nil, fmt.Errorf("mock error: unknown")
+	}
 }

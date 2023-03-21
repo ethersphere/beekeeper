@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	"github.com/ethersphere/beekeeper/pkg/k8s/customresource/ingressroute"
@@ -18,6 +19,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 // ErrKubeconfigNotSet represents error when kubeconfig is empty string
@@ -58,6 +60,14 @@ type ClientSetup struct {
 	OsUserHomeDir        func() (string, error)
 }
 
+// customTransport is an example custom transport that wraps the default transport
+// and adds some custom behavior.
+type customTransport struct {
+	base        http.RoundTripper
+	semaphore   chan struct{}
+	rateLimiter flowcontrol.RateLimiter
+}
+
 // NewClient returns Kubernetes clientset
 func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Client, err error) {
 	// set default options in case they are not provided
@@ -68,46 +78,43 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 		}
 	}
 
-	// set in-cluster client
+	var config *rest.Config
+
 	if o.InCluster {
-		config, err := s.InClusterConfig()
+		// set in-cluster client
+		config, err = s.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
-
-		clientset, err := s.NewForConfig(config)
-		if err != nil {
-			return nil, fmt.Errorf("creating Kubernetes in-cluster clientset: %w", err)
-		}
-
-		apiClientset, err := ingressroute.NewForConfig(config)
-		if err != nil {
-			return nil, fmt.Errorf("creating custom resource Kubernetes api in-cluster clientset: %w", err)
-		}
-
-		return newClient(clientset, apiClientset, logger), nil
-	}
-
-	// set client
-	configPath := ""
-	if len(o.KubeconfigPath) == 0 {
-		return nil, ErrKubeconfigNotSet
-	} else if o.KubeconfigPath == "~/.kube/config" {
-		home, err := s.OsUserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("obtaining user's home dir: %w", err)
-		}
-		configPath = home + "/.kube/config"
 	} else {
-		configPath = o.KubeconfigPath
+		// set client
+		configPath := ""
+		if len(o.KubeconfigPath) == 0 {
+			return nil, ErrKubeconfigNotSet
+		} else if o.KubeconfigPath == "~/.kube/config" {
+			home, err := s.OsUserHomeDir()
+			if err != nil {
+				return nil, fmt.Errorf("obtaining user's home dir: %w", err)
+			}
+			configPath = home + "/.kube/config"
+		} else {
+			configPath = o.KubeconfigPath
+		}
+
+		kubeconfig := s.FlagString("kubeconfig", configPath, "kubeconfig file")
+		flag.Parse()
+
+		config, err = s.BuildConfigFromFlags("", *kubeconfig)
+		if err != nil {
+			return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
+		}
 	}
 
-	kubeconfig := s.FlagString("kubeconfig", configPath, "kubeconfig file")
-	flag.Parse()
+	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(50, 100)
 
-	config, err := s.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
+	// Wrap the default transport with our custom transport.
+	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return NewCustomTransport(rt, config)
 	}
 
 	clientset, err := s.NewForConfig(config)
@@ -143,4 +150,27 @@ func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.Custo
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 
 	return c
+}
+
+func NewCustomTransport(base http.RoundTripper, config *rest.Config) http.RoundTripper {
+	return &customTransport{
+		base:        base,
+		semaphore:   make(chan struct{}, 10),
+		rateLimiter: config.RateLimiter,
+	}
+}
+
+func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Acquire the semaphore to limit the number of concurrent requests.
+	t.semaphore <- struct{}{}
+	defer func() {
+		<-t.semaphore
+	}()
+
+	t.rateLimiter.Accept()
+
+	// Forward the request to the base transport.
+	resp, err := t.base.RoundTrip(req)
+
+	return resp, err
 }

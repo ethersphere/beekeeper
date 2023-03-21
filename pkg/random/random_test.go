@@ -1,4 +1,4 @@
-package random
+package random_test
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 func TestPseudoGenerator(t *testing.T) {
@@ -34,7 +35,7 @@ func TestPseudoGenerator(t *testing.T) {
 
 	for run, test := range testTable {
 		t.Run(fmt.Sprintf("test_%v", run), func(t *testing.T) {
-			g := PseudoGenerator(test.seed)
+			g := random.PseudoGenerator(test.seed)
 			if g != nil {
 				num := g.Int63()
 				if test.expected != num && test.expected != 0 {
@@ -73,7 +74,7 @@ func TestPseudoGenerators(t *testing.T) {
 
 	for run, test := range testTable {
 		t.Run(fmt.Sprintf("test_%v", run), func(t *testing.T) {
-			g := PseudoGenerators(test.seed, test.n)
+			g := random.PseudoGenerators(test.seed, test.n)
 			if test.n <= 0 && g != nil {
 				t.Error("result slice should be nil")
 			} else if test.n > 0 {
@@ -101,7 +102,7 @@ func TestPseudoGenerators(t *testing.T) {
 }
 
 func TestInt64_Type(t *testing.T) {
-	v := Int64()
+	v := random.Int64()
 	vt := reflect.TypeOf(v).Kind()
 
 	if vt != reflect.Int64 {
@@ -114,7 +115,7 @@ func TestInt64_Type(t *testing.T) {
 }
 
 func TestCryptoSource_Uint64(t *testing.T) {
-	cs := cryptoSource{}
+	cs := random.CryptoSource{}
 	v := cs.Uint64()
 	vt := reflect.TypeOf(v).Kind()
 
@@ -128,7 +129,7 @@ func TestCryptoSource_Uint64(t *testing.T) {
 }
 
 func TestCryptoSource_Int63(t *testing.T) {
-	cs := cryptoSource{}
+	cs := random.CryptoSource{}
 	v := cs.Int63()
 	vt := reflect.TypeOf(v).Kind()
 
@@ -142,13 +143,13 @@ func TestCryptoSource_Int63(t *testing.T) {
 }
 
 func TestCryptoSource_Seed(t *testing.T) {
-	cs := cryptoSource{}
+	cs := random.CryptoSource{}
 	cs.Seed(10)
 }
 
 func FuzzPseudoGenerators(f *testing.F) {
 	f.Fuzz(func(t *testing.T, seed int64, n int) {
-		g := PseudoGenerators(seed, n)
+		g := random.PseudoGenerators(seed, n)
 		if n <= 0 && g != nil {
 			t.Fatal("result slice should be nil")
 		}
