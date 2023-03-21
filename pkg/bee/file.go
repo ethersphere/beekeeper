@@ -86,7 +86,7 @@ func (f *File) Size() int64 {
 func (f *File) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err error) {
 	closest = nodes[0]
 	for _, a := range nodes[1:] {
-		dcmp, err := swarm.DistanceCmp(f.Address().Bytes(), closest.Bytes(), a.Bytes())
+		dcmp, err := swarm.DistanceCmp(f.Address(), closest, a)
 		if err != nil {
 			return swarm.Address{}, fmt.Errorf("find closest node: %w", err)
 		}

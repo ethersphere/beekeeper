@@ -3,9 +3,13 @@ package k8s_test
 import (
 	"fmt"
 	"io"
+	"net/http"
+	"reflect"
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"k8s.io/client-go/util/flowcontrol"
+
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
@@ -29,7 +33,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:     "in_cluster_clientset_error",
 			options:  &k8s.ClientOptions{InCluster: true},
-			errorMsg: fmt.Errorf("creating Kubernetes in-cluster clientset: mock error"),
+			errorMsg: fmt.Errorf("creating Kubernetes clientset: mock error"),
 			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(true).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
@@ -119,6 +123,22 @@ func TestNewClient(t *testing.T) {
 				if response == nil {
 					t.Errorf("response expected, got nil")
 				}
+
+				// Get the value of the struct using reflection.
+				val := reflect.ValueOf(response)
+				val = val.Elem()
+
+				// Iterate over the fields of the struct.
+				for i := 0; i < val.NumField(); i++ {
+					// Get the value of the field.
+					fieldVal := val.Field(i)
+
+					// Check if the field is nil.
+					if fieldVal.IsNil() {
+						t.Errorf("nil not expected for '%s' property", val.Type().Field(i).Name)
+					}
+				}
+
 			} else {
 				if err == nil {
 					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
@@ -132,4 +152,42 @@ func TestNewClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRoundTripper(t *testing.T) {
+	mockTransport := &mock.MockRoundTripper{}
+	client := mock.NewClient(false)
+	config, _ := client.InClusterConfig()
+	config.RateLimiter = flowcontrol.NewFakeAlwaysRateLimiter()
+
+	// Create a new instance of the wrapped RoundTripper and pass in the mock RoundTripper.
+	wrappedTransport := k8s.NewCustomTransport(mockTransport, config)
+
+	t.Run("successful_request", func(t *testing.T) {
+		// Set up the mock to return a successful response.
+		mockTransport.RoundTripFunc = func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       http.NoBody,
+			}, nil
+		}
+		// Make a request using the wrapped RoundTripper.
+		_, err := wrappedTransport.RoundTrip(&http.Request{})
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	})
+
+	t.Run("failed_request", func(t *testing.T) {
+		// Set up the mock to return an error.
+		mockTransport.RoundTripFunc = func(req *http.Request) (*http.Response, error) {
+			return nil, fmt.Errorf("Failed to send request")
+		}
+
+		// Make a request using the wrapped RoundTripper.
+		_, err := wrappedTransport.RoundTrip(&http.Request{})
+		if err == nil {
+			t.Errorf("Expected an error but got none")
+		}
+	})
 }

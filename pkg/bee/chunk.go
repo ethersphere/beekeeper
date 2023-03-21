@@ -89,7 +89,7 @@ func (c *Chunk) SetAddress() error {
 func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err error) {
 	closest = nodes[0]
 	for _, a := range nodes[1:] {
-		dcmp, err := swarm.DistanceCmp(c.Address().Bytes(), closest.Bytes(), a.Bytes())
+		dcmp, err := swarm.DistanceCmp(c.Address(), closest, a)
 		if err != nil {
 			return swarm.Address{}, fmt.Errorf("find closest node: %w", err)
 		}
@@ -135,7 +135,7 @@ next:
 			continue
 		}
 
-		dcmp, err := swarm.DistanceCmp(c.Address().Bytes(), a.Bytes(), closestAddress.Bytes())
+		dcmp, err := swarm.DistanceCmp(c.Address(), a, closestAddress)
 		if err != nil {
 			return "", swarm.Address{}, fmt.Errorf("find closest node: %w", err)
 		}

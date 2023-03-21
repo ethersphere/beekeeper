@@ -2,7 +2,10 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -30,6 +33,35 @@ type Node interface {
 	SetClefPassword(key string) Node
 }
 
+// EncryptedKey is part of Ethereum JSON v3 key file format.
+type EncryptedKey string
+
+func (ek EncryptedKey) ToString() string {
+	return string(ek)
+}
+
+// EncryptedKeyJson is json string for EncryptedKey.
+type EncryptedKeyJson struct {
+	Address string `json:"address"`
+	// TODO map complete key to Ethereum JSON v3 key file format
+}
+
+// GetEthAddress extracts ethereum address from EncryptedKey.
+func (ek EncryptedKey) GetEthAddress() (string, error) {
+	var skj EncryptedKeyJson
+
+	err := json.Unmarshal([]byte(ek), &skj)
+	if err != nil {
+		return "", fmt.Errorf("unmarshal swarm encrypted key address: %s", err.Error())
+	}
+
+	if skj.Address != "" && !strings.HasPrefix(skj.Address, "0x") {
+		skj.Address = fmt.Sprintf("0x%s", skj.Address)
+	}
+
+	return skj.Address, nil
+}
+
 // NodeOptions holds optional parameters for the Node.
 type NodeOptions struct {
 	ClefKey      string
@@ -38,7 +70,7 @@ type NodeOptions struct {
 	Config       *Config
 	K8S          *k8s.Client
 	LibP2PKey    string
-	SwarmKey     string
+	SwarmKey     EncryptedKey
 }
 
 // CreateOptions represents available options for creating node

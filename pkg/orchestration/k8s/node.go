@@ -59,7 +59,7 @@ func NewNode(name string, opts orchestration.NodeOptions, logger logging.Logger)
 		n.libP2PKey = opts.LibP2PKey
 	}
 	if len(opts.SwarmKey) > 0 {
-		n.swarmKey = opts.SwarmKey
+		n.swarmKey = opts.SwarmKey.ToString()
 	}
 	if opts.K8S != nil {
 		n.k8s = opts.K8S
@@ -600,7 +600,8 @@ func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 }
 
 func (n Node) Ready(ctx context.Context, namespace string) (ready bool, err error) {
-	r, err := n.k8s.StatefulSet.ReadyReplicas(ctx, n.name, namespace)
+	// r, err := n.k8s.StatefulSet.ReadyReplicas(ctx, n.name, namespace)
+	r, err := n.k8s.StatefulSet.ReadyReplicasWatch(ctx, n.name, namespace)
 	if err != nil {
 		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", n.name, namespace, err)
 	}

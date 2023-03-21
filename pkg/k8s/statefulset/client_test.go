@@ -247,6 +247,62 @@ func TestReadyReplicas(t *testing.T) {
 	}
 }
 
+func TestReadyReplicasWatch(t *testing.T) {
+	testTable := []struct {
+		name            string
+		statefulsetName string
+		clientset       kubernetes.Interface
+		expected        int32
+		errorMsg        error
+	}{
+		{
+			name:            "replicas_found",
+			statefulsetName: "statefulset_bad",
+			clientset:       mock.NewClientset(),
+			errorMsg:        fmt.Errorf("getting ready from statefulset statefulset_bad in namespace test: mock error: bad request"),
+		},
+		{
+			name:            "test_statefulset",
+			statefulsetName: "test_statefulset",
+			clientset:       mock.NewClientset(),
+			expected:        1,
+		},
+		{
+			name:            "not_ready_and_close",
+			statefulsetName: "test_statefulset_not_ready",
+			clientset:       mock.NewClientset(),
+			expected:        0,
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.name, func(t *testing.T) {
+			client := statefulset.NewClient(test.clientset)
+			ready, err := client.ReadyReplicasWatch(context.Background(), test.statefulsetName, "test")
+			if test.errorMsg == nil {
+				if err != nil {
+					t.Errorf("error not expected, got: %s", err.Error())
+				}
+
+				if ready != test.expected {
+					t.Errorf("response expected: %v, got: %v", test.expected, ready)
+				}
+
+			} else {
+				if err == nil {
+					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
+				}
+				if err.Error() != test.errorMsg.Error() {
+					t.Errorf("error expected: %s, got: %s", test.errorMsg.Error(), err.Error())
+				}
+				if ready != 0 {
+					t.Errorf("response not expected")
+				}
+			}
+		})
+	}
+}
+
 func TestRunningStatefulSets(t *testing.T) {
 	testTable := []struct {
 		name             string
