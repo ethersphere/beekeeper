@@ -99,7 +99,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 	c.logger.Infof("node %s: batch id %s", node, batchID)
 
-	contentAddr, err := client.UploadBytes(ctx, content, api.UploadOptions{BatchID: batchID})
+	contentAddr, err := client.UploadBytes(ctx, content, api.UploadOptions{BatchID: batchID, Direct: true})
 	if err != nil {
 		return fmt.Errorf("node %s: unable to upload content: %w", node, err)
 	}
