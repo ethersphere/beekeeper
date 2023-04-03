@@ -133,7 +133,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
-		for retries := 10; txDuration == 0 && retries > 0; retries-- {
+		for retries := 3; txDuration == 0 && retries > 0; retries-- {
 			select {
 			case <-ctx.Done():
 				return nil
@@ -155,13 +155,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
+		c.metrics.UploadDuration.Observe(txDuration.Seconds())
+
 		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
-		for retries := 10; rxDuration == 0 && retries > 0; retries-- {
+		for retries := 3; rxDuration == 0 && retries > 0; retries-- {
 			select {
 			case <-ctx.Done():
 				return nil
-			default:
+			case <-time.After(o.RxOnErrWait):
 			}
 
 			c.metrics.DownloadAttempts.Inc()
@@ -171,16 +173,18 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				c.metrics.DownloadErrors.Inc()
 				c.logger.Infof("download failed: %v", err)
 				c.logger.Infof("retrying in: %v", o.RxOnErrWait)
-				time.Sleep(o.RxOnErrWait)
+				continue
 			}
-		}
 
-		// download error, skip comprarison below
-		if rxDuration == 0 {
-			continue
-		}
+			if rxDuration == 0 {
+				continue
+			}
 
-		if !bytes.Equal(rxData, txData) {
+			if bytes.Equal(rxData, txData) {
+				c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
+				break
+			}
+
 			c.logger.Info("uploaded data does not match downloaded data")
 
 			c.metrics.DownloadMismatch.Inc()
@@ -201,13 +205,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				}
 			}
 			c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
-			continue
 		}
-
-		// We want to update the metrics when no error has been
-		// encountered in order to avoid counter mismatch.
-		c.metrics.UploadDuration.Observe(txDuration.Seconds())
-		c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
 	}
 
 	return nil
