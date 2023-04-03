@@ -159,7 +159,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
-		for retries := 3; rxDuration == 0 && retries > 0; retries-- {
+		for retries := 3; retries > 0; retries-- {
 			select {
 			case <-ctx.Done():
 				return nil
@@ -177,6 +177,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			}
 
 			if rxDuration == 0 {
+				c.logger.Infof("download failed: duration zero")
 				continue
 			}
 
