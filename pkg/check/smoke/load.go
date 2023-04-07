@@ -28,11 +28,6 @@ type LoadCheck struct {
 	logger  logging.Logger
 }
 
-type batch struct {
-	batchID string
-	expires time.Time
-}
-
 // NewCheck returns new check
 func NewLoadCheck(logger logging.Logger) beekeeper.Action {
 	return &LoadCheck{
@@ -69,8 +64,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	uploaders := selectNames(cluster, o.UploadGroups...)
 	downloaders := selectNames(cluster, o.DownloadGroups...)
 
-	batches := make(map[string]batch)
-	batchesMtx := sync.Mutex{}
+	batches := NewStore(o.MaxUseBatch)
 
 	for i := 0; true; i++ {
 		select {
@@ -121,30 +115,14 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					var duration time.Duration
 					c.logger.Infof("uploading to: %s", txName)
 
-					batchesMtx.Lock()
-
-					if batch, ok := batches[txName]; ok {
-						if time.Now().After(batch.expires) {
-							delete(batches, txName)
-						}
-					}
-
-					var batchID string
-
-					if b, ok := batches[txName]; ok {
-						batchID = b.batchID
-						batchesMtx.Unlock()
-					} else {
-						batchesMtx.Unlock()
+					batchID := batches.Get(txName)
+					if batchID == "" {
 						batchID, err = clients[txName].CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "load-test", true)
 						if err != nil {
 							c.logger.Errorf("create new batch: %v", err)
 							return
 						}
-
-						batchesMtx.Lock()
-						batches[txName] = batch{batchID: batchID, expires: time.Now().Add(o.MaxUseBatch)}
-						batchesMtx.Unlock()
+						batches.Store(txName, batchID)
 					}
 
 					address, duration, err = test.uploadWithBatch(txName, txData, batchID)

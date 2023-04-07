@@ -44,7 +44,7 @@ func NewDefaultOptions() Options {
 		PostageDepth:  20,
 		TxOnErrWait:   10 * time.Second,
 		RxOnErrWait:   10 * time.Second,
-		NodesSyncWait: time.Minute,
+		NodesSyncWait: time.Second * 30,
 		Duration:      12 * time.Hour,
 		GasPrice:      "100000000000",
 		MaxUseBatch:   time.Hour * 3,
@@ -87,11 +87,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
 
-	// The test will restart itself every 12 hours (default, if not specified diferrently in config),
-	// this is in order to create more meaningful metrics, so that we can apply prometheus
-	// functions to them.
-	ctx, cancel := context.WithTimeout(ctx, o.Duration)
-	defer cancel()
+	batches := NewStore(o.MaxUseBatch)
 
 	test := &test{opt: o, ctx: ctx, clients: clients, logger: c.logger}
 
@@ -133,33 +129,44 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
-		for retries := 3; txDuration == 0 && retries > 0; retries-- {
+		for retries := 0; retries < 3; retries++ {
 			select {
 			case <-ctx.Done():
 				return nil
-			default:
+			case <-time.After(o.TxOnErrWait):
 			}
 
 			c.metrics.UploadAttempts.Inc()
 
-			address, txDuration, err = test.upload(txName, txData)
+			batchID := batches.Get(txName)
+			if batchID == "" {
+				batchID, err = clients[txName].CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "load-test", true)
+				if err != nil {
+					c.logger.Errorf("create new batch: %v", err)
+					continue
+				}
+				batches.Store(txName, batchID)
+			}
+
+			address, txDuration, err = test.uploadWithBatch(txName, txData, batchID)
 			if err != nil {
 				c.metrics.UploadErrors.Inc()
 				c.logger.Infof("upload failed: %v", err)
 				c.logger.Infof("retrying in: %v", o.TxOnErrWait)
-				time.Sleep(o.TxOnErrWait)
+			} else {
+				break
 			}
 		}
 
-		if txDuration == 0 {
-			continue
+		if err != nil {
+			continue // skip
 		}
 
 		c.metrics.UploadDuration.Observe(txDuration.Seconds())
 
-		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
+		time.Sleep(o.NodesSyncWait)
 
-		for retries := 3; rxDuration == 0 && retries > 0; retries-- {
+		for retries := 0; retries < 3; retries++ {
 			select {
 			case <-ctx.Done():
 				return nil
@@ -176,17 +183,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				continue
 			}
 
-			if rxDuration == 0 {
-				continue
-			}
-
+			// good download
 			if bytes.Equal(rxData, txData) {
 				c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
 				break
 			}
 
+			// bad download
 			c.logger.Info("uploaded data does not match downloaded data")
-
 			c.metrics.DownloadMismatch.Inc()
 
 			rxLen, txLen := len(rxData), len(txData)
@@ -232,24 +236,6 @@ func (t *test) uploadWithBatch(cName string, data []byte, batchID string) (swarm
 	return addr, txDuration, nil
 }
 
-func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
-	client := t.clients[cName]
-	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test")
-	if err != nil {
-		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
-	}
-	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
-	start := time.Now()
-	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: false})
-	if err != nil {
-		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
-	}
-	txDuration := time.Since(start)
-	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
-
-	return addr, txDuration, nil
-}
-
 func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration, error) {
 	client := t.clients[cName]
 	t.logger.Infof("node %s: downloading address %s", cName, addr)
@@ -263,3 +249,21 @@ func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration
 
 	return data, rxDuration, nil
 }
+
+// func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
+// 	client := t.clients[cName]
+// 	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test")
+// 	if err != nil {
+// 		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
+// 	}
+// 	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
+// 	start := time.Now()
+// 	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
+// 	if err != nil {
+// 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
+// 	}
+// 	txDuration := time.Since(start)
+// 	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
+
+// 	return addr, txDuration, nil
+// }
