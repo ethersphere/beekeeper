@@ -236,24 +236,6 @@ func (t *test) uploadWithBatch(cName string, data []byte, batchID string) (swarm
 	return addr, txDuration, nil
 }
 
-func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
-	client := t.clients[cName]
-	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test")
-	if err != nil {
-		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
-	}
-	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
-	start := time.Now()
-	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
-	if err != nil {
-		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
-	}
-	txDuration := time.Since(start)
-	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
-
-	return addr, txDuration, nil
-}
-
 func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration, error) {
 	client := t.clients[cName]
 	t.logger.Infof("node %s: downloading address %s", cName, addr)
@@ -267,3 +249,21 @@ func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration
 
 	return data, rxDuration, nil
 }
+
+// func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
+// 	client := t.clients[cName]
+// 	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test")
+// 	if err != nil {
+// 		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
+// 	}
+// 	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
+// 	start := time.Now()
+// 	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
+// 	if err != nil {
+// 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
+// 	}
+// 	txDuration := time.Since(start)
+// 	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
+
+// 	return addr, txDuration, nil
+// }
