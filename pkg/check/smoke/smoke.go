@@ -133,7 +133,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
-		for retries := 3; txDuration == 0 && retries > 0; retries-- {
+		for retries := 3; retries > 0; retries-- {
 			select {
 			case <-ctx.Done():
 				return nil
@@ -148,16 +148,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				c.logger.Infof("upload failed: %v", err)
 				c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 				time.Sleep(o.TxOnErrWait)
+			} else {
+				break
 			}
 		}
 
-		if txDuration == 0 {
-			continue
+		if err != nil {
+			continue // skip
 		}
 
 		c.metrics.UploadDuration.Observe(txDuration.Seconds())
-
-		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
 		for retries := 3; retries > 0; retries-- {
 			select {
@@ -176,18 +176,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				continue
 			}
 
-			if rxDuration == 0 {
-				c.logger.Infof("download failed: duration zero")
-				continue
-			}
-
+			// good download
 			if bytes.Equal(rxData, txData) {
 				c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
 				break
 			}
 
+			// bad download
 			c.logger.Info("uploaded data does not match downloaded data")
-
 			c.metrics.DownloadMismatch.Inc()
 
 			rxLen, txLen := len(rxData), len(txData)
@@ -241,7 +237,7 @@ func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, 
 	}
 	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
 	start := time.Now()
-	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: false})
+	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
 	}
