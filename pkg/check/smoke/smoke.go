@@ -87,11 +87,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
 
-	// The test will restart itself every 12 hours (default, if not specified diferrently in config),
-	// this is in order to create more meaningful metrics, so that we can apply prometheus
-	// functions to them.
-	ctx, cancel := context.WithTimeout(ctx, o.Duration)
-	defer cancel()
+	batches := NewStore(o.MaxUseBatch)
 
 	test := &test{opt: o, ctx: ctx, clients: clients, logger: c.logger}
 
@@ -137,17 +133,26 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			select {
 			case <-ctx.Done():
 				return nil
-			default:
+			case <-time.After(o.TxOnErrWait):
 			}
 
 			c.metrics.UploadAttempts.Inc()
 
-			address, txDuration, err = test.upload(txName, txData)
+			batchID := batches.Get(txName)
+			if batchID == "" {
+				batchID, err = clients[txName].CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "load-test", true)
+				if err != nil {
+					c.logger.Errorf("create new batch: %v", err)
+					continue
+				}
+				batches.Store(txName, batchID)
+			}
+
+			address, txDuration, err = test.uploadWithBatch(txName, txData, batchID)
 			if err != nil {
 				c.metrics.UploadErrors.Inc()
 				c.logger.Infof("upload failed: %v", err)
 				c.logger.Infof("retrying in: %v", o.TxOnErrWait)
-				time.Sleep(o.TxOnErrWait)
 			} else {
 				break
 			}
