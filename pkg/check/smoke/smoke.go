@@ -44,7 +44,7 @@ func NewDefaultOptions() Options {
 		PostageDepth:  20,
 		TxOnErrWait:   10 * time.Second,
 		RxOnErrWait:   10 * time.Second,
-		NodesSyncWait: time.Minute,
+		NodesSyncWait: time.Second * 30,
 		Duration:      12 * time.Hour,
 		GasPrice:      "100000000000",
 		MaxUseBatch:   time.Hour * 3,
@@ -129,7 +129,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
-		for retries := 3; retries > 0; retries-- {
+		for retries := 0; retries < 3; retries++ {
 			select {
 			case <-ctx.Done():
 				return nil
@@ -164,7 +164,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		c.metrics.UploadDuration.Observe(txDuration.Seconds())
 
-		for retries := 3; retries > 0; retries-- {
+		time.Sleep(o.NodesSyncWait)
+
+		for retries := 0; retries < 3; retries++ {
 			select {
 			case <-ctx.Done():
 				return nil
