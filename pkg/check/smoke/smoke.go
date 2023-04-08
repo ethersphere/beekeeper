@@ -25,7 +25,6 @@ type Options struct {
 	TxOnErrWait   time.Duration
 	RxOnErrWait   time.Duration
 	NodesSyncWait time.Duration
-	Duration      time.Duration
 	// load test params
 	UploaderCount   int
 	UploadGroups    []string
@@ -45,7 +44,6 @@ func NewDefaultOptions() Options {
 		TxOnErrWait:   10 * time.Second,
 		RxOnErrWait:   10 * time.Second,
 		NodesSyncWait: time.Second * 30,
-		Duration:      12 * time.Hour,
 		GasPrice:      "100000000000",
 		MaxUseBatch:   time.Hour * 3,
 	}

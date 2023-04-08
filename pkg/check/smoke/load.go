@@ -56,9 +56,6 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, o.Duration)
-	defer cancel()
-
 	test := &test{opt: o, ctx: ctx, clients: clients, logger: c.logger}
 
 	uploaders := selectNames(cluster, o.UploadGroups...)
