@@ -341,11 +341,6 @@ func (c *Client) PingStream(ctx context.Context, nodes []swarm.Address) <-chan P
 	return pingStream
 }
 
-// RemoveChunk removes chunk from the node
-func (c *Client) RemoveChunk(ctx context.Context, a swarm.Address) error {
-	return c.debug.Node.RemoveChunk(ctx, a)
-}
-
 // Settlement represents node's settlement with peer
 type Settlement struct {
 	Peer     string

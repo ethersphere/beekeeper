@@ -93,16 +93,6 @@ func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, erro
 	return true, nil
 }
 
-// RemoveChunk removes chunk from the node
-func (n *NodeService) RemoveChunk(ctx context.Context, a swarm.Address) error {
-	resp := struct {
-		Message string `json:"message,omitempty"`
-		Code    int    `json:"code,omitempty"`
-	}{}
-
-	return n.client.requestJSON(ctx, http.MethodDelete, "/chunks/"+a.String(), nil, &resp)
-}
-
 // Health represents node's health
 type Health struct {
 	Status string `json:"status"`

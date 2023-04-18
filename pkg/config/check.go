@@ -12,8 +12,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/authenticated"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
-	"github.com/ethersphere/beekeeper/pkg/check/chunkrepair"
-	"github.com/ethersphere/beekeeper/pkg/check/contentavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 	"github.com/ethersphere/beekeeper/pkg/check/gc"
@@ -91,29 +89,6 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := cashout.NewDefaultOptions()
-
-			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
-				return nil, fmt.Errorf("applying options: %w", err)
-			}
-
-			return opts, nil
-		},
-	},
-	"chunk-repair": {
-		NewAction: chunkrepair.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
-			checkOpts := new(struct {
-				GasPrice               *string `yaml:"gas-price"`
-				NodeGroup              *string `yaml:"node-group"`
-				NumberOfChunksToRepair *int    `yaml:"number-of-chunks-to-repair"`
-				PostageAmount          *int64  `yaml:"postage-amount"`
-				PostageLabel           *string `yaml:"postage-label"`
-				Seed                   *int64  `yaml:"seed"`
-			})
-			if err := check.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
-			}
-			opts := chunkrepair.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
@@ -449,27 +424,6 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
-			return opts, nil
-		},
-	},
-	"content-availability": {
-		NewAction: contentavailability.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
-			checkOpts := new(struct {
-				ContentSize   *int64  `yaml:"content-size"`
-				GasPrice      *string `yaml:"gas-price"`
-				PostageAmount *int64  `yaml:"postage-amount"`
-				PostageDepth  *uint64 `yaml:"postage-depth"`
-				PostageLabel  *string `yaml:"postage-label"`
-				Seed          *int64  `yaml:"seed"`
-			})
-			if err := check.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
-			}
-			opts := contentavailability.NewDefaultOptions()
-			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
-				return nil, fmt.Errorf("applying options: %w", err)
-			}
 			return opts, nil
 		},
 	},
