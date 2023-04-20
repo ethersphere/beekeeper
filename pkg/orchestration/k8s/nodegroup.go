@@ -919,6 +919,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 	}
 
 	g.logger.Infof("wait for %s to become ready", name)
+
 	for {
 		ok, err := g.NodeReady(ctx, name)
 		if err != nil {
@@ -929,9 +930,6 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 			g.logger.Infof("%s is ready", name)
 			return nil
 		}
-
-		g.logger.Infof("%s is not ready yet", name)
-		time.Sleep(nodeRetryTimeout)
 	}
 }
 
@@ -947,6 +945,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 	}
 
 	g.logger.Infof("wait for %s to stop", name)
+
 	for {
 		ok, err := g.NodeReady(ctx, name)
 		if err != nil {
@@ -957,9 +956,6 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 			g.logger.Infof("%s is stopped", name)
 			return nil
 		}
-
-		g.logger.Infof("%s is not stopped yet", name)
-		time.Sleep(nodeRetryTimeout)
 	}
 }
 

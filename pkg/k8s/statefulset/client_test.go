@@ -3,11 +3,13 @@ package statefulset_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"reflect"
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,7 +81,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
 			response, err := client.Set(context.Background(), test.statefulsetName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -167,7 +169,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
 			err := client.Delete(context.Background(), test.statefulsetName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
@@ -221,7 +223,7 @@ func TestReadyReplicas(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
 			ready, err := client.ReadyReplicas(context.Background(), test.statefulsetName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
@@ -248,9 +250,14 @@ func TestReadyReplicas(t *testing.T) {
 }
 
 func TestReadyReplicasWatch(t *testing.T) {
+	// create a new context with cancel function
+	ctxCancel, cancel := context.WithCancel(context.Background())
+	cancel()
+
 	testTable := []struct {
 		name            string
 		statefulsetName string
+		ctx             context.Context
 		clientset       kubernetes.Interface
 		expected        int32
 		errorMsg        error
@@ -259,26 +266,38 @@ func TestReadyReplicasWatch(t *testing.T) {
 			name:            "replicas_found",
 			statefulsetName: "statefulset_bad",
 			clientset:       mock.NewClientset(),
+			ctx:             context.Background(),
 			errorMsg:        fmt.Errorf("getting ready from statefulset statefulset_bad in namespace test: mock error: bad request"),
 		},
 		{
 			name:            "test_statefulset",
 			statefulsetName: "test_statefulset",
 			clientset:       mock.NewClientset(),
+			ctx:             context.Background(),
 			expected:        1,
 		},
 		{
-			name:            "not_ready_and_close",
-			statefulsetName: "test_statefulset_not_ready",
+			name:            "not_ready_watcher_stop",
+			statefulsetName: "test_statefulset_watcher_stop",
 			clientset:       mock.NewClientset(),
+			ctx:             context.Background(),
+			errorMsg:        fmt.Errorf("watch channel closed"),
+			expected:        0,
+		},
+		{
+			name:            "context_cancelled",
+			statefulsetName: "test_statefulset_context_cancel",
+			clientset:       mock.NewClientset(),
+			ctx:             ctxCancel,
+			errorMsg:        fmt.Errorf("context canceled"),
 			expected:        0,
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset)
-			ready, err := client.ReadyReplicasWatch(context.Background(), test.statefulsetName, "test")
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			ready, err := client.ReadyReplicasWatch(test.ctx, test.statefulsetName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -350,7 +369,7 @@ func TestRunningStatefulSets(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
 			response, err := client.RunningStatefulSets(context.Background(), test.namespace)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -425,7 +444,7 @@ func TestScale(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
 			response, err := client.Scale(context.Background(), test.statefulSetName, test.namespace, 3)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -512,7 +531,7 @@ func TestStoppedStatefulSets(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset)
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
 			response, err := client.StoppedStatefulSets(context.Background(), test.namespace)
 			if test.errorMsg == nil {
 				if err != nil {
