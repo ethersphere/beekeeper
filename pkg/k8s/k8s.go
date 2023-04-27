@@ -60,14 +60,6 @@ type ClientSetup struct {
 	OsUserHomeDir        func() (string, error)                                              // os.UserHomeDir
 }
 
-// customTransport is an example custom transport that wraps the default transport
-// and adds some custom behavior.
-type customTransport struct {
-	base        http.RoundTripper
-	semaphore   chan struct{}
-	rateLimiter flowcontrol.RateLimiter
-}
-
 // NewClient returns Kubernetes clientset
 func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Client, err error) {
 	// set default options in case they are not provided
@@ -150,27 +142,4 @@ func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.Custo
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 
 	return c
-}
-
-func NewCustomTransport(base http.RoundTripper, config *rest.Config) http.RoundTripper {
-	return &customTransport{
-		base:        base,
-		semaphore:   make(chan struct{}, 10),
-		rateLimiter: config.RateLimiter,
-	}
-}
-
-func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Acquire the semaphore to limit the number of concurrent requests.
-	t.semaphore <- struct{}{}
-	defer func() {
-		<-t.semaphore
-	}()
-
-	t.rateLimiter.Accept()
-
-	// Forward the request to the base transport.
-	resp, err := t.base.RoundTrip(req)
-
-	return resp, err
 }
