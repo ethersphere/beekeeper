@@ -3,7 +3,9 @@ package statefulset
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,12 +16,14 @@ import (
 // Client manages communication with the Kubernetes StatefulSet.
 type Client struct {
 	clientset kubernetes.Interface
+	logger    logging.Logger
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset kubernetes.Interface) *Client {
+func NewClient(clientset kubernetes.Interface, l logging.Logger) *Client {
 	return &Client{
 		clientset: clientset,
+		logger:    l,
 	}
 }
 
@@ -65,20 +69,30 @@ func (c *Client) ReadyReplicasWatch(ctx context.Context, name, namespace string)
 	if err != nil {
 		return 0, fmt.Errorf("getting ready from statefulset %s in namespace %s: %w", name, namespace, err)
 	}
-
 	defer watcher.Stop()
 
-	// Loop through events from the watcher
-	for event := range watcher.ResultChan() {
-		// Extract the StatefulSet from the event
-		statefulSet, ok := event.Object.(*appsv1.StatefulSet)
-		if ok && statefulSet.Status.Replicas == statefulSet.Status.ReadyReplicas {
-			ready = statefulSet.Status.ReadyReplicas
-			return
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	// Use a select statement to listen for either events from the watcher or a context cancellation
+	for {
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		case <-ticker.C:
+			c.logger.Infof("%s is not ready yet", name)
+		case event, ok := <-watcher.ResultChan():
+			if !ok {
+				return 0, fmt.Errorf("watch channel closed")
+			}
+			// Extract the StatefulSet from the event
+			statefulSet, ok := event.Object.(*appsv1.StatefulSet)
+			if ok && statefulSet.Status.Replicas == statefulSet.Status.ReadyReplicas {
+				ready = statefulSet.Status.ReadyReplicas
+				return
+			}
 		}
 	}
-
-	return
 }
 
 // RunningStatefulSets returns names of running StatefulSets

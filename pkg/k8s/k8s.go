@@ -146,7 +146,7 @@ func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.Custo
 	c.Secret = secret.NewClient(clientset)
 	c.ServiceAccount = serviceaccount.NewClient(clientset)
 	c.Service = service.NewClient(clientset)
-	c.StatefulSet = statefulset.NewClient(clientset)
+	c.StatefulSet = statefulset.NewClient(clientset, logger)
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 
 	return c

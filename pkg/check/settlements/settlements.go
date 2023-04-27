@@ -172,6 +172,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		// download file from random node
 
 		dNode := pickAtRandom(rnd, sortedNodes, uNode)
+		c.logger.Infof("download starting from %s", overlays[dNode].String())
+
 		size, hash, err := clients[dNode].DownloadFile(ctx, file.Address())
 		if err != nil {
 			return fmt.Errorf("node %s: %w", dNode, err)
