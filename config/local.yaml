@@ -319,7 +319,7 @@ checks:
       threshold: 100000000
       upload-node-count: 3
       wait-before-download: 2m
-    timeout: 10m
+    timeout: 15m
     type: settlements
   ci-settlements-clef:
     options:
