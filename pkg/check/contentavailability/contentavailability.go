@@ -105,7 +105,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 	c.logger.Infof("node %s: content uploaded successfully: %s", node, addr)
 
-	time.Sleep(5 * time.Second) // Wait for nodes to sync.
+	time.Sleep(time.Minute) // Wait for nodes to sync.
 
 	isRetrievable, err := client.IsRetrievable(ctx, contentAddr)
 	if err != nil {
