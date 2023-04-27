@@ -121,6 +121,7 @@ func (*StatefulSet) Watch(ctx context.Context, opts metav1.ListOptions) (watch.I
 	case opts.FieldSelector == "metadata.name=test_statefulset":
 		watcher := watch.NewFake()
 		go func() {
+			defer watcher.Stop()
 			watcher.Add(&v1.StatefulSet{
 				Status: v1.StatefulSetStatus{
 					Replicas:      1,
@@ -129,17 +130,12 @@ func (*StatefulSet) Watch(ctx context.Context, opts metav1.ListOptions) (watch.I
 			})
 		}()
 		return watcher, nil
-	case opts.FieldSelector == "metadata.name=test_statefulset_not_ready":
+	case opts.FieldSelector == "metadata.name=test_statefulset_watcher_stop":
 		watcher := watch.NewFake()
-		go func() {
-			defer watcher.Stop()
-			watcher.Add(&v1.StatefulSet{
-				Status: v1.StatefulSetStatus{
-					Replicas:      0,
-					ReadyReplicas: 1,
-				},
-			})
-		}()
+		watcher.Stop()
+		return watcher, nil
+	case opts.FieldSelector == "metadata.name=test_statefulset_context_cancel":
+		watcher := watch.NewFake()
 		return watcher, nil
 	default:
 		return nil, fmt.Errorf("mock error: unknown")

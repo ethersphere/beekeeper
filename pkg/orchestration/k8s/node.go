@@ -502,7 +502,6 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}
 	n.logger.Infof("statefulset %s is set in namespace %s", sSet, o.Namespace)
 
-	n.logger.Infof("node %s started in namespace %s", o.Name, o.Namespace)
 	return
 }
 
