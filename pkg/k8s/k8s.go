@@ -52,12 +52,12 @@ type ClientOptions struct {
 // ClientSetup holds functions for configuration of the Client.
 // Functions are extracted for being able to mock them for unit tests.
 type ClientSetup struct {
-	NewForConfig         func(c *rest.Config) (*kubernetes.Clientset, error)
-	InClusterConfig      func() (*rest.Config, error)
-	BuildConfigFromFlags func(masterUrl string, kubeconfigPath string) (*rest.Config, error)
-	FlagString           func(name string, value string, usage string) *string
-	FlagParse            func()
-	OsUserHomeDir        func() (string, error)
+	NewForConfig         func(c *rest.Config) (*kubernetes.Clientset, error)                 // kubernetes.NewForConfig
+	InClusterConfig      func() (*rest.Config, error)                                        // rest.InClusterConfig
+	BuildConfigFromFlags func(masterUrl string, kubeconfigPath string) (*rest.Config, error) // clientcmd.BuildConfigFromFlags
+	FlagString           func(name string, value string, usage string) *string               // flag.String
+	FlagParse            func()                                                              // flag.Parse
+	OsUserHomeDir        func() (string, error)                                              // os.UserHomeDir
 }
 
 // customTransport is an example custom transport that wraps the default transport
