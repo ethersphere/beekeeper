@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/node-funder/pkg/funder"
 	"github.com/spf13/cobra"
 )
 
@@ -50,10 +51,20 @@ func (c *command) initNodeFunderCmd() (err error) {
 			cfg.MinAmounts.NativeCoin = c.globalConfig.GetFloat64(optionNameMinNative)
 			cfg.MinAmounts.SwarmToken = c.globalConfig.GetFloat64(optionNameMinSwarm)
 
-			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
+			// TODO: add timeout to node-funder
+			_, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			return c.fund(ctx, cfg)
+			return funder.Fund(funder.Config{
+				Namespace:         cfg.Namespace,
+				Addresses:         cfg.Addresses,
+				ChainNodeEndpoint: cfg.ChainNodeEndpoint,
+				WalletKey:         cfg.WalletKey,
+				MinAmounts: funder.MinAmounts{
+					NativeCoin: cfg.MinAmounts.NativeCoin,
+					SwarmToken: cfg.MinAmounts.SwarmToken,
+				},
+			})
 		},
 		PreRunE: c.preRunE,
 	}
@@ -67,28 +78,6 @@ func (c *command) initNodeFunderCmd() (err error) {
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "timeout")
 
 	c.root.AddCommand(cmd)
-
-	return nil
-}
-
-func (c *command) fund(ctx context.Context, cfg config.NodeFunder) (err error) {
-	c.logger.Debugf("funding nodes with config: %+v", cfg)
-
-	if cfg.Namespace != "" {
-		return c.fundNamespace(ctx, cfg)
-	}
-
-	return c.fundAddresses(ctx, cfg)
-}
-
-func (c *command) fundNamespace(ctx context.Context, cfg config.NodeFunder) (err error) {
-	c.logger.Infof("funding nodes in namespace %s", cfg.Namespace)
-
-	return nil
-}
-
-func (c *command) fundAddresses(ctx context.Context, cfg config.NodeFunder) (err error) {
-	c.logger.Infof("funding addresses in namespace %s", cfg.Namespace)
 
 	return nil
 }
