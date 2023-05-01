@@ -5,24 +5,17 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/ethersphere/bee/pkg/swarm"
 )
 
 // TagsService represents Bee's Tag service
 type TagsService service
 
 type TagResponse struct {
-	Total     int64         `json:"total"`
-	Split     int64         `json:"split"`
-	Seen      int64         `json:"seen"`
-	Stored    int64         `json:"stored"`
-	Sent      int64         `json:"sent"`
-	Synced    int64         `json:"synced"`
-	Uid       uint32        `json:"uid"`
-	Name      string        `json:"name"`
-	Address   swarm.Address `json:"address"`
-	StartedAt time.Time     `json:"startedAt"`
+	Total     int64     `json:"total"`
+	Synced    int64     `json:"synced"`
+	Uid       uint32    `json:"uid"`
+	StartedAt time.Time `json:"startedAt"`
+	Processed int64     `json:"processed"`
 }
 
 // CreateTag creates new tag
