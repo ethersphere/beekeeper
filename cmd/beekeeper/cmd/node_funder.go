@@ -28,14 +28,12 @@ func (c *command) initNodeFunderCmd() (err error) {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.NodeFunder{}
 
-			// namespace check
-			if cfg.Namespace = c.globalConfig.GetString(optionNameNamespace); cfg.Namespace == "" {
-				return fmt.Errorf("namespace not provided")
-			}
+			cfg.Namespace = c.globalConfig.GetString(optionNameNamespace)
+			cfg.Addresses = c.globalConfig.GetStringSlice(optionNameAddresses)
 
-			// addresses check
-			if cfg.Addresses = c.globalConfig.GetStringSlice(optionNameAddresses); len(cfg.Addresses) < 1 {
-				return fmt.Errorf("bee node addresses not provided")
+			// namespace and addresses check
+			if cfg.Namespace == "" && len(cfg.Addresses) == 0 {
+				return fmt.Errorf("namespace or addresses not provided")
 			}
 
 			// chain node endpoint check
@@ -52,10 +50,10 @@ func (c *command) initNodeFunderCmd() (err error) {
 			cfg.MinAmounts.SwarmToken = c.globalConfig.GetFloat64(optionNameMinSwarm)
 
 			// TODO: add timeout to node-funder
-			_, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
+			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			return funder.Fund(funder.Config{
+			return funder.Fund(ctx, funder.Config{
 				Namespace:         cfg.Namespace,
 				Addresses:         cfg.Addresses,
 				ChainNodeEndpoint: cfg.ChainNodeEndpoint,

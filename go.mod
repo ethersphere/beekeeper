@@ -43,7 +43,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/ethersphere/go-sw3-abi v0.4.0 // indirect
-	github.com/ethersphere/node-funder v0.0.0-20230428072304-e1c23a355e68
+	github.com/ethersphere/node-funder v0.0.0-20230503084933-cbc2abfb8288
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-chi/chi v1.5.4 // indirect
