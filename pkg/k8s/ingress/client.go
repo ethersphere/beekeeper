@@ -3,6 +3,7 @@ package ingress
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	v1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -27,6 +28,12 @@ type Options struct {
 	Annotations map[string]string
 	Labels      map[string]string
 	Spec        Spec
+}
+
+// NodeInfo
+type NodeInfo struct {
+	Name string
+	Host string
 }
 
 // Set updates Ingress or creates it if it does not exist
@@ -67,4 +74,34 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	}
 
 	return
+}
+
+// ListDebugNodesHosts list Ingresses that are nodes
+func (c *Client) ListDebugNodesHosts(ctx context.Context, namespace string) (nodes []NodeInfo, err error) {
+	ingreses, err := c.clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/name=bee",
+	})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("list ingresses in namespace %s: %w", namespace, err)
+	}
+
+	if ingreses != nil {
+		for _, ingress := range ingreses.Items {
+			if strings.HasSuffix(ingress.Name, "-debug") {
+				for _, rule := range ingress.Spec.Rules {
+					if rule.Host != "" {
+						nodes = append(nodes, NodeInfo{
+							Name: strings.TrimSuffix(ingress.Name, "-debug"),
+							Host: rule.Host,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	return nodes, nil
 }

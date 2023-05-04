@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/node-funder/pkg/funder"
 	"github.com/spf13/cobra"
 )
@@ -49,9 +50,12 @@ func (c *command) initNodeFunderCmd() (err error) {
 			cfg.MinAmounts.NativeCoin = c.globalConfig.GetFloat64(optionNameMinNative)
 			cfg.MinAmounts.SwarmToken = c.globalConfig.GetFloat64(optionNameMinSwarm)
 
-			// TODO: add timeout to node-funder
+			// add timeout to node-funder
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
+
+			c.logger.Infof("node-funder started")
+			defer c.logger.Infof("node-funder done")
 
 			return funder.Fund(ctx, funder.Config{
 				Namespace:         cfg.Namespace,
@@ -62,7 +66,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 					NativeCoin: cfg.MinAmounts.NativeCoin,
 					SwarmToken: cfg.MinAmounts.SwarmToken,
 				},
-			})
+			}, newNodeFunder(c.k8sClient))
 		},
 		PreRunE: c.preRunE,
 	}
@@ -78,4 +82,52 @@ func (c *command) initNodeFunderCmd() (err error) {
 	c.root.AddCommand(cmd)
 
 	return nil
+}
+
+type nodeFunder struct {
+	k8sClient *k8s.Client
+}
+
+func newNodeFunder(k8sClient *k8s.Client) *nodeFunder {
+	return &nodeFunder{
+		k8sClient: k8sClient,
+	}
+}
+
+func (nf *nodeFunder) List(ctx context.Context, namespace string) (nodes []funder.NodeInfo, err error) {
+	if nf.k8sClient == nil {
+		return nil, fmt.Errorf("k8s client not initialized")
+	}
+
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace not provided")
+	}
+
+	ingressHosts, err := nf.k8sClient.Ingress.ListDebugNodesHosts(ctx, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("list ingress debug nodes hosts: %s", err.Error())
+	}
+
+	ingressRouteHosts, err := nf.k8sClient.IngressRoute.ListDebugNodesHosts(ctx, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("list ingress route debug nodes hosts: %s", err.Error())
+	}
+
+	nodes = make([]funder.NodeInfo, 0, len(ingressHosts)+len(ingressRouteHosts))
+
+	for _, node := range ingressHosts {
+		nodes = append(nodes, funder.NodeInfo{
+			Name:    node.Name,
+			Address: node.Host,
+		})
+	}
+
+	for _, node := range ingressRouteHosts {
+		nodes = append(nodes, funder.NodeInfo{
+			Name:    node.Name,
+			Address: node.Host,
+		})
+	}
+
+	return nodes, nil
 }

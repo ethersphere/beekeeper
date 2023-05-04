@@ -3,7 +3,9 @@ package ingressroute
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -78,4 +80,35 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	}
 
 	return
+}
+
+// ListDebugNodesHosts list Ingresses that are nodes
+func (c *Client) ListDebugNodesHosts(ctx context.Context, namespace string) (nodes []ingress.NodeInfo, err error) {
+	ingressRoutes, err := c.clientset.IngressRoutes(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/component=node",
+	})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("list ingress routes in namespace %s: %w", namespace, err)
+	}
+
+	if ingressRoutes != nil {
+		for _, ingressRoute := range ingressRoutes.Items {
+			if strings.HasSuffix(ingressRoute.Name, "-debug") {
+				for _, route := range ingressRoute.Spec.Routes {
+					host := route.GetHost()
+					if host != "" {
+						nodes = append(nodes, ingress.NodeInfo{
+							Name: strings.TrimSuffix(ingressRoute.Name, "-debug"),
+							Host: host,
+						})
+					}
+				}
+			}
+		}
+	}
+
+	return nodes, nil
 }
