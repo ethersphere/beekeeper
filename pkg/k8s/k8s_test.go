@@ -2,7 +2,6 @@ package k8s_test
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"reflect"
 	"testing"
@@ -11,19 +10,18 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s"
-	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 func TestNewClient(t *testing.T) {
 	testTable := []struct {
 		name     string
-		options  *k8s.ClientOptions
+		options  []k8s.ClientOption
 		k8sFuncs *k8s.ClientSetup
 		errorMsg error
 	}{
 		{
 			name:     "in_cluster_config_error",
-			options:  &k8s.ClientOptions{InCluster: true},
+			options:  []k8s.ClientOption{k8s.WithInCluster(true)},
 			errorMsg: fmt.Errorf("creating Kubernetes in-cluster client config: mock error"),
 			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
@@ -32,7 +30,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:     "in_cluster_clientset_error",
-			options:  &k8s.ClientOptions{InCluster: true},
+			options:  []k8s.ClientOption{k8s.WithInCluster(true)},
 			errorMsg: fmt.Errorf("creating Kubernetes clientset: mock error"),
 			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(true).NewForConfig,
@@ -41,7 +39,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:    "in_cluster",
-			options: &k8s.ClientOptions{InCluster: true},
+			options: []k8s.ClientOption{k8s.WithInCluster(true)},
 			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
@@ -87,7 +85,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:    "not_in_cluster_other_path",
-			options: &k8s.ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/test_example"},
+			options: []k8s.ClientOption{k8s.WithInCluster(false), k8s.WithKubeconfigPath("~/.kube/test_example")},
 			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:         mock.NewClient(false).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
@@ -98,7 +96,7 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:    "not_in_cluster_fail_home_dir",
-			options: &k8s.ClientOptions{InCluster: false, KubeconfigPath: "~/.kube/config"},
+			options: []k8s.ClientOption{k8s.WithInCluster(false), k8s.WithKubeconfigPath("~/.kube/config")},
 			k8sFuncs: &k8s.ClientSetup{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
@@ -108,14 +106,15 @@ func TestNewClient(t *testing.T) {
 		},
 		{
 			name:     "not_in_cluster_empty_path",
-			options:  &k8s.ClientOptions{},
+			options:  []k8s.ClientOption{k8s.WithInCluster(false), k8s.WithKubeconfigPath("")},
 			errorMsg: k8s.ErrKubeconfigNotSet,
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			response, err := k8s.NewClient(test.k8sFuncs, test.options, logging.New(io.Discard, 0, ""))
+			test.options = append(test.options, k8s.WithClientSetup(test.k8sFuncs))
+			response, err := k8s.NewClient(test.options...)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -134,7 +133,7 @@ func TestNewClient(t *testing.T) {
 					fieldVal := val.Field(i)
 
 					// Check if the field is nil.
-					if fieldVal.IsNil() {
+					if (fieldVal.Kind() == reflect.Interface || fieldVal.Kind() == reflect.Ptr) && fieldVal.IsNil() {
 						t.Errorf("nil not expected for '%s' property", val.Type().Field(i).Name)
 					}
 				}

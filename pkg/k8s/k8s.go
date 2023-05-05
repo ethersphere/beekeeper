@@ -2,8 +2,8 @@ package k8s
 
 import (
 	"errors"
-	"flag"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
@@ -25,10 +25,17 @@ import (
 // ErrKubeconfigNotSet represents error when kubeconfig is empty string
 var ErrKubeconfigNotSet = errors.New("kubeconfig is not set")
 
+// ClientOption holds optional parameters for the Client.
+type ClientOption func(*Client)
+
 // Client manages communication with the Kubernetes
 type Client struct {
-	clientset kubernetes.Interface // Kubernetes client must handle authentication implicitly.
-	logger    logging.Logger
+	clientset      kubernetes.Interface    // Kubernetes client must handle authentication implicitly.
+	logger         logging.Logger          // logger
+	cs             *ClientSetup            // ClientSetup holds functions for configuration of the Client.
+	inCluster      bool                    // inCluster
+	kubeconfigPath string                  // kubeconfigPath
+	rateLimiter    flowcontrol.RateLimiter // rateLimiter
 
 	// Services that K8S provides
 	ConfigMap      *configmap.Client
@@ -43,73 +50,61 @@ type Client struct {
 	IngressRoute   *ingressroute.Client
 }
 
-// ClientOptions holds optional parameters for the Client.
-type ClientOptions struct {
-	InCluster      bool
-	KubeconfigPath string
-}
-
-// ClientSetup holds functions for configuration of the Client.
-// Functions are extracted for being able to mock them for unit tests.
-type ClientSetup struct {
-	NewForConfig         func(c *rest.Config) (*kubernetes.Clientset, error)                 // kubernetes.NewForConfig
-	InClusterConfig      func() (*rest.Config, error)                                        // rest.InClusterConfig
-	BuildConfigFromFlags func(masterUrl string, kubeconfigPath string) (*rest.Config, error) // clientcmd.BuildConfigFromFlags
-	FlagString           func(name string, value string, usage string) *string               // flag.String
-	FlagParse            func()                                                              // flag.Parse
-	OsUserHomeDir        func() (string, error)                                              // os.UserHomeDir
-}
-
 // NewClient returns Kubernetes clientset
-func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Client, err error) {
-	// set default options in case they are not provided
-	if o == nil {
-		o = &ClientOptions{
-			InCluster:      false,
-			KubeconfigPath: "~/.kube/config",
-		}
+func NewClient(options ...ClientOption) (c *Client, err error) {
+	c = &Client{
+		cs:             NewClientSetup(),
+		logger:         logging.New(io.Discard, 0, ""), // discard logs by default
+		inCluster:      false,
+		kubeconfigPath: "~/.kube/config",
+		rateLimiter:    flowcontrol.NewTokenBucketRateLimiter(50, 100),
+	}
+
+	// apply options
+	for _, option := range options {
+		option(c)
 	}
 
 	var config *rest.Config
 
-	if o.InCluster {
+	if c.inCluster {
 		// set in-cluster client
-		config, err = s.InClusterConfig()
+		config, err = c.cs.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
 	} else {
-		// set client
+		// set client from kubeconfig
 		configPath := ""
-		if len(o.KubeconfigPath) == 0 {
+		if len(c.kubeconfigPath) == 0 {
 			return nil, ErrKubeconfigNotSet
-		} else if o.KubeconfigPath == "~/.kube/config" {
-			home, err := s.OsUserHomeDir()
+		} else if c.kubeconfigPath == "~/.kube/config" {
+			home, err := c.cs.OsUserHomeDir()
 			if err != nil {
 				return nil, fmt.Errorf("obtaining user's home dir: %w", err)
 			}
 			configPath = home + "/.kube/config"
 		} else {
-			configPath = o.KubeconfigPath
+			configPath = c.kubeconfigPath
 		}
 
-		kubeconfig := s.FlagString("kubeconfig", configPath, "kubeconfig file")
-		flag.Parse()
+		kubeconfig := c.cs.FlagString("kubeconfig", configPath, "kubeconfig file")
+		c.cs.FlagParse()
 
-		config, err = s.BuildConfigFromFlags("", *kubeconfig)
+		config, err = c.cs.BuildConfigFromFlags("", *kubeconfig)
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 		}
 	}
 
-	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(50, 100)
+	config.RateLimiter = c.rateLimiter
 
 	// Wrap the default transport with our custom transport.
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 		return NewCustomTransport(rt, config)
 	}
 
-	clientset, err := s.NewForConfig(config)
+	clientset, err := c.cs.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
@@ -119,16 +114,15 @@ func NewClient(s *ClientSetup, o *ClientOptions, logger logging.Logger) (c *Clie
 		return nil, fmt.Errorf("creating custom resource Kubernetes api clientset: %w", err)
 	}
 
-	return newClient(clientset, apiClientset, logger), nil
+	c.setK8sClient(clientset, apiClientset)
+
+	return c, nil
 }
 
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all other services.
-func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.CustomResourceClient, logger logging.Logger) (c *Client) {
-	c = &Client{
-		clientset: clientset,
-		logger:    logger,
-	}
+func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingressroute.Interface) {
+	c.clientset = clientset
 
 	c.ConfigMap = configmap.NewClient(clientset)
 	c.Ingress = ingress.NewClient(clientset)
@@ -138,8 +132,41 @@ func newClient(clientset *kubernetes.Clientset, apiClientset *ingressroute.Custo
 	c.Secret = secret.NewClient(clientset)
 	c.ServiceAccount = serviceaccount.NewClient(clientset)
 	c.Service = service.NewClient(clientset)
-	c.StatefulSet = statefulset.NewClient(clientset, logger)
+	c.StatefulSet = statefulset.NewClient(clientset, c.logger)
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
+}
 
-	return c
+// WithClientSetup sets the ClientSetup function, which is used for mocking.
+func WithClientSetup(cs *ClientSetup) ClientOption {
+	return func(c *Client) {
+		c.cs = cs
+	}
+}
+
+// WithLogger sets the logger
+func WithLogger(logger logging.Logger) ClientOption {
+	return func(c *Client) {
+		c.logger = logger
+	}
+}
+
+// WithInCluster sets the inCluster
+func WithInCluster(inCluster bool) ClientOption {
+	return func(c *Client) {
+		c.inCluster = inCluster
+	}
+}
+
+// WithKubeconfigPath sets the kubeconfigPath
+func WithKubeconfigPath(kubeconfigPath string) ClientOption {
+	return func(c *Client) {
+		c.kubeconfigPath = kubeconfigPath
+	}
+}
+
+// WithRateLimiter sets the rateLimiter
+func WithRateLimiter(rateLimiter flowcontrol.RateLimiter) ClientOption {
+	return func(c *Client) {
+		c.rateLimiter = rateLimiter
+	}
 }
