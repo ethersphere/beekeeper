@@ -66,7 +66,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 					NativeCoin: cfg.MinAmounts.NativeCoin,
 					SwarmToken: cfg.MinAmounts.SwarmToken,
 				},
-			}, newNodeFunder(c.k8sClient))
+			}, newNodeFunder(c.k8sClient), nil)
 		},
 		PreRunE: c.preRunE,
 	}
@@ -125,7 +125,7 @@ func (nf *nodeFunder) List(ctx context.Context, namespace string) (nodes []funde
 	for _, node := range ingressRouteHosts {
 		nodes = append(nodes, funder.NodeInfo{
 			Name:    node.Name,
-			Address: node.Host,
+			Address: fmt.Sprintf("http://%s", node.Host),
 		})
 	}
 

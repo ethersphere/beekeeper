@@ -124,8 +124,8 @@ github.com/ethersphere/ethproxy v0.0.5 h1:j5Mkm45jqmkET6NwGaJtaxOSFbhoAfOKzHiwHl
 github.com/ethersphere/ethproxy v0.0.5/go.mod h1:7mkVRK3+Mte00jLxFAbUQ/cBepAzwTYpkE64ItCLZYw=
 github.com/ethersphere/go-sw3-abi v0.4.0 h1:T3ANY+ktWrPAwe2U0tZi+DILpkHzto5ym/XwV/Bbz8g=
 github.com/ethersphere/go-sw3-abi v0.4.0/go.mod h1:BmpsvJ8idQZdYEtWnvxA8POYQ8Rl/NhyCdF0zLMOOJU=
-github.com/ethersphere/node-funder v0.0.0-20230503084933-cbc2abfb8288 h1:Pj/AezLktsHaAOFimCEvWN8Mhu0GRhV2Gcq3lt9HUpE=
-github.com/ethersphere/node-funder v0.0.0-20230503084933-cbc2abfb8288/go.mod h1:9Uy/jxD8lzRZ/2cWHYnEDNiwC64pl1rjpyB5cnXQwgY=
+github.com/ethersphere/node-funder v0.0.0-20230505143201-116f24f6d03f h1:R1prFp3Fh/KbkdhnpUmKO5GiJL1of7URdl7+875Jdvo=
+github.com/ethersphere/node-funder v0.0.0-20230505143201-116f24f6d03f/go.mod h1:/qBhtMRxczNRfVlcuHBVy2vaZBy33I0Gr8W4eYS8twk=
 github.com/evanphx/json-patch v4.11.0+incompatible h1:glyUF9yIYtMHzn8xaKw5rMhdWcwsYV8dZHIq5567/xs=
 github.com/evanphx/json-patch v4.11.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 h1:FtmdgXiUlNeRsoNMFlKLDt+S+6hbjVMEW6RGQ7aUf7c=
