@@ -30,7 +30,7 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 		h.Add(swarmPinHeader, "true")
 	}
 	if o.Tag != 0 {
-		h.Add(swarmTagHeader, strconv.FormatUint(uint64(o.Tag), 10))
+		h.Add(swarmTagHeader, strconv.FormatUint(o.Tag, 10))
 	}
 	h.Add(deferredUploadHeader, strconv.FormatBool(!o.Direct))
 	h.Add(postageStampBatchHeader, o.BatchID)
