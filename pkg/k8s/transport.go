@@ -15,10 +15,10 @@ type customTransport struct {
 	rateLimiter flowcontrol.RateLimiter
 }
 
-func NewCustomTransport(base http.RoundTripper, config *rest.Config) http.RoundTripper {
+func NewCustomTransport(base http.RoundTripper, config *rest.Config, maxConcurentRequests int) http.RoundTripper {
 	return &customTransport{
 		base:        base,
-		semaphore:   make(chan struct{}, 10),
+		semaphore:   make(chan struct{}, maxConcurentRequests),
 		rateLimiter: config.RateLimiter,
 	}
 }

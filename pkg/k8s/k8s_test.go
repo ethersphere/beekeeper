@@ -160,7 +160,7 @@ func TestRoundTripper(t *testing.T) {
 	config.RateLimiter = flowcontrol.NewFakeAlwaysRateLimiter()
 
 	// Create a new instance of the wrapped RoundTripper and pass in the mock RoundTripper.
-	wrappedTransport := k8s.NewCustomTransport(mockTransport, config)
+	wrappedTransport := k8s.NewCustomTransport(mockTransport, config, 10)
 
 	t.Run("successful_request", func(t *testing.T) {
 		// Set up the mock to return a successful response.

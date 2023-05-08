@@ -22,22 +22,23 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 )
 
-// ErrKubeconfigNotSet represents error when kubeconfig is empty string
+// ErrKubeconfigNotSet represents error when kubeconfig is empty string.
 var ErrKubeconfigNotSet = errors.New("kubeconfig is not set")
 
 // ClientOption holds optional parameters for the Client.
 type ClientOption func(*Client)
 
-// Client manages communication with the Kubernetes
+// Client manages communication with the Kubernetes.
 type Client struct {
-	clientset      kubernetes.Interface    // Kubernetes client must handle authentication implicitly.
-	logger         logging.Logger          // logger
-	cs             *ClientSetup            // ClientSetup holds functions for configuration of the Client.
-	inCluster      bool                    // inCluster
-	kubeconfigPath string                  // kubeconfigPath
-	rateLimiter    flowcontrol.RateLimiter // rateLimiter
+	clientset            kubernetes.Interface    // Kubernetes client must handle authentication implicitly.
+	logger               logging.Logger          // logger
+	cs                   *ClientSetup            // ClientSetup holds functions for configuration of the Client.
+	inCluster            bool                    // inCluster
+	kubeconfigPath       string                  // kubeconfigPath
+	rateLimiter          flowcontrol.RateLimiter // rateLimiter
+	maxConcurentRequests int                     // maxConcurentRequests (semaphore)
 
-	// Services that K8S provides
+	// exported services that K8S provides
 	ConfigMap      *configmap.Client
 	Ingress        *ingress.Client
 	Namespace      *namespace.Client
@@ -50,14 +51,16 @@ type Client struct {
 	IngressRoute   *ingressroute.Client
 }
 
-// NewClient returns Kubernetes clientset
+// NewClient returns a new Kubernetes client.
 func NewClient(options ...ClientOption) (c *Client, err error) {
 	c = &Client{
-		cs:             NewClientSetup(),
-		logger:         logging.New(io.Discard, 0, ""), // discard logs by default
-		inCluster:      false,
-		kubeconfigPath: "~/.kube/config",
-		rateLimiter:    flowcontrol.NewTokenBucketRateLimiter(50, 100),
+		// set default values
+		cs:                   NewClientSetup(),
+		logger:               logging.New(io.Discard, 0, ""),
+		inCluster:            false,
+		kubeconfigPath:       "~/.kube/config",
+		rateLimiter:          flowcontrol.NewTokenBucketRateLimiter(50, 100),
+		maxConcurentRequests: 10,
 	}
 
 	// apply options
@@ -101,7 +104,7 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 
 	// Wrap the default transport with our custom transport.
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return NewCustomTransport(rt, config)
+		return NewCustomTransport(rt, config, c.maxConcurentRequests)
 	}
 
 	clientset, err := c.cs.NewForConfig(config)
@@ -164,9 +167,10 @@ func WithKubeconfigPath(kubeconfigPath string) ClientOption {
 	}
 }
 
-// WithRateLimiter sets the rateLimiter
-func WithRateLimiter(rateLimiter flowcontrol.RateLimiter) ClientOption {
+// WithRequestLimiter sets the rateLimiter
+func WithRequestLimiter(rateLimiter flowcontrol.RateLimiter, maxConcurentRequests int) ClientOption {
 	return func(c *Client) {
 		c.rateLimiter = rateLimiter
+		c.maxConcurentRequests = maxConcurentRequests
 	}
 }

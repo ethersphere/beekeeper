@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// ClientSetupOption holds optional parameters for the ClientSetup.
 type ClientSetupOption func(*ClientSetup)
 
 // NewClientSetup returns a new ClientSetup.
@@ -29,8 +30,8 @@ func NewClientSetup(options ...ClientSetupOption) *ClientSetup {
 	return cs
 }
 
-// ClientSetup holds functions for configuration of the Client.
-// Functions are extracted for being able to mock them for unit tests.
+// ClientSetup holds functions for setting up the Kubernetes client.
+// Functions are extracted to be able to mock them in tests.
 type ClientSetup struct {
 	NewForConfig         func(c *rest.Config) (*kubernetes.Clientset, error)                 // kubernetes.NewForConfig
 	InClusterConfig      func() (*rest.Config, error)                                        // rest.InClusterConfig
