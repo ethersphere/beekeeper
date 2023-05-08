@@ -9,6 +9,7 @@ require (
 	github.com/ethersphere/bee v1.13.0
 	github.com/ethersphere/bmt v0.1.4
 	github.com/ethersphere/ethproxy v0.0.5
+	github.com/ethersphere/node-funder v0.0.1
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/google/uuid v1.3.0
@@ -43,7 +44,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/ethersphere/go-sw3-abi v0.4.0 // indirect
-	github.com/ethersphere/node-funder v0.0.0-20230505143201-116f24f6d03f
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-chi/chi v1.5.4 // indirect
