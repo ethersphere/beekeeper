@@ -65,11 +65,11 @@ func (c *command) initNodeFunderCmd() (err error) {
 			c.logger.Infof("node-funder started")
 			defer c.logger.Infof("node-funder done")
 
-			// TODO swarm key address is the same as nodeEndpoint/wallet walletAddress
+			// TODO: Note that the swarm key address is the same as the nodeEndpoint/wallet walletAddress.
 
-			// TODO for bootnode we have swarmkey (option),
-			// for other nodes beekeeper creates swarmkey when setting up the cluster,
-			// after that beekeeper knows the addresses that can be funded.
+			// TODO: When setting up a bootnode, the swarmkey option is used to specify the existing swarm key.
+			// However, for other nodes, the beekeeper automatically generates a new swarm key during cluster setup.
+			// Once the swarm key is generated, beekeeper identifies the addresses that can be funded for each node.
 
 			var nodeLister funder.NodeLister
 			// if addresses are provided, use them, not k8s client to list nodes
