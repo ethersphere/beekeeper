@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,6 +16,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 	const (
 		optionNameAddresses         = "addresses"
 		optionNameNamespace         = "namespace"
+		optionClusterName           = "cluster-name"
 		optionNameChainNodeEndpoint = "chain-node-endpoint"
 		optionNameWalletKey         = "wallet-key"
 		optionNameMinNative         = "min-native"
@@ -29,22 +31,28 @@ func (c *command) initNodeFunderCmd() (err error) {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.NodeFunder{}
 
-			cfg.Namespace = c.globalConfig.GetString(optionNameNamespace)
-			cfg.Addresses = c.globalConfig.GetStringSlice(optionNameAddresses)
+			namespace := c.globalConfig.GetString(optionNameNamespace)
+			addresses := c.globalConfig.GetStringSlice(optionNameAddresses)
+			clusterName := c.globalConfig.GetString(optionClusterName)
 
-			// namespace and addresses check
-			if cfg.Namespace == "" && len(cfg.Addresses) == 0 {
-				return fmt.Errorf("namespace or addresses not provided")
+			if len(addresses) > 0 {
+				cfg.Addresses = addresses
+			} else if namespace != "" {
+				cfg.Namespace = namespace
+			} else if clusterName != "" && c.config.Clusters[clusterName].Namespace != nil {
+				cfg.Namespace = *c.config.Clusters[clusterName].Namespace
+			} else {
+				return errors.New("one of addresses, namespace, or valid cluster-name must be provided")
 			}
 
 			// chain node endpoint check
 			if cfg.ChainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); cfg.ChainNodeEndpoint == "" {
-				return fmt.Errorf("chain node endpoint not provided")
+				return errors.New("chain node endpoint not provided")
 			}
 
 			// wallet key check
 			if cfg.WalletKey = c.globalConfig.GetString(optionNameWalletKey); cfg.WalletKey == "" {
-				return fmt.Errorf("wallet key not provided")
+				return errors.New("wallet key not provided")
 			}
 
 			cfg.MinAmounts.NativeCoin = c.globalConfig.GetFloat64(optionNameMinNative)
@@ -57,6 +65,18 @@ func (c *command) initNodeFunderCmd() (err error) {
 			c.logger.Infof("node-funder started")
 			defer c.logger.Infof("node-funder done")
 
+			// TODO swarm key address is the same as nodeEndpoint/wallet walletAddress
+
+			// TODO for bootnode we have swarmkey (option),
+			// for other nodes beekeeper creates swarmkey when setting up the cluster,
+			// after that beekeeper knows the addresses that can be funded.
+
+			var nodeLister funder.NodeLister
+			// if addresses are provided, use them, not k8s client to list nodes
+			if cfg.Namespace != "" {
+				nodeLister = newNodeLister(c.k8sClient)
+			}
+
 			return funder.Fund(ctx, funder.Config{
 				Namespace:         cfg.Namespace,
 				Addresses:         cfg.Addresses,
@@ -66,12 +86,13 @@ func (c *command) initNodeFunderCmd() (err error) {
 					NativeCoin: cfg.MinAmounts.NativeCoin,
 					SwarmToken: cfg.MinAmounts.SwarmToken,
 				},
-			}, newNodeFunder(c.k8sClient), nil)
+			}, nodeLister, nil)
 		},
 		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().String(optionNameNamespace, "", "kubernetes namespace")
+	cmd.Flags().String(optionClusterName, "", "cluster name")
 	cmd.Flags().String(optionNameChainNodeEndpoint, "", "endpoint to chain node")
 	cmd.Flags().String(optionNameWalletKey, "", "wallet key")
 	cmd.Flags().Float64(optionNameMinNative, 0, "specifies min amout of chain native coins (ETH) nodes should have")
@@ -84,17 +105,17 @@ func (c *command) initNodeFunderCmd() (err error) {
 	return nil
 }
 
-type nodeFunder struct {
+type nodeLister struct {
 	k8sClient *k8s.Client
 }
 
-func newNodeFunder(k8sClient *k8s.Client) *nodeFunder {
-	return &nodeFunder{
+func newNodeLister(k8sClient *k8s.Client) *nodeLister {
+	return &nodeLister{
 		k8sClient: k8sClient,
 	}
 }
 
-func (nf *nodeFunder) List(ctx context.Context, namespace string) (nodes []funder.NodeInfo, err error) {
+func (nf *nodeLister) List(ctx context.Context, namespace string) (nodes []funder.NodeInfo, err error) {
 	if nf.k8sClient == nil {
 		return nil, fmt.Errorf("k8s client not initialized")
 	}
