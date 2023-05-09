@@ -112,7 +112,7 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
 
-	apiClientset, err := ingressroute.NewForConfig(config)
+	apiClientset, err := c.config.NewIngressRouteClientForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating custom resource Kubernetes api clientset: %w", err)
 	}
@@ -142,35 +142,43 @@ func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingre
 // WithMockClientConfig sets the ClientConfig function, which is used for only when mocking.
 func WithMockClientConfig(cs *ClientConfig) ClientOption {
 	return func(c *Client) {
-		c.config = cs
+		if cs != nil {
+			c.config = cs
+		}
 	}
 }
 
-// WithLogger sets the logger
+// WithLogger sets the logger for the Client.
 func WithLogger(logger logging.Logger) ClientOption {
 	return func(c *Client) {
-		c.logger = logger
+		if logger != nil {
+			c.logger = logger
+		}
 	}
 }
 
-// WithInCluster sets the inCluster
+// WithInCluster sets the inCluster flag for the Client.
 func WithInCluster(inCluster bool) ClientOption {
 	return func(c *Client) {
 		c.inCluster = inCluster
 	}
 }
 
-// WithKubeconfigPath sets the kubeconfigPath
+// WithKubeconfigPath sets the kubeconfigPath for the Client.
 func WithKubeconfigPath(kubeconfigPath string) ClientOption {
 	return func(c *Client) {
 		c.kubeconfigPath = kubeconfigPath
 	}
 }
 
-// WithRequestLimiter sets the rateLimiter
+// WithRequestLimiter sets the rateLimiter and maxConcurentRequests for the Client.
 func WithRequestLimiter(rateLimiter flowcontrol.RateLimiter, maxConcurentRequests int) ClientOption {
 	return func(c *Client) {
-		c.rateLimiter = rateLimiter
-		c.maxConcurentRequests = maxConcurentRequests
+		if rateLimiter != nil {
+			c.rateLimiter = rateLimiter
+		}
+		if !(maxConcurentRequests < 0) {
+			c.maxConcurentRequests = maxConcurentRequests
+		}
 	}
 }
