@@ -32,7 +32,7 @@ type ClientOption func(*Client)
 type Client struct {
 	clientset            kubernetes.Interface    // Kubernetes client must handle authentication implicitly.
 	logger               logging.Logger          // logger
-	cs                   *ClientSetup            // ClientSetup holds functions for configuration of the Client.
+	config               *ClientConfig           // ClientConfig holds functions for configuration of the Client.
 	inCluster            bool                    // inCluster
 	kubeconfigPath       string                  // kubeconfigPath
 	rateLimiter          flowcontrol.RateLimiter // rateLimiter
@@ -55,7 +55,7 @@ type Client struct {
 func NewClient(options ...ClientOption) (c *Client, err error) {
 	c = &Client{
 		// set default values
-		cs:                   NewClientSetup(),
+		config:               newClientConfig(),
 		logger:               logging.New(io.Discard, 0, ""),
 		inCluster:            false,
 		kubeconfigPath:       "~/.kube/config",
@@ -72,7 +72,7 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 
 	if c.inCluster {
 		// set in-cluster client
-		config, err = c.cs.InClusterConfig()
+		config, err = c.config.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
@@ -82,7 +82,7 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 		if len(c.kubeconfigPath) == 0 {
 			return nil, ErrKubeconfigNotSet
 		} else if c.kubeconfigPath == "~/.kube/config" {
-			home, err := c.cs.OsUserHomeDir()
+			home, err := c.config.OsUserHomeDir()
 			if err != nil {
 				return nil, fmt.Errorf("obtaining user's home dir: %w", err)
 			}
@@ -91,10 +91,10 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 			configPath = c.kubeconfigPath
 		}
 
-		kubeconfig := c.cs.FlagString("kubeconfig", configPath, "kubeconfig file")
-		c.cs.FlagParse()
+		kubeconfig := c.config.FlagString("kubeconfig", configPath, "kubeconfig file")
+		c.config.FlagParse()
 
-		config, err = c.cs.BuildConfigFromFlags("", *kubeconfig)
+		config, err = c.config.BuildConfigFromFlags("", *kubeconfig)
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 		}
@@ -107,7 +107,7 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 		return NewCustomTransport(rt, config, c.maxConcurentRequests)
 	}
 
-	clientset, err := c.cs.NewForConfig(config)
+	clientset, err := c.config.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
@@ -139,10 +139,10 @@ func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingre
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 }
 
-// WithClientSetup sets the ClientSetup function, which is used for mocking.
-func WithClientSetup(cs *ClientSetup) ClientOption {
+// WithMockClientConfig sets the ClientConfig function, which is used for only when mocking.
+func WithMockClientConfig(cs *ClientConfig) ClientOption {
 	return func(c *Client) {
-		c.cs = cs
+		c.config = cs
 	}
 }
 

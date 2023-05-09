@@ -14,16 +14,16 @@ import (
 
 func TestNewClient(t *testing.T) {
 	testTable := []struct {
-		name     string
-		options  []k8s.ClientOption
-		k8sFuncs *k8s.ClientSetup
-		errorMsg error
+		name      string
+		options   []k8s.ClientOption
+		k8sConfig *k8s.ClientConfig
+		errorMsg  error
 	}{
 		{
 			name:     "in_cluster_config_error",
 			options:  []k8s.ClientOption{k8s.WithInCluster(true)},
 			errorMsg: fmt.Errorf("creating Kubernetes in-cluster client config: mock error"),
-			k8sFuncs: &k8s.ClientSetup{
+			k8sConfig: &k8s.ClientConfig{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
 				InClusterConfig: mock.NewClient(true).InClusterConfig,
 			},
@@ -32,7 +32,7 @@ func TestNewClient(t *testing.T) {
 			name:     "in_cluster_clientset_error",
 			options:  []k8s.ClientOption{k8s.WithInCluster(true)},
 			errorMsg: fmt.Errorf("creating Kubernetes clientset: mock error"),
-			k8sFuncs: &k8s.ClientSetup{
+			k8sConfig: &k8s.ClientConfig{
 				NewForConfig:    mock.NewClient(true).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
 			},
@@ -40,7 +40,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "in_cluster",
 			options: []k8s.ClientOption{k8s.WithInCluster(true)},
-			k8sFuncs: &k8s.ClientSetup{
+			k8sConfig: &k8s.ClientConfig{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
 			},
@@ -48,7 +48,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_default_path",
 			options: nil,
-			k8sFuncs: &k8s.ClientSetup{
+			k8sConfig: &k8s.ClientConfig{
 				NewForConfig:         mock.NewClient(false).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
 				OsUserHomeDir:        mock.NewClient(false).OsUserHomeDir,
@@ -60,7 +60,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_default_path_fail_clientset",
 			options: nil,
-			k8sFuncs: &k8s.ClientSetup{
+			k8sConfig: &k8s.ClientConfig{
 				NewForConfig:         mock.NewClient(true).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
 				OsUserHomeDir:        mock.NewClient(false).OsUserHomeDir,
@@ -73,7 +73,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_default_path_bad",
 			options: nil,
-			k8sFuncs: &k8s.ClientSetup{
+			k8sConfig: &k8s.ClientConfig{
 				NewForConfig:         mock.NewClient(false).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
 				OsUserHomeDir:        mock.NewClient(false).OsUserHomeDir,
@@ -86,7 +86,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_other_path",
 			options: []k8s.ClientOption{k8s.WithInCluster(false), k8s.WithKubeconfigPath("~/.kube/test_example")},
-			k8sFuncs: &k8s.ClientSetup{
+			k8sConfig: &k8s.ClientConfig{
 				NewForConfig:         mock.NewClient(false).NewForConfig,
 				InClusterConfig:      mock.NewClient(false).InClusterConfig,
 				BuildConfigFromFlags: mock.NewClient(false).BuildConfigFromFlags,
@@ -97,7 +97,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:    "not_in_cluster_fail_home_dir",
 			options: []k8s.ClientOption{k8s.WithInCluster(false), k8s.WithKubeconfigPath("~/.kube/config")},
-			k8sFuncs: &k8s.ClientSetup{
+			k8sConfig: &k8s.ClientConfig{
 				NewForConfig:    mock.NewClient(false).NewForConfig,
 				InClusterConfig: mock.NewClient(false).InClusterConfig,
 				OsUserHomeDir:   mock.NewClient(true).OsUserHomeDir,
@@ -113,7 +113,7 @@ func TestNewClient(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			test.options = append(test.options, k8s.WithClientSetup(test.k8sFuncs))
+			test.options = append(test.options, k8s.WithMockClientConfig(test.k8sConfig))
 			response, err := k8s.NewClient(test.options...)
 			if test.errorMsg == nil {
 				if err != nil {
