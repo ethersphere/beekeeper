@@ -33,7 +33,7 @@ func (p *TagsService) CreateTag(ctx context.Context) (resp TagResponse, err erro
 // GetTag gets a new tag
 func (p *TagsService) GetTag(ctx context.Context, tagUID uint64) (resp TagResponse, err error) {
 
-	tag := strconv.FormatUint(uint64(tagUID), 10)
+	tag := strconv.FormatUint(tagUID, 10)
 
 	err = p.client.requestJSON(ctx, http.MethodGet, "/tags/"+tag, nil, &resp)
 
