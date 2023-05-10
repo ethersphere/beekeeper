@@ -9,6 +9,6 @@ type NodeFunder struct {
 }
 
 type MinAmounts struct {
-	NativeCoin float64 // on mainnet this is ETH
-	SwarmToken float64 // on mainnet this is BZZ
+	NativeCoin float64 // on mainnet this is xDAI
+	SwarmToken float64 // on mainnet this is xBZZ
 }

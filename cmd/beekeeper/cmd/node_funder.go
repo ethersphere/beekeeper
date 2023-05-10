@@ -98,14 +98,14 @@ func (c *command) initNodeFunderCmd() (err error) {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().String(optionNameNamespace, "", "kubernetes namespace")
-	cmd.Flags().String(optionClusterName, "", "cluster name")
-	cmd.Flags().String(optionNameChainNodeEndpoint, "", "endpoint to chain node")
-	cmd.Flags().String(optionNameWalletKey, "", "wallet key")
-	cmd.Flags().Float64(optionNameMinNative, 0, "specifies min amout of chain native coins (ETH) nodes should have")
-	cmd.Flags().Float64(optionNameMinSwarm, 0, "specifies min amout of swarm tokens (BZZ) nodes should have")
-	cmd.Flags().StringSlice(optionNameAddresses, nil, "Bee node addresses (must start with 0x)")
-	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "timeout")
+	cmd.Flags().StringSliceP(optionNameAddresses, "a", nil, "Comma-separated list of Bee node addresses (must start with 0x). Overrides namespace and cluster name.")
+	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace. Overrides cluster name if set.")
+	cmd.Flags().String(optionClusterName, "", "Cluster name. Ignored if addresses or namespace are set.")
+	cmd.Flags().String(optionNameChainNodeEndpoint, "", "Endpoint to chain node. Required.")
+	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
+	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
+	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")
+	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Timeout.")
 
 	c.root.AddCommand(cmd)
 
