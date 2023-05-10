@@ -3,6 +3,7 @@ package mocks
 import (
 	"fmt"
 
+	"github.com/ethersphere/beekeeper/pkg/k8s/customresource/ingressroute"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -18,11 +19,20 @@ func NewClient(expectError bool) *Client {
 	return &Client{expectError: expectError}
 }
 
+// NewForConfig returns a new Kubernetes clientset
 func (c *Client) NewForConfig(*rest.Config) (*kubernetes.Clientset, error) {
 	if c.expectError {
 		return nil, fmt.Errorf("mock error")
 	}
 	return &kubernetes.Clientset{}, nil
+}
+
+// NewIngressRouteClientForConfig returns a new ingressroute client
+func (c *Client) NewIngressRouteClientForConfig(*rest.Config) (*ingressroute.CustomResourceClient, error) {
+	if c.expectError {
+		return nil, fmt.Errorf("mock error")
+	}
+	return &ingressroute.CustomResourceClient{}, nil
 }
 
 func (c *Client) InClusterConfig() (*rest.Config, error) {
