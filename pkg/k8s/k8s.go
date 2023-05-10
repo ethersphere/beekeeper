@@ -30,13 +30,12 @@ type ClientOption func(*Client)
 
 // Client manages communication with the Kubernetes.
 type Client struct {
-	clientset            kubernetes.Interface    // Kubernetes client must handle authentication implicitly.
-	logger               logging.Logger          // logger
-	config               *ClientConfig           // ClientConfig holds functions for configuration of the Client.
-	inCluster            bool                    // inCluster
-	kubeconfigPath       string                  // kubeconfigPath
-	rateLimiter          flowcontrol.RateLimiter // rateLimiter
-	maxConcurentRequests int                     // maxConcurentRequests (semaphore)
+	logger                logging.Logger          // logger
+	clientConfig          *ClientConfig           // ClientConfig holds functions for configuration of the Client.
+	inCluster             bool                    // inCluster
+	kubeconfigPath        string                  // kubeconfigPath
+	rateLimiter           flowcontrol.RateLimiter // rateLimiter
+	maxConcurrentRequests int                     // maxConcurentRequests (semaphore)
 
 	// exported services that K8S provides
 	ConfigMap      *configmap.Client
@@ -52,19 +51,19 @@ type Client struct {
 }
 
 // NewClient returns a new Kubernetes client.
-func NewClient(options ...ClientOption) (c *Client, err error) {
+func NewClient(opts ...ClientOption) (c *Client, err error) {
 	c = &Client{
 		// set default values
-		config:               newClientConfig(),
-		logger:               logging.New(io.Discard, 0, ""),
-		inCluster:            false,
-		kubeconfigPath:       "~/.kube/config",
-		rateLimiter:          flowcontrol.NewTokenBucketRateLimiter(50, 100),
-		maxConcurentRequests: 10,
+		clientConfig:          newClientConfig(),
+		logger:                logging.New(io.Discard, 0, ""),
+		inCluster:             false,
+		kubeconfigPath:        "~/.kube/config",
+		rateLimiter:           flowcontrol.NewTokenBucketRateLimiter(50, 100),
+		maxConcurrentRequests: 10,
 	}
 
 	// apply options
-	for _, option := range options {
+	for _, option := range opts {
 		option(c)
 	}
 
@@ -72,7 +71,7 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 
 	if c.inCluster {
 		// set in-cluster client
-		config, err = c.config.InClusterConfig()
+		config, err = c.clientConfig.InClusterConfig()
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes in-cluster client config: %w", err)
 		}
@@ -82,7 +81,7 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 		if len(c.kubeconfigPath) == 0 {
 			return nil, ErrKubeconfigNotSet
 		} else if c.kubeconfigPath == "~/.kube/config" {
-			home, err := c.config.OsUserHomeDir()
+			home, err := c.clientConfig.OsUserHomeDir()
 			if err != nil {
 				return nil, fmt.Errorf("obtaining user's home dir: %w", err)
 			}
@@ -91,10 +90,10 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 			configPath = c.kubeconfigPath
 		}
 
-		kubeconfig := c.config.FlagString("kubeconfig", configPath, "kubeconfig file")
-		c.config.FlagParse()
+		kubeconfig := c.clientConfig.FlagString("kubeconfig", configPath, "kubeconfig file")
+		c.clientConfig.FlagParse()
 
-		config, err = c.config.BuildConfigFromFlags("", *kubeconfig)
+		config, err = c.clientConfig.BuildConfigFromFlags("", *kubeconfig)
 		if err != nil {
 			return nil, fmt.Errorf("creating Kubernetes client config: %w", err)
 		}
@@ -104,15 +103,15 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 
 	// Wrap the default transport with our custom transport.
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return NewCustomTransport(rt, config, c.maxConcurentRequests)
+		return NewCustomTransport(rt, config, c.maxConcurrentRequests)
 	}
 
-	clientset, err := c.config.NewForConfig(config)
+	clientset, err := c.clientConfig.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating Kubernetes clientset: %w", err)
 	}
 
-	apiClientset, err := c.config.NewIngressRouteClientForConfig(config)
+	apiClientset, err := c.clientConfig.NewIngressRouteClientForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("creating custom resource Kubernetes api clientset: %w", err)
 	}
@@ -125,8 +124,6 @@ func NewClient(options ...ClientOption) (c *Client, err error) {
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all other services.
 func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingressroute.Interface) {
-	c.clientset = clientset
-
 	c.ConfigMap = configmap.NewClient(clientset)
 	c.Ingress = ingress.NewClient(clientset)
 	c.Namespace = namespace.NewClient(clientset)
@@ -143,7 +140,7 @@ func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingre
 func WithMockClientConfig(cs *ClientConfig) ClientOption {
 	return func(c *Client) {
 		if cs != nil {
-			c.config = cs
+			c.clientConfig = cs
 		}
 	}
 }
@@ -177,8 +174,8 @@ func WithRequestLimiter(rateLimiter flowcontrol.RateLimiter, maxConcurentRequest
 		if rateLimiter != nil {
 			c.rateLimiter = rateLimiter
 		}
-		if !(maxConcurentRequests < 0) {
-			c.maxConcurentRequests = maxConcurentRequests
+		if maxConcurentRequests >= 0 {
+			c.maxConcurrentRequests = maxConcurentRequests
 		}
 	}
 }
