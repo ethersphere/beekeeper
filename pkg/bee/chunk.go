@@ -2,13 +2,13 @@ package bee
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"hash"
 	"math/rand"
 
 	"github.com/ethersphere/bee/pkg/cac"
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/pkg/topology"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	bmtlegacy "github.com/ethersphere/bmt/legacy"
 	"golang.org/x/crypto/sha3"
@@ -146,7 +146,7 @@ next:
 	}
 
 	if closestAddress.IsZero() {
-		return "", swarm.Address{}, errors.New("closest node not found")
+		return "", swarm.Address{}, topology.ErrNotFound
 	}
 
 	return

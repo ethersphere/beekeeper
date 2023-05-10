@@ -2,10 +2,12 @@ package pushsync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/pkg/topology"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -84,6 +86,9 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logg
 				name, address, err := chunk.ClosestNodeFromMap(overlays, skipPeers...)
 				skipPeers = append(skipPeers, address)
 				if err != nil {
+					if errors.Is(err, topology.ErrNotFound) {
+						continue testCases
+					}
 					continue
 				}
 				synced, err = clients[name].HasChunk(ctx, ref)
