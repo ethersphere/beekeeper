@@ -39,8 +39,15 @@ func (c *command) initNodeFunderCmd() (err error) {
 				cfg.Addresses = addresses
 			} else if namespace != "" {
 				cfg.Namespace = namespace
-			} else if clusterName != "" && c.config.Clusters[clusterName].Namespace != nil {
-				cfg.Namespace = *c.config.Clusters[clusterName].Namespace
+			} else if clusterName != "" {
+				cluster, ok := c.config.Clusters[clusterName]
+				if !ok {
+					return fmt.Errorf("cluster %s not found", clusterName)
+				}
+				if cluster.Namespace == nil || *cluster.Namespace == "" {
+					return fmt.Errorf("cluster %s namespace not provided", clusterName)
+				}
+				cfg.Namespace = *cluster.Namespace
 			} else {
 				return errors.New("one of addresses, namespace, or valid cluster-name must be provided")
 			}
