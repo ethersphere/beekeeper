@@ -1,6 +1,8 @@
 package ingressroute
 
 import (
+	"regexp"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,4 +74,13 @@ func (in *IngressRoute) DeepCopyInto(out *IngressRoute) {
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = in.Spec
 	copy(out.Spec.Routes, in.Spec.Routes)
+}
+
+func (r *Route) GetHost() string {
+	re := regexp.MustCompile(`Host\("([^"]+)"\)`)
+	match := re.FindStringSubmatch(r.Match)
+	if len(match) == 2 {
+		return match[1]
+	}
+	return ""
 }
