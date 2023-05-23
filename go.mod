@@ -6,7 +6,7 @@ replace github.com/codahale/hdrhistogram => github.com/HdrHistogram/hdrhistogram
 
 require (
 	github.com/ethereum/go-ethereum v1.10.26
-	github.com/ethersphere/bee v1.13.0
+	github.com/ethersphere/bee v1.16.1
 	github.com/ethersphere/bmt v0.1.4
 	github.com/ethersphere/ethproxy v0.0.5
 	github.com/ethersphere/node-funder v0.0.1
@@ -21,12 +21,12 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
-	golang.org/x/crypto v0.7.0
-	golang.org/x/sync v0.1.0
+	golang.org/x/crypto v0.9.0
+	golang.org/x/sync v0.2.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.22.16
-	k8s.io/apimachinery v0.22.16
-	k8s.io/client-go v0.22.16
+	k8s.io/api v0.23.17
+	k8s.io/apimachinery v0.23.17
+	k8s.io/client-go v0.23.17
 )
 
 require (
@@ -38,13 +38,13 @@ require (
 	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cloudflare/circl v1.1.0 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/ethersphere/go-sw3-abi v0.4.0 // indirect
-	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
+	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-chi/chi v1.5.4 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
@@ -109,11 +109,11 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/oauth2 v0.3.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.1.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -124,9 +124,10 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.70.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20211110012726-3cc51fd1e909 // indirect
+	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
+	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
