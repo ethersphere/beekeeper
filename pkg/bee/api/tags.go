@@ -13,14 +13,12 @@ import (
 type TagsService service
 
 type TagResponse struct {
-	Total     int64         `json:"total"`
-	Split     int64         `json:"split"`
-	Seen      int64         `json:"seen"`
-	Stored    int64         `json:"stored"`
-	Sent      int64         `json:"sent"`
-	Synced    int64         `json:"synced"`
-	Uid       uint32        `json:"uid"`
-	Name      string        `json:"name"`
+	Split     uint64        `json:"split"`
+	Seen      uint64        `json:"seen"`
+	Stored    uint64        `json:"stored"`
+	Sent      uint64        `json:"sent"`
+	Synced    uint64        `json:"synced"`
+	Uid       uint64        `json:"uid"`
 	Address   swarm.Address `json:"address"`
 	StartedAt time.Time     `json:"startedAt"`
 }
@@ -33,16 +31,16 @@ func (p *TagsService) CreateTag(ctx context.Context) (resp TagResponse, err erro
 }
 
 // GetTag gets a new tag
-func (p *TagsService) GetTag(ctx context.Context, tagUID uint32) (resp TagResponse, err error) {
+func (p *TagsService) GetTag(ctx context.Context, tagUID uint64) (resp TagResponse, err error) {
 
-	tag := strconv.FormatUint(uint64(tagUID), 10)
+	tag := strconv.FormatUint(tagUID, 10)
 
 	err = p.client.requestJSON(ctx, http.MethodGet, "/tags/"+tag, nil, &resp)
 
 	return resp, err
 }
 
-func (p *TagsService) WaitSync(ctx context.Context, tagUID uint32) (err error) {
+func (p *TagsService) WaitSync(ctx context.Context, tagUID uint64) (err error) {
 
 	c := make(chan bool)
 	defer close(c)
@@ -62,7 +60,7 @@ func (p *TagsService) WaitSync(ctx context.Context, tagUID uint32) (err error) {
 					return
 				}
 
-				if tr.Synced >= tr.Total {
+				if tr.Split-tr.Seen == tr.Synced {
 					c <- true
 					return
 				}

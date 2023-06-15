@@ -168,14 +168,6 @@ checks:
       node-group: bee
     timeout: 5m
     type: cashout
-  chunk-repair:
-    options:
-      node-group: bee
-      number-of-chunks-to-repair: 1
-      postage-amount: 1000
-      seed:
-    timeout: 5m
-    type: chunk-repair
   file-retrieval:
     options:
       file-name: file-retrieval
@@ -330,13 +322,6 @@ checks:
       request-timeout: 5m
     timeout: 5m
     type: soc
-  content-availability:
-    type: content-availability
-    timeout: 5m
-    options:
-      content-size: 16384
-      postage-amount: 1000
-      postage-depth: 16
   postage:
     type: postage
     timeout: 5m

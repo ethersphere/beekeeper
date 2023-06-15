@@ -67,11 +67,6 @@ _pullsync() {
     "${BEEKEEPER_BIN}" check pullsync --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --upload-node-count "${REPLICA}" --chunks-per-node 3
 }
 
-_chunkrepair() {
-    echo "*** CHUNKREPAIR ***"
-    "${BEEKEEPER_BIN}" check chunkrepair --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"
-}
-
 _manifest() {
     echo "*** MANIFEST ***"
     "${BEEKEEPER_BIN}" check manifest --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}"

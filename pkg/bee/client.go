@@ -341,11 +341,6 @@ func (c *Client) PingStream(ctx context.Context, nodes []swarm.Address) <-chan P
 	return pingStream
 }
 
-// RemoveChunk removes chunk from the node
-func (c *Client) RemoveChunk(ctx context.Context, a swarm.Address) error {
-	return c.debug.Node.RemoveChunk(ctx, a)
-}
-
 // Settlement represents node's settlement with peer
 type Settlement struct {
 	Peer     string
@@ -703,7 +698,7 @@ func (c *Client) Underlay(ctx context.Context) ([]string, error) {
 }
 
 // UploadBytes uploads bytes to the node
-func (c *Client) WaitSync(ctx context.Context, UId uint32) error {
+func (c *Client) WaitSync(ctx context.Context, UId uint64) error {
 	err := c.api.Tags.WaitSync(ctx, UId)
 	if err != nil {
 		return fmt.Errorf("sync tag: %w", err)
@@ -788,7 +783,7 @@ func (c *Client) CreateTag(ctx context.Context) (resp api.TagResponse, err error
 }
 
 // GetTag retrieves tag from node
-func (c *Client) GetTag(ctx context.Context, tagUID uint32) (resp api.TagResponse, err error) {
+func (c *Client) GetTag(ctx context.Context, tagUID uint64) (resp api.TagResponse, err error) {
 	resp, err = c.api.Tags.GetTag(ctx, tagUID)
 	if err != nil {
 		return resp, fmt.Errorf("get tag: %w", err)
