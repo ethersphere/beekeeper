@@ -13,6 +13,7 @@ import (
 	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	authorizationv1beta1 "k8s.io/client-go/kubernetes/typed/authorization/v1beta1"
 	autoscalingv1 "k8s.io/client-go/kubernetes/typed/autoscaling/v1"
+	autoscalingv2 "k8s.io/client-go/kubernetes/typed/autoscaling/v2"
 	autoscalingv2beta1 "k8s.io/client-go/kubernetes/typed/autoscaling/v2beta1"
 	autoscalingv2beta2 "k8s.io/client-go/kubernetes/typed/autoscaling/v2beta2"
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
@@ -29,6 +30,7 @@ import (
 	extensionsv1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	flowcontrolv1alpha1 "k8s.io/client-go/kubernetes/typed/flowcontrol/v1alpha1"
 	flowcontrolv1beta1 "k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta1"
+	flowcontrolv1beta2 "k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2"
 	networkingv1 "k8s.io/client-go/kubernetes/typed/networking/v1"
 	networkingv1beta1 "k8s.io/client-go/kubernetes/typed/networking/v1beta1"
 	nodev1 "k8s.io/client-go/kubernetes/typed/node/v1"
@@ -51,6 +53,16 @@ type Clientset struct{}
 
 func NewClientset() *Clientset {
 	return &Clientset{}
+}
+
+// AutoscalingV2 implements kubernetes.Interface
+func (*Clientset) AutoscalingV2() autoscalingv2.AutoscalingV2Interface {
+	panic("unimplemented")
+}
+
+// FlowcontrolV1beta2 implements kubernetes.Interface
+func (*Clientset) FlowcontrolV1beta2() flowcontrolv1beta2.FlowcontrolV1beta2Interface {
+	panic("unimplemented")
 }
 
 // AdmissionregistrationV1 implements kubernetes.Interface

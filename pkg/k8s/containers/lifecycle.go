@@ -4,8 +4,8 @@ import v1 "k8s.io/api/core/v1"
 
 // Lifecycle represents Kubernetes Lifecycle
 type Lifecycle struct {
-	PostStart *Handler
-	PreStop   *Handler
+	PostStart *LifecycleHandler
+	PreStop   *LifecycleHandler
 }
 
 // toK8S converts Lifecycle to Kuberntes client object
