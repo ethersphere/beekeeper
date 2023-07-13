@@ -59,7 +59,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	ctx, cancel := context.WithTimeout(ctx, o.Duration)
 	defer cancel()
 
-	test := &test{opt: o, ctx: ctx, clients: clients, logger: c.logger}
+	test := &test{clients: clients, logger: c.logger}
 
 	uploaders := selectNames(cluster, o.UploadGroups...)
 	downloaders := selectNames(cluster, o.DownloadGroups...)
@@ -125,7 +125,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 						batches.Store(txName, batchID)
 					}
 
-					address, duration, err = test.uploadWithBatch(txName, txData, batchID)
+					address, duration, err = test.upload(ctx, txName, txData, batchID)
 					if err != nil {
 						c.metrics.UploadErrors.Inc()
 						c.logger.Infof("upload failed: %v", err)
@@ -174,7 +174,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 					c.metrics.DownloadAttempts.Inc()
 
-					rxData, rxDuration, err = test.download(rxName, address)
+					rxData, rxDuration, err = test.download(ctx, rxName, address)
 					if err != nil {
 						c.metrics.DownloadErrors.Inc()
 						c.logger.Infof("download failed: %v", err)
