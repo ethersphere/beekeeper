@@ -133,7 +133,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
-		var txCancel context.CancelFunc = func() {}
+		var (
+			txCtx    context.Context
+			txCancel context.CancelFunc = func() {}
+		)
 		for retries := 0; retries < 3; retries++ {
 			txCancel()
 
@@ -145,11 +148,11 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.UploadAttempts.Inc()
 
-			ctx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
+			txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
 
 			batchID := batches.Get(txName)
 			if batchID == "" {
-				batchID, err = clients[txName].CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "load-test", true)
+				batchID, err = clients[txName].CreatePostageBatch(txCtx, o.PostageAmount, o.PostageDepth, o.GasPrice, "load-test", true)
 				if err != nil {
 					c.logger.Errorf("create new batch: %v", err)
 					continue
@@ -157,7 +160,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				batches.Store(txName, batchID)
 			}
 
-			address, txDuration, err = test.upload(ctx, txName, txData, batchID)
+			address, txDuration, err = test.upload(txCtx, txName, txData, batchID)
 			if err != nil {
 				c.metrics.UploadErrors.Inc()
 				c.logger.Infof("upload failed: %v", err)
@@ -176,7 +179,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		time.Sleep(o.NodesSyncWait)
 
-		var rxCancel context.CancelFunc = func() {}
+		var (
+			rxCtx    context.Context
+			rxCancel context.CancelFunc = func() {}
+		)
 		for retries := 0; retries < 3; retries++ {
 			rxCancel()
 
@@ -188,8 +194,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.DownloadAttempts.Inc()
 
-			ctx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
-			rxData, rxDuration, err = test.download(ctx, rxName, address)
+			rxCtx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
+			rxData, rxDuration, err = test.download(rxCtx, rxName, address)
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
 				c.logger.Infof("download failed: %v", err)
