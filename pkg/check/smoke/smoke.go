@@ -18,14 +18,16 @@ import (
 
 // Options represents smoke test options
 type Options struct {
-	ContentSize   int64
-	RndSeed       int64
-	PostageAmount int64
-	PostageDepth  uint64
-	TxOnErrWait   time.Duration
-	RxOnErrWait   time.Duration
-	NodesSyncWait time.Duration
-	Duration      time.Duration
+	ContentSize     int64
+	RndSeed         int64
+	PostageAmount   int64
+	PostageDepth    uint64
+	TxOnErrWait     time.Duration
+	RxOnErrWait     time.Duration
+	NodesSyncWait   time.Duration
+	Duration        time.Duration
+	UploadTimeout   time.Duration
+	DownloadTimeout time.Duration
 	// load test params
 	UploaderCount   int
 	UploadGroups    []string
@@ -38,16 +40,18 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ContentSize:   5000000,
-		RndSeed:       time.Now().UnixNano(),
-		PostageAmount: 1000000,
-		PostageDepth:  20,
-		TxOnErrWait:   10 * time.Second,
-		RxOnErrWait:   10 * time.Second,
-		NodesSyncWait: time.Second * 30,
-		Duration:      12 * time.Hour,
-		GasPrice:      "100000000000",
-		MaxUseBatch:   time.Hour * 12,
+		ContentSize:     5000000,
+		RndSeed:         time.Now().UnixNano(),
+		PostageAmount:   1000000,
+		PostageDepth:    20,
+		TxOnErrWait:     10 * time.Second,
+		RxOnErrWait:     10 * time.Second,
+		NodesSyncWait:   time.Second * 30,
+		Duration:        12 * time.Hour,
+		UploadTimeout:   5 * time.Minute,
+		DownloadTimeout: 5 * time.Minute,
+		GasPrice:        "100000000000",
+		MaxUseBatch:     12 * time.Hour,
 	}
 }
 
@@ -89,7 +93,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	batches := NewStore(o.MaxUseBatch)
 
-	test := &test{opt: o, ctx: ctx, clients: clients, logger: c.logger}
+	test := &test{clients: clients, logger: c.logger}
 
 	for i := 0; true; i++ {
 		select {
@@ -129,7 +133,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
+		var txCancel context.CancelFunc = func() {}
 		for retries := 0; retries < 3; retries++ {
+			txCancel()
+
 			select {
 			case <-ctx.Done():
 				return nil
@@ -137,6 +144,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			}
 
 			c.metrics.UploadAttempts.Inc()
+
+			ctx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
 
 			batchID := batches.Get(txName)
 			if batchID == "" {
@@ -148,7 +157,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				batches.Store(txName, batchID)
 			}
 
-			address, txDuration, err = test.uploadWithBatch(txName, txData, batchID)
+			address, txDuration, err = test.upload(ctx, txName, txData, batchID)
 			if err != nil {
 				c.metrics.UploadErrors.Inc()
 				c.logger.Infof("upload failed: %v", err)
@@ -157,6 +166,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				break
 			}
 		}
+		txCancel()
 
 		if err != nil {
 			continue // skip
@@ -166,7 +176,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 		time.Sleep(o.NodesSyncWait)
 
+		var rxCancel context.CancelFunc = func() {}
 		for retries := 0; retries < 3; retries++ {
+			rxCancel()
+
 			select {
 			case <-ctx.Done():
 				return nil
@@ -175,7 +188,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.DownloadAttempts.Inc()
 
-			rxData, rxDuration, err = test.download(rxName, address)
+			ctx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
+			rxData, rxDuration, err = test.download(ctx, rxName, address)
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
 				c.logger.Infof("download failed: %v", err)
@@ -210,23 +224,22 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			}
 			c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
 		}
+		rxCancel()
 	}
 
 	return nil
 }
 
 type test struct {
-	opt     Options
-	ctx     context.Context
 	clients map[string]*bee.Client
 	logger  logging.Logger
 }
 
-func (t *test) uploadWithBatch(cName string, data []byte, batchID string) (swarm.Address, time.Duration, error) {
+func (t *test) upload(ctx context.Context, cName string, data []byte, batchID string) (swarm.Address, time.Duration, error) {
 	client := t.clients[cName]
 	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
 	start := time.Now()
-	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
+	addr, err := client.UploadBytes(ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
 	}
@@ -236,11 +249,11 @@ func (t *test) uploadWithBatch(cName string, data []byte, batchID string) (swarm
 	return addr, txDuration, nil
 }
 
-func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration, error) {
+func (t *test) download(ctx context.Context, cName string, addr swarm.Address) ([]byte, time.Duration, error) {
 	client := t.clients[cName]
 	t.logger.Infof("node %s: downloading address %s", cName, addr)
 	start := time.Now()
-	data, err := client.DownloadBytes(t.ctx, addr)
+	data, err := client.DownloadBytes(ctx, addr)
 	if err != nil {
 		return nil, 0, fmt.Errorf("download from node %s: %w", cName, err)
 	}
@@ -249,21 +262,3 @@ func (t *test) download(cName string, addr swarm.Address) ([]byte, time.Duration
 
 	return data, rxDuration, nil
 }
-
-// func (t *test) upload(cName string, data []byte) (swarm.Address, time.Duration, error) {
-// 	client := t.clients[cName]
-// 	batchID, err := client.GetOrCreateBatch(t.ctx, t.opt.PostageAmount, t.opt.PostageDepth, t.opt.GasPrice, "smoke-test")
-// 	if err != nil {
-// 		return swarm.ZeroAddress, 0, fmt.Errorf("node %s: unable to create batch id: %w", cName, err)
-// 	}
-// 	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
-// 	start := time.Now()
-// 	addr, err := client.UploadBytes(t.ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
-// 	if err != nil {
-// 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
-// 	}
-// 	txDuration := time.Since(start)
-// 	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
-
-// 	return addr, txDuration, nil
-// }

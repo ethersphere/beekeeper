@@ -297,6 +297,8 @@ checks:
       postage-depth: 20
       nodes-sync-wait: 1m
       duration: 12h
+      upload-timeout: 5m
+      download-timeout: 5m
     timeout: 5m
     type: smoke
   load:
