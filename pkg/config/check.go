@@ -495,9 +495,11 @@ var Checks = map[string]CheckType{
 		NewAction: upload.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				Mode        *string `yaml:"node"`
-				UploadCount *int    `yaml:"upload-count"`
-				Pin         *bool   `yaml:"pin"`
+				Mode          *string `yaml:"node"`
+				UploadCount   *int    `yaml:"upload-count"`
+				Pin           *bool   `yaml:"pin"`
+				PostageAmount *int64  `yaml:"postage-amount"`
+				PostageDepth  *uint64 `yaml:"postage-depth"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

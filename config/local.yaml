@@ -390,3 +390,5 @@ checks:
       mode: default
       count: 1
       pin: false
+      postage-amount: 100000
+      postage-depth: 17

@@ -17,14 +17,18 @@ import (
 var _ beekeeper.Action = (*Check)(nil)
 
 type Options struct {
-	Mode        string
-	UploadCount int
-	Pin         bool
+	Mode          string
+	UploadCount   int
+	PostageAmount int64
+	PostageDepth  uint64
+	Pin           bool
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		UploadCount: 1,
+		UploadCount:   1,
+		PostageAmount: 1000000,
+		PostageDepth:  20,
 	}
 }
 
@@ -77,7 +81,7 @@ func (c Check) directUploadCheck(ctx context.Context, cluster orchestration.Clus
 	}
 
 	nodeNames := cluster.NodeNames()
-	uploadClient, downloadClient := clients[nodeNames[0]], clients[nodeNames[1]]
+	uploadClient, downloadClient := clients[nodeNames[1]], clients[nodeNames[2]]
 
 	for i := 0; i < opts.UploadCount; i++ {
 		payload := make([]byte, bee.MaxChunkSize)
@@ -86,8 +90,14 @@ func (c Check) directUploadCheck(ctx context.Context, cluster orchestration.Clus
 			return fmt.Errorf("rand: %w", err)
 		}
 
+		batchID, err := uploadClient.GetOrCreateBatch(ctx, opts.PostageAmount, opts.PostageDepth, "", "upload-check")
+		if err != nil {
+			return fmt.Errorf("create batch: %w", err)
+		}
+
 		addr, err := uploadClient.UploadBytes(ctx, payload, api.UploadOptions{
-			Direct: true,
+			Direct:  true,
+			BatchID: batchID,
 		})
 		if err != nil {
 			return fmt.Errorf("upload: %w", err)
@@ -101,7 +111,7 @@ func (c Check) directUploadCheck(ctx context.Context, cluster orchestration.Clus
 		if !bytes.Equal(payload, download) {
 			return fmt.Errorf("expected payload and download to be equal")
 		}
-		c.logger.Infof("payload and download successful between node %s and %s", nodeNames[0], nodeNames[1])
+		c.logger.Infof("payload and download successful between node %s and %s", nodeNames[1], nodeNames[2])
 	}
 
 	return nil
@@ -134,10 +144,16 @@ func (c Check) deferredUploadCheck(ctx context.Context, cluster orchestration.Cl
 		}
 		tags[i] = tag
 
+		batchID, err := uploadClient.GetOrCreateBatch(ctx, opts.PostageAmount, opts.PostageDepth, "", "upload-check")
+		if err != nil {
+			return fmt.Errorf("create batch: %w", err)
+		}
+
 		_, err = uploadClient.UploadBytes(ctx, payload, api.UploadOptions{
-			Tag:    tag.Uid,
-			Direct: false,
-			Pin:    opts.Pin,
+			Tag:     tag.Uid,
+			Direct:  false,
+			Pin:     opts.Pin,
+			BatchID: batchID,
 		})
 		if err != nil {
 			return fmt.Errorf("upload: %w", err)

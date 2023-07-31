@@ -351,6 +351,8 @@ checks:
       mode: default
       upload-count: 1
       pin: false
+      postage-amount: 1000000
+      postage-depth: 17
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options
