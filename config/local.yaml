@@ -383,3 +383,10 @@ checks:
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
       geth-url: "http://geth-swap.localhost"
       geth-chain-id: 12345
+  ci-upload:
+    type: upload
+    timeout: 5m
+    options:
+      mode: default
+      count: 1
+      pin: false

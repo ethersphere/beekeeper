@@ -84,6 +84,10 @@ _localpinning() {
     "${BEEKEEPER_BIN}" check localpinning --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --large-file-disk-ratio 2 --large-file-count 10
 }
 
+_upload() {
+  echo "*** UPLOAD ***"
+  "${BEEKEEPER_BIN}" check upload --api-scheme http --debug-api-scheme http ${NAMESPACE_OPTION} --debug-api-domain "${DOMAIN}" --api-domain "${DOMAIN}" --node-count "${REPLICA}" --mode default --upload-count 1
+}
 
 
 
@@ -159,6 +163,12 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
                 ACTION="fileretrieval"
                 shift
             ;;
+
+#/   upload         run upload test
+            upload)
+                ACTION="upload"
+                shift
+            ;;
 #/
 #/ Options:
 #/   -n, --namespace name set namespace (default is bee)
@@ -224,5 +234,8 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
     fi
     if [[ $ACTION == "fileretrieval" ]]; then
         _fileretrieval
+    fi
+    if [[ $ACTION == "upload" ]]; then
+        _upload
     fi
 fi

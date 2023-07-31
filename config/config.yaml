@@ -344,6 +344,13 @@ checks:
     timeout: 5m
     options:
       amount: 1000000000000000000
+  upload:
+    type: upload
+    timeout: 5m
+    options:
+      mode: default
+      upload-count: 1
+      pin: false
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options

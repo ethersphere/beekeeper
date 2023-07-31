@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/ethersphere/beekeeper/pkg/check/upload"
 	"math/big"
 	"reflect"
 	"time"
@@ -487,6 +488,26 @@ var Checks = map[string]CheckType{
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
+			return opts, nil
+		},
+	},
+	"upload": {
+		NewAction: upload.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				Mode        *string `yaml:"node"`
+				UploadCount *int    `yaml:"upload-count"`
+				Pin         *bool   `yaml:"pin"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := upload.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
 			return opts, nil
 		},
 	},
