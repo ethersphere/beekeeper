@@ -162,10 +162,11 @@ func (c Check) deferredUploadCheck(ctx context.Context, cluster orchestration.Cl
 
 	g, ctx := errgroup.WithContext(ctx)
 	for _, tag := range tags {
+		t := tag
 		g.Go(func() error {
-			err = uploadClient.WaitSync(ctx, tag.Uid)
+			err = uploadClient.WaitSync(ctx, t.Uid)
 			if err != nil {
-				return fmt.Errorf("sync tag %d: %w", tag.Uid, err)
+				return fmt.Errorf("sync tag %d: %w", t.Uid, err)
 			}
 			return nil
 		})
