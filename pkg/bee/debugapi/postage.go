@@ -35,17 +35,14 @@ type postageStampsResponse struct {
 }
 
 // Sends a create postage request to a node that returns the batchID
-func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (batchID string, err error) {
+func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, label string) (batchID string, err error) {
 	url := fmt.Sprintf("/stamps/%d/%d?label=%s", amount, depth, label)
 	var resp postageResponse
-	if gasPrice != "" {
-		h := http.Header{}
-		h.Add("Gas-Price", gasPrice)
-		err = p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, &resp)
-	} else {
-		err = p.client.request(ctx, http.MethodPost, url, nil, &resp)
-	}
 
+	h := http.Header{}
+	h.Add("Immutable", "false")
+
+	err = p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, &resp)
 	if err != nil {
 		return "", err
 	}

@@ -363,7 +363,7 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 }
 
 // CreatePostageBatch returns the batchID of a batch of postage stamps
-func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string, verbose bool) (string, error) {
+func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uint64, label string, verbose bool) (string, error) {
 	if depth < MinimumBatchDepth {
 		depth = MinimumBatchDepth
 	}
@@ -374,7 +374,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		}
 		c.logger.Infof("reserve state (prior to buying the batch):%s", rs.String())
 	}
-	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, gasPrice, label)
+	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, label)
 	if err != nil {
 		return "", fmt.Errorf("create postage stamp: %w", err)
 	}
@@ -408,7 +408,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	return id, nil
 }
 
-func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint64, gasPrice, label string) (string, error) {
+func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
 	batches, err := c.PostageBatches(ctx)
 	if err != nil {
 		return "", err
@@ -426,7 +426,7 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 		}
 	}
 
-	return c.CreatePostageBatch(ctx, amount, depth, gasPrice, label, false)
+	return c.CreatePostageBatch(ctx, amount, depth, label, false)
 }
 
 // PostageBatches returns the list of batches of node

@@ -38,7 +38,7 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logg
 
 		uploader := clients[nodeName]
 
-		batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+		batchID, err := uploader.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}

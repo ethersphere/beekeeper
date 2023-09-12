@@ -192,7 +192,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 }
 
 func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Client, chunks []swarm.Chunk) error {
-	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, "sim-pushsync", false)
+	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, "sim-pushsync", false)
 	if err != nil {
 		return fmt.Errorf("batch create %w", err)
 	}
