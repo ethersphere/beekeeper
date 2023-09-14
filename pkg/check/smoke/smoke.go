@@ -152,7 +152,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			batchID := batches.Get(txName)
 			if batchID == "" {
-				batchID, err = clients[txName].CreatePostageBatch(txCtx, o.PostageAmount, o.PostageDepth, o.GasPrice, "load-test", true)
+				batchID, err = clients[txName].CreatePostageBatch(txCtx, o.PostageAmount, o.PostageDepth, "load-test", true)
 				if err != nil {
 					c.logger.Errorf("create new batch: %v", err)
 					continue

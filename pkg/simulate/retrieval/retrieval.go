@@ -84,7 +84,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 			nodeName := sortedNodes[i]
 			client := clients[nodeName]
 
-			batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel)
+			batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 			if err != nil {
 				s.logger.Infof("error: node %s: batch id %v", nodeName, err)
 				continue
