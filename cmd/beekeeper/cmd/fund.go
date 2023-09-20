@@ -55,7 +55,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					if err != nil {
 						return fmt.Errorf("marshaling Swarm keys: %w", err)
 					}
-					c.logger.Infof("%s", k)
+					c.log.Infof("%s", k)
 				}
 			} else if len(c.globalConfig.GetStringSlice(optionNameAddresses)) < 1 {
 				return fmt.Errorf("bee node Ethereum addresses not provided")
@@ -68,7 +68,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 
 			for _, a := range addresses {
 				if c.globalConfig.GetBool(optionNamePrintAddresses) {
-					c.logger.Infof("address: %s", a)
+					c.log.Infof("address: %s", a)
 				}
 				// ETH funding
 				ethDeposit := c.globalConfig.GetFloat64(optionNameEthDeposit)
@@ -77,7 +77,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					if err != nil {
 						return fmt.Errorf("send eth: %w", err)
 					}
-					c.logger.Infof("%s funded with %.2f ETH, transaction: %s\n", a, ethDeposit, tx)
+					c.log.Infof("%s funded with %.2f ETH, transaction: %s\n", a, ethDeposit, tx)
 				}
 				// BZZ funding
 				bzzDeposit := c.globalConfig.GetFloat64(optionNameBzzDeposit)
@@ -86,7 +86,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					if err != nil {
 						return fmt.Errorf("deposit bzz: %w", err)
 					}
-					c.logger.Infof("%s funded with %.2f BZZ, transaction: %s\n", a, bzzDeposit, tx)
+					c.log.Infof("%s funded with %.2f BZZ, transaction: %s\n", a, bzzDeposit, tx)
 				}
 				// gBZZ funding
 				gBzzDeposit := c.globalConfig.GetFloat64(optionNameGBzzDeposit)
@@ -95,7 +95,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 					if err != nil {
 						return fmt.Errorf("deposit gBzz: %w", err)
 					}
-					c.logger.Infof("%s funded with %.2f gBZZ, transaction: %s\n", a, gBzzDeposit, tx)
+					c.log.Infof("%s funded with %.2f gBZZ, transaction: %s\n", a, gBzzDeposit, tx)
 				}
 			}
 

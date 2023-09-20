@@ -53,13 +53,13 @@ func (c *command) initSimulateCmd() (err error) {
 			)
 
 			if metricsEnabled {
-				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.logger)
+				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.log)
 				// cleanup executes when the calling context terminates
 				defer cleanup()
 			}
 
 			// logger metrics
-			if l, ok := c.logger.(metrics.Reporter); ok && metricsEnabled {
+			if l, ok := c.log.(metrics.Reporter); ok && metricsEnabled {
 				metrics.RegisterCollectors(metricsPusher, l.Report()...)
 			}
 
@@ -104,7 +104,7 @@ func (c *command) initSimulateCmd() (err error) {
 				}
 
 				// create simulation
-				sim := simulation.NewAction(c.logger)
+				sim := simulation.NewAction(c.log)
 				if s, ok := sim.(metrics.Reporter); ok && metricsEnabled {
 					metrics.RegisterCollectors(metricsPusher, s.Report()...)
 				}

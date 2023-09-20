@@ -53,13 +53,13 @@ func (c *command) initCheckCmd() (err error) {
 			)
 
 			if metricsEnabled {
-				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.logger)
+				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.log)
 				// cleanup executes when the calling context terminates
 				defer cleanup()
 			}
 
 			// logger metrics
-			if l, ok := c.logger.(metrics.Reporter); ok && metricsEnabled {
+			if l, ok := c.log.(metrics.Reporter); ok && metricsEnabled {
 				metrics.RegisterCollectors(metricsPusher, l.Report()...)
 			}
 
@@ -105,7 +105,7 @@ func (c *command) initCheckCmd() (err error) {
 				}
 
 				// create check
-				chk := check.NewAction(c.logger)
+				chk := check.NewAction(c.log)
 				if r, ok := chk.(metrics.Reporter); ok && metricsEnabled {
 					metrics.RegisterCollectors(metricsPusher, r.Report()...)
 				}
@@ -116,7 +116,7 @@ func (c *command) initCheckCmd() (err error) {
 					defer cancel()
 				}
 
-				c.logger.Infof("running check: %s", checkName)
+				c.log.Infof("running check: %s", checkName)
 
 				ch := make(chan error, 1)
 				go func() {
@@ -135,7 +135,7 @@ func (c *command) initCheckCmd() (err error) {
 					if err != nil {
 						return fmt.Errorf("running check %s: %w", checkName, err)
 					}
-					c.logger.Infof("%s check completed successfully", checkName)
+					c.log.Infof("%s check completed successfully", checkName)
 				}
 			}
 			return nil
