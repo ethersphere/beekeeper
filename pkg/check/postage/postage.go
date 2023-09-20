@@ -64,7 +64,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	client := clients[node]
 
-	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.GasPrice, o.PostageLabel, false)
+	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel, false)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", node, err)
 	}

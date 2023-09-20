@@ -186,7 +186,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("wrong initial storage radius, got %d want %d", origState.StorageRadius, 0)
 	}
 
-	batchID, err := client.CreatePostageBatch(ctx, cheapBatchAmount, batchDepth, o.GasPrice, o.PostageLabel, true)
+	batchID, err := client.CreatePostageBatch(ctx, cheapBatchAmount, batchDepth, o.PostageLabel, true)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
@@ -207,7 +207,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	c.logger.Infof("uploaded %d chunks with batch depth %d, amount %d, at radius 4", len(lowValueChunks), batchDepth, cheapBatchAmount)
 
-	highValueBatch, err := client.CreatePostageBatch(ctx, expensiveBatchAmount, batchDepth, o.GasPrice, o.PostageLabel, true)
+	highValueBatch, err := client.CreatePostageBatch(ctx, expensiveBatchAmount, batchDepth, o.PostageLabel, true)
 	if err != nil {
 		return fmt.Errorf("create batch: %w", err)
 	}
