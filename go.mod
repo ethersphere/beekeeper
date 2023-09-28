@@ -9,7 +9,7 @@ require (
 	github.com/ethersphere/bee v1.17.3
 	github.com/ethersphere/bmt v0.1.4
 	github.com/ethersphere/ethproxy v0.0.5
-	github.com/ethersphere/node-funder v0.0.1
+	github.com/ethersphere/node-funder v0.0.2
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/google/uuid v1.3.0
