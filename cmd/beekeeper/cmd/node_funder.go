@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/node-funder/pkg/funder"
 	"github.com/spf13/cobra"
 )
@@ -69,8 +70,8 @@ func (c *command) initNodeFunderCmd() (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			c.logger.Infof("node-funder started")
-			defer c.logger.Infof("node-funder done")
+			c.log.Infof("node-funder started")
+			defer c.log.Infof("node-funder done")
 
 			// TODO: Note that the swarm key address is the same as the nodeEndpoint/wallet walletAddress.
 
@@ -81,7 +82,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 			var nodeLister funder.NodeLister
 			// if addresses are provided, use them, not k8s client to list nodes
 			if cfg.Namespace != "" {
-				nodeLister = newNodeLister(c.k8sClient)
+				nodeLister = newNodeLister(c.k8sClient, c.log)
 			}
 
 			return funder.Fund(ctx, funder.Config{
@@ -114,11 +115,13 @@ func (c *command) initNodeFunderCmd() (err error) {
 
 type nodeLister struct {
 	k8sClient *k8s.Client
+	log       logging.Logger
 }
 
-func newNodeLister(k8sClient *k8s.Client) *nodeLister {
+func newNodeLister(k8sClient *k8s.Client, l logging.Logger) *nodeLister {
 	return &nodeLister{
 		k8sClient: k8sClient,
+		log:       l,
 	}
 }
 
@@ -141,16 +144,9 @@ func (nf *nodeLister) List(ctx context.Context, namespace string) (nodes []funde
 		return nil, fmt.Errorf("list ingress route debug nodes hosts: %s", err.Error())
 	}
 
-	nodes = make([]funder.NodeInfo, 0, len(ingressHosts)+len(ingressRouteHosts))
+	ingressHosts = append(ingressHosts, ingressRouteHosts...)
 
 	for _, node := range ingressHosts {
-		nodes = append(nodes, funder.NodeInfo{
-			Name:    node.Name,
-			Address: node.Host,
-		})
-	}
-
-	for _, node := range ingressRouteHosts {
 		nodes = append(nodes, funder.NodeInfo{
 			Name:    node.Name,
 			Address: fmt.Sprintf("http://%s", node.Host),

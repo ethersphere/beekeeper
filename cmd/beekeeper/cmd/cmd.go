@@ -54,8 +54,8 @@ type command struct {
 	k8sClient *k8s.Client
 	// swap client
 	swapClient swap.Client
-	// logger
-	logger logging.Logger
+	// log
+	log logging.Logger
 }
 
 type option func(*command)
@@ -194,11 +194,11 @@ func (c *command) initConfig() (err error) {
 	// init logger
 	verbosity := c.globalConfig.GetString(optionNameLogVerbosity)
 	lokiEndpoint := c.globalConfig.GetString(optionNameLokiEndpoint)
-	c.logger, err = newLogger(c.root, verbosity, lokiEndpoint)
+	c.log, err = newLogger(c.root, verbosity, lokiEndpoint)
 	if err != nil {
 		return fmt.Errorf("new logger: %w", err)
 	}
-	c.logger.Infof("verbosity log level: %v", c.logger.GetLevel())
+	c.log.Infof("verbosity log level: %v", c.log.GetLevel())
 
 	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
 		// read configuration from git repo
@@ -241,7 +241,7 @@ func (c *command) initConfig() (err error) {
 			})
 		}
 
-		if c.config, err = config.Read(c.logger, yamlFiles); err != nil {
+		if c.config, err = config.Read(c.log, yamlFiles); err != nil {
 			return err
 		}
 	} else {
@@ -268,7 +268,7 @@ func (c *command) initConfig() (err error) {
 			})
 		}
 
-		if c.config, err = config.Read(c.logger, yamlFiles); err != nil {
+		if c.config, err = config.Read(c.log, yamlFiles); err != nil {
 			return err
 		}
 	}
@@ -310,7 +310,7 @@ func (c *command) setK8S() (err error) {
 		inCluster := c.globalConfig.GetBool("in-cluster")
 		kubeconfigPath := c.globalConfig.GetString("kubeconfig")
 
-		if c.k8sClient, err = k8s.NewClient(k8s.WithLogger(c.logger), k8s.WithInCluster(inCluster), k8s.WithKubeconfigPath(kubeconfigPath)); err != nil && err != k8s.ErrKubeconfigNotSet {
+		if c.k8sClient, err = k8s.NewClient(k8s.WithLogger(c.log), k8s.WithInCluster(inCluster), k8s.WithKubeconfigPath(kubeconfigPath)); err != nil && err != k8s.ErrKubeconfigNotSet {
 			return fmt.Errorf("creating Kubernetes client: %w", err)
 		}
 	}
@@ -328,7 +328,7 @@ func (c *command) setSwapClient() (err error) {
 		c.swapClient = swap.NewGethClient(gethUrl, &swap.GethClientOptions{
 			BzzTokenAddress: c.globalConfig.GetString("bzz-token-address"),
 			EthAccount:      c.globalConfig.GetString("eth-account"),
-		}, c.logger)
+		}, c.log)
 	} else {
 		c.swapClient = &swap.NotSet{}
 	}

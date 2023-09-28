@@ -22,7 +22,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 			defer cancel()
 			start := time.Now()
 			_, err = c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, true)
-			c.logger.Infof("cluster setup took %s", time.Since(start))
+			c.log.Infof("cluster setup took %s", time.Since(start))
 			return err
 		},
 		PreRunE: c.preRunE,
