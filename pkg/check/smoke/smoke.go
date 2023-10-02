@@ -146,20 +146,21 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			case <-time.After(o.TxOnErrWait):
 			}
 
-			c.metrics.UploadAttempts.Inc()
-
-			txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
-
+			c.metrics.BatchCreateAttempts.Inc()
 			batchID := batches.Get(txName)
 			if batchID == "" {
-				batchID, err = clients[txName].CreatePostageBatch(txCtx, o.PostageAmount, o.PostageDepth, "load-test", true)
+				batchID, err = clients[txName].CreatePostageBatch(context.Background(), o.PostageAmount, o.PostageDepth, "load-test", true)
 				if err != nil {
 					c.logger.Errorf("create new batch: %v", err)
+					c.metrics.BatchCreateErrors.Inc()
 					continue
 				}
 				batches.Store(txName, batchID)
 			}
 
+			txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
+
+			c.metrics.UploadAttempts.Inc()
 			address, txDuration, err = test.upload(txCtx, txName, txData, batchID)
 			if err != nil {
 				c.metrics.UploadErrors.Inc()
