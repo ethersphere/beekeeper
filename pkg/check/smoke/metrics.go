@@ -23,8 +23,8 @@ func newMetrics(subsystem string) metrics {
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
-				Name:      "batch_create_attemps",
-				Help:      "Number of batch create attemps.",
+				Name:      "batch_create_attempts",
+				Help:      "Number of batch create attempts.",
 			},
 		),
 		BatchCreateErrors: prometheus.NewCounter(
