@@ -344,6 +344,13 @@ checks:
     timeout: 5m
     options:
       amount: 1000000000000000000
+  longavailability:
+    options:
+      refs:
+      retry-wait: 10s
+      retry-count: 3
+      download-timeout: 5m
+    type: longavailability
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options

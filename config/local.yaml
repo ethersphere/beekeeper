@@ -383,3 +383,10 @@ checks:
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
       geth-url: "http://geth-swap.localhost"
       geth-chain-id: 12345
+  ci-longavailability:
+    options:
+      refs:
+      retry-wait: 10s
+      retry-count: 3
+      download-timeout: 5m
+    type: longavailability
