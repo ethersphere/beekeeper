@@ -33,7 +33,6 @@ type Options struct {
 	UploadGroups    []string
 	DownloaderCount int
 	DownloadGroups  []string
-	GasPrice        string
 	MaxUseBatch     time.Duration
 }
 
@@ -42,15 +41,14 @@ func NewDefaultOptions() Options {
 	return Options{
 		ContentSize:     5000000,
 		RndSeed:         time.Now().UnixNano(),
-		PostageAmount:   1000000,
-		PostageDepth:    20,
+		PostageAmount:   50_000_000,
+		PostageDepth:    24,
 		TxOnErrWait:     10 * time.Second,
 		RxOnErrWait:     10 * time.Second,
 		NodesSyncWait:   time.Second * 30,
 		Duration:        12 * time.Hour,
 		UploadTimeout:   5 * time.Minute,
 		DownloadTimeout: 5 * time.Minute,
-		GasPrice:        "100000000000",
 		MaxUseBatch:     12 * time.Hour,
 	}
 }
