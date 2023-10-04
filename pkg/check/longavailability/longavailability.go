@@ -44,7 +44,7 @@ type Check struct {
 func NewCheck(logger logging.Logger) beekeeper.Action {
 	return &Check{
 		logger:  logger,
-		metrics: newMetrics("check_longavailability", []string{"address"}),
+		metrics: newMetrics("check_longavailability"),
 	}
 }
 
@@ -104,17 +104,17 @@ func (t *test) run(ctx context.Context, addr swarm.Address) error {
 	defer cancel()
 
 	for i := 0; i < t.retryCount; i++ {
-		t.metrics.DownloadAttempts.WithLabelValues(addr.String()).Inc()
+		t.metrics.DownloadAttempts.Inc()
 		t.logger.Infof("node %s: download attempt %d for %s", t.nodeName, i+1, addr)
 		dur, err := t.download(ctx, addr)
 		if err != nil {
-			t.metrics.DownloadErrors.WithLabelValues(addr.String()).Inc()
+			t.metrics.DownloadErrors.Inc()
 			t.logger.Errorf("node %s: download %s error: %v", t.nodeName, addr, err)
 			t.logger.Infof("retrying in: %v", t.retryWait)
 			time.Sleep(t.retryWait)
 			continue
 		}
-		t.metrics.DownloadDuration.WithLabelValues(addr.String()).Observe(dur.Seconds())
+		t.metrics.DownloadDuration.Observe(dur.Seconds())
 		t.logger.Infof("node %s: downloaded %s successfully in %v", t.nodeName, addr, dur)
 		return nil
 	}

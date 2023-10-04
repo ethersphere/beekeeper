@@ -6,40 +6,34 @@ import (
 )
 
 type metrics struct {
-	DownloadErrors   *prometheus.CounterVec
-	DownloadAttempts *prometheus.CounterVec
-	DownloadDuration *prometheus.HistogramVec
+	DownloadErrors   prometheus.Counter
+	DownloadAttempts prometheus.Counter
+	DownloadDuration prometheus.Histogram
 }
 
-func newMetrics(subsystem string, labels []string) metrics {
+func newMetrics(subsystem string) metrics {
 	return metrics{
-		DownloadAttempts: prometheus.NewCounterVec(
+		DownloadAttempts: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_attempts",
 				Help:      "Number of download attempts.",
-			},
-			labels,
-		),
-		DownloadErrors: prometheus.NewCounterVec(
+			}),
+		DownloadErrors: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_errors_count",
 				Help:      "The total number of errors encountered before successful download.",
-			},
-			labels,
-		),
-		DownloadDuration: prometheus.NewHistogramVec(
+			}),
+		DownloadDuration: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "data_download_duration",
 				Help:      "Data download duration through the /bytes endpoint.",
-			},
-			labels,
-		),
+			}),
 	}
 }
 
