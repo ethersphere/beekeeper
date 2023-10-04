@@ -14,20 +14,18 @@ import (
 )
 
 type Options struct {
-	Refs            []string
-	RndSeed         int64
-	RetryCount      int
-	DownloadTimeout time.Duration
-	RetryWait       time.Duration
+	Refs       []string
+	RndSeed    int64
+	RetryCount int
+	RetryWait  time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		RndSeed:         time.Now().UnixNano(),
-		RetryCount:      3,
-		DownloadTimeout: 5 * time.Minute,
-		RetryWait:       10 * time.Second,
+		RndSeed:    time.Now().UnixNano(),
+		RetryCount: 3,
+		RetryWait:  10 * time.Second,
 	}
 }
 
@@ -71,13 +69,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 	client := node.Client()
 	for _, addr := range addresses {
 		t := &test{
-			nodeName:        node.Name(),
-			client:          client,
-			logger:          c.logger,
-			metrics:         c.metrics,
-			retryCount:      opts.RetryCount,
-			downloadTimeout: opts.DownloadTimeout,
-			retryWait:       opts.RetryWait,
+			nodeName:   node.Name(),
+			client:     client,
+			logger:     c.logger,
+			metrics:    c.metrics,
+			retryCount: opts.RetryCount,
+			retryWait:  opts.RetryWait,
 		}
 		err = t.run(ctx, addr)
 		if err != nil {
@@ -90,19 +87,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 }
 
 type test struct {
-	nodeName        string
-	client          *bee.Client
-	logger          logging.Logger
-	metrics         metrics
-	retryCount      int
-	downloadTimeout time.Duration
-	retryWait       time.Duration
+	nodeName   string
+	client     *bee.Client
+	logger     logging.Logger
+	metrics    metrics
+	retryCount int
+	retryWait  time.Duration
 }
 
 func (t *test) run(ctx context.Context, addr swarm.Address) error {
-	ctx, cancel := context.WithTimeout(ctx, t.downloadTimeout)
-	defer cancel()
-
 	for i := 0; i < t.retryCount; i++ {
 		t.metrics.DownloadAttempts.Inc()
 		t.logger.Infof("node %s: download attempt %d for %s", t.nodeName, i+1, addr)

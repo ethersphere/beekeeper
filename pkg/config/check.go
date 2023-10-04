@@ -494,11 +494,10 @@ var Checks = map[string]CheckType{
 		NewAction: longavailability.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				RndSeed         *int64         `yaml:"rnd-seed"`
-				RetryCount      *int64         `yaml:"retry-count"`
-				RetryWait       *time.Duration `yaml:"retry-wait"`
-				DownloadTimeout *time.Duration `yaml:"download-timeout"`
-				Refs            *[]string      `yaml:"refs"`
+				RndSeed    *int64         `yaml:"rnd-seed"`
+				RetryCount *int64         `yaml:"retry-count"`
+				RetryWait  *time.Duration `yaml:"retry-wait"`
+				Refs       *[]string      `yaml:"refs"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
