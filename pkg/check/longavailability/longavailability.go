@@ -78,7 +78,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		}
 		err = t.run(ctx, addr)
 		if err != nil {
-			c.logger.Infof("node %s: download for %s failed: %v", node.Name(), addr, err)
+			c.logger.Errorf("node %s: download for %s failed: %v", node.Name(), addr, err)
 		} else {
 			c.logger.Infof("node %s: download for %s done", node.Name(), addr)
 		}
