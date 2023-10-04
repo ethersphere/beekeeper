@@ -91,8 +91,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
 
-	batches := NewStore(o.MaxUseBatch)
-
 	test := &test{clients: clients, logger: c.logger}
 
 	for i := 0; true; i++ {
@@ -149,15 +147,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
 
 			c.metrics.BatchCreateAttempts.Inc()
-			batchID := batches.Get(txName)
-			if batchID == "" {
-				batchID, err = clients[txName].CreatePostageBatch(txCtx, o.PostageAmount, o.PostageDepth, "load-test", true)
-				if err != nil {
-					c.logger.Errorf("create new batch: %v", err)
-					c.metrics.BatchCreateErrors.Inc()
-					continue
-				}
-				batches.Store(txName, batchID)
+
+			batchID, err := clients[txName].GetOrCreateBatch(txCtx, o.PostageAmount, o.PostageDepth, "load-test")
+			if err != nil {
+				c.logger.Errorf("create new batch: %v", err)
+				c.metrics.BatchCreateErrors.Inc()
+				continue
 			}
 
 			c.metrics.UploadAttempts.Inc()
