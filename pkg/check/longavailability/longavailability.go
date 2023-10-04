@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -61,16 +60,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		addresses = append(addresses, addr)
 	}
 
-	rnd := random.PseudoGenerator(opts.RndSeed)
-	node, err := cluster.RandomNode(ctx, rnd)
-	if err != nil {
-		return fmt.Errorf("random node: %w", err)
-	}
-	client := node.Client()
 	for _, addr := range addresses {
+		node, err := findRandomNode(ctx, addr, cluster, opts.RndSeed)
+		if err != nil {
+			return fmt.Errorf("find node: %w", err)
+		}
 		t := &test{
-			nodeName:   node.Name(),
-			client:     client,
+			node:       node,
 			logger:     c.logger,
 			metrics:    c.metrics,
 			retryCount: opts.RetryCount,
@@ -86,9 +82,33 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 	return nil
 }
 
+func findRandomNode(ctx context.Context, addr swarm.Address, cluster orchestration.Cluster, randSeed int64) (orchestration.Node, error) {
+	nodes := cluster.Nodes()
+	var eligible []string
+	for name, node := range nodes {
+		pins, err := node.Client().GetPins(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("node %s: get pins: %w", name, err)
+		}
+		var found bool
+		for _, pin := range pins {
+			if pin.Equal(addr) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			eligible = append(eligible, name)
+		}
+	}
+
+	rnd := random.PseudoGenerator(randSeed)
+	node := nodes[eligible[rnd.Intn(len(eligible))]]
+	return node, nil
+}
+
 type test struct {
-	nodeName   string
-	client     *bee.Client
+	node       orchestration.Node
 	logger     logging.Logger
 	metrics    metrics
 	retryCount int
@@ -98,27 +118,27 @@ type test struct {
 func (t *test) run(ctx context.Context, addr swarm.Address) error {
 	for i := 0; i < t.retryCount; i++ {
 		t.metrics.DownloadAttempts.Inc()
-		t.logger.Infof("node %s: download attempt %d for %s", t.nodeName, i+1, addr)
+		t.logger.Infof("node %s: download attempt %d for %s", t.node.Name(), i+1, addr)
 		dur, err := t.download(ctx, addr)
 		if err != nil {
 			t.metrics.DownloadErrors.Inc()
-			t.logger.Errorf("node %s: download %s error: %v", t.nodeName, addr, err)
+			t.logger.Errorf("node %s: download %s error: %v", t.node.Name(), addr, err)
 			t.logger.Infof("retrying in: %v", t.retryWait)
 			time.Sleep(t.retryWait)
 			continue
 		}
 		t.metrics.DownloadDuration.Observe(dur.Seconds())
-		t.logger.Infof("node %s: downloaded %s successfully in %v", t.nodeName, addr, dur)
+		t.logger.Infof("node %s: downloaded %s successfully in %v", t.node.Name(), addr, dur)
 		return nil
 	}
-	return fmt.Errorf("node %s: download %s failed after %d attempts", t.nodeName, addr, t.retryCount)
+	return fmt.Errorf("node %s: download %s failed after %d attempts", t.node.Name(), addr, t.retryCount)
 }
 
 func (t *test) download(ctx context.Context, addr swarm.Address) (time.Duration, error) {
 	start := time.Now()
-	_, err := t.client.DownloadBytes(ctx, addr)
+	_, err := t.node.Client().DownloadBytes(ctx, addr)
 	if err != nil {
-		return 0, fmt.Errorf("download from node %s: %w", t.nodeName, err)
+		return 0, fmt.Errorf("download from node %s: %w", t.node.Name(), err)
 	}
 	dur := time.Since(start)
 	return dur, nil
