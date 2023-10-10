@@ -121,6 +121,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			txData     []byte
 			rxData     []byte
 			address    swarm.Address
+			batchID    string
+			uploaded   bool
 		)
 
 		txData = make([]byte, o.ContentSize)
@@ -136,6 +138,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		for retries := 0; retries < 3; retries++ {
 			txCancel()
 
+			uploaded = false
+
 			select {
 			case <-ctx.Done():
 				return nil
@@ -146,7 +150,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.BatchCreateAttempts.Inc()
 
-			batchID, err := clients[txName].GetOrCreateBatch(txCtx, o.PostageAmount, o.PostageDepth, "load-test")
+			batchID, err = clients[txName].GetOrCreateBatch(txCtx, o.PostageAmount, o.PostageDepth, "load-test")
 			if err != nil {
 				c.logger.Errorf("create new batch: %v", err)
 				c.metrics.BatchCreateErrors.Inc()
@@ -160,13 +164,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				c.logger.Infof("upload failed: %v", err)
 				c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 			} else {
+				uploaded = true
 				break
 			}
 		}
 		txCancel()
-
-		if err != nil {
-			continue // skip
+		if !uploaded {
+			continue
 		}
 
 		c.metrics.UploadDuration.Observe(txDuration.Seconds())
