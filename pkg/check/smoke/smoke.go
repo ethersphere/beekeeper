@@ -45,10 +45,10 @@ func NewDefaultOptions() Options {
 		PostageDepth:    24,
 		TxOnErrWait:     10 * time.Second,
 		RxOnErrWait:     10 * time.Second,
-		NodesSyncWait:   time.Second * 30,
+		NodesSyncWait:   time.Minute,
 		Duration:        12 * time.Hour,
-		UploadTimeout:   5 * time.Minute,
-		DownloadTimeout: 5 * time.Minute,
+		UploadTimeout:   60 * time.Minute,
+		DownloadTimeout: 60 * time.Minute,
 		MaxUseBatch:     12 * time.Hour,
 	}
 }
