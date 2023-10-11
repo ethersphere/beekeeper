@@ -91,6 +91,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	test := &test{clients: clients, logger: c.logger}
 
+	c.metrics.UploadSize.Set(float64(o.ContentSize))
+
 	for i := 0; true; i++ {
 		select {
 		case <-ctx.Done():

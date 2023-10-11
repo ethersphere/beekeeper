@@ -15,6 +15,7 @@ type metrics struct {
 	DownloadAttempts    prometheus.Counter
 	UploadDuration      prometheus.Histogram
 	DownloadDuration    prometheus.Histogram
+	UploadSize          prometheus.Gauge
 }
 
 func newMetrics(subsystem string) metrics {
@@ -89,6 +90,14 @@ func newMetrics(subsystem string) metrics {
 				Subsystem: subsystem,
 				Name:      "data_download_duration",
 				Help:      "Data download duration through the /bytes endpoint.",
+			},
+		),
+		UploadSize: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "upload_size",
+				Help:      "Amount of data uploaded per upload.",
 			},
 		),
 	}
