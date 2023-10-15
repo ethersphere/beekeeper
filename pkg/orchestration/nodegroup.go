@@ -8,27 +8,28 @@ import (
 )
 
 type NodeGroup interface {
+	Accounting(ctx context.Context) (infos NodeGroupAccounting, err error)
 	AddNode(ctx context.Context, name string, o NodeOptions) (err error)
 	Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error)
-	Accounting(ctx context.Context) (infos NodeGroupAccounting, err error)
 	Balances(ctx context.Context) (balances NodeGroupBalances, err error)
 	CreateNode(ctx context.Context, name string) (err error)
 	DeleteNode(ctx context.Context, name string) (err error)
 	Fund(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
 	GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	Name() string
+	Node(name string) (Node, error)
+	NodeClient(name string) (*bee.Client, error)
+	NodeFunderFund(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
+	NodeReady(ctx context.Context, name string) (ok bool, err error)
 	Nodes() map[string]Node
 	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
 	NodesClientsAll(ctx context.Context) map[string]*bee.Client
 	NodesSorted() (l []string)
-	Node(name string) (Node, error)
-	NodeClient(name string) (*bee.Client, error)
 	Overlays(ctx context.Context) (overlays NodeGroupOverlays, err error)
 	Peers(ctx context.Context) (peers NodeGroupPeers, err error)
-	NodeReady(ctx context.Context, name string) (ok bool, err error)
 	RunningNodes(ctx context.Context) (running []string, err error)
-	SetupNode(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
 	Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
+	SetupNode(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
 	Size() int
 	StartNode(ctx context.Context, name string) (err error)
 	StopNode(ctx context.Context, name string) (err error)

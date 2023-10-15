@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
@@ -105,9 +106,26 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 }
 
 func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster orchestration.Cluster, err error) {
+	const (
+		optionNameChainNodeEndpoint = "geth-url"
+		optionNameWalletKey         = "wallet-key"
+	)
+
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
+	}
+
+	var chainNodeEndpoint string
+	// chain node endpoint check
+	if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
+		return nil, errors.New("chain node endpoint (geth-url) not provided")
+	}
+
+	var walletKey string
+	// wallet key check
+	if walletKey = c.globalConfig.GetString(optionNameWalletKey); walletKey == "" {
+		return nil, errors.New("wallet key not provided")
 	}
 
 	clusterOptions := clusterConfig.Export()
@@ -154,7 +172,9 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 				// set NodeOptions
 				nOptions := orchestration.NodeOptions{
-					Config: &bConfig,
+					Config:            &bConfig,
+					ChainNodeEndpoint: chainNodeEndpoint,
+					WalletKey:         walletKey,
 				}
 				if len(node.Clef.Key) > 0 {
 					nOptions.ClefKey = node.Clef.Key
@@ -217,7 +237,10 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					nName = node.Name
 				}
 				// set NodeOptions
-				nOptions := orchestration.NodeOptions{}
+				nOptions := orchestration.NodeOptions{
+					ChainNodeEndpoint: chainNodeEndpoint,
+					WalletKey:         walletKey,
+				}
 				if len(node.Clef.Key) > 0 {
 					nOptions.ClefKey = node.Clef.Key
 				}

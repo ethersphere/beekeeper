@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/node-funder/pkg/funder"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -452,6 +453,48 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.NodeO
 	return
 }
 
+// NodeFunderFund implements orchestration.NodeGroup.
+func (g *NodeGroup) NodeFunderFund(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
+	var a bee.Addresses
+	if f.Eth > 0 || f.Bzz > 0 || f.GBzz > 0 {
+		a.Ethereum, _ = o.SwarmKey.GetEthAddress()
+		if a.Ethereum == "" {
+			retries := 5
+			for {
+				c, err := g.NodeClient(name)
+				if err != nil {
+					return err
+				}
+				a, err = c.Addresses(ctx)
+				if err != nil {
+					retries--
+					if retries == 0 {
+						return fmt.Errorf("get %s address: %w", name, err)
+					}
+					time.Sleep(nodeRetryTimeout)
+					continue
+				}
+				break
+			}
+		}
+		g.logger.Infof("fund eth address: %s", a.Ethereum)
+
+		if a.Ethereum != "" && o.ChainNodeEndpoint != "" {
+			return funder.Fund(ctx, funder.Config{
+				Addresses:         []string{a.Ethereum},
+				ChainNodeEndpoint: o.ChainNodeEndpoint,
+				WalletKey:         o.WalletKey,
+				MinAmounts: funder.MinAmounts{
+					NativeCoin: f.Eth,
+					SwarmToken: f.Bzz,
+				},
+			}, nil, nil)
+		}
+	}
+
+	return nil
+}
+
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
 func (g *NodeGroup) GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
 	stream, err := g.HasChunkStream(ctx, a)
@@ -817,7 +860,11 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.
 		return fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	if err := g.Fund(ctx, name, o, f); err != nil {
+	if o.ChainNodeEndpoint != "" {
+		// print
+		g.logger.Infof("EMPTY NODE-ENDPOINT: funding node %s", name)
+	}
+	if err := g.NodeFunderFund(ctx, name, o, f); err != nil {
 		return fmt.Errorf("fund node %s: %w", name, err)
 	}
 
