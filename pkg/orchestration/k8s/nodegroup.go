@@ -477,9 +477,10 @@ func (g *NodeGroup) NodeFunderFund(ctx context.Context, name string, o orchestra
 				break
 			}
 		}
-		g.logger.Infof("fund eth address: %s", a.Ethereum)
 
 		if a.Ethereum != "" && o.ChainNodeEndpoint != "" {
+			g.logger.Infof("fund eth address: %s", a.Ethereum)
+
 			return funder.Fund(ctx, funder.Config{
 				Addresses:         []string{a.Ethereum},
 				ChainNodeEndpoint: o.ChainNodeEndpoint,
@@ -860,10 +861,6 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.
 		return fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	if o.ChainNodeEndpoint != "" {
-		// print
-		g.logger.Infof("EMPTY NODE-ENDPOINT: funding node %s", name)
-	}
 	if err := g.NodeFunderFund(ctx, name, o, f); err != nil {
 		return fmt.Errorf("fund node %s: %w", name, err)
 	}
