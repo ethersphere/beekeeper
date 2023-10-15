@@ -270,7 +270,10 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 					errGroup.Go(func() error {
 						if start {
-							return g.SetupNode(ctx, nName, orchestration.NodeOptions{}, clusterConfig.Funding.Export())
+							return g.SetupNode(ctx, nName, orchestration.NodeOptions{
+								ChainNodeEndpoint: chainNodeEndpoint,
+								WalletKey:         walletKey,
+							}, clusterConfig.Funding.Export())
 						} else {
 							return g.AddNode(ctx, nName, orchestration.NodeOptions{})
 						}
