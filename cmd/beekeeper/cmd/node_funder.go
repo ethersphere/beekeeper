@@ -18,7 +18,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 		optionNameAddresses         = "addresses"
 		optionNameNamespace         = "namespace"
 		optionClusterName           = "cluster-name"
-		optionNameChainNodeEndpoint = "chain-node-endpoint"
+		optionNameChainNodeEndpoint = "geth-url"
 		optionNameWalletKey         = "wallet-key"
 		optionNameMinNative         = "min-native"
 		optionNameMinSwarm          = "min-swarm"
@@ -55,7 +55,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 
 			// chain node endpoint check
 			if cfg.ChainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); cfg.ChainNodeEndpoint == "" {
-				return errors.New("chain node endpoint not provided")
+				return errors.New("chain node endpoint (geth-url) not provided")
 			}
 
 			// wallet key check

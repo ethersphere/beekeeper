@@ -6,17 +6,36 @@ import (
 )
 
 type metrics struct {
-	UploadErrors     prometheus.Counter
-	UploadAttempts   prometheus.Counter
-	DownloadErrors   prometheus.Counter
-	DownloadMismatch prometheus.Counter
-	DownloadAttempts prometheus.Counter
-	UploadDuration   prometheus.Histogram
-	DownloadDuration prometheus.Histogram
+	BatchCreateErrors   prometheus.Counter
+	BatchCreateAttempts prometheus.Counter
+	UploadErrors        prometheus.Counter
+	UploadAttempts      prometheus.Counter
+	DownloadErrors      prometheus.Counter
+	DownloadMismatch    prometheus.Counter
+	DownloadAttempts    prometheus.Counter
+	UploadDuration      prometheus.Histogram
+	DownloadDuration    prometheus.Histogram
+	UploadSize          prometheus.Gauge
 }
 
 func newMetrics(subsystem string) metrics {
 	return metrics{
+		BatchCreateAttempts: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "batch_create_attempts",
+				Help:      "Number of batch create attempts.",
+			},
+		),
+		BatchCreateErrors: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "batch_create_errors",
+				Help:      "Total errors encountered while creating batches.",
+			},
+		),
 		UploadAttempts: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
@@ -71,6 +90,14 @@ func newMetrics(subsystem string) metrics {
 				Subsystem: subsystem,
 				Name:      "data_download_duration",
 				Help:      "Data download duration through the /bytes endpoint.",
+			},
+		),
+		UploadSize: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "upload_size",
+				Help:      "Amount of data uploaded per upload.",
 			},
 		),
 	}

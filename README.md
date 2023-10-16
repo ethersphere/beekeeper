@@ -308,20 +308,20 @@ Command **node-funder** uses https://github.com/ethersphere/node-funder tool to 
 
 It has following flags:
 ```
---addresses strings            Comma-separated list of Bee node addresses (must start with 0x). Overrides namespace and cluster name.
---chain-node-endpoint string   Endpoint to chain node. Required.
---cluster-name string          Cluster name. Ignored if addresses or namespace are set.
---help                         help for node-funder
---min-native float             Minimum amount of chain native coins (xDAI) nodes should have.
---min-swarm float              Minimum amount of swarm tokens (xBZZ) nodes should have.
---namespace string             Kubernetes namespace. Overrides cluster name if set.
---timeout duration             Timeout. (default 5m0s)
---wallet-key string            Hex-encoded private key for the Bee node wallet. Required.
+--addresses strings       Comma-separated list of Bee node addresses (must start with 0x). Overrides namespace and cluster name.
+--geth-url string         Endpoint to chain node. Required.
+--cluster-name string     Cluster name. Ignored if addresses or namespace are set.
+--help                    help for node-funder
+--min-native float        Minimum amount of chain native coins (xDAI) nodes should have.
+--min-swarm float         Minimum amount of swarm tokens (xBZZ) nodes should have.
+--namespace string        Kubernetes namespace. Overrides cluster name if set.
+--timeout duration        Timeout. (default 5m0s)
+--wallet-key string       Hex-encoded private key for the Bee node wallet. Required.
 ```
 
 example:
 ```
-beekeeper node-funder --chain-node-endpoint="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --namespace=default --min-swarm=180 --min-native=2.2 --log-verbosity=3
+beekeeper node-funder --geth-url="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --namespace=default --min-swarm=180 --min-native=2.2 --log-verbosity=3
 ```
 
 # Global flags

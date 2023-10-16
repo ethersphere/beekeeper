@@ -418,10 +418,11 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 		if !b.Exists {
 			continue
 		}
-		max := 1 << (b.Depth - b.BucketDepth)
-		hasFreeSlots := b.Utilization < uint32(max)
+		if b.ImmutableFlag { // skip immutable batches
+			continue
+		}
 
-		if b.Usable && (b.BatchTTL == -1 || b.BatchTTL > 0) && hasFreeSlots {
+		if b.Usable && (b.BatchTTL == -1 || b.BatchTTL > 0) {
 			return b.BatchID, nil
 		}
 	}
