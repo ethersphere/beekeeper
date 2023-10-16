@@ -10,7 +10,6 @@ import (
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/node-funder/pkg/funder"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -453,8 +452,8 @@ func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.NodeO
 	return
 }
 
-// NodeFunderFund implements orchestration.NodeGroup.
-func (g *NodeGroup) NodeFunderFund(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
+// GetFundEthAddress implements orchestration.NodeGroup.
+func (g *NodeGroup) GetFundEthAddress(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (string, error) {
 	var a bee.Addresses
 	if f.Eth > 0 || f.Bzz > 0 || f.GBzz > 0 {
 		a.Ethereum, _ = o.SwarmKey.GetEthAddress()
@@ -463,13 +462,13 @@ func (g *NodeGroup) NodeFunderFund(ctx context.Context, name string, o orchestra
 			for {
 				c, err := g.NodeClient(name)
 				if err != nil {
-					return err
+					return "", err
 				}
 				a, err = c.Addresses(ctx)
 				if err != nil {
 					retries--
 					if retries == 0 {
-						return fmt.Errorf("get %s address: %w", name, err)
+						return "", fmt.Errorf("get %s address: %w", name, err)
 					}
 					time.Sleep(nodeRetryTimeout)
 					continue
@@ -477,23 +476,9 @@ func (g *NodeGroup) NodeFunderFund(ctx context.Context, name string, o orchestra
 				break
 			}
 		}
-
-		if a.Ethereum != "" && o.ChainNodeEndpoint != "" {
-			g.logger.Infof("fund eth address: %s", a.Ethereum)
-
-			return funder.Fund(ctx, funder.Config{
-				Addresses:         []string{a.Ethereum},
-				ChainNodeEndpoint: o.ChainNodeEndpoint,
-				WalletKey:         o.WalletKey,
-				MinAmounts: funder.MinAmounts{
-					NativeCoin: f.Eth,
-					SwarmToken: f.Bzz,
-				},
-			}, nil, nil)
-		}
 	}
 
-	return nil
+	return a.Ethereum, nil
 }
 
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
@@ -842,27 +827,28 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
-func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (ethAddress string, err error) {
 	g.logger.Infof("starting setup node: %s", name)
 
 	if err := g.AddNode(ctx, name, o); err != nil {
-		return fmt.Errorf("add node %s: %w", name, err)
+		return "", fmt.Errorf("add node %s: %w", name, err)
 	}
 
 	if err := g.PregenerateSwarmKey(ctx, name); err != nil {
-		return fmt.Errorf("pregenerate Swarm key for node %s: %w", name, err)
+		return "", fmt.Errorf("pregenerate Swarm key for node %s: %w", name, err)
 	}
 
 	if err := g.CreateNode(ctx, name); err != nil {
-		return fmt.Errorf("create node %s in k8s: %w", name, err)
+		return "", fmt.Errorf("create node %s in k8s: %w", name, err)
 	}
 
 	if err := g.StartNode(ctx, name); err != nil {
-		return fmt.Errorf("start node %s in k8s: %w", name, err)
+		return "", fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	if err := g.NodeFunderFund(ctx, name, o, f); err != nil {
-		return fmt.Errorf("fund node %s: %w", name, err)
+	ethAddress, err = g.GetFundEthAddress(ctx, name, o, f)
+	if err != nil {
+		return "", fmt.Errorf("fund node %s: %w", name, err)
 	}
 
 	return

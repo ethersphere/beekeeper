@@ -8,7 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
-	"golang.org/x/sync/errgroup"
+	"github.com/ethersphere/node-funder/pkg/funder"
 )
 
 func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config, deleteStorage bool) (err error) {
@@ -105,7 +105,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	return
 }
 
-func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, start bool) (cluster orchestration.Cluster, err error) {
+func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, startCluster bool) (cluster orchestration.Cluster, err error) {
 	const (
 		optionNameChainNodeEndpoint = "geth-url"
 		optionNameWalletKey         = "wallet-key"
@@ -116,14 +116,14 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
 	}
 
+	fundOpts := clusterConfig.Funding.Export()
+
 	var chainNodeEndpoint string
-	// chain node endpoint check
 	if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
 		return nil, errors.New("chain node endpoint (geth-url) not provided")
 	}
 
 	var walletKey string
-	// wallet key check
 	if walletKey = c.globalConfig.GetString(optionNameWalletKey); walletKey == "" {
 		return nil, errors.New("wallet key not provided")
 	}
@@ -135,7 +135,13 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions, c.log)
 	bootnodes := ""
 
-	errGroup := new(errgroup.Group)
+	type nodeResult struct {
+		ethAddress string
+		err        error
+	}
+	var nodeCount uint32
+	nodeResultCh := make(chan nodeResult)
+	defer close(nodeResultCh)
 
 	for ng, v := range clusterConfig.GetNodeGroups() {
 		ngConfig, ok := cfg.NodeGroups[v.Config]
@@ -188,21 +194,53 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				if len(node.SwarmKey) > 0 {
 					nOptions.SwarmKey = orchestration.EncryptedKey(node.SwarmKey)
 				}
-
-				errGroup.Go(func() error {
-					if start {
-						return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
+				nodeCount++
+				go func() {
+					if startCluster {
+						ethAddress, err := g.SetupNode(ctx, nName, nOptions, fundOpts)
+						nodeResultCh <- nodeResult{
+							ethAddress: ethAddress,
+							err:        err,
+						}
 					} else {
-						return g.AddNode(ctx, nName, nOptions)
+						err := g.AddNode(ctx, nName, nOptions)
+						nodeResultCh <- nodeResult{
+							err: err,
+						}
 					}
-				})
+				}()
 			}
 		}
 	}
 
-	if err := errGroup.Wait(); err != nil {
-		return nil, fmt.Errorf("starting node group bootnode: %w", err)
+	var fundAddresses []string
+
+	for i := uint32(0); i < nodeCount; i++ {
+		nodeResult := <-nodeResultCh
+		if nodeResult.err != nil {
+			return nil, fmt.Errorf("starting node group bootnode: %w", nodeResult.err)
+		}
+		if nodeResult.ethAddress != "" {
+			fundAddresses = append(fundAddresses, nodeResult.ethAddress)
+		}
 	}
+
+	if startCluster {
+		err = funder.Fund(ctx, funder.Config{
+			Addresses:         fundAddresses,
+			ChainNodeEndpoint: chainNodeEndpoint,
+			WalletKey:         walletKey,
+			MinAmounts: funder.MinAmounts{
+				NativeCoin: fundOpts.Eth,
+				SwarmToken: fundOpts.Bzz,
+			},
+		}, nil, nil)
+		if err != nil {
+			return nil, fmt.Errorf("funding node group bootnode: %w", err)
+		}
+	}
+
+	nodeCount = 0
 
 	for ng, v := range clusterConfig.GetNodeGroups() {
 		ngConfig, ok := cfg.NodeGroups[v.Config]
@@ -253,38 +291,75 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 				if len(node.SwarmKey) > 0 {
 					nOptions.SwarmKey = orchestration.EncryptedKey(node.SwarmKey)
 				}
-
-				errGroup.Go(func() error {
-					if start {
-						return g.SetupNode(ctx, nName, nOptions, clusterConfig.Funding.Export())
+				nodeCount++
+				go func() {
+					if startCluster {
+						ethAddress, err := g.SetupNode(ctx, nName, nOptions, fundOpts)
+						nodeResultCh <- nodeResult{
+							ethAddress: ethAddress,
+							err:        err,
+						}
 					} else {
-						return g.AddNode(ctx, nName, nOptions)
+						err := g.AddNode(ctx, nName, nOptions)
+						nodeResultCh <- nodeResult{
+							err: err,
+						}
 					}
-				})
+				}()
 			}
 
 			if len(v.Nodes) == 0 {
 				for i := 0; i < v.Count; i++ {
 					// set node name
 					nName := fmt.Sprintf("%s-%d", ng, i)
-
-					errGroup.Go(func() error {
-						if start {
-							return g.SetupNode(ctx, nName, orchestration.NodeOptions{
+					nodeCount++
+					go func() {
+						if startCluster {
+							ethAddress, err := g.SetupNode(ctx, nName, orchestration.NodeOptions{
 								ChainNodeEndpoint: chainNodeEndpoint,
 								WalletKey:         walletKey,
-							}, clusterConfig.Funding.Export())
+							}, fundOpts)
+							nodeResultCh <- nodeResult{
+								ethAddress: ethAddress,
+								err:        err,
+							}
 						} else {
-							return g.AddNode(ctx, nName, orchestration.NodeOptions{})
+							err := g.AddNode(ctx, nName, orchestration.NodeOptions{})
+							nodeResultCh <- nodeResult{
+								err: err,
+							}
 						}
-					})
+					}()
 				}
 			}
 		}
 	}
 
-	if err := errGroup.Wait(); err != nil {
-		return nil, fmt.Errorf("starting node groups: %w", err)
+	var fundAddresses2 []string
+
+	for i := uint32(0); i < nodeCount; i++ {
+		nodeResult := <-nodeResultCh
+		if nodeResult.err != nil {
+			return nil, fmt.Errorf("starting nodes: %w", nodeResult.err)
+		}
+		if nodeResult.ethAddress != "" {
+			fundAddresses2 = append(fundAddresses2, nodeResult.ethAddress)
+		}
+	}
+
+	if startCluster {
+		err = funder.Fund(ctx, funder.Config{
+			Addresses:         fundAddresses2,
+			ChainNodeEndpoint: chainNodeEndpoint,
+			WalletKey:         walletKey,
+			MinAmounts: funder.MinAmounts{
+				NativeCoin: fundOpts.Eth,
+				SwarmToken: fundOpts.Bzz,
+			},
+		}, nil, nil)
+		if err != nil {
+			return nil, fmt.Errorf("funding nodes: %w", err)
+		}
 	}
 
 	return

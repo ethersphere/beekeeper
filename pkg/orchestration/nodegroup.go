@@ -15,11 +15,11 @@ type NodeGroup interface {
 	CreateNode(ctx context.Context, name string) (err error)
 	DeleteNode(ctx context.Context, name string) (err error)
 	Fund(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
+	GetFundEthAddress(ctx context.Context, name string, o NodeOptions, f FundingOptions) (ethAddress string, err error)
 	GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	Name() string
 	Node(name string) (Node, error)
 	NodeClient(name string) (*bee.Client, error)
-	NodeFunderFund(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
 	NodeReady(ctx context.Context, name string) (ok bool, err error)
 	Nodes() map[string]Node
 	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
@@ -29,7 +29,7 @@ type NodeGroup interface {
 	Peers(ctx context.Context) (peers NodeGroupPeers, err error)
 	RunningNodes(ctx context.Context) (running []string, err error)
 	Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
-	SetupNode(ctx context.Context, name string, o NodeOptions, f FundingOptions) (err error)
+	SetupNode(ctx context.Context, name string, o NodeOptions, f FundingOptions) (ethAddress string, err error)
 	Size() int
 	StartNode(ctx context.Context, name string) (err error)
 	StopNode(ctx context.Context, name string) (err error)
