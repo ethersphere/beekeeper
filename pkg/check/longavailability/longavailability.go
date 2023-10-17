@@ -68,7 +68,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		t := &test{
 			node:       node,
 			logger:     c.logger,
-			metrics:    c.metrics,
+			metrics:    &c.metrics,
 			retryCount: opts.RetryCount,
 			retryWait:  opts.RetryWait,
 		}
@@ -110,7 +110,7 @@ func findRandomNode(ctx context.Context, addr swarm.Address, cluster orchestrati
 type test struct {
 	node       orchestration.Node
 	logger     logging.Logger
-	metrics    metrics
+	metrics    *metrics
 	retryCount int
 	retryWait  time.Duration
 }
