@@ -178,9 +178,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 				// set NodeOptions
 				nOptions := orchestration.NodeOptions{
-					Config:            &bConfig,
-					ChainNodeEndpoint: chainNodeEndpoint,
-					WalletKey:         walletKey,
+					Config: &bConfig,
 				}
 				if len(node.Clef.Key) > 0 {
 					nOptions.ClefKey = node.Clef.Key
@@ -275,10 +273,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					nName = node.Name
 				}
 				// set NodeOptions
-				nOptions := orchestration.NodeOptions{
-					ChainNodeEndpoint: chainNodeEndpoint,
-					WalletKey:         walletKey,
-				}
+				nOptions := orchestration.NodeOptions{}
 				if len(node.Clef.Key) > 0 {
 					nOptions.ClefKey = node.Clef.Key
 				}
@@ -315,10 +310,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 					nodeCount++
 					go func() {
 						if startCluster {
-							ethAddress, err := g.SetupNode(ctx, nName, orchestration.NodeOptions{
-								ChainNodeEndpoint: chainNodeEndpoint,
-								WalletKey:         walletKey,
-							}, fundOpts)
+							ethAddress, err := g.SetupNode(ctx, nName, orchestration.NodeOptions{}, fundOpts)
 							nodeResultCh <- nodeResult{
 								ethAddress: ethAddress,
 								err:        err,

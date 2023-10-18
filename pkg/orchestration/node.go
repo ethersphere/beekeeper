@@ -64,15 +64,13 @@ func (ek EncryptedKey) GetEthAddress() (string, error) {
 
 // NodeOptions holds optional parameters for the Node.
 type NodeOptions struct {
-	ClefKey           string
-	ClefPassword      string
-	Client            *bee.Client
-	Config            *Config
-	K8S               *k8s.Client
-	LibP2PKey         string
-	SwarmKey          EncryptedKey
-	ChainNodeEndpoint string
-	WalletKey         string
+	ClefKey      string
+	ClefPassword string
+	Client       *bee.Client
+	Config       *Config
+	K8S          *k8s.Client
+	LibP2PKey    string
+	SwarmKey     EncryptedKey
 }
 
 // CreateOptions represents available options for creating node
