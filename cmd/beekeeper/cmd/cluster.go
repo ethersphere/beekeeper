@@ -147,6 +147,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		if err != nil {
 			return nil, fmt.Errorf("funding node group bootnode: %w", err)
 		}
+		c.log.Infof("bootnode node group funded")
 	}
 
 	// setup other node groups
@@ -161,6 +162,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		if err != nil {
 			return nil, fmt.Errorf("fund other node groups: %w", err)
 		}
+		c.log.Infof("node groups funded")
 	}
 
 	return cluster, nil
@@ -176,6 +178,11 @@ func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cl
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
 	var nodeCount uint32
 	fundOpts := clusterConfig.Funding.Export()
+
+	if fundOpts.Eth == 0 || fundOpts.Bzz == 0 {
+		return nil, "", errors.New("funding options not provided")
+	}
+
 	for ngName, v := range clusterConfig.GetNodeGroups() {
 
 		if (v.Mode != bootnodeMode && bootnode) || (v.Mode == bootnodeMode && !bootnode) {
@@ -226,7 +233,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			}
 
 			nodeCount++
-			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, fundOpts, nodeResultCh)
+			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh)
 		}
 
 		if len(v.Nodes) == 0 && !bootnode {
@@ -234,7 +241,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 				// set node name
 				nodeName := fmt.Sprintf("%s-%d", ngName, i)
 				nodeCount++
-				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, fundOpts, nodeResultCh)
+				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh)
 			}
 		}
 	}
@@ -254,9 +261,9 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 	return fundAddresses, bootnodesOut, nil
 }
 
-func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, fundOpts orchestration.FundingOptions, ch chan<- nodeResult) {
+func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult) {
 	if startCluster {
-		ethAddress, err := ng.SetupNode(ctx, nName, nodeOpts, fundOpts)
+		ethAddress, err := ng.SetupNode(ctx, nName, nodeOpts)
 		ch <- nodeResult{
 			ethAddress: ethAddress,
 			err:        err,
