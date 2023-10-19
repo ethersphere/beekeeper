@@ -129,6 +129,10 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	}
 
 	fundOpts := clusterConfig.Funding.Export()
+	// check if funding options are provided before starting the cluster
+	if startCluster && (fundOpts.Eth == 0 || fundOpts.Bzz == 0) {
+		return nil, errors.New("funding options, eth or bzz, are not provided")
+	}
 
 	cluster = configureCluster(clusterConfig, c)
 
@@ -164,6 +168,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		}
 		c.log.Infof("node groups funded")
 	}
+	c.log.Infof("cluster %s setup completed", clusterName)
 
 	return cluster, nil
 }
@@ -177,12 +182,6 @@ func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cl
 
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
 	var nodeCount uint32
-	fundOpts := clusterConfig.Funding.Export()
-
-	if fundOpts.Eth == 0 || fundOpts.Bzz == 0 {
-		return nil, "", errors.New("funding options not provided")
-	}
-
 	for ngName, v := range clusterConfig.GetNodeGroups() {
 
 		if (v.Mode != bootnodeMode && bootnode) || (v.Mode == bootnodeMode && !bootnode) {
@@ -264,15 +263,10 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult) {
 	if startCluster {
 		ethAddress, err := ng.SetupNode(ctx, nName, nodeOpts)
-		ch <- nodeResult{
-			ethAddress: ethAddress,
-			err:        err,
-		}
+		ch <- nodeResult{ethAddress: ethAddress, err: err}
 	} else {
 		err := ng.AddNode(ctx, nName, nodeOpts)
-		ch <- nodeResult{
-			err: err,
-		}
+		ch <- nodeResult{err: err}
 	}
 }
 
