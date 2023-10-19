@@ -24,11 +24,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		return fmt.Errorf("cluster %s not defined", clusterName)
 	}
 
-	clusterOptions := clusterConfig.Export()
-	clusterOptions.K8SClient = c.k8sClient
-	clusterOptions.SwapClient = c.swapClient
-
-	cluster := orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOptions, c.log)
+	cluster, namespace := configureCluster(clusterConfig, c)
 
 	// delete node groups
 	for ng, v := range clusterConfig.GetNodeGroups() {
@@ -59,7 +55,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 
 				if deleteStorage && *ngConfig.PersistenceEnabled {
 					pvcName := fmt.Sprintf("data-%s-0", nName)
-					if err := c.k8sClient.PVC.Delete(ctx, pvcName, clusterOptions.Namespace); err != nil {
+					if err := c.k8sClient.PVC.Delete(ctx, pvcName, namespace); err != nil {
 						return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
 					}
 				}
@@ -85,7 +81,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 
 					if deleteStorage && *ngConfig.PersistenceEnabled {
 						pvcName := fmt.Sprintf("data-%s-0", nName)
-						if err := c.k8sClient.PVC.Delete(ctx, pvcName, clusterOptions.Namespace); err != nil {
+						if err := c.k8sClient.PVC.Delete(ctx, pvcName, namespace); err != nil {
 							return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
 						}
 					}
@@ -99,7 +95,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 
 					if deleteStorage && *ngConfig.PersistenceEnabled {
 						pvcName := fmt.Sprintf("data-%s-0", nName)
-						if err := c.k8sClient.PVC.Delete(ctx, pvcName, clusterOptions.Namespace); err != nil {
+						if err := c.k8sClient.PVC.Delete(ctx, pvcName, namespace); err != nil {
 							return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
 						}
 					}
@@ -135,7 +131,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	fundOpts := clusterConfig.Funding.Export()
 
-	cluster = configureCluster(clusterConfig, c, cluster)
+	cluster, _ = configureCluster(clusterConfig, c)
 
 	nodeResultChan := make(chan nodeResult)
 	defer close(nodeResultChan)
@@ -168,14 +164,14 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		}
 	}
 
-	return
+	return cluster, nil
 }
 
-func configureCluster(clusterConfig config.Cluster, c *command, cluster orchestration.Cluster) orchestration.Cluster {
+func configureCluster(clusterConfig config.Cluster, c *command) (orchestration.Cluster, string) {
 	clusterOpts := clusterConfig.Export()
 	clusterOpts.K8SClient = c.k8sClient
 	clusterOpts.SwapClient = c.swapClient
-	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
+	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log), clusterOpts.Namespace
 }
 
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
