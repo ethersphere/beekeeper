@@ -45,7 +45,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 	}
 }
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) error {
 	opts, ok := o.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -63,20 +63,32 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 	for _, addr := range addresses {
 		node, err := findRandomNode(ctx, addr, cluster, opts.RndSeed)
 		if err != nil {
-			return fmt.Errorf("find node: %w", err)
+			c.logger.Errorf("find node %s. Skipping. %w", addr.String(), err)
+			continue
 		}
-		t := &test{
-			node:       node,
-			logger:     c.logger,
-			metrics:    &c.metrics,
-			retryCount: opts.RetryCount,
-			retryWait:  opts.RetryWait,
+
+		var i int
+		for i = 0; i < opts.RetryCount; i++ {
+			c.metrics.DownloadAttempts.Inc()
+			c.logger.Infof("node %s: download attempt %d for %s", node.Name(), i+1, addr)
+
+			start := time.Now()
+			_, _, err = node.Client().DownloadFile(ctx, addr)
+			if err != nil {
+				c.metrics.DownloadErrors.Inc()
+				c.logger.Errorf("node %s: download %s error: %v", node.Name(), addr, err)
+				c.logger.Infof("retrying in: %v", opts.RetryWait)
+				time.Sleep(opts.RetryWait)
+				continue
+			}
+			dur := time.Since(start)
+			c.metrics.DownloadDuration.Observe(dur.Seconds())
+			c.logger.Infof("node %s: downloaded %s successfully in %v", node.Name(), addr, dur)
+			break
 		}
-		err = t.run(ctx, addr)
-		if err != nil {
+
+		if i >= opts.RetryCount {
 			c.logger.Errorf("node %s: download for %s failed: %v", node.Name(), addr, err)
-		} else {
-			c.logger.Infof("node %s: download for %s done", node.Name(), addr)
 		}
 	}
 	return nil
@@ -105,41 +117,4 @@ func findRandomNode(ctx context.Context, addr swarm.Address, cluster orchestrati
 	rnd := random.PseudoGenerator(randSeed)
 	node := nodes[eligible[rnd.Intn(len(eligible))]]
 	return node, nil
-}
-
-type test struct {
-	node       orchestration.Node
-	logger     logging.Logger
-	metrics    *metrics
-	retryCount int
-	retryWait  time.Duration
-}
-
-func (t *test) run(ctx context.Context, addr swarm.Address) error {
-	for i := 0; i < t.retryCount; i++ {
-		t.metrics.DownloadAttempts.Inc()
-		t.logger.Infof("node %s: download attempt %d for %s", t.node.Name(), i+1, addr)
-		dur, err := t.download(ctx, addr)
-		if err != nil {
-			t.metrics.DownloadErrors.Inc()
-			t.logger.Errorf("node %s: download %s error: %v", t.node.Name(), addr, err)
-			t.logger.Infof("retrying in: %v", t.retryWait)
-			time.Sleep(t.retryWait)
-			continue
-		}
-		t.metrics.DownloadDuration.Observe(dur.Seconds())
-		t.logger.Infof("node %s: downloaded %s successfully in %v", t.node.Name(), addr, dur)
-		return nil
-	}
-	return fmt.Errorf("node %s: download %s failed after %d attempts", t.node.Name(), addr, t.retryCount)
-}
-
-func (t *test) download(ctx context.Context, addr swarm.Address) (time.Duration, error) {
-	start := time.Now()
-	_, err := t.node.Client().DownloadBytes(ctx, addr)
-	if err != nil {
-		return 0, fmt.Errorf("download from node %s: %w", t.node.Name(), err)
-	}
-	dur := time.Since(start)
-	return dur, nil
 }
