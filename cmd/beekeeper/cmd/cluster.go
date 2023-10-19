@@ -11,7 +11,7 @@ import (
 	"github.com/ethersphere/node-funder/pkg/funder"
 )
 
-const bootnodeMode = "bootnode"
+const bootnodeMode string = "bootnode"
 
 type nodeResult struct {
 	ethAddress string
@@ -24,84 +24,83 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		return fmt.Errorf("cluster %s not defined", clusterName)
 	}
 
-	cluster, namespace := configureCluster(clusterConfig, c)
+	cluster := configureCluster(clusterConfig, c)
 
 	// delete node groups
-	for ng, v := range clusterConfig.GetNodeGroups() {
-		c.log.Infof("deleting %s node group", ng)
+	for ngName, v := range clusterConfig.GetNodeGroups() {
+		c.log.Infof("deleting %s node group", ngName)
 		ngConfig, ok := cfg.NodeGroups[v.Config]
 		if !ok {
 			return fmt.Errorf("node group profile %s not defined", v.Config)
 		}
 
-		if v.Mode == "bootnode" { // TODO: implement standalone mode
+		if v.Mode == bootnodeMode { // TODO: implement standalone mode
 			// register node group
-			cluster.AddNodeGroup(ng, ngConfig.Export())
+			cluster.AddNodeGroup(ngName, ngConfig.Export())
 
 			// delete nodes from the node group
-			g, err := cluster.NodeGroup(ng)
+			g, err := cluster.NodeGroup(ngName)
 			if err != nil {
-				return err
+				return fmt.Errorf("get node group: %w", err)
 			}
 
 			for i := 0; i < len(v.Nodes); i++ {
-				nName := fmt.Sprintf("%s-%d", ng, i)
+				nName := fmt.Sprintf("%s-%d", ngName, i)
 				if len(v.Nodes[i].Name) > 0 {
 					nName = v.Nodes[i].Name
 				}
 				if err := g.DeleteNode(ctx, nName); err != nil {
-					return fmt.Errorf("deleting node %s from the node group %s", nName, ng)
+					return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
 				}
 
 				if deleteStorage && *ngConfig.PersistenceEnabled {
 					pvcName := fmt.Sprintf("data-%s-0", nName)
-					if err := c.k8sClient.PVC.Delete(ctx, pvcName, namespace); err != nil {
+					if err := c.k8sClient.PVC.Delete(ctx, pvcName, clusterConfig.GetNamespace()); err != nil {
 						return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
 					}
 				}
 			}
 		} else {
 			// register node group
-			cluster.AddNodeGroup(ng, ngConfig.Export())
+			cluster.AddNodeGroup(ngName, ngConfig.Export())
 
 			// delete nodes from the node group
-			g, err := cluster.NodeGroup(ng)
+			ng, err := cluster.NodeGroup(ngName)
 			if err != nil {
 				return err
 			}
 			if len(v.Nodes) > 0 {
 				for i := 0; i < len(v.Nodes); i++ {
-					nName := fmt.Sprintf("%s-%d", ng, i)
+					nName := fmt.Sprintf("%s-%d", ngName, i)
 					if len(v.Nodes[i].Name) > 0 {
 						nName = v.Nodes[i].Name
 					}
-					if err := g.DeleteNode(ctx, nName); err != nil {
-						return fmt.Errorf("deleting node %s from the node group %s", nName, ng)
+					if err := ng.DeleteNode(ctx, nName); err != nil {
+						return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
 					}
 
 					if deleteStorage && *ngConfig.PersistenceEnabled {
 						pvcName := fmt.Sprintf("data-%s-0", nName)
-						if err := c.k8sClient.PVC.Delete(ctx, pvcName, namespace); err != nil {
+						if err := c.k8sClient.PVC.Delete(ctx, pvcName, clusterConfig.GetNamespace()); err != nil {
 							return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
 						}
 					}
 				}
 			} else {
 				for i := 0; i < v.Count; i++ {
-					nName := fmt.Sprintf("%s-%d", ng, i)
-					if err := g.DeleteNode(ctx, nName); err != nil {
-						return fmt.Errorf("deleting node %s from the node group %s", nName, ng)
+					nName := fmt.Sprintf("%s-%d", ngName, i)
+					if err := ng.DeleteNode(ctx, nName); err != nil {
+						return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
 					}
 
 					if deleteStorage && *ngConfig.PersistenceEnabled {
 						pvcName := fmt.Sprintf("data-%s-0", nName)
-						if err := c.k8sClient.PVC.Delete(ctx, pvcName, namespace); err != nil {
+						if err := c.k8sClient.PVC.Delete(ctx, pvcName, clusterConfig.GetNamespace()); err != nil {
 							return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
 						}
 					}
 				}
 			}
-
 		}
 	}
 
@@ -131,7 +130,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	fundOpts := clusterConfig.Funding.Export()
 
-	cluster, _ = configureCluster(clusterConfig, c)
+	cluster = configureCluster(clusterConfig, c)
 
 	nodeResultChan := make(chan nodeResult)
 	defer close(nodeResultChan)
@@ -167,11 +166,11 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	return cluster, nil
 }
 
-func configureCluster(clusterConfig config.Cluster, c *command) (orchestration.Cluster, string) {
+func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
 	clusterOpts := clusterConfig.Export()
 	clusterOpts.K8SClient = c.k8sClient
 	clusterOpts.SwapClient = c.swapClient
-	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log), clusterOpts.Namespace
+	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
@@ -205,7 +204,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 		// start nodes in the node group
 		ng, err := cluster.NodeGroup(ngName)
 		if err != nil {
-			return nil, "", err
+			return nil, "", fmt.Errorf("get node group: %w", err)
 		}
 
 		for i, node := range v.Nodes {
