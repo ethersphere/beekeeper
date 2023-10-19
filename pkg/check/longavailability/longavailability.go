@@ -73,7 +73,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			c.logger.Infof("node %s: download attempt %d for %s", node.Name(), i+1, addr)
 
 			start := time.Now()
-			_, _, err = node.Client().DownloadFile(ctx, addr)
+			size, _, err := node.Client().DownloadFile(ctx, addr)
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
 				c.logger.Errorf("node %s: download %s error: %v", node.Name(), addr, err)
@@ -81,6 +81,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 				time.Sleep(opts.RetryWait)
 				continue
 			}
+			c.metrics.DownloadSize.Set(float64(size))
 			dur := time.Since(start)
 			c.metrics.DownloadDuration.Observe(dur.Seconds())
 			c.logger.Infof("node %s: downloaded %s successfully in %v", node.Name(), addr, dur)
