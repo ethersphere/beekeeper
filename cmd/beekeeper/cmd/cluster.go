@@ -134,36 +134,48 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	}
 
 	fundOpts := clusterConfig.Funding.Export()
-	clusterOpts := clusterConfig.Export()
-	clusterOpts.K8SClient = c.k8sClient
-	clusterOpts.SwapClient = c.swapClient
 
-	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
+	cluster = configureCluster(clusterConfig, c, cluster)
 
 	nodeResultChan := make(chan nodeResult)
 	defer close(nodeResultChan)
 
+	// setup bootnode node group
 	fundAddresses, bootnodes, err := setupNodes(ctx, clusterConfig, cfg, true, cluster, startCluster, "", nodeResultChan)
 	if err != nil {
 		return nil, fmt.Errorf("setup node group bootnode: %w", err)
 	}
 
-	err = fund(ctx, startCluster, err, fundAddresses, chainNodeEndpoint, walletKey, fundOpts)
-	if err != nil {
-		return nil, fmt.Errorf("funding node group bootnode: %w", err)
+	// fund bootnode node group if cluster is started
+	if startCluster {
+		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts)
+		if err != nil {
+			return nil, fmt.Errorf("funding node group bootnode: %w", err)
+		}
 	}
 
+	// setup other node groups
 	fundAddresses, _, err = setupNodes(ctx, clusterConfig, cfg, false, cluster, startCluster, bootnodes, nodeResultChan)
 	if err != nil {
 		return nil, fmt.Errorf("setup other node groups: %w", err)
 	}
 
-	err = fund(ctx, startCluster, err, fundAddresses, chainNodeEndpoint, walletKey, fundOpts)
-	if err != nil {
-		return nil, fmt.Errorf("fund other node groups: %w", err)
+	// fund other node groups if cluster is started
+	if startCluster {
+		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts)
+		if err != nil {
+			return nil, fmt.Errorf("fund other node groups: %w", err)
+		}
 	}
 
 	return
+}
+
+func configureCluster(clusterConfig config.Cluster, c *command, cluster orchestration.Cluster) orchestration.Cluster {
+	clusterOpts := clusterConfig.Export()
+	clusterOpts.K8SClient = c.k8sClient
+	clusterOpts.SwapClient = c.swapClient
+	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
@@ -232,6 +244,8 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 		}
 	}
 
+	// wait for nodes to be setup and get their eth addresses
+	// or wait for nodes to be added and check for errors
 	for i := uint32(0); i < nodeCount; i++ {
 		nodeResult := <-nodeResultCh
 		if nodeResult.err != nil {
@@ -279,17 +293,14 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 	return nOptions
 }
 
-func fund(ctx context.Context, startCluster bool, err error, fundAddresses []string, chainNodeEndpoint string, walletKey string, fundOpts orchestration.FundingOptions) error {
-	if startCluster {
-		return funder.Fund(ctx, funder.Config{
-			Addresses:         fundAddresses,
-			ChainNodeEndpoint: chainNodeEndpoint,
-			WalletKey:         walletKey,
-			MinAmounts: funder.MinAmounts{
-				NativeCoin: fundOpts.Eth,
-				SwarmToken: fundOpts.Bzz,
-			},
-		}, nil, nil)
-	}
-	return nil
+func fund(ctx context.Context, fundAddresses []string, chainNodeEndpoint string, walletKey string, fundOpts orchestration.FundingOptions) error {
+	return funder.Fund(ctx, funder.Config{
+		Addresses:         fundAddresses,
+		ChainNodeEndpoint: chainNodeEndpoint,
+		WalletKey:         walletKey,
+		MinAmounts: funder.MinAmounts{
+			NativeCoin: fundOpts.Eth,
+			SwarmToken: fundOpts.Bzz,
+		},
+	}, nil, nil)
 }
