@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/node-funder/pkg/funder"
@@ -128,10 +129,9 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		return nil, errors.New("wallet key not provided")
 	}
 
-	fundOpts := clusterConfig.Funding.Export()
-	// check if funding options are provided before starting the cluster
-	if startCluster && (fundOpts.Eth == 0 || fundOpts.Bzz == 0) {
-		return nil, errors.New("funding options, eth or bzz, are not provided")
+	var fundOpts orchestration.FundingOptions
+	if startCluster {
+		fundOpts = ensureFundingDefaults(clusterConfig.Funding.Export(), c.log)
 	}
 
 	cluster = configureCluster(clusterConfig, c)
@@ -171,6 +171,19 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	c.log.Infof("cluster %s setup completed", clusterName)
 
 	return cluster, nil
+}
+
+func ensureFundingDefaults(fundOpts orchestration.FundingOptions, log logging.Logger) orchestration.FundingOptions {
+	if fundOpts.Eth == 0 {
+		fundOpts.Eth = 0.1 // default eth value
+		log.Warningf("funding options, eth, is not provided, using default value %f", fundOpts.Eth)
+	}
+	if fundOpts.Bzz == 0 {
+		fundOpts.Bzz = 100 // default bzz value
+		log.Warningf("funding options, bzz, is not provided, using default value %f", fundOpts.Bzz)
+	}
+	log.Infof("fund options, eth: %f, bzz: %f", fundOpts.Eth, fundOpts.Bzz)
+	return fundOpts
 }
 
 func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
