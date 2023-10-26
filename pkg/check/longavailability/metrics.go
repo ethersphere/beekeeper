@@ -32,14 +32,14 @@ func newMetrics(subsystem string) metrics {
 			prometheus.HistogramOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
-				Name:      "data_download_duration",
+				Name:      "d_download_duration_seconds",
 				Help:      "Data download duration through the /bytes endpoint.",
 			}),
 		DownloadSize: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
-				Name:      "download_size",
+				Name:      "d_download_size_bytes",
 				Help:      "Amount of data downloaded per download.",
 			},
 		),

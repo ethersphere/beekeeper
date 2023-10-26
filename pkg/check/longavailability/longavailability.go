@@ -13,18 +13,20 @@ import (
 )
 
 type Options struct {
-	Refs       []string
-	RndSeed    int64
-	RetryCount int
-	RetryWait  time.Duration
+	Refs         []string
+	RndSeed      int64
+	RetryCount   int
+	RetryWait    time.Duration
+	NextIterWait time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		RndSeed:    time.Now().UnixNano(),
-		RetryCount: 3,
-		RetryWait:  10 * time.Second,
+		RndSeed:      time.Now().UnixNano(),
+		RetryCount:   3,
+		RetryWait:    10 * time.Second,
+		NextIterWait: 30 * time.Minute,
 	}
 }
 
@@ -60,37 +62,51 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		addresses = append(addresses, addr)
 	}
 
-	for _, addr := range addresses {
-		node, err := findRandomNode(ctx, addr, cluster, opts.RndSeed)
-		if err != nil {
-			c.logger.Errorf("find node %s. Skipping. %w", addr.String(), err)
-			continue
+	for it := 0; true; it++ {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			c.logger.Infof("iteration %d", it)
 		}
 
-		var i int
-		for i = 0; i < opts.RetryCount; i++ {
-			c.metrics.DownloadAttempts.Inc()
-			c.logger.Infof("node %s: download attempt %d for %s", node.Name(), i+1, addr)
-
-			start := time.Now()
-			size, _, err := node.Client().DownloadFile(ctx, addr)
+		for _, addr := range addresses {
+			node, err := findRandomNode(ctx, addr, cluster, opts.RndSeed)
 			if err != nil {
-				c.metrics.DownloadErrors.Inc()
-				c.logger.Errorf("node %s: download %s error: %v", node.Name(), addr, err)
-				c.logger.Infof("retrying in: %v", opts.RetryWait)
-				time.Sleep(opts.RetryWait)
+				c.logger.Errorf("find node %s. Skipping. %w", addr.String(), err)
 				continue
 			}
-			c.metrics.DownloadSize.Set(float64(size))
-			dur := time.Since(start)
-			c.metrics.DownloadDuration.Observe(dur.Seconds())
-			c.logger.Infof("node %s: downloaded %s successfully in %v", node.Name(), addr, dur)
-			break
+
+			var i int
+			for i = 0; i < opts.RetryCount; i++ {
+				c.metrics.DownloadAttempts.Inc()
+				c.logger.Infof("node %s: download attempt %d for %s", node.Name(), i+1, addr)
+
+				start := time.Now()
+				size, _, err := node.Client().DownloadFile(ctx, addr)
+				if err != nil {
+					c.metrics.DownloadErrors.Inc()
+					c.logger.Errorf("node %s: download %s error: %v", node.Name(), addr, err)
+					c.logger.Infof("retrying in: %v", opts.RetryWait)
+					time.Sleep(opts.RetryWait)
+					continue
+				}
+				c.logger.Infof("download size %d", size)
+				c.metrics.DownloadSize.Set(float64(size))
+				dur := time.Since(start)
+				c.metrics.DownloadDuration.Observe(dur.Seconds())
+				c.logger.Infof("node %s: downloaded %s successfully in %v", node.Name(), addr, dur)
+				break
+			}
+
+			if i >= opts.RetryCount {
+				c.logger.Errorf("node %s: download for %s failed after %d tries", node.Name(), addr, opts.RetryCount)
+			}
 		}
 
-		if i >= opts.RetryCount {
-			c.logger.Errorf("node %s: download for %s failed: %v", node.Name(), addr, err)
-		}
+		c.logger.Infof("iteration %d completed", it)
+		c.logger.Infof("sleeping for %v", opts.NextIterWait)
+		time.Sleep(opts.NextIterWait)
 	}
 	return nil
 }
