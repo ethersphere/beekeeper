@@ -42,7 +42,7 @@ func NewDefaultOptions() Options {
 		FileSize:           1 * 1024 * 1024, // 1mb
 		GasPrice:           "",
 		PostageAmount:      1,
-		PostageDepth:       16,
+		PostageDepth:       20,
 		PostageLabel:       "test-label",
 		Seed:               0,
 		Threshold:          10000000000000,
@@ -126,7 +126,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 		c.logger.Infof("node %s: batch id %s", uNode, batchID)
 
-		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID}); err != nil {
+		if err := client.UploadFile(ctx, &file, api.UploadOptions{BatchID: batchID, Direct: true}); err != nil {
 			return fmt.Errorf("node %s: %w", uNode, err)
 		}
 		c.logger.Infof("File %s uploaded successfully to node %s", file.Address().String(), overlays[uNode].String())
