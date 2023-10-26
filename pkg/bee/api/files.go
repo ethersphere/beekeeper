@@ -34,6 +34,9 @@ func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, 
 	if o.Tag != 0 {
 		header.Set(swarmTagHeader, strconv.FormatUint(o.Tag, 10))
 	}
+	if o.Direct {
+		header.Set(deferredUploadHeader, strconv.FormatBool(false))
+	}
 	header.Set(postageStampBatchHeader, o.BatchID)
 
 	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz?"+url.QueryEscape("name="+name), header, data, &resp)
