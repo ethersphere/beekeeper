@@ -26,7 +26,7 @@ func NewDefaultOptions() Options {
 		RndSeed:      time.Now().UnixNano(),
 		RetryCount:   3,
 		RetryWait:    10 * time.Second,
-		NextIterWait: 30 * time.Minute,
+		NextIterWait: 6 * time.Hour,
 	}
 }
 
@@ -62,7 +62,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		addresses = append(addresses, addr)
 	}
 
-	for it := 0; true; it++ {
+	var it int
+	for {
+		it++
 		select {
 		case <-ctx.Done():
 			return nil
@@ -77,8 +79,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 				continue
 			}
 
-			var i int
-			for i = 0; i < opts.RetryCount; i++ {
+			for i := 0; i <= opts.RetryCount; i++ {
+				if i == opts.RetryCount {
+					c.logger.Errorf("node %s: download for %s failed after %d tries", node.Name(), addr, opts.RetryCount)
+					break
+				}
+
 				c.metrics.DownloadAttempts.Inc()
 				c.logger.Infof("node %s: download attempt %d for %s", node.Name(), i+1, addr)
 
@@ -98,17 +104,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 				c.logger.Infof("node %s: downloaded %s successfully in %v", node.Name(), addr, dur)
 				break
 			}
-
-			if i >= opts.RetryCount {
-				c.logger.Errorf("node %s: download for %s failed after %d tries", node.Name(), addr, opts.RetryCount)
-			}
 		}
 
 		c.logger.Infof("iteration %d completed", it)
 		c.logger.Infof("sleeping for %v", opts.NextIterWait)
 		time.Sleep(opts.NextIterWait)
 	}
-	return nil
 }
 
 func findRandomNode(ctx context.Context, addr swarm.Address, cluster orchestration.Cluster, randSeed int64) (orchestration.Node, error) {
