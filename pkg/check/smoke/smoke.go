@@ -159,6 +159,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				continue
 			}
 
+			c.logger.Info("using batch", "batch_id", batchID)
+
 			c.metrics.UploadAttempts.Inc()
 			address, txDuration, err = test.upload(txCtx, txName, txData, batchID)
 			if err != nil {

@@ -318,7 +318,7 @@ checks:
       postage-depth: 20
       threshold: 100000000
       upload-node-count: 3
-      wait-before-download: 2m
+      wait-before-download: 15s
     timeout: 15m
     type: settlements
   ci-settlements-clef:

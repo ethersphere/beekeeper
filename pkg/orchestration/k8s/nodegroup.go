@@ -371,85 +371,31 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	return
 }
 
-// Fund adds funds to the node
-func (g *NodeGroup) Fund(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
+// GetEthAddress returns ethereum address of the node
+func (ng *NodeGroup) GetEthAddress(ctx context.Context, name string, o orchestration.NodeOptions) (string, error) {
 	var a bee.Addresses
-	if f.Eth > 0 || f.Bzz > 0 || f.GBzz > 0 {
-		a.Ethereum, _ = o.SwarmKey.GetEthAddress()
-		if a.Ethereum == "" {
-			retries := 5
-			for {
-				c, err := g.NodeClient(name)
-				if err != nil {
-					return err
-				}
-				a, err = c.Addresses(ctx)
-				if err != nil {
-					retries--
-					if retries == 0 {
-						return fmt.Errorf("get %s address: %w", name, err)
-					}
-					time.Sleep(nodeRetryTimeout)
-					continue
-				}
-				break
-			}
-		}
-		g.logger.Infof("fund eth address: %s", a.Ethereum)
-	}
-
-	if f.Eth > 0 {
+	a.Ethereum, _ = o.SwarmKey.GetEthAddress()
+	if a.Ethereum == "" {
 		retries := 5
 		for {
-			tx, err := g.cluster.swap.SendETH(ctx, a.Ethereum, f.Eth)
+			c, err := ng.NodeClient(name)
+			if err != nil {
+				return "", fmt.Errorf("get %s node client: %w", name, err)
+			}
+			a, err = c.Addresses(ctx)
 			if err != nil {
 				retries--
 				if retries == 0 {
-					return fmt.Errorf("send eth: %w", err)
+					return "", fmt.Errorf("get %s address: %w", name, err)
 				}
 				time.Sleep(nodeRetryTimeout)
 				continue
 			}
-			g.logger.Infof("%s funded with %.2f ETH, transaction: %s", name, f.Eth, tx)
 			break
 		}
 	}
-
-	if f.Bzz > 0 {
-		retries := 5
-		for {
-			tx, err := g.cluster.swap.SendBZZ(ctx, a.Ethereum, f.Bzz)
-			if err != nil {
-				retries--
-				if retries == 0 {
-					return fmt.Errorf("send eth: %w", err)
-				}
-				time.Sleep(nodeRetryTimeout)
-				continue
-			}
-			g.logger.Infof("%s funded with %.2f BZZ, transaction: %s", name, f.Bzz, tx)
-			break
-		}
-	}
-
-	if f.GBzz > 0 {
-		retries := 5
-		for {
-			tx, err := g.cluster.swap.SendGBZZ(ctx, a.Ethereum, f.GBzz)
-			if err != nil {
-				retries--
-				if retries == 0 {
-					return fmt.Errorf("send eth: %w", err)
-				}
-				time.Sleep(nodeRetryTimeout)
-				continue
-			}
-			g.logger.Infof("%s funded with %.2f gBZZ, transaction: %s", name, f.GBzz, tx)
-			break
-		}
-	}
-
-	return
+	ng.logger.Infof("fund eth address: %s", a.Ethereum)
+	return a.Ethereum, nil
 }
 
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
@@ -798,27 +744,28 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
-func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions, f orchestration.FundingOptions) (err error) {
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions) (ethAddress string, err error) {
 	g.logger.Infof("starting setup node: %s", name)
 
 	if err := g.AddNode(ctx, name, o); err != nil {
-		return fmt.Errorf("add node %s: %w", name, err)
+		return "", fmt.Errorf("add node %s: %w", name, err)
 	}
 
 	if err := g.PregenerateSwarmKey(ctx, name); err != nil {
-		return fmt.Errorf("pregenerate Swarm key for node %s: %w", name, err)
+		return "", fmt.Errorf("pregenerate Swarm key for node %s: %w", name, err)
 	}
 
 	if err := g.CreateNode(ctx, name); err != nil {
-		return fmt.Errorf("create node %s in k8s: %w", name, err)
+		return "", fmt.Errorf("create node %s in k8s: %w", name, err)
 	}
 
 	if err := g.StartNode(ctx, name); err != nil {
-		return fmt.Errorf("start node %s in k8s: %w", name, err)
+		return "", fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	if err := g.Fund(ctx, name, o, f); err != nil {
-		return fmt.Errorf("fund node %s: %w", name, err)
+	ethAddress, err = g.GetEthAddress(ctx, name, o)
+	if err != nil {
+		return "", fmt.Errorf("get eth address for funding: %w", err)
 	}
 
 	return
