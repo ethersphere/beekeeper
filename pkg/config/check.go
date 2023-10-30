@@ -16,6 +16,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 	"github.com/ethersphere/beekeeper/pkg/check/gc"
 	"github.com/ethersphere/beekeeper/pkg/check/kademlia"
+	"github.com/ethersphere/beekeeper/pkg/check/longavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/manifest"
 	"github.com/ethersphere/beekeeper/pkg/check/peercount"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
@@ -486,6 +487,28 @@ var Checks = map[string]CheckType{
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
+			return opts, nil
+		},
+	},
+	"longavailability": {
+		NewAction: longavailability.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				RndSeed      *int64         `yaml:"rnd-seed"`
+				RetryCount   *int64         `yaml:"retry-count"`
+				RetryWait    *time.Duration `yaml:"retry-wait"`
+				Refs         *[]string      `yaml:"refs"`
+				NextIterWait *time.Duration `yaml:"next-iter-wait"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := longavailability.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
 			return opts, nil
 		},
 	},
