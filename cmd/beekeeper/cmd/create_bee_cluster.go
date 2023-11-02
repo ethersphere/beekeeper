@@ -7,12 +7,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initCreateBeeCluster() *cobra.Command {
-	const (
-		optionNameClusterName = "cluster-name"
-		optionNameTimeout     = "timeout"
-	)
+const (
+	optionNameClusterName       = "cluster-name"
+	optionNameChainNodeEndpoint = "geth-url"
+	optionNameWalletKey         = "wallet-key"
+	optionNameTimeout           = "timeout"
+)
 
+func (c *command) initCreateBeeCluster() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bee-cluster",
 		Short: "creates Bee cluster",
@@ -29,6 +31,8 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 	}
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().String(optionNameChainNodeEndpoint, "", "Endpoint to chain node. Required.")
+	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
 
 	return cmd
