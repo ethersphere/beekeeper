@@ -109,28 +109,22 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 }
 
 func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, startCluster bool) (cluster orchestration.Cluster, err error) {
-	const (
-		optionNameChainNodeEndpoint = "geth-url"
-		optionNameWalletKey         = "wallet-key"
-	)
-
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
 	}
 
 	var chainNodeEndpoint string
-	if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
-		return nil, errors.New("chain node endpoint (geth-url) not provided")
-	}
-
 	var walletKey string
-	if walletKey = c.globalConfig.GetString(optionNameWalletKey); walletKey == "" {
-		return nil, errors.New("wallet key not provided")
-	}
-
 	var fundOpts orchestration.FundingOptions
+
 	if startCluster {
+		if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
+			return nil, errors.New("chain node endpoint (geth-url) not provided")
+		}
+		if walletKey = c.globalConfig.GetString(optionNameWalletKey); walletKey == "" {
+			return nil, errors.New("wallet key not provided")
+		}
 		fundOpts = ensureFundingDefaults(clusterConfig.Funding.Export(), c.log)
 	}
 

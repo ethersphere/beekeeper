@@ -184,14 +184,16 @@ Command **create** creates Bee infrastructure. It has two subcommands:
 
     ```
     --cluster-name string   cluster name (default "default")
+    --geth-url string       Endpoint to chain node. Required.
     --help                  help for bee-cluster
     --timeout duration      timeout (default 30m0s)
-    --with-funding          fund nodes (default true)
+    --wallet-key string     Hex-encoded private key for the Bee node wallet. Required.
     ```
+    It is required to specify *geth-url* and *wallet-key* flags for funding Bee nodes with usage of flags or config file.
 
     example:
     ```
-    beekeeper create bee-cluster default
+    beekeeper create bee-cluster --cluster-name=default
     ```
 
 * k8s-namespace - creates Kubernetes namespace
