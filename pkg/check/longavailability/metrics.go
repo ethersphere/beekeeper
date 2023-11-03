@@ -6,42 +6,59 @@ import (
 )
 
 type metrics struct {
-	DownloadErrors   prometheus.Counter
-	DownloadAttempts prometheus.Counter
-	DownloadDuration prometheus.Histogram
-	DownloadSize     prometheus.Gauge
+	DownloadErrors   *prometheus.CounterVec
+	DownloadAttempts *prometheus.CounterVec
+	DownloadDuration *prometheus.HistogramVec
+	DownloadSize     *prometheus.GaugeVec
+	DownloadStatus   *prometheus.GaugeVec
 }
 
-func newMetrics(subsystem string) metrics {
+func newMetrics(subsystem string, labels []string) metrics {
 	return metrics{
-		DownloadAttempts: prometheus.NewCounter(
+		DownloadAttempts: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_attempts",
 				Help:      "Number of download attempts.",
-			}),
-		DownloadErrors: prometheus.NewCounter(
+			},
+			labels,
+		),
+		DownloadErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_errors_count",
 				Help:      "The total number of errors encountered before successful download.",
-			}),
-		DownloadDuration: prometheus.NewHistogram(
+			},
+			labels,
+		),
+		DownloadDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "d_download_duration_seconds",
 				Help:      "Data download duration through the /bytes endpoint.",
-			}),
-		DownloadSize: prometheus.NewGauge(
+			},
+			labels,
+		),
+		DownloadSize: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "d_download_size_bytes",
 				Help:      "Amount of data downloaded per download.",
 			},
+			labels,
+		),
+		DownloadStatus: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "d_download_status",
+				Help:      "Download status.",
+			},
+			labels,
 		),
 	}
 }
