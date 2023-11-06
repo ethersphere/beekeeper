@@ -13,20 +13,20 @@ import (
 )
 
 type Options struct {
-	Refs       []string
-	RndSeed    int64
-	RetryCount int
-	RetryWait  time.Duration
-	//NextIterWait time.Duration
+	Refs         []string
+	RndSeed      int64
+	RetryCount   int
+	RetryWait    time.Duration
+	NextIterWait time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		RndSeed:    time.Now().UnixNano(),
-		RetryCount: 3,
-		RetryWait:  10 * time.Second,
-		//NextIterWait: 6 * time.Hour,
+		RndSeed:      time.Now().UnixNano(),
+		RetryCount:   3,
+		RetryWait:    10 * time.Second,
+		NextIterWait: 6 * time.Hour,
 	}
 }
 
@@ -111,9 +111,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		}
 
 		c.logger.Infof("iteration %d completed", it)
-		s := time.Duration(10 * time.Minute)
-		c.logger.Infof("sleeping for %v", s)
-		time.Sleep(s)
+		c.logger.Infof("sleeping for %v", opts.NextIterWait)
+		time.Sleep(opts.NextIterWait)
 	}
 }
 
