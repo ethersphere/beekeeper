@@ -6,11 +6,12 @@ import (
 )
 
 type metrics struct {
-	DownloadErrors   *prometheus.CounterVec
-	DownloadAttempts *prometheus.CounterVec
-	DownloadDuration *prometheus.HistogramVec
-	DownloadSize     *prometheus.GaugeVec
-	DownloadStatus   *prometheus.GaugeVec
+	DownloadErrors         *prometheus.CounterVec
+	DownloadAttempts       *prometheus.CounterVec
+	FailedDownloadAttempts *prometheus.CounterVec
+	DownloadDuration       *prometheus.HistogramVec
+	DownloadSize           *prometheus.GaugeVec
+	DownloadStatus         *prometheus.GaugeVec
 }
 
 func newMetrics(subsystem string, labels []string) metrics {
@@ -20,6 +21,15 @@ func newMetrics(subsystem string, labels []string) metrics {
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_attempts",
+				Help:      "Number of download attempts.",
+			},
+			labels,
+		),
+		FailedDownloadAttempts: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "failed_download_attempts",
 				Help:      "Number of download attempts.",
 			},
 			labels,

@@ -94,6 +94,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 				start := time.Now()
 				size, _, err := node.Client().DownloadFile(ctx, addr)
 				if err != nil {
+					c.metrics.FailedDownloadAttempts.WithLabelValues(labelValue).Inc()
 					c.logger.Errorf("node %s: download %s error: %v", node.Name(), addr, err)
 					c.logger.Infof("retrying in: %v", opts.RetryWait)
 					time.Sleep(opts.RetryWait)
