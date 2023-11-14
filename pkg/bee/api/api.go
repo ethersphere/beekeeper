@@ -8,18 +8,20 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/ethersphere/beekeeper"
 )
 
 const (
-	apiVersion              = "v1"
-	contentType             = "application/json; charset=utf-8"
-	postageStampBatchHeader = "Swarm-Postage-Batch-Id"
-	deferredUploadHeader    = "Swarm-Deferred-Upload"
-	swarmPinHeader          = "Swarm-Pin"
-	swarmTagHeader          = "Swarm-Tag"
+	apiVersion               = "v1"
+	contentType              = "application/json; charset=utf-8"
+	postageStampBatchHeader  = "Swarm-Postage-Batch-Id"
+	deferredUploadHeader     = "Swarm-Deferred-Upload"
+	swarmPinHeader           = "Swarm-Pin"
+	swarmTagHeader           = "Swarm-Tag"
+	swarmCacheDownloadHeader = "Swarm-Cache"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -171,7 +173,7 @@ func encodeJSON(w io.Writer, v interface{}) (err error) {
 }
 
 // requestData handles the HTTP request response cycle.
-func (c *Client) requestData(ctx context.Context, method, path string, body io.Reader, v interface{}) (resp io.ReadCloser, err error) {
+func (c *Client) requestData(ctx context.Context, method, path string, body io.Reader, opts *DownloadOptions) (resp io.ReadCloser, err error) {
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
 		return nil, err
@@ -189,6 +191,10 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 			return nil, err
 		}
 		req.Header.Set("Authorization", "Bearer "+key)
+	}
+
+	if opts != nil && opts.Cache != nil {
+		req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
 	}
 
 	r, err := c.httpClient.Do(req)
@@ -308,4 +314,8 @@ type UploadOptions struct {
 	Tag     uint64
 	BatchID string
 	Direct  bool
+}
+
+type DownloadOptions struct {
+	Cache *bool
 }

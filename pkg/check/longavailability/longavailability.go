@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -92,7 +93,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 
 				c.logger.Infof("node %s: download attempt %d for %s", node.Name(), i+1, addr)
 				start := time.Now()
-				size, _, err := node.Client().DownloadFile(ctx, addr)
+				cache := false
+				size, _, err := node.Client().DownloadFile(ctx, addr, &api.DownloadOptions{Cache: &cache})
 				if err != nil {
 					c.metrics.FailedDownloadAttempts.WithLabelValues(labelValue).Inc()
 					c.logger.Errorf("node %s: download %s error: %v", node.Name(), addr, err)

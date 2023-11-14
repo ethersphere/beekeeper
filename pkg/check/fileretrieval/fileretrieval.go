@@ -122,7 +122,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 
 			client = clients[lastNodeName]
 
-			size, hash, err := client.DownloadFile(ctx, file.Address())
+			size, hash, err := client.DownloadFile(ctx, file.Address(), nil)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", lastNodeName, err)
 			}
@@ -194,7 +194,7 @@ func (c *Check) fullCheck(ctx context.Context, cluster orchestration.Cluster, o 
 				}
 
 				t1 := time.Now()
-				size, hash, err := nc.DownloadFile(ctx, file.Address())
+				size, hash, err := nc.DownloadFile(ctx, file.Address(), nil)
 				if err != nil {
 					return fmt.Errorf("node %s: %w", n, err)
 				}

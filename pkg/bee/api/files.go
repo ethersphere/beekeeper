@@ -14,8 +14,8 @@ import (
 type FilesService service
 
 // Download downloads data from the node
-func (f *FilesService) Download(ctx context.Context, a swarm.Address) (resp io.ReadCloser, err error) {
-	return f.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bzz/"+a.String(), nil, nil)
+func (f *FilesService) Download(ctx context.Context, a swarm.Address, opts *DownloadOptions) (resp io.ReadCloser, err error) {
+	return f.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bzz/"+a.String(), nil, opts)
 }
 
 // FilesUploadResponse represents Upload's response
