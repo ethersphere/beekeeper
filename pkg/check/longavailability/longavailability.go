@@ -107,6 +107,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 				c.metrics.DownloadDuration.WithLabelValues(labelValue).Observe(dur.Seconds())
 				c.logger.Infof("node %s: downloaded %s successfully in %v", node.Name(), addr, dur)
 				c.metrics.DownloadStatus.WithLabelValues(labelValue).Set(1)
+				c.metrics.Retrieved.WithLabelValues(labelValue).Inc()
 				break
 			}
 		}
