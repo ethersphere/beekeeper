@@ -204,9 +204,9 @@ func (c *Client) DownloadChunk(ctx context.Context, a swarm.Address, targets str
 	return io.ReadAll(r)
 }
 
-// DownloadFile downloads chunk from the node and returns it's size and hash
-func (c *Client) DownloadFile(ctx context.Context, a swarm.Address) (size int64, hash []byte, err error) {
-	r, err := c.api.Files.Download(ctx, a)
+// DownloadFile downloads chunk from the node and returns it's size and hash.
+func (c *Client) DownloadFile(ctx context.Context, a swarm.Address, opts *api.DownloadOptions) (size int64, hash []byte, err error) {
+	r, err := c.api.Files.Download(ctx, a, opts)
 	if err != nil {
 		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
 	}

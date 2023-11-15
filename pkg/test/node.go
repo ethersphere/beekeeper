@@ -65,7 +65,7 @@ func (b *BeeV2) UploadFile(ctx context.Context, file File) error {
 }
 
 func (b *BeeV2) ExpectToHaveFile(ctx context.Context, file File) error {
-	size, hash, err := b.client.DownloadFile(ctx, file.address)
+	size, hash, err := b.client.DownloadFile(ctx, file.address, nil)
 	if err != nil {
 		return fmt.Errorf("node %s: %w", b.name, err)
 	}
