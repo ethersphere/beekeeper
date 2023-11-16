@@ -59,7 +59,7 @@ func NewClient(opts ...ClientOption) (c *Client, err error) {
 		inCluster:             false,
 		kubeconfigPath:        "~/.kube/config",
 		rateLimiter:           flowcontrol.NewTokenBucketRateLimiter(50, 100),
-		maxConcurrentRequests: 10,
+		maxConcurrentRequests: 20,
 	}
 
 	// apply options
@@ -100,10 +100,11 @@ func NewClient(opts ...ClientOption) (c *Client, err error) {
 	}
 
 	config.RateLimiter = c.rateLimiter
+	semaphore := make(chan struct{}, c.maxConcurrentRequests)
 
 	// Wrap the default transport with our custom transport.
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return NewCustomTransport(rt, config, c.maxConcurrentRequests)
+		return NewCustomTransport(rt, config, semaphore, c.logger)
 	}
 
 	clientset, err := c.clientConfig.NewForConfig(config)

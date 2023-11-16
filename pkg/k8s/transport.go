@@ -3,6 +3,7 @@ package k8s
 import (
 	"net/http"
 
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 )
@@ -13,13 +14,15 @@ type customTransport struct {
 	base        http.RoundTripper
 	semaphore   chan struct{}
 	rateLimiter flowcontrol.RateLimiter
+	logger      logging.Logger
 }
 
-func NewCustomTransport(base http.RoundTripper, config *rest.Config, maxConcurentRequests int) http.RoundTripper {
+func NewCustomTransport(base http.RoundTripper, config *rest.Config, semaphore chan struct{}, logger logging.Logger) *customTransport {
 	return &customTransport{
 		base:        base,
-		semaphore:   make(chan struct{}, maxConcurentRequests),
+		semaphore:   semaphore,
 		rateLimiter: config.RateLimiter,
+		logger:      logger,
 	}
 }
 
