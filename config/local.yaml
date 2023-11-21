@@ -176,10 +176,10 @@ bee-configs:
     payment-tolerance-percent: 25
     storage-incentives-enable: true
     postage-stamp-start-block: 1
-    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
-    price-oracle-address: "0xe821533d30A4250e50812Aa060EEb2E8Ef3D98f6"
-    staking-address: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
-    redistribution-address: "0x56e442f99cafd7c890c404c1f8c16d38a569e41a"
+    postage-stamp-address: "0x794532C50c6EfA070Cd206b82178E98433046996"
+    price-oracle-address: "0x201dcde5c2D14CE03Fa74b0158488122FcA673B8"
+    staking-address: "0x41379955a216968996D10614B74b31AA48a0624A"
+    redistribution-address: "0xc9bA7b8A29DECDB3a606a8f48E9359A5bD1D8F8F"
     resolver-options: ""
     restricted: false
     token-encryption-key: ""
