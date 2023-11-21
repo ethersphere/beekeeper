@@ -177,7 +177,7 @@ bee-configs:
     storage-incentives-enable: true
     postage-stamp-start-block: 1
     postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
-    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
+    price-oracle-address: "0xe821533d30A4250e50812Aa060EEb2E8Ef3D98f6"
     staking-address: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
     redistribution-address: "0x56e442f99cafd7c890c404c1f8c16d38a569e41a"
     resolver-options: ""
@@ -187,8 +187,8 @@ bee-configs:
     chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://geth-swap:8546"
-    swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
-    swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
+    swap-factory-address: "0x989F4d301d7333249362B2484BeE0D501AB01DCa"
+    swap-legacy-factory-addresses: "0x989F4d301d7333249362B2484BeE0D501AB01DCa"
     swap-initial-deposit: 500000000000000000
     verbosity: 5
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
