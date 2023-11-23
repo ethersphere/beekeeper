@@ -17,13 +17,17 @@ type customTransport struct {
 	logger      logging.Logger
 }
 
-func NewCustomTransport(base http.RoundTripper, config *rest.Config, semaphore chan struct{}, logger logging.Logger) *customTransport {
+func NewCustomTransport(config *rest.Config, semaphore chan struct{}, logger logging.Logger) *customTransport {
 	return &customTransport{
-		base:        base,
 		semaphore:   semaphore,
 		rateLimiter: config.RateLimiter,
 		logger:      logger,
 	}
+}
+
+func (t *customTransport) SetBaseTransport(base http.RoundTripper) *customTransport {
+	t.base = base
+	return t
 }
 
 func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {

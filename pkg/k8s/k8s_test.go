@@ -182,8 +182,8 @@ func TestRoundTripper(t *testing.T) {
 	semaphore := make(chan struct{}, 10)
 	defer close(semaphore)
 	// Create a new instance of the wrapped RoundTripper and pass in the mock RoundTripper.
-	wrappedTransport := k8s.NewCustomTransport(mockTransport, config, semaphore, logging.New(io.Discard, 0, ""))
-
+	wrappedTransport := k8s.NewCustomTransport(config, semaphore, logging.New(io.Discard, 0, ""))
+	wrappedTransport.SetBaseTransport(mockTransport)
 	t.Run("successful_request", func(t *testing.T) {
 		// Set up the mock to return a successful response.
 		mockTransport.RoundTripFunc = func(req *http.Request) (*http.Response, error) {

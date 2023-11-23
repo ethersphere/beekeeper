@@ -102,9 +102,11 @@ func NewClient(opts ...ClientOption) (c *Client, err error) {
 	config.RateLimiter = c.rateLimiter
 	semaphore := make(chan struct{}, c.maxConcurrentRequests)
 
+	ct := NewCustomTransport(config, semaphore, c.logger)
+
 	// Wrap the default transport with our custom transport.
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return NewCustomTransport(rt, config, semaphore, c.logger)
+		return ct.SetBaseTransport(rt)
 	}
 
 	clientset, err := c.clientConfig.NewForConfig(config)
