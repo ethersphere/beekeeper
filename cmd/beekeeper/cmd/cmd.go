@@ -310,7 +310,13 @@ func (c *command) setK8S() (err error) {
 		inCluster := c.globalConfig.GetBool("in-cluster")
 		kubeconfigPath := c.globalConfig.GetString("kubeconfig")
 
-		if c.k8sClient, err = k8s.NewClient(k8s.WithLogger(c.log), k8s.WithInCluster(inCluster), k8s.WithKubeconfigPath(kubeconfigPath)); err != nil && err != k8s.ErrKubeconfigNotSet {
+		options := []k8s.ClientOption{
+			k8s.WithLogger(c.log),
+			k8s.WithInCluster(inCluster),
+			k8s.WithKubeconfigPath(kubeconfigPath),
+		}
+
+		if c.k8sClient, err = k8s.NewClient(options...); err != nil && err != k8s.ErrKubeconfigNotSet {
 			return fmt.Errorf("creating Kubernetes client: %w", err)
 		}
 	}

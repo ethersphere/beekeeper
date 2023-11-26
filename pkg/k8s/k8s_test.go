@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 func TestNewClient(t *testing.T) {
@@ -177,10 +179,11 @@ func TestRoundTripper(t *testing.T) {
 	client := mock.NewClient(false)
 	config, _ := client.InClusterConfig()
 	config.RateLimiter = flowcontrol.NewFakeAlwaysRateLimiter()
-
+	semaphore := make(chan struct{}, 10)
+	defer close(semaphore)
 	// Create a new instance of the wrapped RoundTripper and pass in the mock RoundTripper.
-	wrappedTransport := k8s.NewCustomTransport(mockTransport, config, 10)
-
+	wrappedTransport := k8s.NewCustomTransport(config, semaphore, logging.New(io.Discard, 0, ""))
+	wrappedTransport.SetBaseTransport(mockTransport)
 	t.Run("successful_request", func(t *testing.T) {
 		// Set up the mock to return a successful response.
 		mockTransport.RoundTripFunc = func(req *http.Request) (*http.Response, error) {
