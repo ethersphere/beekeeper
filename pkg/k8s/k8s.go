@@ -130,7 +130,7 @@ func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingre
 	c.ConfigMap = configmap.NewClient(clientset)
 	c.Ingress = ingress.NewClient(clientset)
 	c.Namespace = namespace.NewClient(clientset)
-	c.Pods = pod.NewClient(clientset)
+	c.Pods = pod.NewClient(clientset, c.logger)
 	c.PVC = persistentvolumeclaim.NewClient(clientset)
 	c.Secret = secret.NewClient(clientset)
 	c.ServiceAccount = serviceaccount.NewClient(clientset)
