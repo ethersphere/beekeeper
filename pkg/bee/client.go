@@ -382,7 +382,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	exists := false
 	usable := false
 	// wait for the stamp to become usable
-	for i := 0; i < 300; i++ {
+	for i := 0; i < 900; i++ {
 		time.Sleep(1 * time.Second)
 		state, err := c.debug.Postage.PostageStamp(ctx, id)
 		if err != nil {
