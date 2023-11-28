@@ -379,6 +379,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		return "", fmt.Errorf("create postage stamp: %w", err)
 	}
 
+	exists := false
 	usable := false
 	// wait for the stamp to become usable
 	for i := 0; i < 300; i++ {
@@ -387,14 +388,19 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			continue
 		}
+		exists = state.Exists
 		usable = state.Usable
 		if usable {
 			break
 		}
 	}
 
+	if !exists {
+		return "", fmt.Errorf("batch %s does not exist", id)
+	}
+
 	if !usable {
-		return "", fmt.Errorf("timed out waiting for batch %s to activate", id)
+		return "", fmt.Errorf("batch %s not usable withn given timeout", id)
 	}
 
 	if verbose {
