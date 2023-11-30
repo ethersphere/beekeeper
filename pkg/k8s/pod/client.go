@@ -74,35 +74,43 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 }
 
 // EventsWatch watches for events.
-func (c *Client) EventsWatch(ctx context.Context, namespace string) (err error) {
+func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan chan string) (err error) {
+	c.log.Infof("starting events watch")
+	defer c.log.Infof("events watch done")
+	defer close(operatorChan)
+
 	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
 		// FieldSelector: "involvedObject.kind=Pod,reason=Scheduled",
+		LabelSelector: "app.kubernetes.io/component=node",
 	})
 	if err != nil {
 		return fmt.Errorf("getting pod events in namespace %s: %w", namespace, err)
 	}
 	defer watcher.Stop()
 
-	// ticker := time.NewTicker(10 * time.Second)
-	// defer ticker.Stop()
-
 	// Use a select statement to listen for either events from the watcher or a context cancellation
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		// case <-ticker.C:
-		// 	c.log.Info("checking for events...")
 		case event, ok := <-watcher.ResultChan():
 			if !ok {
 				return fmt.Errorf("watch channel closed")
 			}
 			switch event.Type {
-			case watch.Added, watch.Modified:
+			case watch.Modified: // watch.Added //TODO check if we already need those who are already running before operator?
 				pod, ok := event.Object.(*v1.Pod)
 				if ok {
-					if pod.Status.PodIP != "" {
+					// if pod.Status.PodIP != "" {
+					// 	c.log.Infof("POD New Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
+					// }
+					// TODO: check pod.Status.Conditions
+					// TODO: check pod.Status.ContainerStatuses
+					// TODO: check pod.Status.Phase
+					if pod.Status.PodIP != "" && pod.ObjectMeta.DeletionTimestamp == nil {
+						// c.log.Infof("POD New Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
 						c.log.Infof("POD New Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
+						operatorChan <- pod.Status.PodIP
 					}
 				}
 			case watch.Deleted:
