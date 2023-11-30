@@ -46,7 +46,7 @@ type Check struct {
 // NewCheck returns new check
 func NewCheck(logger logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: newMetrics("check_smoke"),
+		metrics: newMetrics(),
 		logger:  logger,
 	}
 }
@@ -60,8 +60,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	c.logger.Info("random seed: ", o.RndSeed)
 	rnd := random.PseudoGenerator(o.RndSeed)
-
-	fmt.Println(opts)
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -113,34 +111,42 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			ch := testing.GenerateValidRandomChunkAt(n, int(storageRadius))
 			chunks = append(chunks, ch)
 
+			c.metrics.UploadAttempts.Inc()
+
+			t := time.Now()
+
 			// upload chunk
 			resp, err := uploadClient.UploadChunk(ctx, ch.Data(), api.UploadOptions{BatchID: batch, Direct: true})
 			if err != nil {
 				c.logger.Errorf("upload failed, neighborhood %s, radius %d", n, storageRadius)
-				// todo: metric
+				c.metrics.UploadErrors.Inc()
+				c.metrics.UploadDuration.WithLabelValues("false").Observe(float64(time.Since(t)))
 			} else if !resp.Equal(ch.Address()) {
 				c.logger.Errorf("uploaded chunk and response addresses do no match, uploaded %s, downloaded %s", ch, resp)
 			} else {
-				// todo: metric
+				c.metrics.UploadDuration.WithLabelValues("true").Observe(float64(time.Since(t)))
 			}
 		}
 
 		for _, ch := range chunks {
 
+			t := time.Now()
+
+			c.metrics.DownloadAttempts.Inc()
+
 			data, err := downloadClient.DownloadChunk(ctx, ch.Address(), "")
 			if err != nil {
-				// todo: metric
+				c.metrics.DownloadErrors.Inc()
+				c.metrics.DownloadDuration.WithLabelValues("false").Observe(float64(time.Since(t)))
 				c.logger.Errorf("upload failed, chunk_address %s", ch)
 			} else if !bytes.Equal(data, ch.Data()) {
 				c.logger.Errorf("uploaded chunk and response data do no match for chunk_address %s", ch)
 			} else {
-				// todo: metric
+				c.metrics.DownloadDuration.WithLabelValues("true").Observe(float64(time.Since(t)))
 			}
 		}
 
 		time.Sleep(o.SleepDuration)
-
-		break
 	}
 
 	return nil

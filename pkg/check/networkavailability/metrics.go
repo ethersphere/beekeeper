@@ -13,29 +13,15 @@ type metrics struct {
 	DownloadErrors      prometheus.Counter
 	DownloadMismatch    prometheus.Counter
 	DownloadAttempts    prometheus.Counter
-	UploadDuration      prometheus.Histogram
-	DownloadDuration    prometheus.Histogram
+	UploadDuration      *prometheus.HistogramVec
+	DownloadDuration    *prometheus.HistogramVec
 	UploadSize          prometheus.Gauge
 }
 
-func newMetrics(subsystem string) metrics {
+const subsystem = "net_avail"
+
+func newMetrics() metrics {
 	return metrics{
-		BatchCreateAttempts: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: m.Namespace,
-				Subsystem: subsystem,
-				Name:      "batch_create_attempts",
-				Help:      "Number of batch create attempts.",
-			},
-		),
-		BatchCreateErrors: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: m.Namespace,
-				Subsystem: subsystem,
-				Name:      "batch_create_errors",
-				Help:      "Total errors encountered while creating batches.",
-			},
-		),
 		UploadAttempts: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
@@ -68,37 +54,21 @@ func newMetrics(subsystem string) metrics {
 				Help:      "The total number of errors encountered before successful download.",
 			},
 		),
-		DownloadMismatch: prometheus.NewCounter(
-			prometheus.CounterOpts{
-				Namespace: m.Namespace,
-				Subsystem: subsystem,
-				Name:      "download_mismatch",
-				Help:      "The total number of times uploaded data is different from downloaded data.",
-			},
-		),
-		UploadDuration: prometheus.NewHistogram(
+		UploadDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "data_upload_duration",
 				Help:      "Data upload duration through the /bytes endpoint.",
-			},
+			}, []string{"success"},
 		),
-		DownloadDuration: prometheus.NewHistogram(
+		DownloadDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "data_download_duration",
 				Help:      "Data download duration through the /bytes endpoint.",
-			},
-		),
-		UploadSize: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: m.Namespace,
-				Subsystem: subsystem,
-				Name:      "upload_size",
-				Help:      "Amount of data uploaded per upload.",
-			},
+			}, []string{"success"},
 		),
 	}
 }
