@@ -107,6 +107,7 @@ func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan
 					// TODO: check pod.Status.Conditions
 					// TODO: check pod.Status.ContainerStatuses
 					// TODO: check pod.Status.Phase
+					// TODO: check what happens if amount is less than min
 					if pod.Status.PodIP != "" && pod.ObjectMeta.DeletionTimestamp == nil {
 						// c.log.Infof("POD New Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
 						c.log.Infof("POD New Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
@@ -119,7 +120,12 @@ func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan
 					c.log.Infof("POD Deleted Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
 				}
 			default:
-				c.log.Infof("POD Event: {%s}", event.Type)
+				pod, ok := event.Object.(*v1.Pod)
+				if ok {
+					c.log.Infof("POD Event: {%s}, {%s}", event.Type, pod.Name)
+				} else {
+					c.log.Infof("POD Event: {%s}", event.Type)
+				}
 			}
 		}
 	}
