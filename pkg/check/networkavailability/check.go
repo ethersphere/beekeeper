@@ -95,12 +95,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 		storageRadius := state.StorageRadius
 
-		neighs := neighborhoods(int(storageRadius))
-		fmt.Println(neighs)
+		c.logger.Infof("uploder node: %s", uploadNode, storageRadius)
+		c.logger.Infof("downloader node: %s", downloadNode)
+		c.logger.Infof("storage radius: %d", storageRadius)
 
 		// upload
 		var chunks []swarm.Chunk
-		for _, n := range neighs {
+		for _, n := range neighborhoods(int(storageRadius)) {
 
 			batch, err := uploadClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, "net-avail-check")
 			if err != nil {
