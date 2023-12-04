@@ -518,6 +518,10 @@ var Checks = map[string]CheckType{
 		NewAction: networkavailability.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
+				RndSeed       *int64  `yaml:"rnd-seed"`
+				PostageAmount *int64  `yaml:"postage-amount"`
+				PostageDepth  *uint64 `yaml:"postage-depth"`
+				SleepDuration *uint64 `yaml:"sleep-duration"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
