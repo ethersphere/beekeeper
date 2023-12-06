@@ -84,9 +84,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			continue
 		}
 
-		c.logger.Infof("uploder node: %s", uploadNode)
-		c.logger.Infof("downloader node: %s", downloadNode)
-
 		uploadClient := clients[uploadNode]
 		downloadClient := clients[uploadNode]
 		state, err := uploadClient.ReserveState(ctx)
@@ -95,7 +92,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 		storageRadius := state.StorageRadius
 
-		c.logger.Infof("uploder node: %s", uploadNode, storageRadius)
+		c.logger.Infof("uploder node: %s", uploadNode)
 		c.logger.Infof("downloader node: %s", downloadNode)
 		c.logger.Infof("storage radius: %d", storageRadius)
 
@@ -129,6 +126,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			}
 		}
 
+		c.logger.Info("uploaded to %d neighborhoods, starting downloading", len(chunks))
+
 		for _, ch := range chunks {
 
 			t := time.Now()
@@ -146,6 +145,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				c.metrics.DownloadDuration.WithLabelValues("true").Observe(float64(time.Since(t)))
 			}
 		}
+
+		c.logger.Info("download finished")
 
 		time.Sleep(o.SleepDuration)
 	}
