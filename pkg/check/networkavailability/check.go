@@ -102,31 +102,30 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			batch, err := uploadClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, "net-avail-check")
 			if err != nil {
-				c.logger.Errorf("create batch failed failed, neighborhood %s, radius %d", uploadNode, n, storageRadius)
+				c.logger.Errorf("create batch failed failed")
+				continue
 			}
 
 			// mine chunk
 			ch := testing.GenerateValidRandomChunkAt(n, int(storageRadius))
-			chunks = append(chunks, ch)
-
 			c.metrics.UploadAttempts.Inc()
-
 			t := time.Now()
 
 			// upload chunk
 			resp, err := uploadClient.UploadChunk(ctx, ch.Data(), api.UploadOptions{BatchID: batch, Direct: true})
 			if err != nil {
-				c.logger.Errorf("upload failed, neighborhood %s, radius %d", n, storageRadius)
+				c.logger.Errorf("upload failed to neighborhood %s: %v", n, err)
 				c.metrics.UploadErrors.Inc()
 				c.metrics.UploadDuration.WithLabelValues("false").Observe(float64(time.Since(t)))
 			} else if !resp.Equal(ch.Address()) {
 				c.logger.Errorf("uploaded chunk and response addresses do no match, uploaded %s, downloaded %s", ch, resp)
 			} else {
 				c.metrics.UploadDuration.WithLabelValues("true").Observe(float64(time.Since(t)))
+				chunks = append(chunks, ch)
 			}
 		}
 
-		c.logger.Info("uploaded to %d neighborhoods, starting downloading", len(chunks))
+		c.logger.Infof("uploaded to %d neighborhoods, starting downloading", len(chunks))
 
 		for _, ch := range chunks {
 
@@ -138,7 +137,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
 				c.metrics.DownloadDuration.WithLabelValues("false").Observe(float64(time.Since(t)))
-				c.logger.Errorf("upload failed, chunk_address %s", ch)
+				c.logger.Errorf("download failed, chunk_address %s: %v", ch, err)
 			} else if !bytes.Equal(data, ch.Data()) {
 				c.logger.Errorf("uploaded chunk and response data do no match for chunk_address %s", ch)
 			} else {
