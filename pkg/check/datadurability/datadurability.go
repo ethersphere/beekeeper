@@ -20,13 +20,15 @@ import (
 )
 
 type Options struct {
-	Ref     string
-	RndSeed int64
+	Ref         string
+	RndSeed     int64
+	Concurrency int
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		RndSeed: time.Now().UnixNano(),
+		RndSeed:     time.Now().UnixNano(),
+		Concurrency: 5,
 	}
 }
 
@@ -79,27 +81,45 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 	fileStart := time.Now()
 	c.metrics.ChunksCount.Set(float64(len(chunkRefs)))
 
+	var wg sync.WaitGroup
+	wg.Add(len(chunkRefs))
+	limitCh := make(chan struct{}, opts.Concurrency)
+	var fileAttemptCounted bool
+
 	for i, ref := range chunkRefs {
 		node := nodes[i%len(nodes)] // distribute evenly
-		c.metrics.ChunkDownloadAttempts.Inc()
-		cache := false
-		chunkStart := time.Now()
-		d, err = node.Client().DownloadChunk(ctx, ref, "", &api.DownloadOptions{Cache: &cache})
-		if err != nil {
-			c.logger.Errorf("download failed. %s (%d of %d). chunk=%s node=%s err=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), ref, node.Name(), err)
-			c.metrics.ChunkDownloadErrors.Inc()
-			once.Do(func() {
-				c.metrics.FileDownloadAttempts.Inc()
-				c.metrics.FileDownloadErrors.Inc()
-			})
-			continue
-		}
-		dur := time.Since(chunkStart)
-		c.logger.Infof("download successful. %s (%d of %d) chunk=%s node=%s dur=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), ref, node.Name(), dur)
-		c.metrics.ChunkDownloadDuration.Observe(dur.Seconds())
-		c.metrics.FileSize.Add(float64(len(d)))
+		limitCh <- struct{}{}
+
+		go func(i int, ref swarm.Address, node orchestration.Node) {
+			defer func() {
+				<-limitCh
+				wg.Done()
+			}()
+			c.metrics.ChunkDownloadAttempts.Inc()
+			cache := false
+			chunkStart := time.Now()
+			d, err = node.Client().DownloadChunk(ctx, ref, "", &api.DownloadOptions{Cache: &cache})
+			if err != nil {
+				c.logger.Errorf("download failed. %s (%d of %d). chunk=%s node=%s err=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), ref, node.Name(), err)
+				c.metrics.ChunkDownloadErrors.Inc()
+				once.Do(func() {
+					c.metrics.FileDownloadAttempts.Inc()
+					fileAttemptCounted = true
+					c.metrics.FileDownloadErrors.Inc()
+				})
+				return
+			}
+			dur := time.Since(chunkStart)
+			c.logger.Infof("download successful. %s (%d of %d) chunk=%s node=%s dur=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), ref, node.Name(), dur)
+			c.metrics.ChunkDownloadDuration.Observe(dur.Seconds())
+			c.metrics.FileSize.Add(float64(len(d)))
+		}(i, ref, node)
 	}
-	c.metrics.FileDownloadAttempts.Inc()
+
+	wg.Wait()
+	if !fileAttemptCounted {
+		c.metrics.FileDownloadAttempts.Inc()
+	}
 	dur := time.Since(fileStart)
 	c.logger.Infof("done. dur=%v", dur)
 	c.metrics.FileDownloadDuration.Observe(dur.Seconds())
