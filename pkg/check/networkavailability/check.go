@@ -137,9 +137,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
 				c.metrics.DownloadDuration.WithLabelValues("false").Observe(float64(time.Since(t)))
-				c.logger.Errorf("download failed, chunk_address %s: %v", ch, err)
+				c.logger.Errorf("download failed: %v", err)
 			} else if !bytes.Equal(data, ch.Data()) {
-				c.logger.Errorf("uploaded chunk and response data do no match for chunk_address %s", ch)
+				c.logger.Errorf("uploaded chunk and response data do no match for chunk_address %s", ch.Address())
 			} else {
 				c.metrics.DownloadDuration.WithLabelValues("true").Observe(float64(time.Since(t)))
 			}
