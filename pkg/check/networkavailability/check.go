@@ -66,6 +66,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
+iteration:
 	for i := 0; true; i++ {
 		select {
 		case <-ctx.Done():
@@ -103,7 +104,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			batch, err := uploadClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, "net-avail-check")
 			if err != nil {
 				c.logger.Errorf("create batch failed failed")
-				continue
+				continue iteration
 			}
 
 			// mine chunk
