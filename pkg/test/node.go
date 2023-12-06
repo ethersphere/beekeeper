@@ -31,7 +31,7 @@ func (b *BeeV2) Restricted() bool {
 }
 
 func (b *BeeV2) DownloadChunk(ctx context.Context, ref swarm.Address) ([]byte, error) {
-	return b.client.DownloadChunk(ctx, ref, "")
+	return b.client.DownloadChunk(ctx, ref, "", nil)
 }
 
 // NewRandomFile returns new pseudorandom file

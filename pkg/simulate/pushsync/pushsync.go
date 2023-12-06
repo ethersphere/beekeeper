@@ -216,7 +216,7 @@ func downloadChunks(ctx context.Context, o Options, uploadCount int, client *bee
 	for i := 0; i < int(o.DownloadRetry); i++ {
 		count := 0
 		for _, chunk := range chunks {
-			_, err := client.DownloadChunk(ctx, chunk.Address(), "")
+			_, err := client.DownloadChunk(ctx, chunk.Address(), "", nil)
 			if err == nil {
 				count++
 			}

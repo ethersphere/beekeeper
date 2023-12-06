@@ -389,3 +389,7 @@ checks:
       retry-wait: 1m
       retry-count: 3
     type: longavailability
+  ci-datadurability:
+    options:
+      ref:
+    type: datadurability
