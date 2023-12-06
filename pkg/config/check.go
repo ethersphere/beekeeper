@@ -517,8 +517,9 @@ var Checks = map[string]CheckType{
 		NewAction: datadurability.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				RndSeed *int64  `yaml:"rnd-seed"`
-				Ref     *string `yaml:"ref"`
+				RndSeed     *int64  `yaml:"rnd-seed"`
+				Ref         *string `yaml:"ref"`
+				Concurrency *int    `yaml:"concurrency"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

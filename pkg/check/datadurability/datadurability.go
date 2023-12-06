@@ -28,7 +28,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		RndSeed:     time.Now().UnixNano(),
-		Concurrency: 5,
+		Concurrency: 10,
 	}
 }
 
