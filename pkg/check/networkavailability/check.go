@@ -117,11 +117,11 @@ iteration:
 			if err != nil {
 				c.logger.Errorf("upload failed to neighborhood %s: %v", n, err)
 				c.metrics.UploadErrors.Inc()
-				c.metrics.UploadDuration.WithLabelValues("false").Observe(float64(time.Since(t)))
+				c.metrics.UploadDuration.WithLabelValues("false").Observe(time.Since(t).Seconds())
 			} else if !resp.Equal(ch.Address()) {
 				c.logger.Errorf("uploaded chunk and response addresses do no match, uploaded %s, downloaded %s", ch, resp)
 			} else {
-				c.metrics.UploadDuration.WithLabelValues("true").Observe(float64(time.Since(t)))
+				c.metrics.UploadDuration.WithLabelValues("true").Observe(time.Since(t).Seconds())
 				chunks = append(chunks, ch)
 			}
 		}
@@ -137,12 +137,12 @@ iteration:
 			data, err := downloadClient.DownloadChunk(ctx, ch.Address(), "")
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
-				c.metrics.DownloadDuration.WithLabelValues("false").Observe(float64(time.Since(t)))
+				c.metrics.DownloadDuration.WithLabelValues("false").Observe(time.Since(t).Seconds())
 				c.logger.Errorf("download failed: %v", err)
 			} else if !bytes.Equal(data, ch.Data()) {
 				c.logger.Errorf("uploaded chunk and response data do no match for chunk_address %s", ch.Address())
 			} else {
-				c.metrics.DownloadDuration.WithLabelValues("true").Observe(float64(time.Since(t)))
+				c.metrics.DownloadDuration.WithLabelValues("true").Observe(time.Since(t).Seconds())
 			}
 		}
 
