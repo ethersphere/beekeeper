@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math/rand"
 	"slices"
 	"sync"
 	"time"
@@ -16,19 +15,18 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 type Options struct {
 	Ref         string
-	RndSeed     int64
 	Concurrency int
+	MaxAttempts int
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		RndSeed:     time.Now().UnixNano(),
 		Concurrency: 10,
+		MaxAttempts: 10,
 	}
 }
 
@@ -55,15 +53,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
-	rnd := random.PseudoGenerator(opts.RndSeed)
 	ref, err := swarm.ParseHexAddress(opts.Ref)
 	if err != nil {
 		return fmt.Errorf("parse hex ref %s: %w", opts.Ref, err)
 	}
 
-	d, err := fetchFile(ctx, ref, cluster, rnd)
+	d, err := fetchFile(ctx, c.logger, ref, cluster, opts.MaxAttempts)
 	if err != nil {
-		return fmt.Errorf("fetch file from random node: %w", err)
+		return fmt.Errorf("fetch file: %w", err)
 	}
 
 	refs, err := parseFile(bytes.NewReader(d))
@@ -130,16 +127,23 @@ func percentage(a, b int) string {
 	return fmt.Sprintf("%.2f%%", float64(a)/float64(b)*100)
 }
 
-func fetchFile(ctx context.Context, ref swarm.Address, cluster orchestration.Cluster, rnd *rand.Rand) ([]byte, error) {
-	node, err := cluster.RandomNode(ctx, rnd)
-	if err != nil {
-		return nil, fmt.Errorf("random node: %w", err)
+func fetchFile(ctx context.Context, logger logging.Logger, ref swarm.Address, cluster orchestration.Cluster, maxAttempts int) ([]byte, error) {
+	var nodes []orchestration.Node
+	for _, node := range cluster.Nodes() {
+		nodes = append(nodes, node)
 	}
-	d, err := node.Client().DownloadFileBytes(ctx, ref, nil)
-	if err != nil {
-		return nil, fmt.Errorf("download bytes: %w", err)
+
+	for i := 0; i < maxAttempts; i++ {
+		node := nodes[i%len(nodes)]
+		d, err := node.Client().DownloadFileBytes(ctx, ref, nil)
+		if err != nil {
+			logger.Infof("node: %s failed to fetch file: %v", node.Name(), err)
+			continue
+		}
+		return d, nil
+
 	}
-	return d, nil
+	return nil, fmt.Errorf("failed to fetch file after %d attempts", maxAttempts)
 }
 
 // parseFile returns the list of references in the reader.

@@ -393,4 +393,5 @@ checks:
     options:
       ref:
       concurrency:
+      max-attempts:
     type: datadurability

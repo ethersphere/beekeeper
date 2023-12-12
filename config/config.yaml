@@ -354,6 +354,7 @@ checks:
     options:
       ref:
       concurrency:
+      max-attempts: 
     type: datadurability
 
 # simulations defines simulations Beekeeper can execute against the cluster
