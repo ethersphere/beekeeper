@@ -139,7 +139,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 
 				// download chunk
 				t2 := time.Now()
-				data, err := clients[downloadNode].DownloadChunk(ctx, ref, "")
+				data, err := clients[downloadNode].DownloadChunk(ctx, ref, "", nil)
 				d2 := time.Since(t2)
 				if err != nil {
 					s.metrics.NotDownloadedCounter.WithLabelValues(overlays[downloadNode].String()).Inc()

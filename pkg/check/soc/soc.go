@@ -128,7 +128,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	c.logger.Infof("soc: chunk uploaded to node %s", nodeName)
 
-	retrieved, err := node.DownloadChunk(ctx, ref, "")
+	retrieved, err := node.DownloadChunk(ctx, ref, "", nil)
 	if err != nil {
 		return err
 	}

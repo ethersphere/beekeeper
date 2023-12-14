@@ -13,12 +13,12 @@ import (
 type ChunksService service
 
 // Download downloads data from the node
-func (c *ChunksService) Download(ctx context.Context, a swarm.Address, targets string) (resp io.ReadCloser, err error) {
+func (c *ChunksService) Download(ctx context.Context, a swarm.Address, targets string, opts *DownloadOptions) (resp io.ReadCloser, err error) {
 	if targets == "" {
-		return c.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/chunks/"+a.String(), nil, nil)
+		return c.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/chunks/"+a.String(), nil, opts)
 	}
 
-	return c.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/chunks/"+a.String()+"?targets="+targets, nil, nil)
+	return c.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/chunks/"+a.String()+"?targets="+targets, nil, opts)
 }
 
 // ChunksUploadResponse represents Upload's response

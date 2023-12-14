@@ -350,6 +350,12 @@ checks:
       retry-wait: 1m
       retry-count: 3
     type: longavailability
+  datadurability:
+    options:
+      ref:
+      concurrency:
+      max-attempts: 
+    type: datadurability
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options
