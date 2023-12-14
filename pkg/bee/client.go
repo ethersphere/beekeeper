@@ -194,10 +194,21 @@ func (c *Client) DownloadBytes(ctx context.Context, a swarm.Address) (data []byt
 }
 
 // DownloadChunk downloads chunk from the node
-func (c *Client) DownloadChunk(ctx context.Context, a swarm.Address, targets string) (data []byte, err error) {
-	r, err := c.api.Chunks.Download(ctx, a, targets)
+func (c *Client) DownloadChunk(ctx context.Context, a swarm.Address, targets string, opts *api.DownloadOptions) (data []byte, err error) {
+	r, err := c.api.Chunks.Download(ctx, a, targets, opts)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
+	}
+	defer r.Close()
+
+	return io.ReadAll(r)
+}
+
+// DownloadFileBytes downloads a flie from the node and returns the data.
+func (c *Client) DownloadFileBytes(ctx context.Context, a swarm.Address, opts *api.DownloadOptions) (data []byte, err error) {
+	r, err := c.api.Files.Download(ctx, a, opts)
+	if err != nil {
+		return nil, fmt.Errorf("download file %s: %w", a, err)
 	}
 	defer r.Close()
 
@@ -379,22 +390,28 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		return "", fmt.Errorf("create postage stamp: %w", err)
 	}
 
+	exists := false
 	usable := false
 	// wait for the stamp to become usable
-	for i := 0; i < 300; i++ {
+	for i := 0; i < 900; i++ {
 		time.Sleep(1 * time.Second)
 		state, err := c.debug.Postage.PostageStamp(ctx, id)
 		if err != nil {
 			continue
 		}
+		exists = state.Exists
 		usable = state.Usable
 		if usable {
 			break
 		}
 	}
 
+	if !exists {
+		return "", fmt.Errorf("batch %s does not exist", id)
+	}
+
 	if !usable {
-		return "", fmt.Errorf("timed out waiting for batch %s to activate", id)
+		return "", fmt.Errorf("batch %s not usable withn given timeout", id)
 	}
 
 	if verbose {

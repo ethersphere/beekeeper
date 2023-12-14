@@ -389,3 +389,9 @@ checks:
       retry-wait: 1m
       retry-count: 3
     type: longavailability
+  ci-datadurability:
+    options:
+      ref:
+      concurrency:
+      max-attempts:
+    type: datadurability
