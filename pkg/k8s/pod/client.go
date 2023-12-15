@@ -81,14 +81,15 @@ func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan
 
 	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
 		// FieldSelector: "involvedObject.kind=Pod,reason=Scheduled",
-		LabelSelector: "app.kubernetes.io/component=node",
+		LabelSelector: "app.kubernetes.io/name=bee",
+		// TODO: add this lable to beekeeper and filter on it => app.kubernetes.io/name=bee
 	})
 	if err != nil {
 		return fmt.Errorf("getting pod events in namespace %s: %w", namespace, err)
 	}
 	defer watcher.Stop()
 
-	// Use a select statement to listen for either events from the watcher or a context cancellation
+	// listen for either events from the watcher or a context cancellation
 	for {
 		select {
 		case <-ctx.Done():
@@ -98,33 +99,14 @@ func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan
 				return fmt.Errorf("watch channel closed")
 			}
 			switch event.Type {
-			case watch.Modified: // watch.Added //TODO check if we already need those who are already running before operator?
+			// case watch.Added: //TODO check if we already need those who are already running before operator?
+			case watch.Modified:
 				pod, ok := event.Object.(*v1.Pod)
 				if ok {
-					// if pod.Status.PodIP != "" {
-					// 	c.log.Infof("POD New Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
-					// }
-					// TODO: check pod.Status.Conditions
-					// TODO: check pod.Status.ContainerStatuses
-					// TODO: check pod.Status.Phase
-					// TODO: check what happens if amount is less than min
 					if pod.Status.PodIP != "" && pod.ObjectMeta.DeletionTimestamp == nil {
-						// c.log.Infof("POD New Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
-						c.log.Infof("POD New Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
+						c.log.Tracef("new pod event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
 						operatorChan <- pod.Status.PodIP
 					}
-				}
-			case watch.Deleted:
-				pod, ok := event.Object.(*v1.Pod)
-				if ok {
-					c.log.Infof("POD Deleted Event:{%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
-				}
-			default:
-				pod, ok := event.Object.(*v1.Pod)
-				if ok {
-					c.log.Infof("POD Event: {%s}, {%s}", event.Type, pod.Name)
-				} else {
-					c.log.Infof("POD Event: {%s}", event.Type)
 				}
 			}
 		}

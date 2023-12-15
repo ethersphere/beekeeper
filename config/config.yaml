@@ -81,6 +81,7 @@ node-groups:
     ingress-debug-class: "nginx-internal"
     labels:
       app.kubernetes.io/component: "node"
+      app.kubernetes.io/name: "bee"
       app.kubernetes.io/part-of: "bee"
       app.kubernetes.io/version: "latest"
     node-selector:
@@ -310,7 +311,7 @@ checks:
       nodes-sync-wait: 1m
       duration: 12h
       downloader-count: 3
-      upload-group: 
+      upload-group:
         - gateway
       download-group:
         - bee
@@ -354,7 +355,7 @@ checks:
     options:
       ref:
       concurrency:
-      max-attempts: 
+      max-attempts:
     type: datadurability
 
 # simulations defines simulations Beekeeper can execute against the cluster

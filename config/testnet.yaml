@@ -51,9 +51,10 @@ node-groups:
     ingress-debug-class: "nginx-internal"
     labels:
       app.kubernetes.io/component: "node"
+      app.kubernetes.io/name: "bee"
       app.kubernetes.io/part-of: "bee"
       app.kubernetes.io/version: "latest"
-    node-selector: 
+    node-selector:
       node-group: "private"
     persistence-enabled: true
     persistence-storage-class: "local-storage"
