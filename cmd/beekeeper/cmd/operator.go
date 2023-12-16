@@ -42,8 +42,18 @@ func (c *command) initOperatorCmd() (err error) {
 			cfg.MinAmounts.SwarmToken = c.globalConfig.GetFloat64(optionNameMinSwarm)
 
 			// add timeout to operator
-			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
-			defer cancel()
+			// if timeout is not set, operator will run infinitely
+			var ctxNew context.Context
+			var cancel context.CancelFunc
+			timeout := c.globalConfig.GetDuration(optionNameTimeout)
+			if timeout > 0 {
+				ctxNew, cancel = context.WithTimeout(cmd.Context(), timeout)
+			} else {
+				ctxNew = context.Background()
+			}
+			if cancel != nil {
+				defer cancel()
+			}
 
 			return operator.NewClient(&operator.ClientConfig{
 				Log:               c.log,
@@ -52,7 +62,7 @@ func (c *command) initOperatorCmd() (err error) {
 				ChainNodeEndpoint: cfg.ChainNodeEndpoint,
 				MinAmounts:        cfg.MinAmounts,
 				K8sClient:         c.k8sClient,
-			}).Run(ctx)
+			}).Run(ctxNew)
 		},
 		PreRunE: c.preRunE,
 	}
@@ -62,7 +72,7 @@ func (c *command) initOperatorCmd() (err error) {
 	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")
-	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Timeout.")
+	cmd.Flags().Duration(optionNameTimeout, 0*time.Minute, "Timeout. Default is infinite.")
 
 	c.root.AddCommand(cmd)
 
