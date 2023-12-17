@@ -36,7 +36,7 @@ func NewClient(cfg *ClientConfig) *Client {
 	}
 
 	if cfg.Log == nil {
-		cfg.Log = logging.New(io.Discard, 0, "")
+		cfg.Log = logging.New(io.Discard, 0)
 	}
 
 	// use the injected HTTP client if available, else create a new one

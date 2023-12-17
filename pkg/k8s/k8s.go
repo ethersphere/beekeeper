@@ -55,7 +55,7 @@ func NewClient(opts ...ClientOption) (c *Client, err error) {
 	c = &Client{
 		// set default values
 		clientConfig:          newClientConfig(),
-		logger:                logging.New(io.Discard, 0, ""),
+		logger:                logging.New(io.Discard, 0),
 		inCluster:             false,
 		kubeconfigPath:        "~/.kube/config",
 		rateLimiter:           flowcontrol.NewTokenBucketRateLimiter(50, 100),
