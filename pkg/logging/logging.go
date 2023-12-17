@@ -34,8 +34,7 @@ type Logger interface {
 
 type logger struct {
 	*logrus.Logger
-	metrics      metrics
-	lokiEndpoint string
+	metrics metrics
 }
 
 type LoggerOption func(*logger)
@@ -53,13 +52,6 @@ func New(w io.Writer, level logrus.Level, opts ...LoggerOption) Logger {
 		option(loggerInstance)
 	}
 
-	loggerInstance.metrics = newMetrics()
-	l.AddHook(loggerInstance.metrics)
-
-	if loggerInstance.lokiEndpoint != "" {
-		l.AddHook(newLoki(loggerInstance.lokiEndpoint))
-	}
-
 	return loggerInstance
 }
 
@@ -71,9 +63,18 @@ func (l *logger) GetLevel() string {
 	return l.Level.String()
 }
 
-// WithLokiOption sets the loki endpoint for the logger.
+// WithLokiOption sets the hook for Loki logging.
 func WithLokiOption(lokiEndpoint string) LoggerOption {
 	return func(l *logger) {
-		l.lokiEndpoint = lokiEndpoint
+		if lokiEndpoint != "" {
+			l.Logger.AddHook(newLoki(lokiEndpoint))
+		}
+	}
+}
+
+// WithMetricsOption sets the hook for metrics logging.
+func WithMetricsOption() LoggerOption {
+	return func(l *logger) {
+		l.Logger.AddHook(newMetrics())
 	}
 }
