@@ -77,7 +77,7 @@ func (c *Client) Run(ctx context.Context) error {
 
 				c.Log.Infof("ethereum address: %s", addresses.Ethereum)
 
-				funder.Fund(ctx, funder.Config{
+				err = funder.Fund(ctx, funder.Config{
 					Addresses:         []string{addresses.Ethereum},
 					ChainNodeEndpoint: c.ChainNodeEndpoint,
 					WalletKey:         c.WalletKey,
@@ -86,6 +86,10 @@ func (c *Client) Run(ctx context.Context) error {
 						SwarmToken: c.MinAmounts.SwarmToken,
 					},
 				}, nil, nil)
+				if err != nil {
+					c.Log.Errorf("funder: %v", err)
+					continue
+				}
 			}
 		}
 	}()
