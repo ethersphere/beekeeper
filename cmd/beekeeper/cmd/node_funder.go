@@ -94,7 +94,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 					NativeCoin: cfg.MinAmounts.NativeCoin,
 					SwarmToken: cfg.MinAmounts.SwarmToken,
 				},
-			}, nodeLister, nil, funder.WithLoggerOption(c.log))
+			}, nodeLister, nil)
 		},
 		PreRunE: c.preRunE,
 	}

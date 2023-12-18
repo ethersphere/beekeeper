@@ -80,12 +80,11 @@ func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan
 	defer close(operatorChan)
 
 	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
-		// FieldSelector: "involvedObject.kind=Pod,reason=Scheduled",
 		LabelSelector: "app.kubernetes.io/name=bee",
-		// TODO: add this lable to beekeeper and filter on it => app.kubernetes.io/name=bee
+		// TODO: add this label to beekeeper and filter on it => app.kubernetes.io/name=bee
 	})
 	if err != nil {
-		return fmt.Errorf("getting pod events in namespace %s: %w", namespace, err)
+		return fmt.Errorf("getting pod events in namespace %s`: %w", namespace, err)
 	}
 	defer watcher.Stop()
 
@@ -99,7 +98,7 @@ func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan
 				return fmt.Errorf("watch channel closed")
 			}
 			switch event.Type {
-			// case watch.Added: //TODO check if we already need those who are already running before operator?
+			// case watch.Added: //TODO: check if we already need those who are already running
 			case watch.Modified:
 				pod, ok := event.Object.(*v1.Pod)
 				if ok {

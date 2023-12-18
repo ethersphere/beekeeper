@@ -2,45 +2,75 @@
 
 [![Go](https://github.com/ethersphere/beekeeper/workflows/Go/badge.svg)](https://github.com/ethersphere/beekeeper/actions)
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Run unit tests](#run-unit-tests)
+- [Configuration](#configuration)
+- [Config file](#config-file)
+- [Config directory](#config-directory)
+  - [Inheritance](#inheritance)
+  - [Action types](#action-types)
+- [Usage](#usage)
+  - [check](#check)
+  - [create](#create)
+  - [delete](#delete)
+  - [fund](#fund)
+  - [print](#print)
+  - [simulate](#simulate)
+  - [version](#version)
+  - [node-funder](#node-funder)
+  - [node-operator](#node-operator)
+- [Global flags](#global-flags)
+
+## Introduction
+
 **Ethereum Swarm Beekeeper** is tool used for orchestrating cluster of [Ethereum Swarm Bee](https://github.com/ethersphere/bee) and running integration tests and simulations against it in the Kubernetes.
 
-# Requirements
+## Requirements
 
-* Kubernetes cluster (v1.19+)
-* [Geth Swap node](https://github.com/ethersphere/helm/tree/master/charts/geth-swap)
+- Kubernetes cluster (v1.19+)
+- [Geth Swap node](https://github.com/ethersphere/helm/tree/master/charts/geth-swap)
 
-# Installation
+## Installation
 
 ```bash
 make binary
 cp dist/beekeeper /usr/local/bin/beekeeper
 ```
 
-# Run unit tests
+## Run unit tests
+
 Runs available unit tests in pkg folder
-```
+
+```bash
 make test
 ```
 
-# Configuration
+## Configuration
 
 Beekeeper is configured with:
-* **config file** - sets Beekeeper's internals, and
-* **config directory** - sets Bee cluster configuration, checks and simulations
+
+- **config file** - sets Beekeeper's internals, and
+- **config directory** - sets Bee cluster configuration, checks and simulations
 
 ## Config file
 
 Config file is used to set Beekeeper internals:
-* config directory location
-* Kubernetes client
-* Swap client
+
+- config directory location
+- Kubernetes client
+- Swap client
 
 Default location for config file is: **$HOME/.beekeeper.yaml**
 
 Location can also be set with **--config** flag.
 
 example:
-```
+
+```yaml
 config-dir: <user home dir>/.beekeeper/
 config-git-repo: ""
 config-git-branch: main
@@ -60,16 +90,17 @@ Beekeeper reads *config-dir* from a local machine by default, but it also suppor
 
 If *config-dir* is kept in a Git repo, field *config-git-repo* should point to it, along with *config-git-branch* specifying proper branch. Fields *config-git-username* and *config-git-password* can be set when repo is private.
 
-Official GitHub repository with Beekeeper's configuration is **https://github.com/ethersphere/beekeeper-config**
+Official GitHub repository with Beekeeper's configuration is **<https://github.com/ethersphere/beekeeper-config>**
 
 NOTE: command flags can be also set through the config file
 
 ## Config directory
 
 Config directory is used to group configuration (.yaml) files describing:
-* Bee cluster setup in Kubernetes
-* checks (integration tests), and
-* simulations
+
+- Bee cluster setup in Kubernetes
+- checks (integration tests), and
+- simulations
 
 Default location for config dir is: **$HOME/.beekeeper/**
 
@@ -78,26 +109,29 @@ Location can also be set with **--config-dir** flag.
 Examples of .yaml files can be found in the [Beekeeper repo](https://github.com/ethersphere/beekeeper/tree/master/config).
 
 Config dir's .yaml files have several main blocks:
-* **clusters** - defines clusters Beekeeper works with
-* **node-groups** - defines Bee node groups that are part of the cluster. Node group is a collection of Bee nodes sharing same configuration parameters.
-* **bee-configs** - defines Bee configuration that can be assigned to node-groups
-* **checks** - defines checks Beekeeper can execute against the cluster
-* **simulations** - defines simulations Beekeeper can execute against the cluster
-* **stages** - defines stages for dynamic execution of checks and simulations
+
+- **clusters** - defines clusters Beekeeper works with
+- **node-groups** - defines Bee node groups that are part of the cluster. Node group is a collection of Bee nodes sharing same configuration parameters.
+- **bee-configs** - defines Bee configuration that can be assigned to node-groups
+- **checks** - defines checks Beekeeper can execute against the cluster
+- **simulations** - defines simulations Beekeeper can execute against the cluster
+- **stages** - defines stages for dynamic execution of checks and simulations
 
 ### Inheritance
 
 Inheritance can be set through the field *_inherit*.
 
-Clusters, node-groups and bee-configs blocks support inheritance. 
+Clusters, node-groups and bee-configs blocks support inheritance.
 
 example:
-```
+
+```yaml
 bee-configs:
   light-node:
     _inherit: default
     full-node: false
 ```
+
 This setting means that *light-node* bee-config will inherit all parameters from the *default* bee-config, overriding only *full-node* parameter.
 
 ### Action types
@@ -107,7 +141,8 @@ Action types can be set in every check or simulation definition.
 Action types allow defining same check or simulation with different parameters.
 
 example:
-```
+
+```yaml
 checks:
   pushsync-chunks:
     options:
@@ -136,9 +171,10 @@ checks:
     timeout: 5m
     type: pushsync
 ```
+
 This setting means that pushsync check can be executed choosing *pushsync-chunks* or *pushsync-light-chunks* variation.
 
-# Usage
+## Usage
 
 **beekeeper** has following commands:
 
@@ -153,13 +189,13 @@ This setting means that pushsync check can be executed choosing *pushsync-chunks
 | simulate | Run simulations on a Bee cluster |
 | version | Print version number |
 
-## check
+### check
 
 Command **check** runs ingegration tests on a Bee cluster.
 
 It has following flags:
 
-```
+```console
 --checks strings                  list of checks to execute (default [pingpong])
 --cluster-name string             cluster name (default "default")
 --create-cluster                  creates cluster before executing checks
@@ -171,71 +207,79 @@ It has following flags:
 ```
 
 example:
-```
+
+```bash
 beekeeper check --checks=pingpong,pushsync
 ```
 
-## create
+### create
 
 Command **create** creates Bee infrastructure. It has two subcommands:
-* bee-cluster - creates Bee cluster
 
-    It has following flags:
+- bee-cluster - creates Bee cluster
 
-    ```
-    --cluster-name string   cluster name (default "default")
-    --geth-url string       Endpoint to chain node. Required.
-    --help                  help for bee-cluster
-    --timeout duration      timeout (default 30m0s)
-    --wallet-key string     Hex-encoded private key for the Bee node wallet. Required.
-    ```
-    It is required to specify *geth-url* and *wallet-key* flags for funding Bee nodes with usage of flags or config file.
+It has following flags:
 
-    example:
-    ```
-    beekeeper create bee-cluster --cluster-name=default
-    ```
+```console
+--cluster-name string   cluster name (default "default")
+--geth-url string       Endpoint to chain node. Required.
+--help                  help for bee-cluster
+--timeout duration      timeout (default 30m0s)
+--wallet-key string     Hex-encoded private key for the Bee node wallet. Required.
+```
 
-* k8s-namespace - creates Kubernetes namespace
+It is required to specify *geth-url* and *wallet-key* flags for funding Bee nodes with usage of flags or config file.
 
-    example:
-    ```
-    beekeeper create k8s-namespace beekeeper
-    ```
+example:
 
-## delete
+```bash
+beekeeper create bee-cluster --cluster-name=default
+```
+
+- k8s-namespace - creates Kubernetes namespace
+
+example:
+
+```bash
+beekeeper create k8s-namespace beekeeper
+```
+
+### delete
 
 Command **delete** deletes Bee infrastructure. It has two subcommands:
-* bee-cluster - deletes Bee cluster
 
-    It has following flags:
+- bee-cluster - deletes Bee cluster
 
-    ```
-    --cluster-name string   cluster name (default "default")
-    --help                  help for bee-cluster
-    --timeout duration      timeout (default 15m0s)
-    --with-storage          delete storage
-    ```
+It has following flags:
 
-    example:
-    ```
-    beekeeper delete bee-cluster default
-    ```
+```console
+--cluster-name string   cluster name (default "default")
+--help                  help for bee-cluster
+--timeout duration      timeout (default 15m0s)
+--with-storage          delete storage
+```
 
-* k8s-namespace - deletes Kubernetes namespace
+example:
 
-    example:
-    ```
-    beekeeper delete k8s-namespace beekeeper
-    ```
+```bash
+beekeeper delete bee-cluster default
+```
 
-## fund
+- k8s-namespace - deletes Kubernetes namespace
+
+example:
+
+```bash
+beekeeper delete k8s-namespace beekeeper
+```
+
+### fund
 
 Command **fund** makes BZZ tokens and ETH deposits to given Ethereum addresses.
 
 It has the following flags:
 
-```
+```console
 --addresses strings          Bee node Ethereum addresses (must start with 0x)
 --address-create             if enabled, creates Ethereum address(es)
 --address-count              number of Ethereum addresses to create
@@ -250,36 +294,38 @@ It has the following flags:
 ```
 
 examples:
-```
+
+```bash
 beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0 --bzz-deposit 100 --eth-deposit 0.01
 
 beekeeper fund --address-create --address-count 2 --bzz-deposit 100 --eth-deposit 0.01
 ```
 
-## print
+### print
 
 Command **print** prints information about a Bee cluster.
 
 It has following flags:
 
-```
+```console
 --cluster-name string   cluster name (default "default")
 --help                  help for print
 --timeout duration      timeout (default 15m0s)
 ```
 
 example:
-```
+
+```bash
 beekeeper print overlays
 ```
 
-## simulate
+### simulate
 
 Command **simulate** runs simulations on a Bee cluster.
 
 It has following flags:
 
-```
+```console
 --cluster-name string             cluster name (default "default")
 --create-cluster                  creates cluster before executing simulations
 --help                            help for check
@@ -291,25 +337,28 @@ It has following flags:
 ```
 
 example:
-```
+
+```bash
 beekeeper simulate --simulations=upload
 ```
 
-## version
+### version
 
 Command **version** prints version number.
 
 example:
-```
+
+```bash
 beekeeper version
 ```
 
-## node-funder
+### node-funder
 
-Command **node-funder** uses https://github.com/ethersphere/node-funder tool to fund (top up) bee nodes up to the specified amount. It can fund all nodes in k8s namespace or it can fund only specified addresses.
+Command **node-funder** uses <https://github.com/ethersphere/node-funder> tool to fund (top up) bee nodes up to the specified amount. It can fund all nodes in k8s namespace or it can fund only specified addresses.
 
 It has following flags:
-```
+
+```console
 --addresses strings       Comma-separated list of Bee node addresses (must start with 0x). Overrides namespace and cluster name.
 --geth-url string         Endpoint to chain node. Required.
 --cluster-name string     Cluster name. Ignored if addresses or namespace are set.
@@ -322,16 +371,40 @@ It has following flags:
 ```
 
 example:
-```
+
+```bash
 beekeeper node-funder --geth-url="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --namespace=default --min-swarm=180 --min-native=2.2 --log-verbosity=3
 ```
 
-# Global flags
+### node-operator
+
+Command **node-operator** uses <https://github.com/ethersphere/node-funder> tool to fund (top up) bee nodes up to the specified amount. It is running in the Kubernetes namespace and it is watching for Bee node deployments. When new deployment is created, it will fund it with the specified amount. It uses filter "app.kubernetes.io/name=bee" on label to determine which deployments to watch.
+
+It has following flags:
+
+```console
+--geth-url string     Endpoint to chain node. Required.
+--help                help for node-operator
+--min-native float    Minimum amount of chain native coins (xDAI) nodes should have.
+--min-swarm float     Minimum amount of swarm tokens (xBZZ) nodes should have.
+--namespace string    Kubernetes namespace to scan for scheduled pods.
+--timeout duration    Timeout. Default is infinite.
+--wallet-key string   Hex-encoded private key for the Bee node wallet. Required.
+```
+
+example:
+
+```bash
+beekeeper node-operator --geth-url="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --namespace=default --min-swarm=180 --min-native=2.2 --log-verbosity=3
+```
+
+## Global flags
 
 Global flags can be used with any command.
 
 example:
-```
+
+```console
 --config string                 config file (default is $HOME/.beekeeper.yaml)
 --config-dir string             config directory (default is $HOME/.beekeeper/) (default "C:\\Users\\ljubi\\.beekeeper")
 --config-git-branch string      Git branch (default "main")
