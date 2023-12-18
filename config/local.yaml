@@ -122,6 +122,7 @@ node-groups:
     ingress-debug-class: "traefik"
     labels:
       app.kubernetes.io/component: "node"
+      app.kubernetes.io/name: "bee"
       app.kubernetes.io/part-of: "bee"
       app.kubernetes.io/version: "latest"
     node-selector:
