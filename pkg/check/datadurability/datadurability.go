@@ -111,7 +111,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 				return
 			}
 			dur := time.Since(chunkStart)
-			// c.logger.Infof("download successful. %s (%d of %d) chunk=%s node=%s dur=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), ref, node.Name(), dur)
 			c.metrics.ChunkDownloadDuration.Observe(dur.Seconds())
 			c.metrics.FileSize.Add(float64(len(d)))
 		}(i, ref, node)
