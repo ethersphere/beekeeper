@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/check/networkavailability"
+	"github.com/ethersphere/beekeeper/pkg/check/redundancy"
 	"github.com/ethersphere/beekeeper/pkg/check/stake"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -547,6 +548,25 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := datadurability.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"redundancy": {
+		NewAction: redundancy.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				RndSeed *int64             `yaml:"rnd-seed"`
+				Files   *[]redundancy.File `yaml:"files"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := redundancy.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

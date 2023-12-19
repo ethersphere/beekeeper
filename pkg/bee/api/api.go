@@ -10,18 +10,21 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ethersphere/beekeeper"
 )
 
 const (
-	apiVersion               = "v1"
-	contentType              = "application/json; charset=utf-8"
-	postageStampBatchHeader  = "Swarm-Postage-Batch-Id"
-	deferredUploadHeader     = "Swarm-Deferred-Upload"
-	swarmPinHeader           = "Swarm-Pin"
-	swarmTagHeader           = "Swarm-Tag"
-	swarmCacheDownloadHeader = "Swarm-Cache"
+	apiVersion                        = "v1"
+	contentType                       = "application/json; charset=utf-8"
+	postageStampBatchHeader           = "Swarm-Postage-Batch-Id"
+	deferredUploadHeader              = "Swarm-Deferred-Upload"
+	swarmPinHeader                    = "Swarm-Pin"
+	swarmTagHeader                    = "Swarm-Tag"
+	swarmCacheDownloadHeader          = "Swarm-Cache"
+	swarmRedundancyStrategyHeader     = "Swarm-Redundancy-Strategy"
+	swarmRedundancyFallbackModeHeader = "Swarm-Redundancy-Fallback-Mode"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -193,8 +196,16 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 		req.Header.Set("Authorization", "Bearer "+key)
 	}
 
-	if opts != nil && opts.Cache != nil {
-		req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
+	if opts != nil {
+		if opts.Cache != nil {
+			req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
+		}
+		if opts.RedundancyStrategy != nil {
+			req.Header.Set(swarmRedundancyStrategyHeader, strconv.Itoa(*opts.RedundancyStrategy))
+		}
+		if opts.RedundancyFallbackMode != nil {
+			req.Header.Set(swarmRedundancyFallbackModeHeader, strconv.Itoa(*opts.RedundancyFallbackMode))
+		}
 	}
 
 	r, err := c.httpClient.Do(req)
@@ -317,5 +328,8 @@ type UploadOptions struct {
 }
 
 type DownloadOptions struct {
-	Cache *bool
+	Cache                  *bool
+	RedundancyStrategy     *int
+	RedundancyFallbackMode *int
+	ChunkRetrievalTimeout  *time.Duration
 }
