@@ -53,6 +53,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 	if !ok {
 		return fmt.Errorf("invalid options type")
 	}
+	if opts.Ref == "" {
+		return fmt.Errorf("reference is required")
+	}
+
 	ref, err := swarm.ParseHexAddress(opts.Ref)
 	if err != nil {
 		return fmt.Errorf("parse hex ref %s: %w", opts.Ref, err)
@@ -107,7 +111,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 				return
 			}
 			dur := time.Since(chunkStart)
-			c.logger.Infof("download successful. %s (%d of %d) chunk=%s node=%s dur=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), ref, node.Name(), dur)
 			c.metrics.ChunkDownloadDuration.Observe(dur.Seconds())
 			c.metrics.FileSize.Add(float64(len(d)))
 		}(i, ref, node)
@@ -120,6 +123,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 	dur := time.Since(fileStart)
 	c.logger.Infof("done. dur=%v", dur)
 	c.metrics.FileDownloadDuration.Observe(dur.Seconds())
+	// wait for metrics to be pushed
+	c.logger.Infof("waiting 1 minute for metrics to be pushed")
+	time.Sleep(1 * time.Minute)
 	return nil
 }
 
@@ -128,6 +134,7 @@ func percentage(a, b int) string {
 }
 
 func fetchFile(ctx context.Context, logger logging.Logger, ref swarm.Address, cluster orchestration.Cluster, maxAttempts int) ([]byte, error) {
+	logger.Infof("fetching file. ref=%s", ref.String())
 	var nodes []orchestration.Node
 	for _, node := range cluster.Nodes() {
 		nodes = append(nodes, node)
@@ -137,7 +144,7 @@ func fetchFile(ctx context.Context, logger logging.Logger, ref swarm.Address, cl
 		node := nodes[i%len(nodes)]
 		d, err := node.Client().DownloadFileBytes(ctx, ref, nil)
 		if err != nil {
-			logger.Infof("node: %s failed to fetch file: %v", node.Name(), err)
+			logger.Errorf("node: %s failed to fetch file: %v", node.Name(), err)
 			continue
 		}
 		return d, nil
