@@ -134,7 +134,7 @@ iteration:
 
 			c.metrics.DownloadAttempts.Inc()
 
-			data, err := downloadClient.DownloadChunk(ctx, ch.Address(), "")
+			data, err := downloadClient.DownloadChunk(ctx, ch.Address(), "", nil)
 			if err != nil {
 				c.metrics.DownloadErrors.Inc()
 				c.metrics.DownloadDuration.WithLabelValues("false").Observe(time.Since(t).Seconds())
