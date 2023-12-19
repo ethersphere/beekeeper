@@ -135,7 +135,7 @@ func percentage(a, b int) string {
 }
 
 func fetchFile(ctx context.Context, logger logging.Logger, ref swarm.Address, cluster orchestration.Cluster, maxAttempts int) ([]byte, error) {
-	logger.Infof("fetching file. ref=%s", ref)
+	logger.Infof("fetching file. ref=%s", ref.String())
 	var nodes []orchestration.Node
 	for _, node := range cluster.Nodes() {
 		nodes = append(nodes, node)
