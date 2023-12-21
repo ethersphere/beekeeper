@@ -81,7 +81,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0))
 			response, err := client.Set(context.Background(), test.statefulsetName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -169,7 +169,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0))
 			err := client.Delete(context.Background(), test.statefulsetName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
@@ -223,7 +223,7 @@ func TestReadyReplicas(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0))
 			ready, err := client.ReadyReplicas(context.Background(), test.statefulsetName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
@@ -296,7 +296,7 @@ func TestReadyReplicasWatch(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0))
 			ready, err := client.ReadyReplicasWatch(test.ctx, test.statefulsetName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
@@ -369,7 +369,7 @@ func TestRunningStatefulSets(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0))
 			response, err := client.RunningStatefulSets(context.Background(), test.namespace)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -444,7 +444,7 @@ func TestScale(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0))
 			response, err := client.Scale(context.Background(), test.statefulSetName, test.namespace, 3)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -531,7 +531,7 @@ func TestStoppedStatefulSets(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0))
 			response, err := client.StoppedStatefulSets(context.Background(), test.namespace)
 			if test.errorMsg == nil {
 				if err != nil {

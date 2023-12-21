@@ -64,7 +64,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := pod.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := pod.NewClient(test.clientset, logging.New(io.Discard, 0))
 			response, err := client.Set(context.Background(), test.podName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -140,7 +140,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := pod.NewClient(test.clientset, logging.New(io.Discard, 0, ""))
+			client := pod.NewClient(test.clientset, logging.New(io.Discard, 0))
 			err := client.Delete(context.Background(), test.podName, "test")
 			if test.errorMsg == nil {
 				if err != nil {

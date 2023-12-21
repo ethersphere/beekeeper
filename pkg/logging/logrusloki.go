@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/logging/loki"
 	"github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ import (
 type LokiHook struct {
 	hostname     string
 	lokiEndpoint string
+	httpclient   *http.Client
 }
 
 func newLoki(lokiEndpoint string) LokiHook {
@@ -25,6 +27,7 @@ func newLoki(lokiEndpoint string) LokiHook {
 	return LokiHook{
 		hostname:     hostname,
 		lokiEndpoint: lokiEndpoint,
+		httpclient:   &http.Client{Timeout: 5 * time.Second},
 	}
 }
 
@@ -71,9 +74,7 @@ func (l LokiHook) executeHTTPRequest(batch *loki.Batch) error {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := http.DefaultClient
-
-	resp, err := client.Do(req)
+	resp, err := l.httpclient.Do(req)
 	if err != nil {
 		return err
 	}

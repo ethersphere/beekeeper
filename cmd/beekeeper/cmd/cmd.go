@@ -348,19 +348,23 @@ func (c *command) setSwapClient() (err error) {
 
 func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string) (logging.Logger, error) {
 	var logger logging.Logger
+	opts := []logging.LoggerOption{
+		logging.WithLokiOption(lokiEndpoint),
+		logging.WithMetricsOption(),
+	}
 	switch strings.ToLower(verbosity) {
 	case "0", "silent":
-		logger = logging.New(io.Discard, 0, "")
+		logger = logging.New(io.Discard, 0)
 	case "1", "error":
-		logger = logging.New(cmd.OutOrStdout(), logrus.ErrorLevel, lokiEndpoint)
+		logger = logging.New(cmd.OutOrStdout(), logrus.ErrorLevel, opts...)
 	case "2", "warn":
-		logger = logging.New(cmd.OutOrStdout(), logrus.WarnLevel, lokiEndpoint)
+		logger = logging.New(cmd.OutOrStdout(), logrus.WarnLevel, opts...)
 	case "3", "info":
-		logger = logging.New(cmd.OutOrStdout(), logrus.InfoLevel, lokiEndpoint)
+		logger = logging.New(cmd.OutOrStdout(), logrus.InfoLevel, opts...)
 	case "4", "debug":
-		logger = logging.New(cmd.OutOrStdout(), logrus.DebugLevel, lokiEndpoint)
+		logger = logging.New(cmd.OutOrStdout(), logrus.DebugLevel, opts...)
 	case "5", "trace":
-		logger = logging.New(cmd.OutOrStdout(), logrus.TraceLevel, lokiEndpoint)
+		logger = logging.New(cmd.OutOrStdout(), logrus.TraceLevel, opts...)
 	default:
 		return nil, fmt.Errorf("unknown %s level %q, use help to check flag usage options", optionNameLogVerbosity, verbosity)
 	}

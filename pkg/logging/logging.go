@@ -23,6 +23,8 @@ type Logger interface {
 	Warning(args ...interface{})
 	Errorf(format string, args ...interface{})
 	Error(args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Fatal(args ...interface{})
 	WithField(key string, value interface{}) *logrus.Entry
 	WithFields(fields logrus.Fields) *logrus.Entry
 	WriterLevel(logrus.Level) *io.PipeWriter
@@ -35,26 +37,22 @@ type logger struct {
 	metrics metrics
 }
 
-func New(w io.Writer, level logrus.Level, lokiEndpoint string) Logger {
+type LoggerOption func(*logger)
+
+// New initializes a new logger instance with given options.
+func New(w io.Writer, level logrus.Level, opts ...LoggerOption) Logger {
 	l := logrus.New()
 	l.SetOutput(w)
 	l.SetLevel(level)
-	l.Formatter = &logrus.TextFormatter{
-		FullTimestamp: true,
+	l.Formatter = &logrus.TextFormatter{FullTimestamp: true}
+
+	loggerInstance := &logger{Logger: l}
+
+	for _, option := range opts {
+		option(loggerInstance)
 	}
 
-	metrics := newMetrics()
-	l.AddHook(metrics)
-
-	if lokiEndpoint != "" {
-		loki := newLoki(lokiEndpoint)
-		l.AddHook(loki)
-	}
-
-	return &logger{
-		Logger:  l,
-		metrics: metrics,
-	}
+	return loggerInstance
 }
 
 func (l *logger) NewEntry() *logrus.Entry {
@@ -63,4 +61,20 @@ func (l *logger) NewEntry() *logrus.Entry {
 
 func (l *logger) GetLevel() string {
 	return l.Level.String()
+}
+
+// WithLokiOption sets the hook for Loki logging.
+func WithLokiOption(lokiEndpoint string) LoggerOption {
+	return func(l *logger) {
+		if lokiEndpoint != "" {
+			l.Logger.AddHook(newLoki(lokiEndpoint))
+		}
+	}
+}
+
+// WithMetricsOption sets the hook for metrics logging.
+func WithMetricsOption() LoggerOption {
+	return func(l *logger) {
+		l.Logger.AddHook(newMetrics())
+	}
 }

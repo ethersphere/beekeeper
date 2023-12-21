@@ -84,7 +84,7 @@ func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan
 		// TODO: add this label to beekeeper and filter on it => app.kubernetes.io/name=bee
 	})
 	if err != nil {
-		return fmt.Errorf("getting pod events in namespace %s: %w", namespace, err)
+		return fmt.Errorf("getting pod events in namespace %s`: %w", namespace, err)
 	}
 	defer watcher.Stop()
 
