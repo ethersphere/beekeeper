@@ -4,14 +4,12 @@ go 1.21
 
 replace github.com/codahale/hdrhistogram => github.com/HdrHistogram/hdrhistogram-go v1.1.2
 
-replace github.com/ethersphere/node-funder => C:\Git\node-funder
-
 require (
 	github.com/ethereum/go-ethereum v1.13.4
 	github.com/ethersphere/bee v1.17.6
 	github.com/ethersphere/bmt v0.1.4
 	github.com/ethersphere/ethproxy v0.0.5
-	github.com/ethersphere/node-funder v0.0.3
+	github.com/ethersphere/node-funder v0.1.0
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/google/uuid v1.3.0
