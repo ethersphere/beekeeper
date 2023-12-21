@@ -85,7 +85,7 @@ func (c *Client) Run(ctx context.Context) error {
 						NativeCoin: c.MinAmounts.NativeCoin,
 						SwarmToken: c.MinAmounts.SwarmToken,
 					},
-				}, nil, nil)
+				}, nil, nil, funder.WithLoggerOption(c.Log))
 				if err != nil {
 					c.Log.Errorf("funder: %v", err)
 					continue

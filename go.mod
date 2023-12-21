@@ -4,6 +4,8 @@ go 1.21
 
 replace github.com/codahale/hdrhistogram => github.com/HdrHistogram/hdrhistogram-go v1.1.2
 
+replace github.com/ethersphere/node-funder => C:\Git\node-funder
+
 require (
 	github.com/ethereum/go-ethereum v1.13.4
 	github.com/ethersphere/bee v1.17.6
