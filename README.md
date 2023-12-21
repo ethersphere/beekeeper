@@ -188,6 +188,8 @@ This setting means that pushsync check can be executed choosing *pushsync-chunks
 | print | Print information about a Bee cluster |
 | simulate | Run simulations on a Bee cluster |
 | version | Print version number |
+| node-funder | Fund (top up) Bee nodes |
+| node-operator | Auto-funds (top up) Bee nodes on deployment. |
 
 ### check
 

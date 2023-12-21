@@ -73,9 +73,8 @@ func (c *command) initNodeFunderCmd() (err error) {
 			c.log.Infof("node-funder started")
 			defer c.log.Infof("node-funder done")
 
-			// TODO: Note that the swarm key address is the same as the nodeEndpoint/wallet walletAddress.
-
-			// TODO: When setting up a bootnode, the swarmkey option is used to specify the existing swarm key.
+			// NOTE: Swarm key address is the same as the nodeEndpoint/wallet walletAddress.
+			// When setting up a bootnode, the swarmkey option is used to specify the existing swarm key.
 			// However, for other nodes, the beekeeper automatically generates a new swarm key during cluster setup.
 			// Once the swarm key is generated, beekeeper identifies the addresses that can be funded for each node.
 
@@ -94,7 +93,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 					NativeCoin: cfg.MinAmounts.NativeCoin,
 					SwarmToken: cfg.MinAmounts.SwarmToken,
 				},
-			}, nodeLister, nil)
+			}, nodeLister, nil, funder.WithLoggerOption(c.log))
 		},
 		PreRunE: c.preRunE,
 	}

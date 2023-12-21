@@ -141,7 +141,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	// fund bootnode node group if cluster is started
 	if startCluster {
-		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts)
+		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log)
 		if err != nil {
 			return nil, fmt.Errorf("funding node group bootnode: %w", err)
 		}
@@ -156,7 +156,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	// fund other node groups if cluster is started
 	if startCluster {
-		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts)
+		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log)
 		if err != nil {
 			return nil, fmt.Errorf("fund other node groups: %w", err)
 		}
@@ -296,7 +296,14 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 	return nOptions
 }
 
-func fund(ctx context.Context, fundAddresses []string, chainNodeEndpoint string, walletKey string, fundOpts orchestration.FundingOptions) error {
+func fund(
+	ctx context.Context,
+	fundAddresses []string,
+	chainNodeEndpoint string,
+	walletKey string,
+	fundOpts orchestration.FundingOptions,
+	log logging.Logger,
+) error {
 	return funder.Fund(ctx, funder.Config{
 		Addresses:         fundAddresses,
 		ChainNodeEndpoint: chainNodeEndpoint,
@@ -305,5 +312,5 @@ func fund(ctx context.Context, fundAddresses []string, chainNodeEndpoint string,
 			NativeCoin: fundOpts.Eth,
 			SwarmToken: fundOpts.Bzz,
 		},
-	}, nil, nil)
+	}, nil, nil, funder.WithLoggerOption(log))
 }
