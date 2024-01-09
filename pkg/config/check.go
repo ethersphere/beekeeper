@@ -14,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
+	"github.com/ethersphere/beekeeper/pkg/check/erasurecode"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 	"github.com/ethersphere/beekeeper/pkg/check/gc"
@@ -547,6 +548,31 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := datadurability.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"erasure-code": {
+		NewAction: erasurecode.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				ContentSize            *int64         `yaml:"content-size"`
+				RndSeed                *int64         `yaml:"rnd-seed"`
+				PostageAmount          *int64         `yaml:"postage-amount"`
+				PostageDepth           *uint64        `yaml:"postage-depth"`
+				TxOnErrWait            *time.Duration `yaml:"tx-on-err-wait"`
+				RxOnErrWait            *time.Duration `yaml:"rx-on-err-wait"`
+				NodesSyncWait          *time.Duration `yaml:"nodes-sync-wait"`
+				ChunkRetrievalTimeouts *[]string      `yaml:"chunk-retrieval-timeouts"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := erasurecode.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

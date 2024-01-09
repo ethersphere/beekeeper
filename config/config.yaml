@@ -357,6 +357,14 @@ checks:
       concurrency:
       max-attempts:
     type: datadurability
+  erasure-code:
+    options:
+      content-size: 5000000
+      postage-amount: 1000000
+      postage-depth: 20
+      nodes-sync-wait: 1m
+      chunk-retrieval-timeouts:
+    type: erasure-code
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options

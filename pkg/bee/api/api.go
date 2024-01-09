@@ -10,18 +10,23 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ethersphere/beekeeper"
 )
 
 const (
-	apiVersion               = "v1"
-	contentType              = "application/json; charset=utf-8"
-	postageStampBatchHeader  = "Swarm-Postage-Batch-Id"
-	deferredUploadHeader     = "Swarm-Deferred-Upload"
-	swarmPinHeader           = "Swarm-Pin"
-	swarmTagHeader           = "Swarm-Tag"
-	swarmCacheDownloadHeader = "Swarm-Cache"
+	apiVersion                        = "v1"
+	contentType                       = "application/json; charset=utf-8"
+	postageStampBatchHeader           = "Swarm-Postage-Batch-Id"
+	deferredUploadHeader              = "Swarm-Deferred-Upload"
+	swarmPinHeader                    = "Swarm-Pin"
+	swarmTagHeader                    = "Swarm-Tag"
+	swarmCacheDownloadHeader          = "Swarm-Cache"
+	swarmRedundancyLevelHeader        = "Swarm-Redundancy-Level"
+	swarmRedundancyStrategyHeader     = "Swarm-Redundancy-Strategy"
+	swarmRedundancyFallbackModeHeader = "Swarm-Redundancy-Fallback-Mode"
+	swarmChunkRetrievalTimeoutHeader  = "Swarm-Chunk-Retrieval-Timeout"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -196,6 +201,15 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	if opts != nil && opts.Cache != nil {
 		req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
 	}
+	if opts != nil && opts.RedundancyStrategy != nil {
+		req.Header.Set(swarmRedundancyStrategyHeader, strconv.Itoa(*opts.RedundancyStrategy))
+	}
+	if opts != nil && opts.RedundancyFallbackMode != nil {
+		req.Header.Set(swarmRedundancyFallbackModeHeader, strconv.FormatBool(*opts.RedundancyFallbackMode))
+	}
+	if opts != nil && opts.ChunkRetrievalTimeout != nil {
+		req.Header.Set(swarmChunkRetrievalTimeoutHeader, opts.ChunkRetrievalTimeout.String())
+	}
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
@@ -310,12 +324,16 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 type UploadOptions struct {
-	Pin     bool
-	Tag     uint64
-	BatchID string
-	Direct  bool
+	Pin             bool
+	Tag             uint64
+	BatchID         string
+	Direct          bool
+	RedundancyLevel *int
 }
 
 type DownloadOptions struct {
-	Cache *bool
+	Cache                  *bool
+	RedundancyStrategy     *int
+	RedundancyFallbackMode *bool
+	ChunkRetrievalTimeout  *time.Duration
 }

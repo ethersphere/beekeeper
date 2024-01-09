@@ -37,6 +37,9 @@ func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, 
 	if o.Direct {
 		header.Set(deferredUploadHeader, strconv.FormatBool(false))
 	}
+	if o.RedundancyLevel != nil {
+		header.Set(swarmRedundancyLevelHeader, strconv.Itoa(*o.RedundancyLevel))
+	}
 	header.Set(postageStampBatchHeader, o.BatchID)
 
 	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz?"+url.QueryEscape("name="+name), header, data, &resp)
