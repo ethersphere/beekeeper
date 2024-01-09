@@ -141,9 +141,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 func upload(ctx context.Context, logger logging.Logger, clients map[string]*bee.Client, cName string, o Options, rLevel int) (swarm.Address, []byte, error) {
 	for retries := 0; retries < 3; retries++ {
-		select {
-		case <-time.After(o.TxOnErrWait):
-		}
+		time.Sleep(o.TxOnErrWait)
 		batchID, err := clients[cName].GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, "erasure-code")
 		if err != nil {
 			logger.Warningf("level: %d. create new batch: %v", rLevel, err)
