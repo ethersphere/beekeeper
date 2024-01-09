@@ -117,7 +117,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 					RedundancyFallbackMode: &fallback,
 					ChunkRetrievalTimeout:  &timeout,
 				})
-				if strategy == 0 {
+				if strategy == 0 && !fallback {
 					strategy-- // repeat for strategy 0 with fallback=true
 					fallback = true
 				}
