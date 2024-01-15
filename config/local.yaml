@@ -396,3 +396,11 @@ checks:
       concurrency:
       max-attempts:
     type: datadurability
+  ci-erasure-code:
+    options:
+      content-size: 5000000
+      postage-amount: 1000000
+      postage-depth: 20
+      nodes-sync-wait: 1m
+    timeout: 5m
+    type: erasure-code
