@@ -18,15 +18,19 @@ import (
 )
 
 type Options struct {
-	Ref         string
-	Concurrency int
-	MaxAttempts int
+	Ref           string
+	Concurrency   int
+	MaxAttempts   int
+	RetryAttempts int
+	RetryWait     time.Duration
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		Concurrency: 10,
-		MaxAttempts: 10,
+		Concurrency:   10,
+		MaxAttempts:   10,
+		RetryAttempts: 3,
+		RetryWait:     5 * time.Second,
 	}
 }
 
@@ -99,9 +103,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			c.metrics.ChunkDownloadAttempts.Inc()
 			cache := false
 			chunkStart := time.Now()
-			d, err = node.Client().DownloadChunk(ctx, ref, "", &api.DownloadOptions{Cache: &cache})
+			for retry := 0; retry < opts.RetryAttempts; retry++ {
+				d, err = node.Client().DownloadChunk(ctx, ref, "", &api.DownloadOptions{Cache: &cache})
+				if err == nil {
+					break
+				}
+				c.logger.Debugf("download failed. %s (%d of %d). retry=%d chunk=%s node=%s err=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), retry, ref, node.Name(), err)
+				time.Sleep(opts.RetryWait)
+			}
 			if err != nil {
-				c.logger.Errorf("download failed. %s (%d of %d). chunk=%s node=%s err=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), ref, node.Name(), err)
+				c.logger.Errorf("download failed after %d retries. %s (%d of %d). chunk=%s node=%s err=%v", opts.RetryAttempts, percentage(i, len(chunkRefs)), i, len(chunkRefs), ref, node.Name(), err)
 				c.metrics.ChunkDownloadErrors.Inc()
 				once.Do(func() {
 					c.metrics.FileDownloadAttempts.Inc()
