@@ -85,7 +85,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 // ListDebugNodesHosts list Ingresses that are nodes
 func (c *Client) ListDebugNodesHosts(ctx context.Context, namespace string) (nodes []ingress.NodeInfo, err error) {
 	ingressRoutes, err := c.clientset.IngressRoutes(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/component=node",
+		LabelSelector: "app.kubernetes.io/name=bee",
 	})
 	if err != nil {
 		if errors.IsNotFound(err) {
