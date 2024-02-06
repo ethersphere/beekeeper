@@ -52,7 +52,6 @@ swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
 swap-deployment-gas-price: {{.SwapDeploymentGasPrice}}
 swap-factory-address: {{.SwapFactoryAddress}}
-swap-legacy-factory-addresses: {{.SwapLegacyFactoryAddresses}}
 swap-initial-deposit: {{.SwapInitialDeposit}}
 tracing-enable: {{.TracingEnabled}}
 tracing-endpoint: {{.TracingEndpoint}}

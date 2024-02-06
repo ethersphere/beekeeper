@@ -109,7 +109,6 @@ bee-configs:
     swap-enable: true
     swap-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
     swap-factory-address: ""
-    swap-legacy-factory-addresses: ""
     swap-initial-deposit: 10000000000000000
     tracing-enabled: false
     tracing-endpoint: "tempo-tempo-distributed-distributor.observability:6831"
