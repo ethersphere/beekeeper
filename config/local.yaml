@@ -189,7 +189,6 @@ bee-configs:
     swap-enable: true
     swap-endpoint: "ws://geth-swap:8546"
     swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
-    swap-legacy-factory-addresses: "0x657241f4494a2f15ba75346e691d753a978c72df"
     swap-initial-deposit: 500000000000000000
     verbosity: 5
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
