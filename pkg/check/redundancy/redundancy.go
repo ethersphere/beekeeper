@@ -31,7 +31,7 @@ func NewDefaultOptions() Options {
 		PostageAmount: 1500000,
 		PostageDepth:  22,
 		Seed:          time.Now().UnixNano(),
-		DataSize:      2097152, // 2mb
+		DataSize:      307200,
 	}
 }
 
@@ -62,6 +62,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		return fmt.Errorf("invalid options type")
 	}
 
+	time.Sleep(10 * time.Second)
+
 	for i := 0; i < 5; i++ {
 		c.logger.Infof("started rLevel %d", i)
 		uploadClient, downloadClient, err := getClients(ctx, cluster, opts.Seed)
@@ -73,7 +75,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		if err != nil {
 			return fmt.Errorf("get chunks: %w", err)
 		}
-		c.logger.Infof("root hash: %d, chunks: %d", root.String(), len(chunks))
+		c.logger.Infof("root hash: %s, chunks: %d", root.String(), len(chunks))
 
 		batchID, err := uploadClient.GetOrCreateBatch(ctx, opts.PostageAmount, opts.PostageDepth, "ci-redundancy")
 		if err != nil {
@@ -139,14 +141,15 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 	indices = append(indices[offset:], len(chunks)-1)
 
 	c.logger.Infof("uploading %d chunks out of %d", len(indices), len(chunks))
-	for i := range indices {
-		_, err := client.UploadChunk(ctx, chunks[i].Data(), api.UploadOptions{
+	for _, i := range indices {
+		ref, err := client.UploadChunk(ctx, chunks[i].Data(), api.UploadOptions{
 			BatchID: batchID,
-			Direct:  true,
+			Direct:  false,
 		})
 		if err != nil {
 			return err
 		}
+		c.logger.Infof("uploaded chunk: %s", ref.String())
 	}
 	return nil
 }
