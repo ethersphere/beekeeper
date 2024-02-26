@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"slices"
 	"sync"
 	"time"
@@ -105,7 +106,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			chunkStart := time.Now()
 			for retry := 0; retry < opts.RetryAttempts; retry++ {
 				d, err = node.Client().DownloadChunk(ctx, ref, "", &api.DownloadOptions{Cache: &cache})
-				if err == nil {
+				if err == nil || api.IsHTTPStatusErrorCode(err, http.StatusNotFound) {
 					break
 				}
 				c.logger.Debugf("download failed. %s (%d of %d). retry=%d chunk=%s node=%s err=%v", percentage(i, len(chunkRefs)), i, len(chunkRefs), retry, ref, node.Name(), err)
