@@ -71,7 +71,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			return fmt.Errorf("get clients: %w", err)
 		}
 
-		root, data, chunks, err := c.generateChunks(ctx, 1000, redundancy.Level(i), opts.Seed)
+		root, data, chunks, err := c.generateChunks(ctx, opts.DataSize, redundancy.Level(i), opts.Seed)
 		if err != nil {
 			return fmt.Errorf("get chunks: %w", err)
 		}
