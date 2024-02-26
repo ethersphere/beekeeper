@@ -395,3 +395,10 @@ checks:
       concurrency:
       max-attempts:
     type: datadurability
+  ci-redundancy:
+    options:
+      postage-amount:
+      postage-depth:
+      seed:
+      data-size:
+    type: redundancy
