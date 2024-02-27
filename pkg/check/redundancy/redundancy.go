@@ -144,7 +144,7 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 	for _, i := range indices {
 		ref, err := client.UploadChunk(ctx, chunks[i].Data(), api.UploadOptions{
 			BatchID: batchID,
-			Direct:  false,
+			Direct:  true,
 		})
 		if err != nil {
 			return err
