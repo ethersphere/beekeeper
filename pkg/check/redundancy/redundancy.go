@@ -156,7 +156,7 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 }
 
 func getClients(ctx context.Context, cluster orchestration.Cluster, seed int64) (*bee.Client, *bee.Client, error) {
-	nodeNames := cluster.NodeNames()
+	nodeNames := cluster.FullNodeNames()
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return nil, nil, err
