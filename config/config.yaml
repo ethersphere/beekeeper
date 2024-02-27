@@ -356,6 +356,14 @@ checks:
       concurrency:
       max-attempts:
     type: datadurability
+  redundancy:
+    options:
+      postage-amount:
+      postage-depth:
+      seed:
+      data-size:
+    type: redundancy
+
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options
