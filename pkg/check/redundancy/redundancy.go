@@ -64,7 +64,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 
 	time.Sleep(10 * time.Second)
 
-	for i := 0; i < 5; i++ {
+	for i := 1; i < 5; i++ { // skip level 0
 		c.logger.Infof("started rLevel %d", i)
 		uploadClient, downloadClient, err := getClients(ctx, cluster, opts.Seed)
 		if err != nil {
