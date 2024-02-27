@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/ethersphere/beekeeper/pkg/check/redundancy"
 	"math/big"
 	"reflect"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/pss"
 	"github.com/ethersphere/beekeeper/pkg/check/pullsync"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
+	"github.com/ethersphere/beekeeper/pkg/check/redundancy"
 	"github.com/ethersphere/beekeeper/pkg/check/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
