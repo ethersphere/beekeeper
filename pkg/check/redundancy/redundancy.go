@@ -31,7 +31,7 @@ func NewDefaultOptions() Options {
 		PostageAmount: 1500000,
 		PostageDepth:  22,
 		Seed:          time.Now().UnixNano(),
-		DataSize:      51200,
+		DataSize:      1048576,
 	}
 }
 
@@ -142,15 +142,13 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 
 	c.logger.Infof("uploading %d chunks out of %d", len(indices), len(chunks))
 	for i, j := range indices {
-		c.logger.Infof("uploading chunk %d. size %d", i+1, len(chunks[j].Data()))
-		ref, err := client.UploadChunk(ctx, chunks[j].Data(), api.UploadOptions{
+		_, err := client.UploadChunk(ctx, chunks[j].Data(), api.UploadOptions{
 			BatchID: batchID,
 			Direct:  true,
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("upload chunk %d of %d: %w", i+1, len(indices), err)
 		}
-		c.logger.Infof("uploaded chunk: %s", ref.String())
 	}
 	return nil
 }
