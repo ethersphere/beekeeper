@@ -132,7 +132,7 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 	case redundancy.INSANE:
 		rate = 0.1
 	case redundancy.PARANOID:
-		rate = 0.5
+		rate = 0.35
 	}
 
 	rnd := random.PseudoGenerator(seed)
