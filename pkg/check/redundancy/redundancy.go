@@ -31,7 +31,7 @@ func NewDefaultOptions() Options {
 		PostageAmount: 1500000,
 		PostageDepth:  22,
 		Seed:          time.Now().UnixNano(),
-		DataSize:      512000,
+		DataSize:      307200,
 	}
 }
 
