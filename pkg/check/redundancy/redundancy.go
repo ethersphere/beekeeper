@@ -92,7 +92,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			return fmt.Errorf("download bytes: %w", err)
 		}
 
-		if bytes.Compare(data, d) != 0 {
+		if !bytes.Equal(data, d) {
 			return fmt.Errorf("download and initial content dont match")
 		}
 
