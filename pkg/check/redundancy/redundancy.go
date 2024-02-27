@@ -141,8 +141,9 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 	indices = append(indices[offset:], len(chunks)-1)
 
 	c.logger.Infof("uploading %d chunks out of %d", len(indices), len(chunks))
-	for _, i := range indices {
-		ref, err := client.UploadChunk(ctx, chunks[i].Data(), api.UploadOptions{
+	for i, j := range indices {
+		c.logger.Infof("uploading chunk %d. size %d", i+1, len(chunks[j].Data()))
+		ref, err := client.UploadChunk(ctx, chunks[j].Data(), api.UploadOptions{
 			BatchID: batchID,
 			Direct:  true,
 		})
