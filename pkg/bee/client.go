@@ -183,8 +183,8 @@ func (c *Client) Balances(ctx context.Context) (resp Balances, err error) {
 }
 
 // DownloadBytes downloads chunk from the node
-func (c *Client) DownloadBytes(ctx context.Context, a swarm.Address) (data []byte, err error) {
-	r, err := c.api.Bytes.Download(ctx, a)
+func (c *Client) DownloadBytes(ctx context.Context, a swarm.Address, opts *api.DownloadOptions) (data []byte, err error) {
+	r, err := c.api.Bytes.Download(ctx, a, opts)
 	if err != nil {
 		return nil, fmt.Errorf("download chunk %s: %w", a, err)
 	}

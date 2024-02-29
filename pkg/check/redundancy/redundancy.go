@@ -87,7 +87,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			return fmt.Errorf("upload chunks: %w", err)
 		}
 		c.logger.Infof("upload completed. Downloading %s", root.String())
-		d, err := downloadClient.DownloadBytes(ctx, root)
+		fallbackMode := true
+		d, err := downloadClient.DownloadBytes(ctx, root, &api.DownloadOptions{RedundancyFallbackMode: &fallbackMode})
 		if err != nil {
 			return fmt.Errorf("download bytes: %w", err)
 		}
