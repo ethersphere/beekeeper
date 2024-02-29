@@ -13,8 +13,8 @@ import (
 type BytesService service
 
 // Download downloads data from the node
-func (b *BytesService) Download(ctx context.Context, a swarm.Address) (resp io.ReadCloser, err error) {
-	return b.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bytes/"+a.String(), nil, nil)
+func (b *BytesService) Download(ctx context.Context, a swarm.Address, opts *DownloadOptions) (resp io.ReadCloser, err error) {
+	return b.client.requestData(ctx, http.MethodGet, "/"+apiVersion+"/bytes/"+a.String(), nil, opts)
 }
 
 // BytesUploadResponse represents Upload's response

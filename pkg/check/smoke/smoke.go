@@ -261,7 +261,7 @@ func (t *test) download(ctx context.Context, cName string, addr swarm.Address) (
 	client := t.clients[cName]
 	t.logger.Infof("node %s: downloading address %s", cName, addr)
 	start := time.Now()
-	data, err := client.DownloadBytes(ctx, addr)
+	data, err := client.DownloadBytes(ctx, addr, nil)
 	if err != nil {
 		return nil, 0, fmt.Errorf("download from node %s: %w", cName, err)
 	}

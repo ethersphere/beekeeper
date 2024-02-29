@@ -15,13 +15,14 @@ import (
 )
 
 const (
-	apiVersion               = "v1"
-	contentType              = "application/json; charset=utf-8"
-	postageStampBatchHeader  = "Swarm-Postage-Batch-Id"
-	deferredUploadHeader     = "Swarm-Deferred-Upload"
-	swarmPinHeader           = "Swarm-Pin"
-	swarmTagHeader           = "Swarm-Tag"
-	swarmCacheDownloadHeader = "Swarm-Cache"
+	apiVersion                  = "v1"
+	contentType                 = "application/json; charset=utf-8"
+	postageStampBatchHeader     = "Swarm-Postage-Batch-Id"
+	deferredUploadHeader        = "Swarm-Deferred-Upload"
+	swarmPinHeader              = "Swarm-Pin"
+	swarmTagHeader              = "Swarm-Tag"
+	swarmCacheDownloadHeader    = "Swarm-Cache"
+	swarmRedundancyFallbackMode = "Swarm-Redundancy-Fallback-Mode"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -196,6 +197,9 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	if opts != nil && opts.Cache != nil {
 		req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
 	}
+	if opts != nil && opts.RedundancyFallbackMode != nil {
+		req.Header.Set(swarmRedundancyFallbackMode, strconv.FormatBool(*opts.RedundancyFallbackMode))
+	}
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
@@ -317,5 +321,6 @@ type UploadOptions struct {
 }
 
 type DownloadOptions struct {
-	Cache *bool
+	Cache                  *bool
+	RedundancyFallbackMode *bool
 }

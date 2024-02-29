@@ -87,7 +87,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			return fmt.Errorf("upload chunks: %w", err)
 		}
 		c.logger.Infof("upload completed. Downloading %s", root.String())
-		d, err := downloadClient.DownloadBytes(ctx, root)
+		fallbackMode := true
+		d, err := downloadClient.DownloadBytes(ctx, root, &api.DownloadOptions{RedundancyFallbackMode: &fallbackMode})
 		if err != nil {
 			return fmt.Errorf("download bytes: %w", err)
 		}
@@ -178,5 +179,8 @@ type splitPutter struct {
 
 func (s *splitPutter) Put(_ context.Context, chunk swarm.Chunk) error {
 	s.chunks = append(s.chunks, chunk)
+	if len(chunk.Data()) == swarm.SocMaxChunkSize {
+		fmt.Println("here")
+	}
 	return nil
 }
