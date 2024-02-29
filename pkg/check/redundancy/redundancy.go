@@ -179,8 +179,5 @@ type splitPutter struct {
 
 func (s *splitPutter) Put(_ context.Context, chunk swarm.Chunk) error {
 	s.chunks = append(s.chunks, chunk)
-	if len(chunk.Data()) == swarm.SocMaxChunkSize {
-		fmt.Println("here")
-	}
 	return nil
 }
