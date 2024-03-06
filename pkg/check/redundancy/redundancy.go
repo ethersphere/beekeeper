@@ -71,7 +71,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			return fmt.Errorf("get clients: %w", err)
 		}
 
-		root, data, chunks, err := c.generateChunks(ctx, opts.DataSize, redundancy.Level(i), opts.Seed)
+		root, data, chunks, err := c.generateChunks(ctx, opts.DataSize, redundancy.Level(i))
 		if err != nil {
 			return fmt.Errorf("get chunks: %w", err)
 		}
@@ -82,7 +82,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			return fmt.Errorf("get or create batch: %w", err)
 		}
 
-		err = c.uploadChunks(ctx, uploadClient, chunks, redundancy.Level(i), opts.Seed, batchID)
+		// happy path
+		err = c.uploadChunks(ctx, uploadClient, chunks, redundancy.Level(i), batchID, true)
 		if err != nil {
 			return fmt.Errorf("upload chunks: %w", err)
 		}
@@ -97,18 +98,34 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 			return fmt.Errorf("download and initial content dont match")
 		}
 
+		// non-happy path
+		root, data, chunks, err = c.generateChunks(ctx, opts.DataSize, redundancy.Level(i))
+		if err != nil {
+			return fmt.Errorf("get chunks: %w", err)
+		}
+		c.logger.Infof("root hash: %s, chunks: %d", root.String(), len(chunks))
+		err = c.uploadChunks(ctx, uploadClient, chunks, redundancy.Level(i), batchID, false)
+		if err != nil {
+			return fmt.Errorf("upload chunks: %w", err)
+		}
+		c.logger.Infof("upload completed. Downloading %s", root.String())
+		d, _ = downloadClient.DownloadBytes(ctx, root, &api.DownloadOptions{RedundancyFallbackMode: &fallbackMode})
+		if bytes.Equal(data, d) {
+			return fmt.Errorf("download and initial content should not match")
+		}
+
 		c.logger.Infof("rLevel %d completed successfully", i)
 	}
 	return nil
 }
 
-func (c *Check) generateChunks(ctx context.Context, size int64, rLevel redundancy.Level, seed int64) (swarm.Address, []byte, []swarm.Chunk, error) {
+func (c *Check) generateChunks(ctx context.Context, size int64, rLevel redundancy.Level) (swarm.Address, []byte, []swarm.Chunk, error) {
 	putter := &splitPutter{
 		chunks: make([]swarm.Chunk, 0),
 	}
 
 	buf := make([]byte, size)
-	rnd := random.PseudoGenerator(seed)
+	rnd := random.PseudoGenerator(time.Now().UnixNano())
 	_, err := rnd.Read(buf)
 	if err != nil {
 		return swarm.ZeroAddress, nil, nil, err
@@ -123,20 +140,33 @@ func (c *Check) generateChunks(ctx context.Context, size int64, rLevel redundanc
 	return rootAddr, buf, putter.chunks, nil
 }
 
-func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []swarm.Chunk, rLevel redundancy.Level, seed int64, batchID string) error {
+func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []swarm.Chunk, rLevel redundancy.Level, batchID string, shouldDownload bool) error {
 	rate := 0.0
-	switch rLevel {
-	case redundancy.MEDIUM:
-		rate = 0.01
-	case redundancy.STRONG:
-		rate = 0.05
-	case redundancy.INSANE:
-		rate = 0.1
-	case redundancy.PARANOID:
-		rate = 0.35
+	if shouldDownload {
+		switch rLevel {
+		case redundancy.MEDIUM:
+			rate = 0.01
+		case redundancy.STRONG:
+			rate = 0.05
+		case redundancy.INSANE:
+			rate = 0.1
+		case redundancy.PARANOID:
+			rate = 0.35
+		}
+	} else {
+		switch rLevel {
+		case redundancy.MEDIUM:
+			rate = 0.2
+		case redundancy.STRONG:
+			rate = 0.25
+		case redundancy.INSANE:
+			rate = 0.35
+		case redundancy.PARANOID:
+			rate = 0.7
+		}
 	}
 
-	rnd := random.PseudoGenerator(seed)
+	rnd := random.PseudoGenerator(time.Now().UnixNano())
 	indices := rnd.Perm(len(chunks) - 1)
 	offset := int(rate * float64(len(chunks)))
 	indices = append(indices[offset:], len(chunks)-1)
