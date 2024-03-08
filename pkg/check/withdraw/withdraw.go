@@ -1,4 +1,4 @@
-package balances
+package withdraw
 
 import (
 	"context"

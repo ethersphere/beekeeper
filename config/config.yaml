@@ -215,6 +215,11 @@ checks:
     options:
     timeout: 5m
     type: pingpong
+  withdraw:
+    options:
+      target-address: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
+    timeout: 5m
+    type: withdraw
   pss:
     options:
       address-prefix: 2
