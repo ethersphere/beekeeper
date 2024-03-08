@@ -2,9 +2,11 @@ package debugapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethersphere/beekeeper/pkg/bigint"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -248,4 +250,31 @@ func (n *NodeService) Topology(ctx context.Context) (resp Topology, err error) {
 	}
 
 	return
+}
+
+type Wallet struct {
+	BZZ         *bigint.BigInt `json:"bzzBalance"`
+	NativeToken *bigint.BigInt `json:"nativeTokenBalance"`
+}
+
+// Wallet returns the wallet state
+func (n *NodeService) Wallet(ctx context.Context) (resp Wallet, err error) {
+	err = n.client.requestJSON(ctx, http.MethodGet, "/wallet", nil, &resp)
+	return
+}
+
+// Withdraw calls wallet withdraw endpoint
+func (n *NodeService) Withdraw(ctx context.Context, token, addr string) (tx common.Hash, err error) {
+	endpoint := fmt.Sprintf("/wallet/withdraw/%s?address=%s", token, addr)
+
+	r := struct {
+		TransactionHash common.Hash `json:"transactionHash"`
+	}{}
+
+	err = n.client.requestJSON(ctx, http.MethodPost, endpoint, nil, r)
+	if err != nil {
+		return
+	}
+
+	return r.TransactionHash, nil
 }

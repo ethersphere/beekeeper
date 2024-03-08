@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
@@ -846,4 +847,34 @@ func (c *Client) GetStake(ctx context.Context) (*big.Int, error) {
 // WithdrawStake withdraws stake
 func (c *Client) WithdrawStake(ctx context.Context) (string, error) {
 	return c.debug.Stake.WithdrawStake(ctx)
+}
+
+// WithdrawStake withdraws stake
+func (c *Client) WalletBalance(ctx context.Context, token string) (*big.Int, error) {
+	resp, err := c.debug.Node.Wallet(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if token == "BZZ" {
+		return resp.BZZ.Int, nil
+	}
+
+	return resp.NativeToken.Int, nil
+}
+
+// Withdraw transfers token from eth address to the provided address
+func (c *Client) Withdraw(ctx context.Context, token, addr string) error {
+	resp, err := c.debug.Node.Withdraw(ctx, token, addr)
+	if err != nil {
+		return err
+	}
+
+	var zeroHash common.Hash
+
+	if resp == zeroHash {
+		return errors.New("withdraw returned zero hash")
+	}
+
+	return nil
 }

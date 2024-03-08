@@ -3,7 +3,9 @@ package bee
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"math/big"
 	"math/rand"
 
 	"github.com/ethersphere/bee/pkg/swarm"
@@ -95,4 +97,30 @@ func (b *BeeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 		batchID: batchID,
 		logger:  b.logger,
 	}, nil
+}
+
+type Wallet struct {
+	BZZ, Native *big.Int
+}
+
+func (b *BeeV2) Withdraw(ctx context.Context, token, addr string) error {
+	before, err := b.client.WalletBalance(ctx, token)
+	if err != nil {
+		return fmt.Errorf("(%s) wallet balance %w", b.name, err)
+	}
+
+	if err := b.client.Withdraw(ctx, token, addr); err != nil {
+		return fmt.Errorf("(%s) wallet balance %w", b.name, err)
+	}
+
+	after, err := b.client.WalletBalance(ctx, token)
+	if err != nil {
+		return fmt.Errorf("(%s) wallet balance %w", b.name, err)
+	}
+
+	if after.Cmp(before) < 0 {
+		return nil
+	}
+
+	return errors.New("incorrect balance after withdraw")
 }
