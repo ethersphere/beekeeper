@@ -110,7 +110,7 @@ func (b *BeeV2) Withdraw(ctx context.Context, token, addr string) error {
 	}
 
 	if err := b.client.Withdraw(ctx, token, addr); err != nil {
-		return fmt.Errorf("(%s) wallet balance %w", b.name, err)
+		return fmt.Errorf("(%s) withdraw balance %w", b.name, err)
 	}
 
 	after, err := b.client.WalletBalance(ctx, token)
