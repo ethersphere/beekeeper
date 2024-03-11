@@ -50,6 +50,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	target := checkCase.RandomBee()
 
+	c.logger.Infof("target is %s", target.Name())
 	c.logger.Info("withdrawing bzz...")
 
 	if err := target.Withdraw(ctx, "BZZ", o.TargetAddr); err != nil {
