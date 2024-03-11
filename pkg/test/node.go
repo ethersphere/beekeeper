@@ -117,7 +117,7 @@ func (b *BeeV2) Withdraw(ctx context.Context, token, addr string) error {
 		return fmt.Errorf("(%s) wallet balance %w", b.name, err)
 	}
 
-	want := big.NewInt(0).Sub(before, big.NewInt(10000000000000000))
+	want := big.NewInt(0).Sub(before, big.NewInt(1000000))
 
 	if after.Cmp(want) > 0 {
 		return fmt.Errorf("incorrect balance after withdraw:\ngot  %d\nwant %d", after, want)
