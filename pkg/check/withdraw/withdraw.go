@@ -52,13 +52,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	target := checkCase.Bee(1)
 
 	c.logger.Infof("target is %s", target.Name())
-	c.logger.Info("withdrawing bzz...")
 
-	if err := target.Withdraw(ctx, "BZZ", o.TargetAddr); err != nil {
-		return fmt.Errorf("withdraw bzz: %w", err)
-	}
-
-	c.logger.Info("success")
 	c.logger.Info("withdrawing native...")
 
 	if err := target.Withdraw(ctx, "xDAI", o.TargetAddr); err != nil {
@@ -70,8 +64,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	var zeroAddr common.Address
 
-	if err := target.Withdraw(ctx, "sETH", zeroAddr.String()); err == nil {
+	if err := target.Withdraw(ctx, "xDAI", zeroAddr.String()); err == nil {
 		return errors.New("withdraw to non-whitelisted address expected to fail")
+	}
+
+	c.logger.Info("success")
+	c.logger.Info("withdrawing bzz...")
+
+	if err := target.Withdraw(ctx, "BZZ", o.TargetAddr); err != nil {
+		return fmt.Errorf("withdraw bzz: %w", err)
 	}
 
 	c.logger.Info("success")

@@ -265,14 +265,13 @@ func (n *NodeService) Wallet(ctx context.Context) (resp Wallet, err error) {
 
 // Withdraw calls wallet withdraw endpoint
 func (n *NodeService) Withdraw(ctx context.Context, token, addr string) (tx common.Hash, err error) {
-	endpoint := fmt.Sprintf("/wallet/withdraw/%s?address=%s&amount=10000000000000000", token, addr)
+	endpoint := fmt.Sprintf("/wallet/withdraw/%s?address=%s&amount=100000000000000000", token, addr)
 
 	r := struct {
 		TransactionHash common.Hash `json:"transactionHash"`
 	}{}
 
-	err = n.client.requestJSON(ctx, http.MethodPost, endpoint, nil, &r)
-	if err != nil {
+	if err = n.client.requestJSON(ctx, http.MethodPost, endpoint, nil, &r); err != nil {
 		return
 	}
 

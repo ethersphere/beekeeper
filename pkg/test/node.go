@@ -3,11 +3,9 @@ package bee
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
-	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -114,17 +112,15 @@ func (b *BeeV2) Withdraw(ctx context.Context, token, addr string) error {
 		return fmt.Errorf("(%s) withdraw balance %w", b.name, err)
 	}
 
-	time.Sleep(2 * time.Second)
-
 	after, err := b.client.WalletBalance(ctx, token)
 	if err != nil {
 		return fmt.Errorf("(%s) wallet balance %w", b.name, err)
 	}
 
-	want := big.NewInt(0).Sub(before, big.NewInt(10000000000000000))
+	want := big.NewInt(0).Sub(before, big.NewInt(100000000000000000))
 
 	if after.Cmp(want) > 0 {
-		return errors.New("incorrect balance after withdraw")
+		return fmt.Errorf("incorrect balance after withdraw:\ngot  %d\nwant %d", after, want)
 	}
 
 	return nil
