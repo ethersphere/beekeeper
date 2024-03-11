@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -111,6 +112,8 @@ func (b *BeeV2) Withdraw(ctx context.Context, token, addr string) error {
 	if err := b.client.Withdraw(ctx, token, addr); err != nil {
 		return fmt.Errorf("(%s) withdraw balance %w", b.name, err)
 	}
+
+	time.Sleep(3 * time.Second)
 
 	after, err := b.client.WalletBalance(ctx, token)
 	if err != nil {
