@@ -156,6 +156,7 @@ var policies = [][]string{
 	{"maintainer", "/chequebook/address", "GET"},
 	{"maintainer", "/chequebook/balance", "GET"},
 	{"maintainer", "/wallet", "GET"},
+	{"maintainer", "/wallet/withdraw/*", "POST"},
 	{"maintainer", "/chunks/*", "(GET)|(DELETE)"},
 	{"maintainer", "/reservestate", "GET"},
 	{"maintainer", "/chainstate", "GET"},
