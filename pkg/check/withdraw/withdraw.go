@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -48,7 +49,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	target := checkCase.RandomBee()
+	target := checkCase.Bee(1)
 
 	c.logger.Infof("target is %s", target.Name())
 	c.logger.Info("withdrawing bzz...")
@@ -60,14 +61,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	c.logger.Info("success")
 	c.logger.Info("withdrawing native...")
 
-	if err := target.Withdraw(ctx, "sETH", o.TargetAddr); err != nil {
-		return fmt.Errorf("withdraw bzz: %w", err)
+	if err := target.Withdraw(ctx, "xDAI", o.TargetAddr); err != nil {
+		return fmt.Errorf("withdraw native: %w", err)
 	}
 
 	c.logger.Info("success")
 	c.logger.Info("withdrawing to a non whitelisted address")
 
-	if err := target.Withdraw(ctx, "sETH", "0x0000000000000000000000"); err == nil {
+	var zeroAddr common.Address
+
+	if err := target.Withdraw(ctx, "sETH", zeroAddr.String()); err == nil {
 		return errors.New("withdraw to non-whitelisted address expected to fail")
 	}
 
