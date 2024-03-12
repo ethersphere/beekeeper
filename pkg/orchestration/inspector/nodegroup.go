@@ -30,5 +30,5 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 
 // StoppedNodes returns list of stopped nodes
 func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
-	return nil, nil
+	return stopped, nil
 }

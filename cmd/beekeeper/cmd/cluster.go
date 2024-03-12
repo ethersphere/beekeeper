@@ -8,6 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/orchestration/inspector"
 	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	"github.com/ethersphere/node-funder/pkg/funder"
 )
@@ -25,7 +26,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		return fmt.Errorf("cluster %s not defined", clusterName)
 	}
 
-	cluster := configureCluster(clusterConfig, c)
+	cluster := configureCluster(clusterConfig, c, true)
 
 	// delete node groups
 	for ngName, v := range clusterConfig.GetNodeGroups() {
@@ -108,7 +109,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	return
 }
 
-func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, startCluster bool) (cluster orchestration.Cluster, err error) {
+func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, startCluster bool, isK8sEnabled bool) (cluster orchestration.Cluster, err error) {
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
@@ -128,7 +129,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		fundOpts = ensureFundingDefaults(clusterConfig.Funding.Export(), c.log)
 	}
 
-	cluster = configureCluster(clusterConfig, c)
+	cluster = configureCluster(clusterConfig, c, isK8sEnabled)
 
 	nodeResultChan := make(chan nodeResult)
 	defer close(nodeResultChan)
@@ -180,11 +181,14 @@ func ensureFundingDefaults(fundOpts orchestration.FundingOptions, log logging.Lo
 	return fundOpts
 }
 
-func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
+func configureCluster(clusterConfig config.Cluster, c *command, isK8sEnabled bool) orchestration.Cluster {
 	clusterOpts := clusterConfig.Export()
-	clusterOpts.K8SClient = c.k8sClient
-	clusterOpts.SwapClient = c.swapClient
-	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
+	if isK8sEnabled {
+		clusterOpts.K8SClient = c.k8sClient
+		clusterOpts.SwapClient = c.swapClient
+		return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
+	}
+	return inspector.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {

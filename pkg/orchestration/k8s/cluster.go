@@ -32,8 +32,8 @@ type Cluster struct {
 	swap                swap.Client
 	labels              map[string]string
 	namespace           string
-	disableNamespace    bool                  // do not use namespace for node hostnames
-	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
+	disableNamespace    bool                               // do not use namespace for node hostnames
+	nodeGroups          map[string]orchestration.NodeGroup // set when groups are added to the cluster
 	logger              logging.Logger
 }
 
@@ -53,7 +53,7 @@ func NewCluster(name string, o orchestration.ClusterOptions, logger logging.Logg
 		labels:              o.Labels,
 		namespace:           o.Namespace,
 		disableNamespace:    o.DisableNamespace,
-		nodeGroups:          make(map[string]*NodeGroup),
+		nodeGroups:          make(map[string]orchestration.NodeGroup),
 		logger:              logger,
 	}
 }

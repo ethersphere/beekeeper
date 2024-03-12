@@ -36,6 +36,9 @@ const (
 	optionNameTracingHost        = "tracing-host"
 	optionNameTracingPort        = "tracing-port"
 	optionNameTracingServiceName = "tracing-service-name"
+	optionNameEnableK8S          = "enable-k8s"
+	optionNameInCluster          = "in-cluster"
+	optionNameKubeconfig         = "kubeconfig"
 )
 
 func init() {
@@ -309,10 +312,10 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 }
 
 func (c *command) setK8S() (err error) {
-	if c.globalConfig.GetBool("enable-k8s") {
+	if c.globalConfig.GetBool(optionNameEnableK8S) {
 
-		inCluster := c.globalConfig.GetBool("in-cluster")
-		kubeconfigPath := c.globalConfig.GetString("kubeconfig")
+		inCluster := c.globalConfig.GetBool(optionNameInCluster)
+		kubeconfigPath := c.globalConfig.GetString(optionNameKubeconfig)
 
 		options := []k8s.ClientOption{
 			k8s.WithLogger(c.log),
