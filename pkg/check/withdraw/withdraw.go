@@ -55,7 +55,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	c.logger.Info("withdrawing native...")
 
-	if err := target.Withdraw(ctx, "xDAI", o.TargetAddr); err != nil {
+	if err := target.Withdraw(ctx, "NativeToken", o.TargetAddr); err != nil {
 		return fmt.Errorf("withdraw native: %w", err)
 	}
 
@@ -64,7 +64,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	var zeroAddr common.Address
 
-	if err := target.Withdraw(ctx, "xDAI", zeroAddr.String()); err == nil {
+	if err := target.Withdraw(ctx, "NativeToken", zeroAddr.String()); err == nil {
 		return errors.New("withdraw to non-whitelisted address expected to fail")
 	}
 
