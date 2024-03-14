@@ -2,7 +2,9 @@ package orchestration
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"net/url"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -19,7 +21,7 @@ type Cluster interface {
 	FlattenAccounting(ctx context.Context) (accounting NodeGroupAccounting, err error)
 	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	Name() string
-	NodeGroups() (l map[string]NodeGroup)
+	NodeGroupsMap() (l map[string]NodeGroup)
 	NodeGroupsSorted() (l []string)
 	NodeGroup(name string) (ng NodeGroup, err error)
 	Nodes() map[string]Node
@@ -105,4 +107,46 @@ func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string
 		i--
 	}
 	return ng, name, o
+}
+
+// ApiURL generates URL for node's API
+func (c ClusterOptions) ApiURL(name string) (u *url.URL, err error) {
+	if c.DisableNamespace {
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", c.APIScheme, name, c.APIDomain))
+	} else {
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", c.APIScheme, name, c.Namespace, c.APIDomain))
+	}
+	if err != nil {
+		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)
+	}
+	return
+}
+
+// IngressHost generates host for node's API ingress
+func (c ClusterOptions) IngressHost(name string) string {
+	if c.DisableNamespace {
+		return fmt.Sprintf("%s.%s", name, c.APIDomain)
+	}
+	return fmt.Sprintf("%s.%s.%s", name, c.Namespace, c.APIDomain)
+}
+
+// DebugAPIURL generates URL for node's DebugAPI
+func (c ClusterOptions) DebugAPIURL(name string) (u *url.URL, err error) {
+	if c.DisableNamespace {
+		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s", c.DebugAPIScheme, name, c.DebugAPIDomain))
+	} else {
+		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s.%s", c.DebugAPIScheme, name, c.Namespace, c.DebugAPIDomain))
+	}
+	if err != nil {
+		return nil, fmt.Errorf("bad debug API url for node %s: %w", name, err)
+	}
+	return
+}
+
+// IngressDebugHost generates host for node's DebugAPI ingress
+func (c ClusterOptions) IngressDebugHost(name string) string {
+	if c.DisableNamespace {
+		return fmt.Sprintf("%s-debug.%s", name, c.DebugAPIDomain)
+	}
+	return fmt.Sprintf("%s-debug.%s.%s", name, c.Namespace, c.DebugAPIDomain)
 }

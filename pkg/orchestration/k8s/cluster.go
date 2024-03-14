@@ -4,15 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"net/url"
 	"sort"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
 // compile check whether client implements interface
@@ -20,60 +17,36 @@ var _ orchestration.Cluster = (*Cluster)(nil)
 
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
-	name                string
-	annotations         map[string]string
-	apiDomain           string
-	apiInsecureTLS      bool
-	apiScheme           string
-	debugAPIDomain      string
-	debugAPIInsecureTLS bool
-	debugAPIScheme      string
-	k8s                 *k8s.Client
-	swap                swap.Client
-	labels              map[string]string
-	namespace           string
-	disableNamespace    bool                               // do not use namespace for node hostnames
-	nodeGroups          map[string]orchestration.NodeGroup // set when groups are added to the cluster
-	logger              logging.Logger
+	name       string
+	opts       orchestration.ClusterOptions
+	NodeGroups map[string]orchestration.NodeGroup // set when groups are added to the cluster
+	logger     logging.Logger
 }
 
 // NewCluster returns new cluster
 func NewCluster(name string, o orchestration.ClusterOptions, logger logging.Logger) *Cluster {
 	return &Cluster{
-		name:                name,
-		annotations:         o.Annotations,
-		apiDomain:           o.APIDomain,
-		apiInsecureTLS:      o.APIInsecureTLS,
-		apiScheme:           o.APIScheme,
-		debugAPIDomain:      o.DebugAPIDomain,
-		debugAPIInsecureTLS: o.DebugAPIInsecureTLS,
-		debugAPIScheme:      o.DebugAPIScheme,
-		k8s:                 o.K8SClient,
-		swap:                o.SwapClient,
-		labels:              o.Labels,
-		namespace:           o.Namespace,
-		disableNamespace:    o.DisableNamespace,
-		nodeGroups:          make(map[string]orchestration.NodeGroup),
-		logger:              logger,
+		name:       name,
+		opts:       o,
+		NodeGroups: make(map[string]orchestration.NodeGroup),
+		logger:     logger,
 	}
 }
 
 // AddNodeGroup adds new node group to the cluster
 func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
-	g := NewNodeGroup(name, o, c.logger)
-	g.cluster = c
-	g.k8s = c.k8s
-	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)
-	g.opts.Labels = mergeMaps(g.cluster.labels, o.Labels)
-
-	c.nodeGroups[name] = g
+	o.Annotations = mergeMaps(c.opts.Annotations, o.Annotations)
+	o.Labels = mergeMaps(c.opts.Labels, o.Labels)
+	g := NewNodeGroup(name, o, c.opts, c.logger)
+	g.k8s = c.opts.K8SClient
+	c.NodeGroups[name] = g
 }
 
 // Addresses returns ClusterAddresses
 func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]orchestration.NodeGroupAddresses, err error) {
 	addrs = make(orchestration.ClusterAddresses)
 
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		a, err := v.Addresses(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -89,7 +62,7 @@ func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]orchestration
 func (c *Cluster) Accounting(ctx context.Context) (accounting orchestration.ClusterAccounting, err error) {
 	accounting = make(orchestration.ClusterAccounting)
 
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		a, err := v.Accounting(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -126,7 +99,7 @@ func (c *Cluster) FlattenAccounting(ctx context.Context) (accounting orchestrati
 func (c *Cluster) Balances(ctx context.Context) (balances orchestration.ClusterBalances, err error) {
 	balances = make(orchestration.ClusterBalances)
 
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		b, err := v.Balances(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -161,7 +134,7 @@ func (c *Cluster) FlattenBalances(ctx context.Context) (balances orchestration.N
 
 // GlobalReplicationFactor returns the total number of nodes in the cluster that contain given chunk
 func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		ngrf, err := v.GroupReplicationFactor(ctx, a)
 		if err != nil {
 			return 0, fmt.Errorf("%s: %w", k, err)
@@ -178,10 +151,10 @@ func (c *Cluster) Name() string {
 	return c.name
 }
 
-// NodeGroups returns map of node groups in the cluster
-func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
+// NodeGroupsMap returns map of node groups in the cluster
+func (c *Cluster) NodeGroupsMap() (l map[string]orchestration.NodeGroup) {
 	nodeGroups := make(map[string]orchestration.NodeGroup)
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		nodeGroups[k] = v
 	}
 	return nodeGroups
@@ -189,10 +162,10 @@ func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
 
 // NodeGroupsSorted returns sorted list of node names in the node group
 func (c *Cluster) NodeGroupsSorted() (l []string) {
-	l = make([]string, len(c.nodeGroups))
+	l = make([]string, len(c.NodeGroups))
 
 	i := 0
-	for k := range c.nodeGroups {
+	for k := range c.NodeGroups {
 		l[i] = k
 		i++
 	}
@@ -203,7 +176,7 @@ func (c *Cluster) NodeGroupsSorted() (l []string) {
 
 // NodeGroup returns node group
 func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error) {
-	ng, ok := c.nodeGroups[name]
+	ng, ok := c.NodeGroups[name]
 	if !ok {
 		return nil, fmt.Errorf("node group %s not found", name)
 	}
@@ -213,8 +186,8 @@ func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error)
 // Nodes returns map of nodes in the cluster
 func (c *Cluster) Nodes() map[string]orchestration.Node {
 	n := make(map[string]orchestration.Node)
-	for _, ng := range c.NodeGroups() {
-		for k, v := range ng.Nodes() {
+	for _, ng := range c.NodeGroupsMap() {
+		for k, v := range ng.NodesMap() {
 			n[k] = v
 		}
 	}
@@ -223,8 +196,8 @@ func (c *Cluster) Nodes() map[string]orchestration.Node {
 
 // NodeNamess returns a list of node names in the cluster across all node groups
 func (c *Cluster) NodeNames() (names []string) {
-	for _, ng := range c.NodeGroups() {
-		for k := range ng.Nodes() {
+	for _, ng := range c.NodeGroupsMap() {
+		for k := range ng.NodesMap() {
 			names = append(names, k)
 		}
 	}
@@ -256,7 +229,7 @@ func (c *Cluster) FullNodeNames() (names []string) {
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes
 func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, error) {
 	clients := make(map[string]*bee.Client)
-	for _, ng := range c.NodeGroups() {
+	for _, ng := range c.NodeGroupsMap() {
 		ngc, err := ng.NodesClients(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("nodes clients: %w", err)
@@ -271,7 +244,7 @@ func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, err
 // NodesClientsAll returns map of node's clients in the cluster
 func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*bee.Client, error) {
 	clients := make(map[string]*bee.Client)
-	for _, ng := range c.NodeGroups() {
+	for _, ng := range c.NodeGroupsMap() {
 		for n, client := range ng.NodesClientsAll(ctx) {
 			clients[n] = client
 		}
@@ -283,7 +256,7 @@ func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*bee.Client, 
 func (c *Cluster) Overlays(ctx context.Context, exclude ...string) (overlays orchestration.ClusterOverlays, err error) {
 	overlays = make(orchestration.ClusterOverlays)
 
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		if containsName(exclude, k) {
 			continue
 		}
@@ -335,7 +308,7 @@ func containsName(s []string, e string) bool {
 func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers orchestration.ClusterPeers, err error) {
 	peers = make(orchestration.ClusterPeers)
 
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		if containsName(exclude, k) {
 			continue
 		}
@@ -353,13 +326,13 @@ func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers orchestra
 // RandomNode returns random running node from a cluster
 func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node orchestration.Node, err error) {
 	nodes := []orchestration.Node{}
-	for _, ng := range c.NodeGroups() {
+	for _, ng := range c.NodeGroupsMap() {
 		stopped, err := ng.StoppedNodes(ctx)
 		if err != nil && err != orchestration.ErrNotSet {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 
-		for _, v := range ng.Nodes() {
+		for _, v := range ng.NodesMap() {
 			if contains(stopped, v.Name()) {
 				continue
 			}
@@ -374,7 +347,7 @@ func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node orchestrat
 func (c *Cluster) Settlements(ctx context.Context) (settlements orchestration.ClusterSettlements, err error) {
 	settlements = make(orchestration.ClusterSettlements)
 
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		s, err := v.Settlements(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -409,7 +382,7 @@ func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements orchestra
 
 // Size returns size of the cluster
 func (c *Cluster) Size() (size int) {
-	for _, ng := range c.nodeGroups {
+	for _, ng := range c.NodeGroups {
 		size += ng.Size()
 	}
 	return
@@ -419,7 +392,7 @@ func (c *Cluster) Size() (size int) {
 func (c *Cluster) Topologies(ctx context.Context) (topologies orchestration.ClusterTopologies, err error) {
 	topologies = make(orchestration.ClusterTopologies)
 
-	for k, v := range c.nodeGroups {
+	for k, v := range c.NodeGroups {
 		t, err := v.Topologies(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -450,46 +423,4 @@ func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]
 	}
 
 	return
-}
-
-// apiURL generates URL for node's API
-func (c *Cluster) apiURL(name string) (u *url.URL, err error) {
-	if c.disableNamespace {
-		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", c.apiScheme, name, c.apiDomain))
-	} else {
-		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", c.apiScheme, name, c.namespace, c.apiDomain))
-	}
-	if err != nil {
-		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)
-	}
-	return
-}
-
-// ingressHost generates host for node's API ingress
-func (c *Cluster) ingressHost(name string) string {
-	if c.disableNamespace {
-		return fmt.Sprintf("%s.%s", name, c.apiDomain)
-	}
-	return fmt.Sprintf("%s.%s.%s", name, c.namespace, c.apiDomain)
-}
-
-// debugAPIURL generates URL for node's DebugAPI
-func (c *Cluster) debugAPIURL(name string) (u *url.URL, err error) {
-	if c.disableNamespace {
-		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s", c.debugAPIScheme, name, c.debugAPIDomain))
-	} else {
-		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s.%s", c.debugAPIScheme, name, c.namespace, c.debugAPIDomain))
-	}
-	if err != nil {
-		return nil, fmt.Errorf("bad debug API url for node %s: %w", name, err)
-	}
-	return
-}
-
-// ingressHost generates host for node's DebugAPI ingress
-func (c *Cluster) ingressDebugHost(name string) string {
-	if c.disableNamespace {
-		return fmt.Sprintf("%s-debug.%s", name, c.debugAPIDomain)
-	}
-	return fmt.Sprintf("%s-debug.%s.%s", name, c.namespace, c.debugAPIDomain)
 }
