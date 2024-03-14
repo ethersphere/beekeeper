@@ -849,7 +849,7 @@ func (c *Client) WithdrawStake(ctx context.Context) (string, error) {
 	return c.debug.Stake.WithdrawStake(ctx)
 }
 
-// WithdrawStake withdraws stake
+// WalletBalance fetches the balance for the given token
 func (c *Client) WalletBalance(ctx context.Context, token string) (*big.Int, error) {
 	resp, err := c.debug.Node.Wallet(ctx)
 	if err != nil {
@@ -864,8 +864,8 @@ func (c *Client) WalletBalance(ctx context.Context, token string) (*big.Int, err
 }
 
 // Withdraw transfers token from eth address to the provided address
-func (c *Client) Withdraw(ctx context.Context, token, addr string) error {
-	resp, err := c.debug.Node.Withdraw(ctx, token, addr)
+func (c *Client) Withdraw(ctx context.Context, token, addr string, amount int64) error {
+	resp, err := c.debug.Node.Withdraw(ctx, token, addr, amount)
 	if err != nil {
 		return err
 	}
