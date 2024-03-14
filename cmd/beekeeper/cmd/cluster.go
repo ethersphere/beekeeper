@@ -8,8 +8,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/orchestration/inspector"
 	orchestrationK8S "github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
+	"github.com/ethersphere/beekeeper/pkg/orchestration/nokube"
 	"github.com/ethersphere/node-funder/pkg/funder"
 )
 
@@ -188,7 +188,7 @@ func configureCluster(clusterConfig config.Cluster, c *command, isK8sEnabled boo
 		clusterOpts.SwapClient = c.swapClient
 		return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 	}
-	return inspector.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
+	return nokube.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {

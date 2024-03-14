@@ -1,4 +1,4 @@
-package inspector
+package nokube
 
 import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
