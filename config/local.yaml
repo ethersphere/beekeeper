@@ -194,6 +194,7 @@ bee-configs:
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
     warmup-time: 0s
     allow-private-cidrs: true
+    withdrawal-addresses-whitelist: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
 
   bootnode-local:
     _inherit: "bee-local"
@@ -263,6 +264,11 @@ checks:
     options:
     timeout: 5m
     type: pingpong
+  ci-withdraw:
+    options:
+      target-address: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
+    timeout: 5m
+    type: withdraw
   ci-pss:
     options:
       count: 3
