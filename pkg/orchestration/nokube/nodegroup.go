@@ -1,4 +1,4 @@
-package k8s
+package nokube
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
@@ -28,8 +27,7 @@ type NodeGroup struct {
 	nodes       map[string]orchestration.Node
 	opts        orchestration.NodeGroupOptions
 	clusterOpts orchestration.ClusterOptions
-	k8s         *k8s.Client
-	logger      logging.Logger
+	log         logging.Logger
 	lock        sync.RWMutex
 }
 
@@ -43,8 +41,7 @@ func NewNodeGroup(name string, co orchestration.ClusterOptions, no orchestration
 		nodes:       make(map[string]orchestration.Node),
 		opts:        no,
 		clusterOpts: co,
-		k8s:         co.K8SClient,
-		logger:      log,
+		log:         log,
 	}
 }
 
@@ -75,17 +72,16 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		DebugAPIInsecureTLS: g.clusterOpts.DebugAPIInsecureTLS,
 		Retry:               5,
 		Restricted:          config.Restricted,
-	}, g.logger)
+	}, g.log)
 
 	n := NewNode(name, orchestration.NodeOptions{
 		ClefKey:      o.ClefKey,
 		ClefPassword: o.ClefPassword,
 		Client:       client,
 		Config:       config,
-		K8S:          g.k8s,
 		LibP2PKey:    o.LibP2PKey,
 		SwarmKey:     o.SwarmKey,
-	}, g.logger)
+	}, g.log)
 
 	g.addNode(n)
 
@@ -362,7 +358,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	n := NewNode(name, orchestration.NodeOptions{K8S: g.k8s}, g.logger)
+	n := NewNode(name, orchestration.NodeOptions{}, g.log)
 	if err := n.Delete(ctx, g.clusterOpts.Namespace); err != nil {
 		return err
 	}
@@ -395,7 +391,7 @@ func (ng *NodeGroup) GetEthAddress(ctx context.Context, name string, o orchestra
 			break
 		}
 	}
-	ng.logger.Infof("fund eth address: %s", a.Ethereum)
+	ng.log.Infof("fund eth address: %s", a.Ethereum)
 	return a.Ethereum, nil
 }
 
@@ -722,31 +718,19 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 		}
 
 		time.Sleep(10 * time.Second)
-		g.logger.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s", key.Address, name, txHash)
+		g.log.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s", key.Address, name, txHash)
 	}
 	return
 }
 
 // RunningNodes returns list of running nodes
-// TODO: filter by labels
 func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err error) {
-	running, err = g.k8s.StatefulSet.RunningStatefulSets(ctx, g.clusterOpts.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("running statefulsets in namespace %s: %w", g.clusterOpts.Namespace, err)
-	}
-
-	for _, v := range running {
-		if contains(g.NodesSorted(), v) {
-			running = append(running, v)
-		}
-	}
-
-	return
+	return g.NodesSorted(), nil
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
 func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions) (ethAddress string, err error) {
-	g.logger.Infof("starting setup node: %s", name)
+	g.log.Infof("starting setup node: %s", name)
 
 	if err := g.AddNode(ctx, name, o); err != nil {
 		return "", fmt.Errorf("add node %s: %w", name, err)
@@ -866,7 +850,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	g.logger.Infof("wait for %s to become ready", name)
+	g.log.Infof("wait for %s to become ready", name)
 
 	for {
 		ok, err := g.NodeReady(ctx, name)
@@ -875,7 +859,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		}
 
 		if ok {
-			g.logger.Infof("%s is ready", name)
+			g.log.Infof("%s is ready", name)
 			return nil
 		}
 	}
@@ -892,7 +876,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	g.logger.Infof("wait for %s to stop", name)
+	g.log.Infof("wait for %s to stop", name)
 
 	for {
 		ok, err := g.NodeReady(ctx, name)
@@ -901,27 +885,15 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		}
 
 		if !ok {
-			g.logger.Infof("%s is stopped", name)
+			g.log.Infof("%s is stopped", name)
 			return nil
 		}
 	}
 }
 
 // StoppedNodes returns list of stopped nodes
-// TODO: filter by labels
 func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
-	allStopped, err := g.k8s.StatefulSet.StoppedStatefulSets(ctx, g.clusterOpts.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("stopped statefulsets in namespace %s: %w", g.clusterOpts.Namespace, err)
-	}
-
-	for _, v := range allStopped {
-		if contains(g.NodesSorted(), v) {
-			stopped = append(stopped, v)
-		}
-	}
-
-	return
+	return stopped, nil
 }
 
 // Topologies returns NodeGroupTopologies
