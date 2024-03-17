@@ -25,26 +25,26 @@ var _ orchestration.NodeGroup = (*NodeGroup)(nil)
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
 	name        string
+	nodes       map[string]orchestration.Node
 	opts        orchestration.NodeGroupOptions
 	clusterOpts orchestration.ClusterOptions
-
-	// set when added to the cluster
-	k8s *k8s.Client
-
-	logger logging.Logger
-
-	Nodes map[string]orchestration.Node
-	Lock  sync.RWMutex
+	k8s         *k8s.Client
+	logger      logging.Logger
+	lock        sync.RWMutex
 }
 
 // NewNodeGroup returns new node group
-func NewNodeGroup(name string, o orchestration.NodeGroupOptions, co orchestration.ClusterOptions, logger logging.Logger) *NodeGroup {
+func NewNodeGroup(name string, co orchestration.ClusterOptions, no orchestration.NodeGroupOptions, log logging.Logger) *NodeGroup {
+	no.Annotations = utils.MergeMaps(no.Annotations, co.Annotations)
+	no.Labels = utils.MergeMaps(no.Labels, co.Labels)
+
 	return &NodeGroup{
 		name:        name,
-		Nodes:       make(map[string]orchestration.Node),
-		opts:        o,
+		nodes:       make(map[string]orchestration.Node),
+		opts:        no,
 		clusterOpts: co,
-		logger:      logger,
+		k8s:         co.K8SClient,
+		logger:      log,
 	}
 }
 
@@ -87,9 +87,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		SwarmKey:     o.SwarmKey,
 	}, g.logger)
 
-	g.Lock.Lock()
-	g.Nodes[n.Name()] = n
-	g.Lock.Unlock()
+	g.addNode(n)
 
 	return
 }
@@ -133,7 +131,7 @@ func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStream
 
 	addressStream := make(chan AddressesStreamMsg)
 	var wg sync.WaitGroup
-	for k, v := range g.Nodes {
+	for k, v := range g.nodes {
 		if contains(stopped, v.Name()) {
 			continue
 		}
@@ -208,7 +206,7 @@ func (g *NodeGroup) AccountingStream(ctx context.Context) (<-chan AccountingStre
 
 	accountingStream := make(chan AccountingStreamMsg)
 	var wg sync.WaitGroup
-	for k, v := range g.Nodes {
+	for k, v := range g.nodes {
 		if contains(stopped, v.Name()) {
 			continue
 		}
@@ -283,7 +281,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 
 	balancesStream := make(chan BalancesStreamMsg)
 	var wg sync.WaitGroup
-	for k, v := range g.Nodes {
+	for k, v := range g.nodes {
 		if contains(stopped, v.Name()) {
 			continue
 		}
@@ -311,7 +309,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 
 // CreateNode creates new node in the k8s cluster
 func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
-	labels := mergeMaps(g.opts.Labels, map[string]string{
+	labels := utils.MergeMaps(g.opts.Labels, map[string]string{
 		"app.kubernetes.io/instance": name,
 	})
 
@@ -442,7 +440,7 @@ func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan
 	hasChunkStream := make(chan HasChunkStreamMsg)
 	go func() {
 		var wg sync.WaitGroup
-		for k, v := range g.Nodes {
+		for k, v := range g.nodes {
 			if contains(stopped, v.Name()) {
 				continue
 			}
@@ -472,8 +470,8 @@ func (g *NodeGroup) Name() string {
 	return g.name
 }
 
-// NodesMap returns map of nodes in the node group
-func (g *NodeGroup) NodesMap() map[string]orchestration.Node {
+// Nodes returns map of nodes in the node group
+func (g *NodeGroup) Nodes() map[string]orchestration.Node {
 	nodes := make(map[string]orchestration.Node)
 	for k, v := range g.getNodes() {
 		nodes[k] = v
@@ -506,7 +504,7 @@ func (g *NodeGroup) NodesSorted() []string {
 	nodes := g.getNodes()
 
 	l := make([]string, 0, len(nodes))
-	for k := range g.Nodes {
+	for k := range g.nodes {
 		l = append(l, k)
 	}
 	sort.Strings(l)
@@ -564,7 +562,7 @@ func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMs
 
 	overlaysStream := make(chan OverlaysStreamMsg)
 	var wg sync.WaitGroup
-	for k, v := range g.Nodes {
+	for k, v := range g.nodes {
 		if contains(stopped, v.Name()) {
 			continue
 		}
@@ -629,7 +627,7 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 
 	peersStream := make(chan PeersStreamMsg)
 	var wg sync.WaitGroup
-	for k, v := range g.Nodes {
+	for k, v := range g.nodes {
 		if contains(stopped, v.Name()) {
 			continue
 		}
@@ -826,7 +824,7 @@ func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsSt
 
 	SettlementsStream := make(chan SettlementsStreamMsg)
 	var wg sync.WaitGroup
-	for k, v := range g.Nodes {
+	for k, v := range g.nodes {
 		if contains(stopped, v.Name()) {
 			continue
 		}
@@ -854,7 +852,7 @@ func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsSt
 
 // Size returns size of the node group
 func (g *NodeGroup) Size() int {
-	return len(g.Nodes)
+	return len(g.nodes)
 }
 
 // StartNode start node by scaling its statefulset to 1
@@ -965,7 +963,7 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMs
 
 	topologyStream := make(chan TopologyStreamMsg)
 	var wg sync.WaitGroup
-	for k, v := range g.Nodes {
+	for k, v := range g.nodes {
 		if contains(stopped, v.Name()) {
 			continue
 		}
@@ -991,10 +989,16 @@ func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMs
 	return topologyStream, nil
 }
 
+func (g *NodeGroup) addNode(n *Node) {
+	g.lock.Lock()
+	g.nodes[n.Name()] = n
+	g.lock.Unlock()
+}
+
 func (g *NodeGroup) deleteNode(name string) {
-	g.Lock.Lock()
-	delete(g.Nodes, name)
-	g.Lock.Unlock()
+	g.lock.Lock()
+	delete(g.nodes, name)
+	g.lock.Unlock()
 }
 
 func (g *NodeGroup) getClient(name string) (*bee.Client, error) {
@@ -1007,18 +1011,18 @@ func (g *NodeGroup) getClient(name string) (*bee.Client, error) {
 
 func (g *NodeGroup) getClients() map[string]*bee.Client {
 	c := make(map[string]*bee.Client)
-	g.Lock.RLock()
-	for k, v := range g.Nodes {
+	g.lock.RLock()
+	for k, v := range g.nodes {
 		c[k] = v.Client()
 	}
-	g.Lock.RUnlock()
+	g.lock.RUnlock()
 	return c
 }
 
 func (g *NodeGroup) getNode(name string) (n orchestration.Node, err error) {
-	g.Lock.RLock()
-	n, ok := g.Nodes[name]
-	g.Lock.RUnlock()
+	g.lock.RLock()
+	n, ok := g.nodes[name]
+	g.lock.RUnlock()
 	if !ok {
 		return Node{}, fmt.Errorf("node %s not found", name)
 	}
@@ -1026,22 +1030,22 @@ func (g *NodeGroup) getNode(name string) (n orchestration.Node, err error) {
 }
 
 func (g *NodeGroup) getNodes() map[string]orchestration.Node {
-	g.Lock.RLock()
-	nodes := g.Nodes
-	g.Lock.RUnlock()
+	g.lock.RLock()
+	nodes := g.nodes
+	g.lock.RUnlock()
 	return nodes
 }
 
 func (g *NodeGroup) setNode(name string, n orchestration.Node) (err error) {
-	g.Lock.Lock()
-	defer g.Lock.Unlock()
+	g.lock.Lock()
+	defer g.lock.Unlock()
 
-	_, ok := g.Nodes[name]
+	_, ok := g.nodes[name]
 	if !ok {
 		return fmt.Errorf("node %s not found", name)
 	}
 
-	g.Nodes[name] = n
+	g.nodes[name] = n
 
 	return
 }

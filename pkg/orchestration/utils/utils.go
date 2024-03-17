@@ -141,3 +141,15 @@ func aesCTRXOR(key, inText, iv []byte) ([]byte, error) {
 	stream.XORKeyStream(outText, inText)
 	return outText, nil
 }
+
+func MergeMaps(a, b map[string]string) map[string]string {
+	m := map[string]string{}
+	for k, v := range a {
+		m[k] = v
+	}
+	for k, v := range b {
+		m[k] = v
+	}
+
+	return m
+}

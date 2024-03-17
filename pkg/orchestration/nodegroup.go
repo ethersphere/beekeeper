@@ -20,7 +20,7 @@ type NodeGroup interface {
 	Node(name string) (Node, error)
 	NodeClient(name string) (*bee.Client, error)
 	NodeReady(ctx context.Context, name string) (ok bool, err error)
-	NodesMap() map[string]Node
+	Nodes() map[string]Node
 	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
 	NodesClientsAll(ctx context.Context) map[string]*bee.Client
 	NodesSorted() (l []string)

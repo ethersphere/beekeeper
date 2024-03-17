@@ -40,7 +40,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 
 // Run executes ping check
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interface{}) (err error) {
-	nodeGroups := cluster.NodeGroupsMap()
+	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
 		nodesClients, err := ng.NodesClients(ctx)
 		if err != nil {

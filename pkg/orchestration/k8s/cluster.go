@@ -19,34 +19,30 @@ var _ orchestration.Cluster = (*Cluster)(nil)
 type Cluster struct {
 	name       string
 	opts       orchestration.ClusterOptions
-	NodeGroups map[string]orchestration.NodeGroup // set when groups are added to the cluster
-	logger     logging.Logger
+	nodeGroups map[string]*NodeGroup // set when groups are added to the cluster
+	log        logging.Logger
 }
 
 // NewCluster returns new cluster
-func NewCluster(name string, o orchestration.ClusterOptions, logger logging.Logger) *Cluster {
+func NewCluster(name string, o orchestration.ClusterOptions, log logging.Logger) *Cluster {
 	return &Cluster{
 		name:       name,
 		opts:       o,
-		NodeGroups: make(map[string]orchestration.NodeGroup),
-		logger:     logger,
+		nodeGroups: make(map[string]*NodeGroup),
+		log:        log,
 	}
 }
 
 // AddNodeGroup adds new node group to the cluster
 func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
-	o.Annotations = mergeMaps(c.opts.Annotations, o.Annotations)
-	o.Labels = mergeMaps(c.opts.Labels, o.Labels)
-	g := NewNodeGroup(name, o, c.opts, c.logger)
-	g.k8s = c.opts.K8SClient
-	c.NodeGroups[name] = g
+	c.nodeGroups[name] = NewNodeGroup(name, c.opts, o, c.log)
 }
 
 // Addresses returns ClusterAddresses
 func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]orchestration.NodeGroupAddresses, err error) {
 	addrs = make(orchestration.ClusterAddresses)
 
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		a, err := v.Addresses(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -62,7 +58,7 @@ func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]orchestration
 func (c *Cluster) Accounting(ctx context.Context) (accounting orchestration.ClusterAccounting, err error) {
 	accounting = make(orchestration.ClusterAccounting)
 
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		a, err := v.Accounting(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -99,7 +95,7 @@ func (c *Cluster) FlattenAccounting(ctx context.Context) (accounting orchestrati
 func (c *Cluster) Balances(ctx context.Context) (balances orchestration.ClusterBalances, err error) {
 	balances = make(orchestration.ClusterBalances)
 
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		b, err := v.Balances(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -134,7 +130,7 @@ func (c *Cluster) FlattenBalances(ctx context.Context) (balances orchestration.N
 
 // GlobalReplicationFactor returns the total number of nodes in the cluster that contain given chunk
 func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error) {
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		ngrf, err := v.GroupReplicationFactor(ctx, a)
 		if err != nil {
 			return 0, fmt.Errorf("%s: %w", k, err)
@@ -151,10 +147,10 @@ func (c *Cluster) Name() string {
 	return c.name
 }
 
-// NodeGroupsMap returns map of node groups in the cluster
-func (c *Cluster) NodeGroupsMap() (l map[string]orchestration.NodeGroup) {
+// NodeGroups returns map of node groups in the cluster
+func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
 	nodeGroups := make(map[string]orchestration.NodeGroup)
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		nodeGroups[k] = v
 	}
 	return nodeGroups
@@ -162,10 +158,10 @@ func (c *Cluster) NodeGroupsMap() (l map[string]orchestration.NodeGroup) {
 
 // NodeGroupsSorted returns sorted list of node names in the node group
 func (c *Cluster) NodeGroupsSorted() (l []string) {
-	l = make([]string, len(c.NodeGroups))
+	l = make([]string, len(c.nodeGroups))
 
 	i := 0
-	for k := range c.NodeGroups {
+	for k := range c.nodeGroups {
 		l[i] = k
 		i++
 	}
@@ -176,7 +172,7 @@ func (c *Cluster) NodeGroupsSorted() (l []string) {
 
 // NodeGroup returns node group
 func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error) {
-	ng, ok := c.NodeGroups[name]
+	ng, ok := c.nodeGroups[name]
 	if !ok {
 		return nil, fmt.Errorf("node group %s not found", name)
 	}
@@ -186,8 +182,8 @@ func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error)
 // Nodes returns map of nodes in the cluster
 func (c *Cluster) Nodes() map[string]orchestration.Node {
 	n := make(map[string]orchestration.Node)
-	for _, ng := range c.NodeGroupsMap() {
-		for k, v := range ng.NodesMap() {
+	for _, ng := range c.NodeGroups() {
+		for k, v := range ng.Nodes() {
 			n[k] = v
 		}
 	}
@@ -196,8 +192,8 @@ func (c *Cluster) Nodes() map[string]orchestration.Node {
 
 // NodeNamess returns a list of node names in the cluster across all node groups
 func (c *Cluster) NodeNames() (names []string) {
-	for _, ng := range c.NodeGroupsMap() {
-		for k := range ng.NodesMap() {
+	for _, ng := range c.NodeGroups() {
+		for k := range ng.Nodes() {
 			names = append(names, k)
 		}
 	}
@@ -229,7 +225,7 @@ func (c *Cluster) FullNodeNames() (names []string) {
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes
 func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, error) {
 	clients := make(map[string]*bee.Client)
-	for _, ng := range c.NodeGroupsMap() {
+	for _, ng := range c.NodeGroups() {
 		ngc, err := ng.NodesClients(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("nodes clients: %w", err)
@@ -244,7 +240,7 @@ func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, err
 // NodesClientsAll returns map of node's clients in the cluster
 func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*bee.Client, error) {
 	clients := make(map[string]*bee.Client)
-	for _, ng := range c.NodeGroupsMap() {
+	for _, ng := range c.NodeGroups() {
 		for n, client := range ng.NodesClientsAll(ctx) {
 			clients[n] = client
 		}
@@ -256,7 +252,7 @@ func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*bee.Client, 
 func (c *Cluster) Overlays(ctx context.Context, exclude ...string) (overlays orchestration.ClusterOverlays, err error) {
 	overlays = make(orchestration.ClusterOverlays)
 
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		if containsName(exclude, k) {
 			continue
 		}
@@ -308,7 +304,7 @@ func containsName(s []string, e string) bool {
 func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers orchestration.ClusterPeers, err error) {
 	peers = make(orchestration.ClusterPeers)
 
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		if containsName(exclude, k) {
 			continue
 		}
@@ -326,13 +322,13 @@ func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers orchestra
 // RandomNode returns random running node from a cluster
 func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node orchestration.Node, err error) {
 	nodes := []orchestration.Node{}
-	for _, ng := range c.NodeGroupsMap() {
+	for _, ng := range c.NodeGroups() {
 		stopped, err := ng.StoppedNodes(ctx)
 		if err != nil && err != orchestration.ErrNotSet {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 
-		for _, v := range ng.NodesMap() {
+		for _, v := range ng.Nodes() {
 			if contains(stopped, v.Name()) {
 				continue
 			}
@@ -347,7 +343,7 @@ func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node orchestrat
 func (c *Cluster) Settlements(ctx context.Context) (settlements orchestration.ClusterSettlements, err error) {
 	settlements = make(orchestration.ClusterSettlements)
 
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		s, err := v.Settlements(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)
@@ -382,7 +378,7 @@ func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements orchestra
 
 // Size returns size of the cluster
 func (c *Cluster) Size() (size int) {
-	for _, ng := range c.NodeGroups {
+	for _, ng := range c.nodeGroups {
 		size += ng.Size()
 	}
 	return
@@ -392,7 +388,7 @@ func (c *Cluster) Size() (size int) {
 func (c *Cluster) Topologies(ctx context.Context) (topologies orchestration.ClusterTopologies, err error) {
 	topologies = make(orchestration.ClusterTopologies)
 
-	for k, v := range c.NodeGroups {
+	for k, v := range c.nodeGroups {
 		t, err := v.Topologies(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", k, err)

@@ -18,6 +18,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
 )
 
 // compile check whether client implements interface
@@ -38,34 +39,17 @@ type Node struct {
 
 // NewNode returns Bee node
 func NewNode(name string, opts orchestration.NodeOptions, logger logging.Logger) (n *Node) {
-	n = &Node{
-		name:   name,
-		logger: logger,
+	return &Node{
+		name:         name,
+		logger:       logger,
+		client:       opts.Client,
+		config:       opts.Config,
+		k8s:          opts.K8S,
+		clefKey:      opts.ClefKey,
+		clefPassword: opts.ClefPassword,
+		libP2PKey:    opts.LibP2PKey,
+		swarmKey:     opts.SwarmKey.String(),
 	}
-
-	if opts.Client != nil {
-		n.client = opts.Client
-	}
-	if opts.Config != nil {
-		n.config = opts.Config
-	}
-	if len(opts.ClefKey) > 0 {
-		n.clefKey = opts.ClefKey
-	}
-	if len(opts.ClefPassword) > 0 {
-		n.clefPassword = opts.ClefPassword
-	}
-	if len(opts.LibP2PKey) > 0 {
-		n.libP2PKey = opts.LibP2PKey
-	}
-	if len(opts.SwarmKey) > 0 {
-		n.swarmKey = opts.SwarmKey.ToString()
-	}
-	if opts.K8S != nil {
-		n.k8s = opts.K8S
-	}
-
-	return
 }
 
 // Name returns node's name
@@ -221,7 +205,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		// api service's ingressroute
 		apiIn := fmt.Sprintf("%s-api", o.Name)
 		if _, err := n.k8s.IngressRoute.Set(ctx, apiIn, o.Namespace, ingressroute.Options{
-			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
+			Annotations: utils.MergeMaps(o.Annotations, o.IngressAnnotations),
 			Labels:      o.Labels,
 			Spec: ingressroute.IngressRouteSpec{
 				Routes: []ingressroute.Route{
@@ -247,7 +231,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		// api service's ingress
 		apiIn := fmt.Sprintf("%s-api", o.Name)
 		if _, err := n.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
-			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
+			Annotations: utils.MergeMaps(o.Annotations, o.IngressAnnotations),
 			Labels:      o.Labels,
 			Spec: ingress.Spec{
 				Class: o.IngressClass,
@@ -300,7 +284,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		// debug service's ingressroute
 		debugIn := fmt.Sprintf("%s-debug", o.Name)
 		if _, err := n.k8s.IngressRoute.Set(ctx, debugIn, o.Namespace, ingressroute.Options{
-			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
+			Annotations: utils.MergeMaps(o.Annotations, o.IngressAnnotations),
 			Labels:      o.Labels,
 			Spec: ingressroute.IngressRouteSpec{
 				Routes: []ingressroute.Route{
@@ -326,7 +310,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		// debug service's ingress
 		debugIn := fmt.Sprintf("%s-debug", o.Name)
 		if _, err := n.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
-			Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
+			Annotations: utils.MergeMaps(o.Annotations, o.IngressDebugAnnotations),
 			Labels:      o.Labels,
 			Spec: ingress.Spec{
 				Class: o.IngressDebugClass,

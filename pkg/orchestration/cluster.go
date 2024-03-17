@@ -13,32 +13,32 @@ import (
 )
 
 type Cluster interface {
+	Accounting(ctx context.Context) (accounting ClusterAccounting, err error)
 	AddNodeGroup(name string, o NodeGroupOptions)
 	Addresses(ctx context.Context) (addrs map[string]NodeGroupAddresses, err error)
-	Accounting(ctx context.Context) (accounting ClusterAccounting, err error)
 	Balances(ctx context.Context) (balances ClusterBalances, err error)
-	FlattenBalances(ctx context.Context) (balances NodeGroupBalances, err error)
 	FlattenAccounting(ctx context.Context) (accounting NodeGroupAccounting, err error)
-	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
-	Name() string
-	NodeGroupsMap() (l map[string]NodeGroup)
-	NodeGroupsSorted() (l []string)
-	NodeGroup(name string) (ng NodeGroup, err error)
-	Nodes() map[string]Node
-	NodeNames() (names []string)
-	LightNodeNames() (names []string)
+	FlattenBalances(ctx context.Context) (balances NodeGroupBalances, err error)
+	FlattenOverlays(ctx context.Context, exclude ...string) (map[string]swarm.Address, error)
+	FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
+	FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error)
 	FullNodeNames() (names []string)
+	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
+	LightNodeNames() (names []string)
+	Name() string
+	NodeGroup(name string) (ng NodeGroup, err error)
+	NodeGroups() (l map[string]NodeGroup)
+	NodeGroupsSorted() (l []string)
+	NodeNames() (names []string)
+	Nodes() map[string]Node
 	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
 	NodesClientsAll(ctx context.Context) (map[string]*bee.Client, error)
 	Overlays(ctx context.Context, exclude ...string) (overlays ClusterOverlays, err error)
-	FlattenOverlays(ctx context.Context, exclude ...string) (map[string]swarm.Address, error)
 	Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error)
 	RandomNode(ctx context.Context, r *rand.Rand) (node Node, err error)
 	Settlements(ctx context.Context) (settlements ClusterSettlements, err error)
-	FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
-	FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error)
 }
 
 // ClusterOptions represents Bee cluster options

@@ -16,27 +16,27 @@ import (
 var ErrNotSet = errors.New("orchestration client not set")
 
 type Node interface {
-	Name() string
-	Client() *bee.Client
 	ClefKey() string
 	ClefPassword() string
+	Client() *bee.Client
 	Config() *Config
 	Create(ctx context.Context, o CreateOptions) (err error)
 	Delete(ctx context.Context, namespace string) (err error)
 	LibP2PKey() string
+	Name() string
 	Ready(ctx context.Context, namespace string) (ready bool, err error)
+	SetClefKey(key string) Node
+	SetClefPassword(key string) Node
+	SetSwarmKey(key string) Node
 	Start(ctx context.Context, namespace string) (err error)
 	Stop(ctx context.Context, namespace string) (err error)
 	SwarmKey() string
-	SetSwarmKey(key string) Node
-	SetClefKey(key string) Node
-	SetClefPassword(key string) Node
 }
 
 // EncryptedKey is part of Ethereum JSON v3 key file format.
 type EncryptedKey string
 
-func (ek EncryptedKey) ToString() string {
+func (ek EncryptedKey) String() string {
 	return string(ek)
 }
 
