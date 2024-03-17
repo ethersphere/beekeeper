@@ -145,6 +145,7 @@ bee-configs:
     verbosity: 5
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
     allow-private-cidrs: true
+    withdrawal-addresses-whitelist: "0xec44cb15b1b033e74d55ac5d0e24d861bde54532"
   bootnode:
     _inherit: "default"
     bootnode-mode: true
@@ -368,7 +369,6 @@ checks:
       seed:
       data-size:
     type: redundancy
-
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options
