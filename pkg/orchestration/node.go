@@ -161,4 +161,5 @@ type Config struct {
 	Verbosity                 uint64        // log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace
 	WelcomeMessage            string        // send a welcome message string during handshakes
 	WarmupTime                time.Duration // warmup time pull/pushsync protocols
+	WithdrawAddress           string        // allowed addresses for wallet withdrawal
 }

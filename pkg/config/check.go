@@ -31,6 +31,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
+	"github.com/ethersphere/beekeeper/pkg/check/withdraw"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"gopkg.in/yaml.v3"
@@ -569,6 +570,24 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := redundancy.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"withdraw": {
+		NewAction: withdraw.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				TargetAddr *string `yaml:"target-address"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := withdraw.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

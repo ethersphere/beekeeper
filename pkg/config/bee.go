@@ -60,6 +60,7 @@ type BeeConfig struct {
 	Verbosity                 *uint64        `yaml:"verbosity"`
 	WelcomeMessage            *string        `yaml:"welcome-message"`
 	WarmupTime                *time.Duration `yaml:"warmup-time"`
+	WithdrawAddress           *string        `yaml:"withdrawal-addresses-whitelist"`
 }
 
 // Export exports BeeConfig to orchestration.Config
