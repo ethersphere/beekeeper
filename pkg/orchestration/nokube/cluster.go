@@ -19,7 +19,7 @@ var _ orchestration.Cluster = (*Cluster)(nil)
 type Cluster struct {
 	name       string
 	opts       orchestration.ClusterOptions
-	nodeGroups map[string]*NodeGroup // set when groups are added to the cluster
+	nodeGroups map[string]orchestration.NodeGroup // set when groups are added to the cluster
 	log        logging.Logger
 }
 
@@ -28,7 +28,7 @@ func NewCluster(name string, o orchestration.ClusterOptions, log logging.Logger)
 	return &Cluster{
 		name:       name,
 		opts:       o,
-		nodeGroups: make(map[string]*NodeGroup),
+		nodeGroups: make(map[string]orchestration.NodeGroup),
 		log:        log,
 	}
 }

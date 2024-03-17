@@ -26,29 +26,19 @@ var _ orchestration.Node = (*Node)(nil)
 
 // Node represents Bee node
 type Node struct {
-	name         string
-	clefKey      string
-	clefPassword string
-	client       *bee.Client
-	config       *orchestration.Config
-	k8s          *k8s.Client
-	libP2PKey    string
-	swarmKey     string
-	logger       logging.Logger
+	name string
+	opts orchestration.NodeOptions
+	k8s  *k8s.Client
+	log  logging.Logger
 }
 
 // NewNode returns Bee node
-func NewNode(name string, opts orchestration.NodeOptions, logger logging.Logger) (n *Node) {
+func NewNode(name string, opts orchestration.NodeOptions, log logging.Logger) (n *Node) {
 	return &Node{
-		name:         name,
-		logger:       logger,
-		client:       opts.Client,
-		config:       opts.Config,
-		k8s:          opts.K8S,
-		clefKey:      opts.ClefKey,
-		clefPassword: opts.ClefPassword,
-		libP2PKey:    opts.LibP2PKey,
-		swarmKey:     opts.SwarmKey.String(),
+		name: name,
+		opts: opts,
+		k8s:  opts.K8S,
+		log:  log,
 	}
 }
 
@@ -59,49 +49,49 @@ func (n Node) Name() string {
 
 // Client returns node's name
 func (n Node) Client() *bee.Client {
-	return n.client
+	return n.opts.Client
 }
 
 // Config returns node's config
 func (n Node) Config() *orchestration.Config {
-	return n.config
+	return n.opts.Config
 }
 
 // ClefKey returns node's clefKey
 func (n Node) ClefKey() string {
-	return n.clefKey
+	return n.opts.ClefKey
 }
 
 // ClefPassword returns node's clefPassword
 func (n Node) ClefPassword() string {
-	return n.clefPassword
+	return n.opts.ClefPassword
 }
 
 // LibP2PKey returns node's libP2PKey
 func (n Node) LibP2PKey() string {
-	return n.libP2PKey
+	return n.opts.LibP2PKey
 }
 
 // SwarmKey returns node's swarmKey
 func (n Node) SwarmKey() string {
-	return n.swarmKey
+	return n.opts.SwarmKey.String()
 }
 
 // SetSwarmKey sets node's Swarm key
 func (n Node) SetSwarmKey(key string) orchestration.Node {
-	n.swarmKey = key
+	n.opts.SwarmKey = orchestration.EncryptedKey(key)
 	return n
 }
 
 // SetClefKey sets node's Clef key
 func (n Node) SetClefKey(key string) orchestration.Node {
-	n.clefKey = key
+	n.opts.ClefKey = key
 	return n
 }
 
 // SetClefKey sets node's Clef key
 func (n Node) SetClefPassword(password string) orchestration.Node {
-	n.clefPassword = password
+	n.opts.ClefPassword = password
 	return n
 }
 
@@ -123,7 +113,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}); err != nil {
 		return fmt.Errorf("set configmap in namespace %s: %w", o.Namespace, err)
 	}
-	n.logger.Infof("configmap %s is set in namespace %s", configCM, o.Namespace)
+	n.log.Infof("configmap %s is set in namespace %s", configCM, o.Namespace)
 
 	// secret with keys
 	keysSecret := fmt.Sprintf("%s-keys", o.Name)
@@ -142,7 +132,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}); err != nil {
 		return fmt.Errorf("set secret in namespace %s: %w", o.Namespace, err)
 	}
-	n.logger.Infof("secret %s is set in namespace %s", keysSecret, o.Namespace)
+	n.log.Infof("secret %s is set in namespace %s", keysSecret, o.Namespace)
 
 	// secret with clef key and pass
 	clefSecretEnabled := len(o.ClefKey) > 0 && len(o.ClefPassword) > 0
@@ -159,7 +149,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		}); err != nil {
 			return fmt.Errorf("set secret in namespace %s: %w", o.Namespace, err)
 		}
-		n.logger.Infof("secret %s is set in namespace %s", clefSecret, o.Namespace)
+		n.log.Infof("secret %s is set in namespace %s", clefSecret, o.Namespace)
 	}
 
 	// service account
@@ -171,7 +161,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}); err != nil {
 		return fmt.Errorf("set serviceaccount in namespace %s: %w", o.Namespace, err)
 	}
-	n.logger.Infof("serviceaccount %s is set in namespace %s", svcAccount, o.Namespace)
+	n.log.Infof("serviceaccount %s is set in namespace %s", svcAccount, o.Namespace)
 
 	// api service
 	portAPI, err := parsePort(o.Config.APIAddr)
@@ -199,7 +189,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
-	n.logger.Infof("service %s is set in namespace %s", apiSvc, o.Namespace)
+	n.log.Infof("service %s is set in namespace %s", apiSvc, o.Namespace)
 
 	if o.IngressClass == "traefik" {
 		// api service's ingressroute
@@ -226,7 +216,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		}); err != nil {
 			return fmt.Errorf("set ingressroute in namespace %s: %w", o.Namespace, err)
 		}
-		n.logger.Infof("ingressroute %s is set in namespace %s", apiIn, o.Namespace)
+		n.log.Infof("ingressroute %s is set in namespace %s", apiIn, o.Namespace)
 	} else {
 		// api service's ingress
 		apiIn := fmt.Sprintf("%s-api", o.Name)
@@ -250,7 +240,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		}); err != nil {
 			return fmt.Errorf("set ingress in namespace %s: %w", o.Namespace, err)
 		}
-		n.logger.Infof("ingress %s is set in namespace %s", apiIn, o.Namespace)
+		n.log.Infof("ingress %s is set in namespace %s", apiIn, o.Namespace)
 	}
 
 	// debug API
@@ -278,7 +268,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
-	n.logger.Infof("service %s is set in namespace %s", debugSvc, o.Namespace)
+	n.log.Infof("service %s is set in namespace %s", debugSvc, o.Namespace)
 
 	if o.IngressDebugClass == "traefik" {
 		// debug service's ingressroute
@@ -305,7 +295,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		}); err != nil {
 			return fmt.Errorf("set ingressroute in namespace %s: %w", o.Namespace, err)
 		}
-		n.logger.Infof("ingressroute %s is set in namespace %s", debugIn, o.Namespace)
+		n.log.Infof("ingressroute %s is set in namespace %s", debugIn, o.Namespace)
 	} else {
 		// debug service's ingress
 		debugIn := fmt.Sprintf("%s-debug", o.Name)
@@ -329,7 +319,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 		}); err != nil {
 			return fmt.Errorf("set ingress in namespace %s: %w", o.Namespace, err)
 		}
-		n.logger.Infof("ingress %s is set in namespace %s", debugIn, o.Namespace)
+		n.log.Infof("ingress %s is set in namespace %s", debugIn, o.Namespace)
 	}
 
 	// p2p service
@@ -366,7 +356,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
-	n.logger.Infof("service %s is set in namespace %s", p2pSvc, o.Namespace)
+	n.log.Infof("service %s is set in namespace %s", p2pSvc, o.Namespace)
 
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
@@ -403,7 +393,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
-	n.logger.Infof("service %s is set in namespace %s", headlessSvc, o.Namespace)
+	n.log.Infof("service %s is set in namespace %s", headlessSvc, o.Namespace)
 
 	// statefulset
 	sSet := o.Name
@@ -484,7 +474,7 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	}); err != nil {
 		return fmt.Errorf("set statefulset in namespace %s: %w", o.Namespace, err)
 	}
-	n.logger.Infof("statefulset %s is set in namespace %s", sSet, o.Namespace)
+	n.log.Infof("statefulset %s is set in namespace %s", sSet, o.Namespace)
 
 	return
 }
@@ -494,91 +484,91 @@ func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 	if err := n.k8s.StatefulSet.Delete(ctx, n.name, namespace); err != nil {
 		return fmt.Errorf("deleting statefulset in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("statefulset %s is deleted in namespace %s", n.name, namespace)
+	n.log.Infof("statefulset %s is deleted in namespace %s", n.name, namespace)
 
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", n.name)
 	if err := n.k8s.Service.Delete(ctx, headlessSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("service %s is deleted in namespace %s", headlessSvc, namespace)
+	n.log.Infof("service %s is deleted in namespace %s", headlessSvc, namespace)
 
 	// p2p service
 	p2pSvc := fmt.Sprintf("%s-p2p", n.name)
 	if err := n.k8s.Service.Delete(ctx, p2pSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("service %s is deleted in namespace %s", p2pSvc, namespace)
+	n.log.Infof("service %s is deleted in namespace %s", p2pSvc, namespace)
 
 	// debug service's ingress
 	debugIn := fmt.Sprintf("%s-debug", n.name)
 	if err := n.k8s.Ingress.Delete(ctx, debugIn, namespace); err != nil {
 		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("ingress %s is deleted in namespace %s", debugIn, namespace)
+	n.log.Infof("ingress %s is deleted in namespace %s", debugIn, namespace)
 
 	// debug service's ingress route
 	if err := n.k8s.IngressRoute.Delete(ctx, debugIn, namespace); err != nil {
 		return fmt.Errorf("deleting ingress route in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("ingress route %s is deleted in namespace %s", debugIn, namespace)
+	n.log.Infof("ingress route %s is deleted in namespace %s", debugIn, namespace)
 
 	// debug service
 	debugSvc := fmt.Sprintf("%s-debug", n.name)
 	if err := n.k8s.Service.Delete(ctx, debugSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("service %s is deleted in namespace %s", debugSvc, namespace)
+	n.log.Infof("service %s is deleted in namespace %s", debugSvc, namespace)
 
 	// api service's ingress
 	apiIn := fmt.Sprintf("%s-api", n.name)
 	if err := n.k8s.Ingress.Delete(ctx, apiIn, namespace); err != nil {
 		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("ingress %s is deleted in namespace %s", apiIn, namespace)
+	n.log.Infof("ingress %s is deleted in namespace %s", apiIn, namespace)
 
 	// api service's ingress route
 	if err := n.k8s.IngressRoute.Delete(ctx, apiIn, namespace); err != nil {
 		return fmt.Errorf("deleting ingress route in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("ingress route %s is deleted in namespace %s", apiIn, namespace)
+	n.log.Infof("ingress route %s is deleted in namespace %s", apiIn, namespace)
 
 	// api service
 	apiSvc := fmt.Sprintf("%s-api", n.name)
 	if err := n.k8s.Service.Delete(ctx, apiSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("service %s is deleted in namespace %s", apiSvc, namespace)
+	n.log.Infof("service %s is deleted in namespace %s", apiSvc, namespace)
 
 	// service account
 	svcAccount := n.name
 	if err := n.k8s.ServiceAccount.Delete(ctx, svcAccount, namespace); err != nil {
 		return fmt.Errorf("deleting serviceaccount in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("serviceaccount %s is deleted in namespace %s", svcAccount, namespace)
+	n.log.Infof("serviceaccount %s is deleted in namespace %s", svcAccount, namespace)
 
 	// secret with clef key
 	clefSecret := fmt.Sprintf("%s-clef", n.name)
 	if err := n.k8s.Secret.Delete(ctx, clefSecret, namespace); err != nil {
 		return fmt.Errorf("deleting secret in namespace %s: %w", namespace, err)
 	}
-	n.logger.Infof("secret %s is deleted in namespace %s", clefSecret, namespace)
+	n.log.Infof("secret %s is deleted in namespace %s", clefSecret, namespace)
 
 	// secret with keys
 	keysSecret := fmt.Sprintf("%s-keys", n.name)
 	if err = n.k8s.Secret.Delete(ctx, keysSecret, namespace); err != nil {
 		return fmt.Errorf("deleting secret %s in namespace %s: %w", keysSecret, namespace, err)
 	}
-	n.logger.Infof("secret %s is deleted in namespace %s", keysSecret, namespace)
+	n.log.Infof("secret %s is deleted in namespace %s", keysSecret, namespace)
 
 	// bee configuration
 	configCM := n.name
 	if err = n.k8s.ConfigMap.Delete(ctx, configCM, namespace); err != nil {
 		return fmt.Errorf("deleting configmap %s in namespace %s: %w", configCM, namespace, err)
 	}
-	n.logger.Infof("configmap %s is deleted in namespace %s", configCM, namespace)
+	n.log.Infof("configmap %s is deleted in namespace %s", configCM, namespace)
 
-	n.logger.Infof("node %s is deleted in namespace %s", n.name, namespace)
+	n.log.Infof("node %s is deleted in namespace %s", n.name, namespace)
 	return
 }
 
@@ -598,7 +588,7 @@ func (n Node) Start(ctx context.Context, namespace string) (err error) {
 		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
 	}
 
-	n.logger.Infof("node %s is started in namespace %s", n.name, namespace)
+	n.log.Infof("node %s is started in namespace %s", n.name, namespace)
 	return
 }
 
@@ -608,6 +598,6 @@ func (n Node) Stop(ctx context.Context, namespace string) (err error) {
 		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
 	}
 
-	n.logger.Infof("node %s is stopped in namespace %s", n.name, namespace)
+	n.log.Infof("node %s is stopped in namespace %s", n.name, namespace)
 	return
 }

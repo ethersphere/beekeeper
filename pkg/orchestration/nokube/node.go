@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
@@ -13,27 +14,19 @@ var _ orchestration.Node = (*Node)(nil)
 
 // Node represents Bee node
 type Node struct {
-	name         string
-	clefKey      string
-	clefPassword string
-	client       *bee.Client
-	config       *orchestration.Config
-	libP2PKey    string
-	swarmKey     string
-	logger       logging.Logger
+	name string
+	opts orchestration.NodeOptions
+	k8s  *k8s.Client
+	log  logging.Logger
 }
 
-// NewNode returns a new Bee node configured with the provided options and logger.
-func NewNode(name string, opts orchestration.NodeOptions, logger logging.Logger) *Node {
+// NewNode returns Bee node
+func NewNode(name string, opts orchestration.NodeOptions, log logging.Logger) (n *Node) {
 	return &Node{
-		name:         name,
-		client:       opts.Client,
-		config:       opts.Config,
-		clefKey:      opts.ClefKey,
-		clefPassword: opts.ClefPassword,
-		libP2PKey:    opts.LibP2PKey,
-		swarmKey:     opts.SwarmKey.String(),
-		logger:       logger,
+		name: name,
+		opts: opts,
+		k8s:  opts.K8S,
+		log:  log,
 	}
 }
 
@@ -44,49 +37,49 @@ func (n Node) Name() string {
 
 // Client returns node's name
 func (n Node) Client() *bee.Client {
-	return n.client
+	return n.opts.Client
 }
 
 // Config returns node's config
 func (n Node) Config() *orchestration.Config {
-	return n.config
+	return n.opts.Config
 }
 
 // ClefKey returns node's clefKey
 func (n Node) ClefKey() string {
-	return n.clefKey
+	return n.opts.ClefKey
 }
 
 // ClefPassword returns node's clefPassword
 func (n Node) ClefPassword() string {
-	return n.clefPassword
+	return n.opts.ClefPassword
 }
 
 // LibP2PKey returns node's libP2PKey
 func (n Node) LibP2PKey() string {
-	return n.libP2PKey
+	return n.opts.LibP2PKey
 }
 
 // SwarmKey returns node's swarmKey
 func (n Node) SwarmKey() string {
-	return n.swarmKey
+	return n.opts.SwarmKey.String()
 }
 
 // SetSwarmKey sets node's Swarm key
 func (n Node) SetSwarmKey(key string) orchestration.Node {
-	n.swarmKey = key
+	n.opts.SwarmKey = orchestration.EncryptedKey(key)
 	return n
 }
 
 // SetClefKey sets node's Clef key
 func (n Node) SetClefKey(key string) orchestration.Node {
-	n.clefKey = key
+	n.opts.ClefKey = key
 	return n
 }
 
 // SetClefKey sets node's Clef key
 func (n Node) SetClefPassword(password string) orchestration.Node {
-	n.clefPassword = password
+	n.opts.ClefPassword = password
 	return n
 }
 
