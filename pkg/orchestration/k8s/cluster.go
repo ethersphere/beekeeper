@@ -10,6 +10,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
 )
 
 // compile check whether client implements interface
@@ -17,25 +18,35 @@ var _ orchestration.Cluster = (*Cluster)(nil)
 
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
-	name       string
-	opts       orchestration.ClusterOptions
-	nodeGroups map[string]orchestration.NodeGroup // set when groups are added to the cluster
-	log        logging.Logger
+	nodeOrchestrator orchestration.NodeOrchestrator
+	name             string
+	opts             orchestration.ClusterOptions
+	nodeGroups       map[string]orchestration.NodeGroup // set when groups are added to the cluster
+	log              logging.Logger
 }
 
 // NewCluster returns new cluster
 func NewCluster(name string, o orchestration.ClusterOptions, log logging.Logger) *Cluster {
+	var no orchestration.NodeOrchestrator
+
+	if o.K8SClient == nil {
+		no = &notset.BeeClient{}
+	} else {
+		no = newK8sNodeOrchestrator(o.K8SClient, log)
+	}
+
 	return &Cluster{
-		name:       name,
-		opts:       o,
-		nodeGroups: make(map[string]orchestration.NodeGroup),
-		log:        log,
+		name:             name,
+		nodeOrchestrator: no,
+		opts:             o,
+		nodeGroups:       make(map[string]orchestration.NodeGroup),
+		log:              log,
 	}
 }
 
 // AddNodeGroup adds new node group to the cluster
 func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
-	c.nodeGroups[name] = NewNodeGroup(name, c.opts, o, c.log)
+	c.nodeGroups[name] = NewNodeGroup(name, c.opts, c.nodeOrchestrator, o, c.log)
 }
 
 // Addresses returns ClusterAddresses

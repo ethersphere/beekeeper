@@ -14,7 +14,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
 	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
 )
 
@@ -36,25 +35,17 @@ type NodeGroup struct {
 }
 
 // NewNodeGroup returns new node group
-func NewNodeGroup(name string, co orchestration.ClusterOptions, no orchestration.NodeGroupOptions, log logging.Logger) *NodeGroup {
-	no.Annotations = utils.MergeMaps(no.Annotations, co.Annotations)
-	no.Labels = utils.MergeMaps(no.Labels, co.Labels)
-
-	var nodeOrchestrator orchestration.NodeOrchestrator
-
-	if co.K8SClient == nil {
-		nodeOrchestrator = &notset.BeeClient{}
-	} else {
-		nodeOrchestrator = newK8sNodeOrchestrator(co.K8SClient, log)
-	}
+func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestration.NodeOrchestrator, ngopts orchestration.NodeGroupOptions, log logging.Logger) *NodeGroup {
+	ngopts.Annotations = utils.MergeMaps(ngopts.Annotations, copts.Annotations)
+	ngopts.Labels = utils.MergeMaps(ngopts.Labels, copts.Labels)
 
 	return &NodeGroup{
-		nodeOrchestrator: nodeOrchestrator,
+		nodeOrchestrator: no,
 		name:             name,
 		nodes:            make(map[string]orchestration.Node),
-		opts:             no,
-		clusterOpts:      co,
-		k8s:              co.K8SClient,
+		opts:             ngopts,
+		clusterOpts:      copts,
+		k8s:              copts.K8SClient,
 		logger:           log,
 	}
 }
