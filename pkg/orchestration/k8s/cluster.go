@@ -32,7 +32,7 @@ func NewCluster(name string, o orchestration.ClusterOptions, log logging.Logger)
 	if o.K8SClient == nil {
 		no = &notset.BeeClient{}
 	} else {
-		no = newK8sNodeOrchestrator(o.K8SClient, log)
+		no = newNodeOrchestrator(o.K8SClient, log)
 	}
 
 	return &Cluster{

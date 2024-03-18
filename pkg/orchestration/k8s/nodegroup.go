@@ -34,8 +34,8 @@ type NodeGroup struct {
 
 // NewNodeGroup returns new node group
 func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestration.NodeOrchestrator, ngopts orchestration.NodeGroupOptions, log logging.Logger) *NodeGroup {
-	ngopts.Annotations = utils.MergeMaps(ngopts.Annotations, copts.Annotations)
-	ngopts.Labels = utils.MergeMaps(ngopts.Labels, copts.Labels)
+	ngopts.Annotations = mergeMaps(ngopts.Annotations, copts.Annotations)
+	ngopts.Labels = mergeMaps(ngopts.Labels, copts.Labels)
 
 	return &NodeGroup{
 		nodeOrchestrator: no,
@@ -307,7 +307,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 
 // CreateNode creates new node in the k8s cluster
 func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
-	labels := utils.MergeMaps(g.opts.Labels, map[string]string{
+	labels := mergeMaps(g.opts.Labels, map[string]string{
 		"app.kubernetes.io/instance": name,
 	})
 
