@@ -38,6 +38,8 @@ type NodeOrchestrator interface {
 	Ready(ctx context.Context, name string, namespace string) (ready bool, err error)
 	Start(ctx context.Context, name string, namespace string) (err error)
 	Stop(ctx context.Context, name string, namespace string) (err error)
+	RunningNodes(ctx context.Context, namespace string) (running []string, err error)
+	StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error)
 }
 
 // EncryptedKey is part of Ethereum JSON v3 key file format.

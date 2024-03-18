@@ -139,6 +139,24 @@ func newK8sNodeOrchestrator(k8s *k8s.Client, log logging.Logger) orchestration.N
 	}
 }
 
+// RunningNodes implements orchestration.NodeOrchestrator.
+func (n *k8sNodeOrchestrator) RunningNodes(ctx context.Context, namespace string) (running []string, err error) {
+	running, err = n.k8s.StatefulSet.RunningStatefulSets(ctx, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("running statefulsets in namespace %s: %w", namespace, err)
+	}
+	return
+}
+
+// StoppedNodes implements orchestration.NodeOrchestrator.
+func (n *k8sNodeOrchestrator) StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error) {
+	stopped, err = n.k8s.StatefulSet.StoppedStatefulSets(ctx, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("stopped statefulsets in namespace %s: %w", namespace, err)
+	}
+	return
+}
+
 // Create
 func (n *k8sNodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
 	// bee configuration
