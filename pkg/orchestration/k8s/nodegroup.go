@@ -123,7 +123,7 @@ type AddressesStreamMsg struct {
 // AddressesStream returns stream of addresses of all nodes in the node group
 func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -198,7 +198,7 @@ type AccountingStreamMsg struct {
 // AccountingStream returns stream of accounting of all nodes in the node group
 func (g *NodeGroup) AccountingStream(ctx context.Context) (<-chan AccountingStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -273,7 +273,7 @@ type BalancesStreamMsg struct {
 // BalancesStream returns stream of balances of all nodes in the cluster
 func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -431,7 +431,7 @@ type HasChunkStreamMsg struct {
 // HasChunkStream returns stream of HasChunk requests for all nodes in the node group
 func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan HasChunkStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -480,7 +480,7 @@ func (g *NodeGroup) Nodes() map[string]orchestration.Node {
 // NodesClients returns map of node's clients in the node group excluding stopped nodes
 func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*bee.Client, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -554,7 +554,7 @@ type OverlaysStreamMsg struct {
 // TODO: add semaphore
 func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -619,7 +619,7 @@ type PeersStreamMsg struct {
 // PeersStream returns stream of peers of all nodes in the node group
 func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -728,18 +728,18 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 // RunningNodes returns list of running nodes
 // TODO: filter by labels
 func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err error) {
-	running, err = g.nodeOrchestrator.RunningNodes(ctx, g.clusterOpts.Namespace)
+	allRunning, err := g.nodeOrchestrator.RunningNodes(ctx, g.clusterOpts.Namespace)
 	if err != nil && err != orchestration.ErrNotSet {
 		return nil, fmt.Errorf("running nodes in namespace %s: %w", g.clusterOpts.Namespace, err)
 	}
 
-	for _, v := range running {
+	for _, v := range allRunning {
 		if contains(g.NodesSorted(), v) {
 			running = append(running, v)
 		}
 	}
 
-	return
+	return running, nil
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
@@ -816,7 +816,7 @@ type SettlementsStreamMsg struct {
 // SettlementsStream returns stream of settlements of all nodes in the cluster
 func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -919,7 +919,7 @@ func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err err
 		}
 	}
 
-	return
+	return stopped, nil
 }
 
 // Topologies returns NodeGroupTopologies
@@ -955,7 +955,7 @@ type TopologyStreamMsg struct {
 // TopologyStream returns stream of Kademlia topologies of all nodes in the node group
 func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 

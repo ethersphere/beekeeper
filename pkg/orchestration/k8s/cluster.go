@@ -335,7 +335,7 @@ func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node orchestrat
 	nodes := []orchestration.Node{}
 	for _, ng := range c.NodeGroups() {
 		stopped, err := ng.StoppedNodes(ctx)
-		if err != nil && err != orchestration.ErrNotSet {
+		if err != nil {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 
