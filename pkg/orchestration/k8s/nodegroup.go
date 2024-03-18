@@ -14,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
 	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
 )
 
@@ -24,13 +25,14 @@ var _ orchestration.NodeGroup = (*NodeGroup)(nil)
 
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
-	name        string
-	nodes       map[string]orchestration.Node
-	opts        orchestration.NodeGroupOptions
-	clusterOpts orchestration.ClusterOptions
-	k8s         *k8s.Client
-	logger      logging.Logger
-	lock        sync.RWMutex
+	nodeOrchestrator orchestration.NodeOrchestrator
+	name             string
+	nodes            map[string]orchestration.Node
+	opts             orchestration.NodeGroupOptions
+	clusterOpts      orchestration.ClusterOptions
+	k8s              *k8s.Client
+	logger           logging.Logger
+	lock             sync.RWMutex
 }
 
 // NewNodeGroup returns new node group
@@ -38,13 +40,22 @@ func NewNodeGroup(name string, co orchestration.ClusterOptions, no orchestration
 	no.Annotations = utils.MergeMaps(no.Annotations, co.Annotations)
 	no.Labels = utils.MergeMaps(no.Labels, co.Labels)
 
+	var nodeOrchestrator orchestration.NodeOrchestrator
+
+	if co.K8SClient == nil {
+		nodeOrchestrator = &notset.BeeClient{}
+	} else {
+		nodeOrchestrator = newK8sNodeOrchestrator(co.K8SClient, log)
+	}
+
 	return &NodeGroup{
-		name:        name,
-		nodes:       make(map[string]orchestration.Node),
-		opts:        no,
-		clusterOpts: co,
-		k8s:         co.K8SClient,
-		logger:      log,
+		nodeOrchestrator: nodeOrchestrator,
+		name:             name,
+		nodes:            make(map[string]orchestration.Node),
+		opts:             no,
+		clusterOpts:      co,
+		k8s:              co.K8SClient,
+		logger:           log,
 	}
 }
 
@@ -82,10 +93,9 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		ClefPassword: o.ClefPassword,
 		Client:       client,
 		Config:       config,
-		K8S:          g.k8s,
 		LibP2PKey:    o.LibP2PKey,
 		SwarmKey:     o.SwarmKey,
-	}, g.logger)
+	}, g.nodeOrchestrator, g.logger)
 
 	g.addNode(n)
 
@@ -362,7 +372,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	n := NewNode(name, orchestration.NodeOptions{K8S: g.k8s}, g.logger)
+	n := NewNode(name, orchestration.NodeOptions{}, g.nodeOrchestrator, g.logger)
 	if err := n.Delete(ctx, g.clusterOpts.Namespace); err != nil {
 		return err
 	}

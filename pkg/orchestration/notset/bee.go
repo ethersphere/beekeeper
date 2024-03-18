@@ -6,6 +6,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
+var _ orchestration.NodeOrchestrator = (*BeeClient)(nil)
+
 // BeeClient represents not implemented Kubernetes Bee client
 type BeeClient struct{}
 

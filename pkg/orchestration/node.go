@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
 // ErrNotSet represents error when orchestration client is not set
@@ -20,17 +19,25 @@ type Node interface {
 	ClefPassword() string
 	Client() *bee.Client
 	Config() *Config
-	Create(ctx context.Context, o CreateOptions) (err error)
-	Delete(ctx context.Context, namespace string) (err error)
 	LibP2PKey() string
 	Name() string
-	Ready(ctx context.Context, namespace string) (ready bool, err error)
 	SetClefKey(key string) Node
 	SetClefPassword(key string) Node
 	SetSwarmKey(key string) Node
+	SwarmKey() string
+	Create(ctx context.Context, o CreateOptions) (err error)
+	Delete(ctx context.Context, namespace string) (err error)
+	Ready(ctx context.Context, namespace string) (ready bool, err error)
 	Start(ctx context.Context, namespace string) (err error)
 	Stop(ctx context.Context, namespace string) (err error)
-	SwarmKey() string
+}
+
+type NodeOrchestrator interface {
+	Create(ctx context.Context, o CreateOptions) (err error)
+	Delete(ctx context.Context, name string, namespace string) (err error)
+	Ready(ctx context.Context, name string, namespace string) (ready bool, err error)
+	Start(ctx context.Context, name string, namespace string) (err error)
+	Stop(ctx context.Context, name string, namespace string) (err error)
 }
 
 // EncryptedKey is part of Ethereum JSON v3 key file format.
@@ -68,7 +75,6 @@ type NodeOptions struct {
 	ClefPassword string
 	Client       *bee.Client
 	Config       *Config
-	K8S          *k8s.Client
 	LibP2PKey    string
 	SwarmKey     EncryptedKey
 }

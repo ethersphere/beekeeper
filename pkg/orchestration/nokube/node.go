@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
@@ -16,7 +15,6 @@ var _ orchestration.Node = (*Node)(nil)
 type Node struct {
 	name string
 	opts orchestration.NodeOptions
-	k8s  *k8s.Client
 	log  logging.Logger
 }
 
@@ -25,7 +23,6 @@ func NewNode(name string, opts orchestration.NodeOptions, log logging.Logger) (n
 	return &Node{
 		name: name,
 		opts: opts,
-		k8s:  opts.K8S,
 		log:  log,
 	}
 }
@@ -84,21 +81,21 @@ func (n Node) SetClefPassword(password string) orchestration.Node {
 }
 
 func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
-	panic("unimplemented")
+	return orchestration.ErrNotSet
 }
 
 func (n Node) Delete(ctx context.Context, namespace string) (err error) {
-	panic("unimplemented")
+	return orchestration.ErrNotSet
 }
 
 func (n Node) Ready(ctx context.Context, namespace string) (ready bool, err error) {
-	panic("unimplemented")
+	return false, orchestration.ErrNotSet
 }
 
 func (n Node) Start(ctx context.Context, namespace string) (err error) {
-	panic("unimplemented")
+	return orchestration.ErrNotSet
 }
 
 func (n Node) Stop(ctx context.Context, namespace string) (err error) {
-	panic("unimplemented")
+	return orchestration.ErrNotSet
 }

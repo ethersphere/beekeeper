@@ -26,19 +26,19 @@ var _ orchestration.Node = (*Node)(nil)
 
 // Node represents Bee node
 type Node struct {
+	orchestration.NodeOrchestrator
 	name string
 	opts orchestration.NodeOptions
-	k8s  *k8s.Client
 	log  logging.Logger
 }
 
 // NewNode returns Bee node
-func NewNode(name string, opts orchestration.NodeOptions, log logging.Logger) (n *Node) {
+func NewNode(name string, opts orchestration.NodeOptions, no orchestration.NodeOrchestrator, log logging.Logger) (n *Node) {
 	return &Node{
-		name: name,
-		opts: opts,
-		k8s:  opts.K8S,
-		log:  log,
+		NodeOrchestrator: no,
+		name:             name,
+		opts:             opts,
+		log:              log,
 	}
 }
 
@@ -95,8 +95,52 @@ func (n Node) SetClefPassword(password string) orchestration.Node {
 	return n
 }
 
-// Create
+// Create implements orchestration.Node.
+// Subtle: this method shadows the method (NodeOrchestrator).Create of Node.NodeOrchestrator.
 func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
+	return n.NodeOrchestrator.Create(ctx, o)
+}
+
+// Delete implements orchestration.Node.
+// Subtle: this method shadows the method (NodeOrchestrator).Delete of Node.NodeOrchestrator.
+func (n Node) Delete(ctx context.Context, namespace string) (err error) {
+	return n.NodeOrchestrator.Delete(ctx, n.name, namespace)
+}
+
+// Ready implements orchestration.Node.
+// Subtle: this method shadows the method (NodeOrchestrator).Ready of Node.NodeOrchestrator.
+func (n Node) Ready(ctx context.Context, namespace string) (ready bool, err error) {
+	return n.NodeOrchestrator.Ready(ctx, n.name, namespace)
+}
+
+// Start implements orchestration.Node.
+// Subtle: this method shadows the method (NodeOrchestrator).Start of Node.NodeOrchestrator.
+func (n Node) Start(ctx context.Context, namespace string) (err error) {
+	return n.NodeOrchestrator.Start(ctx, n.name, namespace)
+}
+
+// Stop implements orchestration.Node.
+// Subtle: this method shadows the method (NodeOrchestrator).Stop of Node.NodeOrchestrator.
+func (n Node) Stop(ctx context.Context, namespace string) (err error) {
+	return n.NodeOrchestrator.Stop(ctx, n.name, namespace)
+}
+
+var _ orchestration.NodeOrchestrator = (*k8sNodeOrchestrator)(nil)
+
+type k8sNodeOrchestrator struct {
+	k8s *k8s.Client
+	log logging.Logger
+}
+
+func newK8sNodeOrchestrator(k8s *k8s.Client, log logging.Logger) orchestration.NodeOrchestrator {
+	return &k8sNodeOrchestrator{
+		k8s: k8s,
+		log: log,
+	}
+}
+
+// Create
+func (n *k8sNodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
 	// bee configuration
 	var config bytes.Buffer
 	if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
@@ -479,29 +523,29 @@ func (n Node) Create(ctx context.Context, o orchestration.CreateOptions) (err er
 	return
 }
 
-func (n Node) Delete(ctx context.Context, namespace string) (err error) {
+func (n *k8sNodeOrchestrator) Delete(ctx context.Context, name string, namespace string) (err error) {
 	// statefulset
-	if err := n.k8s.StatefulSet.Delete(ctx, n.name, namespace); err != nil {
+	if err := n.k8s.StatefulSet.Delete(ctx, name, namespace); err != nil {
 		return fmt.Errorf("deleting statefulset in namespace %s: %w", namespace, err)
 	}
-	n.log.Infof("statefulset %s is deleted in namespace %s", n.name, namespace)
+	n.log.Infof("statefulset %s is deleted in namespace %s", name, namespace)
 
 	// headless service
-	headlessSvc := fmt.Sprintf("%s-headless", n.name)
+	headlessSvc := fmt.Sprintf("%s-headless", name)
 	if err := n.k8s.Service.Delete(ctx, headlessSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("service %s is deleted in namespace %s", headlessSvc, namespace)
 
 	// p2p service
-	p2pSvc := fmt.Sprintf("%s-p2p", n.name)
+	p2pSvc := fmt.Sprintf("%s-p2p", name)
 	if err := n.k8s.Service.Delete(ctx, p2pSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("service %s is deleted in namespace %s", p2pSvc, namespace)
 
 	// debug service's ingress
-	debugIn := fmt.Sprintf("%s-debug", n.name)
+	debugIn := fmt.Sprintf("%s-debug", name)
 	if err := n.k8s.Ingress.Delete(ctx, debugIn, namespace); err != nil {
 		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
 	}
@@ -514,14 +558,14 @@ func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 	n.log.Infof("ingress route %s is deleted in namespace %s", debugIn, namespace)
 
 	// debug service
-	debugSvc := fmt.Sprintf("%s-debug", n.name)
+	debugSvc := fmt.Sprintf("%s-debug", name)
 	if err := n.k8s.Service.Delete(ctx, debugSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("service %s is deleted in namespace %s", debugSvc, namespace)
 
 	// api service's ingress
-	apiIn := fmt.Sprintf("%s-api", n.name)
+	apiIn := fmt.Sprintf("%s-api", name)
 	if err := n.k8s.Ingress.Delete(ctx, apiIn, namespace); err != nil {
 		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
 	}
@@ -534,70 +578,70 @@ func (n Node) Delete(ctx context.Context, namespace string) (err error) {
 	n.log.Infof("ingress route %s is deleted in namespace %s", apiIn, namespace)
 
 	// api service
-	apiSvc := fmt.Sprintf("%s-api", n.name)
+	apiSvc := fmt.Sprintf("%s-api", name)
 	if err := n.k8s.Service.Delete(ctx, apiSvc, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("service %s is deleted in namespace %s", apiSvc, namespace)
 
 	// service account
-	svcAccount := n.name
+	svcAccount := name
 	if err := n.k8s.ServiceAccount.Delete(ctx, svcAccount, namespace); err != nil {
 		return fmt.Errorf("deleting serviceaccount in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("serviceaccount %s is deleted in namespace %s", svcAccount, namespace)
 
 	// secret with clef key
-	clefSecret := fmt.Sprintf("%s-clef", n.name)
+	clefSecret := fmt.Sprintf("%s-clef", name)
 	if err := n.k8s.Secret.Delete(ctx, clefSecret, namespace); err != nil {
 		return fmt.Errorf("deleting secret in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("secret %s is deleted in namespace %s", clefSecret, namespace)
 
 	// secret with keys
-	keysSecret := fmt.Sprintf("%s-keys", n.name)
+	keysSecret := fmt.Sprintf("%s-keys", name)
 	if err = n.k8s.Secret.Delete(ctx, keysSecret, namespace); err != nil {
 		return fmt.Errorf("deleting secret %s in namespace %s: %w", keysSecret, namespace, err)
 	}
 	n.log.Infof("secret %s is deleted in namespace %s", keysSecret, namespace)
 
 	// bee configuration
-	configCM := n.name
+	configCM := name
 	if err = n.k8s.ConfigMap.Delete(ctx, configCM, namespace); err != nil {
 		return fmt.Errorf("deleting configmap %s in namespace %s: %w", configCM, namespace, err)
 	}
 	n.log.Infof("configmap %s is deleted in namespace %s", configCM, namespace)
 
-	n.log.Infof("node %s is deleted in namespace %s", n.name, namespace)
+	n.log.Infof("node %s is deleted in namespace %s", name, namespace)
 	return
 }
 
-func (n Node) Ready(ctx context.Context, namespace string) (ready bool, err error) {
-	// r, err := n.k8s.StatefulSet.ReadyReplicas(ctx, n.name, namespace)
-	r, err := n.k8s.StatefulSet.ReadyReplicasWatch(ctx, n.name, namespace)
+func (n *k8sNodeOrchestrator) Ready(ctx context.Context, name string, namespace string) (ready bool, err error) {
+	// r, err := n.k8s.StatefulSet.ReadyReplicas(ctx, name, namespace)
+	r, err := n.k8s.StatefulSet.ReadyReplicasWatch(ctx, name, namespace)
 	if err != nil {
-		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", n.name, namespace, err)
+		return false, fmt.Errorf("statefulset %s in namespace %s ready replicas: %w", name, namespace, err)
 	}
 
 	return r == 1, nil
 }
 
-func (n Node) Start(ctx context.Context, namespace string) (err error) {
-	_, err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 1)
+func (n *k8sNodeOrchestrator) Start(ctx context.Context, name string, namespace string) (err error) {
+	_, err = n.k8s.StatefulSet.Scale(ctx, name, namespace, 1)
 	if err != nil {
-		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
+		return fmt.Errorf("scale statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 
-	n.log.Infof("node %s is started in namespace %s", n.name, namespace)
+	n.log.Infof("node %s is started in namespace %s", name, namespace)
 	return
 }
 
-func (n Node) Stop(ctx context.Context, namespace string) (err error) {
-	_, err = n.k8s.StatefulSet.Scale(ctx, n.name, namespace, 0)
+func (n *k8sNodeOrchestrator) Stop(ctx context.Context, name string, namespace string) (err error) {
+	_, err = n.k8s.StatefulSet.Scale(ctx, name, namespace, 0)
 	if err != nil {
-		return fmt.Errorf("scale statefulset %s in namespace %s: %w", n.name, namespace, err)
+		return fmt.Errorf("scale statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 
-	n.log.Infof("node %s is stopped in namespace %s", n.name, namespace)
+	n.log.Infof("node %s is stopped in namespace %s", name, namespace)
 	return
 }
