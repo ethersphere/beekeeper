@@ -1,4 +1,4 @@
-FROM golang:1.21 AS build
+FROM golang:1.22 AS build
 
 WORKDIR /src
 # enable modules caching in separate layer
@@ -8,7 +8,7 @@ COPY . ./
 
 RUN make binary
 
-FROM debian:12.1-slim
+FROM debian:12.5-slim
 
 ENV DEBIAN_FRONTEND noninteractive
 
