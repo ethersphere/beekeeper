@@ -151,7 +151,7 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 		case redundancy.INSANE:
 			rate = 0.1
 		case redundancy.PARANOID:
-			rate = 0.35
+			rate = 0.5
 		}
 	} else {
 		switch rLevel {
@@ -162,7 +162,7 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 		case redundancy.INSANE:
 			rate = 0.35
 		case redundancy.PARANOID:
-			rate = 0.7
+			rate = 0.9
 		}
 	}
 
