@@ -25,7 +25,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		return fmt.Errorf("cluster %s not defined", clusterName)
 	}
 
-	cluster := configureCluster(clusterConfig, c, true)
+	cluster := configureCluster(clusterConfig, c)
 
 	// delete node groups
 	for ngName, v := range clusterConfig.GetNodeGroups() {
@@ -108,7 +108,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 	return
 }
 
-func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, startCluster bool, isK8sEnabled bool) (cluster orchestration.Cluster, err error) {
+func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, startCluster bool) (cluster orchestration.Cluster, err error) {
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
@@ -128,7 +128,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		fundOpts = ensureFundingDefaults(clusterConfig.Funding.Export(), c.log)
 	}
 
-	cluster = configureCluster(clusterConfig, c, isK8sEnabled)
+	cluster = configureCluster(clusterConfig, c)
 
 	nodeResultChan := make(chan nodeResult)
 	defer close(nodeResultChan)
@@ -180,12 +180,10 @@ func ensureFundingDefaults(fundOpts orchestration.FundingOptions, log logging.Lo
 	return fundOpts
 }
 
-func configureCluster(clusterConfig config.Cluster, c *command, isK8sEnabled bool) orchestration.Cluster {
+func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
 	clusterOpts := clusterConfig.Export()
 	clusterOpts.SwapClient = c.swapClient
-	if isK8sEnabled {
-		clusterOpts.K8SClient = c.k8sClient
-	}
+	clusterOpts.K8SClient = c.k8sClient
 	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 

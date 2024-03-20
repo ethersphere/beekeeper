@@ -23,7 +23,7 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 			start := time.Now()
-			_, err = c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, true, c.globalConfig.GetBool(optionNameEnableK8S))
+			_, err = c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, true)
 			c.log.Infof("cluster setup took %s", time.Since(start))
 			return err
 		},

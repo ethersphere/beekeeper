@@ -45,7 +45,6 @@ func (c *command) initCheckCmd() (err error) {
 				c.globalConfig.GetString(optionNameClusterName),
 				c.config,
 				c.globalConfig.GetBool(optionNameCreateCluster),
-				c.globalConfig.GetBool(optionNameEnableK8S),
 			)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)

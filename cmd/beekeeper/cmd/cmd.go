@@ -313,7 +313,6 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 
 func (c *command) setK8S() (err error) {
 	if c.globalConfig.GetBool(optionNameEnableK8S) {
-
 		inCluster := c.globalConfig.GetBool(optionNameInCluster)
 		kubeconfigPath := c.globalConfig.GetString(optionNameKubeconfig)
 
