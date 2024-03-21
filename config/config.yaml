@@ -6,7 +6,7 @@ clusters:
     name: bee
     namespace: beekeeper
     disable-namespace: false
-    use-static-endpoints: true
+    use-static-endpoints: false
     api-domain: staging.internal
     api-insecure-tls: true
     api-scheme: https
