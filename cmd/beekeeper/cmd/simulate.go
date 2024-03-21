@@ -41,7 +41,11 @@ func (c *command) initSimulateCmd() (err error) {
 			}
 
 			// setup cluster
-			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, c.globalConfig.GetBool(optionNameCreateCluster))
+			cluster, err := c.setupCluster(ctx,
+				c.globalConfig.GetString(optionNameClusterName),
+				c.config,
+				c.globalConfig.GetBool(optionNameCreateCluster),
+			)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}

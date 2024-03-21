@@ -14,6 +14,7 @@ type Cluster struct {
 	Name                *string                      `yaml:"name"`
 	Namespace           *string                      `yaml:"namespace"`
 	DisableNamespace    *bool                        `yaml:"disable-namespace"`
+	UseStaticEndpoints  *bool                        `yaml:"use-static-endpoints"`
 	APIDomain           *string                      `yaml:"api-domain"`
 	APIInsecureTLS      *bool                        `yaml:"api-insecure-tls"`
 	APIScheme           *string                      `yaml:"api-scheme"`
@@ -27,11 +28,12 @@ type Cluster struct {
 
 // ClusterNodeGroup represents node group in the cluster
 type ClusterNodeGroup struct {
-	Mode      string        `yaml:"mode"`
-	BeeConfig string        `yaml:"bee-config"`
-	Config    string        `yaml:"config"`
-	Count     int           `yaml:"count"`
-	Nodes     []ClusterNode `yaml:"nodes"`
+	Mode          string         `yaml:"mode"`
+	BeeConfig     string         `yaml:"bee-config"`
+	Config        string         `yaml:"config"`
+	Count         int            `yaml:"count"`
+	Nodes         []ClusterNode  `yaml:"nodes"`
+	NodeEnpodints []NodeEndpoint `yaml:"enpodints"`
 }
 
 // ClusterNode represents node in the cluster
@@ -41,6 +43,12 @@ type ClusterNode struct {
 	Clef      Clef   `yaml:"clef"`
 	LibP2PKey string `yaml:"libp2p-key"`
 	SwarmKey  string `yaml:"swarm-key"`
+}
+
+type NodeEndpoint struct {
+	Name        string `yaml:"name"`
+	APIURL      string `yaml:"api-url"`
+	DebugAPIURL string `yaml:"debug-api-url"`
 }
 
 type Clef struct {
@@ -92,4 +100,12 @@ func (c *Cluster) GetNodeGroups() map[string]ClusterNodeGroup {
 		return nil
 	}
 	return *c.NodeGroups
+}
+
+func (ng *ClusterNodeGroup) GetEndpoints() map[string]NodeEndpoint {
+	endpoints := make(map[string]NodeEndpoint)
+	for _, endpoint := range ng.NodeEnpodints {
+		endpoints[endpoint.Name] = endpoint
+	}
+	return endpoints
 }
