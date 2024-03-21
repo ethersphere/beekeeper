@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"sort"
 	"sync"
 	"time"
@@ -48,13 +49,15 @@ func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestrat
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.NodeOptions) (err error) {
-	aURL, err := g.clusterOpts.ApiURL(name)
+func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
+	var aURL *url.URL
+	var dURL *url.URL
+
+	aURL, err = g.clusterOpts.ApiURL(name)
 	if err != nil {
 		return fmt.Errorf("API URL %s: %w", name, err)
 	}
-
-	dURL, err := g.clusterOpts.DebugAPIURL(name)
+	dURL, err = g.clusterOpts.DebugAPIURL(name)
 	if err != nil {
 		return fmt.Errorf("debug API URL %s: %w", name, err)
 	}
@@ -67,14 +70,23 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		config = g.opts.BeeConfig
 	}
 
-	client := bee.NewClient(bee.ClientOptions{
+	beeClientOpts := bee.ClientOptions{
 		APIURL:              aURL,
 		APIInsecureTLS:      g.clusterOpts.APIInsecureTLS,
 		DebugAPIURL:         dURL,
 		DebugAPIInsecureTLS: g.clusterOpts.DebugAPIInsecureTLS,
 		Retry:               5,
 		Restricted:          config.Restricted,
-	}, g.log)
+	}
+
+	for _, opt := range opts {
+		err := opt(&beeClientOpts)
+		if err != nil {
+			return fmt.Errorf("bee client option: %w", err)
+		}
+	}
+
+	client := bee.NewClient(beeClientOpts, g.log)
 
 	n := NewNode(name, orchestration.NodeOptions{
 		ClefKey:      o.ClefKey,

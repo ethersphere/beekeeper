@@ -24,10 +24,10 @@ const retryCount int = 5
 
 // Client manages communication with the Bee node
 type Client struct {
-	api    *api.Client
-	debug  *debugapi.Client
-	opts   ClientOptions
-	logger logging.Logger
+	api   *api.Client
+	debug *debugapi.Client
+	opts  ClientOptions
+	log   logging.Logger
 	// number of times to retry call
 	retry int
 }
@@ -43,11 +43,11 @@ type ClientOptions struct {
 }
 
 // NewClient returns Bee client
-func NewClient(opts ClientOptions, logger logging.Logger) (c *Client) {
+func NewClient(opts ClientOptions, log logging.Logger) (c *Client) {
 	c = &Client{
-		retry:  retryCount,
-		opts:   opts,
-		logger: logger,
+		retry: retryCount,
+		opts:  opts,
+		log:   log,
 	}
 
 	if opts.APIURL != nil {
@@ -384,7 +384,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (before): %w", err)
 		}
-		c.logger.Infof("reserve state (prior to buying the batch):%s", rs.String())
+		c.log.Infof("reserve state (prior to buying the batch):%s", rs.String())
 	}
 	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, label)
 	if err != nil {
@@ -420,8 +420,8 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (after): %w", err)
 		}
-		c.logger.Infof("reserve state (after buying the batch):\n%s", rs.String())
-		c.logger.Infof("created batch id %s with depth %d and amount %d", id, depth, amount)
+		c.log.Infof("reserve state (after buying the batch):\n%s", rs.String())
+		c.log.Infof("created batch id %s with depth %d and amount %d", id, depth, amount)
 	}
 	return id, nil
 }

@@ -189,6 +189,7 @@ func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cl
 
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
 	var nodeCount uint32
+
 	for ngName, v := range clusterConfig.GetNodeGroups() {
 
 		if (v.Mode != bootnodeMode && bootnode) || (v.Mode == bootnodeMode && !bootnode) {
@@ -228,7 +229,6 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			}
 
 			var nodeOpts orchestration.NodeOptions
-
 			if bootnode {
 				// set bootnodes
 				bConfig.Bootnodes = fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
@@ -237,17 +237,18 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			} else {
 				nodeOpts = setupNodeOptions(node, nil)
 			}
-
+			beeOpt := getBeeOption(clusterConfig, v, nodeName)
 			nodeCount++
-			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh)
+			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh, beeOpt)
 		}
 
 		if len(v.Nodes) == 0 && !bootnode {
 			for i := 0; i < v.Count; i++ {
 				// set node name
 				nodeName := fmt.Sprintf("%s-%d", ngName, i)
+				beeOpt := getBeeOption(clusterConfig, v, nodeName)
 				nodeCount++
-				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh)
+				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, beeOpt)
 			}
 		}
 	}
@@ -267,12 +268,21 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 	return fundAddresses, bootnodesOut, nil
 }
 
-func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult) {
+func getBeeOption(clusterConfig config.Cluster, v config.ClusterNodeGroup, nodeName string) orchestration.BeeClientOption {
+	var beeOpt orchestration.BeeClientOption
+	if *clusterConfig.UseStaticEndpoints {
+		endpoints := v.GetEndpoints()
+		beeOpt = orchestration.WithURLs(endpoints[nodeName].APIURL, endpoints[nodeName].DebugAPIURL)
+	}
+	return beeOpt
+}
+
+func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult, beeOpt orchestration.BeeClientOption) {
 	if startCluster {
 		ethAddress, err := ng.SetupNode(ctx, nName, nodeOpts)
 		ch <- nodeResult{ethAddress: ethAddress, err: err}
 	} else {
-		err := ng.AddNode(ctx, nName, nodeOpts)
+		err := ng.AddNode(ctx, nName, nodeOpts, beeOpt)
 		ch <- nodeResult{err: err}
 	}
 }
