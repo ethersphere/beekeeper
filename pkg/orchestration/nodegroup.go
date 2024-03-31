@@ -119,3 +119,10 @@ func WithURLs(apiURL, debugAPIURL string) BeeClientOption {
 		return nil
 	}
 }
+
+// WithNoOptions represents no BeeClientOption
+func WithNoOptions() BeeClientOption {
+	return func(o *bee.ClientOptions) error {
+		return nil
+	}
+}

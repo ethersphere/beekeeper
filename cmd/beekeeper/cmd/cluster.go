@@ -269,12 +269,11 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 }
 
 func getBeeOption(clusterConfig config.Cluster, v config.ClusterNodeGroup, nodeName string) orchestration.BeeClientOption {
-	var beeOpt orchestration.BeeClientOption
-	if *clusterConfig.UseStaticEndpoints {
+	if clusterConfig.UseStaticEndpoints != nil && *clusterConfig.UseStaticEndpoints {
 		endpoints := v.GetEndpoints()
-		beeOpt = orchestration.WithURLs(endpoints[nodeName].APIURL, endpoints[nodeName].DebugAPIURL)
+		return orchestration.WithURLs(endpoints[nodeName].APIURL, endpoints[nodeName].DebugAPIURL)
 	}
-	return beeOpt
+	return orchestration.WithNoOptions()
 }
 
 func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult, beeOpt orchestration.BeeClientOption) {
