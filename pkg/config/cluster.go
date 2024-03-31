@@ -102,6 +102,14 @@ func (c *Cluster) GetNodeGroups() map[string]ClusterNodeGroup {
 	return *c.NodeGroups
 }
 
+// GetUseStaticEndpoints
+func (c *Cluster) GetUseStaticEndpoints() bool {
+	if c.UseStaticEndpoints == nil {
+		return false
+	}
+	return *c.UseStaticEndpoints
+}
+
 func (ng *ClusterNodeGroup) GetEndpoints() map[string]NodeEndpoint {
 	endpoints := make(map[string]NodeEndpoint)
 	for _, endpoint := range ng.NodeEnpodints {

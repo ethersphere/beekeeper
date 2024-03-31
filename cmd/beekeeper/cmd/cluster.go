@@ -268,9 +268,9 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 	return fundAddresses, bootnodesOut, nil
 }
 
-func getBeeOption(clusterConfig config.Cluster, v config.ClusterNodeGroup, nodeName string) orchestration.BeeClientOption {
-	if clusterConfig.UseStaticEndpoints != nil && *clusterConfig.UseStaticEndpoints {
-		endpoints := v.GetEndpoints()
+func getBeeOption(clusterConfig config.Cluster, cng config.ClusterNodeGroup, nodeName string) orchestration.BeeClientOption {
+	if clusterConfig.GetUseStaticEndpoints() {
+		endpoints := cng.GetEndpoints()
 		return orchestration.WithURLs(endpoints[nodeName].APIURL, endpoints[nodeName].DebugAPIURL)
 	}
 	return orchestration.WithNoOptions()
