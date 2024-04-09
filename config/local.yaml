@@ -385,7 +385,7 @@ checks:
     options:
       amount: 1000000000000000000
       insufficient-amount: 102400
-      contract-addr: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
+      contract-addr: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
       geth-url: "http://geth-swap.localhost"
       geth-chain-id: 12345
