@@ -168,7 +168,7 @@ bee-configs:
     full-node: true
     mainnet: false
     nat-addr: ""
-    network-id: 12345
+    network-id: 0
     p2p-addr: ":1634"
     p2p-ws-enable: false
     password: "beekeeper"
