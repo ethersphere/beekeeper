@@ -32,7 +32,7 @@ jobs:
         run: git config --global core.autocrlf false
       - name: Lint
         if: matrix.os == 'ubuntu-latest'
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
           version: v1.56.2
           args: --timeout 10m
