@@ -67,7 +67,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if paused, err := stake.Paused(); err != nil {
-		return fmt.Errorf("chack if contract is paused: %w", err)
+		return fmt.Errorf("check if contract is paused: %w", err)
 	} else if paused {
 		c.logger.Info("contract is paused, skipping")
 		return nil
