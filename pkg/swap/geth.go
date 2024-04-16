@@ -246,14 +246,14 @@ func (g *GethClient) ethAccounts(ctx context.Context) (a []string, err error) {
 
 // contains checks if list contains string
 func contains(list []string, find string) bool {
-	for _, v := range list {
-		if v == find {
+	for _, s := range list {
+		if strings.EqualFold(s, find) {
 			return true
 		}
 	}
-
 	return false
 }
+
 
 // addPrefix adds prefix to string if it doesn't exist
 func addPrefix(prefix, to string) string {
