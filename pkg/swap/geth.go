@@ -254,7 +254,6 @@ func contains(list []string, find string) bool {
 	return false
 }
 
-
 // addPrefix adds prefix to string if it doesn't exist
 func addPrefix(prefix, to string) string {
 	if !strings.HasPrefix(to, prefix) {
