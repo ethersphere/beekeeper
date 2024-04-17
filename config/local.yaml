@@ -7,8 +7,6 @@ clusters:
     disable-namespace: true
     api-domain: localhost
     api-scheme: http
-    debug-api-domain: localhost
-    debug-api-scheme: http
     admin-password: test
     funding:
       eth: 0.1
@@ -119,7 +117,6 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
     ingress-class: "traefik"
-    ingress-debug-class: "traefik"
     labels:
       app.kubernetes.io/component: "node"
       app.kubernetes.io/name: "bee"

@@ -25,8 +25,6 @@ db-open-files-limit: {{.DbOpenFilesLimit}}
 db-block-cache-capacity: {{.DbBlockCacheCapacity}}
 db-write-buffer-size: {{.DbWriteBufferSize}}
 db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
-debug-api-addr: {{.DebugAPIAddr}}
-debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}
 mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
@@ -110,7 +108,6 @@ type setContainersOptions struct {
 	Image                  string
 	ImagePullPolicy        string
 	PortAPI                int32
-	PortDebug              int32
 	PortP2P                int32
 	PersistenceEnabled     bool
 	ResourcesLimitCPU      string
@@ -136,11 +133,6 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 			{
 				Name:          "api",
 				ContainerPort: o.PortAPI,
-				Protocol:      "TCP",
-			},
-			{
-				Name:          "debug",
-				ContainerPort: o.PortDebug,
 				Protocol:      "TCP",
 			},
 			{

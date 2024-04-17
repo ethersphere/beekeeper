@@ -49,8 +49,6 @@ type NodeGroupOptions struct {
 	ImagePullSecrets          []string
 	IngressAnnotations        map[string]string
 	IngressClass              string
-	IngressDebugAnnotations   map[string]string
-	IngressDebugClass         string
 	Labels                    map[string]string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool

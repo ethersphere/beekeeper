@@ -100,9 +100,6 @@ type CreateOptions struct {
 	IngressAnnotations        map[string]string
 	IngressClass              string
 	IngressHost               string
-	IngressDebugAnnotations   map[string]string
-	IngressDebugClass         string
-	IngressDebugHost          string
 	LibP2PKey                 string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
@@ -135,8 +132,6 @@ type Config struct {
 	DbBlockCacheCapacity      int           // size of block cache of the database in bytes
 	DbWriteBufferSize         int           // size of the database write buffer in bytes
 	DbDisableSeeksCompaction  bool          // disables DB compactions triggered by seeks
-	DebugAPIAddr              string        // debug HTTP API listen address
-	DebugAPIEnable            bool          // enable debug HTTP API
 	FullNode                  bool          // cause the node to start in full mode
 	Mainnet                   bool          // enable mainnet
 	NATAddr                   string        // NAT exposed address
