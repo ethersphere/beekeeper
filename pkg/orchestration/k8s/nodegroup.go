@@ -347,7 +347,6 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		IngressHost:               g.clusterOpts.IngressHost(name),
 		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
 		IngressDebugClass:         g.opts.IngressDebugClass,
-		IngressDebugHost:          g.clusterOpts.IngressDebugHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 n.LibP2PKey(),
 		NodeSelector:              g.opts.NodeSelector,
