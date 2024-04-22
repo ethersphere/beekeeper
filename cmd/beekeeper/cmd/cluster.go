@@ -224,6 +224,17 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			return nil, "", fmt.Errorf("get node group: %w", err)
 		}
 
+		if clusterConfig.IsUsingStaticEndpoints() {
+			for nodeName, endpoint := range v.GetEndpoints() {
+				beeOpt := orchestration.WithURLs(endpoint.APIURL, endpoint.DebugAPIURL)
+				nodeCount++
+				go setupOrAddNode(ctx, false, ng, nodeName, orchestration.NodeOptions{
+					Config: &bConfig,
+				}, nodeResultCh, beeOpt)
+			}
+			continue
+		}
+
 		for i, node := range v.Nodes {
 			// set node name
 			nodeName := fmt.Sprintf("%s-%d", ngName, i)
@@ -240,18 +251,16 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			} else {
 				nodeOpts = setupNodeOptions(node, nil)
 			}
-			beeOpt := getBeeOption(clusterConfig, v, nodeName)
 			nodeCount++
-			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh, beeOpt)
+			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh, orchestration.WithNoOptions())
 		}
 
 		if len(v.Nodes) == 0 && !bootnode {
 			for i := 0; i < v.Count; i++ {
 				// set node name
 				nodeName := fmt.Sprintf("%s-%d", ngName, i)
-				beeOpt := getBeeOption(clusterConfig, v, nodeName)
 				nodeCount++
-				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, beeOpt)
+				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, orchestration.WithNoOptions())
 			}
 		}
 	}
@@ -269,14 +278,6 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 	}
 
 	return fundAddresses, bootnodesOut, nil
-}
-
-func getBeeOption(clusterConfig config.Cluster, cng config.ClusterNodeGroup, nodeName string) orchestration.BeeClientOption {
-	if clusterConfig.IsUsingStaticEndpoints() {
-		endpoints := cng.GetEndpoints()
-		return orchestration.WithURLs(endpoints[nodeName].APIURL, endpoints[nodeName].DebugAPIURL)
-	}
-	return orchestration.WithNoOptions()
 }
 
 func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult, beeOpt orchestration.BeeClientOption) {
