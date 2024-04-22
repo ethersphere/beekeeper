@@ -56,7 +56,6 @@ type ClusterOptions struct {
 	Namespace           string
 	DisableNamespace    bool
 	AdminPassword       string
-	UseStaticEndpoints  bool
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster

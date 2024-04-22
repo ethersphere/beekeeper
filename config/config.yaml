@@ -20,7 +20,7 @@ clusters:
     node-groups:
       bootnode:
         mode: bootnode
-        enpodints:
+        endpoints:
           - name: bootnode-0
             api-url: https://bootnode-0.beekeeper.testnet.internal
             debug-api-url: https://bootnode-0-debug.beekeeper.testnet.internal
@@ -46,7 +46,7 @@ clusters:
         bee-config: default
         config: default
         count: 3
-        enpodints:
+        endpoints:
           - name: bee-0
             api-url: https://bee-0.beekeeper.testnet.internal
             debug-api-url: https://bee-0-debug.beekeeper.testnet.internal
@@ -71,7 +71,7 @@ clusters:
         bee-config: light-node
         config: light-node
         count: 3
-        enpodints:
+        endpoints:
           - name: light-0
             api-url: https://light-0.beekeeper.testnet.internal
             debug-api-url: https://light-0-debug.beekeeper.testnet.internal

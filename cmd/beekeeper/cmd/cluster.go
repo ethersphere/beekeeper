@@ -119,6 +119,9 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	var fundOpts orchestration.FundingOptions
 
 	if startCluster {
+		if clusterConfig.IsUsingStaticEndpoints() {
+			return nil, errors.New("static endpoints are not supported for starting the cluster")
+		}
 		if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
 			return nil, errors.New("chain node endpoint (geth-url) not provided")
 		}
@@ -269,7 +272,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 }
 
 func getBeeOption(clusterConfig config.Cluster, cng config.ClusterNodeGroup, nodeName string) orchestration.BeeClientOption {
-	if clusterConfig.GetUseStaticEndpoints() {
+	if clusterConfig.IsUsingStaticEndpoints() {
 		endpoints := cng.GetEndpoints()
 		return orchestration.WithURLs(endpoints[nodeName].APIURL, endpoints[nodeName].DebugAPIURL)
 	}

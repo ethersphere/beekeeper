@@ -28,12 +28,13 @@ type Cluster struct {
 
 // ClusterNodeGroup represents node group in the cluster
 type ClusterNodeGroup struct {
+	cluster       *Cluster
 	Mode          string         `yaml:"mode"`
 	BeeConfig     string         `yaml:"bee-config"`
 	Config        string         `yaml:"config"`
 	Count         int            `yaml:"count"`
 	Nodes         []ClusterNode  `yaml:"nodes"`
-	NodeEnpodints []NodeEndpoint `yaml:"enpodints"`
+	NodeEndpoints []NodeEndpoint `yaml:"endpoints"`
 }
 
 // ClusterNode represents node in the cluster
@@ -99,11 +100,18 @@ func (c *Cluster) GetNodeGroups() map[string]ClusterNodeGroup {
 	if c.NodeGroups == nil {
 		return nil
 	}
-	return *c.NodeGroups
+
+	nodeGroups := *c.NodeGroups
+	for key, group := range nodeGroups {
+		group.cluster = c // Set the reference to the parent cluster
+		nodeGroups[key] = group
+	}
+
+	return nodeGroups
 }
 
-// GetUseStaticEndpoints
-func (c *Cluster) GetUseStaticEndpoints() bool {
+// IsUsingStaticEndpoints
+func (c *Cluster) IsUsingStaticEndpoints() bool {
 	if c.UseStaticEndpoints == nil {
 		return false
 	}
@@ -112,7 +120,7 @@ func (c *Cluster) GetUseStaticEndpoints() bool {
 
 func (ng *ClusterNodeGroup) GetEndpoints() map[string]NodeEndpoint {
 	endpoints := make(map[string]NodeEndpoint)
-	for _, endpoint := range ng.NodeEnpodints {
+	for _, endpoint := range ng.NodeEndpoints {
 		endpoints[endpoint.Name] = endpoint
 	}
 	return endpoints
