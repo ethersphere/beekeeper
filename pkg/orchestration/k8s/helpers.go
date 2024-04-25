@@ -150,14 +150,14 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 			},
 		},
 		LivenessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
-			InitialDelaySeconds: 5,
+			InitialDelaySeconds: 30,
 			Handler: containers.HTTPGetHandler{
 				Path: "/health",
 				Port: "debug",
 			},
 		}},
 		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
-			InitialDelaySeconds: 5,
+			InitialDelaySeconds: 30,
 			Handler: containers.HTTPGetHandler{
 				// Bee node is not ready until it is funded
 				// because Beekeeper does funding it needs node to be ready before it is funded
