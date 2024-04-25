@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"net/url"
 	"sort"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/swap"
+	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
 )
 
 // compile check whether client implements interface
@@ -20,53 +18,35 @@ var _ orchestration.Cluster = (*Cluster)(nil)
 
 // Cluster represents cluster of Bee nodes
 type Cluster struct {
-	name                string
-	annotations         map[string]string
-	apiDomain           string
-	apiInsecureTLS      bool
-	apiScheme           string
-	debugAPIDomain      string
-	debugAPIInsecureTLS bool
-	debugAPIScheme      string
-	k8s                 *k8s.Client
-	swap                swap.Client
-	labels              map[string]string
-	namespace           string
-	disableNamespace    bool                  // do not use namespace for node hostnames
-	nodeGroups          map[string]*NodeGroup // set when groups are added to the cluster
-	logger              logging.Logger
+	nodeOrchestrator orchestration.NodeOrchestrator
+	name             string
+	opts             orchestration.ClusterOptions
+	nodeGroups       map[string]orchestration.NodeGroup // set when groups are added to the cluster
+	log              logging.Logger
 }
 
 // NewCluster returns new cluster
-func NewCluster(name string, o orchestration.ClusterOptions, logger logging.Logger) *Cluster {
+func NewCluster(name string, o orchestration.ClusterOptions, log logging.Logger) *Cluster {
+	var no orchestration.NodeOrchestrator
+
+	if o.K8SClient == nil {
+		no = &notset.BeeClient{}
+	} else {
+		no = newNodeOrchestrator(o.K8SClient, log)
+	}
+
 	return &Cluster{
-		name:                name,
-		annotations:         o.Annotations,
-		apiDomain:           o.APIDomain,
-		apiInsecureTLS:      o.APIInsecureTLS,
-		apiScheme:           o.APIScheme,
-		debugAPIDomain:      o.DebugAPIDomain,
-		debugAPIInsecureTLS: o.DebugAPIInsecureTLS,
-		debugAPIScheme:      o.DebugAPIScheme,
-		k8s:                 o.K8SClient,
-		swap:                o.SwapClient,
-		labels:              o.Labels,
-		namespace:           o.Namespace,
-		disableNamespace:    o.DisableNamespace,
-		nodeGroups:          make(map[string]*NodeGroup),
-		logger:              logger,
+		name:             name,
+		nodeOrchestrator: no,
+		opts:             o,
+		nodeGroups:       make(map[string]orchestration.NodeGroup),
+		log:              log,
 	}
 }
 
 // AddNodeGroup adds new node group to the cluster
 func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
-	g := NewNodeGroup(name, o, c.logger)
-	g.cluster = c
-	g.k8s = c.k8s
-	g.opts.Annotations = mergeMaps(g.cluster.annotations, o.Annotations)
-	g.opts.Labels = mergeMaps(g.cluster.labels, o.Labels)
-
-	c.nodeGroups[name] = g
+	c.nodeGroups[name] = NewNodeGroup(name, c.opts, c.nodeOrchestrator, o, c.log)
 }
 
 // Addresses returns ClusterAddresses
@@ -355,7 +335,7 @@ func (c *Cluster) RandomNode(ctx context.Context, r *rand.Rand) (node orchestrat
 	nodes := []orchestration.Node{}
 	for _, ng := range c.NodeGroups() {
 		stopped, err := ng.StoppedNodes(ctx)
-		if err != nil && err != orchestration.ErrNotSet {
+		if err != nil {
 			return nil, fmt.Errorf("stopped nodes: %w", err)
 		}
 
@@ -450,46 +430,4 @@ func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]
 	}
 
 	return
-}
-
-// apiURL generates URL for node's API
-func (c *Cluster) apiURL(name string) (u *url.URL, err error) {
-	if c.disableNamespace {
-		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", c.apiScheme, name, c.apiDomain))
-	} else {
-		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", c.apiScheme, name, c.namespace, c.apiDomain))
-	}
-	if err != nil {
-		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)
-	}
-	return
-}
-
-// ingressHost generates host for node's API ingress
-func (c *Cluster) ingressHost(name string) string {
-	if c.disableNamespace {
-		return fmt.Sprintf("%s.%s", name, c.apiDomain)
-	}
-	return fmt.Sprintf("%s.%s.%s", name, c.namespace, c.apiDomain)
-}
-
-// debugAPIURL generates URL for node's DebugAPI
-func (c *Cluster) debugAPIURL(name string) (u *url.URL, err error) {
-	if c.disableNamespace {
-		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s", c.debugAPIScheme, name, c.debugAPIDomain))
-	} else {
-		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s.%s", c.debugAPIScheme, name, c.namespace, c.debugAPIDomain))
-	}
-	if err != nil {
-		return nil, fmt.Errorf("bad debug API url for node %s: %w", name, err)
-	}
-	return
-}
-
-// ingressHost generates host for node's DebugAPI ingress
-func (c *Cluster) ingressDebugHost(name string) string {
-	if c.disableNamespace {
-		return fmt.Sprintf("%s-debug.%s", name, c.debugAPIDomain)
-	}
-	return fmt.Sprintf("%s-debug.%s.%s", name, c.namespace, c.debugAPIDomain)
 }

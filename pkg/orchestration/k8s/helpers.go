@@ -410,6 +410,11 @@ func setBeeNodePort(o setBeeNodePortOptions) (ports service.Ports) {
 	}}
 }
 
+func parsePort(port string) (int32, error) {
+	p, err := strconv.ParseInt(strings.Split(port, ":")[1], 10, 32)
+	return int32(p), err
+}
+
 func mergeMaps(a, b map[string]string) map[string]string {
 	m := map[string]string{}
 	for k, v := range a {
@@ -420,9 +425,4 @@ func mergeMaps(a, b map[string]string) map[string]string {
 	}
 
 	return m
-}
-
-func parsePort(port string) (int32, error) {
-	p, err := strconv.ParseInt(strings.Split(port, ":")[1], 10, 32)
-	return int32(p), err
 }
