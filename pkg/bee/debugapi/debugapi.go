@@ -117,6 +117,14 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	req.Header = header
 	req.Header.Add("Accept", contentType)
 
+	if c.restricted && req.Header.Get("Authorization") == "" {
+		key, err := api.GetToken(path, method)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
+
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
