@@ -126,24 +126,3 @@ func (c ClusterOptions) IngressHost(name string) string {
 	}
 	return fmt.Sprintf("%s.%s.%s", name, c.Namespace, c.APIDomain)
 }
-
-// DebugAPIURL generates URL for node's DebugAPI
-func (c ClusterOptions) DebugAPIURL(name string) (u *url.URL, err error) {
-	if c.DisableNamespace {
-		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s", c.DebugAPIScheme, name, c.DebugAPIDomain))
-	} else {
-		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s.%s", c.DebugAPIScheme, name, c.Namespace, c.DebugAPIDomain))
-	}
-	if err != nil {
-		return nil, fmt.Errorf("bad debug API url for node %s: %w", name, err)
-	}
-	return
-}
-
-// IngressDebugHost generates host for node's DebugAPI ingress
-func (c ClusterOptions) IngressDebugHost(name string) string {
-	if c.DisableNamespace {
-		return fmt.Sprintf("%s-debug.%s", name, c.DebugAPIDomain)
-	}
-	return fmt.Sprintf("%s-debug.%s.%s", name, c.Namespace, c.DebugAPIDomain)
-}

@@ -99,21 +99,15 @@ type NodeGroupTopologies map[string]bee.Topology
 // BeeClientOption represents bee client option
 type BeeClientOption func(*bee.ClientOptions) error
 
-// WithAPIURL returns BeeClientOption with given api url and debug api url
-func WithURLs(apiURL, debugAPIURL string) BeeClientOption {
+// WithURL returns BeeClientOption with given api url
+func WithURL(apiURL string) BeeClientOption {
 	return func(o *bee.ClientOptions) error {
 		api, err := url.Parse(apiURL)
 		if err != nil {
 			return fmt.Errorf("invalid api url: %w", err)
 		}
 
-		debug, err := url.Parse(debugAPIURL)
-		if err != nil {
-			return fmt.Errorf("invalid debug api url: %w", err)
-		}
-
 		o.APIURL = api
-		o.DebugAPIURL = debug
 		return nil
 	}
 }
