@@ -23,9 +23,9 @@ const retryCount int = 5
 
 // Client manages communication with the Bee node
 type Client struct {
-	api   *api.Client
-	opts  ClientOptions
-	log   logging.Logger
+	api  *api.Client
+	opts ClientOptions
+	log  logging.Logger
 	// number of times to retry call
 	retry int
 }
