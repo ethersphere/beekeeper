@@ -35,7 +35,6 @@ type ClientOptions struct {
 	APIURL         *url.URL
 	APIInsecureTLS bool
 	Retry          int
-	Restricted     bool
 }
 
 // NewClient returns Bee client
@@ -49,7 +48,7 @@ func NewClient(opts ClientOptions, log logging.Logger) (c *Client) {
 	if opts.APIURL != nil {
 		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
-		}}, Restricted: opts.Restricted})
+		}}})
 	}
 	if opts.Retry > 0 {
 		c.retry = opts.Retry
@@ -811,18 +810,6 @@ func (c *Client) IsRetrievable(ctx context.Context, ref swarm.Address) (bool, er
 // the network.
 func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 	return c.api.Stewardship.Reupload(ctx, ref)
-}
-
-// Authenticate
-func (c *Client) Authenticate(ctx context.Context, role, password string) (string, error) {
-	resp, err := c.api.Auth.Authenticate(ctx, role, password)
-	return resp, err
-}
-
-// Refresh
-func (c *Client) Refresh(ctx context.Context, securityToken string) (string, error) {
-	resp, err := c.api.Auth.Refresh(ctx, securityToken)
-	return resp, err
 }
 
 // DepositStake deposits stake

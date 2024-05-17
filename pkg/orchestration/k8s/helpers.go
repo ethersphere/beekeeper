@@ -42,9 +42,6 @@ redistribution-address: {{ .RedistributionAddress }}
 staking-address: {{ .StakingAddress }}
 storage-incentives-enable: {{ .StorageIncentivesEnable }}
 resolver-options: {{.ResolverOptions}}
-restricted: {{.Restricted}}
-token-encryption-key: {{.TokenEncryptionKey}}
-admin-password: {{.AdminPassword}}
 chequebook-enable: {{.ChequebookEnable}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}

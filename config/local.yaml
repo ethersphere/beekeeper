@@ -367,13 +367,6 @@ checks:
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
-  ci-authenticate:
-    type: authenticate
-    timeout: 5m
-    options:
-      role: consumer
-      admin-password: test
-      restricted-group-name: restricted
   ci-stake:
     type: stake
     timeout: 5m
