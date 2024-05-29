@@ -106,7 +106,7 @@ func (c *Client) processPodIP(ctx context.Context, podIp string) (bee.Addresses,
 	// bee.Addresses is struct that represents response with field Ethereum string
 	url := &url.URL{
 		Scheme: "http",
-		Host:   podIp + ":1635", // it is possible to extract debug port from service
+		Host:   podIp + ":1633", // it is possible to extract port from service
 		Path:   "/addresses",
 	}
 

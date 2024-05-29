@@ -9,9 +9,6 @@ clusters:
     api-domain: staging.ethswarm.org
     api-insecure-tls: true
     api-scheme: https
-    debug-api-domain: staging.internal
-    debug-api-insecure-tls: true
-    debug-api-scheme: https
     funding:
       eth: 0.1
       gbzz: 2.0

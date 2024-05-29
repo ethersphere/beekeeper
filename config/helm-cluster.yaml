@@ -8,9 +8,6 @@ clusters:
     api-domain: staging.internal
     api-insecure-tls: true
     api-scheme: https
-    debug-api-domain: staging.internal
-    debug-api-insecure-tls: true
-    debug-api-scheme: https
     node-groups:
       bee:
         bee-config: default

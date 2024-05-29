@@ -82,8 +82,8 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	return
 }
 
-// ListDebugNodesHosts list Ingresses that are nodes
-func (c *Client) ListDebugNodesHosts(ctx context.Context, namespace string) (nodes []ingress.NodeInfo, err error) {
+// ListAPINodesHosts list Ingresses that are nodes
+func (c *Client) ListAPINodesHosts(ctx context.Context, namespace string) (nodes []ingress.NodeInfo, err error) {
 	ingressRoutes, err := c.clientset.IngressRoutes(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: "app.kubernetes.io/name=bee",
 	})
@@ -96,12 +96,12 @@ func (c *Client) ListDebugNodesHosts(ctx context.Context, namespace string) (nod
 
 	if ingressRoutes != nil {
 		for _, ingressRoute := range ingressRoutes.Items {
-			if strings.HasSuffix(ingressRoute.Name, "-debug") {
+			if strings.HasSuffix(ingressRoute.Name, "-api") {
 				for _, route := range ingressRoute.Spec.Routes {
 					host := route.GetHost()
 					if host != "" {
 						nodes = append(nodes, ingress.NodeInfo{
-							Name: strings.TrimSuffix(ingressRoute.Name, "-debug"),
+							Name: strings.TrimSuffix(ingressRoute.Name, "-api"),
 							Host: host,
 						})
 					}

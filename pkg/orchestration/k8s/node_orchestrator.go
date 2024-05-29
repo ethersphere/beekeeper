@@ -200,85 +200,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 		n.log.Infof("ingress %s is set in namespace %s", apiIn, o.Namespace)
 	}
 
-	// debug API
-	portDebug, err := parsePort(o.Config.DebugAPIAddr)
-	if err != nil {
-		return fmt.Errorf("parsing Debug port from config: %s", err)
-	}
-
-	// debug service
-	debugSvc := fmt.Sprintf("%s-debug", o.Name)
-	if _, err := n.k8s.Service.Set(ctx, debugSvc, o.Namespace, service.Options{
-		Annotations: o.Annotations,
-		Labels:      o.Labels,
-		ServiceSpec: service.Spec{
-			Ports: service.Ports{{
-				AppProtocol: "TCP",
-				Name:        "debug",
-				Protocol:    "TCP",
-				Port:        portDebug,
-				TargetPort:  "debug",
-			}},
-			Selector: o.Selector,
-			Type:     "ClusterIP",
-		},
-	}); err != nil {
-		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
-	}
-	n.log.Infof("service %s is set in namespace %s", debugSvc, o.Namespace)
-
-	if o.IngressDebugClass == "traefik" {
-		// debug service's ingressroute
-		debugIn := fmt.Sprintf("%s-debug", o.Name)
-		if _, err := n.k8s.IngressRoute.Set(ctx, debugIn, o.Namespace, ingressroute.Options{
-			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
-			Labels:      o.Labels,
-			Spec: ingressroute.IngressRouteSpec{
-				Routes: []ingressroute.Route{
-					{
-						Kind:  "Rule",
-						Match: fmt.Sprintf("Host(\"%s.localhost\") && PathPrefix(\"/\")", debugIn),
-						Services: []ingressroute.Service{
-							{
-								Kind:      "Service",
-								Name:      debugIn,
-								Namespace: "local",
-								Port:      "debug",
-							},
-						},
-					},
-				},
-			},
-		}); err != nil {
-			return fmt.Errorf("set ingressroute in namespace %s: %w", o.Namespace, err)
-		}
-		n.log.Infof("ingressroute %s is set in namespace %s", debugIn, o.Namespace)
-	} else {
-		// debug service's ingress
-		debugIn := fmt.Sprintf("%s-debug", o.Name)
-		if _, err := n.k8s.Ingress.Set(ctx, debugIn, o.Namespace, ingress.Options{
-			Annotations: mergeMaps(o.Annotations, o.IngressDebugAnnotations),
-			Labels:      o.Labels,
-			Spec: ingress.Spec{
-				Class: o.IngressDebugClass,
-				Rules: ingress.Rules{{
-					Host: o.IngressDebugHost,
-					Paths: ingress.Paths{{
-						Backend: ingress.Backend{
-							ServiceName:     debugSvc,
-							ServicePortName: "debug",
-						},
-						Path:     "/",
-						PathType: "ImplementationSpecific",
-					}},
-				}},
-			},
-		}); err != nil {
-			return fmt.Errorf("set ingress in namespace %s: %w", o.Namespace, err)
-		}
-		n.log.Infof("ingress %s is set in namespace %s", debugIn, o.Namespace)
-	}
-
 	// p2p service
 	portP2P, err := parsePort(o.Config.P2PAddr)
 	if err != nil {
@@ -331,13 +252,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 				},
 				{
 					AppProtocol: "TCP",
-					Name:        "debug",
-					Protocol:    "TCP",
-					Port:        portDebug,
-					TargetPort:  "debug",
-				},
-				{
-					AppProtocol: "TCP",
 					Name:        "p2p",
 					Protocol:    "TCP",
 					Port:        portP2P,
@@ -386,7 +300,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 						Image:                  o.Image,
 						ImagePullPolicy:        o.ImagePullPolicy,
 						PortAPI:                portAPI,
-						PortDebug:              portDebug,
 						PortP2P:                portP2P,
 						PersistenceEnabled:     o.PersistenceEnabled,
 						ResourcesLimitCPU:      o.ResourcesLimitCPU,
@@ -456,26 +369,6 @@ func (n *nodeOrchestrator) Delete(ctx context.Context, name string, namespace st
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("service %s is deleted in namespace %s", p2pSvc, namespace)
-
-	// debug service's ingress
-	debugIn := fmt.Sprintf("%s-debug", name)
-	if err := n.k8s.Ingress.Delete(ctx, debugIn, namespace); err != nil {
-		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
-	}
-	n.log.Infof("ingress %s is deleted in namespace %s", debugIn, namespace)
-
-	// debug service's ingress route
-	if err := n.k8s.IngressRoute.Delete(ctx, debugIn, namespace); err != nil {
-		return fmt.Errorf("deleting ingress route in namespace %s: %w", namespace, err)
-	}
-	n.log.Infof("ingress route %s is deleted in namespace %s", debugIn, namespace)
-
-	// debug service
-	debugSvc := fmt.Sprintf("%s-debug", name)
-	if err := n.k8s.Service.Delete(ctx, debugSvc, namespace); err != nil {
-		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
-	}
-	n.log.Infof("service %s is deleted in namespace %s", debugSvc, namespace)
 
 	// api service's ingress
 	apiIn := fmt.Sprintf("%s-api", name)

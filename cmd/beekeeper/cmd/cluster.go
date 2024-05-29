@@ -226,7 +226,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 
 		if clusterConfig.IsUsingStaticEndpoints() {
 			for nodeName, endpoint := range v.GetEndpoints() {
-				beeOpt := orchestration.WithURLs(endpoint.APIURL, endpoint.DebugAPIURL)
+				beeOpt := orchestration.WithURL(endpoint.APIURL)
 				nodeCount++
 				go setupOrAddNode(ctx, false, ng, nodeName, orchestration.NodeOptions{
 					Config: &bConfig,
