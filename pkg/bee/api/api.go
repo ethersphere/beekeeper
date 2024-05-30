@@ -42,10 +42,10 @@ type Client struct {
 	PSS         *PSSService
 	SOC         *SOCService
 	Stewardship *StewardshipService
-	Node     *NodeService
-	PingPong *PingPongService
-	Postage  *PostageService
-	Stake    *StakingService
+	Node        *NodeService
+	PingPong    *PingPongService
+	Postage     *PostageService
+	Stake       *StakingService
 }
 
 // ClientOptions holds optional parameters for the Client.
