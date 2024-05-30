@@ -11,15 +11,15 @@ type Cluster struct {
 	// parent to inherit settings from
 	*Inherit `yaml:",inline"`
 	// Cluster configuration
-	Name                *string                      `yaml:"name"`
-	Namespace           *string                      `yaml:"namespace"`
-	DisableNamespace    *bool                        `yaml:"disable-namespace"`
-	UseStaticEndpoints  *bool                        `yaml:"use-static-endpoints"`
-	APIDomain           *string                      `yaml:"api-domain"`
-	APIInsecureTLS      *bool                        `yaml:"api-insecure-tls"`
-	APIScheme           *string                      `yaml:"api-scheme"` 	`yaml:"debug-api-scheme"`
-	Funding             *Funding                     `yaml:"funding"`
-	NodeGroups          *map[string]ClusterNodeGroup `yaml:"node-groups"`
+	Name               *string                      `yaml:"name"`
+	Namespace          *string                      `yaml:"namespace"`
+	DisableNamespace   *bool                        `yaml:"disable-namespace"`
+	UseStaticEndpoints *bool                        `yaml:"use-static-endpoints"`
+	APIDomain          *string                      `yaml:"api-domain"`
+	APIInsecureTLS     *bool                        `yaml:"api-insecure-tls"`
+	APIScheme          *string                      `yaml:"api-scheme"`
+	Funding            *Funding                     `yaml:"funding"`
+	NodeGroups         *map[string]ClusterNodeGroup `yaml:"node-groups"`
 }
 
 // ClusterNodeGroup represents node group in the cluster
