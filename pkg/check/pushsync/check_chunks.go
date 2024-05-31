@@ -30,15 +30,7 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logg
 		return err
 	}
 
-	l.Infof("all nodes...")
-	for _, v := range c.NodeNames() {
-		l.Info("node: ", v)
-	}
-	l.Infof("full nodes...")
 	sortedNodes := c.FullNodeNames()
-	for _, v := range sortedNodes {
-		l.Info("node: ", v)
-	}
 
 	for i := 0; i < o.UploadNodeCount; i++ {
 
