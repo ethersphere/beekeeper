@@ -69,7 +69,6 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		APIURL:         aURL,
 		APIInsecureTLS: g.clusterOpts.APIInsecureTLS,
 		Retry:          5,
-		Restricted:     config.Restricted,
 	}
 
 	for _, opt := range opts {

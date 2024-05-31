@@ -31,7 +31,6 @@ var userAgent = "beekeeper/" + beekeeper.Version
 type Client struct {
 	httpClient *http.Client // HTTP client must handle authentication implicitly.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
-	restricted bool
 
 	// Services that API provides.
 	Bytes       *BytesService
@@ -43,18 +42,15 @@ type Client struct {
 	PSS         *PSSService
 	SOC         *SOCService
 	Stewardship *StewardshipService
-	Auth        *AuthService
-
-	Node     *NodeService
-	PingPong *PingPongService
-	Postage  *PostageService
-	Stake    *StakingService
+	Node        *NodeService
+	PingPong    *PingPongService
+	Postage     *PostageService
+	Stake       *StakingService
 }
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
 	HTTPClient *http.Client
-	Restricted bool
 }
 
 // NewClient constructs a new Client.
@@ -67,8 +63,6 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 	}
 
 	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
-	c.restricted = o.Restricted
-
 	return
 }
 
@@ -86,7 +80,6 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.PSS = (*PSSService)(&c.service)
 	c.SOC = (*SOCService)(&c.service)
 	c.Stewardship = (*StewardshipService)(&c.service)
-	c.Auth = (*AuthService)(&c.service)
 	c.Node = (*NodeService)(&c.service)
 	c.PingPong = (*PingPongService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
@@ -149,14 +142,6 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	}
 	req.Header.Set("Accept", contentType)
 
-	if c.restricted && req.Header.Get("Authorization") == "" {
-		key, err := GetToken(path, method)
-		if err != nil {
-			return err
-		}
-		req.Header.Set("Authorization", "Bearer "+key)
-	}
-
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
@@ -195,14 +180,6 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	}
 	req.Header.Set("Accept", contentType)
 
-	if c.restricted && req.Header.Get("Authorization") == "" {
-		key, err := GetToken(path, method)
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("Authorization", "Bearer "+key)
-	}
-
 	if opts != nil && opts.Cache != nil {
 		req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
 	}
@@ -232,14 +209,6 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 
 	req.Header = header
 	req.Header.Add("Accept", contentType)
-
-	if c.restricted && req.Header.Get("Authorization") == "" {
-		key, err := GetToken(path, method)
-		if err != nil {
-			return err
-		}
-		req.Header.Set("Authorization", "Bearer "+key)
-	}
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {

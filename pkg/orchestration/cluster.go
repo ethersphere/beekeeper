@@ -52,7 +52,6 @@ type ClusterOptions struct {
 	Labels           map[string]string
 	Namespace        string
 	DisableNamespace bool
-	AdminPassword    string
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster
