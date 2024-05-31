@@ -43,12 +43,12 @@ clusters:
       bee:
         bee-config: bee-local-dns
         config: local-dns
-        count: 2
+        count: 3
         mode: node
       light:
         bee-config: bee-local-light
         config: local-light
-        count: 3
+        count: 2
         mode: node
   local-clef:
     _inherit: "local"
