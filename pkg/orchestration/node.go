@@ -100,9 +100,6 @@ type CreateOptions struct {
 	IngressAnnotations        map[string]string
 	IngressClass              string
 	IngressHost               string
-	IngressDebugAnnotations   map[string]string
-	IngressDebugClass         string
-	IngressDebugHost          string
 	LibP2PKey                 string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
@@ -135,8 +132,6 @@ type Config struct {
 	DbBlockCacheCapacity      int           // size of block cache of the database in bytes
 	DbWriteBufferSize         int           // size of the database write buffer in bytes
 	DbDisableSeeksCompaction  bool          // disables DB compactions triggered by seeks
-	DebugAPIAddr              string        // debug HTTP API listen address
-	DebugAPIEnable            bool          // enable debug HTTP API
 	FullNode                  bool          // cause the node to start in full mode
 	Mainnet                   bool          // enable mainnet
 	NATAddr                   string        // NAT exposed address
@@ -151,9 +146,6 @@ type Config struct {
 	PostageContractStartBlock uint64        // postage stamp address
 	PriceOracleAddress        string        // price Oracle address
 	ResolverOptions           string        // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
-	Restricted                bool          // start node in restricted mode
-	TokenEncryptionKey        string        // username for API authentication
-	AdminPassword             string        // password hash for API authentication
 	ChequebookEnable          bool          // enable chequebook
 	SwapEnable                bool          // enable swap
 	SwapEndpoint              string        // swap ethereum blockchain endpoint

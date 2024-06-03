@@ -10,7 +10,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/stake"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/check/authenticated"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
@@ -470,25 +469,6 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := stake.NewDefaultOptions()
-			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
-				return nil, fmt.Errorf("applying options: %w", err)
-			}
-			return opts, nil
-		},
-	},
-	"authenticate": {
-		NewAction: authenticated.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
-			checkOpts := new(struct {
-				DryRun              *bool   `yaml:"dry-run"`
-				Role                *string `yaml:"role"`
-				AdminPassword       *string `yaml:"admin-password"`
-				RestrictedGroupName *string `yaml:"restricted-group-name"`
-			})
-			if err := check.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
-			}
-			opts := authenticated.NewDefaultOptions()
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}

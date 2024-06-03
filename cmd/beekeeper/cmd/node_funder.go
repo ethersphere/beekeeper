@@ -133,14 +133,14 @@ func (nf *nodeLister) List(ctx context.Context, namespace string) (nodes []funde
 		return nil, fmt.Errorf("namespace not provided")
 	}
 
-	ingressHosts, err := nf.k8sClient.Ingress.ListDebugNodesHosts(ctx, namespace)
+	ingressHosts, err := nf.k8sClient.Ingress.ListAPINodesHosts(ctx, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("list ingress debug nodes hosts: %s", err.Error())
+		return nil, fmt.Errorf("list ingress api nodes hosts: %s", err.Error())
 	}
 
-	ingressRouteHosts, err := nf.k8sClient.IngressRoute.ListDebugNodesHosts(ctx, namespace)
+	ingressRouteHosts, err := nf.k8sClient.IngressRoute.ListAPINodesHosts(ctx, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("list ingress route debug nodes hosts: %s", err.Error())
+		return nil, fmt.Errorf("list ingress route api nodes hosts: %s", err.Error())
 	}
 
 	ingressHosts = append(ingressHosts, ingressRouteHosts...)

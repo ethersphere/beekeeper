@@ -51,15 +51,10 @@ func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestrat
 // AddNode adss new node to the node group
 func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
 	var aURL *url.URL
-	var dURL *url.URL
 
 	aURL, err = g.clusterOpts.ApiURL(name)
 	if err != nil {
 		return fmt.Errorf("API URL %s: %w", name, err)
-	}
-	dURL, err = g.clusterOpts.DebugAPIURL(name)
-	if err != nil {
-		return fmt.Errorf("debug API URL %s: %w", name, err)
 	}
 
 	// TODO: make more granular, check every sub-option
@@ -71,12 +66,9 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 	}
 
 	beeClientOpts := bee.ClientOptions{
-		APIURL:              aURL,
-		APIInsecureTLS:      g.clusterOpts.APIInsecureTLS,
-		DebugAPIURL:         dURL,
-		DebugAPIInsecureTLS: g.clusterOpts.DebugAPIInsecureTLS,
-		Retry:               5,
-		Restricted:          config.Restricted,
+		APIURL:         aURL,
+		APIInsecureTLS: g.clusterOpts.APIInsecureTLS,
+		Retry:          5,
 	}
 
 	for _, opt := range opts {
@@ -345,9 +337,6 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		IngressAnnotations:        g.opts.IngressAnnotations,
 		IngressClass:              g.opts.IngressClass,
 		IngressHost:               g.clusterOpts.IngressHost(name),
-		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
-		IngressDebugClass:         g.opts.IngressDebugClass,
-		IngressDebugHost:          g.clusterOpts.IngressDebugHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 n.LibP2PKey(),
 		NodeSelector:              g.opts.NodeSelector,

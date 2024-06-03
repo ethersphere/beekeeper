@@ -26,8 +26,6 @@ type BeeConfig struct {
 	DbBlockCacheCapacity      *int           `yaml:"db-block-cache-capacity"`
 	DbWriteBufferSize         *int           `yaml:"db-write-buffer-size"`
 	DbDisableSeeksCompaction  *bool          `yaml:"db-disable-seeks-compaction"`
-	DebugAPIAddr              *string        `yaml:"debug-api-addr"`
-	DebugAPIEnable            *bool          `yaml:"debug-api-enable"`
 	FullNode                  *bool          `yaml:"full-node"`
 	NATAddr                   *string        `yaml:"nat-addr"`
 	Mainnet                   *bool          `yaml:"mainnet"`
@@ -45,9 +43,6 @@ type BeeConfig struct {
 	StakingAddress            *string        `yaml:"staking-address"`
 	StorageIncentivesEnable   *string        `yaml:"storage-incentives-enable"`
 	ResolverOptions           *string        `yaml:"resolver-options"`
-	Restricted                *bool          `yaml:"restricted"`
-	TokenEncryptionKey        *string        `yaml:"token-encryption-key"`
-	AdminPassword             *string        `yaml:"admin-password"`
 	ChequebookEnable          *bool          `yaml:"chequebook-enable"`
 	SwapEnable                *bool          `yaml:"swap-enable"`
 	SwapEndpoint              *string        `yaml:"swap-endpoint"`
