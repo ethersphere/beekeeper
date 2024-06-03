@@ -29,11 +29,12 @@ type Options struct {
 	UploadTimeout   time.Duration
 	DownloadTimeout time.Duration
 	// load test params
-	UploaderCount   int
-	UploadGroups    []string
-	DownloaderCount int
-	DownloadGroups  []string
-	MaxUseBatch     time.Duration
+	UploaderCount    int
+	UploadGroups     []string
+	DownloaderCount  int
+	DownloadGroups   []string
+	MaxUseBatch      time.Duration
+	MaxStorageRadius uint8
 }
 
 // NewDefaultOptions returns new default options

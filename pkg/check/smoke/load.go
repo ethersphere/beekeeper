@@ -25,14 +25,14 @@ var _ beekeeper.Action = (*LoadCheck)(nil)
 // Check instance
 type LoadCheck struct {
 	metrics metrics
-	logger  logging.Logger
+	log     logging.Logger
 }
 
 // NewCheck returns new check
-func NewLoadCheck(logger logging.Logger) beekeeper.Action {
+func NewLoadCheck(log logging.Logger) beekeeper.Action {
 	return &LoadCheck{
 		metrics: newMetrics("check_load"),
-		logger:  logger,
+		log:     log,
 	}
 }
 
@@ -47,9 +47,19 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return errors.New("no uploaders requested, quiting")
 	}
 
-	c.logger.Info("random seed: ", o.RndSeed)
-	c.logger.Info("content size: ", o.ContentSize)
-	c.logger.Info("max batch lifespan: ", o.MaxUseBatch)
+	if o.MaxStorageRadius == 0 {
+		return errors.New("max storage radius is not set")
+	}
+
+	c.log.Info("random seed: ", o.RndSeed)
+	c.log.Info("content size: ", o.ContentSize)
+	c.log.Info("max batch lifespan: ", o.MaxUseBatch)
+	c.log.Info("max storage radius: ", o.MaxStorageRadius)
+
+	// TODO: check if we can make this check only once, before the upload is triggered.
+	// Currently, there are 2 requests to `/reservestate` before upload is triggered,
+	// one `prior to buying the batch` and one `after buying the batch`.
+	// Should we make this check with on first ocasion?
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -59,7 +69,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	ctx, cancel := context.WithTimeout(ctx, o.Duration)
 	defer cancel()
 
-	test := &test{clients: clients, logger: c.logger}
+	test := &test{clients: clients, logger: c.log}
 
 	uploaders := selectNames(cluster, o.UploadGroups...)
 	downloaders := selectNames(cluster, o.DownloadGroups...)
@@ -69,10 +79,10 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	for i := 0; true; i++ {
 		select {
 		case <-ctx.Done():
-			c.logger.Info("we are done")
+			c.log.Info("we are done")
 			return nil
 		default:
-			c.logger.Infof("starting iteration: #%d", i)
+			c.log.Infof("starting iteration: #%d", i)
 		}
 
 		var (
@@ -83,13 +93,13 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 		txData = make([]byte, o.ContentSize)
 		if _, err := crand.Read(txData); err != nil {
-			c.logger.Infof("unable to create random content: %v", err)
+			c.log.Infof("unable to create random content: %v", err)
 			continue
 		}
 
 		txNames := pickRandom(o.UploaderCount, uploaders)
 
-		c.logger.Infof("uploader: %s", txNames)
+		c.log.Infof("uploader: %s", txNames)
 
 		var (
 			upload sync.WaitGroup
@@ -102,24 +112,46 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 			txName := txName
 
 			go func() {
-				defer once.Do(func() { upload.Done() }) // don't wait for all uploads
+				defer once.Do(func() {
+					upload.Done()
+				}) // don't wait for all uploads
 				for retries := 10; txDuration == 0 && retries > 0; retries-- {
 					select {
 					case <-ctx.Done():
-						c.logger.Info("we are done")
+						c.log.Info("we are done")
 						return
 					default:
 					}
 
+					// Check the StorageRadius
+					for {
+						rs, err := clients[txName].ReserveState(ctx)
+						if err != nil {
+							c.log.Infof("error getting state: %v", err)
+							return
+						}
+						if rs.StorageRadius <= o.MaxStorageRadius {
+							break
+						}
+						c.log.Infof("waiting for StorageRadius to decrease. Current: %d, Max: %d", rs.StorageRadius, o.MaxStorageRadius)
+
+						select {
+						case <-ctx.Done():
+							c.log.Infof("context done in StorageRadius check: %v", ctx.Err())
+							return
+						case <-time.After(o.TxOnErrWait): // TODO: Adjust the sleep duration as needed
+						}
+					}
+
 					c.metrics.UploadAttempts.Inc()
 					var duration time.Duration
-					c.logger.Infof("uploading to: %s", txName)
+					c.log.Infof("uploading to: %s", txName)
 
 					batchID := batches.Get(txName)
 					if batchID == "" {
 						batchID, err = clients[txName].CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, "load-test", true)
 						if err != nil {
-							c.logger.Errorf("create new batch: %v", err)
+							c.log.Errorf("create new batch: %v", err)
 							return
 						}
 						batches.Store(txName, batchID)
@@ -128,8 +160,8 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					address, duration, err = test.upload(ctx, txName, txData, batchID)
 					if err != nil {
 						c.metrics.UploadErrors.Inc()
-						c.logger.Infof("upload failed: %v", err)
-						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
+						c.log.Infof("upload failed: %v", err)
+						c.log.Infof("retrying in: %v", o.TxOnErrWait)
 						time.Sleep(o.TxOnErrWait)
 						return
 					}
@@ -144,12 +176,12 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 			continue
 		}
 
-		c.logger.Infof("sleeping for: %v seconds", o.NodesSyncWait.Seconds())
+		c.log.Infof("sleeping for: %v seconds", o.NodesSyncWait.Seconds())
 		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
 
 		// pick a batch of downloaders
 		rxNames := pickRandom(o.DownloaderCount, downloaders)
-		c.logger.Infof("downloaders: %s", rxNames)
+		c.log.Infof("downloaders: %s", rxNames)
 
 		var wg sync.WaitGroup
 
@@ -167,7 +199,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 				for retries := 10; rxDuration == 0 && retries > 0; retries-- {
 					select {
 					case <-ctx.Done():
-						c.logger.Infof("context done in retry: %v", retries)
+						c.log.Infof("context done in retry: %v", retries)
 						return
 					default:
 					}
@@ -177,8 +209,8 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					rxData, rxDuration, err = test.download(ctx, rxName, address)
 					if err != nil {
 						c.metrics.DownloadErrors.Inc()
-						c.logger.Infof("download failed: %v", err)
-						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
+						c.log.Infof("download failed: %v", err)
+						c.log.Infof("retrying in: %v", o.RxOnErrWait)
 						time.Sleep(o.RxOnErrWait)
 					}
 				}
@@ -189,15 +221,15 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 				}
 
 				if !bytes.Equal(rxData, txData) {
-					c.logger.Info("uploaded data does not match downloaded data")
+					c.log.Info("uploaded data does not match downloaded data")
 
 					c.metrics.DownloadMismatch.Inc()
 
 					rxLen, txLen := len(rxData), len(txData)
 					if rxLen != txLen {
-						c.logger.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
+						c.log.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
 						if txLen < rxLen {
-							c.logger.Info("length mismatch: rx length is bigger then tx length")
+							c.log.Info("length mismatch: rx length is bigger then tx length")
 						}
 						return
 					}
@@ -208,7 +240,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 							diff++
 						}
 					}
-					c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
+					c.log.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
 					return
 				}
 
