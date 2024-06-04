@@ -59,7 +59,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	// TODO: check if we can make this check only once, before the upload is triggered.
 	// Currently, there are 2 requests to `/reservestate` before upload is triggered,
 	// one `prior to buying the batch` and one `after buying the batch`.
-	// Should we make this check with on first ocasion?
+	// Should we make this check with on first occasion?
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
