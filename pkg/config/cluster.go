@@ -11,27 +11,26 @@ type Cluster struct {
 	// parent to inherit settings from
 	*Inherit `yaml:",inline"`
 	// Cluster configuration
-	Name                *string                      `yaml:"name"`
-	Namespace           *string                      `yaml:"namespace"`
-	DisableNamespace    *bool                        `yaml:"disable-namespace"`
-	APIDomain           *string                      `yaml:"api-domain"`
-	APIInsecureTLS      *bool                        `yaml:"api-insecure-tls"`
-	APIScheme           *string                      `yaml:"api-scheme"`
-	DebugAPIDomain      *string                      `yaml:"debug-api-domain"`
-	DebugAPIInsecureTLS *bool                        `yaml:"debug-api-insecure-tls"`
-	DebugAPIScheme      *string                      `yaml:"debug-api-scheme"`
-	Funding             *Funding                     `yaml:"funding"`
-	NodeGroups          *map[string]ClusterNodeGroup `yaml:"node-groups"`
-	AdminPassword       *string                      `yaml:"admin-password"`
+	Name               *string                      `yaml:"name"`
+	Namespace          *string                      `yaml:"namespace"`
+	DisableNamespace   *bool                        `yaml:"disable-namespace"`
+	UseStaticEndpoints *bool                        `yaml:"use-static-endpoints"`
+	APIDomain          *string                      `yaml:"api-domain"`
+	APIInsecureTLS     *bool                        `yaml:"api-insecure-tls"`
+	APIScheme          *string                      `yaml:"api-scheme"`
+	Funding            *Funding                     `yaml:"funding"`
+	NodeGroups         *map[string]ClusterNodeGroup `yaml:"node-groups"`
 }
 
 // ClusterNodeGroup represents node group in the cluster
 type ClusterNodeGroup struct {
-	Mode      string        `yaml:"mode"`
-	BeeConfig string        `yaml:"bee-config"`
-	Config    string        `yaml:"config"`
-	Count     int           `yaml:"count"`
-	Nodes     []ClusterNode `yaml:"nodes"`
+	cluster       *Cluster
+	Mode          string         `yaml:"mode"`
+	BeeConfig     string         `yaml:"bee-config"`
+	Config        string         `yaml:"config"`
+	Count         int            `yaml:"count"`
+	Nodes         []ClusterNode  `yaml:"nodes"`
+	NodeEndpoints []NodeEndpoint `yaml:"endpoints"`
 }
 
 // ClusterNode represents node in the cluster
@@ -41,6 +40,11 @@ type ClusterNode struct {
 	Clef      Clef   `yaml:"clef"`
 	LibP2PKey string `yaml:"libp2p-key"`
 	SwarmKey  string `yaml:"swarm-key"`
+}
+
+type NodeEndpoint struct {
+	Name   string `yaml:"name"`
+	APIURL string `yaml:"api-url"`
 }
 
 type Clef struct {
@@ -91,5 +95,28 @@ func (c *Cluster) GetNodeGroups() map[string]ClusterNodeGroup {
 	if c.NodeGroups == nil {
 		return nil
 	}
-	return *c.NodeGroups
+
+	nodeGroups := *c.NodeGroups
+	for key, group := range nodeGroups {
+		group.cluster = c // Set the reference to the parent cluster
+		nodeGroups[key] = group
+	}
+
+	return nodeGroups
+}
+
+// IsUsingStaticEndpoints
+func (c *Cluster) IsUsingStaticEndpoints() bool {
+	if c.UseStaticEndpoints == nil {
+		return false
+	}
+	return *c.UseStaticEndpoints
+}
+
+func (ng *ClusterNodeGroup) GetEndpoints() map[string]NodeEndpoint {
+	endpoints := make(map[string]NodeEndpoint)
+	for _, endpoint := range ng.NodeEndpoints {
+		endpoints[endpoint.Name] = endpoint
+	}
+	return endpoints
 }

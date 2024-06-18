@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -90,7 +90,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	// depositing insufficient amount should fail
 	_, err = client.DepositStake(ctx, o.InsufficientAmount)
 
-	if !debugapi.IsHTTPStatusErrorCode(err, 400) {
+	if !api.IsHTTPStatusErrorCode(err, 400) {
 		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %v", 400, err)
 	}
 

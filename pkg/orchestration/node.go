@@ -9,34 +9,43 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 )
 
 // ErrNotSet represents error when orchestration client is not set
 var ErrNotSet = errors.New("orchestration client not set")
 
 type Node interface {
-	Name() string
-	Client() *bee.Client
 	ClefKey() string
 	ClefPassword() string
+	Client() *bee.Client
 	Config() *Config
+	LibP2PKey() string
+	Name() string
+	SetClefKey(key string) Node
+	SetClefPassword(key string) Node
+	SetSwarmKey(key string) Node
+	SwarmKey() string
 	Create(ctx context.Context, o CreateOptions) (err error)
 	Delete(ctx context.Context, namespace string) (err error)
-	LibP2PKey() string
 	Ready(ctx context.Context, namespace string) (ready bool, err error)
 	Start(ctx context.Context, namespace string) (err error)
 	Stop(ctx context.Context, namespace string) (err error)
-	SwarmKey() string
-	SetSwarmKey(key string) Node
-	SetClefKey(key string) Node
-	SetClefPassword(key string) Node
+}
+
+type NodeOrchestrator interface {
+	Create(ctx context.Context, o CreateOptions) (err error)
+	Delete(ctx context.Context, name string, namespace string) (err error)
+	Ready(ctx context.Context, name string, namespace string) (ready bool, err error)
+	Start(ctx context.Context, name string, namespace string) (err error)
+	Stop(ctx context.Context, name string, namespace string) (err error)
+	RunningNodes(ctx context.Context, namespace string) (running []string, err error)
+	StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error)
 }
 
 // EncryptedKey is part of Ethereum JSON v3 key file format.
 type EncryptedKey string
 
-func (ek EncryptedKey) ToString() string {
+func (ek EncryptedKey) String() string {
 	return string(ek)
 }
 
@@ -68,7 +77,6 @@ type NodeOptions struct {
 	ClefPassword string
 	Client       *bee.Client
 	Config       *Config
-	K8S          *k8s.Client
 	LibP2PKey    string
 	SwarmKey     EncryptedKey
 }
@@ -92,9 +100,6 @@ type CreateOptions struct {
 	IngressAnnotations        map[string]string
 	IngressClass              string
 	IngressHost               string
-	IngressDebugAnnotations   map[string]string
-	IngressDebugClass         string
-	IngressDebugHost          string
 	LibP2PKey                 string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
@@ -127,8 +132,6 @@ type Config struct {
 	DbBlockCacheCapacity      int           // size of block cache of the database in bytes
 	DbWriteBufferSize         int           // size of the database write buffer in bytes
 	DbDisableSeeksCompaction  bool          // disables DB compactions triggered by seeks
-	DebugAPIAddr              string        // debug HTTP API listen address
-	DebugAPIEnable            bool          // enable debug HTTP API
 	FullNode                  bool          // cause the node to start in full mode
 	Mainnet                   bool          // enable mainnet
 	NATAddr                   string        // NAT exposed address
@@ -143,9 +146,6 @@ type Config struct {
 	PostageContractStartBlock uint64        // postage stamp address
 	PriceOracleAddress        string        // price Oracle address
 	ResolverOptions           string        // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
-	Restricted                bool          // start node in restricted mode
-	TokenEncryptionKey        string        // username for API authentication
-	AdminPassword             string        // password hash for API authentication
 	ChequebookEnable          bool          // enable chequebook
 	SwapEnable                bool          // enable swap
 	SwapEndpoint              string        // swap ethereum blockchain endpoint

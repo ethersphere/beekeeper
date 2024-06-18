@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"sort"
 	"sync"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
@@ -24,39 +24,37 @@ var _ orchestration.NodeGroup = (*NodeGroup)(nil)
 
 // NodeGroup represents group of Bee nodes
 type NodeGroup struct {
-	name  string
-	nodes map[string]orchestration.Node
-	opts  orchestration.NodeGroupOptions
-
-	// set when added to the cluster
-	cluster *Cluster
-	k8s     *k8s.Client
-
-	logger logging.Logger
-
-	lock sync.RWMutex
+	nodeOrchestrator orchestration.NodeOrchestrator
+	name             string
+	nodes            map[string]orchestration.Node
+	opts             orchestration.NodeGroupOptions
+	clusterOpts      orchestration.ClusterOptions
+	log              logging.Logger
+	lock             sync.RWMutex
 }
 
 // NewNodeGroup returns new node group
-func NewNodeGroup(name string, o orchestration.NodeGroupOptions, logger logging.Logger) *NodeGroup {
+func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestration.NodeOrchestrator, ngopts orchestration.NodeGroupOptions, log logging.Logger) *NodeGroup {
+	ngopts.Annotations = mergeMaps(ngopts.Annotations, copts.Annotations)
+	ngopts.Labels = mergeMaps(ngopts.Labels, copts.Labels)
+
 	return &NodeGroup{
-		name:   name,
-		nodes:  make(map[string]orchestration.Node),
-		opts:   o,
-		logger: logger,
+		nodeOrchestrator: no,
+		name:             name,
+		nodes:            make(map[string]orchestration.Node),
+		opts:             ngopts,
+		clusterOpts:      copts,
+		log:              log,
 	}
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.NodeOptions) (err error) {
-	aURL, err := g.cluster.apiURL(name)
+func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
+	var aURL *url.URL
+
+	aURL, err = g.clusterOpts.ApiURL(name)
 	if err != nil {
 		return fmt.Errorf("API URL %s: %w", name, err)
-	}
-
-	dURL, err := g.cluster.debugAPIURL(name)
-	if err != nil {
-		return fmt.Errorf("debug API URL %s: %w", name, err)
 	}
 
 	// TODO: make more granular, check every sub-option
@@ -67,24 +65,29 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 		config = g.opts.BeeConfig
 	}
 
-	client := bee.NewClient(bee.ClientOptions{
-		APIURL:              aURL,
-		APIInsecureTLS:      g.cluster.apiInsecureTLS,
-		DebugAPIURL:         dURL,
-		DebugAPIInsecureTLS: g.cluster.debugAPIInsecureTLS,
-		Retry:               5,
-		Restricted:          config.Restricted,
-	}, g.logger)
+	beeClientOpts := bee.ClientOptions{
+		APIURL:         aURL,
+		APIInsecureTLS: g.clusterOpts.APIInsecureTLS,
+		Retry:          5,
+	}
+
+	for _, opt := range opts {
+		err := opt(&beeClientOpts)
+		if err != nil {
+			return fmt.Errorf("bee client option: %w", err)
+		}
+	}
+
+	client := bee.NewClient(beeClientOpts, g.log)
 
 	n := NewNode(name, orchestration.NodeOptions{
 		ClefKey:      o.ClefKey,
 		ClefPassword: o.ClefPassword,
 		Client:       client,
 		Config:       config,
-		K8S:          g.k8s,
 		LibP2PKey:    o.LibP2PKey,
 		SwarmKey:     o.SwarmKey,
-	}, g.logger)
+	}, g.nodeOrchestrator, g.log)
 
 	g.addNode(n)
 
@@ -124,7 +127,7 @@ type AddressesStreamMsg struct {
 // AddressesStream returns stream of addresses of all nodes in the node group
 func (g *NodeGroup) AddressesStream(ctx context.Context) (<-chan AddressesStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -199,7 +202,7 @@ type AccountingStreamMsg struct {
 // AccountingStream returns stream of accounting of all nodes in the node group
 func (g *NodeGroup) AccountingStream(ctx context.Context) (<-chan AccountingStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -274,7 +277,7 @@ type BalancesStreamMsg struct {
 // BalancesStream returns stream of balances of all nodes in the cluster
 func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -322,7 +325,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		Config: *n.Config(),
 		// Kubernetes configuration
 		Name:                      name,
-		Namespace:                 g.cluster.namespace,
+		Namespace:                 g.clusterOpts.Namespace,
 		Annotations:               g.opts.Annotations,
 		ClefImage:                 g.opts.ClefImage,
 		ClefImagePullPolicy:       g.opts.ClefImagePullPolicy,
@@ -333,10 +336,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		ImagePullSecrets:          g.opts.ImagePullSecrets,
 		IngressAnnotations:        g.opts.IngressAnnotations,
 		IngressClass:              g.opts.IngressClass,
-		IngressHost:               g.cluster.ingressHost(name),
-		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
-		IngressDebugClass:         g.opts.IngressDebugClass,
-		IngressDebugHost:          g.cluster.ingressDebugHost(name),
+		IngressHost:               g.clusterOpts.IngressHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 n.LibP2PKey(),
 		NodeSelector:              g.opts.NodeSelector,
@@ -361,8 +361,8 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	n := NewNode(name, orchestration.NodeOptions{K8S: g.k8s}, g.logger)
-	if err := n.Delete(ctx, g.cluster.namespace); err != nil {
+	n := NewNode(name, orchestration.NodeOptions{}, g.nodeOrchestrator, g.log)
+	if err := n.Delete(ctx, g.clusterOpts.Namespace); err != nil {
 		return err
 	}
 
@@ -394,7 +394,7 @@ func (ng *NodeGroup) GetEthAddress(ctx context.Context, name string, o orchestra
 			break
 		}
 	}
-	ng.logger.Infof("fund eth address: %s", a.Ethereum)
+	ng.log.Infof("fund eth address: %s", a.Ethereum)
 	return a.Ethereum, nil
 }
 
@@ -432,7 +432,7 @@ type HasChunkStreamMsg struct {
 // HasChunkStream returns stream of HasChunk requests for all nodes in the node group
 func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan HasChunkStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -555,7 +555,7 @@ type OverlaysStreamMsg struct {
 // TODO: add semaphore
 func (g *NodeGroup) OverlaysStream(ctx context.Context) (<-chan OverlaysStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -620,7 +620,7 @@ type PeersStreamMsg struct {
 // PeersStream returns stream of peers of all nodes in the node group
 func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -659,7 +659,7 @@ func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err er
 		return false, err
 	}
 
-	return n.Ready(ctx, g.cluster.namespace)
+	return n.Ready(ctx, g.clusterOpts.Namespace)
 }
 
 // PregenerateSwarmKey for a node if needed
@@ -715,13 +715,13 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 			return err
 		}
 
-		txHash, err := g.cluster.swap.AttestOverlayEthAddress(ctx, key.Address)
+		txHash, err := g.clusterOpts.SwapClient.AttestOverlayEthAddress(ctx, key.Address)
 		if err != nil {
 			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
 		}
 
 		time.Sleep(10 * time.Second)
-		g.logger.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s", key.Address, name, txHash)
+		g.log.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s", key.Address, name, txHash)
 	}
 	return
 }
@@ -729,23 +729,23 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 // RunningNodes returns list of running nodes
 // TODO: filter by labels
 func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err error) {
-	running, err = g.k8s.StatefulSet.RunningStatefulSets(ctx, g.cluster.namespace)
-	if err != nil {
-		return nil, fmt.Errorf("running statefulsets in namespace %s: %w", g.cluster.namespace, err)
+	allRunning, err := g.nodeOrchestrator.RunningNodes(ctx, g.clusterOpts.Namespace)
+	if err != nil && err != orchestration.ErrNotSet {
+		return nil, fmt.Errorf("running nodes in namespace %s: %w", g.clusterOpts.Namespace, err)
 	}
 
-	for _, v := range running {
+	for _, v := range allRunning {
 		if contains(g.NodesSorted(), v) {
 			running = append(running, v)
 		}
 	}
 
-	return
+	return running, nil
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
 func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions) (ethAddress string, err error) {
-	g.logger.Infof("starting setup node: %s", name)
+	g.log.Infof("starting setup node: %s", name)
 
 	if err := g.AddNode(ctx, name, o); err != nil {
 		return "", fmt.Errorf("add node %s: %w", name, err)
@@ -817,7 +817,7 @@ type SettlementsStreamMsg struct {
 // SettlementsStream returns stream of settlements of all nodes in the cluster
 func (g *NodeGroup) SettlementsStream(ctx context.Context) (<-chan SettlementsStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 
@@ -861,11 +861,11 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	if err := n.Start(ctx, g.cluster.namespace); err != nil {
+	if err := n.Start(ctx, g.clusterOpts.Namespace); err != nil {
 		return err
 	}
 
-	g.logger.Infof("wait for %s to become ready", name)
+	g.log.Infof("wait for %s to become ready", name)
 
 	for {
 		ok, err := g.NodeReady(ctx, name)
@@ -874,7 +874,7 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 		}
 
 		if ok {
-			g.logger.Infof("%s is ready", name)
+			g.log.Infof("%s is ready", name)
 			return nil
 		}
 	}
@@ -887,11 +887,11 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	if err := n.Stop(ctx, g.cluster.namespace); err != nil {
+	if err := n.Stop(ctx, g.clusterOpts.Namespace); err != nil {
 		return err
 	}
 
-	g.logger.Infof("wait for %s to stop", name)
+	g.log.Infof("wait for %s to stop", name)
 
 	for {
 		ok, err := g.NodeReady(ctx, name)
@@ -900,7 +900,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 		}
 
 		if !ok {
-			g.logger.Infof("%s is stopped", name)
+			g.log.Infof("%s is stopped", name)
 			return nil
 		}
 	}
@@ -909,9 +909,9 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 // StoppedNodes returns list of stopped nodes
 // TODO: filter by labels
 func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
-	allStopped, err := g.k8s.StatefulSet.StoppedStatefulSets(ctx, g.cluster.namespace)
-	if err != nil {
-		return nil, fmt.Errorf("stopped statefulsets in namespace %s: %w", g.cluster.namespace, err)
+	allStopped, err := g.nodeOrchestrator.StoppedNodes(ctx, g.clusterOpts.Namespace)
+	if err != nil && err != orchestration.ErrNotSet {
+		return nil, fmt.Errorf("stopped nodes in namespace %s: %w", g.clusterOpts.Namespace, err)
 	}
 
 	for _, v := range allStopped {
@@ -920,7 +920,7 @@ func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err err
 		}
 	}
 
-	return
+	return stopped, nil
 }
 
 // Topologies returns NodeGroupTopologies
@@ -956,7 +956,7 @@ type TopologyStreamMsg struct {
 // TopologyStream returns stream of Kademlia topologies of all nodes in the node group
 func (g *NodeGroup) TopologyStream(ctx context.Context) (<-chan TopologyStreamMsg, error) {
 	stopped, err := g.StoppedNodes(ctx)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil {
 		return nil, fmt.Errorf("stopped nodes: %w", err)
 	}
 

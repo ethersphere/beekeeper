@@ -6,6 +6,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
+var _ orchestration.NodeOrchestrator = (*BeeClient)(nil)
+
 // BeeClient represents not implemented Kubernetes Bee client
 type BeeClient struct{}
 
@@ -32,4 +34,14 @@ func (c *BeeClient) Start(ctx context.Context, name string, namespace string) (e
 // Stop stops Bee node in the cluster
 func (c *BeeClient) Stop(ctx context.Context, name string, namespace string) (err error) {
 	return orchestration.ErrNotSet
+}
+
+// RunningNodes implements orchestration.NodeOrchestrator.
+func (c *BeeClient) RunningNodes(ctx context.Context, namespace string) (running []string, err error) {
+	return nil, orchestration.ErrNotSet
+}
+
+// StoppedNodes implements orchestration.NodeOrchestrator.
+func (c *BeeClient) StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error) {
+	return nil, orchestration.ErrNotSet
 }

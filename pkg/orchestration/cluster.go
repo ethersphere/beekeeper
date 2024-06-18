@@ -2,7 +2,9 @@ package orchestration
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"net/url"
 
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -11,49 +13,45 @@ import (
 )
 
 type Cluster interface {
+	Accounting(ctx context.Context) (accounting ClusterAccounting, err error)
 	AddNodeGroup(name string, o NodeGroupOptions)
 	Addresses(ctx context.Context) (addrs map[string]NodeGroupAddresses, err error)
-	Accounting(ctx context.Context) (accounting ClusterAccounting, err error)
 	Balances(ctx context.Context) (balances ClusterBalances, err error)
-	FlattenBalances(ctx context.Context) (balances NodeGroupBalances, err error)
 	FlattenAccounting(ctx context.Context) (accounting NodeGroupAccounting, err error)
+	FlattenBalances(ctx context.Context) (balances NodeGroupBalances, err error)
+	FlattenOverlays(ctx context.Context, exclude ...string) (map[string]swarm.Address, error)
+	FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
+	FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error)
+	FullNodeNames() (names []string)
 	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
+	LightNodeNames() (names []string)
 	Name() string
+	NodeGroup(name string) (ng NodeGroup, err error)
 	NodeGroups() (l map[string]NodeGroup)
 	NodeGroupsSorted() (l []string)
-	NodeGroup(name string) (ng NodeGroup, err error)
-	Nodes() map[string]Node
 	NodeNames() (names []string)
-	LightNodeNames() (names []string)
-	FullNodeNames() (names []string)
+	Nodes() map[string]Node
 	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
 	NodesClientsAll(ctx context.Context) (map[string]*bee.Client, error)
 	Overlays(ctx context.Context, exclude ...string) (overlays ClusterOverlays, err error)
-	FlattenOverlays(ctx context.Context, exclude ...string) (map[string]swarm.Address, error)
 	Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error)
 	RandomNode(ctx context.Context, r *rand.Rand) (node Node, err error)
 	Settlements(ctx context.Context) (settlements ClusterSettlements, err error)
-	FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
-	FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error)
 }
 
 // ClusterOptions represents Bee cluster options
 type ClusterOptions struct {
-	Annotations         map[string]string
-	APIDomain           string
-	APIInsecureTLS      bool
-	APIScheme           string
-	DebugAPIDomain      string
-	DebugAPIInsecureTLS bool
-	DebugAPIScheme      string
-	K8SClient           *k8s.Client
-	SwapClient          swap.Client
-	Labels              map[string]string
-	Namespace           string
-	DisableNamespace    bool
-	AdminPassword       string
+	Annotations      map[string]string
+	APIDomain        string
+	APIInsecureTLS   bool
+	APIScheme        string
+	K8SClient        *k8s.Client
+	SwapClient       swap.Client
+	Labels           map[string]string
+	Namespace        string
+	DisableNamespace bool
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster
@@ -105,4 +103,25 @@ func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string
 		i--
 	}
 	return ng, name, o
+}
+
+// ApiURL generates URL for node's API
+func (c ClusterOptions) ApiURL(name string) (u *url.URL, err error) {
+	if c.DisableNamespace {
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", c.APIScheme, name, c.APIDomain))
+	} else {
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", c.APIScheme, name, c.Namespace, c.APIDomain))
+	}
+	if err != nil {
+		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)
+	}
+	return
+}
+
+// IngressHost generates host for node's API ingress
+func (c ClusterOptions) IngressHost(name string) string {
+	if c.DisableNamespace {
+		return fmt.Sprintf("%s.%s", name, c.APIDomain)
+	}
+	return fmt.Sprintf("%s.%s.%s", name, c.Namespace, c.APIDomain)
 }

@@ -25,8 +25,6 @@ db-open-files-limit: {{.DbOpenFilesLimit}}
 db-block-cache-capacity: {{.DbBlockCacheCapacity}}
 db-write-buffer-size: {{.DbWriteBufferSize}}
 db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
-debug-api-addr: {{.DebugAPIAddr}}
-debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}
 mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
@@ -44,9 +42,6 @@ redistribution-address: {{ .RedistributionAddress }}
 staking-address: {{ .StakingAddress }}
 storage-incentives-enable: {{ .StorageIncentivesEnable }}
 resolver-options: {{.ResolverOptions}}
-restricted: {{.Restricted}}
-token-encryption-key: {{.TokenEncryptionKey}}
-admin-password: {{.AdminPassword}}
 chequebook-enable: {{.ChequebookEnable}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
@@ -110,7 +105,6 @@ type setContainersOptions struct {
 	Image                  string
 	ImagePullPolicy        string
 	PortAPI                int32
-	PortDebug              int32
 	PortP2P                int32
 	PersistenceEnabled     bool
 	ResourcesLimitCPU      string
@@ -139,11 +133,6 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 				Protocol:      "TCP",
 			},
 			{
-				Name:          "debug",
-				ContainerPort: o.PortDebug,
-				Protocol:      "TCP",
-			},
-			{
 				Name:          "p2p",
 				ContainerPort: o.PortP2P,
 				Protocol:      "TCP",
@@ -153,7 +142,7 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 			InitialDelaySeconds: 5,
 			Handler: containers.HTTPGetHandler{
 				Path: "/health",
-				Port: "debug",
+				Port: "api",
 			},
 		}},
 		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
@@ -163,7 +152,7 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 				// because Beekeeper does funding it needs node to be ready before it is funded
 				// if Bee readiness is changed to be ready before funding, path can be set to "/readiness"
 				Path: "/health",
-				Port: "debug",
+				Port: "api",
 			},
 		}},
 		Resources: containers.Resources{
@@ -410,6 +399,11 @@ func setBeeNodePort(o setBeeNodePortOptions) (ports service.Ports) {
 	}}
 }
 
+func parsePort(port string) (int32, error) {
+	p, err := strconv.ParseInt(strings.Split(port, ":")[1], 10, 32)
+	return int32(p), err
+}
+
 func mergeMaps(a, b map[string]string) map[string]string {
 	m := map[string]string{}
 	for k, v := range a {
@@ -420,9 +414,4 @@ func mergeMaps(a, b map[string]string) map[string]string {
 	}
 
 	return m
-}
-
-func parsePort(port string) (int32, error) {
-	p, err := strconv.ParseInt(strings.Split(port, ":")[1], 10, 32)
-	return int32(p), err
 }

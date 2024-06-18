@@ -6,12 +6,10 @@ clusters:
     name: bee
     namespace: beekeeper
     disable-namespace: false
+    use-static-endpoints: false
     api-domain: staging.internal
     api-insecure-tls: true
     api-scheme: https
-    debug-api-domain: staging.internal
-    debug-api-insecure-tls: true
-    debug-api-scheme: https
     admin-password: test
     funding:
       eth: 0.1
@@ -19,6 +17,10 @@ clusters:
     node-groups:
       bootnode:
         mode: bootnode
+        endpoints:
+          - name: bootnode-0
+            api-url: https://bootnode-0.beekeeper.testnet.internal
+            debug-api-url: https://bootnode-0-debug.beekeeper.testnet.internal
         bee-config: bootnode
         config: default
         nodes:
@@ -41,6 +43,16 @@ clusters:
         bee-config: default
         config: default
         count: 3
+        endpoints:
+          - name: bee-0
+            api-url: https://bee-0.beekeeper.testnet.internal
+            debug-api-url: https://bee-0-debug.beekeeper.testnet.internal
+          - name: bee-1
+            api-url: https://bee-1.beekeeper.testnet.internal
+            debug-api-url: https://bee-1-debug.beekeeper.testnet.internal
+          - name: bee-2
+            api-url: https://bee-2.beekeeper.testnet.internal
+            debug-api-url: https://bee-2-debug.beekeeper.testnet.internal
         # nodes:
         # - clef:
         #     key: '{"address":"4558ab6d518bf60b813eeba3077eed986027c5da","crypto":{"cipher":"aes-128-ctr","ciphertext":"1bbeffa438a8b8fd592a46323fe0168d8d8e2625085ca8550023b5c0bd48a126","cipherparams":{"iv":"3f369a742a465aaf5e3025864639421a"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":64,"p":1,"r":8,"salt":"4c2c1fde6491213ea3c6021c82a70327bc0a056569a6e7c2a3fda9e486c0f090"},"mac":"f733b77f675acf0539e7d3d60735408c6efd43893dc0d5b0f94124b0197f89dd"},"id":"1e526dc4-60bd-4c4d-897d-f284806abf2b","version":3}'
@@ -56,6 +68,16 @@ clusters:
         bee-config: light-node
         config: light-node
         count: 3
+        endpoints:
+          - name: light-0
+            api-url: https://light-0.beekeeper.testnet.internal
+            debug-api-url: https://light-0-debug.beekeeper.testnet.internal
+          - name: light-1
+            api-url: https://light-1.beekeeper.testnet.internal
+            debug-api-url: https://light-1-debug.beekeeper.testnet.internal
+          - name: light-2
+            api-url: https://light-2.beekeeper.testnet.internal
+            debug-api-url: https://light-2-debug.beekeeper.testnet.internal
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
@@ -78,7 +100,6 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
     ingress-class: "nginx-internal"
-    ingress-debug-class: "nginx-internal"
     labels:
       app.kubernetes.io/component: "node"
       app.kubernetes.io/name: "bee"
@@ -115,8 +136,6 @@ bee-configs:
     db-block-cache-capacity: 33554432
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
-    debug-api-addr: ":1635"
-    debug-api-enable: true
     full-node: true
     nat-addr: ""
     mainnet: false
@@ -338,13 +357,6 @@ checks:
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
-  authenticate:
-    type: authenticate
-    timeout: 5m
-    options:
-      role: consumer
-      admin-password: test
-      restricted-group-name: restricted
   stake:
     type: stake
     timeout: 5m

@@ -1,4 +1,4 @@
-package debugapi
+package api
 
 import (
 	"context"

@@ -7,8 +7,6 @@ clusters:
     disable-namespace: true
     api-domain: localhost
     api-scheme: http
-    debug-api-domain: localhost
-    debug-api-scheme: http
     admin-password: test
     funding:
       eth: 0.1
@@ -45,18 +43,13 @@ clusters:
       bee:
         bee-config: bee-local-dns
         config: local-dns
-        count: 2
+        count: 3
         mode: node
       light:
         bee-config: bee-local-light
         config: local-light
         count: 2
         mode: node
-      restricted:
-        mode: node
-        bee-config: bee-local-restricted
-        config: bee-local-restricted
-        count: 1
   local-clef:
     _inherit: "local"
     node-groups:
@@ -119,7 +112,6 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
     ingress-class: "traefik"
-    ingress-debug-class: "traefik"
     labels:
       app.kubernetes.io/component: "node"
       app.kubernetes.io/name: "bee"
@@ -143,8 +135,6 @@ node-groups:
     _inherit: "local"
   local-light:
     _inherit: "local"
-  bee-local-restricted:
-    _inherit: "local"
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 bee-configs:
@@ -163,8 +153,6 @@ bee-configs:
     db-block-cache-capacity: 33554432
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
-    debug-api-addr: ":1635"
-    debug-api-enable: true
     full-node: true
     mainnet: false
     nat-addr: ""
@@ -182,9 +170,6 @@ bee-configs:
     staking-address: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
     redistribution-address: "0x09Ad42a7d020244920309FfA14EA376dd2D3b7d5"
     resolver-options: ""
-    restricted: false
-    token-encryption-key: ""
-    admin-password: ""
     chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://geth-swap:8546"
@@ -214,12 +199,6 @@ bee-configs:
     _inherit: "bee-local"
     clef-signer-enable: true
     clef-signer-endpoint: "http://localhost:8550"
-  bee-local-restricted:
-    _inherit: "bee-local"
-    bootnode: /dnsaddr/localhost
-    restricted: true
-    token-encryption-key: testtest
-    admin-password: $2a$12$Ltg3M2W53Xv9wwJ2.iAv4e4gWELrrr8D2dYat7wNdY2xArdmOSL1i
   bootnode-local-clef:
     _inherit: "bee-local"
     clef-signer-enable: true
@@ -372,13 +351,6 @@ checks:
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
-  ci-authenticate:
-    type: authenticate
-    timeout: 5m
-    options:
-      role: consumer
-      admin-password: test
-      restricted-group-name: restricted
   ci-stake:
     type: stake
     timeout: 5m
