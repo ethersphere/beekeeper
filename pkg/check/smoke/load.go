@@ -130,7 +130,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 							c.log.Infof("error getting state: %v", err)
 							return
 						}
-						if rs.StorageRadius <= o.MaxStorageRadius {
+						if rs.StorageRadius < o.MaxStorageRadius {
 							break
 						}
 						c.log.Infof("waiting for StorageRadius to decrease. Current: %d, Max: %d", rs.StorageRadius, o.MaxStorageRadius)

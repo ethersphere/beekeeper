@@ -336,6 +336,7 @@ checks:
       downloader-count: 3
       uploader-count: 3
       max-storage-radius: 2
+      storage-radius-check-wait: 5m
       upload-groups:
         - gateway
       download-groups:
