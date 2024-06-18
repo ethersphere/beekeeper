@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -119,24 +120,8 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					default:
 					}
 
-					// Check the StorageRadius
-					for {
-						rs, err := clients[txName].ReserveState(ctx)
-						if err != nil {
-							c.log.Infof("error getting state: %v", err)
-							return
-						}
-						if rs.StorageRadius < o.MaxStorageRadius {
-							break
-						}
-						c.log.Infof("waiting %v for StorageRadius to decrease. Current: %d, Max: %d", o.StorageRadiusCheckWait, rs.StorageRadius, o.MaxStorageRadius)
-
-						select {
-						case <-ctx.Done():
-							c.log.Infof("context done in StorageRadius check: %v", ctx.Err())
-							return
-						case <-time.After(o.StorageRadiusCheckWait):
-						}
+					if !c.checkStorageRadius(ctx, test.clients[txName], o.MaxStorageRadius, o.StorageRadiusCheckWait) {
+						return
 					}
 
 					c.metrics.UploadAttempts.Inc()
@@ -251,6 +236,27 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	}
 
 	return nil
+}
+
+func (c *LoadCheck) checkStorageRadius(ctx context.Context, client *bee.Client, maxRadius uint8, wait time.Duration) bool {
+	for {
+		rs, err := client.ReserveState(ctx)
+		if err != nil {
+			c.log.Infof("error getting state: %v", err)
+			return false
+		}
+		if rs.StorageRadius < maxRadius {
+			return true
+		}
+		c.log.Infof("waiting %v for StorageRadius to decrease. Current: %d, Max: %d", wait, rs.StorageRadius, maxRadius)
+
+		select {
+		case <-ctx.Done():
+			c.log.Infof("context done in StorageRadius check: %v", ctx.Err())
+			return false
+		case <-time.After(wait):
+		}
+	}
 }
 
 func pickRandom(count int, peers []string) (names []string) {
