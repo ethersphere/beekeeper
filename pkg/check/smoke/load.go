@@ -51,15 +51,11 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return errors.New("max storage radius is not set")
 	}
 
-	c.log.Info("random seed: ", o.RndSeed)
-	c.log.Info("content size: ", o.ContentSize)
-	c.log.Info("max batch lifespan: ", o.MaxUseBatch)
-	c.log.Info("max storage radius: ", o.MaxStorageRadius)
-
-	// TODO: check if we can make this check only once, before the upload is triggered.
-	// Currently, there are 2 requests to `/reservestate` before upload is triggered,
-	// one `prior to buying the batch` and one `after buying the batch`.
-	// Should we make this check with on first occasion?
+	c.log.Infof("random seed: %v", o.RndSeed)
+	c.log.Infof("content size: %v", o.ContentSize)
+	c.log.Infof("max batch lifespan: %v", o.MaxUseBatch)
+	c.log.Infof("max storage radius: %v", o.MaxStorageRadius)
+	c.log.Infof("storage radius check wait time: %v", o.StorageRadiusCheckWait)
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -133,13 +129,13 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 						if rs.StorageRadius < o.MaxStorageRadius {
 							break
 						}
-						c.log.Infof("waiting for StorageRadius to decrease. Current: %d, Max: %d", rs.StorageRadius, o.MaxStorageRadius)
+						c.log.Infof("waiting %v for StorageRadius to decrease. Current: %d, Max: %d", o.StorageRadiusCheckWait, rs.StorageRadius, o.MaxStorageRadius)
 
 						select {
 						case <-ctx.Done():
 							c.log.Infof("context done in StorageRadius check: %v", ctx.Err())
 							return
-						case <-time.After(o.TxOnErrWait): // TODO: Adjust the sleep duration as needed
+						case <-time.After(o.StorageRadiusCheckWait):
 						}
 					}
 
