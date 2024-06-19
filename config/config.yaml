@@ -335,9 +335,12 @@ checks:
       nodes-sync-wait: 1m
       duration: 12h
       downloader-count: 3
-      upload-group:
+      uploader-count: 3
+      max-storage-radius: 2
+      storage-radius-check-wait: 5m
+      upload-groups:
         - gateway
-      download-group:
+      download-groups:
         - bee
         - light
     timeout: 12h
