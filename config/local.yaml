@@ -166,14 +166,14 @@ bee-configs:
     storage-incentives-enable: true
     postage-stamp-start-block: 1
     postage-stamp-address: "0x657241f4494A2F15Ba75346E691d753A978C72Df"
-    price-oracle-address: "0xdfE987C615303B1bdfC17F5cFb8784190029d55f"
+    price-oracle-address: "0x5aFE06fcC0855a76a15c3544b0886EDBE3294d62"
     staking-address: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
     redistribution-address: "0x09Ad42a7d020244920309FfA14EA376dd2D3b7d5"
     resolver-options: ""
     chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://geth-swap:8546"
-    swap-factory-address: "0x47eA37032Eb9a29aF4FFdfC7df530faA912530A6"
+    swap-factory-address: "0xdD661f2500bA5831e3d1FEbAc379Ea1bF80773Ac"
     swap-initial-deposit: 500000000000000000
     verbosity: 5
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
