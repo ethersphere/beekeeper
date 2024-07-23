@@ -822,9 +822,9 @@ func (c *Client) GetStake(ctx context.Context) (*big.Int, error) {
 	return c.api.Stake.GetStakedAmount(ctx)
 }
 
-// WithdrawStake withdraws stake
-func (c *Client) WithdrawStake(ctx context.Context) (string, error) {
-	return c.api.Stake.WithdrawStake(ctx)
+// MigrateStake withdraws stake
+func (c *Client) MigrateStake(ctx context.Context) (string, error) {
+	return c.api.Stake.MigrateStake(ctx)
 }
 
 // WalletBalance fetches the balance for the given token

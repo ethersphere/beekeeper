@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"math/big"
+
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -13,6 +14,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
+
+const defaultOralPrice = 24_000
 
 // Options represents stake options
 type Options struct {
@@ -84,7 +87,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	client := clients[node]
 
 	if err := expectStakeAmountIs(ctx, client, zero); err != nil {
-		return errors.New("check initial staked amount")
+		return err
 	}
 
 	// depositing insufficient amount should fail
@@ -121,7 +124,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	// should not allow withdrawing from a running contract
-	_, err = client.WithdrawStake(ctx)
+	_, err = client.MigrateStake(ctx)
 	if err == nil {
 		return errors.New("withdraw from running contract should fail")
 	}
@@ -147,7 +150,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}()
 
 	// successful withdraw should set the staked amount to 0
-	_, err = client.WithdrawStake(ctx)
+	_, err = client.MigrateStake(ctx)
 	if err != nil {
 		return fmt.Errorf("withdraw from paused contract: %w", err)
 	}
@@ -165,7 +168,7 @@ func expectStakeAmountIs(ctx context.Context, client *bee.Client, expected *big.
 		return fmt.Errorf("get stake amount: %w", err)
 	}
 
-	if current.Cmp(expected) != 0 {
+	if current.Cmp(expected.Div(expected, big.NewInt(defaultOralPrice))) != 0 {
 		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, current)
 	}
 

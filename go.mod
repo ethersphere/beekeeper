@@ -2,6 +2,8 @@ module github.com/ethersphere/beekeeper
 
 go 1.22
 
+toolchain go1.22.0
+
 replace github.com/codahale/hdrhistogram => github.com/HdrHistogram/hdrhistogram-go v1.1.2
 
 require (
