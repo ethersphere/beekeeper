@@ -15,8 +15,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
-const defaultOralPrice = 24_000
-
 // Options represents stake options
 type Options struct {
 	Amount             *big.Int
@@ -168,7 +166,7 @@ func expectStakeAmountIs(ctx context.Context, client *bee.Client, expected *big.
 		return fmt.Errorf("get stake amount: %w", err)
 	}
 
-	if current.Cmp(expected.Div(expected, big.NewInt(defaultOralPrice))) != 0 {
+	if current.Cmp(expected) != 0 {
 		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, current)
 	}
 
