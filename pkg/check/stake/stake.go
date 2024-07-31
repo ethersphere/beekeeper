@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -67,7 +68,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if paused, err := stake.Paused(); err != nil {
-		return fmt.Errorf("chack if contract is paused: %w", err)
+		return fmt.Errorf("check if contract is paused: %w", err)
 	} else if paused {
 		c.logger.Info("contract is paused, skipping")
 		return nil
@@ -84,13 +85,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	client := clients[node]
 
 	if err := expectStakeAmountIs(ctx, client, zero); err != nil {
-		return errors.New("check initial staked amount")
+		return err
 	}
 
 	// depositing insufficient amount should fail
 	_, err = client.DepositStake(ctx, o.InsufficientAmount)
 
-	if !debugapi.IsHTTPStatusErrorCode(err, 400) {
+	if !api.IsHTTPStatusErrorCode(err, 400) {
 		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %v", 400, err)
 	}
 
@@ -121,7 +122,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	// should not allow withdrawing from a running contract
-	_, err = client.WithdrawStake(ctx)
+	_, err = client.MigrateStake(ctx)
 	if err == nil {
 		return errors.New("withdraw from running contract should fail")
 	}
@@ -147,7 +148,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}()
 
 	// successful withdraw should set the staked amount to 0
-	_, err = client.WithdrawStake(ctx)
+	_, err = client.MigrateStake(ctx)
 	if err != nil {
 		return fmt.Errorf("withdraw from paused contract: %w", err)
 	}

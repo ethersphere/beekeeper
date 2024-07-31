@@ -119,6 +119,9 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	var fundOpts orchestration.FundingOptions
 
 	if startCluster {
+		if clusterConfig.IsUsingStaticEndpoints() {
+			return nil, errors.New("static endpoints are not supported for starting the cluster")
+		}
 		if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
 			return nil, errors.New("chain node endpoint (geth-url) not provided")
 		}
@@ -182,13 +185,14 @@ func ensureFundingDefaults(fundOpts orchestration.FundingOptions, log logging.Lo
 
 func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
 	clusterOpts := clusterConfig.Export()
-	clusterOpts.K8SClient = c.k8sClient
 	clusterOpts.SwapClient = c.swapClient
+	clusterOpts.K8SClient = c.k8sClient
 	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 
 func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
 	var nodeCount uint32
+
 	for ngName, v := range clusterConfig.GetNodeGroups() {
 
 		if (v.Mode != bootnodeMode && bootnode) || (v.Mode == bootnodeMode && !bootnode) {
@@ -220,6 +224,17 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			return nil, "", fmt.Errorf("get node group: %w", err)
 		}
 
+		if clusterConfig.IsUsingStaticEndpoints() {
+			for nodeName, endpoint := range v.GetEndpoints() {
+				beeOpt := orchestration.WithURL(endpoint.APIURL)
+				nodeCount++
+				go setupOrAddNode(ctx, false, ng, nodeName, orchestration.NodeOptions{
+					Config: &bConfig,
+				}, nodeResultCh, beeOpt)
+			}
+			continue
+		}
+
 		for i, node := range v.Nodes {
 			// set node name
 			nodeName := fmt.Sprintf("%s-%d", ngName, i)
@@ -228,7 +243,6 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			}
 
 			var nodeOpts orchestration.NodeOptions
-
 			if bootnode {
 				// set bootnodes
 				bConfig.Bootnodes = fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
@@ -237,9 +251,8 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			} else {
 				nodeOpts = setupNodeOptions(node, nil)
 			}
-
 			nodeCount++
-			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh)
+			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh, orchestration.WithNoOptions())
 		}
 
 		if len(v.Nodes) == 0 && !bootnode {
@@ -247,7 +260,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 				// set node name
 				nodeName := fmt.Sprintf("%s-%d", ngName, i)
 				nodeCount++
-				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh)
+				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, orchestration.WithNoOptions())
 			}
 		}
 	}
@@ -267,12 +280,12 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 	return fundAddresses, bootnodesOut, nil
 }
 
-func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult) {
+func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult, beeOpt orchestration.BeeClientOption) {
 	if startCluster {
 		ethAddress, err := ng.SetupNode(ctx, nName, nodeOpts)
 		ch <- nodeResult{ethAddress: ethAddress, err: err}
 	} else {
-		err := ng.AddNode(ctx, nName, nodeOpts)
+		err := ng.AddNode(ctx, nName, nodeOpts, beeOpt)
 		ch <- nodeResult{err: err}
 	}
 }

@@ -29,27 +29,31 @@ type Options struct {
 	UploadTimeout   time.Duration
 	DownloadTimeout time.Duration
 	// load test params
-	UploaderCount   int
-	UploadGroups    []string
-	DownloaderCount int
-	DownloadGroups  []string
-	MaxUseBatch     time.Duration
+	UploaderCount          int
+	UploadGroups           []string
+	DownloaderCount        int
+	DownloadGroups         []string
+	MaxUseBatch            time.Duration
+	MaxStorageRadius       uint8
+	StorageRadiusCheckWait time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ContentSize:     5000000,
-		RndSeed:         time.Now().UnixNano(),
-		PostageAmount:   50_000_000,
-		PostageDepth:    24,
-		TxOnErrWait:     10 * time.Second,
-		RxOnErrWait:     10 * time.Second,
-		NodesSyncWait:   time.Minute,
-		Duration:        12 * time.Hour,
-		UploadTimeout:   60 * time.Minute,
-		DownloadTimeout: 60 * time.Minute,
-		MaxUseBatch:     12 * time.Hour,
+		ContentSize:            5000000,
+		RndSeed:                time.Now().UnixNano(),
+		PostageAmount:          50_000_000,
+		PostageDepth:           24,
+		TxOnErrWait:            10 * time.Second,
+		RxOnErrWait:            10 * time.Second,
+		NodesSyncWait:          time.Minute,
+		Duration:               12 * time.Hour,
+		UploadTimeout:          60 * time.Minute,
+		DownloadTimeout:        60 * time.Minute,
+		MaxUseBatch:            12 * time.Hour,
+		MaxStorageRadius:       2,
+		StorageRadiusCheckWait: 5 * time.Minute,
 	}
 }
 

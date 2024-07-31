@@ -1,4 +1,4 @@
-package debugapi
+package api
 
 import (
 	"context"
@@ -42,10 +42,10 @@ func (s *StakingService) GetStakedAmount(ctx context.Context) (stakedAmount *big
 	return r.StakedAmount.Int, nil
 }
 
-// WithdrawStake withdraws stake
-func (s *StakingService) WithdrawStake(ctx context.Context) (txHash string, err error) {
+// MigrateStake withdraws stake
+func (s *StakingService) MigrateStake(ctx context.Context) (txHash string, err error) {
 	r := new(stakeWithdrawResponse)
-	err = s.client.requestJSON(ctx, http.MethodDelete, "/stake", nil, r)
+	err = s.client.requestJSON(ctx, http.MethodPost, "/stake/migrate", nil, r)
 	if err != nil {
 		return "", err
 	}

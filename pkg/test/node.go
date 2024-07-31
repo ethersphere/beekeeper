@@ -28,10 +28,6 @@ func (b *BeeV2) Name() string {
 	return b.name
 }
 
-func (b *BeeV2) Restricted() bool {
-	return b.client.Config().Restricted
-}
-
 func (b *BeeV2) DownloadChunk(ctx context.Context, ref swarm.Address) ([]byte, error) {
 	return b.client.DownloadChunk(ctx, ref, "", nil)
 }

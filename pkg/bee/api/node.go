@@ -1,4 +1,4 @@
-package debugapi
+package api
 
 import (
 	"context"
@@ -19,9 +19,9 @@ type NodeService service
 type Addresses struct {
 	Ethereum     string        `json:"ethereum"`
 	Overlay      swarm.Address `json:"overlay"`
-	PublicKey    string        `json:"public_key"`
+	PublicKey    string        `json:"publicKey"`
 	Underlay     []string      `json:"underlay"`
-	PSSPublicKey string        `json:"pss_public_key"`
+	PSSPublicKey string        `json:"pssPublicKey"`
 }
 
 // Addresses returns node's addresses

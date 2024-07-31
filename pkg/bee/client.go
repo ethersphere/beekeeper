@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
@@ -24,41 +24,32 @@ const retryCount int = 5
 
 // Client manages communication with the Bee node
 type Client struct {
-	api    *api.Client
-	debug  *debugapi.Client
-	opts   ClientOptions
-	logger logging.Logger
+	api  *api.Client
+	opts ClientOptions
+	log  logging.Logger
 	// number of times to retry call
 	retry int
 }
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
-	APIURL              *url.URL
-	APIInsecureTLS      bool
-	DebugAPIURL         *url.URL
-	DebugAPIInsecureTLS bool
-	Retry               int
-	Restricted          bool
+	APIURL         *url.URL
+	APIInsecureTLS bool
+	Retry          int
 }
 
 // NewClient returns Bee client
-func NewClient(opts ClientOptions, logger logging.Logger) (c *Client) {
+func NewClient(opts ClientOptions, log logging.Logger) (c *Client) {
 	c = &Client{
-		retry:  retryCount,
-		opts:   opts,
-		logger: logger,
+		retry: retryCount,
+		opts:  opts,
+		log:   log,
 	}
 
 	if opts.APIURL != nil {
 		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
-		}}, Restricted: opts.Restricted})
-	}
-	if opts.DebugAPIURL != nil {
-		c.debug = debugapi.NewClient(opts.DebugAPIURL, &debugapi.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.DebugAPIInsecureTLS},
-		}}, Restricted: opts.Restricted})
+		}}})
 	}
 	if opts.Retry > 0 {
 		c.retry = opts.Retry
@@ -82,7 +73,7 @@ func (c *Client) Config() ClientOptions {
 
 // Addresses returns node's addresses
 func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
-	a, err := c.debug.Node.Addresses(ctx)
+	a, err := c.api.Node.Addresses(ctx)
 	if err != nil {
 		return Addresses{}, fmt.Errorf("get addresses: %w", err)
 	}
@@ -118,7 +109,7 @@ type Accounting struct {
 
 // Accounting returns node's accounts with all peers
 func (c *Client) Accounting(ctx context.Context) (resp Accounting, err error) {
-	r, err := c.debug.Node.Accounting(ctx)
+	r, err := c.api.Node.Accounting(ctx)
 	if err != nil {
 		return Accounting{}, fmt.Errorf("get accounting: %w", err)
 	}
@@ -150,7 +141,7 @@ type Balance struct {
 
 // Balance returns node's balance with a given peer
 func (c *Client) Balance(ctx context.Context, a swarm.Address) (resp Balance, err error) {
-	b, err := c.debug.Node.Balance(ctx, a)
+	b, err := c.api.Node.Balance(ctx, a)
 	if err != nil {
 		return Balance{}, fmt.Errorf("get balance with node %s: %w", a.String(), err)
 	}
@@ -168,7 +159,7 @@ type Balances struct {
 
 // Balances returns node's balances
 func (c *Client) Balances(ctx context.Context) (resp Balances, err error) {
-	r, err := c.debug.Node.Balances(ctx)
+	r, err := c.api.Node.Balances(ctx)
 	if err != nil {
 		return Balances{}, fmt.Errorf("get balances: %w", err)
 	}
@@ -233,15 +224,30 @@ func (c *Client) DownloadFile(ctx context.Context, a swarm.Address, opts *api.Do
 	return size, h.Sum(nil), nil
 }
 
+func (c *Client) DownloadActFile(ctx context.Context, a swarm.Address, opts *api.DownloadOptions) (size int64, hash []byte, err error) {
+	r, err := c.api.Act.Download(ctx, a, opts)
+	if err != nil {
+		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
+	}
+
+	h := fileHasher()
+	size, err = io.Copy(h, r)
+	if err != nil {
+		return 0, nil, fmt.Errorf("download file %s, hashing copy: %w", a, err)
+	}
+
+	return size, h.Sum(nil), nil
+}
+
 // HasChunk returns true/false if node has a chunk
 func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
-	return c.debug.Node.HasChunk(ctx, a)
+	return c.api.Node.HasChunk(ctx, a)
 }
 
 func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, count int, err error) {
 	has = make([]bool, len(a))
 	for i, addr := range a {
-		v, err := c.debug.Node.HasChunk(ctx, addr)
+		v, err := c.api.Node.HasChunk(ctx, addr)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -255,11 +261,11 @@ func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, 
 
 // Overlay returns node's overlay address
 func (c *Client) Overlay(ctx context.Context) (o swarm.Address, err error) {
-	var a debugapi.Addresses
+	var a api.Addresses
 	for r := 0; r < c.retry; r++ {
 		time.Sleep(2 * time.Duration(r) * time.Second)
 
-		a, err = c.debug.Node.Addresses(ctx)
+		a, err = c.api.Node.Addresses(ctx)
 		if err != nil {
 			continue
 		}
@@ -275,7 +281,7 @@ func (c *Client) Overlay(ctx context.Context) (o swarm.Address, err error) {
 
 // Peers returns addresses of node's peers
 func (c *Client) Peers(ctx context.Context) (peers []swarm.Address, err error) {
-	ps, err := c.debug.Node.Peers(ctx)
+	ps, err := c.api.Node.Peers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get peers: %w", err)
 	}
@@ -310,7 +316,7 @@ func (c *Client) GetPins(ctx context.Context) ([]swarm.Address, error) {
 
 // Ping pings other node
 func (c *Client) Ping(ctx context.Context, node swarm.Address) (rtt string, err error) {
-	r, err := c.debug.PingPong.Ping(ctx, node)
+	r, err := c.api.PingPong.Ping(ctx, node)
 	if err != nil {
 		return "", fmt.Errorf("ping node %s: %w", node, err)
 	}
@@ -362,7 +368,7 @@ type Settlement struct {
 
 // Settlement returns node's settlement with a given peer
 func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settlement, err error) {
-	b, err := c.debug.Node.Settlement(ctx, a)
+	b, err := c.api.Node.Settlement(ctx, a)
 	if err != nil {
 		return Settlement{}, fmt.Errorf("get settlement with node %s: %w", a.String(), err)
 	}
@@ -384,9 +390,9 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (before): %w", err)
 		}
-		c.logger.Infof("reserve state (prior to buying the batch):%s", rs.String())
+		c.log.Infof("reserve state (prior to buying the batch):%s", rs.String())
 	}
-	id, err := c.debug.Postage.CreatePostageBatch(ctx, amount, depth, label)
+	id, err := c.api.Postage.CreatePostageBatch(ctx, amount, depth, label)
 	if err != nil {
 		return "", fmt.Errorf("create postage stamp: %w", err)
 	}
@@ -396,7 +402,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	// wait for the stamp to become usable
 	for i := 0; i < 900; i++ {
 		time.Sleep(1 * time.Second)
-		state, err := c.debug.Postage.PostageStamp(ctx, id)
+		state, err := c.api.Postage.PostageStamp(ctx, id)
 		if err != nil {
 			continue
 		}
@@ -420,8 +426,8 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 		if err != nil {
 			return "", fmt.Errorf("print reserve state (after): %w", err)
 		}
-		c.logger.Infof("reserve state (after buying the batch):\n%s", rs.String())
-		c.logger.Infof("created batch id %s with depth %d and amount %d", id, depth, amount)
+		c.log.Infof("reserve state (after buying the batch): %s", rs.String())
+		c.log.Infof("created batch id %s with depth %d and amount %d", id, depth, amount)
 	}
 	return id, nil
 }
@@ -449,13 +455,13 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 }
 
 // PostageBatches returns the list of batches of node
-func (c *Client) PostageBatches(ctx context.Context) ([]debugapi.PostageStampResponse, error) {
-	return c.debug.Postage.PostageBatches(ctx)
+func (c *Client) PostageBatches(ctx context.Context) ([]api.PostageStampResponse, error) {
+	return c.api.Postage.PostageBatches(ctx)
 }
 
 // PostageStamp returns the batch by ID
-func (c *Client) PostageStamp(ctx context.Context, batchID string) (debugapi.PostageStampResponse, error) {
-	return c.debug.Postage.PostageStamp(ctx, batchID)
+func (c *Client) PostageStamp(ctx context.Context, batchID string) (api.PostageStampResponse, error) {
+	return c.api.Postage.PostageStamp(ctx, batchID)
 }
 
 // TopupPostageBatch tops up the given batch with the amount per chunk
@@ -465,7 +471,7 @@ func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount i
 		return fmt.Errorf("unable to retrieve batch details: %w", err)
 	}
 
-	err = c.debug.Postage.TopUpPostageBatch(ctx, batchID, amount, gasPrice)
+	err = c.api.Postage.TopUpPostageBatch(ctx, batchID, amount, gasPrice)
 	if err != nil {
 		return err
 	}
@@ -489,12 +495,12 @@ func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount i
 
 // DilutePostageBatch dilutes the given batch by increasing the depth
 func (c *Client) DilutePostageBatch(ctx context.Context, batchID string, depth uint64, gasPrice string) error {
-	batch, err := c.debug.Postage.PostageStamp(ctx, batchID)
+	batch, err := c.api.Postage.PostageStamp(ctx, batchID)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve batch details: %w", err)
 	}
 
-	err = c.debug.Postage.DilutePostageBatch(ctx, batchID, depth, gasPrice)
+	err = c.api.Postage.DilutePostageBatch(ctx, batchID, depth, gasPrice)
 	if err != nil {
 		return err
 	}
@@ -502,7 +508,7 @@ func (c *Client) DilutePostageBatch(ctx context.Context, batchID string, depth u
 	for i := 0; i < 60; i++ {
 		time.Sleep(time.Second)
 
-		b, err := c.debug.Postage.PostageStamp(ctx, batchID)
+		b, err := c.api.Postage.PostageStamp(ctx, batchID)
 		if err != nil {
 			return err
 		}
@@ -517,8 +523,8 @@ func (c *Client) DilutePostageBatch(ctx context.Context, batchID string, depth u
 }
 
 // ReserveState returns reserve radius, available capacity, inner and outer radiuses
-func (c *Client) ReserveState(ctx context.Context) (debugapi.ReserveState, error) {
-	return c.debug.Postage.ReserveState(ctx)
+func (c *Client) ReserveState(ctx context.Context) (api.ReserveState, error) {
+	return c.api.Postage.ReserveState(ctx)
 }
 
 // SendPSSMessage triggers a PSS message with a topic and recipient address
@@ -545,7 +551,7 @@ type Settlements struct {
 
 // Settlements returns node's settlements
 func (c *Client) Settlements(ctx context.Context) (resp Settlements, err error) {
-	r, err := c.debug.Node.Settlements(ctx)
+	r, err := c.api.Node.Settlements(ctx)
 	if err != nil {
 		return Settlements{}, fmt.Errorf("get settlements: %w", err)
 	}
@@ -584,7 +590,7 @@ type CashoutStatusResponse struct {
 }
 
 func (c *Client) CashoutStatus(ctx context.Context, a swarm.Address) (resp CashoutStatusResponse, err error) {
-	r, err := c.debug.Node.CashoutStatus(ctx, a)
+	r, err := c.api.Node.CashoutStatus(ctx, a)
 	if err != nil {
 		return CashoutStatusResponse{}, fmt.Errorf("cashout: %w", err)
 	}
@@ -612,7 +618,7 @@ func (c *Client) CashoutStatus(ctx context.Context, a swarm.Address) (resp Casho
 }
 
 func (c *Client) Cashout(ctx context.Context, a swarm.Address) (resp string, err error) {
-	r, err := c.debug.Node.Cashout(ctx, a)
+	r, err := c.api.Node.Cashout(ctx, a)
 	if err != nil {
 		return "", fmt.Errorf("cashout: %w", err)
 	}
@@ -626,7 +632,7 @@ type ChequebookBalanceResponse struct {
 }
 
 func (c *Client) ChequebookBalance(ctx context.Context) (resp ChequebookBalanceResponse, err error) {
-	r, err := c.debug.Node.ChequebookBalance(ctx)
+	r, err := c.api.Node.ChequebookBalance(ctx)
 	if err != nil {
 		return ChequebookBalanceResponse{}, fmt.Errorf("cashout: %w", err)
 	}
@@ -652,19 +658,19 @@ type Topology struct {
 
 // Bin represents Kademlia bin
 type Bin struct {
-	Population        int                 `json:"population"`
-	Connected         int                 `json:"connected"`
-	DisconnectedPeers []debugapi.PeerInfo `json:"disconnectedPeers"`
-	ConnectedPeers    []debugapi.PeerInfo `json:"connectedPeers"`
+	Population        int            `json:"population"`
+	Connected         int            `json:"connected"`
+	DisconnectedPeers []api.PeerInfo `json:"disconnectedPeers"`
+	ConnectedPeers    []api.PeerInfo `json:"connectedPeers"`
 }
 
 // Topology returns Kademlia topology
 func (c *Client) Topology(ctx context.Context) (topology Topology, err error) {
-	var t debugapi.Topology
+	var t api.Topology
 	for r := 0; r < c.retry; r++ {
 		time.Sleep(2 * time.Duration(r) * time.Second)
 
-		t, err = c.debug.Node.Topology(ctx)
+		t, err = c.api.Node.Topology(ctx)
 		if err != nil {
 			continue
 		}
@@ -708,7 +714,7 @@ func (c *Client) Topology(ctx context.Context) (topology Topology, err error) {
 
 // Underlay returns node's underlay addresses
 func (c *Client) Underlay(ctx context.Context) ([]string, error) {
-	a, err := c.debug.Node.Addresses(ctx)
+	a, err := c.api.Node.Addresses(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get underlay: %w", err)
 	}
@@ -758,6 +764,55 @@ func (c *Client) UploadFile(ctx context.Context, f *File, o api.UploadOptions) (
 	f.SetHash(h.Sum(nil))
 
 	return
+}
+
+func (c *Client) UploadActFile(ctx context.Context, f *File, o api.UploadOptions) (err error) {
+	h := fileHasher()
+	r, err := c.api.Act.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), o)
+	if err != nil {
+		return fmt.Errorf("upload ACT file: %w", err)
+	}
+
+	f.SetAddress(r.Reference)
+	f.SetHistroryAddress(r.HistoryAddress)
+	f.SetHash(h.Sum(nil))
+
+	return nil
+}
+
+func (c *Client) AddActGrantees(ctx context.Context, f *File, o api.UploadOptions) (err error) {
+	h := fileHasher()
+	r, err := c.api.Act.AddGrantees(ctx, io.TeeReader(f.DataReader(), h), o)
+	if err != nil {
+		return fmt.Errorf("add ACT grantees: %w", err)
+	}
+
+	f.SetAddress(r.Reference)
+	f.SetHistroryAddress(r.HistoryAddress)
+	f.SetHash(h.Sum(nil))
+
+	return nil
+}
+
+func (c *Client) GetActGrantees(ctx context.Context, a swarm.Address) (addresses []string, err error) {
+	r, e := c.api.Act.GetGrantees(ctx, a)
+	if e != nil {
+		return nil, fmt.Errorf("get grantees: %s: %w", a, e)
+	}
+	defer r.Close()
+	err = json.NewDecoder(r).Decode(&addresses)
+	return addresses, err
+}
+
+func (c *Client) PatchActGrantees(ctx context.Context, pf *File, addr swarm.Address, haddr swarm.Address, batchID string) (err error) {
+	r, err := c.api.Act.PatchGrantees(ctx, pf.DataReader(), addr, haddr, batchID)
+	if err != nil {
+		return fmt.Errorf("add ACT grantees: %w", err)
+	}
+
+	pf.SetAddress(r.Reference)
+	pf.SetHistroryAddress(r.HistoryAddress)
+	return nil
 }
 
 // UploadCollection uploads TAR collection bytes to the node
@@ -822,36 +877,24 @@ func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
 	return c.api.Stewardship.Reupload(ctx, ref)
 }
 
-// Authenticate
-func (c *Client) Authenticate(ctx context.Context, role, password string) (string, error) {
-	resp, err := c.api.Auth.Authenticate(ctx, role, password)
-	return resp, err
-}
-
-// Refresh
-func (c *Client) Refresh(ctx context.Context, securityToken string) (string, error) {
-	resp, err := c.api.Auth.Refresh(ctx, securityToken)
-	return resp, err
-}
-
 // DepositStake deposits stake
 func (c *Client) DepositStake(ctx context.Context, amount *big.Int) (string, error) {
-	return c.debug.Stake.DepositStake(ctx, amount)
+	return c.api.Stake.DepositStake(ctx, amount)
 }
 
 // GetStake returns stake amount
 func (c *Client) GetStake(ctx context.Context) (*big.Int, error) {
-	return c.debug.Stake.GetStakedAmount(ctx)
+	return c.api.Stake.GetStakedAmount(ctx)
 }
 
-// WithdrawStake withdraws stake
-func (c *Client) WithdrawStake(ctx context.Context) (string, error) {
-	return c.debug.Stake.WithdrawStake(ctx)
+// MigrateStake withdraws stake
+func (c *Client) MigrateStake(ctx context.Context) (string, error) {
+	return c.api.Stake.MigrateStake(ctx)
 }
 
 // WalletBalance fetches the balance for the given token
 func (c *Client) WalletBalance(ctx context.Context, token string) (*big.Int, error) {
-	resp, err := c.debug.Node.Wallet(ctx)
+	resp, err := c.api.Node.Wallet(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -865,7 +908,7 @@ func (c *Client) WalletBalance(ctx context.Context, token string) (*big.Int, err
 
 // Withdraw transfers token from eth address to the provided address
 func (c *Client) Withdraw(ctx context.Context, token, addr string, amount int64) error {
-	resp, err := c.debug.Node.Withdraw(ctx, token, addr, amount)
+	resp, err := c.api.Node.Withdraw(ctx, token, addr, amount)
 	if err != nil {
 		return err
 	}

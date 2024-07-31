@@ -7,8 +7,6 @@ clusters:
     disable-namespace: true
     api-domain: localhost
     api-scheme: http
-    debug-api-domain: localhost
-    debug-api-scheme: http
     admin-password: test
     funding:
       eth: 0.1
@@ -45,18 +43,13 @@ clusters:
       bee:
         bee-config: bee-local-dns
         config: local-dns
-        count: 2
+        count: 3
         mode: node
       light:
         bee-config: bee-local-light
         config: local-light
         count: 2
         mode: node
-      restricted:
-        mode: node
-        bee-config: bee-local-restricted
-        config: bee-local-restricted
-        count: 1
   local-clef:
     _inherit: "local"
     node-groups:
@@ -119,7 +112,6 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
     ingress-class: "traefik"
-    ingress-debug-class: "traefik"
     labels:
       app.kubernetes.io/component: "node"
       app.kubernetes.io/name: "bee"
@@ -143,8 +135,6 @@ node-groups:
     _inherit: "local"
   local-light:
     _inherit: "local"
-  bee-local-restricted:
-    _inherit: "local"
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 bee-configs:
@@ -163,12 +153,10 @@ bee-configs:
     db-block-cache-capacity: 33554432
     db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
-    debug-api-addr: ":1635"
-    debug-api-enable: true
     full-node: true
     mainnet: false
     nat-addr: ""
-    network-id: 12345
+    network-id: 0
     p2p-addr: ":1634"
     p2p-ws-enable: false
     password: "beekeeper"
@@ -177,24 +165,21 @@ bee-configs:
     payment-tolerance-percent: 25
     storage-incentives-enable: true
     postage-stamp-start-block: 1
-    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
-    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
-    staking-address: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
-    redistribution-address: "0x56e442f99cafd7c890c404c1f8c16d38a569e41a"
+    postage-stamp-address: "0x657241f4494A2F15Ba75346E691d753A978C72Df"
+    price-oracle-address: "0x5aFE06fcC0855a76a15c3544b0886EDBE3294d62"
+    staking-address: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
+    redistribution-address: "0x09Ad42a7d020244920309FfA14EA376dd2D3b7d5"
     resolver-options: ""
-    restricted: false
-    token-encryption-key: ""
-    admin-password: ""
     chequebook-enable: true
     swap-enable: true
     swap-endpoint: "ws://geth-swap:8546"
-    swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
+    swap-factory-address: "0xdD661f2500bA5831e3d1FEbAc379Ea1bF80773Ac"
     swap-initial-deposit: 500000000000000000
     verbosity: 5
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
     warmup-time: 0s
     allow-private-cidrs: true
-    withdrawal-addresses-whitelist: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
+    withdrawal-addresses-whitelist: "0xec44cb15b1b033e74d55ac5d0e24d861bde54532"
 
   bootnode-local:
     _inherit: "bee-local"
@@ -214,12 +199,6 @@ bee-configs:
     _inherit: "bee-local"
     clef-signer-enable: true
     clef-signer-endpoint: "http://localhost:8550"
-  bee-local-restricted:
-    _inherit: "bee-local"
-    bootnode: /dnsaddr/localhost
-    restricted: true
-    token-encryption-key: testtest
-    admin-password: $2a$12$Ltg3M2W53Xv9wwJ2.iAv4e4gWELrrr8D2dYat7wNdY2xArdmOSL1i
   bootnode-local-clef:
     _inherit: "bee-local"
     clef-signer-enable: true
@@ -235,6 +214,15 @@ bee-configs:
 
 # CI checks
 checks:
+  ci-act:
+    options:
+      file-size: 1024
+      postage-depth: 20
+      postage-amount: 420000000
+      postage-label: act-label
+      seed: 0
+    timeout: 5m
+    type: act
   ci-full-connectivity:
     timeout: 5m
     type: full-connectivity
@@ -372,20 +360,13 @@ checks:
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
-  ci-authenticate:
-    type: authenticate
-    timeout: 5m
-    options:
-      role: consumer
-      admin-password: test
-      restricted-group-name: restricted
   ci-stake:
     type: stake
     timeout: 5m
     options:
       amount: 1000000000000000000
       insufficient-amount: 102400
-      contract-addr: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
+      contract-addr: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
       geth-url: "http://geth-swap.localhost"
       geth-chain-id: 12345

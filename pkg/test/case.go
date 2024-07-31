@@ -32,10 +32,6 @@ type CaseOptions struct {
 	PostageLabel  string
 	Seed          int64
 	PostageDepth  uint64
-
-	AdminPassword       string
-	RestrictedGroupName string
-	Role                string
 }
 
 func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts CaseOptions, logger logging.Logger) (*CheckCase, error) {

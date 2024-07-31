@@ -246,12 +246,11 @@ func (g *GethClient) ethAccounts(ctx context.Context) (a []string, err error) {
 
 // contains checks if list contains string
 func contains(list []string, find string) bool {
-	for _, v := range list {
-		if v == find {
+	for _, s := range list {
+		if strings.EqualFold(s, find) {
 			return true
 		}
 	}
-
 	return false
 }
 

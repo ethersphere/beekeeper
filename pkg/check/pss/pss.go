@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -130,7 +129,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	}
 	c.logger.Infof("node %s: batched id %s", nodeAName, batchID)
 
-	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, nodeB.Config().Restricted, testTopic, c.logger)
+	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic, c.logger)
 	if err != nil {
 		cancel()
 		return err
@@ -168,19 +167,13 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	return nil
 }
 
-func listenWebsocket(ctx context.Context, host string, setHeader bool, topic string, logger logging.Logger) (<-chan string, func(), error) {
+func listenWebsocket(ctx context.Context, host string, topic string, logger logging.Logger) (<-chan string, func(), error) {
 	dialer := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: 45 * time.Second,
 	}
 
-	var header http.Header
-	if setHeader {
-		header = make(http.Header)
-		header.Add("Authorization", "Bearer "+api.TokenConsumer)
-	}
-
-	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/pss/subscribe/%s", host, topic), header)
+	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/pss/subscribe/%s", host, topic), http.Header{})
 	if err != nil {
 		return nil, nil, err
 	}

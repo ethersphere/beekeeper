@@ -11,14 +11,19 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/ethersphere/beekeeper"
 )
 
 const (
 	apiVersion                  = "v1"
-	contentType                 = "application/json; charset=utf-8"
+	contentType                 = "application/json, text/plain, */*; charset=utf-8"
 	postageStampBatchHeader     = "Swarm-Postage-Batch-Id"
 	deferredUploadHeader        = "Swarm-Deferred-Upload"
+	swarmAct                    = "Swarm-Act"
+	swarmActHistoryAddress      = "Swarm-Act-History-Address"
+	swarmActPublisher           = "Swarm-Act-Publisher"
+	swarmActTimestamp           = "Swarm-Act-Timestamp"
 	swarmPinHeader              = "Swarm-Pin"
 	swarmTagHeader              = "Swarm-Tag"
 	swarmCacheDownloadHeader    = "Swarm-Cache"
@@ -31,9 +36,9 @@ var userAgent = "beekeeper/" + beekeeper.Version
 type Client struct {
 	httpClient *http.Client // HTTP client must handle authentication implicitly.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
-	restricted bool
 
 	// Services that API provides.
+	Act         *ActService
 	Bytes       *BytesService
 	Chunks      *ChunksService
 	Files       *FilesService
@@ -43,13 +48,15 @@ type Client struct {
 	PSS         *PSSService
 	SOC         *SOCService
 	Stewardship *StewardshipService
-	Auth        *AuthService
+	Node        *NodeService
+	PingPong    *PingPongService
+	Postage     *PostageService
+	Stake       *StakingService
 }
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
 	HTTPClient *http.Client
-	Restricted bool
 }
 
 // NewClient constructs a new Client.
@@ -62,8 +69,6 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 	}
 
 	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
-	c.restricted = o.Restricted
-
 	return
 }
 
@@ -72,6 +77,7 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 func newClient(httpClient *http.Client) (c *Client) {
 	c = &Client{httpClient: httpClient}
 	c.service.client = c
+	c.Act = (*ActService)(&c.service)
 	c.Bytes = (*BytesService)(&c.service)
 	c.Chunks = (*ChunksService)(&c.service)
 	c.Files = (*FilesService)(&c.service)
@@ -81,7 +87,10 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.PSS = (*PSSService)(&c.service)
 	c.SOC = (*SOCService)(&c.service)
 	c.Stewardship = (*StewardshipService)(&c.service)
-	c.Auth = (*AuthService)(&c.service)
+	c.Node = (*NodeService)(&c.service)
+	c.PingPong = (*PingPongService)(&c.service)
+	c.Postage = (*PostageService)(&c.service)
+	c.Stake = (*StakingService)(&c.service)
 	return c
 }
 
@@ -140,14 +149,6 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	}
 	req.Header.Set("Accept", contentType)
 
-	if c.restricted && req.Header.Get("Authorization") == "" {
-		key, err := GetToken(path, method)
-		if err != nil {
-			return err
-		}
-		req.Header.Set("Authorization", "Bearer "+key)
-	}
-
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
@@ -185,13 +186,20 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 		req.Header.Set("Content-Type", contentType)
 	}
 	req.Header.Set("Accept", contentType)
-
-	if c.restricted && req.Header.Get("Authorization") == "" {
-		key, err := GetToken(path, method)
-		if err != nil {
-			return nil, err
+	// ACT
+	if opts != nil {
+		if opts.Act != nil {
+			req.Header.Set(swarmAct, strconv.FormatBool(*opts.Act))
 		}
-		req.Header.Set("Authorization", "Bearer "+key)
+		if opts.ActHistoryAddress != nil {
+			req.Header.Set(swarmActHistoryAddress, (*opts.ActHistoryAddress).String())
+		}
+		if opts.ActPublicKey != nil {
+			req.Header.Set(swarmActPublisher, (*opts.ActPublicKey).String())
+		}
+		if opts.ActTimestamp != nil {
+			req.Header.Set(swarmActTimestamp, strconv.FormatUint(*opts.ActTimestamp, 10))
+		}
 	}
 
 	if opts != nil && opts.Cache != nil {
@@ -200,7 +208,6 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	if opts != nil && opts.RedundancyFallbackMode != nil {
 		req.Header.Set(swarmRedundancyFallbackMode, strconv.FormatBool(*opts.RedundancyFallbackMode))
 	}
-
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -214,7 +221,7 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 }
 
 // requestWithHeader handles the HTTP request response cycle.
-func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}) (err error) {
+func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}, headerParser ...func(http.Header)) (err error) {
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
 		return err
@@ -224,25 +231,16 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	req.Header = header
 	req.Header.Add("Accept", contentType)
 
-	if c.restricted && req.Header.Get("Authorization") == "" {
-		key, err := GetToken(path, method)
-		if err != nil {
-			return err
-		}
-		req.Header.Set("Authorization", "Bearer "+key)
-	}
-
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 
-	if err = responseErrorHandler(r); err != nil {
-		return err
-	}
-
 	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		_ = json.NewDecoder(r.Body).Decode(&v)
+		for _, parser := range headerParser {
+			parser(r.Header)
+		}
 		return err
 	}
 
@@ -314,13 +312,19 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 type UploadOptions struct {
-	Pin     bool
-	Tag     uint64
-	BatchID string
-	Direct  bool
+	Act               bool
+	Pin               bool
+	Tag               uint64
+	BatchID           string
+	Direct            bool
+	ActHistoryAddress swarm.Address
 }
 
 type DownloadOptions struct {
+	Act                    *bool
+	ActHistoryAddress      *swarm.Address
+	ActPublicKey           *swarm.Address
+	ActTimestamp           *uint64
 	Cache                  *bool
 	RedundancyFallbackMode *bool
 }
