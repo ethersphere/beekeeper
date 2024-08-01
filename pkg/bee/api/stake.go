@@ -45,7 +45,7 @@ func (s *StakingService) GetStakedAmount(ctx context.Context) (stakedAmount *big
 // MigrateStake withdraws stake
 func (s *StakingService) MigrateStake(ctx context.Context) (txHash string, err error) {
 	r := new(stakeWithdrawResponse)
-	err = s.client.requestJSON(ctx, http.MethodPost, "/stake/migrate", nil, r)
+	err = s.client.requestJSON(ctx, http.MethodDelete, "/stake", nil, r)
 	if err != nil {
 		return "", err
 	}
