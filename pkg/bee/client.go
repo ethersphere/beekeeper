@@ -229,7 +229,7 @@ func (c *Client) DownloadActFile(ctx context.Context, a swarm.Address, opts *api
 	if err != nil {
 		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
 	}
-
+	defer r.Close()
 	h := fileHasher()
 	size, err = io.Copy(h, r)
 	if err != nil {
