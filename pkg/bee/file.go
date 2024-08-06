@@ -13,11 +13,12 @@ import (
 
 // File represents Bee file
 type File struct {
-	address    swarm.Address
-	name       string
-	hash       []byte
-	dataReader io.Reader
-	size       int64
+	address        swarm.Address
+	name           string
+	hash           []byte
+	dataReader     io.Reader
+	size           int64
+	historyAddress swarm.Address
 }
 
 // NewRandomFile returns new pseudorandom file
@@ -60,6 +61,10 @@ func (f *File) CalculateHash() error {
 // Address returns file's address
 func (f *File) Address() swarm.Address {
 	return f.address
+}
+
+func (f *File) HistroryAddress() swarm.Address {
+	return f.historyAddress
 }
 
 // Name returns file's name
@@ -107,6 +112,10 @@ func (f *File) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err er
 
 func (f *File) SetAddress(a swarm.Address) {
 	f.address = a
+}
+
+func (f *File) SetHistroryAddress(a swarm.Address) {
+	f.historyAddress = a
 }
 
 func (f *File) SetHash(h []byte) {

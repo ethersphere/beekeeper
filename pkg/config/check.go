@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/check/act"
 	"github.com/ethersphere/beekeeper/pkg/check/networkavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/stake"
 
@@ -56,6 +57,28 @@ type CheckGlobalConfig struct {
 
 // Checks represents all available check types
 var Checks = map[string]CheckType{
+	"act": {
+		NewAction: act.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				FileName      *string `yaml:"file-name"`
+				FileSize      *int64  `yaml:"file-size"`
+				PostageAmount *int64  `yaml:"postage-amount"`
+				PostageDepth  *int64  `yaml:"postage-depth"`
+				PostageLabel  *string `yaml:"postage-label"`
+				Seed          *int64  `yaml:"seed"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := act.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+			return opts, nil
+		},
+	},
 	"balances": {
 		NewAction: balances.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {

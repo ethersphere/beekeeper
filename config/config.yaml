@@ -235,6 +235,16 @@ checks:
     options:
     timeout: 5m
     type: pingpong
+  act:
+    options:
+      file-name: act
+      file-size: 1024
+      postage-depth: 20
+      postage-amount: 420000000
+      postage-label: act-label
+      seed: 0
+    timeout: 5m
+    type: act
   withdraw:
     options:
       target-address: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532

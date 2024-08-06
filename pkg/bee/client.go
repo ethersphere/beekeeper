@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -214,6 +215,21 @@ func (c *Client) DownloadFile(ctx context.Context, a swarm.Address, opts *api.Do
 	}
 	defer r.Close()
 
+	h := fileHasher()
+	size, err = io.Copy(h, r)
+	if err != nil {
+		return 0, nil, fmt.Errorf("download file %s, hashing copy: %w", a, err)
+	}
+
+	return size, h.Sum(nil), nil
+}
+
+func (c *Client) DownloadActFile(ctx context.Context, a swarm.Address, opts *api.DownloadOptions) (size int64, hash []byte, err error) {
+	r, err := c.api.Act.Download(ctx, a, opts)
+	if err != nil {
+		return 0, nil, fmt.Errorf("download file %s: %w", a, err)
+	}
+	defer r.Close()
 	h := fileHasher()
 	size, err = io.Copy(h, r)
 	if err != nil {
@@ -748,6 +764,55 @@ func (c *Client) UploadFile(ctx context.Context, f *File, o api.UploadOptions) (
 	f.SetHash(h.Sum(nil))
 
 	return
+}
+
+func (c *Client) UploadActFile(ctx context.Context, f *File, o api.UploadOptions) (err error) {
+	h := fileHasher()
+	r, err := c.api.Act.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), o)
+	if err != nil {
+		return fmt.Errorf("upload ACT file: %w", err)
+	}
+
+	f.SetAddress(r.Reference)
+	f.SetHistroryAddress(r.HistoryAddress)
+	f.SetHash(h.Sum(nil))
+
+	return nil
+}
+
+func (c *Client) AddActGrantees(ctx context.Context, f *File, o api.UploadOptions) (err error) {
+	h := fileHasher()
+	r, err := c.api.Act.AddGrantees(ctx, io.TeeReader(f.DataReader(), h), o)
+	if err != nil {
+		return fmt.Errorf("add ACT grantees: %w", err)
+	}
+
+	f.SetAddress(r.Reference)
+	f.SetHistroryAddress(r.HistoryAddress)
+	f.SetHash(h.Sum(nil))
+
+	return nil
+}
+
+func (c *Client) GetActGrantees(ctx context.Context, a swarm.Address) (addresses []string, err error) {
+	r, e := c.api.Act.GetGrantees(ctx, a)
+	if e != nil {
+		return nil, fmt.Errorf("get grantees: %s: %w", a, e)
+	}
+	defer r.Close()
+	err = json.NewDecoder(r).Decode(&addresses)
+	return addresses, err
+}
+
+func (c *Client) PatchActGrantees(ctx context.Context, pf *File, addr swarm.Address, haddr swarm.Address, batchID string) (err error) {
+	r, err := c.api.Act.PatchGrantees(ctx, pf.DataReader(), addr, haddr, batchID)
+	if err != nil {
+		return fmt.Errorf("add ACT grantees: %w", err)
+	}
+
+	pf.SetAddress(r.Reference)
+	pf.SetHistroryAddress(r.HistoryAddress)
+	return nil
 }
 
 // UploadCollection uploads TAR collection bytes to the node

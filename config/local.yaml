@@ -214,6 +214,15 @@ bee-configs:
 
 # CI checks
 checks:
+  ci-act:
+    options:
+      file-size: 1024
+      postage-depth: 20
+      postage-amount: 420000000
+      postage-label: act-label
+      seed: 0
+    timeout: 5m
+    type: act
   ci-full-connectivity:
     timeout: 5m
     type: full-connectivity
