@@ -3,7 +3,6 @@ package ingress
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	v1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -76,10 +75,10 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	return
 }
 
-// ListAPINodesHosts list Ingresses that are nodes
-func (c *Client) ListAPINodesHosts(ctx context.Context, namespace string) (nodes []NodeInfo, err error) {
+// GetIngressHosts list Ingresses hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.
+func (c *Client) GetIngressHosts(ctx context.Context, namespace, label string) (nodes []NodeInfo, err error) {
 	ingreses, err := c.clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=bee",
+		LabelSelector: label,
 	})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -89,14 +88,12 @@ func (c *Client) ListAPINodesHosts(ctx context.Context, namespace string) (nodes
 	}
 
 	for _, ingress := range ingreses.Items {
-		if strings.HasSuffix(ingress.Name, "-api") {
-			for _, rule := range ingress.Spec.Rules {
-				if rule.Host != "" {
-					nodes = append(nodes, NodeInfo{
-						Name: strings.TrimSuffix(ingress.Name, "-api"),
-						Host: rule.Host,
-					})
-				}
+		for _, rule := range ingress.Spec.Rules {
+			if rule.Host != "" {
+				nodes = append(nodes, NodeInfo{
+					Name: ingress.Name,
+					Host: rule.Host,
+				})
 			}
 		}
 	}

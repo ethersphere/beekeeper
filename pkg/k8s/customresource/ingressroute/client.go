@@ -3,7 +3,6 @@ package ingressroute
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -82,10 +81,10 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	return
 }
 
-// ListAPINodesHosts list Ingresses that are nodes
-func (c *Client) ListAPINodesHosts(ctx context.Context, namespace string) (nodes []ingress.NodeInfo, err error) {
+// GetIngressHosts list Ingress Routes hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.
+func (c *Client) GetIngressHosts(ctx context.Context, namespace, label string) (nodes []ingress.NodeInfo, err error) {
 	ingressRoutes, err := c.clientset.IngressRoutes(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=bee",
+		LabelSelector: label,
 	})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -96,15 +95,13 @@ func (c *Client) ListAPINodesHosts(ctx context.Context, namespace string) (nodes
 
 	if ingressRoutes != nil {
 		for _, ingressRoute := range ingressRoutes.Items {
-			if strings.HasSuffix(ingressRoute.Name, "-api") {
-				for _, route := range ingressRoute.Spec.Routes {
-					host := route.GetHost()
-					if host != "" {
-						nodes = append(nodes, ingress.NodeInfo{
-							Name: strings.TrimSuffix(ingressRoute.Name, "-api"),
-							Host: host,
-						})
-					}
+			for _, route := range ingressRoute.Spec.Routes {
+				host := route.GetHost()
+				if host != "" {
+					nodes = append(nodes, ingress.NodeInfo{
+						Name: ingressRoute.Name,
+						Host: host,
+					})
 				}
 			}
 		}

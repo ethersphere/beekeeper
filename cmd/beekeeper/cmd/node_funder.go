@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
@@ -12,6 +13,8 @@ import (
 	"github.com/ethersphere/node-funder/pkg/funder"
 	"github.com/spf13/cobra"
 )
+
+const ingressNodeFunderLabelSelector string = "beekeeper.ethswarm.org/node-funder=true"
 
 func (c *command) initNodeFunderCmd() (err error) {
 	const (
@@ -23,6 +26,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 		optionNameMinNative         = "min-native"
 		optionNameMinSwarm          = "min-swarm"
 		optionNameTimeout           = "timeout"
+		optionNameLabelSelector     = "label-selector"
 	)
 
 	cmd := &cobra.Command{
@@ -81,7 +85,8 @@ func (c *command) initNodeFunderCmd() (err error) {
 			var nodeLister funder.NodeLister
 			// if addresses are provided, use them, not k8s client to list nodes
 			if cfg.Namespace != "" {
-				nodeLister = newNodeLister(c.k8sClient, c.log)
+				label := c.globalConfig.GetString(optionNameLabelSelector)
+				nodeLister = newNodeLister(c.k8sClient, label, c.log)
 			}
 
 			return funder.Fund(ctx, funder.Config{
@@ -105,6 +110,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")
+	cmd.Flags().String(optionNameLabelSelector, ingressNodeFunderLabelSelector, "Label selector for the ingress resources to be used for node-funder together with namespace. Empty string means no filtering.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Timeout.")
 
 	c.root.AddCommand(cmd)
@@ -114,12 +120,14 @@ func (c *command) initNodeFunderCmd() (err error) {
 
 type nodeLister struct {
 	k8sClient *k8s.Client
+	label     string
 	log       logging.Logger
 }
 
-func newNodeLister(k8sClient *k8s.Client, l logging.Logger) *nodeLister {
+func newNodeLister(k8sClient *k8s.Client, label string, l logging.Logger) *nodeLister {
 	return &nodeLister{
 		k8sClient: k8sClient,
+		label:     label,
 		log:       l,
 	}
 }
@@ -133,12 +141,12 @@ func (nf *nodeLister) List(ctx context.Context, namespace string) (nodes []funde
 		return nil, fmt.Errorf("namespace not provided")
 	}
 
-	ingressHosts, err := nf.k8sClient.Ingress.ListAPINodesHosts(ctx, namespace)
+	ingressHosts, err := nf.k8sClient.Ingress.GetIngressHosts(ctx, namespace, nf.label)
 	if err != nil {
 		return nil, fmt.Errorf("list ingress api nodes hosts: %s", err.Error())
 	}
 
-	ingressRouteHosts, err := nf.k8sClient.IngressRoute.ListAPINodesHosts(ctx, namespace)
+	ingressRouteHosts, err := nf.k8sClient.IngressRoute.GetIngressHosts(ctx, namespace, nf.label)
 	if err != nil {
 		return nil, fmt.Errorf("list ingress route api nodes hosts: %s", err.Error())
 	}
@@ -147,7 +155,7 @@ func (nf *nodeLister) List(ctx context.Context, namespace string) (nodes []funde
 
 	for _, node := range ingressHosts {
 		nodes = append(nodes, funder.NodeInfo{
-			Name:    node.Name,
+			Name:    strings.TrimSuffix(node.Name, "-api"),
 			Address: fmt.Sprintf("http://%s", node.Host),
 		})
 	}
