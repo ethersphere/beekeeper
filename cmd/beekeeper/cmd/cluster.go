@@ -165,7 +165,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		}
 		c.log.Infof("node groups funded")
 	}
-	c.log.Infof("cluster %s setup completed", clusterName)
+	c.log.WithField("use-static-endpoints", clusterConfig.IsUsingStaticEndpoints()).Infof("cluster %s setup completed", clusterName)
 
 	return cluster, nil
 }
