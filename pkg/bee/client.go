@@ -884,7 +884,7 @@ func (c *Client) DepositStake(ctx context.Context, amount *big.Int) (string, err
 
 // GetStake returns stake amount
 func (c *Client) GetStake(ctx context.Context) (*big.Int, error) {
-	return c.api.Stake.GetStakedAmount(ctx)
+	return c.api.Stake.GetWithdrawableStake(ctx)
 }
 
 // MigrateStake withdraws stake

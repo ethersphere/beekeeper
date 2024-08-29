@@ -110,14 +110,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	// should allow increasing the stake amount
-	stakedAmount := new(big.Int).Add(o.Amount, big.NewInt(1))
+	withdrawableStake := new(big.Int).Add(o.Amount, big.NewInt(1))
 
 	_, err = client.DepositStake(ctx, big.NewInt(1))
 	if err != nil {
 		return fmt.Errorf("increase stake amount: %w", err)
 	}
 
-	if err := expectStakeAmountIs(ctx, client, stakedAmount); err != nil {
+	if err := expectStakeAmountIs(ctx, client, withdrawableStake); err != nil {
 		return err
 	}
 
@@ -127,7 +127,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return errors.New("withdraw from running contract should fail")
 	}
 
-	if err := expectStakeAmountIs(ctx, client, stakedAmount); err != nil {
+	if err := expectStakeAmountIs(ctx, client, withdrawableStake); err != nil {
 		return err
 	}
 
