@@ -13,7 +13,7 @@ import (
 type StakingService service
 
 type getStakeResponse struct {
-	StakedAmount *bigint.BigInt `json:"stakedAmount"`
+	WithdrawableStake *bigint.BigInt `json:"withdrawableStake"`
 }
 type stakeDepositResponse struct {
 	TxHash string `json:"txhash"`
@@ -32,14 +32,14 @@ func (s *StakingService) DepositStake(ctx context.Context, amount *big.Int) (txH
 	return r.TxHash, nil
 }
 
-// GetStakedAmount gets stake
-func (s *StakingService) GetStakedAmount(ctx context.Context) (stakedAmount *big.Int, err error) {
+// GetWithdrawableStake gets stake
+func (s *StakingService) GetWithdrawableStake(ctx context.Context) (withdrawableStake *big.Int, err error) {
 	r := new(getStakeResponse)
 	err = s.client.requestJSON(ctx, http.MethodGet, "/stake", nil, r)
 	if err != nil {
 		return nil, err
 	}
-	return r.StakedAmount.Int, nil
+	return r.WithdrawableStake.Int, nil
 }
 
 // MigrateStake withdraws stake
