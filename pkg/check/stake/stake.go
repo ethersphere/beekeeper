@@ -191,8 +191,13 @@ func expectWithdrawableStake(ctx context.Context, client *bee.Client, expected *
 		return fmt.Errorf("get stake amount: %w", err)
 	}
 
-	if withdrawable.Cmp(expected) != 0 {
-		return fmt.Errorf("expected withdrawable stake to be %d, got: %d", expected, withdrawable)
+	if (expected.Cmp(zero) == 0 && withdrawable.Cmp(expected) != 0) ||
+		(expected.Cmp(zero) != 0 && withdrawable.Cmp(zero) == 0) {
+		if expected.Cmp(zero) == 0 {
+			return fmt.Errorf("expected withdrawable stake to be %d, got: %d", expected, withdrawable)
+		} else {
+			return fmt.Errorf("expected withdrawable stake should not be equal to 0")
+		}
 	}
 
 	return nil
