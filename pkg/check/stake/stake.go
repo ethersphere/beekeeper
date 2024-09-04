@@ -109,6 +109,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
+	if err := expectWithdrawableStake(ctx, client, o.Amount); err != nil {
+		return err
+	}
+
 	// should allow increasing the stake amount
 	stakedAmount := new(big.Int).Add(o.Amount, big.NewInt(1))
 
@@ -118,6 +122,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if err := expectStakeAmountIs(ctx, client, stakedAmount); err != nil {
+		return err
+	}
+
+	if err := expectWithdrawableStake(ctx, client, stakedAmount); err != nil {
 		return err
 	}
 
@@ -157,6 +165,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
+	if err := expectWithdrawableStake(ctx, client, zero); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -170,13 +182,17 @@ func expectStakeAmountIs(ctx context.Context, client *bee.Client, expected *big.
 		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, current)
 	}
 
+	return nil
+}
+
+func expectWithdrawableStake(ctx context.Context, client *bee.Client, expected *big.Int) error {
 	withdrawable, err := client.GetWithdrawableStake(ctx)
 	if err != nil {
 		return fmt.Errorf("get stake amount: %w", err)
 	}
 
 	if withdrawable.Cmp(expected) != 0 {
-		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, withdrawable)
+		return fmt.Errorf("expected withdrawable stake to be %d, got: %d", expected, withdrawable)
 	}
 
 	return nil
