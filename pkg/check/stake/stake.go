@@ -109,15 +109,23 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
+	if err := expectWithdrawableStake(ctx, client, o.Amount); err != nil {
+		return err
+	}
+
 	// should allow increasing the stake amount
-	withdrawableStake := new(big.Int).Add(o.Amount, big.NewInt(1))
+	stakedAmount := new(big.Int).Add(o.Amount, big.NewInt(1))
 
 	_, err = client.DepositStake(ctx, big.NewInt(1))
 	if err != nil {
 		return fmt.Errorf("increase stake amount: %w", err)
 	}
 
-	if err := expectStakeAmountIs(ctx, client, withdrawableStake); err != nil {
+	if err := expectStakeAmountIs(ctx, client, stakedAmount); err != nil {
+		return err
+	}
+
+	if err := expectWithdrawableStake(ctx, client, stakedAmount); err != nil {
 		return err
 	}
 
@@ -127,7 +135,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return errors.New("withdraw from running contract should fail")
 	}
 
-	if err := expectStakeAmountIs(ctx, client, withdrawableStake); err != nil {
+	if err := expectStakeAmountIs(ctx, client, stakedAmount); err != nil {
 		return err
 	}
 
@@ -157,6 +165,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
+	if err := expectWithdrawableStake(ctx, client, zero); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -168,6 +180,24 @@ func expectStakeAmountIs(ctx context.Context, client *bee.Client, expected *big.
 
 	if current.Cmp(expected) != 0 {
 		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, current)
+	}
+
+	return nil
+}
+
+func expectWithdrawableStake(ctx context.Context, client *bee.Client, expected *big.Int) error {
+	withdrawable, err := client.GetWithdrawableStake(ctx)
+	if err != nil {
+		return fmt.Errorf("get stake amount: %w", err)
+	}
+
+	if (expected.Cmp(zero) == 0 && withdrawable.Cmp(expected) != 0) ||
+		(expected.Cmp(zero) != 0 && withdrawable.Cmp(zero) == 0) {
+		if expected.Cmp(zero) == 0 {
+			return fmt.Errorf("expected withdrawable stake to be %d, got: %d", expected, withdrawable)
+		} else {
+			return fmt.Errorf("expected withdrawable stake should not be equal to 0")
+		}
 	}
 
 	return nil
