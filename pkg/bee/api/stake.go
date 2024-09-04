@@ -49,7 +49,7 @@ func (s *StakingService) GetStakedAmount(ctx context.Context) (stakedAmount *big
 // GetWithdrawableStake gets stake
 func (s *StakingService) GetWithdrawableStake(ctx context.Context) (withdrawableStake *big.Int, err error) {
 	r := new(getWithdrawableResponse)
-	err = s.client.requestJSON(ctx, http.MethodGet, "/stake", nil, r)
+	err = s.client.requestJSON(ctx, http.MethodGet, "/stake/withdrawable", nil, r)
 	if err != nil {
 		return nil, err
 	}

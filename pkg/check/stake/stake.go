@@ -170,5 +170,14 @@ func expectStakeAmountIs(ctx context.Context, client *bee.Client, expected *big.
 		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, current)
 	}
 
+	withdrawable, err := client.GetWithdrawableStake(ctx)
+	if err != nil {
+		return fmt.Errorf("get stake amount: %w", err)
+	}
+
+	if withdrawable.Cmp(expected) != 0 {
+		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, withdrawable)
+	}
+
 	return nil
 }
