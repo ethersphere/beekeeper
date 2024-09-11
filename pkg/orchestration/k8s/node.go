@@ -44,16 +44,6 @@ func (n Node) Config() *orchestration.Config {
 	return n.opts.Config
 }
 
-// ClefKey returns node's clefKey
-func (n Node) ClefKey() string {
-	return n.opts.ClefKey
-}
-
-// ClefPassword returns node's clefPassword
-func (n Node) ClefPassword() string {
-	return n.opts.ClefPassword
-}
-
 // LibP2PKey returns node's libP2PKey
 func (n Node) LibP2PKey() string {
 	return n.opts.LibP2PKey
@@ -67,18 +57,6 @@ func (n Node) SwarmKey() string {
 // SetSwarmKey sets node's Swarm key
 func (n Node) SetSwarmKey(key string) orchestration.Node {
 	n.opts.SwarmKey = orchestration.EncryptedKey(key)
-	return n
-}
-
-// SetClefKey sets node's Clef key
-func (n Node) SetClefKey(key string) orchestration.Node {
-	n.opts.ClefKey = key
-	return n
-}
-
-// SetClefKey sets node's Clef key
-func (n Node) SetClefPassword(password string) orchestration.Node {
-	n.opts.ClefPassword = password
 	return n
 }
 

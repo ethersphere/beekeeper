@@ -37,7 +37,6 @@ type ClusterNodeGroup struct {
 type ClusterNode struct {
 	Name      string `yaml:"name"`
 	Bootnodes string `yaml:"bootnodes"`
-	Clef      Clef   `yaml:"clef"`
 	LibP2PKey string `yaml:"libp2p-key"`
 	SwarmKey  string `yaml:"swarm-key"`
 }
@@ -45,11 +44,6 @@ type ClusterNode struct {
 type NodeEndpoint struct {
 	Name   string `yaml:"name"`
 	APIURL string `yaml:"api-url"`
-}
-
-type Clef struct {
-	Key      string `yaml:"key"`
-	Password string `yaml:"password"`
 }
 
 // Export exports Cluster to orchestration.ClusterOptions, skipping all other extra fields

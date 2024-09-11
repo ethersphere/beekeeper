@@ -32,8 +32,6 @@ clusters:
 node-groups:
   testnet-giant:
     _inherit: ""
-    clef-image: ethersphere/clef:latest
-    clef-image-pull-policy: Always
     image: ethersphere/bee:latest
     image-pull-policy: Always
     image-pull-secrets: [regcred]
@@ -76,8 +74,6 @@ bee-configs:
     bootnodes: ""
     bootnode-mode: false
     cache-capacity: 1000000
-    clef-signer-enable: false
-    clef-signer-endpoint: "http://localhost:8550"
     cors-allowed-origins: ""
     data-dir: "/home/bee/.bee"
     db-open-files-limit: 200

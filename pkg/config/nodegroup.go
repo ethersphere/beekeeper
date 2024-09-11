@@ -12,8 +12,6 @@ type NodeGroup struct {
 	*Inherit `yaml:",inline"`
 	// node group configuration
 	Annotations               *map[string]string `yaml:"annotations"`
-	ClefImage                 *string            `yaml:"clef-image"`
-	ClefImagePullPolicy       *string            `yaml:"clef-image-pull-policy"`
 	Image                     *string            `yaml:"image"`
 	ImagePullPolicy           *string            `yaml:"image-pull-policy"`
 	ImagePullSecrets          *[]string          `yaml:"image-pull-secrets"`
