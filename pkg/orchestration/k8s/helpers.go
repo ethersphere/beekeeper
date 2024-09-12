@@ -56,6 +56,24 @@ withdrawal-addresses-whitelist: {{.WithdrawAddress}}
 `
 )
 
+func setInitContainers() (inits containers.Containers) {
+	inits = append(inits, containers.Container{
+		Name:  "init-bee",
+		Image: "ethersphere/busybox:1.33",
+		Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
+chown -R 999:999 /home/bee/.bee/keys;
+echo 'bee initialization done';`},
+		VolumeMounts: containers.VolumeMounts{
+			{
+				Name:      "data",
+				MountPath: "home/bee/.bee",
+			},
+		},
+	})
+
+	return
+}
+
 type setContainersOptions struct {
 	Name                   string
 	Image                  string

@@ -267,6 +267,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 				Annotations: o.Annotations,
 				Labels:      o.Labels,
 				Spec: pod.PodSpec{
+					InitContainers: setInitContainers(),
 					Containers: setContainers(setContainersOptions{
 						Name:                   sSet,
 						Image:                  o.Image,
