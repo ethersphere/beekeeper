@@ -267,10 +267,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 				Annotations: o.Annotations,
 				Labels:      o.Labels,
 				Spec: pod.PodSpec{
-					InitContainers: setInitContainers(setInitContainersOptions{
-						LibP2PEnabled: libP2PEnabled,
-						SwarmEnabled:  swarmEnabled,
-					}),
 					Containers: setContainers(setContainersOptions{
 						Name:                   sSet,
 						Image:                  o.Image,

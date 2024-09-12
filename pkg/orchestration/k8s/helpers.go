@@ -56,31 +56,6 @@ withdrawal-addresses-whitelist: {{.WithdrawAddress}}
 `
 )
 
-type setInitContainersOptions struct {
-	LibP2PEnabled bool
-	SwarmEnabled  bool
-}
-
-func setInitContainers(o setInitContainersOptions) (inits containers.Containers) {
-	if o.LibP2PEnabled || o.SwarmEnabled {
-		inits = append(inits, containers.Container{
-			Name:  "init-bee",
-			Image: "ethersphere/busybox:1.33",
-			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
-chown -R 999:999 /home/bee/.bee/keys;
-echo 'bee initialization done';`},
-			VolumeMounts: containers.VolumeMounts{
-				{
-					Name:      "data",
-					MountPath: "home/bee/.bee",
-				},
-			},
-		})
-	}
-
-	return
-}
-
 type setContainersOptions struct {
 	Name                   string
 	Image                  string
