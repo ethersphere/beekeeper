@@ -18,8 +18,6 @@ type BeeConfig struct {
 	Bootnodes                 *string        `yaml:"bootnodes"`
 	BootnodeMode              *bool          `yaml:"bootnode-mode"`
 	CacheCapacity             *uint64        `yaml:"cache-capacity"`
-	ClefSignerEnable          *bool          `yaml:"clef-signer-enable"`
-	ClefSignerEndpoint        *string        `yaml:"clef-signer-endpoint"`
 	CORSAllowedOrigins        *string        `yaml:"cors-allowed-origins"`
 	DataDir                   *string        `yaml:"data-dir"`
 	DbOpenFilesLimit          *int           `yaml:"db-open-files-limit"`

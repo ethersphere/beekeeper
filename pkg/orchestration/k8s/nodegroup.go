@@ -81,12 +81,10 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 	client := bee.NewClient(beeClientOpts, g.log)
 
 	n := NewNode(name, orchestration.NodeOptions{
-		ClefKey:      o.ClefKey,
-		ClefPassword: o.ClefPassword,
-		Client:       client,
-		Config:       config,
-		LibP2PKey:    o.LibP2PKey,
-		SwarmKey:     o.SwarmKey,
+		Client:    client,
+		Config:    config,
+		LibP2PKey: o.LibP2PKey,
+		SwarmKey:  o.SwarmKey,
 	}, g.nodeOrchestrator, g.log)
 
 	g.addNode(n)
@@ -327,10 +325,6 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		Name:                      name,
 		Namespace:                 g.clusterOpts.Namespace,
 		Annotations:               g.opts.Annotations,
-		ClefImage:                 g.opts.ClefImage,
-		ClefImagePullPolicy:       g.opts.ClefImagePullPolicy,
-		ClefKey:                   n.ClefKey(),
-		ClefPassword:              n.ClefPassword(),
 		Image:                     g.opts.Image,
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
 		ImagePullSecrets:          g.opts.ImagePullSecrets,
@@ -672,41 +666,19 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 	if !n.Config().SwapEnable || !n.Config().ChequebookEnable {
 		var swarmKey string
 
-		if n.Config().ClefSignerEnable {
-			if n.ClefKey() == "" {
-				password := n.ClefPassword()
-				if password == "" {
-					password = "clefbeesecret"
-					n = n.SetClefPassword(password)
-				}
-				swarmKey, err = utils.CreateSwarmKey(password)
-				if err != nil {
-					return fmt.Errorf("create Clef key for node %s: %w", name, err)
-				}
+		if n.SwarmKey() == "" {
+			swarmKey, err = utils.CreateSwarmKey(n.Config().Password)
+			if err != nil {
+				return fmt.Errorf("create Swarm key for node %s: %w", name, err)
+			}
 
-				n = n.SetClefKey(swarmKey)
+			n = n.SetSwarmKey(swarmKey)
 
-				if err := g.setNode(name, n); err != nil {
-					return fmt.Errorf("setting node %s: %w", name, err)
-				}
-			} else {
-				swarmKey = n.ClefKey()
+			if err := g.setNode(name, n); err != nil {
+				return fmt.Errorf("setting node %s: %w", name, err)
 			}
 		} else {
-			if n.SwarmKey() == "" {
-				swarmKey, err = utils.CreateSwarmKey(n.Config().Password)
-				if err != nil {
-					return fmt.Errorf("create Swarm key for node %s: %w", name, err)
-				}
-
-				n = n.SetSwarmKey(swarmKey)
-
-				if err := g.setNode(name, n); err != nil {
-					return fmt.Errorf("setting node %s: %w", name, err)
-				}
-			} else {
-				swarmKey = n.SwarmKey()
-			}
+			swarmKey = n.SwarmKey()
 		}
 
 		var key utils.EncryptedKey

@@ -91,24 +91,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	}
 	n.log.Infof("secret %s is set in namespace %s", keysSecret, o.Namespace)
 
-	// secret with clef key and pass
-	clefSecretEnabled := len(o.ClefKey) > 0 && len(o.ClefPassword) > 0
-	clefSecret := fmt.Sprintf("%s-clef", o.Name)
-	if o.Config.ClefSignerEnable && clefSecretEnabled {
-		clefSecretData := map[string]string{
-			"key":      o.ClefKey,
-			"password": o.ClefPassword,
-		}
-		if _, err := n.k8s.Secret.Set(ctx, clefSecret, o.Namespace, secret.Options{
-			Annotations: o.Annotations,
-			Labels:      o.Labels,
-			StringData:  clefSecretData,
-		}); err != nil {
-			return fmt.Errorf("set secret in namespace %s: %w", o.Namespace, err)
-		}
-		n.log.Infof("secret %s is set in namespace %s", clefSecret, o.Namespace)
-	}
-
 	// service account
 	svcAccount := o.Name
 	if _, err := n.k8s.ServiceAccount.Set(ctx, svcAccount, o.Namespace, serviceaccount.Options{
@@ -268,7 +250,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 
 	// statefulset
 	sSet := o.Name
-	clefEnabled := o.Config.ClefSignerEnable
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := len(o.SwarmKey) > 0
 
@@ -286,15 +267,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 				Annotations: o.Annotations,
 				Labels:      o.Labels,
 				Spec: pod.PodSpec{
-					InitContainers: setInitContainers(setInitContainersOptions{
-						ClefEnabled:         clefEnabled,
-						ClefSecretEnabled:   clefSecretEnabled,
-						ClefImage:           o.ClefImage,
-						ClefImagePullPolicy: o.ClefImagePullPolicy,
-						ClefPassword:        o.ClefPassword,
-						LibP2PEnabled:       libP2PEnabled,
-						SwarmEnabled:        swarmEnabled,
-					}),
 					Containers: setContainers(setContainersOptions{
 						Name:                   sSet,
 						Image:                  o.Image,
@@ -306,11 +278,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 						ResourcesLimitMemory:   o.ResourcesLimitMemory,
 						ResourcesRequestCPU:    o.ResourcesRequestCPU,
 						ResourcesRequestMemory: o.ResourcesRequestMemory,
-						ClefEnabled:            clefEnabled,
-						ClefSecretEnabled:      clefSecretEnabled,
-						ClefImage:              o.ClefImage,
-						ClefImagePullPolicy:    o.ClefImagePullPolicy,
-						ClefPassword:           o.ClefPassword,
 						LibP2PEnabled:          libP2PEnabled,
 						SwarmEnabled:           swarmEnabled,
 					}),
@@ -324,9 +291,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 						ConfigCM:           configCM,
 						KeysSecret:         keysSecret,
 						PersistenceEnabled: o.PersistenceEnabled,
-						ClefEnabled:        clefEnabled,
-						ClefSecretEnabled:  clefSecretEnabled,
-						ClefSecret:         clefSecret,
 						LibP2PEnabled:      libP2PEnabled,
 						SwarmEnabled:       swarmEnabled,
 					}),
@@ -396,13 +360,6 @@ func (n *nodeOrchestrator) Delete(ctx context.Context, name string, namespace st
 		return fmt.Errorf("deleting serviceaccount in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("serviceaccount %s is deleted in namespace %s", svcAccount, namespace)
-
-	// secret with clef key
-	clefSecret := fmt.Sprintf("%s-clef", name)
-	if err := n.k8s.Secret.Delete(ctx, clefSecret, namespace); err != nil {
-		return fmt.Errorf("deleting secret in namespace %s: %w", namespace, err)
-	}
-	n.log.Infof("secret %s is deleted in namespace %s", clefSecret, namespace)
 
 	// secret with keys
 	keysSecret := fmt.Sprintf("%s-keys", name)

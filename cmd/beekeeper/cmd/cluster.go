@@ -294,12 +294,7 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 	nOptions := orchestration.NodeOptions{
 		Config: bConfig,
 	}
-	if len(node.Clef.Key) > 0 {
-		nOptions.ClefKey = node.Clef.Key
-	}
-	if len(node.Clef.Password) > 0 {
-		nOptions.ClefPassword = node.Clef.Password
-	}
+
 	if len(node.LibP2PKey) > 0 {
 		nOptions.LibP2PKey = node.LibP2PKey
 	}

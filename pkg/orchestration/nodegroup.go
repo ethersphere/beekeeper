@@ -41,8 +41,6 @@ type NodeGroup interface {
 // NodeGroupOptions represents node group options
 type NodeGroupOptions struct {
 	Annotations               map[string]string
-	ClefImage                 string
-	ClefImagePullPolicy       string
 	BeeConfig                 *Config
 	Image                     string
 	ImagePullPolicy           string
