@@ -144,8 +144,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	// fund bootnode node group if cluster is started
 	if startCluster {
-		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log)
-		if err != nil {
+		if err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log); err != nil {
 			return nil, fmt.Errorf("funding node group bootnode: %w", err)
 		}
 		c.log.Infof("bootnode node group funded")
@@ -159,8 +158,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	// fund other node groups if cluster is started
 	if startCluster {
-		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log)
-		if err != nil {
+		if err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log); err != nil {
 			return nil, fmt.Errorf("fund other node groups: %w", err)
 		}
 		c.log.Infof("node groups funded")
