@@ -88,16 +88,15 @@ func (c *Client) Run(ctx context.Context) error {
 				}, nil, nil, funder.WithLoggerOption(c.Log))
 				if err != nil {
 					c.Log.Errorf("funder: %v", err)
-					continue
 				}
 			}
 		}
 	}()
 
-	err := c.K8sClient.Pods.EventsWatch(ctx, c.Namespace, operatorChan)
-	if err != nil {
+	if err := c.K8sClient.Pods.WatchNewRunning(ctx, c.Namespace, operatorChan); err != nil {
 		return fmt.Errorf("events watch: %v", err)
 	}
+
 	return nil
 }
 
@@ -121,15 +120,10 @@ func (c *Client) processPodIP(ctx context.Context, podIp string) (bee.Addresses,
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return bee.Addresses{}, fmt.Errorf("read body: %s", err.Error())
-	}
-
 	var addresses bee.Addresses
-	err = json.Unmarshal(body, &addresses)
-	if err != nil {
-		return bee.Addresses{}, fmt.Errorf("unmarshal body: %s", err.Error())
+
+	if err = json.NewDecoder(resp.Body).Decode(&addresses); err != nil {
+		return bee.Addresses{}, fmt.Errorf("decode body: %s", err.Error())
 	}
 
 	return addresses, nil
