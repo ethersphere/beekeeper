@@ -7,6 +7,10 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
+type Inheritable interface {
+	GetParentName() string
+}
+
 // BeeConfig represents Bee configuration
 type BeeConfig struct {
 	// parent to inherit settings from
@@ -54,6 +58,13 @@ type BeeConfig struct {
 	WelcomeMessage            *string        `yaml:"welcome-message"`
 	WarmupTime                *time.Duration `yaml:"warmup-time"`
 	WithdrawAddress           *string        `yaml:"withdrawal-addresses-whitelist"`
+}
+
+func (b BeeConfig) GetParentName() string {
+	if b.Inherit != nil {
+		return b.Inherit.ParentName
+	}
+	return ""
 }
 
 // Export exports BeeConfig to orchestration.Config
