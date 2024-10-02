@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const ingressNodeFunderLabelSelector string = "beekeeper.ethswarm.org/node-funder=true"
+const nodeFunderLabelSelector string = "beekeeper.ethswarm.org/node-funder=true"
 
 func (c *command) initNodeFunderCmd() (err error) {
 	const (
@@ -110,7 +110,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")
-	cmd.Flags().String(optionNameLabelSelector, ingressNodeFunderLabelSelector, "Label selector for the ingress resources to be used for node-funder together with namespace. Empty string means no filtering.")
+	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources within the specified namespace. An empty string disables filtering, allowing all resources to be selected.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Timeout.")
 
 	c.root.AddCommand(cmd)

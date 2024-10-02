@@ -23,6 +23,7 @@ type ClientConfig struct {
 	MinAmounts        config.MinAmounts
 	K8sClient         *k8s.Client
 	HTTPClient        *http.Client // injected HTTP client
+	LabelSelector     string
 }
 
 type Client struct {
@@ -55,21 +56,21 @@ func (c *Client) Run(ctx context.Context) error {
 	c.Log.Infof("operator started")
 	defer c.Log.Infof("operator done")
 
-	operatorChan := make(chan string)
+	newPodIps := make(chan string)
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				c.Log.Error("operator context canceled")
 				return
-			case podIp, ok := <-operatorChan:
+			case podIp, ok := <-newPodIps:
 				if !ok {
 					c.Log.Error("operator channel closed")
 					return
 				}
 				c.Log.Debugf("operator received pod ip: %s", podIp)
 
-				addresses, err := c.processPodIP(ctx, podIp)
+				addresses, err := c.getAddresses(ctx, podIp)
 				if err != nil {
 					c.Log.Errorf("process pod ip: %v", err)
 					continue
@@ -88,22 +89,21 @@ func (c *Client) Run(ctx context.Context) error {
 				}, nil, nil, funder.WithLoggerOption(c.Log))
 				if err != nil {
 					c.Log.Errorf("funder: %v", err)
-					continue
 				}
 			}
 		}
 	}()
 
-	err := c.K8sClient.Pods.EventsWatch(ctx, c.Namespace, operatorChan)
-	if err != nil {
+	if err := c.K8sClient.Pods.WatchNewRunning(ctx, c.Namespace, c.LabelSelector, newPodIps); err != nil {
 		return fmt.Errorf("events watch: %v", err)
 	}
+
 	return nil
 }
 
-func (c *Client) processPodIP(ctx context.Context, podIp string) (bee.Addresses, error) {
-	// http://10.3.247.202:1635/addresses
-	// bee.Addresses is struct that represents response with field Ethereum string
+// getAddresses sends a request to the pod IP and retrieves the Addresses struct,
+// which includes overlay, underlay addresses, Ethereum address, and public keys.
+func (c *Client) getAddresses(ctx context.Context, podIp string) (bee.Addresses, error) {
 	url := &url.URL{
 		Scheme: "http",
 		Host:   podIp + ":1633", // it is possible to extract port from service
@@ -121,15 +121,10 @@ func (c *Client) processPodIP(ctx context.Context, podIp string) (bee.Addresses,
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return bee.Addresses{}, fmt.Errorf("read body: %s", err.Error())
-	}
-
 	var addresses bee.Addresses
-	err = json.Unmarshal(body, &addresses)
-	if err != nil {
-		return bee.Addresses{}, fmt.Errorf("unmarshal body: %s", err.Error())
+
+	if err = json.NewDecoder(resp.Body).Decode(&addresses); err != nil {
+		return bee.Addresses{}, fmt.Errorf("decode body: %s", err.Error())
 	}
 
 	return addresses, nil

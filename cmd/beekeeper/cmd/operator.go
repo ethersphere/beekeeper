@@ -18,6 +18,7 @@ func (c *command) initOperatorCmd() (err error) {
 		optionNameMinNative         = "min-native"
 		optionNameMinSwarm          = "min-swarm"
 		optionNameTimeout           = "timeout"
+		optionNameLabelSelector     = "label-selector"
 	)
 
 	cmd := &cobra.Command{
@@ -26,7 +27,11 @@ func (c *command) initOperatorCmd() (err error) {
 		Long:  `Node operator scans for scheduled pods and funds them using node-funder. beekeeper node-operator`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := config.NodeFunder{}
-			namespace := c.globalConfig.GetString(optionNameNamespace)
+
+			var namespace string
+			if namespace = c.globalConfig.GetString(optionNameNamespace); namespace == "" {
+				return errors.New("namespace not provided")
+			}
 
 			// chain node endpoint check
 			if cfg.ChainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); cfg.ChainNodeEndpoint == "" {
@@ -62,6 +67,7 @@ func (c *command) initOperatorCmd() (err error) {
 				ChainNodeEndpoint: cfg.ChainNodeEndpoint,
 				MinAmounts:        cfg.MinAmounts,
 				K8sClient:         c.k8sClient,
+				LabelSelector:     c.globalConfig.GetString(optionNameLabelSelector),
 			}).Run(ctxNew)
 		},
 		PreRunE: c.preRunE,
@@ -72,6 +78,7 @@ func (c *command) initOperatorCmd() (err error) {
 	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")
+	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources within the specified namespace. An empty string disables filtering, allowing all resources to be selected.")
 	cmd.Flags().Duration(optionNameTimeout, 0*time.Minute, "Timeout. Default is infinite.")
 
 	c.root.AddCommand(cmd)
