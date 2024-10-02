@@ -1,6 +1,6 @@
 enable-k8s: true
 in-cluster: false
-geth-url: http://geth-swap.localhost
+geth-url: http://geth-swap.localhost #http://geth-swap.bee-playground.testnet.ethswarm.org
 bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7
 eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
 wallet-key: 4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d

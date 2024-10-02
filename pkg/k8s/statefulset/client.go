@@ -16,14 +16,14 @@ import (
 // Client manages communication with the Kubernetes StatefulSet.
 type Client struct {
 	clientset kubernetes.Interface
-	logger    logging.Logger
+	log       logging.Logger
 }
 
 // NewClient constructs a new Client.
 func NewClient(clientset kubernetes.Interface, l logging.Logger) *Client {
 	return &Client{
 		clientset: clientset,
-		logger:    l,
+		log:       l,
 	}
 }
 
@@ -80,7 +80,7 @@ func (c *Client) ReadyReplicasWatch(ctx context.Context, name, namespace string)
 		case <-ctx.Done():
 			return 0, ctx.Err()
 		case <-ticker.C:
-			c.logger.Infof("%s is not ready yet", name)
+			c.log.Infof("%s is not ready yet", name)
 		case event, ok := <-watcher.ResultChan():
 			if !ok {
 				return 0, fmt.Errorf("watch channel closed")
