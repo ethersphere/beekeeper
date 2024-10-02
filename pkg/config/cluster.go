@@ -22,6 +22,13 @@ type Cluster struct {
 	NodeGroups         *map[string]ClusterNodeGroup `yaml:"node-groups"`
 }
 
+func (b Cluster) GetParentName() string {
+	if b.Inherit != nil {
+		return b.Inherit.ParentName
+	}
+	return ""
+}
+
 // ClusterNodeGroup represents node group in the cluster
 type ClusterNodeGroup struct {
 	cluster       *Cluster

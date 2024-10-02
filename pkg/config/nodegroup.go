@@ -31,6 +31,13 @@ type NodeGroup struct {
 	UpdateStrategy            *string            `yaml:"update-strategy"`
 }
 
+func (b NodeGroup) GetParentName() string {
+	if b.Inherit != nil {
+		return b.Inherit.ParentName
+	}
+	return ""
+}
+
 // Export exports NodeGroup to orchestration.NodeGroupOptions
 func (n *NodeGroup) Export() (o orchestration.NodeGroupOptions) {
 	localVal := reflect.ValueOf(n).Elem()

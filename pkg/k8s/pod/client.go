@@ -74,13 +74,13 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 }
 
 // WatchNewRunning detects new running Pods in the namespace and sends their IPs to the channel.
-func (c *Client) WatchNewRunning(ctx context.Context, namespace string, newPodIps chan string) (err error) {
-	c.log.Infof("starting events watch")
+func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector string, newPodIps chan string) (err error) {
+	c.log.Infof("starting events watch in namespace %s, label selector %s", namespace, labelSelector)
 	defer c.log.Infof("events watch done")
 	defer close(newPodIps)
 
 	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=bee",
+		LabelSelector: labelSelector,
 	})
 	if err != nil {
 		return fmt.Errorf("getting pod events in namespace %s: %w", namespace, err)

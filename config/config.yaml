@@ -77,6 +77,7 @@ node-groups:
       app.kubernetes.io/name: "bee"
       app.kubernetes.io/part-of: "bee"
       app.kubernetes.io/version: "latest"
+      beekeeper.ethswarm.org/node-funder: "true"
     # node-selector:
     #   node-group: "private"
     persistence-enabled: false
