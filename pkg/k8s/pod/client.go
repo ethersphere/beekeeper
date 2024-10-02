@@ -73,22 +73,20 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	return
 }
 
-// EventsWatch watches for events.
-func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan chan string) (err error) {
-	c.log.Infof("starting events watch")
+// WatchNewRunning detects new running Pods in the namespace and sends their IPs to the channel.
+func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector string, newPodIps chan string) (err error) {
+	c.log.Infof("starting events watch in namespace %s, label selector %s", namespace, labelSelector)
 	defer c.log.Infof("events watch done")
-	defer close(operatorChan)
+	defer close(newPodIps)
 
 	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
-		// TODO: add this label to beekeeper and filter on it => app.kubernetes.io/name=bee
-		LabelSelector: "app.kubernetes.io/name=bee",
+		LabelSelector: labelSelector,
 	})
 	if err != nil {
 		return fmt.Errorf("getting pod events in namespace %s: %w", namespace, err)
 	}
 	defer watcher.Stop()
 
-	// listen for either events from the watcher or a context cancellation
 	for {
 		select {
 		case <-ctx.Done():
@@ -98,13 +96,12 @@ func (c *Client) EventsWatch(ctx context.Context, namespace string, operatorChan
 				return fmt.Errorf("watch channel closed")
 			}
 			switch event.Type {
-			// case watch.Added: // if we want to do something with already running pods
+			// case watch.Added: // already running pods
 			case watch.Modified:
 				pod, ok := event.Object.(*v1.Pod)
 				if ok {
-					if pod.Status.PodIP != "" && pod.ObjectMeta.DeletionTimestamp == nil {
-						c.log.Tracef("new pod event: {%s}, {%s}, {%s}, {%s}, {%v}", event.Type, pod.Name, pod.Status.Phase, pod.Status.PodIP, pod.ObjectMeta.DeletionTimestamp)
-						operatorChan <- pod.Status.PodIP
+					if pod.Status.PodIP != "" && pod.ObjectMeta.DeletionTimestamp == nil && pod.Status.Phase == v1.PodRunning {
+						newPodIps <- pod.Status.PodIP
 					}
 				}
 			}

@@ -368,6 +368,7 @@ It has following flags:
 --min-native float        Minimum amount of chain native coins (xDAI) nodes should have.
 --min-swarm float         Minimum amount of swarm tokens (xBZZ) nodes should have.
 --namespace string        Kubernetes namespace. Overrides cluster name if set.
+--label-selector string   Kubernetes label selector for filtering resources within the specified namespace. An empty string disables filtering, allowing all resources to be selected.
 --timeout duration        Timeout. (default 5m0s)
 --wallet-key string       Hex-encoded private key for the Bee node wallet. Required.
 ```
@@ -385,13 +386,14 @@ Command **node-operator** uses <https://github.com/ethersphere/node-funder> tool
 It has following flags:
 
 ```console
---geth-url string     Endpoint to chain node. Required.
---help                help for node-operator
---min-native float    Minimum amount of chain native coins (xDAI) nodes should have.
---min-swarm float     Minimum amount of swarm tokens (xBZZ) nodes should have.
---namespace string    Kubernetes namespace to scan for scheduled pods.
---timeout duration    Timeout. Default is infinite.
---wallet-key string   Hex-encoded private key for the Bee node wallet. Required.
+--geth-url string         Endpoint to chain node. Required.
+--help                    help for node-operator
+--min-native float        Minimum amount of chain native coins (xDAI) nodes should have.
+--min-swarm float         Minimum amount of swarm tokens (xBZZ) nodes should have.
+--namespace string        Kubernetes namespace to scan for scheduled pods.
+--label-selector string   Kubernetes label selector for filtering resources within the specified namespace. An empty string disables filtering, allowing all resources to be selected.
+--timeout duration        Timeout. Default is infinite.
+--wallet-key string       Hex-encoded private key for the Bee node wallet. Required.
 ```
 
 example:
@@ -408,7 +410,7 @@ example:
 
 ```console
 --config string                 config file (default is $HOME/.beekeeper.yaml)
---config-dir string             config directory (default is $HOME/.beekeeper/) (default "C:\\Users\\ljubi\\.beekeeper")
+--config-dir string             config directory (default is $HOME/.beekeeper/)
 --config-git-branch string      Git branch (default "main")
 --config-git-password string    Git password or personal access tokens (needed for private repos)
 --config-git-repo string        Git repository with configurations (uses config directory when Git repo is not specified) (default "")
