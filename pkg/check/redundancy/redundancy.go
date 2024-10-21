@@ -77,7 +77,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		}
 		c.logger.Infof("root hash: %s, chunks: %d", root.String(), len(chunks))
 
-		batchID, err := uploadClient.GetOrCreateBatch(ctx, opts.PostageAmount, opts.PostageDepth, "ci-redundancy")
+		batchID, err := uploadClient.GetOrCreateMutableBatch(ctx, opts.PostageAmount, opts.PostageDepth, "ci-redundancy")
 		if err != nil {
 			return fmt.Errorf("get or create batch: %w", err)
 		}

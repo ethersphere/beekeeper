@@ -156,7 +156,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.BatchCreateAttempts.Inc()
 
-			batchID, err = clients[txName].GetOrCreateBatch(txCtx, o.PostageAmount, o.PostageDepth, "smoke-test")
+			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageAmount, o.PostageDepth, "smoke-test")
 			if err != nil {
 				c.logger.Errorf("create new batch: %v", err)
 				c.metrics.BatchCreateErrors.Inc()

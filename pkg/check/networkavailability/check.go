@@ -101,7 +101,7 @@ iteration:
 		var chunks []swarm.Chunk
 		for _, n := range neighborhoods(int(storageRadius)) {
 
-			batch, err := uploadClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, "net-avail-check")
+			batch, err := uploadClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, "net-avail-check")
 			if err != nil {
 				c.logger.Errorf("create batch failed failed")
 				continue iteration

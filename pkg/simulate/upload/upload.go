@@ -162,7 +162,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 						return ctx.Err()
 					}
 
-					batchID, err = c.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+					batchID, err = c.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 					if err != nil {
 						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 							return nil

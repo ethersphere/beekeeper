@@ -95,7 +95,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	file := bee.NewRandomFile(rnds[0], fileName, o.FileSize)
 
-	batchID, err := upClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, postagelabel)
+	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, postagelabel)
 	if err != nil {
 		return fmt.Errorf("created batched id %w", err)
 	}
