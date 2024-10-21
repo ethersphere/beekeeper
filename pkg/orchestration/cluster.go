@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"net/url"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/swap"
