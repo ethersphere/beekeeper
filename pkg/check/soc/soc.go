@@ -60,7 +60,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	payload := []byte("Hello Swarm :)")
-	sortedNodes := cluster.NodeNames()
+	sortedNodes := cluster.FullNodeNames()
 
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
