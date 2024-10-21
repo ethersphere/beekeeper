@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
 
 // StewardshipService represents Bee's Stewardship service.

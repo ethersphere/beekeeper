@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
 
 // ChunksService represents Bee's Chunks service

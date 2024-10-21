@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -191,7 +191,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	return nil
 }
 
-func uploadChunks(ctx context.Context, rnd *rand.Rand, o Options, client *bee.Client, chunks []swarm.Chunk) error {
+func uploadChunks(ctx context.Context, _ *rand.Rand, o Options, client *bee.Client, chunks []swarm.Chunk) error {
 	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, "sim-pushsync", false)
 	if err != nil {
 		return fmt.Errorf("batch create %w", err)
@@ -245,7 +245,7 @@ func randomCmp(rnd *rand.Rand, cmp string, names []string) string {
 	return str
 }
 
-func shuffle(rnd *rand.Rand, names []string, seed int64) []string {
+func shuffle(rnd *rand.Rand, names []string, _ int64) []string {
 	rnd.Shuffle(len(names), func(i, j int) {
 		names[i], names[j] = names[j], names[i]
 	})
