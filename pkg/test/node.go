@@ -79,7 +79,7 @@ func (b *BeeV2) ExpectToHaveFile(ctx context.Context, file File) error {
 
 func (b *BeeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 	o := b.opts
-	batchID, err := b.client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := b.client.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return nil, fmt.Errorf("node %s: batch id %w", b.name, err)
 	}

@@ -236,15 +236,20 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 		return err
 	}
 
-	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		_ = json.NewDecoder(r.Body).Decode(&v)
-		for _, parser := range headerParser {
-			parser(r.Header)
-		}
+	if err = responseErrorHandler(r); err != nil {
 		return err
 	}
 
-	return err
+	if v != nil && strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+			return err
+		}
+		for _, parser := range headerParser {
+			parser(r.Header)
+		}
+	}
+
+	return nil
 }
 
 // drain discards all of the remaining data from the reader and closes it,
