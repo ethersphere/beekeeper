@@ -91,7 +91,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	sortedNodes := cluster.NodeNames()
+	sortedNodes := cluster.FullNodeNames()
 	node := sortedNodes[0]
 
 	client := clients[node]
