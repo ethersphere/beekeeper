@@ -132,8 +132,8 @@ github.com/ethersphere/ethproxy v0.0.5 h1:j5Mkm45jqmkET6NwGaJtaxOSFbhoAfOKzHiwHl
 github.com/ethersphere/ethproxy v0.0.5/go.mod h1:7mkVRK3+Mte00jLxFAbUQ/cBepAzwTYpkE64ItCLZYw=
 github.com/ethersphere/go-sw3-abi v0.6.5 h1:M5dcIe1zQYvGpY2K07UNkNU9Obc4U+A1fz68Ho/Q+XE=
 github.com/ethersphere/go-sw3-abi v0.6.5/go.mod h1:BmpsvJ8idQZdYEtWnvxA8POYQ8Rl/NhyCdF0zLMOOJU=
-github.com/ethersphere/node-funder v0.1.2 h1:A0sv8VjkRf/BGKBafuX5MZis4frzYlLNOma1Z2a4jNM=
-github.com/ethersphere/node-funder v0.1.2/go.mod h1:1WhVgYBxEqdOWRjEeXKTf6KbaD9Sv7n1gtAvoS4x7IQ=
+github.com/ethersphere/node-funder v0.2.0 h1:2jN7LIIwtNqTj3hj/wSYgqK0mfnw73oGsJcgm9tNTek=
+github.com/ethersphere/node-funder v0.2.0/go.mod h1:1WhVgYBxEqdOWRjEeXKTf6KbaD9Sv7n1gtAvoS4x7IQ=
 github.com/evanphx/json-patch v4.11.0+incompatible h1:glyUF9yIYtMHzn8xaKw5rMhdWcwsYV8dZHIq5567/xs=
 github.com/evanphx/json-patch v4.11.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/fjl/memsize v0.0.2 h1:27txuSD9or+NZlnOWdKUxeBzTAUkWCVh+4Gf2dWFOzA=
