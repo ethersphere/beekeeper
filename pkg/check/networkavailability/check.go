@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/storage/testing"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/storage/testing"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -101,7 +101,7 @@ iteration:
 		var chunks []swarm.Chunk
 		for _, n := range neighborhoods(int(storageRadius)) {
 
-			batch, err := uploadClient.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, "net-avail-check")
+			batch, err := uploadClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, "net-avail-check")
 			if err != nil {
 				c.logger.Errorf("create batch failed failed")
 				continue iteration
@@ -155,7 +155,6 @@ iteration:
 }
 
 func neighborhoods(bits int) []swarm.Address {
-
 	max := 1 << bits
 	leftover := bits % 8
 

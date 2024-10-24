@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/cac"
-	"github.com/ethersphere/bee/pkg/crypto"
-	"github.com/ethersphere/bee/pkg/soc"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/cac"
+	"github.com/ethersphere/bee/v2/pkg/crypto"
+	"github.com/ethersphere/bee/v2/pkg/soc"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -60,7 +60,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	payload := []byte("Hello Swarm :)")
-	sortedNodes := cluster.NodeNames()
+	sortedNodes := cluster.FullNodeNames()
 
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
@@ -110,7 +110,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
 
-	batchID, err := node.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := node.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}

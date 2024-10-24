@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -79,7 +79,7 @@ func (b *BeeV2) ExpectToHaveFile(ctx context.Context, file File) error {
 
 func (b *BeeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 	o := b.opts
-	batchID, err := b.client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := b.client.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return nil, fmt.Errorf("node %s: batch id %w", b.name, err)
 	}

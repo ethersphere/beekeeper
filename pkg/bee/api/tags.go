@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
 
 // TagsService represents Bee's Tag service
@@ -25,14 +25,12 @@ type TagResponse struct {
 
 // CreateTag creates new tag
 func (p *TagsService) CreateTag(ctx context.Context) (resp TagResponse, err error) {
-
 	err = p.client.requestJSON(ctx, http.MethodPost, "/tags", nil, &resp)
 	return
 }
 
 // GetTag gets a new tag
 func (p *TagsService) GetTag(ctx context.Context, tagUID uint64) (resp TagResponse, err error) {
-
 	tag := strconv.FormatUint(tagUID, 10)
 
 	err = p.client.requestJSON(ctx, http.MethodGet, "/tags/"+tag, nil, &resp)
@@ -41,7 +39,6 @@ func (p *TagsService) GetTag(ctx context.Context, tagUID uint64) (resp TagRespon
 }
 
 func (p *TagsService) WaitSync(ctx context.Context, tagUID uint64) (err error) {
-
 	c := make(chan bool)
 	defer close(c)
 

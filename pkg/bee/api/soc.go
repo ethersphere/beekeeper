@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
 
 // PSSService represents Bee's PSS service
@@ -18,7 +18,6 @@ type SocResponse struct {
 
 // Sends a PSS message to a recipienct with a specific topic
 func (p *SOCService) UploadSOC(ctx context.Context, owner, ID, signature string, data io.Reader, batchID string) (*SocResponse, error) {
-
 	h := http.Header{}
 	h.Add(postageStampBatchHeader, batchID)
 	url := fmt.Sprintf("/%s/soc/%s/%s?sig=%s", apiVersion, owner, ID, signature)

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethersphere/bee/pkg/crypto"
+	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/scrypt"
 )

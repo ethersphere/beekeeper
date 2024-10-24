@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
@@ -432,7 +432,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	return id, nil
 }
 
-func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
+func (c *Client) GetOrCreateMutableBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
 	batches, err := c.PostageBatches(ctx)
 	if err != nil {
 		return "", err
@@ -445,8 +445,11 @@ func (c *Client) GetOrCreateBatch(ctx context.Context, amount int64, depth uint6
 		if b.ImmutableFlag { // skip immutable batches
 			continue
 		}
+		if b.Label != label {
+			continue
+		}
 
-		if b.Usable && (b.BatchTTL == -1 || b.BatchTTL > 0) {
+		if b.Usable && (b.BatchTTL == -1 || b.BatchTTL > 0) && b.Utilization < (1<<(b.Depth-b.BucketDepth)) {
 			return b.BatchID, nil
 		}
 	}
