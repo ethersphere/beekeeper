@@ -45,8 +45,9 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 		return nil, err
 	}
 
-	rnd := random.PseudoGenerator(caseOpts.Seed)
 	logger.Infof("Seed: %d", caseOpts.Seed)
+
+	rnd := random.PseudoGenerator(caseOpts.Seed)
 
 	flatOverlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -54,7 +55,6 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 	}
 
 	rnds := random.PseudoGenerators(caseOpts.Seed, len(flatOverlays))
-	logger.Infof("Seed: %d", caseOpts.Seed)
 
 	var (
 		nodes []BeeV2

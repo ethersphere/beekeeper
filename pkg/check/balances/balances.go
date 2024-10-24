@@ -46,13 +46,13 @@ var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
 type Check struct {
-	log logging.Logger
+	logger logging.Logger
 }
 
 // NewCheck returns new check
 func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
-		log: log,
+		logger: log,
 	}
 }
 
@@ -63,8 +63,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if o.DryRun {
-		c.log.Info("running balances (dry mode)")
-		return dryRun(ctx, cluster, c.log)
+		c.logger.Info("running balances (dry mode)")
+		return dryRun(ctx, cluster, c.logger)
 	}
 
 	var checkCase *test.CheckCase
@@ -79,7 +79,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		Seed:          o.Seed,
 	}
 
-	if checkCase, err = test.NewCheckCase(ctx, cluster, caseOpts, c.log); err != nil {
+	if checkCase, err = test.NewCheckCase(ctx, cluster, caseOpts, c.logger); err != nil {
 		return err
 	}
 
@@ -89,11 +89,11 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	// initial validation
-	if err := validateBalances(balances, c.log); err != nil {
+	if err := validateBalances(balances, c.logger); err != nil {
 		return fmt.Errorf("invalid initial balances: %v", err)
 	}
 
-	c.log.Info("Balances are valid")
+	c.logger.Info("Balances are valid")
 
 	// repeats
 	for i := 0; i < o.UploadNodeCount; i++ {
@@ -110,7 +110,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return err
 		}
 
-		if err := expectBalancesHaveChanged(balances, newBalances, c.log); err != nil {
+		if err := expectBalancesHaveChanged(balances, newBalances, c.logger); err != nil {
 			return err
 		}
 
@@ -126,7 +126,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			return err
 		}
 
-		if err := expectBalancesHaveChanged(balances, newBalances, c.log); err != nil {
+		if err := expectBalancesHaveChanged(balances, newBalances, c.logger); err != nil {
 			return err
 		}
 	}

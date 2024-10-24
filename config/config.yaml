@@ -7,7 +7,7 @@ clusters:
     namespace: bee-playground
     disable-namespace: false
     use-static-endpoints: false
-    api-domain: testnet.ethswarm.org
+    api-domain: testnet.internal # testnet.ethswarm.org
     api-insecure-tls: true
     api-scheme: http
     admin-password: test
@@ -19,7 +19,7 @@ clusters:
         mode: bootnode
         endpoints:
           - name: bootnode-0
-            api-url: http://bootnode-0.bee-playground.testnet.ethswarm.org
+            api-url: http://bootnode-0.bee-playground.testnet.internal
         bee-config: bootnode
         config: default
         nodes:
@@ -34,32 +34,29 @@ clusters:
         count: 3
         endpoints:
           - name: bee-0
-            api-url: http://bee-0.bee-playground.testnet.ethswarm.org
+            api-url: http://bee-0.bee-playground.testnet.internal
           - name: bee-1
-            api-url: http://bee-1.bee-playground.testnet.ethswarm.org
+            api-url: http://bee-1.bee-playground.testnet.internal
           - name: bee-2
-            api-url: http://bee-2.bee-playground.testnet.ethswarm.org
+            api-url: http://bee-2.bee-playground.testnet.internal
       light:
         mode: node
         bee-config: light-node
         config: light-node
-        count: 3
+        count: 2
         endpoints:
           - name: light-0
-            api-url: http://light-0.bee-playground.testnet.ethswarm.org
+            api-url: http://light-0.bee-playground.testnet.internal
           - name: light-1
-            api-url: http://light-1.bee-playground.testnet.ethswarm.org
-          - name: light-2
-            api-url: http://light-2.bee-playground.testnet.ethswarm.org
+            api-url: http://light-1.bee-playground.testnet.internal
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
 node-groups:
   default:
     _inherit: ""
-    image: ethersphere/bee:latest
+    image: ethersphere/bee:2.2.0
     image-pull-policy: Always
-    # image-pull-secrets: [regcred]
     ingress-annotations:
       nginx.ingress.kubernetes.io/affinity: "cookie"
       nginx.ingress.kubernetes.io/affinity-mode: "persistent"
@@ -70,7 +67,7 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/whitelist-source-range: "109.93.45.225/32" #curl ifconfig.me/ip
+      nginx.ingress.kubernetes.io/whitelist-source-range: "142.132.221.245/32" #VPN IP, or your IP (but ethswarm.org is needed)
     ingress-class: "nginx"
     labels:
       app.kubernetes.io/component: "node"
@@ -78,8 +75,6 @@ node-groups:
       app.kubernetes.io/part-of: "bee"
       app.kubernetes.io/version: "latest"
       beekeeper.ethswarm.org/node-funder: "true"
-    # node-selector:
-    #   node-group: "private"
     persistence-enabled: false
     persistence-storage-class: "local-storage"
     persistence-storage-request: "34Gi"
@@ -129,10 +124,10 @@ bee-configs:
     swap-endpoint: "ws://geth-swap:8546"
     swap-factory-address: "0xdD661f2500bA5831e3d1FEbAc379Ea1bF80773Ac"
     swap-initial-deposit: 500000000000000000
-    tracing-enabled: false
-    tracing-endpoint: "tempo-tempo-distributed-distributor.observability:6831"
+    tracing-enabled: true
+    tracing-endpoint: "10.10.11.199:6831"
     tracing-service-name: "bee"
-    verbosity: 5
+    verbosity: 5 # 1=error, 2=warn, 3=info, 4=debug, 5=trace
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
     warmup-time: 0s
     allow-private-cidrs: true
@@ -354,7 +349,7 @@ checks:
       insufficient-amount: 102400
       contract-addr: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
-      geth-url: "http://geth-swap.bee-playground.testnet.ethswarm.org"
+      geth-url: "http://geth-swap.bee-playground.testnet.internal"
       geth-chain-id: 12345
   withdraw:
     options:
