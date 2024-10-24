@@ -73,6 +73,28 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	return
 }
 
+func (c *Client) DeletePods(ctx context.Context, namespace, labelSelector string) error {
+	c.log.Infof("restarting pods in namespace %s, label selector %s", namespace, labelSelector)
+	pods, err := c.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return fmt.Errorf("listing pods in namespace %s: %w", namespace, err)
+	}
+
+	for _, pod := range pods.Items {
+		if pod.ObjectMeta.DeletionTimestamp == nil {
+			if err := c.clientset.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{}); err != nil {
+				return fmt.Errorf("deleting pod %s in namespace %s: %w", pod.Name, namespace, err)
+			}
+		}
+	}
+
+	c.log.Infof("found and deleted %d pods in namespace %s", len(pods.Items), namespace)
+
+	return nil
+}
+
 // WatchNewRunning detects new running Pods in the namespace and sends their IPs to the channel.
 func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector string, newPodIps chan string) (err error) {
 	c.log.Infof("starting events watch in namespace %s, label selector %s", namespace, labelSelector)
