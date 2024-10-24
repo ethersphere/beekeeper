@@ -1,14 +1,18 @@
+#config-dir: $HOME/.beekeeper
+#config-git-repo: ""
+#config-git-branch: main
+#config-git-username: <GitHub username>
+#config-git-password: <GitHub Personal Access Token>
 enable-k8s: true
 in-cluster: false
-geth-url: http://geth-swap.localhost
-bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7
+kubeconfig: "~/.kube/config"
+geth-url: http://geth-swap.localhost #http://geth-swap.bee-playground.testnet.internal
+bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7 #0x543dDb01Ba47acB11de34891cD86B675F04840db Sepolia
 eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
 wallet-key: 4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d
-kubeconfig: "~/.kube/config"
-# config-dir: ""
 log-verbosity: "info"
 tracing-enable: false
-tracing-endpoint: tempo-tempo-distributed-distributor.observability:6831
+tracing-endpoint: 10.10.11.199:6831
 # tracing-host: 127.0.0.1
 # tracing-port: 6831
 tracing-service-name: beekeeper

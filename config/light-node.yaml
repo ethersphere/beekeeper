@@ -8,6 +8,6 @@ bee-configs:
 node-groups:
   light-node:
     _inherit: default
-    image: ethersphere/bee:latest
+    image: ethersphere/bee:2.2.0
     image-pull-policy: Always
     persistence-enabled: false
