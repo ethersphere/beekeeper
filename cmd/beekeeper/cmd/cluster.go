@@ -25,7 +25,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		return fmt.Errorf("cluster %s not defined", clusterName)
 	}
 
-	cluster := configureCluster(clusterConfig, c)
+	cluster := initializeCluster(clusterConfig, c)
 
 	// delete node groups
 	for ngName, v := range clusterConfig.GetNodeGroups() {
@@ -131,7 +131,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		fundOpts = ensureFundingDefaults(clusterConfig.Funding.Export(), c.log)
 	}
 
-	cluster = configureCluster(clusterConfig, c)
+	cluster = initializeCluster(clusterConfig, c)
 
 	nodeResultChan := make(chan nodeResult)
 	defer close(nodeResultChan)
@@ -183,7 +183,7 @@ func ensureFundingDefaults(fundOpts orchestration.FundingOptions, log logging.Lo
 	return fundOpts
 }
 
-func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
+func initializeCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
 	clusterOpts := clusterConfig.Export()
 	clusterOpts.SwapClient = c.swapClient
 	clusterOpts.K8SClient = c.k8sClient

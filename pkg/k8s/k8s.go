@@ -128,7 +128,7 @@ func NewClient(opts ...ClientOption) (c *Client, err error) {
 // should handle authentication implicitly, and sets all other services.
 func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingressroute.Interface) {
 	c.ConfigMap = configmap.NewClient(clientset)
-	c.Ingress = ingress.NewClient(clientset)
+	c.Ingress = ingress.NewClient(clientset, c.logger)
 	c.Namespace = namespace.NewClient(clientset)
 	c.Pods = pod.NewClient(clientset, c.logger)
 	c.PVC = persistentvolumeclaim.NewClient(clientset)
