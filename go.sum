@@ -88,6 +88,8 @@ github.com/ethersphere/ethproxy v0.0.5 h1:j5Mkm45jqmkET6NwGaJtaxOSFbhoAfOKzHiwHl
 github.com/ethersphere/ethproxy v0.0.5/go.mod h1:7mkVRK3+Mte00jLxFAbUQ/cBepAzwTYpkE64ItCLZYw=
 github.com/ethersphere/go-sw3-abi v0.6.5 h1:M5dcIe1zQYvGpY2K07UNkNU9Obc4U+A1fz68Ho/Q+XE=
 github.com/ethersphere/go-sw3-abi v0.6.5/go.mod h1:BmpsvJ8idQZdYEtWnvxA8POYQ8Rl/NhyCdF0zLMOOJU=
+github.com/ethersphere/node-funder v0.2.1 h1:dspKQorhm2Vs5XE/r4CDTsEwqbtt+Y/thvLBJGafTok=
+github.com/ethersphere/node-funder v0.2.1/go.mod h1:CLAKVihL5ijWoCCskpgOl7cz9W4HTqIWNu055LNA+/A=
 github.com/evanphx/json-patch v4.12.0+incompatible h1:4onqiflcdA9EOZ4RxV643DvftH5pOlLGNtQ5lPWQu84=
 github.com/evanphx/json-patch v4.12.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/fjl/memsize v0.0.2 h1:27txuSD9or+NZlnOWdKUxeBzTAUkWCVh+4Gf2dWFOzA=
