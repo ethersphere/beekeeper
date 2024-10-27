@@ -61,7 +61,7 @@ func (pvcs PersistentVolumeClaimSpec) toK8S() v1.PersistentVolumeClaimSpec {
 	return v1.PersistentVolumeClaimSpec{
 		AccessModes: pvcs.AccessModes.toK8S(),
 		DataSource:  pvcs.DataSource.toK8S(),
-		Resources: v1.ResourceRequirements{
+		Resources: v1.VolumeResourceRequirements{
 			Requests: func() (m v1.ResourceList) {
 				if len(pvcs.RequestStorage) > 0 {
 					m = make(map[v1.ResourceName]resource.Quantity)
