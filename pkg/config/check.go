@@ -329,7 +329,6 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int    `yaml:"chunks-per-node"`
-				GasPrice        *string `yaml:"gas-price"`
 				PostageAmount   *int64  `yaml:"postage-amount"`
 				PostageDepth    *uint64 `yaml:"postage-depth"`
 				PostageLabel    *string `yaml:"postage-label"`

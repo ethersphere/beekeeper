@@ -54,12 +54,12 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 	}
 
 	rnds := random.PseudoGenerators(caseOpts.Seed, len(flatOverlays))
-	logger.Infof("Seed: %d", caseOpts.Seed)
 
 	var (
 		nodes []BeeV2
 		count int
 	)
+
 	for name, addr := range flatOverlays {
 		nodes = append(nodes, BeeV2{
 			name:   name,
