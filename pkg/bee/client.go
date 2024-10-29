@@ -33,8 +33,9 @@ type Client struct {
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
-	APIURL         *url.URL
 	APIInsecureTLS bool
+	APIURL         *url.URL
+	Name           string
 	Retry          int
 }
 
@@ -65,6 +66,10 @@ type Addresses struct {
 	Ethereum     string
 	PublicKey    string
 	PSSPublicKey string
+}
+
+func (c *Client) Name() string {
+	return c.opts.Name
 }
 
 func (c *Client) Config() ClientOptions {

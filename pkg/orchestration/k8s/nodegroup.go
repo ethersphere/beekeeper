@@ -66,6 +66,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 	}
 
 	beeClientOpts := bee.ClientOptions{
+		Name:           name,
 		APIURL:         aURL,
 		APIInsecureTLS: g.clusterOpts.APIInsecureTLS,
 		Retry:          5,
