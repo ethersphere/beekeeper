@@ -70,7 +70,7 @@ func TestToK8s(t *testing.T) {
 								},
 							},
 						},
-						Resources: v1.ResourceRequirements{
+						Resources: v1.VolumeResourceRequirements{
 							Limits:   nil,
 							Requests: map[v1.ResourceName]resource.Quantity{v1.ResourceStorage: resource.MustParse("1Gi")},
 						},

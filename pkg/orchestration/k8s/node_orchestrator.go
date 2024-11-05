@@ -286,8 +286,9 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 					PodSecurityContext: pod.PodSecurityContext{
 						FSGroup: 999,
 					},
-					RestartPolicy:      o.RestartPolicy,
-					ServiceAccountName: svcAccount,
+					RestartPolicy:                 o.RestartPolicy,
+					ServiceAccountName:            svcAccount,
+					TerminationGracePeriodSeconds: 60,
 					Volumes: setVolumes(setVolumesOptions{
 						ConfigCM:           configCM,
 						KeysSecret:         keysSecret,

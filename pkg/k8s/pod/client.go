@@ -61,16 +61,39 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (po
 }
 
 // Delete deletes Pod
-func (c *Client) Delete(ctx context.Context, name, namespace string) (err error) {
+func (c *Client) Delete(ctx context.Context, name, namespace string) (ok bool, err error) {
 	err = c.clientset.CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			c.log.Warningf("pod %s in namespace %s not found", name, namespace)
+			return false, nil
 		}
-		return fmt.Errorf("deleting pod %s in namespace %s: %w", name, namespace, err)
+		return false, fmt.Errorf("deleting pod %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return true, nil
+}
+
+func (c *Client) DeletePods(ctx context.Context, namespace, labelSelector string) error {
+	c.log.Infof("restarting pods in namespace %s, label selector %s", namespace, labelSelector)
+	pods, err := c.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return fmt.Errorf("listing pods in namespace %s: %w", namespace, err)
+	}
+
+	for _, pod := range pods.Items {
+		if pod.ObjectMeta.DeletionTimestamp == nil {
+			if err := c.clientset.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{}); err != nil {
+				return fmt.Errorf("deleting pod %s in namespace %s: %w", pod.Name, namespace, err)
+			}
+		}
+	}
+
+	c.log.Infof("found and deleted %d pods in namespace %s", len(pods.Items), namespace)
+
+	return nil
 }
 
 // WatchNewRunning detects new running Pods in the namespace and sends their IPs to the channel.

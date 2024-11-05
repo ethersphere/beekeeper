@@ -3,11 +3,13 @@ package ingress_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"reflect"
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -123,7 +125,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := ingress.NewClient(test.clientset)
+			client := ingress.NewClient(test.clientset, logging.New(io.Discard, 0))
 			response, err := client.Set(context.Background(), test.ingressName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -198,7 +200,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := ingress.NewClient(test.clientset)
+			client := ingress.NewClient(test.clientset, logging.New(io.Discard, 0))
 			err := client.Delete(context.Background(), test.ingressName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
