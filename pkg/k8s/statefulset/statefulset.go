@@ -7,6 +7,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	UpdateStrategyOnDelete = "OnDelete"
+	UpdateStrategyRolling  = "RollingUpdate"
+)
+
 // StatefulSetSpec represents Kubernetes StatefulSetSpec
 type StatefulSetSpec struct {
 	PodManagementPolicy  string
@@ -39,9 +44,22 @@ type UpdateStrategy struct {
 	RollingUpdatePartition int32
 }
 
+func newUpdateStrategy(us appsv1.StatefulSetUpdateStrategy) UpdateStrategy {
+	if us.Type == appsv1.OnDeleteStatefulSetStrategyType {
+		return UpdateStrategy{
+			Type: UpdateStrategyOnDelete,
+		}
+	}
+
+	return UpdateStrategy{
+		Type:                   UpdateStrategyRolling,
+		RollingUpdatePartition: *us.RollingUpdate.Partition,
+	}
+}
+
 // toK8S converts UpdateStrategy to Kuberntes client object
 func (u *UpdateStrategy) toK8S() appsv1.StatefulSetUpdateStrategy {
-	if u.Type == "OnDelete" {
+	if u.Type == UpdateStrategyOnDelete {
 		return appsv1.StatefulSetUpdateStrategy{
 			Type: appsv1.OnDeleteStatefulSetStrategyType,
 		}

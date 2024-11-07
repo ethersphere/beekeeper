@@ -179,3 +179,36 @@ func (c *Client) StoppedStatefulSets(ctx context.Context, namespace string) (sto
 
 	return
 }
+
+// UpdateImage updates StatefulSet image
+func (c *Client) UpdateImage(ctx context.Context, name, namespace, image string) (statefulSet *appsv1.StatefulSet, err error) {
+	statefulSet, err = c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("getting statefulset %s in namespace %s: %w", name, namespace, err)
+	}
+
+	statefulSet.Spec.Template.Spec.Containers[0].Image = image
+
+	statefulSet, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, statefulSet, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("updating statefulset %s in namespace %s: %w", name, namespace, err)
+	}
+
+	return
+}
+
+// GetUpdateStrategy returns the update strategy of the StatefulSet
+func (c *Client) GetUpdateStrategy(ctx context.Context, name, namespace string) (strategy UpdateStrategy, err error) {
+	statefulSet, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return UpdateStrategy{}, nil
+		}
+		return UpdateStrategy{}, fmt.Errorf("getting statefulset %s in namespace %s: %w", name, namespace, err)
+	}
+
+	return newUpdateStrategy(statefulSet.Spec.UpdateStrategy), nil
+}

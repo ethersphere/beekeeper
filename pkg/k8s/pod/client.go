@@ -62,8 +62,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (po
 
 // Delete deletes Pod
 func (c *Client) Delete(ctx context.Context, name, namespace string) (ok bool, err error) {
-	err = c.clientset.CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	if err != nil {
+	if err = c.clientset.CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
 		if errors.IsNotFound(err) {
 			c.log.Warningf("pod %s in namespace %s not found", name, namespace)
 			return false, nil

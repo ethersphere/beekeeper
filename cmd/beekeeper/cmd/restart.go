@@ -15,6 +15,8 @@ func (c *command) initRestartCmd() (err error) {
 		optionNameClusterName   = "cluster-name"
 		optionNameLabelSelector = "label-selector"
 		optionNameNamespace     = "namespace"
+		optionNameImage         = "image"
+		optionNameNodeGroups    = "node-groups"
 		optionNameTimeout       = "timeout"
 	)
 
@@ -46,7 +48,12 @@ func (c *command) initRestartCmd() (err error) {
 					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
 				}
 
-				if err := restartClient.RestartCluster(ctx, cluster, clusterConfig.GetNamespace()); err != nil {
+				if err := restartClient.RestartCluster(ctx,
+					cluster,
+					clusterConfig.GetNamespace(),
+					c.globalConfig.GetString(optionNameImage),
+					c.globalConfig.GetStringSlice(optionNameNodeGroups),
+				); err != nil {
 					return fmt.Errorf("restarting cluster %s: %w", clusterName, err)
 				}
 
@@ -62,9 +69,11 @@ func (c *command) initRestartCmd() (err error) {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().String(optionNameClusterName, "", "Kubernetes cluster to operate on (overrides namespace).")
-	cmd.Flags().StringP(optionNameNamespace, "n", "", "Namespace to delete pods from (used if cluster name is not set).")
-	cmd.Flags().String(optionNameLabelSelector, "", "Label selector for resources in the namespace. Ignored if cluster name is set.")
+	cmd.Flags().String(optionNameClusterName, "", "Kubernetes cluster to operate on (overrides namespace and label selector).")
+	cmd.Flags().StringP(optionNameNamespace, "n", "", "Namespace to delete pods from (only used if cluster name is not set).")
+	cmd.Flags().String(optionNameLabelSelector, "", "Label selector for resources in the namespace (only used with namespace).")
+	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for restarts (applies to all groups if not set).")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 
 	c.root.AddCommand(cmd)
