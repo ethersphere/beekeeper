@@ -48,6 +48,8 @@ func (c *command) initRestartCmd() (err error) {
 					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
 				}
 
+				c.log.Infof("restarting cluster %s", clusterName)
+
 				if err := restartClient.RestartCluster(ctx,
 					cluster,
 					clusterConfig.GetNamespace(),
