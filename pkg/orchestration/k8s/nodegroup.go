@@ -741,7 +741,7 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.
 		return "", fmt.Errorf("get eth address for funding: %w", err)
 	}
 
-	return
+	return ethAddress, nil
 }
 
 // Settlements returns NodeGroupSettlements
