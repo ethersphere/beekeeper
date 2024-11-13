@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	v1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,12 +14,14 @@ import (
 // Client manages communication with the Kubernetes Ingress.
 type Client struct {
 	clientset kubernetes.Interface
+	logger    logging.Logger
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset kubernetes.Interface) *Client {
+func NewClient(clientset kubernetes.Interface, log logging.Logger) *Client {
 	return &Client{
 		clientset: clientset,
+		logger:    log,
 	}
 }
 
@@ -77,6 +80,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 
 // GetIngressHosts list Ingresses hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.
 func (c *Client) GetIngressHosts(ctx context.Context, namespace, label string) (nodes []NodeInfo, err error) {
+	c.logger.Debugf("listing Ingresses in namespace %s, label selector %s", namespace, label)
 	ingreses, err := c.clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: label,
 	})
@@ -87,6 +91,8 @@ func (c *Client) GetIngressHosts(ctx context.Context, namespace, label string) (
 		return nil, fmt.Errorf("list ingresses in namespace %s: %w", namespace, err)
 	}
 
+	c.logger.Debugf("found %d ingresses in namespace %s", len(ingreses.Items), namespace)
+
 	for _, ingress := range ingreses.Items {
 		for _, rule := range ingress.Spec.Rules {
 			if rule.Host != "" {
@@ -94,6 +100,7 @@ func (c *Client) GetIngressHosts(ctx context.Context, namespace, label string) (
 					Name: ingress.Name,
 					Host: rule.Host,
 				})
+				c.logger.Tracef("found Ingress %s in namespace %s with host %s", ingress.Name, namespace, rule.Host)
 			}
 		}
 	}

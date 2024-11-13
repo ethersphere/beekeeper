@@ -60,6 +60,7 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 		nodes []BeeV2
 		count int
 	)
+
 	for name, addr := range flatOverlays {
 		nodes = append(nodes, BeeV2{
 			name:   name,

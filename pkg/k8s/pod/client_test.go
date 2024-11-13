@@ -141,7 +141,7 @@ func TestDelete(t *testing.T) {
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := pod.NewClient(test.clientset, logging.New(io.Discard, 0))
-			err := client.Delete(context.Background(), test.podName, "test")
+			_, err := client.Delete(context.Background(), test.podName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
