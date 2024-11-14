@@ -209,7 +209,6 @@ func (c *command) initConfig() (err error) {
 	if err != nil {
 		return fmt.Errorf("new logger: %w", err)
 	}
-	c.log.Infof("verbosity log level: %v", c.log.GetLevel())
 
 	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
 		// read configuration from git repo
