@@ -5,13 +5,13 @@ clusters:
     _inherit: ""
     name: bee
     namespace: beekeeper
-    disable-namespace: true
-    api-domain: staging.ethswarm.org
+    disable-namespace: false
+    api-domain: testnet.internal
     api-insecure-tls: true
-    api-scheme: https
+    api-scheme: http
     funding:
-      eth: 0.1
-      gbzz: 2.0
+      eth: 0.01
+      bzz: 1.0
     node-groups:
       bee:
         mode: node
@@ -31,4 +31,10 @@ node-groups:
 bee-configs:
   staging:
     _inherit: "default"
-    bootnodes: "/dnsaddr/mainnet.ethswarm.org"
+    swap-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
+    bootnode: /dnsaddr/testnet.ethswarm.org
+    network-id: 10
+    swap-initial-deposit: 0
+    swap-factory-address: ""
+    verbosity: 4
+    welcome-message: Welcome to the bee staging environment created by Beekeeper!
