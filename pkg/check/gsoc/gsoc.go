@@ -215,9 +215,15 @@ func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.P
 	}
 
 	neighborhood, err := swarm.ParseBitStrAddress(targetNeighborhood)
+	if err != nil {
+		return nil, swarm.ZeroAddress, err
+	}
 	nonce := make([]byte, 32)
 	prox := len(targetNeighborhood)
 	owner, err := crypto.NewEthereumAddress(privKey.PublicKey)
+	if err != nil {
+		return nil, swarm.ZeroAddress, err
+	}
 
 	i := uint64(0)
 	for {
