@@ -47,6 +47,12 @@ type Check struct {
 	logger logging.Logger
 }
 
+type socData struct {
+	Owner string
+	Sig   string
+	Data  []byte
+}
+
 // NewCheck returns a new check instance.
 func NewCheck(logger logging.Logger) beekeeper.Action {
 	return &Check{
@@ -118,16 +124,12 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	}
 	logger.Infof("gsoc: socAddress=%s, listner node address=%s", socAddress, addresses.Overlay)
 
-	ch, closeWebSocket, err := listenWebsocket(ctx, listenClient.Config().APIURL.Host, socAddress, logger)
+	listener := &socListener{}
+	ch, err := listener.Listen(ctx, listenClient.Config().APIURL.Host, socAddress, logger)
 	if err != nil {
 		return fmt.Errorf("listen websocket: %w", err)
 	}
-
-	defer func() {
-		if closeWebSocket != nil {
-			closeWebSocket()
-		}
-	}()
+	defer listener.Close()
 
 	received := make(map[string]bool, numChunks)
 	receivedMtx := new(sync.Mutex)
@@ -140,45 +142,18 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 		}
 	}()
 
-	f := func(i int) error {
-		payload := fmt.Sprintf("data %d", i)
-		owner, sig, data, err := makeSoc(payload, resourceId, privKey)
-		if err != nil {
-			return fmt.Errorf("make soc: %w", err)
-		}
-
-		batchID := batches[i%2]
-		logger.Infof("gsoc: submitting soc to node=%s, payload=%s", uploadClient.Name(), payload)
-		_, err = uploadClient.UploadSOC(ctx, owner, hex.EncodeToString(resourceId), sig, data, batchID)
-		if err != nil {
-			return fmt.Errorf("upload soc: %w", err)
-		}
-		return nil
+	if parallel {
+		err = runInParallel(ctx, uploadClient, numChunks, batches, resourceId, privKey, logger)
+	} else {
+		err = runInSequence(ctx, uploadClient, numChunks, batches, resourceId, privKey, logger)
 	}
-
-	var errG errgroup.Group
-	for i := 0; i < numChunks; i++ {
-		if parallel {
-			errG.Go(func() error {
-				return f(i)
-			})
-		} else {
-			err := f(i)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	err = errG.Wait()
 	if err != nil {
 		return err
 	}
 
 	// wait for listener to receive all messages
 	time.Sleep(5 * time.Second)
-
-	closeWebSocket()
-	closeWebSocket = nil // prevent defer from closing again
+	listener.Close()
 
 	receivedMtx.Lock()
 	defer receivedMtx.Unlock()
@@ -193,6 +168,43 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 		}
 	}
 	return nil
+}
+
+func uploadSoc(ctx context.Context, client *bee.Client, payload string, resourceId []byte, batchID string, privKey *ecdsa.PrivateKey) error {
+	d, err := makeSoc(payload, resourceId, privKey)
+	if err != nil {
+		return fmt.Errorf("make soc: %w", err)
+	}
+	_, err = client.UploadSOC(ctx, d.Owner, hex.EncodeToString(resourceId), d.Sig, d.Data, batchID)
+	if err != nil {
+		return fmt.Errorf("upload soc: %w", err)
+	}
+	return nil
+}
+
+func runInSequence(ctx context.Context, client *bee.Client, numChunks int, batches []string, resourceId []byte, privKey *ecdsa.PrivateKey, logger logging.Logger) error {
+	for i := 0; i < numChunks; i++ {
+		payload := fmt.Sprintf("data %d", i)
+		logger.Infof("gsoc: submitting soc to node=%s, payload=%s", client.Name(), payload)
+		err := uploadSoc(ctx, client, payload, resourceId, batches[i%2], privKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func runInParallel(ctx context.Context, client *bee.Client, numChunks int, batches []string, resourceId []byte, privKey *ecdsa.PrivateKey, logger logging.Logger) error {
+	var errG errgroup.Group
+	for i := 0; i < numChunks; i++ {
+		i := i
+		errG.Go(func() error {
+			payload := fmt.Sprintf("data %d", i)
+			logger.Infof("gsoc: submitting soc to node=%s, payload=%s", client.Name(), payload)
+			return uploadSoc(ctx, client, payload, resourceId, batches[i%2], privKey)
+		})
+	}
+	return errG.Wait()
 }
 
 func getTargetNeighborhood(address swarm.Address, depth int) (string, error) {
@@ -246,17 +258,17 @@ func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.P
 	}
 }
 
-func makeSoc(msg string, id []byte, privKey *ecdsa.PrivateKey) (string, string, []byte, error) {
+func makeSoc(msg string, id []byte, privKey *ecdsa.PrivateKey) (*socData, error) {
 	signer := crypto.NewDefaultSigner(privKey)
 
 	ch, err := cac.New([]byte(msg))
 	if err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 
 	sch, err := soc.New(id, ch).Sign(signer)
 	if err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 
 	chunkData := sch.Data()
@@ -264,18 +276,38 @@ func makeSoc(msg string, id []byte, privKey *ecdsa.PrivateKey) (string, string, 
 
 	publicKey, err := signer.PublicKey()
 	if err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 
 	ownerBytes, err := crypto.NewEthereumAddress(*publicKey)
 	if err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 
-	return hex.EncodeToString(ownerBytes), hex.EncodeToString(signatureBytes), ch.Data(), nil
+	return &socData{
+		Owner: hex.EncodeToString(ownerBytes),
+		Sig:   hex.EncodeToString(signatureBytes),
+		Data:  ch.Data(),
+	}, nil
 }
 
-func listenWebsocket(ctx context.Context, host string, addr swarm.Address, logger logging.Logger) (<-chan string, func(), error) {
+type socListener struct {
+	listening bool
+	ws        *websocket.Conn
+	ch        chan string
+}
+
+func (s *socListener) Close() {
+	if !s.listening {
+		return
+	}
+
+	s.listening = false
+	s.ws.Close()
+	close(s.ch)
+}
+
+func (s *socListener) Listen(ctx context.Context, host string, addr swarm.Address, logger logging.Logger) (<-chan string, error) {
 	dialer := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: 45 * time.Second,
@@ -283,10 +315,11 @@ func listenWebsocket(ctx context.Context, host string, addr swarm.Address, logge
 
 	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/gsoc/subscribe/%s", host, addr), http.Header{})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	ch := make(chan string)
+	s.ws = ws
+	s.ch = make(chan string)
+	s.listening = true
 
 	go func() {
 		for {
@@ -305,13 +338,10 @@ func listenWebsocket(ctx context.Context, host string, addr swarm.Address, logge
 				}
 
 				logger.Infof("gsoc: websocket received message %s", string(data))
-				ch <- string(data)
+				s.ch <- string(data)
 			}
 		}
 	}()
 
-	return ch, func() {
-		ws.Close()
-		close(ch)
-	}, nil
+	return s.ch, nil
 }
