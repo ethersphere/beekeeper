@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/restart"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +15,8 @@ func (c *command) initRestartCmd() (err error) {
 		optionNameClusterName   = "cluster-name"
 		optionNameLabelSelector = "label-selector"
 		optionNameNamespace     = "namespace"
+		optionNameImage         = "image"
+		optionNameNodeGroups    = "node-groups"
 		optionNameTimeout       = "timeout"
 	)
 
@@ -33,14 +35,34 @@ func (c *command) initRestartCmd() (err error) {
 				return errors.New("either cluster name or namespace must be provided")
 			}
 
+			restartClient := restart.NewClient(c.k8sClient, c.log)
+
 			if clusterName != "" {
-				if err := c.restartCluster(ctx, clusterName, c.config); err != nil {
+				clusterConfig, ok := c.config.Clusters[clusterName]
+				if !ok {
+					return fmt.Errorf("cluster config %s not defined", clusterName)
+				}
+
+				cluster, err := c.setupCluster(ctx, clusterName, c.config, false)
+				if err != nil {
+					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+				}
+
+				c.log.Infof("restarting cluster %s", clusterName)
+
+				if err := restartClient.RestartCluster(ctx,
+					cluster,
+					clusterConfig.GetNamespace(),
+					c.globalConfig.GetString(optionNameImage),
+					c.globalConfig.GetStringSlice(optionNameNodeGroups),
+				); err != nil {
 					return fmt.Errorf("restarting cluster %s: %w", clusterName, err)
 				}
+
 				return nil
 			}
 
-			if err := c.k8sClient.Pods.DeletePods(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector)); err != nil {
+			if err := restartClient.RestartPods(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector)); err != nil {
 				return fmt.Errorf("restarting pods in namespace %s: %w", namespace, err)
 			}
 
@@ -49,46 +71,14 @@ func (c *command) initRestartCmd() (err error) {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().String(optionNameClusterName, "", "Kubernetes cluster to operate on (overrides namespace).")
-	cmd.Flags().StringP(optionNameNamespace, "n", "", "Namespace to delete pods from (used if cluster name is not set).")
-	cmd.Flags().String(optionNameLabelSelector, "", "Label selector for resources in the namespace. Ignored if cluster name is set.")
+	cmd.Flags().String(optionNameClusterName, "", "Kubernetes cluster to operate on (overrides namespace and label selector).")
+	cmd.Flags().StringP(optionNameNamespace, "n", "", "Namespace to delete pods from (only used if cluster name is not set).")
+	cmd.Flags().String(optionNameLabelSelector, "", "Label selector for resources in the namespace (only used with namespace).")
+	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for restarts (applies to all groups if not set).")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 
 	c.root.AddCommand(cmd)
-
-	return nil
-}
-
-func (c *command) restartCluster(ctx context.Context, clusterName string, cfg *config.Config) (err error) {
-	c.log.Infof("restarting cluster %s", clusterName)
-
-	clusterConfig, ok := cfg.Clusters[clusterName]
-	if !ok {
-		return fmt.Errorf("cluster config %s not defined", clusterName)
-	}
-
-	cluster, err := c.setupCluster(ctx, clusterName, c.config, false)
-	if err != nil {
-		return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-	}
-
-	nodes := cluster.NodeNames()
-
-	count := 0
-
-	for _, node := range nodes {
-		podName := fmt.Sprintf("%s-0", node) // Suffix "-0" added as StatefulSet names pods based on replica count.
-		ok, err := c.k8sClient.Pods.Delete(ctx, podName, clusterConfig.GetNamespace())
-		if err != nil {
-			return fmt.Errorf("deleting pod %s in namespace %s: %w", node, clusterConfig.GetNamespace(), err)
-		}
-		if ok {
-			count++
-			c.log.Debugf("pod %s in namespace %s deleted", podName, clusterConfig.GetNamespace())
-		}
-	}
-
-	c.log.Infof("cluster %s restarted %d/%d nodes", clusterName, count, len(nodes))
 
 	return nil
 }

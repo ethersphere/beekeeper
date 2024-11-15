@@ -144,8 +144,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	// fund bootnode node group if cluster is started
 	if startCluster {
-		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log)
-		if err != nil {
+		if err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log); err != nil {
 			return nil, fmt.Errorf("funding node group bootnode: %w", err)
 		}
 		c.log.Infof("bootnode node group funded")
@@ -159,8 +158,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 
 	// fund other node groups if cluster is started
 	if startCluster {
-		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log)
-		if err != nil {
+		if err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log); err != nil {
 			return nil, fmt.Errorf("fund other node groups: %w", err)
 		}
 		c.log.Infof("node groups funded")
@@ -283,10 +281,14 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult, beeOpt orchestration.BeeClientOption) {
 	if startCluster {
 		ethAddress, err := ng.SetupNode(ctx, nName, nodeOpts)
-		ch <- nodeResult{ethAddress: ethAddress, err: err}
+		ch <- nodeResult{
+			ethAddress: ethAddress,
+			err:        err,
+		}
 	} else {
-		err := ng.AddNode(ctx, nName, nodeOpts, beeOpt)
-		ch <- nodeResult{err: err}
+		ch <- nodeResult{
+			err: ng.AddNode(ctx, nName, nodeOpts, beeOpt),
+		}
 	}
 }
 

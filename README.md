@@ -402,6 +402,33 @@ example:
 beekeeper node-operator --geth-url="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --namespace=default --min-swarm=180 --min-native=2.2 --log-verbosity=3
 ```
 
+### restart
+
+Command **restart** restarts bee node in Kubernetes , with optional targeting by namespace, label selectors, and node groups.
+
+It has following flags:
+
+```console
+--cluster-name string     Kubernetes cluster to operate on (overrides namespace and label selector).
+--namespace string        Namespace to delete pods from (only used if cluster name is not set).
+--label-selector string   Label selector for resources in the namespace (only used with namespace). An empty string disables filtering, allowing all resources to be selected.
+--image string            Container image to use when restarting pods (defaults to current image if not set).
+--node-groups strings     Comma-separated list of node groups to target for restarts (applies to all groups if not set).
+--timeout duration        Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
+```
+
+example:
+
+```bash
+beekeeper restart --cluster-name=default --image="bee:latest" --node-groups="group1,group2" --timeout=10m
+```
+
+or
+
+```bash
+beekeeper restart -namespace=default --label-selector="app=bee" --timeout=10m
+```
+
 ## Global flags
 
 Global flags can be used with any command.
