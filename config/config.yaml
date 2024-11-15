@@ -4,12 +4,12 @@ clusters:
   default:
     _inherit: ""
     name: bee
-    namespace: beekeeper
+    namespace: bee-playground
     disable-namespace: false
     use-static-endpoints: false
-    api-domain: staging.internal
+    api-domain: testnet.internal # testnet.ethswarm.org
     api-insecure-tls: true
-    api-scheme: https
+    api-scheme: http
     admin-password: test
     funding:
       eth: 0.1
@@ -19,19 +19,14 @@ clusters:
         mode: bootnode
         endpoints:
           - name: bootnode-0
-            api-url: https://bootnode-0.beekeeper.testnet.internal
-            debug-api-url: https://bootnode-0-debug.beekeeper.testnet.internal
+            api-url: http://bootnode-0.bee-playground.testnet.internal
         bee-config: bootnode
         config: default
         nodes:
           - name: bootnode-0
-            bootnodes: /dns4/bootnode-1-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAmMw7Uj6vfraD9BYx3coDs6MK6pAmActE8fsfaZwigsaB6
-            libp2p-key: '{"address":"aa6675fb77f3f84304a00d5ea09902d8a500364091a457cf21e05a41875d48f7","crypto":{"cipher":"aes-128-ctr","ciphertext":"93effebd3f015f496367e14218cb26d22de8f899e1d7b7686deb6ab43c876ea5","cipherparams":{"iv":"627434462c2f960d37338022d27fc92e"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a59e72e725fe3de25dd9c55aa55a93ed0e9090b408065a7204e2f505653acb70"},"mac":"dfb1e7ad93252928a7ff21ea5b65e8a4b9bda2c2e09cb6a8ac337da7a3568b8c"},"version":3}'
+            bootnodes: /dns4/bootnode-0-headless.%s.svc.swarm1.local/tcp/1634/p2p/QmaHzvd3iZduu275CMkMVZKwbsjXSyH3GJRj4UvFJApKcb
+            libp2p-key: '{"address":"28678fe31f09f722d53e77ca2395569f19959fa5","crypto":{"cipher":"aes-128-ctr","ciphertext":"0ff319684c4f8decf9c998047febe3417cfc45832b8bb62fd818183d54cf5d0183bfa021ed95addce3b33e83ce7ee73e926f00eea8241d96b349266a4d299829d3d22db0d536315b52b34db4a6778bfd3ce7631ad7256ea0bb9c50abea9de35d740b6fdc50caf929b1d19494690d9ed649105d02c14f5ec49d","cipherparams":{"iv":"4e9a50fb5852b5e61964f696be78066b"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"4d513e81647e4150bb648ed8d2dda28d460802336bf24d620119eac66ae0c0c4"},"mac":"9ae71db96e5ddc1c214538d42082212bbbe53aeac09fcc3e3a8eff815648331e"},"version":3,"id":"ae3bc991-d89f-405a-9e6a-60e27347e22d"}'
             swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
-          - name: bootnode-1
-            bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/16Uiu2HAm6i4dFaJt584m2jubyvnieEECgqM2YMpQ9nusXfy8XFzL
-            libp2p-key: '{"address":"03348ecf3adae1d05dc16e475a83c94e49e28a4d3c7db5eccbf5ca4ea7f688ddcdfe88acbebef2037c68030b1a0a367a561333e5c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","crypto":{"cipher":"aes-128-ctr","ciphertext":"0d0ff25e9b03292e622c5a09ec00c2acb7ff5882f02dd2f00a26ac6d3292a434","cipherparams":{"iv":"cd4082caf63320b306fe885796ba224f"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"a4d63d56c539eb3eff2a235090127486722fa2c836cf735d50d673b730cebc3f"},"mac":"aad40da9c1e742e2b01bb8f76ba99ace97ccb0539cea40e31eb6b9bb64a3f36a"},"version":3}'
-            swarm-key: '{"address":"ebe269e07161c68a942a3a7fce6b4ed66867d6f0","crypto":{"cipher":"aes-128-ctr","ciphertext":"06b550c35b46099aea8f6c9f799497d34bd5ebc13af79c7cdb2a1037227544ad","cipherparams":{"iv":"fa088e69b1849e40f190a5f69f0555f8"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"42b4f2815c0042d02eed916a7a74ecdc005f1f7eae0cfb5837c15f469df9ddba"},"mac":"23e3d0594ab94587258a33cc521edbde009b887a6f117ed7a3422d1c95123568"},"version":3}'
       bee:
         mode: node
         bee-config: default
@@ -39,38 +34,29 @@ clusters:
         count: 3
         endpoints:
           - name: bee-0
-            api-url: https://bee-0.beekeeper.testnet.internal
-            debug-api-url: https://bee-0-debug.beekeeper.testnet.internal
+            api-url: http://bee-0.bee-playground.testnet.internal
           - name: bee-1
-            api-url: https://bee-1.beekeeper.testnet.internal
-            debug-api-url: https://bee-1-debug.beekeeper.testnet.internal
+            api-url: http://bee-1.bee-playground.testnet.internal
           - name: bee-2
-            api-url: https://bee-2.beekeeper.testnet.internal
-            debug-api-url: https://bee-2-debug.beekeeper.testnet.internal
+            api-url: http://bee-2.bee-playground.testnet.internal
       light:
         mode: node
         bee-config: light-node
         config: light-node
-        count: 3
+        count: 2
         endpoints:
           - name: light-0
-            api-url: https://light-0.beekeeper.testnet.internal
-            debug-api-url: https://light-0-debug.beekeeper.testnet.internal
+            api-url: http://light-0.bee-playground.testnet.internal
           - name: light-1
-            api-url: https://light-1.beekeeper.testnet.internal
-            debug-api-url: https://light-1-debug.beekeeper.testnet.internal
-          - name: light-2
-            api-url: https://light-2.beekeeper.testnet.internal
-            debug-api-url: https://light-2-debug.beekeeper.testnet.internal
+            api-url: http://light-1.bee-playground.testnet.internal
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
 node-groups:
   default:
     _inherit: ""
-    image: ethersphere/bee:latest
+    image: ethersphere/bee:2.2.0
     image-pull-policy: Always
-    image-pull-secrets: [regcred]
     ingress-annotations:
       nginx.ingress.kubernetes.io/affinity: "cookie"
       nginx.ingress.kubernetes.io/affinity-mode: "persistent"
@@ -81,15 +67,13 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    ingress-class: "nginx-internal"
+    ingress-class: "nginx"
     labels:
       app.kubernetes.io/component: "node"
       app.kubernetes.io/name: "bee"
       app.kubernetes.io/part-of: "bee"
       app.kubernetes.io/version: "latest"
       beekeeper.ethswarm.org/node-funder: "true"
-    node-selector:
-      node-group: "private"
     persistence-enabled: false
     persistence-storage-class: "local-storage"
     persistence-storage-request: "34Gi"
@@ -120,7 +104,7 @@ bee-configs:
     full-node: true
     nat-addr: ""
     mainnet: false
-    network-id: 12345
+    network-id: 0
     p2p-addr: ":1634"
     p2p-ws-enable: false
     password: "beekeeper"
@@ -129,23 +113,24 @@ bee-configs:
     payment-tolerance-percent: 25
     storage-incentives-enable: true
     postage-stamp-start-block: 1
-    postage-stamp-address: "0x538e6de1d876bbcd5667085257bc92f7c808a0f3"
-    price-oracle-address: "0xfc28330f1ece0ef2371b724e0d19c1ee60b728b2"
-    staking-address: "0xc0332d319b73cfeed89511fe1a83add141bd6f12"
-    redistribution-address: "0x56e442f99cafd7c890c404c1f8c16d38a569e41a"
+    postage-stamp-address: "0x657241f4494A2F15Ba75346E691d753A978C72Df"
+    price-oracle-address: "0x5aFE06fcC0855a76a15c3544b0886EDBE3294d62"
+    staking-address: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
+    redistribution-address: "0x09Ad42a7d020244920309FfA14EA376dd2D3b7d5"
     resolver-options: ""
     chequebook-enable: true
     swap-enable: true
-    swap-endpoint: "ws://geth-swap.geth-swap:8546"
-    swap-factory-address: "0x09ad42a7d020244920309ffa14ea376dd2d3b7d5"
+    swap-endpoint: "ws://geth-swap:8546"
+    swap-factory-address: "0xdD661f2500bA5831e3d1FEbAc379Ea1bF80773Ac"
     swap-initial-deposit: 500000000000000000
     tracing-enabled: true
-    tracing-endpoint: "tempo-tempo-distributed-distributor.observability:6831"
+    tracing-endpoint: "10.10.11.199:6831"
     tracing-service-name: "bee"
-    verbosity: 5
+    verbosity: 5 # 1=error, 2=warn, 3=info, 4=debug, 5=trace
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
+    warmup-time: 0s
     allow-private-cidrs: true
-    withdrawal-addresses-whitelist: "0xec44cb15b1b033e74d55ac5d0e24d861bde54532"
+    withdrawal-addresses-whitelist: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
   bootnode:
     _inherit: "default"
     bootnode-mode: true
@@ -153,6 +138,15 @@ bee-configs:
 # checks defines checks Beekeeper can execute against the cluster
 # type filed allows defining same check with different names and options
 checks:
+  act:
+    options:
+      file-size: 1024
+      postage-depth: 20
+      postage-amount: 420000000
+      postage-label: act-label
+      seed: 0
+    timeout: 5m
+    type: act
   balances:
     options:
       dry-run: false
@@ -169,6 +163,12 @@ checks:
       node-group: bee
     timeout: 5m
     type: cashout
+  datadurability:
+    options:
+      ref:
+      concurrency:
+      max-attempts:
+    type: datadurability
   file-retrieval:
     options:
       file-name: file-retrieval
@@ -194,21 +194,35 @@ checks:
     options:
       cache-size: 10
       reserve-size: 16
-    timeout: 10m
+    timeout: 5m
     type: gc
   kademlia:
     options:
       dynamic: false
     timeout: 5m
     type: kademlia
+  longavailability:
+    options:
+      refs:
+      retry-wait: 1m
+      retry-count: 3
+    type: longavailability
   manifest:
     options:
       files-in-collection: 10
       max-pathname-length: 64
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
     timeout: 5m
     type: manifest
+  networkavailability:
+    options:
+      rnd-seed:
+      postage-amount: 50000000
+      postage-depth: 24
+      sleep-duration: 1h
+    timeout: 5m
+    type: networkavailability
   peer-count:
     timeout: 5m
     type: peer-count
@@ -216,27 +230,20 @@ checks:
     options:
     timeout: 5m
     type: pingpong
-  act:
-    options:
-      file-name: act
-      file-size: 1024
-      postage-depth: 20
-      postage-amount: 420000000
-      postage-label: act-label
-      seed: 0
+  postage:
+    type: postage
     timeout: 5m
-    type: act
-  withdraw:
     options:
-      target-address: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
-    timeout: 5m
-    type: withdraw
+      postage-amount: 1000
+      postage-depth: 17
+      postage-topup-amount: 100
+      postage-new-depth: 18
   pss:
     options:
+      count: 3
       address-prefix: 2
-      node-count: 3
       postage-amount: 1000
-      postage-depth: 16
+      postage-depth: 17
       request-timeout: 5m
     timeout: 5m
     type: pss
@@ -261,113 +268,32 @@ checks:
     type: pushsync
   pushsync-chunks:
     options:
-      chunks-per-node: 1
+      chunks-per-node: 3
       mode: chunks
       postage-amount: 1000
+      postage-depth: 17
+      retries: 5
+      retry-delay: 15s
+      upload-node-count: 3
       exclude-node-group:
         - light
-      postage-depth: 16
-      retries: 5
-      retry-delay: 1s
-      upload-node-count: 1
+        - bootnode
     timeout: 5m
     type: pushsync
   pushsync-light-chunks:
     options:
-      chunks-per-node: 1
+      chunks-per-node: 3
       mode: light-chunks
-      postage-amount: 1000
+      postage-amount: 10000
+      postage-depth: 17
+      retries: 5
+      retry-delay: 30s
+      upload-node-count: 3
       exclude-node-group:
         - light
-      postage-depth: 16
-      retries: 5
-      retry-delay: 1s
-      upload-node-count: 1
+        - bootnode
     timeout: 5m
     type: pushsync
-  retrieval:
-    options:
-      chunks-per-node: 1
-      postage-amount: 1000
-      postage-depth: 16
-      upload-node-count: 1
-    timeout: 5m
-    type: retrieval
-  settlements:
-    options:
-      dry-run: false
-      expect-settlements: true
-      file-name: settlements
-      file-size: 1048576 # 1mb = 1*1024*1024
-      postage-amount: 1000
-      postage-depth: 16
-      threshold: 10000000
-      upload-node-count: 3
-      wait-before-download: 5s
-    timeout: 5m
-    type: settlements
-  smoke:
-    options:
-      content-size: 5000000
-      postage-amount: 1000000
-      postage-depth: 20
-      nodes-sync-wait: 1m
-      duration: 12h
-      upload-timeout: 5m
-      download-timeout: 5m
-    timeout: 5m
-    type: smoke
-  load:
-    options:
-      content-size: 5000000
-      postage-amount: 1000000
-      gas-price: "10000000000"
-      postage-depth: 20
-      nodes-sync-wait: 1m
-      duration: 12h
-      downloader-count: 3
-      uploader-count: 3
-      max-storage-radius: 2
-      storage-radius-check-wait: 5m
-      upload-groups:
-        - gateway
-      download-groups:
-        - bee
-        - light
-    timeout: 12h
-    type: load
-  soc:
-    options:
-      postage-amount: 1000
-      postage-depth: 16
-      request-timeout: 5m
-    timeout: 5m
-    type: soc
-  postage:
-    type: postage
-    timeout: 5m
-    options:
-      postage-amount: 1000
-      postage-depth: 17
-      postage-topup-amount: 100
-      postage-new-depth: 18
-  stake:
-    type: stake
-    timeout: 5m
-    options:
-      amount: 1000000000000000000
-  longavailability:
-    options:
-      refs:
-      retry-wait: 1m
-      retry-count: 3
-    type: longavailability
-  datadurability:
-    options:
-      ref:
-      concurrency:
-      max-attempts:
-    type: datadurability
   redundancy:
     options:
       postage-amount:
@@ -375,6 +301,84 @@ checks:
       seed:
       data-size:
     type: redundancy
+  retrieval:
+    options:
+      chunks-per-node: 3
+      postage-amount: 1000
+      postage-depth: 17
+      upload-node-count: 3
+    timeout: 5m
+    type: retrieval
+  settlements:
+    options:
+      dry-run: false
+      expect-settlements: true
+      file-name: settlements
+      file-size: 14680064 # 14mb = 14*1024*1024
+      postage-amount: 1000
+      postage-depth: 20
+      threshold: 100000000
+      upload-node-count: 3
+      wait-before-download: 15s
+    timeout: 15m
+    type: settlements
+  smoke:
+    options:
+      content-size: 5000
+      postage-amount: 1000000
+      postage-depth: 20
+      nodes-sync-wait: 1m
+      upload-timeout: 1m
+      download-timeout: 1m
+      duration: 15m
+    timeout: 30m
+    type: smoke
+  soc:
+    options:
+      postage-amount: 1000
+      postage-depth: 16
+      request-timeout: 5m
+    timeout: 5m
+    type: soc
+  stake:
+    type: stake
+    timeout: 5m
+    options:
+      amount: 1000000000000000000
+      insufficient-amount: 102400
+      contract-addr: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
+      private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
+      geth-url: "http://geth-swap.bee-playground.testnet.internal"
+      geth-chain-id: 12345
+  withdraw:
+    options:
+      target-address: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
+    timeout: 5m
+    type: withdraw
+  content-availability:
+    type: content-availability
+    timeout: 5m
+    options:
+      content-size: 16384
+      postage-amount: 1000
+      postage-depth: 16
+  load:
+    options:
+      content-size: 500000 #5000000
+      postage-amount: 1000000
+      gas-price: 10000000000
+      postage-depth: 20
+      nodes-sync-wait: 2m
+      duration: 12h
+      downloader-count: 3
+      uploader-count: 2
+      max-storage-radius: 2
+      upload-groups:
+        - bee
+      download-groups:
+        - light
+    timeout: 12h
+    type: load
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options
@@ -393,7 +397,6 @@ simulations:
       timeout: 60s
       upload-node-name:
       upload-node-percentage: 50
-      sync-upload: false
     timeout: 5m
     type: upload
   retrieval:
