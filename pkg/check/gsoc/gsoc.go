@@ -197,7 +197,6 @@ func runInSequence(ctx context.Context, client *bee.Client, numChunks int, batch
 func runInParallel(ctx context.Context, client *bee.Client, numChunks int, batches []string, resourceId []byte, privKey *ecdsa.PrivateKey, logger logging.Logger) error {
 	var errG errgroup.Group
 	for i := 0; i < numChunks; i++ {
-		i := i
 		errG.Go(func() error {
 			payload := fmt.Sprintf("data %d", i)
 			logger.Infof("gsoc: submitting soc to node=%s, payload=%s", client.Name(), payload)
