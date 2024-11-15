@@ -67,7 +67,6 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/whitelist-source-range: "142.132.221.245/32" #VPN IP, or your IP (but ethswarm.org is needed)
     ingress-class: "nginx"
     labels:
       app.kubernetes.io/component: "node"
