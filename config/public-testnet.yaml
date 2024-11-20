@@ -119,3 +119,10 @@ checks:
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
+  pt-gsoc:
+    options:
+      postage-amount: 140000000
+      postage-depth: 20
+      postage-label: gsoc-label
+    timeout: 10m
+    type: gsoc
