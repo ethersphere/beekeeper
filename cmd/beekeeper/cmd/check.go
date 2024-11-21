@@ -22,7 +22,6 @@ func (c *command) initCheckCmd() (err error) {
 		optionNameMetricsEnabled       = "metrics-enabled"
 		optionNameSeed                 = "seed"
 		optionNameTimeout              = "timeout"
-		optionNameParallel             = "parallel"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
 		// TODO: optionNameStages         = "stages"
 	)
@@ -153,7 +152,6 @@ func (c *command) initCheckCmd() (err error) {
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing checks")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, true, "enable metrics")
-	cmd.Flags().Int(optionNameParallel, 1, "number of checks to run in parallel")
 	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
 

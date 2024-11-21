@@ -470,5 +470,5 @@ example:
 ### All at once, sequentially
 
 ```shell
-./dist/beekeeper check --cluster-name=bee-testnet --timeout=2h --checks=pingpong,pt-retrieval,pt-settlements,pt-manifest,pt-pss,pt-soc,pt-pushsync-chunks,pt-postage
+./dist/beekeeper check --cluster-name=bee-testnet --timeout=2h --checks=pingpong,pt-retrieval,pt-settlements,pt-manifest,pt-pss,pt-soc,pt-pushsync-chunks,pt-postage,pt-gsoc
 ```
