@@ -450,3 +450,25 @@ example:
 --tracing-port string           port to send tracing data
 --tracing-service-name string   service name identifier for tracing (default "beekeeper")
 ```
+
+## Public Testnet Checks
+
+### One by one
+
+```shell
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pingpong
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pt-retrieval
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pt-settlements
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pt-manifest
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pt-pss
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pt-soc
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pt-pushsync-chunks
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pt-postage
+./dist/beekeeper check --cluster-name=bee-testnet --checks=pt-gsoc
+```
+
+### All at once, sequentially
+
+```shell
+./dist/beekeeper check --cluster-name=bee-testnet --timeout=2h --checks=pingpong,pt-retrieval,pt-settlements,pt-manifest,pt-pss,pt-soc,pt-pushsync-chunks,pt-postage,pt-gsoc
+```

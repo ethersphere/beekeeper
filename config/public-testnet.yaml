@@ -1,0 +1,128 @@
+clusters:
+  bee-testnet:
+    _inherit: "default"
+    namespace: bee-testnet
+    use-static-endpoints: true
+    node-groups:
+      bee:
+        mode: node
+        bee-config: default
+        config: default
+        count: 20
+        endpoints:
+          - name: bee-1-0
+            api-url: http://bee-1-0.bee-testnet.testnet.internal
+          - name: bee-1-1
+            api-url: http://bee-1-1.bee-testnet.testnet.internal
+          - name: bee-1-2
+            api-url: http://bee-1-2.bee-testnet.testnet.internal
+          - name: bee-1-3
+            api-url: http://bee-1-3.bee-testnet.testnet.internal
+          - name: bee-1-4
+            api-url: http://bee-1-4.bee-testnet.testnet.internal
+          - name: bee-2-0
+            api-url: http://bee-2-0.bee-testnet.testnet.internal
+          - name: bee-2-1
+            api-url: http://bee-2-1.bee-testnet.testnet.internal
+          - name: bee-2-2
+            api-url: http://bee-2-2.bee-testnet.testnet.internal
+          - name: bee-2-3
+            api-url: http://bee-2-3.bee-testnet.testnet.internal
+          - name: bee-2-4
+            api-url: http://bee-2-4.bee-testnet.testnet.internal
+          - name: bee-3-0
+            api-url: http://bee-3-0.bee-testnet.testnet.internal
+          - name: bee-3-1
+            api-url: http://bee-3-1.bee-testnet.testnet.internal
+          - name: bee-3-2
+            api-url: http://bee-3-2.bee-testnet.testnet.internal
+          - name: bee-3-3
+            api-url: http://bee-3-3.bee-testnet.testnet.internal
+          - name: bee-3-4
+            api-url: http://bee-3-4.bee-testnet.testnet.internal
+          - name: bee-4-0
+            api-url: http://bee-4-0.bee-testnet.testnet.internal
+          - name: bee-4-1
+            api-url: http://bee-4-1.bee-testnet.testnet.internal
+          - name: bee-4-2
+            api-url: http://bee-4-2.bee-testnet.testnet.internal
+          - name: bee-4-3
+            api-url: http://bee-4-3.bee-testnet.testnet.internal
+          - name: bee-4-4
+            api-url: http://bee-4-4.bee-testnet.testnet.internal
+
+checks:
+  pt-retrieval:
+    options:
+      chunks-per-node: 3
+      postage-amount: 140000000
+      postage-depth: 17
+      upload-node-count: 3
+    timeout: 15m
+    type: retrieval
+  pt-settlements:
+    options:
+      dry-run: false
+      expect-settlements: true
+      file-name: settlements
+      file-size: 14680064 # 14mb = 14*1024*1024
+      postage-amount: 140000000
+      postage-depth: 20
+      threshold: 100000000
+      upload-node-count: 3
+      wait-before-download: 15s
+    timeout: 15m
+    type: settlements
+  pt-manifest:
+    options:
+      files-in-collection: 10
+      max-pathname-length: 64
+      postage-amount: 140000000
+      postage-depth: 17
+    timeout: 5m
+    type: manifest
+  pt-pss:
+    options:
+      count: 3
+      address-prefix: 2
+      postage-amount: 140000000
+      postage-depth: 17
+      request-timeout: 5m
+    timeout: 30m
+    type: pss
+  pt-soc:
+    options:
+      postage-amount: 140000000
+      postage-depth: 17
+      request-timeout: 5m
+    timeout: 5m
+    type: soc
+  pt-pushsync-chunks:
+    options:
+      chunks-per-node: 3
+      mode: chunks
+      postage-amount: 140000000
+      postage-depth: 17
+      retries: 5
+      retry-delay: 15s
+      upload-node-count: 3
+      exclude-node-group:
+        - light
+        - bootnode
+    timeout: 30m
+    type: pushsync
+  pt-postage:
+    type: postage
+    timeout: 30m
+    options:
+      postage-amount: 140000000
+      postage-depth: 17
+      postage-topup-amount: 100
+      postage-new-depth: 18
+  pt-gsoc:
+    options:
+      postage-amount: 140000000
+      postage-depth: 20
+      postage-label: gsoc-label
+    timeout: 10m
+    type: gsoc
