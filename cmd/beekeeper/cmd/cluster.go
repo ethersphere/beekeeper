@@ -51,7 +51,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 					nName = v.Nodes[i].Name
 				}
 				if err := g.DeleteNode(ctx, nName); err != nil {
-					return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
+					return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 				}
 
 				if deleteStorage && *ngConfig.PersistenceEnabled {
@@ -77,7 +77,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 						nName = v.Nodes[i].Name
 					}
 					if err := ng.DeleteNode(ctx, nName); err != nil {
-						return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
+						return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 					}
 
 					if deleteStorage && *ngConfig.PersistenceEnabled {
@@ -91,7 +91,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 				for i := 0; i < v.Count; i++ {
 					nName := fmt.Sprintf("%s-%d", ngName, i)
 					if err := ng.DeleteNode(ctx, nName); err != nil {
-						return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
+						return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 					}
 
 					if deleteStorage && *ngConfig.PersistenceEnabled {

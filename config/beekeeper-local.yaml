@@ -1,8 +1,9 @@
-#config-dir: $HOME/.beekeeper
-#config-git-repo: ""
-#config-git-branch: main
-#config-git-username: <GitHub username>
-#config-git-password: <GitHub Personal Access Token>
+# config-dir: $HOME/.beekeeper
+# config-git-repo: "https://github.com/ethersphere/beekeeper"
+# config-git-dir: ""
+# config-git-branch: main
+# config-git-username: <GitHub username>
+# config-git-password: <GitHub Personal Access Token>
 enable-k8s: true
 in-cluster: false
 kubeconfig: "~/.kube/config"

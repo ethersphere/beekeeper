@@ -26,6 +26,7 @@ import (
 const (
 	optionNameConfigDir          = "config-dir"
 	optionNameConfigGitRepo      = "config-git-repo"
+	optionNameConfigGitDir       = "config-git-dir"
 	optionNameConfigGitBranch    = "config-git-branch"
 	optionNameConfigGitUsername  = "config-git-username"
 	optionNameConfigGitPassword  = "config-git-password"
@@ -146,6 +147,7 @@ func (c *command) initGlobalFlags() {
 	globalFlags.StringVar(&c.globalConfigFile, "config", "", "config file (default is $HOME/.beekeeper.yaml)")
 	globalFlags.String(optionNameConfigDir, filepath.Join(c.homeDir, "/.beekeeper/"), "config directory (default is $HOME/.beekeeper/)")
 	globalFlags.String(optionNameConfigGitRepo, "", "Git repository with configurations (uses config directory when Git repo is not specified) (default \"\")")
+	globalFlags.String(optionNameConfigGitDir, "", "Git directory in the repository with configurations (default \".\")")
 	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
@@ -226,16 +228,23 @@ func (c *command) initConfig() (err error) {
 			return fmt.Errorf("cloning repo %s: %w ", c.globalConfig.GetString(optionNameConfigGitRepo), err)
 		}
 
-		files, err := fs.ReadDir(".")
-		if err != nil {
-			return err
+		dir := c.globalConfig.GetString(optionNameConfigGitDir)
+		if dir == "" {
+			dir = "."
 		}
+
+		files, err := fs.ReadDir(dir)
+		if err != nil {
+			return fmt.Errorf("reading git config dir: %w", err)
+		}
+
 		yamlFiles := []config.YamlFile{}
 		for _, file := range files {
 			if file.IsDir() || (!strings.HasSuffix(file.Name(), ".yaml") && !strings.HasSuffix(file.Name(), ".yml")) {
 				continue
 			}
-			f, err := fs.Open(file.Name())
+			filePath := filepath.Join(dir, file.Name())
+			f, err := fs.Open(filePath)
 			if err != nil {
 				return fmt.Errorf("opening file %s: %w ", file.Name(), err)
 			}
