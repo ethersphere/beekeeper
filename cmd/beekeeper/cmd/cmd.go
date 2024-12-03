@@ -147,7 +147,7 @@ func (c *command) initGlobalFlags() {
 	globalFlags.StringVar(&c.globalConfigFile, "config", "", "config file (default is $HOME/.beekeeper.yaml)")
 	globalFlags.String(optionNameConfigDir, filepath.Join(c.homeDir, "/.beekeeper/"), "config directory (default is $HOME/.beekeeper/)")
 	globalFlags.String(optionNameConfigGitRepo, "", "Git repository with configurations (uses config directory when Git repo is not specified) (default \"\")")
-	globalFlags.String(optionNameConfigGitDir, "", "Git directory in the repository with configurations (default \".\")")
+	globalFlags.String(optionNameConfigGitDir, ".", "Git directory in the repository with configurations (default \".\")")
 	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
@@ -229,9 +229,6 @@ func (c *command) initConfig() (err error) {
 		}
 
 		dir := c.globalConfig.GetString(optionNameConfigGitDir)
-		if dir == "" {
-			dir = "."
-		}
 
 		files, err := fs.ReadDir(dir)
 		if err != nil {
