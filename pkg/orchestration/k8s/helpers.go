@@ -243,7 +243,7 @@ func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.Per
 	if o.Enabled {
 		pvcs = append(pvcs, pvc.PersistentVolumeClaim{
 			Name: "data",
-			Spec: pvc.PersistentVolumeClaimSpec{
+			Spec: pvc.Spec{
 				AccessModes: pvc.AccessModes{
 					pvc.AccessMode("ReadWriteOnce"),
 				},

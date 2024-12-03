@@ -67,13 +67,13 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:            "create_error",
-			statefulsetName: "create_bad",
+			statefulsetName: mock.CreateBad,
 			clientset:       mock.NewClientset(),
 			errorMsg:        fmt.Errorf("creating statefulset create_bad in namespace test: mock error: cannot create statefulset"),
 		},
 		{
 			name:            "update_error",
-			statefulsetName: "update_bad",
+			statefulsetName: mock.UpdateBad,
 			clientset:       mock.NewClientset(),
 			errorMsg:        fmt.Errorf("updating statefulset update_bad in namespace test: mock error: cannot update statefulset"),
 		},
@@ -116,7 +116,6 @@ func TestSet(t *testing.T) {
 				if !reflect.DeepEqual(response, expected) {
 					t.Errorf("response expected: %q, got: %q", response, expected)
 				}
-
 			} else {
 				if err == nil {
 					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
@@ -161,7 +160,7 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:            "delete_error",
-			statefulsetName: "delete_bad",
+			statefulsetName: mock.DeleteBad,
 			clientset:       mock.NewClientset(),
 			errorMsg:        fmt.Errorf("deleting statefulset delete_bad in namespace test: mock error: cannot delete statefulset"),
 		},
@@ -233,7 +232,6 @@ func TestReadyReplicas(t *testing.T) {
 				if ready != test.expected {
 					t.Errorf("response expected: %v, got: %v", test.expected, ready)
 				}
-
 			} else {
 				if err == nil {
 					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())

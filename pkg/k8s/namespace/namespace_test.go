@@ -199,7 +199,7 @@ func TestDelete(t *testing.T) {
 			errorMsg: fmt.Errorf("namespace test is not managed by beekeeper, try kubectl"),
 		},
 		{
-			name:      "delete_bad",
+			name:      mock.DeleteBad,
 			nsName:    "test",
 			clientset: mock.NewClientset(),
 			errorMsg:  fmt.Errorf("deleting namespace test: mock error: namespace \"test\" can not be deleted"),

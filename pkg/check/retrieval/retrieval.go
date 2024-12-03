@@ -79,7 +79,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	for i := 0; i < o.UploadNodeCount; i++ {
 		uploadNode := clients[nodes[i]]
-
 		downloadNodeIndex := (i + 1) % len(nodes) // download from the next node
 		downloadNode := clients[nodes[downloadNodeIndex]]
 

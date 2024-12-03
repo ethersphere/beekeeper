@@ -95,7 +95,7 @@ func (c *Client) Run(ctx context.Context) error {
 	}()
 
 	if err := c.K8sClient.Pods.WatchNewRunning(ctx, c.Namespace, c.LabelSelector, newPodIps); err != nil {
-		return fmt.Errorf("events watch: %v", err)
+		return fmt.Errorf("events watch: %w", err)
 	}
 
 	return nil

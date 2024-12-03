@@ -37,7 +37,7 @@ func TestToK8S_Containers(t *testing.T) {
 }
 
 func TestToK8S(t *testing.T) {
-	var trueBoolPointer bool = true
+	optional := true
 
 	testTable := []struct {
 		name      string
@@ -127,14 +127,14 @@ func TestToK8S(t *testing.T) {
 									Name: "configMapName",
 								},
 								Key:      "key",
-								Optional: &trueBoolPointer,
+								Optional: &optional,
 							},
 							SecretKeyRef: &v1.SecretKeySelector{
 								LocalObjectReference: v1.LocalObjectReference{
 									Name: "secretName",
 								},
 								Key:      "key",
-								Optional: &trueBoolPointer,
+								Optional: &optional,
 							},
 						},
 					},
@@ -168,13 +168,13 @@ func TestToK8S(t *testing.T) {
 							LocalObjectReference: v1.LocalObjectReference{
 								Name: "configMapName",
 							},
-							Optional: &trueBoolPointer,
+							Optional: &optional,
 						},
 						SecretRef: &v1.SecretEnvSource{
 							LocalObjectReference: v1.LocalObjectReference{
 								Name: "secretName",
 							},
-							Optional: &trueBoolPointer,
+							Optional: &optional,
 						},
 					},
 				}
@@ -719,7 +719,7 @@ func TestToK8S(t *testing.T) {
 						Drop: []v1.Capability{"drop"},
 					},
 					Privileged: func() *bool {
-						var pointerBool bool = true
+						pointerBool := true
 						return &pointerBool
 					}(),
 					SELinuxOptions: &v1.SELinuxOptions{
@@ -751,15 +751,15 @@ func TestToK8S(t *testing.T) {
 						return &pointerInt64
 					}(),
 					RunAsNonRoot: func() *bool {
-						var pointerBool bool = true
+						pointerBool := true
 						return &pointerBool
 					}(),
 					ReadOnlyRootFilesystem: func() *bool {
-						var pointerBool bool = true
+						pointerBool := true
 						return &pointerBool
 					}(),
 					AllowPrivilegeEscalation: func() *bool {
-						var pointerBool bool = true
+						pointerBool := true
 						return &pointerBool
 					}(),
 					ProcMount: func() *v1.ProcMountType {

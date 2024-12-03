@@ -100,7 +100,6 @@ iteration:
 		// upload
 		var chunks []swarm.Chunk
 		for _, n := range neighborhoods(int(storageRadius)) {
-
 			batch, err := uploadClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, "net-avail-check")
 			if err != nil {
 				c.logger.Errorf("create batch failed failed")
@@ -129,7 +128,6 @@ iteration:
 		c.logger.Infof("uploaded to %d neighborhoods, starting downloading", len(chunks))
 
 		for _, ch := range chunks {
-
 			t := time.Now()
 
 			c.metrics.DownloadAttempts.Inc()

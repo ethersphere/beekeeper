@@ -7,7 +7,6 @@ import (
 )
 
 func TestGetIPFromUnderlays(t *testing.T) {
-
 	ips := []string{
 		"/ip4/127.0.0.1/udp/9090/quic",
 		"/ip6/::1/tcp/3217",
@@ -21,7 +20,6 @@ func TestGetIPFromUnderlays(t *testing.T) {
 }
 
 func TestTobuckets(t *testing.T) {
-
 	for _, tc := range []struct {
 		name     string
 		base     []string
@@ -81,7 +79,6 @@ func TestTobuckets(t *testing.T) {
 }
 
 func isArrSame(a, b []string) bool {
-
 	if len(a) != len(b) {
 		return false
 	}

@@ -30,7 +30,7 @@ func (*ConfigMap) Apply(ctx context.Context, configMap *cofnigcorev1.ConfigMapAp
 
 // Create implements v1.ConfigMapInterface
 func (c *ConfigMap) Create(ctx context.Context, configMap *v1.ConfigMap, opts metav1.CreateOptions) (*v1.ConfigMap, error) {
-	if configMap.ObjectMeta.Name == "create_bad" {
+	if configMap.ObjectMeta.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create config map")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -39,7 +39,7 @@ func (c *ConfigMap) Create(ctx context.Context, configMap *v1.ConfigMap, opts me
 
 // Delete implements v1.ConfigMapInterface
 func (c *ConfigMap) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == "delete_bad" {
+	if name == DeleteBad {
 		return fmt.Errorf("mock error: cannot delete config map")
 	} else {
 		return errors.NewNotFound(schema.GroupResource{}, name)
@@ -68,7 +68,7 @@ func (*ConfigMap) Patch(ctx context.Context, name string, pt types.PatchType, da
 
 // Update implements v1.ConfigMapInterface
 func (c *ConfigMap) Update(ctx context.Context, configMap *v1.ConfigMap, opts metav1.UpdateOptions) (*v1.ConfigMap, error) {
-	if configMap.ObjectMeta.Name == "update_bad" {
+	if configMap.ObjectMeta.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update config map")
 	} else {
 		return nil, errors.NewNotFound(schema.GroupResource{}, configMap.ObjectMeta.Name)

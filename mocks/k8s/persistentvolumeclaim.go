@@ -35,7 +35,7 @@ func (*Pvc) ApplyStatus(ctx context.Context, persistentVolumeClaim *configcorev1
 
 // Create implements v1.PersistentVolumeClaimInterface
 func (*Pvc) Create(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.CreateOptions) (*v1.PersistentVolumeClaim, error) {
-	if persistentVolumeClaim.ObjectMeta.Name == "create_bad" {
+	if persistentVolumeClaim.ObjectMeta.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create pvc")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -44,7 +44,7 @@ func (*Pvc) Create(ctx context.Context, persistentVolumeClaim *v1.PersistentVolu
 
 // Delete implements v1.PersistentVolumeClaimInterface
 func (*Pvc) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == "delete_bad" {
+	if name == DeleteBad {
 		return fmt.Errorf("mock error: cannot delete pvc")
 	} else {
 		return errors.NewNotFound(schema.GroupResource{}, name)
@@ -73,7 +73,7 @@ func (*Pvc) Patch(ctx context.Context, name string, pt types.PatchType, data []b
 
 // Update implements v1.PersistentVolumeClaimInterface
 func (*Pvc) Update(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.UpdateOptions) (*v1.PersistentVolumeClaim, error) {
-	if persistentVolumeClaim.ObjectMeta.Name == "update_bad" {
+	if persistentVolumeClaim.ObjectMeta.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update pvc")
 	} else {
 		return nil, errors.NewNotFound(schema.GroupResource{}, persistentVolumeClaim.ObjectMeta.Name)

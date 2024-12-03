@@ -114,8 +114,6 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	uGroup := new(errgroup.Group)
 	uSemaphore := make(chan struct{}, concurrency)
 	for i, n := range nodes {
-		i := i
-		n := n
 		c := clients[n]
 
 		uSemaphore <- struct{}{}

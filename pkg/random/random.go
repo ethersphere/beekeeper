@@ -34,7 +34,7 @@ func Int64() int64 {
 // CryptoSource is used to create random source
 type CryptoSource struct{}
 
-func (s CryptoSource) Seed(seed int64) {}
+func (s CryptoSource) Seed(_ int64) {}
 
 func (s CryptoSource) Int63() int64 {
 	return int64(s.Uint64() & ^uint64(1<<63))

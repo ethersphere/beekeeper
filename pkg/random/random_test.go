@@ -45,7 +45,6 @@ func TestPseudoGenerator(t *testing.T) {
 				if num == g.Int63() {
 					t.Errorf("calling method shouldn't return again the same number")
 				}
-
 			} else {
 				t.Error("pseudo generator returned nil")
 			}
@@ -78,7 +77,6 @@ func TestPseudoGenerators(t *testing.T) {
 			if test.n <= 0 && g != nil {
 				t.Error("result slice should be nil")
 			} else if test.n > 0 {
-
 				if g == nil {
 					t.Fatal("result slice shouldn't be nil")
 				}
@@ -142,7 +140,7 @@ func TestCryptoSource_Int63(t *testing.T) {
 	}
 }
 
-func TestCryptoSource_Seed(t *testing.T) {
+func TestCryptoSource_Seed(_ *testing.T) {
 	cs := random.CryptoSource{}
 	cs.Seed(10)
 }
@@ -155,7 +153,6 @@ func FuzzPseudoGenerators(f *testing.F) {
 		}
 
 		if n > 0 {
-
 			if g == nil {
 				t.Fatal("result slice shouldn't be nil")
 			}

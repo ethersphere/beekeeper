@@ -31,7 +31,7 @@ func (*ServiceAccount) Apply(ctx context.Context, serviceAccount *configcorev1.S
 
 // Create implements v1.ServiceAccountInterface
 func (*ServiceAccount) Create(ctx context.Context, serviceAccount *v1.ServiceAccount, opts metav1.CreateOptions) (*v1.ServiceAccount, error) {
-	if serviceAccount.ObjectMeta.Name == "create_bad" {
+	if serviceAccount.ObjectMeta.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create service account")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -45,7 +45,7 @@ func (*ServiceAccount) CreateToken(ctx context.Context, serviceAccountName strin
 
 // Delete implements v1.ServiceAccountInterface
 func (*ServiceAccount) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == "delete_bad" {
+	if name == DeleteBad {
 		return fmt.Errorf("mock error: cannot delete service account")
 	} else {
 		return errors.NewNotFound(schema.GroupResource{}, name)
@@ -74,7 +74,7 @@ func (*ServiceAccount) Patch(ctx context.Context, name string, pt types.PatchTyp
 
 // Update implements v1.ServiceAccountInterface
 func (*ServiceAccount) Update(ctx context.Context, serviceAccount *v1.ServiceAccount, opts metav1.UpdateOptions) (*v1.ServiceAccount, error) {
-	if serviceAccount.ObjectMeta.Name == "update_bad" {
+	if serviceAccount.ObjectMeta.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update service account")
 	} else {
 		return nil, errors.NewNotFound(schema.GroupResource{}, serviceAccount.ObjectMeta.Name)

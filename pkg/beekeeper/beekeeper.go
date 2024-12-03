@@ -94,8 +94,6 @@ func RunConcurrently(ctx context.Context, cluster orchestration.Cluster, action 
 
 		waitDeleted := false
 		for j, u := range s {
-			j, u := j, u
-
 			if u.Actions.DeleteCount > 0 {
 				waitDeleted = true
 			}
@@ -265,7 +263,6 @@ func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup
 
 	// add nodes
 	for _, n := range toAdd {
-		n := n
 		updateSemaphore <- struct{}{}
 		updateGroup.Go(func() error {
 			defer func() {
@@ -290,7 +287,6 @@ func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup
 
 	// delete nodes
 	for _, n := range toDelete {
-		n := n
 		updateSemaphore <- struct{}{}
 		updateGroup.Go(func() error {
 			defer func() {
@@ -315,7 +311,6 @@ func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup
 
 	// start nodes
 	for _, n := range toStart {
-		n := n
 		updateSemaphore <- struct{}{}
 		updateGroup.Go(func() error {
 			defer func() {
@@ -340,7 +335,6 @@ func updateNodeGroupConcurrently(ctx context.Context, ng orchestration.NodeGroup
 
 	// stop nodes
 	for _, n := range toStop {
-		n := n
 		updateSemaphore <- struct{}{}
 		updateGroup.Go(func() error {
 			defer func() {

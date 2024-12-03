@@ -105,7 +105,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	// api service
 	portAPI, err := parsePort(o.Config.APIAddr)
 	if err != nil {
-		return fmt.Errorf("parsing API port from config: %s", err)
+		return fmt.Errorf("parsing API port from config: %w", err)
 	}
 
 	apiSvc := fmt.Sprintf("%s-api", o.Name)
@@ -185,14 +185,14 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	// p2p service
 	portP2P, err := parsePort(o.Config.P2PAddr)
 	if err != nil {
-		return fmt.Errorf("parsing P2P port from config: %s", err)
+		return fmt.Errorf("parsing P2P port from config: %w", err)
 	}
 
 	var nodePortP2P int32
 	if len(o.Config.NATAddr) > 0 {
 		nodePortP2P, err = parsePort(o.Config.NATAddr)
 		if err != nil {
-			return fmt.Errorf("parsing NAT address from config: %s", err)
+			return fmt.Errorf("parsing NAT address from config: %w", err)
 		}
 	}
 
