@@ -122,7 +122,6 @@ func (c *Chunk) ClosestNodeFromMap(nodes map[string]swarm.Address, skipNodes ...
 
 next:
 	for i, a := range addresses {
-
 		for _, skip := range skipNodes {
 			if a.Equal(skip) {
 				continue next

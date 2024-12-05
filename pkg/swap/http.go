@@ -140,7 +140,6 @@ func responseErrorHandler(r *http.Response) (err error) {
 // decodeBadRequest parses the body of HTTP response that contains a list of
 // errors as the result of bad request data.
 func decodeBadRequest(r *http.Response) (err error) {
-
 	type badRequestResponse struct {
 		Errors []string `json:"errors"`
 	}

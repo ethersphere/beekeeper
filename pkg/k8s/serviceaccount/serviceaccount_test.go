@@ -55,13 +55,13 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:       "create_error",
-			secretName: "create_bad",
+			secretName: mock.CreateBad,
 			clientset:  mock.NewClientset(),
 			errorMsg:   fmt.Errorf("creating service account create_bad in namespace test: mock error: cannot create service account"),
 		},
 		{
 			name:       "update_error",
-			secretName: "update_bad",
+			secretName: mock.UpdateBad,
 			clientset:  mock.NewClientset(),
 			errorMsg:   fmt.Errorf("updating service account update_bad in namespace test: mock error: cannot update service account"),
 		},
@@ -104,7 +104,6 @@ func TestSet(t *testing.T) {
 				if !reflect.DeepEqual(response, expected) {
 					t.Errorf("response expected: %q, got: %q", response, expected)
 				}
-
 			} else {
 				if err == nil {
 					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
@@ -149,7 +148,7 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:       "delete_error",
-			secretName: "delete_bad",
+			secretName: mock.DeleteBad,
 			clientset:  mock.NewClientset(),
 			errorMsg:   fmt.Errorf("deleting service account delete_bad in namespace test: mock error: cannot delete service account"),
 		},

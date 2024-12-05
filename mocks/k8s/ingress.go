@@ -35,7 +35,7 @@ func (*Ingress) ApplyStatus(ctx context.Context, ingress *networkingv1.IngressAp
 
 // Create implements v1.IngressInterface
 func (*Ingress) Create(ctx context.Context, ingress *netv1.Ingress, opts metav1.CreateOptions) (*netv1.Ingress, error) {
-	if ingress.ObjectMeta.Name == "create_bad" {
+	if ingress.ObjectMeta.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create ingress")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -44,7 +44,7 @@ func (*Ingress) Create(ctx context.Context, ingress *netv1.Ingress, opts metav1.
 
 // Delete implements v1.IngressInterface
 func (*Ingress) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == "delete_bad" {
+	if name == DeleteBad {
 		return fmt.Errorf("mock error: cannot delete ingress")
 	} else {
 		return errors.NewNotFound(schema.GroupResource{}, name)
@@ -73,7 +73,7 @@ func (*Ingress) Patch(ctx context.Context, name string, pt types.PatchType, data
 
 // Update implements v1.IngressInterface
 func (*Ingress) Update(ctx context.Context, ingress *netv1.Ingress, opts metav1.UpdateOptions) (*netv1.Ingress, error) {
-	if ingress.ObjectMeta.Name == "update_bad" {
+	if ingress.ObjectMeta.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update ingress")
 	} else {
 		return nil, errors.NewNotFound(schema.GroupResource{}, ingress.ObjectMeta.Name)

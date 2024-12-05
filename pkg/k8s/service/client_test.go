@@ -65,13 +65,13 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:        "create_error",
-			serviceName: "create_bad",
+			serviceName: mock.CreateBad,
 			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("creating service create_bad in namespace test: mock error: cannot create service"),
 		},
 		{
 			name:        "update_error",
-			serviceName: "update_bad",
+			serviceName: mock.UpdateBad,
 			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("updating service update_bad in namespace test: mock error: cannot update service"),
 		},
@@ -108,7 +108,6 @@ func TestSet(t *testing.T) {
 				if !reflect.DeepEqual(response, expected) {
 					t.Errorf("response expected: %q, got: %q", response, expected)
 				}
-
 			} else {
 				if err == nil {
 					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
@@ -153,7 +152,7 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:        "delete_error",
-			serviceName: "delete_bad",
+			serviceName: mock.DeleteBad,
 			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("deleting service delete_bad in namespace test: mock error: cannot delete service"),
 		},

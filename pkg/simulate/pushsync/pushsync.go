@@ -113,7 +113,6 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	malfunctionEth := 0
 
 	for _, bucket := range buckets {
-
 		// STEP: freeze nodes in bucket
 		for _, n := range bucket {
 			node := clients[n]

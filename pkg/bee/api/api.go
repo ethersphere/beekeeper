@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -283,7 +284,7 @@ func responseErrorHandler(r *http.Response) (err error) {
 
 	var e messageResponse
 	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		if err = json.NewDecoder(r.Body).Decode(&e); err != nil && err != io.EOF {
+		if err = json.NewDecoder(r.Body).Decode(&e); err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 	}

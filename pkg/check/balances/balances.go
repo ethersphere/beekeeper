@@ -90,7 +90,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	// initial validation
 	if err := validateBalances(balances, c.logger); err != nil {
-		return fmt.Errorf("invalid initial balances: %v", err)
+		return fmt.Errorf("invalid initial balances: %w", err)
 	}
 
 	c.logger.Info("Balances are valid")

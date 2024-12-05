@@ -92,7 +92,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	_, err = client.DepositStake(ctx, o.InsufficientAmount)
 
 	if !api.IsHTTPStatusErrorCode(err, 400) {
-		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %v", 400, err)
+		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %w", 400, err)
 	}
 
 	if err := expectStakeAmountIs(ctx, client, zero); err != nil {

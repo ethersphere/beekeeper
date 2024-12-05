@@ -331,7 +331,7 @@ func (c *command) setK8S() (err error) {
 			k8s.WithKubeconfigPath(kubeconfigPath),
 		}
 
-		if c.k8sClient, err = k8s.NewClient(options...); err != nil && err != k8s.ErrKubeconfigNotSet {
+		if c.k8sClient, err = k8s.NewClient(options...); err != nil && !errors.Is(err, k8s.ErrKubeconfigNotSet) {
 			return fmt.Errorf("creating Kubernetes client: %w", err)
 		}
 	}

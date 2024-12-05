@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"sort"
@@ -703,7 +704,7 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 // TODO: filter by labels
 func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err error) {
 	allRunning, err := g.nodeOrchestrator.RunningNodes(ctx, g.clusterOpts.Namespace)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil && !errors.Is(err, orchestration.ErrNotSet) {
 		return nil, fmt.Errorf("running nodes in namespace %s: %w", g.clusterOpts.Namespace, err)
 	}
 
@@ -883,7 +884,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 // TODO: filter by labels
 func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
 	allStopped, err := g.nodeOrchestrator.StoppedNodes(ctx, g.clusterOpts.Namespace)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil && !errors.Is(err, orchestration.ErrNotSet) {
 		return nil, fmt.Errorf("stopped nodes in namespace %s: %w", g.clusterOpts.Namespace, err)
 	}
 

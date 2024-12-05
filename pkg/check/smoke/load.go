@@ -104,8 +104,6 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		upload.Add(1)
 
 		for _, txName := range txNames {
-			txName := txName
-
 			go func() {
 				defer once.Do(func() {
 					upload.Done()
@@ -163,7 +161,6 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		var wg sync.WaitGroup
 
 		for _, rxName := range rxNames {
-			rxName := rxName
 			wg.Add(1)
 			go func() {
 				defer wg.Done()

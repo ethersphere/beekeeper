@@ -19,9 +19,8 @@ func (p *Probe) toK8S() *v1.Probe {
 		return p.HTTPGet.toK8S()
 	} else if p.TCPSocket != nil {
 		return p.TCPSocket.toK8S()
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // ExecProbe represents Kubernetes ExecHandler Probe

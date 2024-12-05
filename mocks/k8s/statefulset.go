@@ -46,7 +46,7 @@ func (*StatefulSet) ApplyStatus(ctx context.Context, statefulSet *configappsv1.S
 
 // Create implements v1.StatefulSetInterface
 func (*StatefulSet) Create(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.CreateOptions) (*v1.StatefulSet, error) {
-	if statefulSet.ObjectMeta.Name == "create_bad" {
+	if statefulSet.ObjectMeta.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create statefulset")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -55,7 +55,7 @@ func (*StatefulSet) Create(ctx context.Context, statefulSet *v1.StatefulSet, opt
 
 // Delete implements v1.StatefulSetInterface
 func (*StatefulSet) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == "delete_bad" {
+	if name == DeleteBad {
 		return fmt.Errorf("mock error: cannot delete statefulset")
 	} else {
 		return errors.NewNotFound(schema.GroupResource{}, name)
@@ -96,7 +96,7 @@ func (*StatefulSet) Patch(ctx context.Context, name string, pt types.PatchType, 
 
 // Update implements v1.StatefulSetInterface
 func (*StatefulSet) Update(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.UpdateOptions) (*v1.StatefulSet, error) {
-	if statefulSet.ObjectMeta.Name == "update_bad" {
+	if statefulSet.ObjectMeta.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update statefulset")
 	} else {
 		return nil, errors.NewNotFound(schema.GroupResource{}, statefulSet.ObjectMeta.Name)

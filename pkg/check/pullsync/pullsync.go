@@ -87,7 +87,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	sortedNodes := cluster.NodeNames()
 	for i := 0; i < o.UploadNodeCount; i++ {
-
 		nodeName := sortedNodes[i]
 		client := clients[nodeName]
 

@@ -26,7 +26,7 @@ func NewClient(clientset kubernetes.Interface) *Client {
 type Options struct {
 	Annotations map[string]string
 	Labels      map[string]string
-	Spec        PersistentVolumeClaimSpec
+	Spec        Spec
 }
 
 // Set updates PersistentVolumeClaim or it creates it if it does not exist

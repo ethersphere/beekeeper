@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
@@ -41,9 +42,9 @@ func (ps *PinningService) GetPinnedRootHash(ctx context.Context, ref swarm.Addre
 	}{}
 	err := ps.client.requestJSON(ctx, http.MethodGet, pinsPath(ref.String()), nil, &res)
 	if err != nil {
-		return swarm.ZeroAddress, nil
+		return swarm.ZeroAddress, fmt.Errorf("get pinned root hash: %w", err)
 	}
-	return res.Reference, err
+	return res.Reference, nil
 }
 
 // GetPins returns all references of pinned root hashes.
@@ -53,7 +54,7 @@ func (ps *PinningService) GetPins(ctx context.Context) ([]swarm.Address, error) 
 	}{}
 	err := ps.client.requestJSON(ctx, http.MethodGet, pinsBasePath, nil, &res)
 	if err != nil {
-		return nil, nil
+		return nil, fmt.Errorf("get pins: %w", err)
 	}
-	return res.References, err
+	return res.References, nil
 }

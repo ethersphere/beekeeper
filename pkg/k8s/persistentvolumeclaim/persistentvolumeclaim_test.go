@@ -24,7 +24,7 @@ func TestToK8s(t *testing.T) {
 					Namespace:   "test",
 					Annotations: map[string]string{"annotation_1": "annotation_value_1"},
 					Labels:      map[string]string{"label_1": "label_value_1"},
-					Spec: pvc.PersistentVolumeClaimSpec{
+					Spec: pvc.Spec{
 						AccessModes:    []pvc.AccessMode{"1", "2"},
 						RequestStorage: "1Gi",
 						Selector: pvc.Selector{
@@ -94,7 +94,7 @@ func TestToK8s(t *testing.T) {
 			name: "default_and_volume_mode_block",
 			pvcs: pvc.PersistentVolumeClaims{
 				{
-					Spec: pvc.PersistentVolumeClaimSpec{
+					Spec: pvc.Spec{
 						VolumeMode: "Block",
 					},
 				},

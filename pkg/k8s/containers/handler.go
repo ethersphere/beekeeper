@@ -26,9 +26,8 @@ func (h *LifecycleHandler) toK8S() v1.LifecycleHandler {
 		return v1.LifecycleHandler{
 			TCPSocket: h.TCPSocket.toK8S(),
 		}
-	} else {
-		return v1.LifecycleHandler{}
 	}
+	return v1.LifecycleHandler{}
 }
 
 // ExecHandler represents Kubernetes ExecAction Handler
