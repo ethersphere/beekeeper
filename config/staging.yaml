@@ -4,7 +4,7 @@ clusters:
   staging:
     _inherit: ""
     name: bee
-    namespace: beekeeper
+    namespace: staging
     disable-namespace: false
     api-domain: testnet.internal
     api-insecure-tls: true
@@ -38,3 +38,22 @@ bee-configs:
     swap-factory-address: ""
     verbosity: 4
     welcome-message: Welcome to the bee staging environment created by Beekeeper!
+
+checks:
+  st-testnet-load:
+    options:
+      content-size: 50000000
+      postage-amount: 1000000000
+      postage-depth: 24
+      duration: 12h
+      uploader-count: 2
+      downloader-count: 0
+      max-use-batch: 1h
+      upload-groups:
+        - bee-1
+        - bee-2
+      download-groups:
+        - bee-3
+        - bee-4
+    timeout: 12h
+    type: load

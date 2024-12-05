@@ -126,3 +126,20 @@ checks:
       postage-label: gsoc-label
     timeout: 10m
     type: gsoc
+  pt-testnet-load:
+    options:
+      content-size: 50000000
+      postage-amount: 1000000000 # 1024/15*60*60*24*7
+      postage-depth: 24
+      duration: 12h
+      uploader-count: 2
+      downloader-count: 0
+      max-use-batch: 1h
+      upload-groups:
+        - bee-1
+        - bee-2
+      download-groups:
+        - bee-3
+        - bee-4
+    timeout: 12h
+    type: load
