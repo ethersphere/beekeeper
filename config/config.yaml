@@ -55,7 +55,7 @@ clusters:
 node-groups:
   default:
     _inherit: ""
-    image: ethersphere/bee:2.2.0
+    image: ethersphere/bee:2.3.0
     image-pull-policy: Always
     ingress-annotations:
       nginx.ingress.kubernetes.io/affinity: "cookie"
@@ -104,7 +104,7 @@ bee-configs:
     full-node: true
     nat-addr: ""
     mainnet: false
-    network-id: 0
+    network-id: 12345
     p2p-addr: ":1634"
     p2p-ws-enable: false
     password: "beekeeper"
@@ -120,7 +120,7 @@ bee-configs:
     resolver-options: ""
     chequebook-enable: true
     swap-enable: true
-    swap-endpoint: "ws://geth-swap:8546"
+    swap-endpoint: "ws://geth-swap.bee-playground.svc.swarm1.local:8546"
     swap-factory-address: "0xdD661f2500bA5831e3d1FEbAc379Ea1bF80773Ac"
     swap-initial-deposit: 500000000000000000
     tracing-enabled: true
@@ -130,7 +130,7 @@ bee-configs:
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
     warmup-time: 0s
     allow-private-cidrs: true
-    withdrawal-addresses-whitelist: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
+    withdrawal-addresses-whitelist: "0xec44cb15b1b033e74d55ac5d0e24d861bde54532"
   bootnode:
     _inherit: "default"
     bootnode-mode: true
