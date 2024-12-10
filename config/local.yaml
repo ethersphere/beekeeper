@@ -5,7 +5,8 @@ clusters:
     name: bee
     namespace: local
     disable-namespace: true
-    api-domain: local.svc.cluster.local:1633
+    api-domain: localhost
+    api-domain-internal: svc.cluster.local:1633 # Internal API domain with port when in-cluster is set to true
     api-scheme: http
     admin-password: test
     funding:
