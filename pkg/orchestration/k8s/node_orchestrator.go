@@ -108,8 +108,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 		return fmt.Errorf("parsing API port from config: %w", err)
 	}
 
-	apiSvc := fmt.Sprintf("%s-api", o.Name)
-	if _, err := n.k8s.Service.Set(ctx, apiSvc, o.Namespace, service.Options{
+	if _, err := n.k8s.Service.Set(ctx, o.Name, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
@@ -128,12 +127,11 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
 	}
-	n.log.Infof("service %s is set in namespace %s", apiSvc, o.Namespace)
+	n.log.Infof("service %s is set in namespace %s", o.Name, o.Namespace)
 
 	if o.IngressClass == "traefik" {
 		// api service's ingressroute
-		apiIn := fmt.Sprintf("%s-api", o.Name)
-		if _, err := n.k8s.IngressRoute.Set(ctx, apiIn, o.Namespace, ingressroute.Options{
+		if _, err := n.k8s.IngressRoute.Set(ctx, o.Name, o.Namespace, ingressroute.Options{
 			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 			Labels:      o.Labels,
 			Spec: ingressroute.IngressRouteSpec{
@@ -144,7 +142,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 						Services: []ingressroute.Service{
 							{
 								Kind:      "Service",
-								Name:      apiIn,
+								Name:      o.Name,
 								Namespace: "local",
 								Port:      "api",
 							},
@@ -155,11 +153,10 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 		}); err != nil {
 			return fmt.Errorf("set ingressroute in namespace %s: %w", o.Namespace, err)
 		}
-		n.log.Infof("ingressroute %s is set in namespace %s", apiIn, o.Namespace)
+		n.log.Infof("ingressroute %s is set in namespace %s", o.Name, o.Namespace)
 	} else {
 		// api service's ingress
-		apiIn := fmt.Sprintf("%s-api", o.Name)
-		if _, err := n.k8s.Ingress.Set(ctx, apiIn, o.Namespace, ingress.Options{
+		if _, err := n.k8s.Ingress.Set(ctx, o.Name, o.Namespace, ingress.Options{
 			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
 			Labels:      o.Labels,
 			Spec: ingress.Spec{
@@ -168,7 +165,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 					Host: o.IngressHost,
 					Paths: ingress.Paths{{
 						Backend: ingress.Backend{
-							ServiceName:     apiSvc,
+							ServiceName:     o.Name,
 							ServicePortName: "api",
 						},
 						Path:     "/",
@@ -179,7 +176,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 		}); err != nil {
 			return fmt.Errorf("set ingress in namespace %s: %w", o.Namespace, err)
 		}
-		n.log.Infof("ingress %s is set in namespace %s", apiIn, o.Namespace)
+		n.log.Infof("ingress %s is set in namespace %s", o.Name, o.Namespace)
 	}
 
 	// p2p service
@@ -337,24 +334,22 @@ func (n *nodeOrchestrator) Delete(ctx context.Context, name string, namespace st
 	n.log.Infof("service %s is deleted in namespace %s", p2pSvc, namespace)
 
 	// api service's ingress
-	apiIn := fmt.Sprintf("%s-api", name)
-	if err := n.k8s.Ingress.Delete(ctx, apiIn, namespace); err != nil {
+	if err := n.k8s.Ingress.Delete(ctx, name, namespace); err != nil {
 		return fmt.Errorf("deleting ingress in namespace %s: %w", namespace, err)
 	}
-	n.log.Infof("ingress %s is deleted in namespace %s", apiIn, namespace)
+	n.log.Infof("ingress %s is deleted in namespace %s", name, namespace)
 
 	// api service's ingress route
-	if err := n.k8s.IngressRoute.Delete(ctx, apiIn, namespace); err != nil {
+	if err := n.k8s.IngressRoute.Delete(ctx, name, namespace); err != nil {
 		return fmt.Errorf("deleting ingress route in namespace %s: %w", namespace, err)
 	}
-	n.log.Infof("ingress route %s is deleted in namespace %s", apiIn, namespace)
+	n.log.Infof("ingress route %s is deleted in namespace %s", name, namespace)
 
 	// api service
-	apiSvc := fmt.Sprintf("%s-api", name)
-	if err := n.k8s.Service.Delete(ctx, apiSvc, namespace); err != nil {
+	if err := n.k8s.Service.Delete(ctx, name, namespace); err != nil {
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
-	n.log.Infof("service %s is deleted in namespace %s", apiSvc, namespace)
+	n.log.Infof("service %s is deleted in namespace %s", name, namespace)
 
 	// service account
 	svcAccount := name

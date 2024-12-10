@@ -3,7 +3,6 @@ package node
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -47,7 +46,7 @@ func (c *Client) List(ctx context.Context, namespace string) (nodes []funder.Nod
 
 	for _, node := range ingressHosts {
 		nodes = append(nodes, funder.NodeInfo{
-			Name:    strings.TrimSuffix(node.Name, "-api"),
+			Name:    node.Name,
 			Address: fmt.Sprintf("http://%s", node.Host),
 		})
 	}
