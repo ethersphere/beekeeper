@@ -6,7 +6,7 @@ clusters:
     namespace: local
     disable-namespace: true
     api-domain: localhost
-    api-domain-internal: svc.cluster.local:1633 # Internal API domain with port when in-cluster is set to true
+    api-domain-internal: local.svc.cluster.local:1633 # Internal API domain with port when in-cluster is set to true
     api-scheme: http
     admin-password: test
     funding:
