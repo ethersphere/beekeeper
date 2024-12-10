@@ -3,7 +3,6 @@
 clusters:
   testnet-giant:
     _inherit: ""
-    name: bee
     namespace: testnet-giant
     disable-namespace: false
     api-domain: staging.internal

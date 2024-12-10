@@ -136,8 +136,10 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	nodeResultChan := make(chan nodeResult)
 	defer close(nodeResultChan)
 
+	inCluster := c.globalConfig.GetBool(optionNameInCluster)
+
 	// setup bootnode node group
-	fundAddresses, bootnodes, err := setupNodes(ctx, clusterConfig, cfg, true, cluster, startCluster, "", nodeResultChan)
+	fundAddresses, bootnodes, err := setupNodes(ctx, clusterConfig, cfg, true, cluster, startCluster, inCluster, "", nodeResultChan)
 	if err != nil {
 		return nil, fmt.Errorf("setup node group bootnode: %w", err)
 	}
@@ -151,7 +153,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	}
 
 	// setup other node groups
-	fundAddresses, _, err = setupNodes(ctx, clusterConfig, cfg, false, cluster, startCluster, bootnodes, nodeResultChan)
+	fundAddresses, _, err = setupNodes(ctx, clusterConfig, cfg, false, cluster, startCluster, inCluster, bootnodes, nodeResultChan)
 	if err != nil {
 		return nil, fmt.Errorf("setup other node groups: %w", err)
 	}
@@ -188,7 +190,16 @@ func initializeCluster(clusterConfig config.Cluster, c *command) orchestration.C
 	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 
-func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
+func setupNodes(ctx context.Context,
+	clusterConfig config.Cluster,
+	cfg *config.Config,
+	bootnode bool,
+	cluster orchestration.Cluster,
+	startCluster bool,
+	inCluster bool,
+	bootnodesIn string,
+	nodeResultCh chan nodeResult,
+) (fundAddresses []string, bootnodesOut string, err error) {
 	var nodeCount uint32
 
 	for ngName, v := range clusterConfig.GetNodeGroups() {
@@ -226,7 +237,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 			for nodeName, endpoint := range v.GetEndpoints() {
 				beeOpt := orchestration.WithURL(endpoint.APIURL)
 				nodeCount++
-				go setupOrAddNode(ctx, false, ng, nodeName, orchestration.NodeOptions{
+				go setupOrAddNode(ctx, false, inCluster, ng, nodeName, orchestration.NodeOptions{
 					Config: &bConfig,
 				}, nodeResultCh, beeOpt)
 			}
@@ -250,7 +261,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 				nodeOpts = setupNodeOptions(node, nil)
 			}
 			nodeCount++
-			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh, orchestration.WithNoOptions())
+			go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, nodeOpts, nodeResultCh, orchestration.WithNoOptions())
 		}
 
 		if len(v.Nodes) == 0 && !bootnode {
@@ -258,7 +269,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 				// set node name
 				nodeName := fmt.Sprintf("%s-%d", ngName, i)
 				nodeCount++
-				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, orchestration.WithNoOptions())
+				go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, orchestration.WithNoOptions())
 			}
 		}
 	}
@@ -278,16 +289,24 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 	return fundAddresses, bootnodesOut, nil
 }
 
-func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult, beeOpt orchestration.BeeClientOption) {
+func setupOrAddNode(ctx context.Context,
+	startCluster bool,
+	inCluster bool,
+	ng orchestration.NodeGroup,
+	nodeName string,
+	nodeOpts orchestration.NodeOptions,
+	ch chan<- nodeResult,
+	beeOpt orchestration.BeeClientOption,
+) {
 	if startCluster {
-		ethAddress, err := ng.SetupNode(ctx, nName, nodeOpts)
+		ethAddress, err := ng.SetupNode(ctx, nodeName, inCluster, nodeOpts)
 		ch <- nodeResult{
 			ethAddress: ethAddress,
 			err:        err,
 		}
 	} else {
 		ch <- nodeResult{
-			err: ng.AddNode(ctx, nName, nodeOpts, beeOpt),
+			err: ng.AddNode(ctx, nodeName, inCluster, nodeOpts, beeOpt),
 		}
 	}
 }

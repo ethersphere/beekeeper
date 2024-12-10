@@ -43,15 +43,16 @@ type Cluster interface {
 
 // ClusterOptions represents Bee cluster options
 type ClusterOptions struct {
-	Annotations      map[string]string
-	APIDomain        string
-	APIInsecureTLS   bool
-	APIScheme        string
-	K8SClient        *k8s.Client
-	SwapClient       swap.Client
-	Labels           map[string]string
-	Namespace        string
-	DisableNamespace bool
+	Annotations       map[string]string
+	APIDomain         string
+	APIDomainInternal string
+	APIInsecureTLS    bool
+	APIScheme         string
+	K8SClient         *k8s.Client
+	SwapClient        swap.Client
+	Labels            map[string]string
+	Namespace         string
+	DisableNamespace  bool
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster
@@ -106,11 +107,17 @@ func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string
 }
 
 // ApiURL generates URL for node's API
-func (c ClusterOptions) ApiURL(name string) (u *url.URL, err error) {
+func (c ClusterOptions) ApiURL(name string, inCluster bool) (u *url.URL, err error) {
+	apiDomain := c.APIDomain
+	apiScheme := c.APIScheme
+	if inCluster {
+		apiDomain = c.APIDomainInternal
+		apiScheme = "http"
+	}
 	if c.DisableNamespace {
-		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", c.APIScheme, name, c.APIDomain))
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", apiScheme, name, apiDomain))
 	} else {
-		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", c.APIScheme, name, c.Namespace, c.APIDomain))
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", apiScheme, name, c.Namespace, apiDomain))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)

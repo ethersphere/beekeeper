@@ -11,7 +11,7 @@ import (
 
 type NodeGroup interface {
 	Accounting(ctx context.Context) (infos NodeGroupAccounting, err error)
-	AddNode(ctx context.Context, name string, o NodeOptions, opts ...BeeClientOption) (err error)
+	AddNode(ctx context.Context, name string, inCluster bool, o NodeOptions, opts ...BeeClientOption) (err error)
 	Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error)
 	Balances(ctx context.Context) (balances NodeGroupBalances, err error)
 	CreateNode(ctx context.Context, name string) (err error)
@@ -30,7 +30,7 @@ type NodeGroup interface {
 	Peers(ctx context.Context) (peers NodeGroupPeers, err error)
 	RunningNodes(ctx context.Context) (running []string, err error)
 	Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
-	SetupNode(ctx context.Context, name string, o NodeOptions) (ethAddress string, err error)
+	SetupNode(ctx context.Context, name string, inCluster bool, o NodeOptions) (ethAddress string, err error)
 	Size() int
 	StartNode(ctx context.Context, name string) (err error)
 	StopNode(ctx context.Context, name string) (err error)

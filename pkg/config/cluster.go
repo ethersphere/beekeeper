@@ -11,11 +11,12 @@ type Cluster struct {
 	// parent to inherit settings from
 	*Inherit `yaml:",inline"`
 	// Cluster configuration
-	Name               *string                      `yaml:"name"`
+	Name               *string                      `yaml:"name,omitempty"`
 	Namespace          *string                      `yaml:"namespace"`
 	DisableNamespace   *bool                        `yaml:"disable-namespace"`
 	UseStaticEndpoints *bool                        `yaml:"use-static-endpoints"`
 	APIDomain          *string                      `yaml:"api-domain"`
+	APIDomainInternal  *string                      `yaml:"api-domain-internal"`
 	APIInsecureTLS     *bool                        `yaml:"api-insecure-tls"`
 	APIScheme          *string                      `yaml:"api-scheme"`
 	Funding            *Funding                     `yaml:"funding"`
@@ -85,7 +86,7 @@ func (c *Cluster) GetName() string {
 
 // GetNamespace returns cluster namespace
 func (c *Cluster) GetNamespace() string {
-	if c.Name == nil {
+	if c.Namespace == nil {
 		return "nonamespace"
 	}
 	return *c.Namespace
