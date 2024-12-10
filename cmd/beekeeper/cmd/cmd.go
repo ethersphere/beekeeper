@@ -164,7 +164,7 @@ func (c *command) initGlobalFlags() {
 }
 
 func (c *command) bindGlobalFlags() (err error) {
-	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameLogVerbosity, optionNameLokiEndpoint} {
+	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitDir, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameLogVerbosity, optionNameLokiEndpoint} {
 		if err := c.globalConfig.BindPFlag(flag, c.root.PersistentFlags().Lookup(flag)); err != nil {
 			return err
 		}
@@ -216,6 +216,7 @@ func (c *command) initConfig() (err error) {
 	}
 
 	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
+		c.log.Debugf("using configuration from Git repository %s, branch %s, directory %s", c.globalConfig.GetString(optionNameConfigGitRepo), c.globalConfig.GetString(optionNameConfigGitBranch), c.globalConfig.GetString(optionNameConfigGitDir))
 		// read configuration from git repo
 		fs := memfs.New()
 		if _, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
@@ -264,6 +265,7 @@ func (c *command) initConfig() (err error) {
 			return err
 		}
 	} else {
+		c.log.Debugf("using configuration from directory %s", c.globalConfig.GetString(optionNameConfigDir))
 		// read configuration from directory
 		files, err := os.ReadDir(c.globalConfig.GetString(optionNameConfigDir))
 		if err != nil {
