@@ -32,7 +32,7 @@ bee-configs:
   staging:
     _inherit: "default"
     swap-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
-    bootnode: /dnsaddr/testnet.ethswarm.org
+    bootnodes: /dnsaddr/testnet.ethswarm.org
     network-id: 10
     swap-initial-deposit: 0
     swap-factory-address: ""
