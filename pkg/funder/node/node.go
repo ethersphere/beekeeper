@@ -11,11 +11,12 @@ import (
 
 type Client struct {
 	k8sClient *k8s.Client
+	inCluster bool
 	label     string
 	log       logging.Logger
 }
 
-func NewClient(k8sClient *k8s.Client, label string, l logging.Logger) *Client {
+func NewClient(k8sClient *k8s.Client, inCluster bool, label string, l logging.Logger) *Client {
 	return &Client{
 		k8sClient: k8sClient,
 		label:     label,
@@ -23,7 +24,7 @@ func NewClient(k8sClient *k8s.Client, label string, l logging.Logger) *Client {
 	}
 }
 
-func (c *Client) List(ctx context.Context, namespace string) (nodes []funder.NodeInfo, err error) {
+func (c *Client) List(ctx context.Context, namespace string) ([]funder.NodeInfo, error) {
 	if c.k8sClient == nil {
 		return nil, fmt.Errorf("k8s client not initialized")
 	}
@@ -32,23 +33,48 @@ func (c *Client) List(ctx context.Context, namespace string) (nodes []funder.Nod
 		return nil, fmt.Errorf("namespace not provided")
 	}
 
-	ingressHosts, err := c.k8sClient.Ingress.GetIngressHosts(ctx, namespace, c.label)
-	if err != nil {
-		return nil, fmt.Errorf("list ingress api nodes hosts: %s", err.Error())
+	if c.inCluster {
+		return c.getServiceNodes(ctx, namespace)
 	}
 
-	ingressRouteHosts, err := c.k8sClient.IngressRoute.GetIngressHosts(ctx, namespace, c.label)
+	return c.getIngressNodes(ctx, namespace)
+}
+
+func (c *Client) getServiceNodes(ctx context.Context, namespace string) ([]funder.NodeInfo, error) {
+	svcNodes, err := c.k8sClient.Service.GetNodes(ctx, namespace, c.label)
 	if err != nil {
-		return nil, fmt.Errorf("list ingress route api nodes hosts: %s", err.Error())
+		return nil, fmt.Errorf("list api services: %w", err)
 	}
 
-	ingressHosts = append(ingressHosts, ingressRouteHosts...)
+	nodes := make([]funder.NodeInfo, len(svcNodes))
+	for i, node := range svcNodes {
+		nodes[i] = funder.NodeInfo{
+			Name:    node.Name,
+			Address: node.Endpoint,
+		}
+	}
 
-	for _, node := range ingressHosts {
-		nodes = append(nodes, funder.NodeInfo{
+	return nodes, nil
+}
+
+func (c *Client) getIngressNodes(ctx context.Context, namespace string) ([]funder.NodeInfo, error) {
+	ingressNodes, err := c.k8sClient.Ingress.GetNodes(ctx, namespace, c.label)
+	if err != nil {
+		return nil, fmt.Errorf("list ingress api nodes hosts: %w", err)
+	}
+
+	ingressRouteNodes, err := c.k8sClient.IngressRoute.GetIngressHosts(ctx, namespace, c.label)
+	if err != nil {
+		return nil, fmt.Errorf("list ingress route api nodes hosts: %w", err)
+	}
+
+	allNodes := append(ingressNodes, ingressRouteNodes...)
+	nodes := make([]funder.NodeInfo, len(allNodes))
+	for i, node := range allNodes {
+		nodes[i] = funder.NodeInfo{
 			Name:    node.Name,
 			Address: fmt.Sprintf("http://%s", node.Host),
-		})
+		}
 	}
 
 	return nodes, nil

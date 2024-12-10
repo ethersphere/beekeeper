@@ -84,7 +84,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 			// if addresses are provided, use them, not k8s client to list nodes
 			if cfg.Namespace != "" {
 				label := c.globalConfig.GetString(optionNameLabelSelector)
-				nodeLister = nodefunder.NewClient(c.k8sClient, label, c.log)
+				nodeLister = nodefunder.NewClient(c.k8sClient, c.globalConfig.GetBool(optionNameInCluster), label, c.log)
 			}
 
 			return funder.Fund(ctx, funder.Config{

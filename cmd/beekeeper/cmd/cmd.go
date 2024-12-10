@@ -39,6 +39,7 @@ const (
 	optionNameTracingServiceName = "tracing-service-name"
 	optionNameEnableK8S          = "enable-k8s"
 	optionNameInCluster          = "in-cluster"
+	optionNameInClusterDomain    = "in-cluster-domain"
 	optionNameKubeconfig         = "kubeconfig"
 )
 
@@ -144,20 +145,24 @@ func Execute() (err error) {
 
 func (c *command) initGlobalFlags() {
 	globalFlags := c.root.PersistentFlags()
-	globalFlags.StringVar(&c.globalConfigFile, "config", "", "config file (default is $HOME/.beekeeper.yaml)")
-	globalFlags.String(optionNameConfigDir, filepath.Join(c.homeDir, "/.beekeeper/"), "config directory (default is $HOME/.beekeeper/)")
-	globalFlags.String(optionNameConfigGitRepo, "", "Git repository with configurations (uses config directory when Git repo is not specified) (default \"\")")
-	globalFlags.String(optionNameConfigGitDir, ".", "Git directory in the repository with configurations (default \".\")")
-	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch")
-	globalFlags.String(optionNameConfigGitUsername, "", "Git username (needed for private repos)")
-	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access tokens (needed for private repos)")
-	globalFlags.String(optionNameLogVerbosity, "info", "log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace")
-	globalFlags.String(optionNameLokiEndpoint, "", "loki http endpoint for pushing local logs (use http://loki.testnet.internal/loki/api/v1/push)")
-	globalFlags.Bool(optionNameTracingEnabled, false, "enable tracing")
-	globalFlags.String(optionNameTracingEndpoint, "tempo-tempo-distributed-distributor.observability:6831", "endpoint to send tracing data")
-	globalFlags.String(optionNameTracingHost, "", "host to send tracing data")
-	globalFlags.String(optionNameTracingPort, "", "port to send tracing data")
-	globalFlags.String(optionNameTracingServiceName, "beekeeper", "service name identifier for tracing")
+	globalFlags.StringVar(&c.globalConfigFile, "config", "", "Path to the configuration file (default is $HOME/.beekeeper.yaml)")
+	globalFlags.String(optionNameConfigDir, filepath.Join(c.homeDir, "/.beekeeper/"), "Directory for configuration files")
+	globalFlags.String(optionNameConfigGitRepo, "", "URL of the Git repository containing configuration files (uses the config-dir if not specified)")
+	globalFlags.String(optionNameConfigGitDir, ".", "Directory within the Git repository containing configuration files. Defaults to the root directory")
+	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch to use for configuration files")
+	globalFlags.String(optionNameConfigGitUsername, "", "Git username for authentication (required for private repositories)")
+	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access token for authentication (required for private repositories)")
+	globalFlags.String(optionNameLogVerbosity, "info", "Log verbosity level (0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace;")
+	globalFlags.String(optionNameLokiEndpoint, "", "HTTP endpoint for sending logs to Loki (e.g., http://loki.testnet.internal/loki/api/v1/push)")
+	globalFlags.Bool(optionNameTracingEnabled, false, "Enable tracing for performance monitoring and debugging")
+	globalFlags.String(optionNameTracingEndpoint, "127.0.0.1:6831", "Endpoint for sending tracing data, specified as host:port")
+	globalFlags.String(optionNameTracingHost, "", "Host address for sending tracing data")
+	globalFlags.String(optionNameTracingPort, "", "Port for sending tracing data")
+	globalFlags.String(optionNameTracingServiceName, "beekeeper", "Service name identifier used in tracing data")
+	globalFlags.Bool(optionNameEnableK8S, true, "Enable Kubernetes client functionality")
+	globalFlags.Bool(optionNameInCluster, false, "Use the in-cluster Kubernetes client")
+	globalFlags.String(optionNameInClusterDomain, "cluster.local", "In-cluster domain name for service discovery")
+	globalFlags.String(optionNameKubeconfig, "~/.kube/config", "Path to the kubeconfig file")
 }
 
 func (c *command) bindGlobalFlags() (err error) {
@@ -322,13 +327,11 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 
 func (c *command) setK8S() (err error) {
 	if c.globalConfig.GetBool(optionNameEnableK8S) {
-		inCluster := c.globalConfig.GetBool(optionNameInCluster)
-		kubeconfigPath := c.globalConfig.GetString(optionNameKubeconfig)
-
 		options := []k8s.ClientOption{
 			k8s.WithLogger(c.log),
-			k8s.WithInCluster(inCluster),
-			k8s.WithKubeconfigPath(kubeconfigPath),
+			k8s.WithInCluster(c.globalConfig.GetBool(optionNameInCluster)),
+			k8s.WithKubeconfigPath(c.globalConfig.GetString(optionNameKubeconfig)),
+			k8s.WithInClusterDomain(c.globalConfig.GetString(optionNameInClusterDomain)),
 		}
 
 		if c.k8sClient, err = k8s.NewClient(options...); err != nil && !errors.Is(err, k8s.ErrKubeconfigNotSet) {
