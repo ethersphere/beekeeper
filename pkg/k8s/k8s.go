@@ -30,13 +30,12 @@ type ClientOption func(*Client)
 
 // Client manages communication with the Kubernetes.
 type Client struct {
-	logger                logging.Logger          // logger
-	clientConfig          *ClientConfig           // ClientConfig holds functions for configuration of the Client.
-	inCluster             bool                    // inCluster
-	inClusterDomain       string                  // when inCluster is true, inClusterDomain is used to set the domain for the in-cluster client
-	kubeconfigPath        string                  // kubeconfigPath
-	rateLimiter           flowcontrol.RateLimiter // rateLimiter
-	maxConcurrentRequests int                     // maxConcurentRequests (semaphore)
+	logger                logging.Logger
+	clientConfig          *ClientConfig
+	inCluster             bool
+	kubeconfigPath        string
+	rateLimiter           flowcontrol.RateLimiter
+	maxConcurrentRequests int
 
 	// exported services that K8S provides
 	ConfigMap      *configmap.Client
@@ -58,7 +57,6 @@ func NewClient(opts ...ClientOption) (c *Client, err error) {
 		clientConfig:          newClientConfig(),
 		logger:                logging.New(io.Discard, 0),
 		inCluster:             false,
-		inClusterDomain:       "cluster.local",
 		kubeconfigPath:        "~/.kube/config",
 		rateLimiter:           flowcontrol.NewTokenBucketRateLimiter(50, 100),
 		maxConcurrentRequests: 20,
@@ -136,7 +134,7 @@ func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingre
 	c.PVC = persistentvolumeclaim.NewClient(clientset)
 	c.Secret = secret.NewClient(clientset)
 	c.ServiceAccount = serviceaccount.NewClient(clientset)
-	c.Service = service.NewClient(clientset, c.inClusterDomain)
+	c.Service = service.NewClient(clientset)
 	c.StatefulSet = statefulset.NewClient(clientset, c.logger)
 	c.IngressRoute = ingressroute.NewClient(apiClientset)
 }
@@ -182,12 +180,5 @@ func WithRequestLimiter(rateLimiter flowcontrol.RateLimiter, maxConcurentRequest
 		if maxConcurentRequests >= 0 {
 			c.maxConcurrentRequests = maxConcurentRequests
 		}
-	}
-}
-
-// WithInClusterDomain sets the inClusterDomain for the Client.
-func WithInClusterDomain(inClusterDomain string) ClientOption {
-	return func(c *Client) {
-		c.inClusterDomain = inClusterDomain
 	}
 }

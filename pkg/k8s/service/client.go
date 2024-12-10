@@ -12,15 +12,13 @@ import (
 
 // Client manages communication with the Kubernetes Service.
 type Client struct {
-	clientset       kubernetes.Interface
-	inClusterDomain string
+	clientset kubernetes.Interface
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset kubernetes.Interface, inClusterDomain string) *Client {
+func NewClient(clientset kubernetes.Interface) *Client {
 	return &Client{
-		clientset:       clientset,
-		inClusterDomain: inClusterDomain,
+		clientset: clientset,
 	}
 }
 

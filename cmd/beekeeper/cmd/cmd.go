@@ -39,7 +39,6 @@ const (
 	optionNameTracingServiceName = "tracing-service-name"
 	optionNameEnableK8S          = "enable-k8s"
 	optionNameInCluster          = "in-cluster"
-	optionNameInClusterDomain    = "in-cluster-domain"
 	optionNameKubeconfig         = "kubeconfig"
 )
 
@@ -161,7 +160,6 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameTracingServiceName, "beekeeper", "Service name identifier used in tracing data")
 	globalFlags.Bool(optionNameEnableK8S, true, "Enable Kubernetes client functionality")
 	globalFlags.Bool(optionNameInCluster, false, "Use the in-cluster Kubernetes client")
-	globalFlags.String(optionNameInClusterDomain, "cluster.local", "In-cluster domain name for service discovery")
 	globalFlags.String(optionNameKubeconfig, "~/.kube/config", "Path to the kubeconfig file")
 }
 
@@ -331,7 +329,6 @@ func (c *command) setK8S() (err error) {
 			k8s.WithLogger(c.log),
 			k8s.WithInCluster(c.globalConfig.GetBool(optionNameInCluster)),
 			k8s.WithKubeconfigPath(c.globalConfig.GetString(optionNameKubeconfig)),
-			k8s.WithInClusterDomain(c.globalConfig.GetString(optionNameInClusterDomain)),
 		}
 
 		if c.k8sClient, err = k8s.NewClient(options...); err != nil && !errors.Is(err, k8s.ErrKubeconfigNotSet) {

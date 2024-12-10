@@ -85,7 +85,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := service.NewClient(test.clientset, "cluster.local")
+			client := service.NewClient(test.clientset)
 			response, err := client.Set(context.Background(), test.serviceName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -160,7 +160,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := service.NewClient(test.clientset, "cluster.local")
+			client := service.NewClient(test.clientset)
 			err := client.Delete(context.Background(), test.serviceName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
