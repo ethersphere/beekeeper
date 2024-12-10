@@ -5,7 +5,7 @@ clusters:
     name: bee
     namespace: local
     disable-namespace: true
-    api-domain: localhost
+    api-domain: local.svc.cluster.local:1633
     api-scheme: http
     admin-password: test
     funding:
