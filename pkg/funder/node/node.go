@@ -20,6 +20,7 @@ func NewClient(k8sClient *k8s.Client, inCluster bool, label string, l logging.Lo
 	return &Client{
 		k8sClient: k8sClient,
 		label:     label,
+		inCluster: inCluster,
 		log:       l,
 	}
 }
@@ -32,6 +33,8 @@ func (c *Client) List(ctx context.Context, namespace string) ([]funder.NodeInfo,
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace not provided")
 	}
+
+	c.log.Debugf("Listing nodes with parameters: namespace=%s, label=%s, inCluster=%v", namespace, c.label, c.inCluster)
 
 	if c.inCluster {
 		return c.getServiceNodes(ctx, namespace)
@@ -63,7 +66,7 @@ func (c *Client) getIngressNodes(ctx context.Context, namespace string) ([]funde
 		return nil, fmt.Errorf("list ingress api nodes hosts: %w", err)
 	}
 
-	ingressRouteNodes, err := c.k8sClient.IngressRoute.GetIngressHosts(ctx, namespace, c.label)
+	ingressRouteNodes, err := c.k8sClient.IngressRoute.GetNodes(ctx, namespace, c.label)
 	if err != nil {
 		return nil, fmt.Errorf("list ingress route api nodes hosts: %w", err)
 	}

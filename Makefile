@@ -1,7 +1,7 @@
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
 GOLANGCI_LINT_VERSION ?= v1.61.0
-
+BEEKEEPER_IMAGE ?= ethersphere/beekeeper:latest
 COMMIT ?= "$(shell git describe --long --dirty --always --match "" || true)"
 LDFLAGS ?= -s -w -X github.com/ethersphere/beekeeper.commit=$(COMMIT)
 
@@ -50,5 +50,14 @@ build:
 clean:
 	$(GO) clean
 	rm -rf dist/
+
+.PHONY: docker-build
+docker-build: binary
+	@echo "Build flags: $(LDFLAGS)"
+	mkdir -p ./tmp
+	cp ./dist/beekeeper ./tmp/beekeeper
+	docker build -f Dockerfile.dev -t $(BEEKEEPER_IMAGE) .
+	rm -rf ./tmp
+	@echo "Docker image: $(BEEKEEPER_IMAGE)"
 
 FORCE:

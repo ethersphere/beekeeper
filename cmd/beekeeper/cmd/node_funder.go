@@ -72,7 +72,6 @@ func (c *command) initNodeFunderCmd() (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			c.log.Infof("node-funder started")
 			defer c.log.Infof("node-funder done")
 
 			// NOTE: Swarm key address is the same as the nodeEndpoint/wallet walletAddress.
