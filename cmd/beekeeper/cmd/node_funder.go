@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
-	"github.com/ethersphere/beekeeper/pkg/logging"
+	nodefunder "github.com/ethersphere/beekeeper/pkg/funder/node"
 	"github.com/ethersphere/node-funder/pkg/funder"
 	"github.com/spf13/cobra"
 )
@@ -86,7 +84,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 			// if addresses are provided, use them, not k8s client to list nodes
 			if cfg.Namespace != "" {
 				label := c.globalConfig.GetString(optionNameLabelSelector)
-				nodeLister = newNodeLister(c.k8sClient, label, c.log)
+				nodeLister = nodefunder.NewClient(c.k8sClient, label, c.log)
 			}
 
 			return funder.Fund(ctx, funder.Config{
@@ -116,49 +114,4 @@ func (c *command) initNodeFunderCmd() (err error) {
 	c.root.AddCommand(cmd)
 
 	return nil
-}
-
-type nodeLister struct {
-	k8sClient *k8s.Client
-	label     string
-	log       logging.Logger
-}
-
-func newNodeLister(k8sClient *k8s.Client, label string, l logging.Logger) *nodeLister {
-	return &nodeLister{
-		k8sClient: k8sClient,
-		label:     label,
-		log:       l,
-	}
-}
-
-func (nf *nodeLister) List(ctx context.Context, namespace string) (nodes []funder.NodeInfo, err error) {
-	if nf.k8sClient == nil {
-		return nil, fmt.Errorf("k8s client not initialized")
-	}
-
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace not provided")
-	}
-
-	ingressHosts, err := nf.k8sClient.Ingress.GetIngressHosts(ctx, namespace, nf.label)
-	if err != nil {
-		return nil, fmt.Errorf("list ingress api nodes hosts: %s", err.Error())
-	}
-
-	ingressRouteHosts, err := nf.k8sClient.IngressRoute.GetIngressHosts(ctx, namespace, nf.label)
-	if err != nil {
-		return nil, fmt.Errorf("list ingress route api nodes hosts: %s", err.Error())
-	}
-
-	ingressHosts = append(ingressHosts, ingressRouteHosts...)
-
-	for _, node := range ingressHosts {
-		nodes = append(nodes, funder.NodeInfo{
-			Name:    strings.TrimSuffix(node.Name, "-api"),
-			Address: fmt.Sprintf("http://%s", node.Host),
-		})
-	}
-
-	return nodes, nil
 }
