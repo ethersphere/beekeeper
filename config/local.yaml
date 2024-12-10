@@ -3,9 +3,9 @@ clusters:
   local:
     _inherit: ""
     namespace: local
-    disable-namespace: true
+    disable-namespace: false
     api-domain: localhost
-    api-domain-internal: local.svc.cluster.local:1633
+    api-domain-internal: svc.cluster.local:1633
     api-scheme: http
     funding:
       eth: 0.1
