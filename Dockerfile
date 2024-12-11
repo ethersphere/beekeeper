@@ -10,7 +10,7 @@ RUN make binary
 
 FROM debian:12.7-slim
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     ca-certificates; \
