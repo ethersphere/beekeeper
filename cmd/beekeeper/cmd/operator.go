@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
-	"github.com/ethersphere/beekeeper/pkg/operator"
+	"github.com/ethersphere/beekeeper/pkg/funder/operator"
 	"github.com/spf13/cobra"
 )
 

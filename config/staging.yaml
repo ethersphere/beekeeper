@@ -3,7 +3,6 @@
 clusters:
   staging:
     _inherit: ""
-    name: bee
     namespace: staging
     disable-namespace: false
     api-domain: testnet.internal

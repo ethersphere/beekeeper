@@ -78,8 +78,8 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	return
 }
 
-// GetIngressHosts list Ingresses hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.
-func (c *Client) GetIngressHosts(ctx context.Context, namespace, label string) (nodes []NodeInfo, err error) {
+// GetNodes list Ingresses hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.
+func (c *Client) GetNodes(ctx context.Context, namespace, label string) (nodes []NodeInfo, err error) {
 	c.logger.Debugf("listing Ingresses in namespace %s, label selector %s", namespace, label)
 	ingreses, err := c.clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: label,

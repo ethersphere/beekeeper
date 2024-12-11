@@ -50,10 +50,10 @@ func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestrat
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
+func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, o orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
 	var aURL *url.URL
 
-	aURL, err = g.clusterOpts.ApiURL(name)
+	aURL, err = g.clusterOpts.ApiURL(name, inCluster)
 	if err != nil {
 		return fmt.Errorf("API URL %s: %w", name, err)
 	}
@@ -718,10 +718,10 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
-func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions) (ethAddress string, err error) {
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, inCluster bool, o orchestration.NodeOptions) (ethAddress string, err error) {
 	g.log.Infof("starting setup node: %s", name)
 
-	if err := g.AddNode(ctx, name, o); err != nil {
+	if err := g.AddNode(ctx, name, inCluster, o); err != nil {
 		return "", fmt.Errorf("add node %s: %w", name, err)
 	}
 

@@ -129,9 +129,17 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 	}
 
 	for _, file := range yamlFiles {
+		log.Tracef("reading file %s", file.Name)
+
 		var tmp *Config
 		if err := yaml.Unmarshal(file.Content, &tmp); err != nil {
 			return nil, fmt.Errorf("unmarshaling yaml file: %w", err)
+		}
+
+		// Set the cluster name to the key
+		for key, cluster := range tmp.Clusters {
+			cluster.Name = &key
+			tmp.Clusters[key] = cluster
 		}
 
 		// join Clusters
@@ -143,6 +151,7 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 				log.Warningf("cluster '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
+
 		// join NodeGroups
 		for k, v := range tmp.NodeGroups {
 			_, ok := c.NodeGroups[k]
@@ -152,6 +161,7 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 				log.Warningf("node group '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
+
 		// join BeeConfigs
 		for k, v := range tmp.BeeConfigs {
 			_, ok := c.BeeConfigs[k]
@@ -161,6 +171,7 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 				log.Warningf("bee config '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
+
 		// join Checks
 		for k, v := range tmp.Checks {
 			_, ok := c.Checks[k]
@@ -170,6 +181,7 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 				log.Warningf("check '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
+
 		// join Simulations
 		for k, v := range tmp.Simulations {
 			_, ok := c.Simulations[k]

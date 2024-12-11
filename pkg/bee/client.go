@@ -47,10 +47,16 @@ func NewClient(opts ClientOptions, log logging.Logger) (c *Client) {
 		log:   log,
 	}
 
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: opts.APIInsecureTLS,
+			},
+		},
+	}
+
 	if opts.APIURL != nil {
-		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: opts.APIInsecureTLS},
-		}}})
+		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: httpClient})
 	}
 	if opts.Retry > 0 {
 		c.retry = opts.Retry

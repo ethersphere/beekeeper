@@ -3,14 +3,13 @@
 clusters:
   default:
     _inherit: ""
-    name: bee
     namespace: bee-playground
     disable-namespace: false
     use-static-endpoints: false
     api-domain: testnet.internal # testnet.ethswarm.org
+    api-domain-internal: svc.swarm1.local:1633 # Internal API domain with port when in-cluster is set to true
     api-insecure-tls: true
     api-scheme: http
-    admin-password: test
     funding:
       eth: 0.1
       bzz: 100.0

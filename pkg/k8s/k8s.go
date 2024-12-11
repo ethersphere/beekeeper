@@ -30,12 +30,12 @@ type ClientOption func(*Client)
 
 // Client manages communication with the Kubernetes.
 type Client struct {
-	logger                logging.Logger          // logger
-	clientConfig          *ClientConfig           // ClientConfig holds functions for configuration of the Client.
-	inCluster             bool                    // inCluster
-	kubeconfigPath        string                  // kubeconfigPath
-	rateLimiter           flowcontrol.RateLimiter // rateLimiter
-	maxConcurrentRequests int                     // maxConcurentRequests (semaphore)
+	logger                logging.Logger
+	clientConfig          *ClientConfig
+	inCluster             bool
+	kubeconfigPath        string
+	rateLimiter           flowcontrol.RateLimiter
+	maxConcurrentRequests int
 
 	// exported services that K8S provides
 	ConfigMap      *configmap.Client

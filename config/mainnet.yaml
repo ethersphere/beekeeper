@@ -3,7 +3,6 @@
 clusters:
   mainnet:
     _inherit: ""
-    name: bee
     namespace: beekeeper
     disable-namespace: true
     api-domain: gateway.ethswarm.org
