@@ -1,7 +1,6 @@
-package stamp
+package stamper
 
 import (
-	"context"
 	"io"
 	"net/http"
 
@@ -41,11 +40,4 @@ func NewClient(cfg *ClientConfig) *Client {
 		httpClient:   *httpClient,
 		ClientConfig: cfg,
 	}
-}
-
-func (c *Client) Run(ctx context.Context) error {
-	c.Log.Infof("operator started")
-	defer c.Log.Infof("operator done")
-
-	return nil
 }

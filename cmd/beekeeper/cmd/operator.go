@@ -5,10 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/funder/operator"
 	"github.com/spf13/cobra"
 )
+
+const nodeOperatorCmd string = "node-operator"
 
 func (c *command) initOperatorCmd() (err error) {
 	const (
@@ -22,29 +23,26 @@ func (c *command) initOperatorCmd() (err error) {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "node-operator",
+		Use:   nodeOperatorCmd,
 		Short: "scans for scheduled pods and funds them",
 		Long:  `Node operator scans for scheduled pods and funds them using node-funder. beekeeper node-operator`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg := config.NodeFunder{}
-
 			var namespace string
 			if namespace = c.globalConfig.GetString(optionNameNamespace); namespace == "" {
 				return errors.New("namespace not provided")
 			}
 
 			// chain node endpoint check
-			if cfg.ChainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); cfg.ChainNodeEndpoint == "" {
+			var chainNodeEndpoint string
+			if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
 				return errors.New("chain node endpoint (geth-url) not provided")
 			}
 
 			// wallet key check
-			if cfg.WalletKey = c.globalConfig.GetString(optionNameWalletKey); cfg.WalletKey == "" {
+			var walletKey string
+			if walletKey = c.globalConfig.GetString(optionNameWalletKey); walletKey == "" {
 				return errors.New("wallet key not provided")
 			}
-
-			cfg.MinAmounts.NativeCoin = c.globalConfig.GetFloat64(optionNameMinNative)
-			cfg.MinAmounts.SwarmToken = c.globalConfig.GetFloat64(optionNameMinSwarm)
 
 			// add timeout to operator
 			// if timeout is not set, operator will run infinitely
@@ -63,9 +61,10 @@ func (c *command) initOperatorCmd() (err error) {
 			return operator.NewClient(&operator.ClientConfig{
 				Log:               c.log,
 				Namespace:         namespace,
-				WalletKey:         cfg.WalletKey,
-				ChainNodeEndpoint: cfg.ChainNodeEndpoint,
-				MinAmounts:        cfg.MinAmounts,
+				WalletKey:         walletKey,
+				ChainNodeEndpoint: chainNodeEndpoint,
+				NativeToken:       c.globalConfig.GetFloat64(optionNameMinNative),
+				SwarmToken:        c.globalConfig.GetFloat64(optionNameMinSwarm),
 				K8sClient:         c.k8sClient,
 				LabelSelector:     c.globalConfig.GetString(optionNameLabelSelector),
 			}).Run(ctxNew)

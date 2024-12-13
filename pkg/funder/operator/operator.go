@@ -9,7 +9,6 @@ import (
 	"net/url"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/node-funder/pkg/funder"
@@ -20,9 +19,10 @@ type ClientConfig struct {
 	Namespace         string
 	WalletKey         string
 	ChainNodeEndpoint string
-	MinAmounts        config.MinAmounts
+	NativeToken       float64
+	SwarmToken        float64
 	K8sClient         *k8s.Client
-	HTTPClient        *http.Client // injected HTTP client
+	HTTPClient        *http.Client
 	LabelSelector     string
 }
 
@@ -83,8 +83,8 @@ func (c *Client) Run(ctx context.Context) error {
 					ChainNodeEndpoint: c.ChainNodeEndpoint,
 					WalletKey:         c.WalletKey,
 					MinAmounts: funder.MinAmounts{
-						NativeCoin: c.MinAmounts.NativeCoin,
-						SwarmToken: c.MinAmounts.SwarmToken,
+						NativeCoin: c.NativeToken,
+						SwarmToken: c.SwarmToken,
 					},
 				}, nil, nil, funder.WithLoggerOption(c.Log))
 				if err != nil {

@@ -16,14 +16,12 @@ import (
 
 func (c *command) initSimulateCmd() (err error) {
 	const (
-		optionNameClusterName          = "cluster-name"
 		optionNameCreateCluster        = "create-cluster"
 		optionNameSimulations          = "simulations"
 		optionNameMetricsEnabled       = "metrics-enabled"
 		optionNameSeed                 = "seed"
 		optionNameTimeout              = "timeout"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
-		// TODO: optionNameStages         = "stages"
 	)
 
 	cmd := &cobra.Command{
@@ -34,18 +32,18 @@ func (c *command) initSimulateCmd() (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			// set cluster config
-			cfgCluster, ok := c.config.Clusters[c.globalConfig.GetString(optionNameClusterName)]
-			if !ok {
-				return fmt.Errorf("cluster %s not defined", c.globalConfig.GetString(optionNameClusterName))
+			clusterName := c.globalConfig.GetString(optionNameClusterName)
+			if clusterName == "" {
+				return errMissingClusterName
 			}
 
-			// setup cluster
-			cluster, err := c.setupCluster(ctx,
-				c.globalConfig.GetString(optionNameClusterName),
-				c.config,
-				c.globalConfig.GetBool(optionNameCreateCluster),
-			)
+			// set cluster config
+			cfgCluster, ok := c.config.Clusters[clusterName]
+			if !ok {
+				return fmt.Errorf("cluster %s not defined", clusterName)
+			}
+
+			cluster, err := c.setupCluster(ctx, clusterName, c.globalConfig.GetBool(optionNameCreateCluster))
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}

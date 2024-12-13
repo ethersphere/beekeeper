@@ -100,6 +100,7 @@ func (c *Client) DeletePods(ctx context.Context, namespace, labelSelector string
 	if len(deletionErrors) > 0 {
 		return deletedCount, fmt.Errorf("some pods failed to delete: %v", deletionErrors)
 	}
+
 	return deletedCount, nil
 }
 
@@ -125,6 +126,7 @@ func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector s
 			if !ok {
 				return fmt.Errorf("watch channel closed")
 			}
+
 			switch event.Type {
 			// case watch.Added: // already running pods
 			case watch.Modified:
