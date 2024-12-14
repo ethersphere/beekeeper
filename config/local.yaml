@@ -341,3 +341,10 @@ checks:
       postage-label: gsoc-label
     timeout: 10m
     type: gsoc
+  ci-feed:
+    options:
+      postage-amount: 100000
+      postage-depth: 20
+      postage-label: feed-label
+    type: feed
+
