@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"io"
 	"math/big"
 	"net/http"
@@ -939,4 +940,19 @@ func (c *Client) Withdraw(ctx context.Context, token, addr string, amount int64)
 	}
 
 	return nil
+}
+
+// CreateRootFeedManifest creates an initial root manifest
+func (c *Client) CreateRootFeedManifest(ctx context.Context, signer crypto.Signer, topic []byte, o api.UploadOptions) (*api.FeedUploadResponse, error) {
+	return c.api.Feed.CreateRootManifest(ctx, signer, topic, o)
+}
+
+// UpdateFeedWithReference updates a feed with a reference
+func (c *Client) UpdateFeedWithReference(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, addr swarm.Address, o api.UploadOptions) (*api.SocResponse, error) {
+	return c.api.Feed.UpdateWithReference(ctx, signer, topic, i, addr, o)
+}
+
+// FindFeedUpdate finds the latest update for a feed
+func (c *Client) FindFeedUpdate(ctx context.Context, signer crypto.Signer, topic []byte, o *api.DownloadOptions) (*api.FindFeedUpdateResponse, error) {
+	return c.api.Feed.FindUpdate(ctx, signer, topic, o)
 }
