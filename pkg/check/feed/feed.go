@@ -120,7 +120,7 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 
 	// make updates
 	for i := 0; i < o.NUpdates; i++ {
-		time.Sleep(2 * time.Second)
+		time.Sleep(3 * time.Second)
 		data := fmt.Sprintf("update-%d", i)
 		fName := fmt.Sprintf("file-%d", i)
 		file := bee.NewBufferFile(fName, bytes.NewBuffer([]byte(data)))
@@ -140,9 +140,10 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 		c.logger.Infof("soc reference: %s", socRes.Reference)
 		c.logger.Infof("wrapped reference: %s", file.Address())
 	}
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// fetch update
+	c.logger.Infof("fetching feed update")
 	update, err := client.FindFeedUpdate(ctx, signer, topic, nil)
 	if err != nil {
 		return err
