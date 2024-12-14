@@ -90,9 +90,9 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 	if err != nil {
 		return err
 	}
-	client := clients[nodeName]
+	upClient := clients[nodeName]
 
-	batchID, err := client.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 	}
 
 	// create root
-	createManifestRes, err := client.CreateRootFeedManifest(ctx, signer, topic, api.UploadOptions{BatchID: batchID})
+	createManifestRes, err := upClient.CreateRootFeedManifest(ctx, signer, topic, api.UploadOptions{BatchID: batchID})
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 		data := fmt.Sprintf("update-%d", i)
 		fName := fmt.Sprintf("file-%d", i)
 		file := bee.NewBufferFile(fName, bytes.NewBuffer([]byte(data)))
-		err = client.UploadFile(context.Background(), &file, api.UploadOptions{
+		err = upClient.UploadFile(context.Background(), &file, api.UploadOptions{
 			BatchID: batchID,
 			Direct:  true,
 		})
@@ -132,7 +132,7 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 			return err
 		}
 		ref := file.Address()
-		socRes, err := client.UpdateFeedWithReference(ctx, signer, topic, uint64(i), ref, api.UploadOptions{BatchID: batchID})
+		socRes, err := upClient.UpdateFeedWithReference(ctx, signer, topic, uint64(i), ref, api.UploadOptions{BatchID: batchID})
 		if err != nil {
 			return err
 		}
@@ -144,12 +144,13 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 
 	// fetch update
 	c.logger.Infof("fetching feed update")
-	update, err := client.FindFeedUpdate(ctx, signer, topic, nil)
+	downClient := clients[nodeNames[1]]
+	update, err := downClient.FindFeedUpdate(ctx, signer, topic, nil)
 	if err != nil {
 		return err
 	}
 
-	c.logger.Infof("node %s: feed update found", nodeName)
+	c.logger.Infof("node %s: feed update found", downClient.Name())
 	c.logger.Infof("reference: %d", update.Reference)
 	c.logger.Infof("index: %d", update.Index)
 	c.logger.Infof("next index: %d", update.NextIndex)
@@ -159,7 +160,7 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 	}
 
 	// fetch feed via bzz
-	d, err := client.DownloadFileBytes(ctx, createManifestRes.Reference, nil)
+	d, err := downClient.DownloadFileBytes(ctx, createManifestRes.Reference, nil)
 	if err != nil {
 		return fmt.Errorf("download root feed: %w", err)
 	}
