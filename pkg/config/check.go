@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/ethersphere/beekeeper/pkg/check/feed"
 	"math/big"
 	"reflect"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
+	"github.com/ethersphere/beekeeper/pkg/check/feed"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
 	"github.com/ethersphere/beekeeper/pkg/check/gc"
