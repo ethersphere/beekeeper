@@ -50,6 +50,9 @@ func ownerFromSigner(signer crypto.Signer) (string, error) {
 // CreateRootManifest creates an initial feed root manifest
 func (f *FeedService) CreateRootManifest(ctx context.Context, signer crypto.Signer, topic []byte, o UploadOptions) (*FeedUploadResponse, error) {
 	ownerHex, err := ownerFromSigner(signer)
+	if err != nil {
+		return nil, err
+	}
 	topicHex := hex.EncodeToString(topic)
 	h := http.Header{}
 	if o.Pin {
@@ -76,6 +79,9 @@ func (f *FeedService) UpdateWithReference(ctx context.Context, signer crypto.Sig
 		return nil, err
 	}
 	ownerHex, err := ownerFromSigner(signer)
+	if err != nil {
+		return nil, err
+	}
 	index := make([]byte, 8)
 	binary.BigEndian.PutUint64(index, i)
 	idBytes, err := crypto.LegacyKeccak256(append(append([]byte{}, topic...), index...))
@@ -100,6 +106,9 @@ func (f *FeedService) UpdateWithReference(ctx context.Context, signer crypto.Sig
 // FindUpdate finds the latest update for a feed
 func (f *FeedService) FindUpdate(ctx context.Context, signer crypto.Signer, topic []byte, o *DownloadOptions) (*FindFeedUpdateResponse, error) {
 	ownerHex, err := ownerFromSigner(signer)
+	if err != nil {
+		return nil, err
+	}
 	topicHex := hex.EncodeToString(topic)
 	res, header, err := f.client.requestDataGetHeader(ctx, http.MethodGet, "/"+apiVersion+"/feeds/"+ownerHex+"/"+topicHex, nil, o)
 	if err != nil {
