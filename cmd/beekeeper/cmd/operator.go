@@ -9,9 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const nodeOperatorCmd string = "node-operator"
-
-func (c *command) initOperatorCmd() (err error) {
+func (c *command) initOperatorCmd() error {
 	const (
 		optionNameNamespace         = "namespace"
 		optionNameChainNodeEndpoint = "geth-url"
@@ -23,24 +21,22 @@ func (c *command) initOperatorCmd() (err error) {
 	)
 
 	cmd := &cobra.Command{
-		Use:   nodeOperatorCmd,
-		Short: "scans for scheduled pods and funds them",
-		Long:  `Node operator scans for scheduled pods and funds them using node-funder. beekeeper node-operator`,
+		Use:   "node-operator",
+		Short: "scans for scheduled Kubernetes pods and funds them",
+		Long:  `Node operator scans for scheduled Kubernetes pods and funds them using node-funder. beekeeper node-operator`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			var namespace string
-			if namespace = c.globalConfig.GetString(optionNameNamespace); namespace == "" {
+			namespace := c.globalConfig.GetString(optionNameNamespace)
+			if namespace == "" {
 				return errors.New("namespace not provided")
 			}
 
-			// chain node endpoint check
-			var chainNodeEndpoint string
-			if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
+			chainNodeEndpoint := c.globalConfig.GetString(optionNameChainNodeEndpoint)
+			if chainNodeEndpoint == "" {
 				return errors.New("chain node endpoint (geth-url) not provided")
 			}
 
-			// wallet key check
-			var walletKey string
-			if walletKey = c.globalConfig.GetString(optionNameWalletKey); walletKey == "" {
+			walletKey := c.globalConfig.GetString(optionNameWalletKey)
+			if walletKey == "" {
 				return errors.New("wallet key not provided")
 			}
 

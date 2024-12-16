@@ -193,7 +193,7 @@ func (c *command) initConfig(loadConfigDir bool) error {
 	}
 
 	if !loadConfigDir {
-		c.log.Debugf("Skipping loading configuration directory as the cluster name is not set")
+		c.log.Debugf("skpping loading configuration directory as the cluster name is not used")
 		return nil
 	}
 

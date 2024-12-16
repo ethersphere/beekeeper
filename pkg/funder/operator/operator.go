@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/node-funder/pkg/funder"
+	v1 "k8s.io/api/core/v1"
 )
 
 type ClientConfig struct {
@@ -53,30 +54,52 @@ func NewClient(cfg *ClientConfig) *Client {
 }
 
 func (c *Client) Run(ctx context.Context) error {
-	c.Log.Infof("operator started")
-	defer c.Log.Infof("operator done")
+	c.Log.Infof("operator started for namespace %s", c.Namespace)
+	defer c.Log.Info("operator done")
 
-	newPodIps := make(chan string)
+	newPods := make(chan *v1.Pod)
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				c.Log.Error("operator context canceled")
 				return
-			case podIp, ok := <-newPodIps:
+			case pod, ok := <-newPods:
 				if !ok {
 					c.Log.Error("operator channel closed")
 					return
 				}
-				c.Log.Debugf("operator received pod ip: %s", podIp)
 
-				addresses, err := c.getAddresses(ctx, podIp)
+				c.Log.Debugf("operator received pod with ip: %s", pod.Status.PodIP)
+
+				nodeInfo, _, err := c.K8sClient.Service.FindNode(ctx, c.Namespace, pod)
 				if err != nil {
-					c.Log.Errorf("process pod ip: %v", err)
+					c.Log.Errorf("find service for pod: %v", err)
 					continue
 				}
 
-				c.Log.Infof("ethereum address: %s", addresses.Ethereum)
+				var addresses bee.Addresses
+
+				maxRetries := 5
+				for i := 0; i < maxRetries; i++ {
+					addresses, err = c.getAddresses(ctx, nodeInfo.Endpoint)
+					if err != nil {
+						c.Log.Errorf("get addresses (attempt %d/%d): %v", i+1, maxRetries, err)
+						if i < maxRetries-1 { // Wait before retrying, except on the last attempt
+							time.Sleep(1 * time.Second)
+						}
+						continue
+					}
+
+					c.Log.Tracef("Successfully fetched addresses on attempt %d/%d", i+1, maxRetries)
+					break
+				}
+
+				if err != nil {
+					c.Log.Errorf("Failed to fetch addresses after %d attempts: %v", maxRetries, err)
+				}
+
+				c.Log.Infof("node '%s' ethereum address: %s", nodeInfo.Name, addresses.Ethereum)
 
 				err = funder.Fund(ctx, funder.Config{
 					Addresses:         []string{addresses.Ethereum},
@@ -94,23 +117,17 @@ func (c *Client) Run(ctx context.Context) error {
 		}
 	}()
 
-	if err := c.K8sClient.Pods.WatchNewRunning(ctx, c.Namespace, c.LabelSelector, newPodIps); err != nil {
+	if err := c.K8sClient.Pods.WatchNewRunning(ctx, c.Namespace, c.LabelSelector, newPods); err != nil {
 		return fmt.Errorf("events watch: %w", err)
 	}
 
 	return nil
 }
 
-// getAddresses sends a request to the pod IP and retrieves the Addresses struct,
+// getAddresses sends a request to the node to get the addresses of the node,
 // which includes overlay, underlay addresses, Ethereum address, and public keys.
-func (c *Client) getAddresses(ctx context.Context, podIp string) (bee.Addresses, error) {
-	url := &url.URL{
-		Scheme: "http",
-		Host:   podIp + ":1633", // it is possible to extract port from service
-		Path:   "/addresses",
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
+func (c *Client) getAddresses(ctx context.Context, endpoint string) (bee.Addresses, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/addresses", endpoint), nil)
 	if err != nil {
 		return bee.Addresses{}, fmt.Errorf("new request: %s", err.Error())
 	}

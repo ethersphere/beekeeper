@@ -19,7 +19,7 @@ type nodeResult struct {
 	err        error
 }
 
-func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config, deleteStorage bool) (err error) {
+func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config, deleteStorage bool) error {
 	if clusterName == "" {
 		return errMissingClusterName
 	}
@@ -74,12 +74,14 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			if err != nil {
 				return err
 			}
+
 			if len(v.Nodes) > 0 {
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := fmt.Sprintf("%s-%d", ngName, i)
 					if len(v.Nodes[i].Name) > 0 {
 						nName = v.Nodes[i].Name
 					}
+
 					if err := ng.DeleteNode(ctx, nName); err != nil {
 						return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 					}
@@ -109,7 +111,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		}
 	}
 
-	return
+	return nil
 }
 
 func (c *command) setupCluster(ctx context.Context, clusterName string, startCluster bool) (cluster orchestration.Cluster, err error) {

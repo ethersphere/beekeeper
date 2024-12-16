@@ -16,7 +16,7 @@ import (
 
 var errMissingClusterName = fmt.Errorf("cluster name not provided")
 
-func (c *command) initCheckCmd() (err error) {
+func (c *command) initCheckCmd() error {
 	const (
 		optionNameCreateCluster        = "create-cluster"
 		optionNameChecks               = "checks"
@@ -24,14 +24,13 @@ func (c *command) initCheckCmd() (err error) {
 		optionNameSeed                 = "seed"
 		optionNameTimeout              = "timeout"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
-		// TODO: optionNameStages         = "stages"
 	)
 
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "runs integration tests on a Bee cluster",
 		Long:  `runs integration tests on a Bee cluster.`,
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
