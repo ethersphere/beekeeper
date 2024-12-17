@@ -29,7 +29,7 @@ type ClientConfig struct {
 
 type Client struct {
 	*ClientConfig
-	httpClient http.Client
+	httpClient *http.Client
 }
 
 func NewClient(cfg *ClientConfig) *Client {
@@ -48,7 +48,7 @@ func NewClient(cfg *ClientConfig) *Client {
 	}
 
 	return &Client{
-		httpClient:   *httpClient,
+		httpClient:   httpClient,
 		ClientConfig: cfg,
 	}
 }
