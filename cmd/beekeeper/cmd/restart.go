@@ -12,7 +12,6 @@ import (
 
 func (c *command) initRestartCmd() (err error) {
 	const (
-		optionNameClusterName   = "cluster-name"
 		optionNameLabelSelector = "label-selector"
 		optionNameNamespace     = "namespace"
 		optionNameImage         = "image"
@@ -43,7 +42,7 @@ func (c *command) initRestartCmd() (err error) {
 					return fmt.Errorf("cluster config %s not defined", clusterName)
 				}
 
-				cluster, err := c.setupCluster(ctx, clusterName, c.config, false)
+				cluster, err := c.setupCluster(ctx, clusterName, false)
 				if err != nil {
 					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
 				}

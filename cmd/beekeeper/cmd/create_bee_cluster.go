@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	optionNameClusterName       = "cluster-name"
-	optionNameChainNodeEndpoint = "geth-url"
-	optionNameWalletKey         = "wallet-key"
-	optionNameTimeout           = "timeout"
+	optionNameClusterName       string = "cluster-name"
+	optionNameChainNodeEndpoint string = "geth-url"
+	optionNameWalletKey         string = "wallet-key"
+	optionNameTimeout           string = "timeout"
 )
 
 func (c *command) initCreateBeeCluster() *cobra.Command {
@@ -23,14 +23,14 @@ func (c *command) initCreateBeeCluster() *cobra.Command {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 			start := time.Now()
-			_, err = c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, true)
+			_, err = c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), true)
 			c.log.Infof("cluster setup took %s", time.Since(start))
 			return err
 		},
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().String(optionNameClusterName, "", "cluster name")
 	cmd.Flags().String(optionNameChainNodeEndpoint, "", "Endpoint to chain node. Required.")
 	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")

@@ -12,6 +12,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"github.com/ethersphere/beekeeper/pkg/stamper"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
@@ -52,14 +53,11 @@ type command struct {
 	globalConfig     *viper.Viper
 	globalConfigFile string
 	homeDir          string
-	// configuration
-	config *config.Config
-	// kubernetes client
-	k8sClient *k8s.Client
-	// swap client
-	swapClient swap.Client
-	// log
-	log logging.Logger
+	config           *config.Config // beekeeper clusters configuration (config dir)
+	k8sClient        *k8s.Client    // kubernetes client
+	stamper          stamper.Client
+	swapClient       swap.Client
+	log              logging.Logger
 }
 
 type option func(*command)
@@ -72,7 +70,7 @@ func newCommand(opts ...option) (c *command, err error) {
 			SilenceErrors: true,
 			SilenceUsage:  true,
 			PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-				return c.initConfig()
+				return c.initConfig(cmd.Flags().Changed(optionNameClusterName))
 			},
 		},
 	}
@@ -112,6 +110,10 @@ func newCommand(opts ...option) (c *command, err error) {
 		return nil, err
 	}
 
+	if err := c.initStamperCmd(); err != nil {
+		return nil, err
+	}
+
 	if err := c.initRestartCmd(); err != nil {
 		return nil, err
 	}
@@ -139,6 +141,7 @@ func Execute() (err error) {
 	if err != nil {
 		return err
 	}
+
 	return c.Execute()
 }
 
@@ -163,58 +166,90 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameKubeconfig, "~/.kube/config", "Path to the kubeconfig file")
 }
 
-func (c *command) bindGlobalFlags() (err error) {
-	for _, flag := range []string{optionNameConfigDir, optionNameConfigGitRepo, optionNameConfigGitBranch, optionNameConfigGitDir, optionNameConfigGitUsername, optionNameConfigGitPassword, optionNameLogVerbosity, optionNameLokiEndpoint} {
+func (c *command) bindGlobalFlags() error {
+	for _, flag := range []string{
+		optionNameConfigDir,
+		optionNameConfigGitRepo,
+		optionNameConfigGitBranch,
+		optionNameConfigGitDir,
+		optionNameConfigGitUsername,
+		optionNameConfigGitPassword,
+		optionNameLogVerbosity,
+		optionNameLokiEndpoint,
+	} {
 		if err := c.globalConfig.BindPFlag(flag, c.root.PersistentFlags().Lookup(flag)); err != nil {
-			return err
+			return fmt.Errorf("binding %s flag: %w", flag, err)
 		}
 	}
-	return
+
+	return nil
 }
 
-func (c *command) initConfig() (err error) {
-	// set global configuration
+func (c *command) initConfig(loadConfigDir bool) error {
+	if err := c.initGlobalConfig(); err != nil {
+		return fmt.Errorf("initializing global configuration: %w", err)
+	}
+
+	if err := c.initLogger(); err != nil {
+		return fmt.Errorf("initializing logger: %w", err)
+	}
+
+	if !loadConfigDir {
+		c.log.Debugf("skpping loading configuration directory as the cluster name is not used")
+		return nil
+	}
+
+	if err := c.loadConfigDirectory(); err != nil {
+		return fmt.Errorf("loading configuration directory: %w", err)
+	}
+
+	return nil
+}
+
+func (c *command) initGlobalConfig() error {
 	cfg := viper.New()
 	cfgName := ".beekeeper"
+
 	if c.globalConfigFile != "" {
-		// Use config file from the flag.
 		cfg.SetConfigFile(c.globalConfigFile)
 	} else {
-		// Search config in home directory with name ".beekeeper" (without extension).
 		cfg.AddConfigPath(c.homeDir)
 		cfg.SetConfigName(cfgName)
 	}
 
-	// environment
 	cfg.SetEnvPrefix("beekeeper")
-	cfg.AutomaticEnv() // read in environment variables that match
+	cfg.AutomaticEnv()
 	cfg.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 
 	if c.homeDir != "" && c.globalConfigFile == "" {
 		c.globalConfigFile = filepath.Join(c.homeDir, cfgName+".yaml")
 	}
 
-	// if a config file is found, read it in.
 	if err := cfg.ReadInConfig(); err != nil {
-		var e viper.ConfigFileNotFoundError
-		if !errors.As(err, &e) {
+		if !errors.As(err, &viper.ConfigFileNotFoundError{}) {
 			return err
 		}
 	}
 
 	c.globalConfig = cfg
-	if err := c.bindGlobalFlags(); err != nil {
-		return err
-	}
 
-	// init logger
+	return c.bindGlobalFlags()
+}
+
+func (c *command) initLogger() error {
 	verbosity := c.globalConfig.GetString(optionNameLogVerbosity)
 	lokiEndpoint := c.globalConfig.GetString(optionNameLokiEndpoint)
-	c.log, err = newLogger(c.root, verbosity, lokiEndpoint)
+
+	log, err := newLogger(c.root, verbosity, lokiEndpoint)
 	if err != nil {
 		return fmt.Errorf("new logger: %w", err)
 	}
 
+	c.log = log
+	return nil
+}
+
+func (c *command) loadConfigDirectory() error {
 	if c.globalConfig.GetString(optionNameConfigGitRepo) != "" {
 		c.log.Debugf("using configuration from Git repository %s, branch %s, directory %s", c.globalConfig.GetString(optionNameConfigGitRepo), c.globalConfig.GetString(optionNameConfigGitBranch), c.globalConfig.GetString(optionNameConfigGitDir))
 		// read configuration from git repo
@@ -294,17 +329,19 @@ func (c *command) initConfig() (err error) {
 		}
 	}
 
-	return
+	return nil
 }
 
-func (c *command) setHomeDir() (err error) {
+func (c *command) setHomeDir() error {
 	if c.homeDir != "" {
-		return
+		return nil
 	}
+
 	dir, err := os.UserHomeDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("obtaining user's home dir: %w", err)
 	}
+
 	c.homeDir = dir
 	return nil
 }
@@ -314,18 +351,18 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	// set Kubernetes client
-	if err := c.setK8S(); err != nil {
+	if err := c.setK8sClient(); err != nil {
 		return err
 	}
-	// set Swap client
+
 	if err := c.setSwapClient(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func (c *command) setK8S() (err error) {
+func (c *command) setK8sClient() (err error) {
 	if c.globalConfig.GetBool(optionNameEnableK8S) {
 		options := []k8s.ClientOption{
 			k8s.WithLogger(c.log),
@@ -365,6 +402,7 @@ func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string) (logging.Logg
 		logging.WithLokiOption(lokiEndpoint),
 		logging.WithMetricsOption(),
 	}
+
 	switch strings.ToLower(verbosity) {
 	case "0", "silent":
 		logger = logging.New(io.Discard, 0)
@@ -381,5 +419,6 @@ func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string) (logging.Logg
 	default:
 		return nil, fmt.Errorf("unknown %s level %q, use help to check flag usage options", optionNameLogVerbosity, verbosity)
 	}
+
 	return logger, nil
 }

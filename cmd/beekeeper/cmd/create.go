@@ -14,7 +14,7 @@ func (c *command) initCreateCmd() (err error) {
 		},
 	}
 
-	cmd.AddCommand(c.initCreateK8SNamespace())
+	cmd.AddCommand(c.initCreateK8sNamespace())
 	cmd.AddCommand(c.initCreateBeeCluster())
 
 	c.root.AddCommand(cmd)

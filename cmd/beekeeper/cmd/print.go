@@ -11,10 +11,7 @@ import (
 )
 
 func (c *command) initPrintCmd() (err error) {
-	const (
-		optionNameClusterName = "cluster-name"
-		optionNameTimeout     = "timeout"
-	)
+	const optionNameTimeout = "timeout"
 
 	cmd := &cobra.Command{
 		Use:   "print",
@@ -44,7 +41,7 @@ Requires exactly one argument from the following list: addresses, depths, nodes,
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), c.config, false)
+			cluster, err := c.setupCluster(ctx, c.globalConfig.GetString(optionNameClusterName), false)
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}

@@ -19,7 +19,11 @@ type nodeResult struct {
 	err        error
 }
 
-func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config, deleteStorage bool) (err error) {
+func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config, deleteStorage bool) error {
+	if clusterName == "" {
+		return errMissingClusterName
+	}
+
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return fmt.Errorf("cluster %s not defined", clusterName)
@@ -70,12 +74,14 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			if err != nil {
 				return err
 			}
+
 			if len(v.Nodes) > 0 {
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := fmt.Sprintf("%s-%d", ngName, i)
 					if len(v.Nodes[i].Name) > 0 {
 						nName = v.Nodes[i].Name
 					}
+
 					if err := ng.DeleteNode(ctx, nName); err != nil {
 						return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 					}
@@ -105,11 +111,15 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		}
 	}
 
-	return
+	return nil
 }
 
-func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, startCluster bool) (cluster orchestration.Cluster, err error) {
-	clusterConfig, ok := cfg.Clusters[clusterName]
+func (c *command) setupCluster(ctx context.Context, clusterName string, startCluster bool) (cluster orchestration.Cluster, err error) {
+	if clusterName == "" {
+		return nil, errMissingClusterName
+	}
+
+	clusterConfig, ok := c.config.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
 	}
@@ -139,7 +149,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	inCluster := c.globalConfig.GetBool(optionNameInCluster)
 
 	// setup bootnode node group
-	fundAddresses, bootnodes, err := setupNodes(ctx, clusterConfig, cfg, true, cluster, startCluster, inCluster, "", nodeResultChan)
+	fundAddresses, bootnodes, err := setupNodes(ctx, clusterConfig, c.config, true, cluster, startCluster, inCluster, "", nodeResultChan)
 	if err != nil {
 		return nil, fmt.Errorf("setup node group bootnode: %w", err)
 	}
@@ -153,7 +163,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 	}
 
 	// setup other node groups
-	fundAddresses, _, err = setupNodes(ctx, clusterConfig, cfg, false, cluster, startCluster, inCluster, bootnodes, nodeResultChan)
+	fundAddresses, _, err = setupNodes(ctx, clusterConfig, c.config, false, cluster, startCluster, inCluster, bootnodes, nodeResultChan)
 	if err != nil {
 		return nil, fmt.Errorf("setup other node groups: %w", err)
 	}
@@ -165,7 +175,8 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		}
 		c.log.Infof("node groups funded")
 	}
-	c.log.Infof("cluster %s setup completed", clusterName)
+
+	c.log.WithField("use-static-endpoints", clusterConfig.IsUsingStaticEndpoints()).Infof("cluster %s setup completed", clusterName)
 
 	return cluster, nil
 }

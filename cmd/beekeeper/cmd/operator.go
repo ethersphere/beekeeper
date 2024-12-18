@@ -5,12 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/funder/operator"
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initOperatorCmd() (err error) {
+func (c *command) initOperatorCmd() error {
 	const (
 		optionNameNamespace         = "namespace"
 		optionNameChainNodeEndpoint = "geth-url"
@@ -23,28 +22,23 @@ func (c *command) initOperatorCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "node-operator",
-		Short: "scans for scheduled pods and funds them",
-		Long:  `Node operator scans for scheduled pods and funds them using node-funder. beekeeper node-operator`,
+		Short: "scans for scheduled Kubernetes pods and funds them",
+		Long:  `Node operator scans for scheduled Kubernetes pods and funds them using node-funder. beekeeper node-operator`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cfg := config.NodeFunder{}
-
-			var namespace string
-			if namespace = c.globalConfig.GetString(optionNameNamespace); namespace == "" {
+			namespace := c.globalConfig.GetString(optionNameNamespace)
+			if namespace == "" {
 				return errors.New("namespace not provided")
 			}
 
-			// chain node endpoint check
-			if cfg.ChainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); cfg.ChainNodeEndpoint == "" {
+			chainNodeEndpoint := c.globalConfig.GetString(optionNameChainNodeEndpoint)
+			if chainNodeEndpoint == "" {
 				return errors.New("chain node endpoint (geth-url) not provided")
 			}
 
-			// wallet key check
-			if cfg.WalletKey = c.globalConfig.GetString(optionNameWalletKey); cfg.WalletKey == "" {
+			walletKey := c.globalConfig.GetString(optionNameWalletKey)
+			if walletKey == "" {
 				return errors.New("wallet key not provided")
 			}
-
-			cfg.MinAmounts.NativeCoin = c.globalConfig.GetFloat64(optionNameMinNative)
-			cfg.MinAmounts.SwarmToken = c.globalConfig.GetFloat64(optionNameMinSwarm)
 
 			// add timeout to operator
 			// if timeout is not set, operator will run infinitely
@@ -63,9 +57,10 @@ func (c *command) initOperatorCmd() (err error) {
 			return operator.NewClient(&operator.ClientConfig{
 				Log:               c.log,
 				Namespace:         namespace,
-				WalletKey:         cfg.WalletKey,
-				ChainNodeEndpoint: cfg.ChainNodeEndpoint,
-				MinAmounts:        cfg.MinAmounts,
+				WalletKey:         walletKey,
+				ChainNodeEndpoint: chainNodeEndpoint,
+				NativeToken:       c.globalConfig.GetFloat64(optionNameMinNative),
+				SwarmToken:        c.globalConfig.GetFloat64(optionNameMinSwarm),
 				K8sClient:         c.k8sClient,
 				LabelSelector:     c.globalConfig.GetString(optionNameLabelSelector),
 			}).Run(ctxNew)
@@ -78,8 +73,8 @@ func (c *command) initOperatorCmd() (err error) {
 	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")
-	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources within the specified namespace. An empty string disables filtering, allowing all resources to be selected.")
-	cmd.Flags().Duration(optionNameTimeout, 0*time.Minute, "Timeout. Default is infinite.")
+	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources within the specified namespace. Use an empty string to select all resources.")
+	cmd.Flags().Duration(optionNameTimeout, 0*time.Minute, "Maximum duration to wait for the operation to complete. Default is no timeout.")
 
 	c.root.AddCommand(cmd)
 

@@ -27,7 +27,7 @@ type Options struct {
 	PostageDepth       uint64
 	PostageLabel       string
 	Seed               int64
-	Threshold          int64 // balances treshold
+	Threshold          int64 // balances threshold
 	UploadNodeCount    int
 	WaitAfterUpload    time.Duration // seconds to wait before downloading a file
 	WaitBeforeDownload time.Duration // seconds to wait before downloading a file

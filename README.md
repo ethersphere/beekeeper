@@ -27,7 +27,15 @@
 
 ## Introduction
 
-**Ethereum Swarm Beekeeper** is tool used for orchestrating cluster of [Ethereum Swarm Bee](https://github.com/ethersphere/bee) and running integration tests and simulations against it in the Kubernetes.
+**Ethereum Swarm Beekeeper** is an orchestration and testing tool for managing [Ethereum Swarm Bee](https://github.com/ethersphere/bee) clusters. It enables:
+
+- **Cluster Management**: Automate creation and deletion of Bee clusters in Kubernetes.
+- **Integration Checks**: Run tests (e.g., `pingpong`, `pushsync`) to validate network behavior.
+- **Static Endpoints Support**: Execute checks without Kubernetes by using static Bee node endpoints.
+- **Node Funding**: Automate funding Bee nodes with ETH and BZZ tokens (Kubernetes optional).
+- **Dynamic Configuration**: Use flexible YAML-based configs for customizable actions.
+
+Beekeeper simplifies managing and testing Bee nodes, whether deployed in Kubernetes or standalone environments.
 
 ## Requirements
 

@@ -57,7 +57,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (po
 		}
 	}
 
-	return
+	return pod, nil
 }
 
 // Delete deletes Pod
@@ -100,14 +100,15 @@ func (c *Client) DeletePods(ctx context.Context, namespace, labelSelector string
 	if len(deletionErrors) > 0 {
 		return deletedCount, fmt.Errorf("some pods failed to delete: %v", deletionErrors)
 	}
+
 	return deletedCount, nil
 }
 
-// WatchNewRunning detects new running Pods in the namespace and sends their IPs to the channel.
-func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector string, newPodIps chan string) (err error) {
+// WatchNewRunning detects new running Pods in the namespace and sends them to the channel.
+func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector string, newPods chan *v1.Pod) error {
 	c.log.Debugf("starting events watch in namespace %s, label selector %s", namespace, labelSelector)
-	defer c.log.Infof("events watch done")
-	defer close(newPodIps)
+	defer c.log.Debug("events watch done")
+	defer close(newPods)
 
 	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
@@ -125,13 +126,19 @@ func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector s
 			if !ok {
 				return fmt.Errorf("watch channel closed")
 			}
+
 			switch event.Type {
 			// case watch.Added: // already running pods
 			case watch.Modified:
 				pod, ok := event.Object.(*v1.Pod)
 				if ok {
 					if pod.Status.PodIP != "" && pod.ObjectMeta.DeletionTimestamp == nil && pod.Status.Phase == v1.PodRunning {
-						newPodIps <- pod.Status.PodIP
+						for _, condition := range pod.Status.Conditions {
+							if condition.Type == v1.PodReady && condition.Status == v1.ConditionTrue {
+								newPods <- pod
+								break
+							}
+						}
 					}
 				}
 			}
