@@ -102,8 +102,7 @@ func (c *command) initStamperDilute() *cobra.Command {
 			periodicCheck := c.globalConfig.GetDuration(optionNamePeriodicCheck)
 
 			if periodicCheck == 0 {
-				c.stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
-				return nil
+				return c.stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
 			}
 
 			diluteExecutor := scheduler.NewPeriodicExecutor(periodicCheck, c.log)
