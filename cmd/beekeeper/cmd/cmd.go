@@ -358,6 +358,7 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 	if err := c.setSwapClient(); err != nil {
 		return err
 	}
+
 	return nil
 }
 

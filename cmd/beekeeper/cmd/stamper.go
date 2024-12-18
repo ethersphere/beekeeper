@@ -1,53 +1,47 @@
 package cmd
 
 import (
+	"context"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/scheduler"
 	"github.com/ethersphere/beekeeper/pkg/stamper"
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initStamperCmd() (err error) {
-	const (
-		optionNameNamespace     = "namespace"
-		optionNameTimeout       = "timeout"
-		optionNameLabelSelector = "label-selector"
-	)
+const (
+	optionNamePeriodicCheck string = "periodic-check"
+	optionNameNamespace     string = "namespace"
+	optionNameLabelSelector string = "label-selector"
+)
 
+func (c *command) initStamperCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "stamper",
 		Short: "Manage postage batches for nodes",
 		Long:  `Use the stamper command to manage postage batches for nodes. Topup, dilution and creation of postage batches are supported.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			namespace := c.globalConfig.GetString(optionNameNamespace)
-			// clusterName := c.globalConfig.GetString(optionNameClusterName)
-
-			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
-				Log:           c.log,
-				Namespace:     namespace,
-				K8sClient:     c.k8sClient,
-				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
-				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
-			})
-
-			return
+			return cmd.Help()
 		},
-		PreRunE: c.preRunE,
 	}
 
-	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace. Overrides cluster name if set.")
-	cmd.PersistentFlags().String(optionNameClusterName, "", "Name of the Beekeeper cluster to target. Ignored if a namespace is specified, in which case the namespace from the cluster configuration is used.")
-	cmd.PersistentFlags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources within the specified namespace. Use an empty string to select all resources.")
-	cmd.PersistentFlags().Duration(optionNameTimeout, 0*time.Minute, "Maximum duration to wait for the operation to complete. Default is no timeout.")
-
-	cmd.AddCommand(c.initStamperTopup())
-	cmd.AddCommand(c.initStamperDilute())
-	cmd.AddCommand(c.initStamperCreate())
-	cmd.AddCommand(c.initStamperSet())
+	cmd.AddCommand(initStamperDefaultFlags(c.initStamperTopup()))
+	cmd.AddCommand(initStamperDefaultFlags(c.initStamperDilute()))
+	cmd.AddCommand(initStamperDefaultFlags(c.initStamperCreate()))
+	cmd.AddCommand(initStamperDefaultFlags(c.initStamperSet()))
 
 	c.root.AddCommand(cmd)
 
 	return nil
+}
+
+func initStamperDefaultFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.PersistentFlags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name).")
+	cmd.PersistentFlags().String(optionNameClusterName, "", "Target Beekeeper cluster name.")
+	cmd.PersistentFlags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources (use empty string for all).")
+	cmd.PersistentFlags().Duration(optionNameTimeout, 0*time.Minute, "Operation timeout (no timeout by default).")
+	cmd.PersistentFlags().Duration(optionNamePeriodicCheck, 0*time.Minute, "Periodic stamper check interval (none by default).")
+	return cmd
 }
 
 func (c *command) initStamperTopup() *cobra.Command {
@@ -84,12 +78,51 @@ func (c *command) initStamperDilute() *cobra.Command {
 		Short: "Dilute postage batches",
 		Long:  `Dilute postage batches.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return
+			var ctx context.Context
+			var cancel context.CancelFunc
+			timeout := c.globalConfig.GetDuration(optionNameTimeout)
+			if timeout > 0 {
+				ctx, cancel = context.WithTimeout(cmd.Context(), timeout)
+				defer cancel()
+			} else {
+				ctx = context.Background()
+			}
+
+			namespace := c.globalConfig.GetString(optionNameNamespace)
+			// clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
+				Log:           c.log,
+				Namespace:     namespace,
+				K8sClient:     c.k8sClient,
+				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
+				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
+			})
+
+			periodicCheck := c.globalConfig.GetDuration(optionNamePeriodicCheck)
+
+			if periodicCheck == 0 {
+				c.stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
+				return nil
+			}
+
+			diluteExecutor := scheduler.NewPeriodicExecutor(periodicCheck, c.log)
+			diluteExecutor.Start(ctx, func(ctx context.Context) error {
+				return c.stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
+			})
+			defer diluteExecutor.Stop()
+
+			<-ctx.Done()
+
+			c.log.Infof("dilution stopped: %v", ctx.Err())
+
+			return nil
 		},
+		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().Float64(optionUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
-	cmd.Flags().Uint16(optionDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
+	cmd.Flags().Uint8(optionDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
 
 	c.root.AddCommand(cmd)
 

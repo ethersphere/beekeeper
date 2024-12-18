@@ -15,7 +15,7 @@ import (
 
 type Client interface {
 	Create(ctx context.Context, amount uint64, depth uint8) error
-	Dilute(ctx context.Context, threshold float64, depth uint8) error
+	Dilute(ctx context.Context, threshold float64, depth uint16) error
 	Set(ctx context.Context, ttlThreshold, topupDuration time.Duration, threshold float64, depth uint16) error
 	Topup(ctx context.Context, ttlThreshold, topupDuration time.Duration) error
 }
@@ -61,7 +61,7 @@ func (s *StamperClient) Create(ctx context.Context, amount uint64, depth uint8) 
 }
 
 // Dilute implements Client.
-func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint8) error {
+func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint16) error {
 	nodes, err := s.getNamespaceNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("get namespace nodes: %w", err)
@@ -151,7 +151,7 @@ func (sc *StamperClient) getIngressNodes(ctx context.Context) ([]Node, error) {
 	allNodes := append(ingressNodes, ingressRouteNodes...)
 	nodes := make([]Node, len(allNodes))
 	for i, node := range allNodes {
-		parsedURL, err := url.Parse(node.Host)
+		parsedURL, err := url.Parse(fmt.Sprintf("http://%s", node.Host))
 		if err != nil {
 			return nil, fmt.Errorf("extract base URL: %w", err)
 		}

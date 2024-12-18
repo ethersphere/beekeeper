@@ -31,7 +31,7 @@ func (n *Node) Create(ctx context.Context, amount uint64, depth uint8) error {
 	return nil
 }
 
-func (n *Node) Dilute(ctx context.Context, threshold float64, depthIncrement uint8) error {
+func (n *Node) Dilute(ctx context.Context, threshold float64, depthIncrement uint16) error {
 	batches, err := n.client.Postage.PostageBatches(ctx)
 	if err != nil {
 		return fmt.Errorf("node %s: get postage batches: %w", n.Name, err)
@@ -47,7 +47,7 @@ func (n *Node) Dilute(ctx context.Context, threshold float64, depthIncrement uin
 		stampsUsage := (float64(batch.Utilization) / divisor) * 100 // (utilization / 2^(depth - bucketDepth)) * 100
 
 		if stampsUsage >= threshold {
-			newDepth := batch.Depth + depthIncrement
+			newDepth := uint16(batch.Depth) + depthIncrement
 			if err := n.client.Postage.DilutePostageBatch(ctx, batch.BatchID, uint64(newDepth), ""); err != nil {
 				return fmt.Errorf("node %s: dilute batch %s: %w", n.Name, batch.BatchID, err)
 			}
