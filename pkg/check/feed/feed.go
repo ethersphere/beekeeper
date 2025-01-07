@@ -157,8 +157,8 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 	c.logger.Infof("index: %d", update.Index)
 	c.logger.Infof("next index: %d", update.NextIndex)
 
-	if update.NextIndex == uint64(o.NUpdates) {
-		return fmt.Errorf("expected next index to be 2, got %d", update.NextIndex)
+	if update.NextIndex != uint64(o.NUpdates) {
+		return fmt.Errorf("expected next index to be %d, got %d", o.NUpdates, update.NextIndex)
 	}
 
 	// fetch feed via bzz
