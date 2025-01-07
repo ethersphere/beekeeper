@@ -92,6 +92,8 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 	}
 	upClient := clients[nodeName]
 
+	c.logger.Infof("upload client: %s", upClient.Name())
+
 	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return err
@@ -145,13 +147,13 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 	// fetch update
 	c.logger.Infof("fetching feed update")
 	downClient := clients[nodeNames[1]]
+	c.logger.Infof("download client: %s", downClient.Name())
 	update, err := downClient.FindFeedUpdate(ctx, signer, topic, nil)
 	if err != nil {
 		return err
 	}
 
 	c.logger.Infof("node %s: feed update found", downClient.Name())
-	c.logger.Infof("reference: %d", update.Reference)
 	c.logger.Infof("index: %d", update.Index)
 	c.logger.Infof("next index: %d", update.NextIndex)
 

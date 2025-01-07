@@ -32,7 +32,6 @@ type FindFeedUpdateResponse struct {
 	Index        uint64
 	NextIndex    uint64
 	Data         []byte
-	Reference    swarm.Address
 }
 
 func ownerFromSigner(signer crypto.Signer) (string, error) {
@@ -127,15 +126,10 @@ func (f *FeedService) FindUpdate(ctx context.Context, signer crypto.Signer, topi
 	if err != nil {
 		return nil, err
 	}
-	ref, err := swarm.ParseHexAddress(header.Get(etagHeader))
-	if err != nil {
-		return nil, err
-	}
 	return &FindFeedUpdateResponse{
 		SocSignature: header.Get(swarmSocSignatureHeader),
 		Index:        index,
 		NextIndex:    nextIndex,
 		Data:         b,
-		Reference:    ref,
 	}, nil
 }
