@@ -27,6 +27,7 @@ require (
 	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
 	k8s.io/client-go v0.30.3
+	resenje.org/x v0.6.0
 )
 
 require (

@@ -109,7 +109,11 @@ func (c *command) initStamperDilute() *cobra.Command {
 			diluteExecutor.Start(ctx, func(ctx context.Context) error {
 				return c.stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
 			})
-			defer diluteExecutor.Stop()
+			defer func() {
+				if err := diluteExecutor.Close(); err != nil {
+					c.log.Errorf("failed to close dilution periodic executor: %v", err)
+				}
+			}()
 
 			<-ctx.Done()
 

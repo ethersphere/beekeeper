@@ -30,8 +30,12 @@ type ClientConfig struct {
 }
 
 type StamperClient struct {
-	*ClientConfig
-	httpClient http.Client
+	log           logging.Logger
+	namespace     string
+	k8sClient     *k8s.Client
+	labelSelector string
+	inCluster     bool
+	httpClient    http.Client
 }
 
 func NewStamperClient(cfg *ClientConfig) *StamperClient {
@@ -50,8 +54,12 @@ func NewStamperClient(cfg *ClientConfig) *StamperClient {
 	}
 
 	return &StamperClient{
-		httpClient:   *httpClient,
-		ClientConfig: cfg,
+		httpClient:    *httpClient,
+		log:           cfg.Log,
+		namespace:     cfg.Namespace,
+		k8sClient:     cfg.K8sClient,
+		labelSelector: cfg.LabelSelector,
+		inCluster:     cfg.InCluster,
 	}
 }
 
@@ -62,6 +70,7 @@ func (s *StamperClient) Create(ctx context.Context, amount uint64, depth uint8) 
 
 // Dilute implements Client.
 func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint16) error {
+	s.log.WithFields(map[string]interface{}{"usageThreshold": usageThreshold, "dilutionDepth": dilutionDepth}).Infof("diluting namespace %s", s.namespace)
 	nodes, err := s.getNamespaceNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("get namespace nodes: %w", err)
@@ -97,11 +106,11 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 }
 
 func (sc *StamperClient) getNamespaceNodes(ctx context.Context) (nodes []Node, err error) {
-	if sc.Namespace == "" {
+	if sc.namespace == "" {
 		return nil, fmt.Errorf("namespace not provided")
 	}
 
-	if sc.InCluster {
+	if sc.inCluster {
 		nodes, err = sc.getServiceNodes(ctx)
 	} else {
 		nodes, err = sc.getIngressNodes(ctx)
@@ -115,7 +124,7 @@ func (sc *StamperClient) getNamespaceNodes(ctx context.Context) (nodes []Node, e
 }
 
 func (sc *StamperClient) getServiceNodes(ctx context.Context) ([]Node, error) {
-	svcNodes, err := sc.K8sClient.Service.GetNodes(ctx, sc.Namespace, sc.LabelSelector)
+	svcNodes, err := sc.k8sClient.Service.GetNodes(ctx, sc.namespace, sc.labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("list api services: %w", err)
 	}
@@ -138,12 +147,12 @@ func (sc *StamperClient) getServiceNodes(ctx context.Context) ([]Node, error) {
 }
 
 func (sc *StamperClient) getIngressNodes(ctx context.Context) ([]Node, error) {
-	ingressNodes, err := sc.K8sClient.Ingress.GetNodes(ctx, sc.Namespace, sc.LabelSelector)
+	ingressNodes, err := sc.k8sClient.Ingress.GetNodes(ctx, sc.namespace, sc.labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("list ingress api nodes hosts: %w", err)
 	}
 
-	ingressRouteNodes, err := sc.K8sClient.IngressRoute.GetNodes(ctx, sc.Namespace, sc.LabelSelector)
+	ingressRouteNodes, err := sc.k8sClient.IngressRoute.GetNodes(ctx, sc.namespace, sc.labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("list ingress route api nodes hosts: %w", err)
 	}
