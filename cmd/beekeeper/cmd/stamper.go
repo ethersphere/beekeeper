@@ -56,8 +56,53 @@ func (c *command) initStamperTopup() *cobra.Command {
 		Short: "Top up the TTL of postage batches",
 		Long:  `Top up the TTL of postage batches.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return
+			timeout := c.globalConfig.GetDuration(optionNameTimeout)
+			ctx := cmd.Context()
+			var cancel context.CancelFunc
+
+			if timeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, timeout)
+				defer cancel()
+			}
+
+			namespace := c.globalConfig.GetString(optionNameNamespace)
+			clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+			if clusterName == "" && namespace == "" {
+				return errors.New("either cluster name or namespace must be provided")
+			}
+
+			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
+				Log:           c.log,
+				Namespace:     namespace,
+				K8sClient:     c.k8sClient,
+				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
+				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
+			})
+
+			periodicCheck := c.globalConfig.GetDuration(optionNamePeriodicCheck)
+
+			if periodicCheck == 0 {
+				return c.stamper.Topup(ctx, c.globalConfig.GetDuration(optionTTLThreshold), c.globalConfig.GetDuration(optionTopUpTo))
+			}
+
+			periodicExecutor := scheduler.NewPeriodicExecutor(periodicCheck, c.log)
+			periodicExecutor.Start(ctx, func(ctx context.Context) error {
+				return c.stamper.Topup(ctx, c.globalConfig.GetDuration(optionTTLThreshold), c.globalConfig.GetDuration(optionTopUpTo))
+			})
+			defer func() {
+				if err := periodicExecutor.Close(); err != nil {
+					c.log.Errorf("failed to close topup periodic executor: %v", err)
+				}
+			}()
+
+			<-ctx.Done()
+
+			c.log.Infof("topup stopped: %v", ctx.Err())
+
+			return nil
 		},
+		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().Duration(optionTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
@@ -79,14 +124,13 @@ func (c *command) initStamperDilute() *cobra.Command {
 		Short: "Dilute postage batches",
 		Long:  `Dilute postage batches.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			var ctx context.Context
-			var cancel context.CancelFunc
 			timeout := c.globalConfig.GetDuration(optionNameTimeout)
+			ctx := cmd.Context()
+			var cancel context.CancelFunc
+
 			if timeout > 0 {
-				ctx, cancel = context.WithTimeout(cmd.Context(), timeout)
+				ctx, cancel = context.WithTimeout(ctx, timeout)
 				defer cancel()
-			} else {
-				ctx = context.Background()
 			}
 
 			namespace := c.globalConfig.GetString(optionNameNamespace)
@@ -148,12 +192,35 @@ func (c *command) initStamperCreate() *cobra.Command {
 		Short: "Create a new postage batch",
 		Long:  `Create a new postage batch.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return
+			timeout := c.globalConfig.GetDuration(optionNameTimeout)
+			ctx := cmd.Context()
+			var cancel context.CancelFunc
+
+			if timeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, timeout)
+				defer cancel()
+			}
+
+			namespace := c.globalConfig.GetString(optionNameNamespace)
+
+			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
+				Log:           c.log,
+				Namespace:     namespace,
+				K8sClient:     c.k8sClient,
+				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
+				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
+			})
+
+			amount := c.globalConfig.GetUint64(optionNameAmount)
+			depth := c.globalConfig.GetUint16(optionNameDepth)
+
+			return c.stamper.Create(ctx, amount, depth)
 		},
+		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().Uint64(optionNameAmount, 1000000000, "Amount of tokens to be staked in the postage batch.")
-	cmd.Flags().Uint8(optionNameDepth, 8, "Depth of the postage batch.")
+	cmd.Flags().Uint64(optionNameAmount, 100000000, "Amount of tokens to be staked in the postage batch.")
+	cmd.Flags().Uint16(optionNameDepth, 0, "Depth of the postage batch.")
 
 	c.root.AddCommand(cmd)
 
@@ -173,14 +240,13 @@ func (c *command) initStamperSet() *cobra.Command {
 		Short: "Set stamper configuration",
 		Long:  `Set stamper configuration.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			var ctx context.Context
-			var cancel context.CancelFunc
 			timeout := c.globalConfig.GetDuration(optionNameTimeout)
+			ctx := cmd.Context()
+			var cancel context.CancelFunc
+
 			if timeout > 0 {
-				ctx, cancel = context.WithTimeout(cmd.Context(), timeout)
+				ctx, cancel = context.WithTimeout(ctx, timeout)
 				defer cancel()
-			} else {
-				ctx = context.Background()
 			}
 
 			namespace := c.globalConfig.GetString(optionNameNamespace)

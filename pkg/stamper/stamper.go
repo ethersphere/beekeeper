@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"golang.org/x/sync/errgroup"
 )
 
 type Client interface {
-	Create(ctx context.Context, amount uint64, depth uint8) error
+	Create(ctx context.Context, amount uint64, depth uint16) error
 	Dilute(ctx context.Context, threshold float64, depth uint16) error
 	Set(ctx context.Context, ttlThreshold, topupDuration time.Duration, threshold float64, depth uint16) error
 	Topup(ctx context.Context, ttlThreshold, topupDuration time.Duration) error
@@ -24,7 +24,6 @@ type ClientConfig struct {
 	Log           logging.Logger
 	Namespace     string
 	K8sClient     *k8s.Client
-	HTTPClient    *http.Client // injected HTTP client
 	LabelSelector string
 	InCluster     bool
 }
@@ -35,7 +34,6 @@ type StamperClient struct {
 	k8sClient     *k8s.Client
 	labelSelector string
 	inCluster     bool
-	httpClient    http.Client
 }
 
 func NewStamperClient(cfg *ClientConfig) *StamperClient {
@@ -47,14 +45,7 @@ func NewStamperClient(cfg *ClientConfig) *StamperClient {
 		cfg.Log = logging.New(io.Discard, 0)
 	}
 
-	// use the injected HTTP client if available, else create a new one
-	httpClient := cfg.HTTPClient
-	if httpClient == nil {
-		httpClient = &http.Client{}
-	}
-
 	return &StamperClient{
-		httpClient:    *httpClient,
 		log:           cfg.Log,
 		namespace:     cfg.Namespace,
 		k8sClient:     cfg.K8sClient,
@@ -64,7 +55,7 @@ func NewStamperClient(cfg *ClientConfig) *StamperClient {
 }
 
 // Create implements Client.
-func (s *StamperClient) Create(ctx context.Context, amount uint64, depth uint8) error {
+func (s *StamperClient) Create(ctx context.Context, amount uint64, depth uint16) error {
 	s.log.WithFields(map[string]interface{}{
 		"amount": amount,
 		"depth":  depth,
@@ -75,10 +66,17 @@ func (s *StamperClient) Create(ctx context.Context, amount uint64, depth uint8) 
 		return fmt.Errorf("get namespace nodes: %w", err)
 	}
 
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+
 	for _, node := range nodes {
-		if err := node.Create(ctx, amount, depth); err != nil {
-			return fmt.Errorf("create postage batch for node %s: %w", node.Name, err)
-		}
+		g.TryGo(func() error {
+			return node.Create(ctx, amount, depth)
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("create postage batch: %w", err)
 	}
 
 	return nil
@@ -96,10 +94,17 @@ func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilu
 		return fmt.Errorf("get namespace nodes: %w", err)
 	}
 
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+
 	for _, node := range nodes {
-		if err := node.Dilute(ctx, usageThreshold, dilutionDepth); err != nil {
-			return fmt.Errorf("dilute node %s: %w", node.Name, err)
-		}
+		g.TryGo(func() error {
+			return node.Dilute(ctx, usageThreshold, dilutionDepth)
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("dilute postage batch: %w", err)
 	}
 
 	return nil
@@ -112,10 +117,17 @@ func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, top
 		return fmt.Errorf("get namespace nodes: %w", err)
 	}
 
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+
 	for _, node := range nodes {
-		if err := node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth); err != nil {
-			return fmt.Errorf("set node %s: %w", node.Name, err)
-		}
+		g.TryGo(func() error {
+			return node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth)
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("set postage batch: %w", err)
 	}
 
 	return nil
@@ -133,10 +145,17 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 		return fmt.Errorf("get namespace nodes: %w", err)
 	}
 
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(10)
+
 	for _, node := range nodes {
-		if err := node.Topup(ctx, ttlThreshold, topupTo); err != nil {
-			return fmt.Errorf("topup node %s: %w", node.Name, err)
-		}
+		g.TryGo(func() error {
+			return node.Topup(ctx, ttlThreshold, topupTo)
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("topup postage batch: %w", err)
 	}
 
 	return nil
@@ -173,11 +192,9 @@ func (sc *StamperClient) getServiceNodes(ctx context.Context) ([]Node, error) {
 			return nil, fmt.Errorf("extract base URL: %w", err)
 		}
 
-		apiClient := api.NewClient(parsedURL, &api.ClientOptions{
-			HTTPClient: &sc.httpClient,
-		})
+		apiClient := api.NewClient(parsedURL, nil)
 
-		nodes[i] = *NewNodeInfo(apiClient, node.Name)
+		nodes[i] = *NewNodeInfo(apiClient, node.Name, sc.log)
 	}
 
 	return nodes, nil
@@ -202,11 +219,9 @@ func (sc *StamperClient) getIngressNodes(ctx context.Context) ([]Node, error) {
 			return nil, fmt.Errorf("extract base URL: %w", err)
 		}
 
-		apiClient := api.NewClient(parsedURL, &api.ClientOptions{
-			HTTPClient: &sc.httpClient,
-		})
+		apiClient := api.NewClient(parsedURL, nil)
 
-		nodes[i] = *NewNodeInfo(apiClient, node.Name)
+		nodes[i] = *NewNodeInfo(apiClient, node.Name, sc.log)
 	}
 
 	return nodes, nil

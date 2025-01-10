@@ -17,7 +17,7 @@ import (
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	httptransport "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -255,7 +255,7 @@ func (c *command) loadConfigDirectory() error {
 		// read configuration from git repo
 		fs := memfs.New()
 		if _, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
-			Auth: &http.BasicAuth{
+			Auth: &httptransport.BasicAuth{
 				Username: c.globalConfig.GetString(optionNameConfigGitUsername),
 				Password: c.globalConfig.GetString(optionNameConfigGitPassword),
 			},
