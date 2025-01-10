@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
@@ -89,7 +90,11 @@ func (c *command) initStamperDilute() *cobra.Command {
 			}
 
 			namespace := c.globalConfig.GetString(optionNameNamespace)
-			// clusterName := c.globalConfig.GetString(optionNameClusterName)
+			clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+			if clusterName == "" && namespace == "" {
+				return errors.New("either cluster name or namespace must be provided")
+			}
 
 			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
 				Log:           c.log,
@@ -105,12 +110,12 @@ func (c *command) initStamperDilute() *cobra.Command {
 				return c.stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
 			}
 
-			diluteExecutor := scheduler.NewPeriodicExecutor(periodicCheck, c.log)
-			diluteExecutor.Start(ctx, func(ctx context.Context) error {
+			periodicExecutor := scheduler.NewPeriodicExecutor(periodicCheck, c.log)
+			periodicExecutor.Start(ctx, func(ctx context.Context) error {
 				return c.stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
 			})
 			defer func() {
-				if err := diluteExecutor.Close(); err != nil {
+				if err := periodicExecutor.Close(); err != nil {
 					c.log.Errorf("failed to close dilution periodic executor: %v", err)
 				}
 			}()
@@ -168,7 +173,57 @@ func (c *command) initStamperSet() *cobra.Command {
 		Short: "Set stamper configuration",
 		Long:  `Set stamper configuration.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return
+			var ctx context.Context
+			var cancel context.CancelFunc
+			timeout := c.globalConfig.GetDuration(optionNameTimeout)
+			if timeout > 0 {
+				ctx, cancel = context.WithTimeout(cmd.Context(), timeout)
+				defer cancel()
+			} else {
+				ctx = context.Background()
+			}
+
+			namespace := c.globalConfig.GetString(optionNameNamespace)
+			// clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
+				Log:           c.log,
+				Namespace:     namespace,
+				K8sClient:     c.k8sClient,
+				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
+				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
+			})
+
+			periodicCheck := c.globalConfig.GetDuration(optionNamePeriodicCheck)
+
+			setFunc := func(ctx context.Context) error {
+				return c.stamper.Set(ctx,
+					c.globalConfig.GetDuration(optionTTLThreshold),
+					c.globalConfig.GetDuration(optionTopUpTo),
+					c.globalConfig.GetFloat64(optionUsageThreshold),
+					c.globalConfig.GetUint16(optionDiutionDepth),
+				)
+			}
+
+			if periodicCheck == 0 {
+				return setFunc(ctx)
+			}
+
+			periodicExecutor := scheduler.NewPeriodicExecutor(periodicCheck, c.log)
+			periodicExecutor.Start(ctx, func(ctx context.Context) error {
+				return setFunc(ctx)
+			})
+			defer func() {
+				if err := periodicExecutor.Close(); err != nil {
+					c.log.Errorf("failed to close dilution periodic executor: %v", err)
+				}
+			}()
+
+			<-ctx.Done()
+
+			c.log.Infof("dilution stopped: %v", ctx.Err())
+
+			return nil
 		},
 	}
 

@@ -47,6 +47,7 @@ func NewClient(opts ClientOptions, log logging.Logger) (c *Client) {
 		log:   log,
 	}
 
+	// TODO: add support to inject HTTP client
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{

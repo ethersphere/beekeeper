@@ -58,7 +58,15 @@ func (n *Node) Dilute(ctx context.Context, threshold float64, depthIncrement uin
 }
 
 func (n *Node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, threshold float64, depth uint16) error {
-	panic("unimplemented")
+	if err := n.Dilute(ctx, threshold, depth); err != nil {
+		return fmt.Errorf("node %s: dilute: %w", n.Name, err)
+	}
+
+	if err := n.Topup(ctx, ttlThreshold, topupDuration); err != nil {
+		return fmt.Errorf("node %s: topup: %w", n.Name, err)
+	}
+
+	return nil
 }
 
 func (n *Node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration) error {

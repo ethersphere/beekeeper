@@ -65,12 +65,32 @@ func NewStamperClient(cfg *ClientConfig) *StamperClient {
 
 // Create implements Client.
 func (s *StamperClient) Create(ctx context.Context, amount uint64, depth uint8) error {
-	panic("unimplemented")
+	s.log.WithFields(map[string]interface{}{
+		"amount": amount,
+		"depth":  depth,
+	}).Infof("creating postage batch for namespace %s", s.namespace)
+
+	nodes, err := s.getNamespaceNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("get namespace nodes: %w", err)
+	}
+
+	for _, node := range nodes {
+		if err := node.Create(ctx, amount, depth); err != nil {
+			return fmt.Errorf("create postage batch for node %s: %w", node.Name, err)
+		}
+	}
+
+	return nil
 }
 
 // Dilute implements Client.
 func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint16) error {
-	s.log.WithFields(map[string]interface{}{"usageThreshold": usageThreshold, "dilutionDepth": dilutionDepth}).Infof("diluting namespace %s", s.namespace)
+	s.log.WithFields(map[string]interface{}{
+		"usageThreshold": usageThreshold,
+		"dilutionDepth":  dilutionDepth,
+	}).Infof("diluting namespace %s", s.namespace)
+
 	nodes, err := s.getNamespaceNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("get namespace nodes: %w", err)
@@ -87,19 +107,36 @@ func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilu
 
 // Set implements Client.
 func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, usageThreshold float64, dilutionDepth uint16) error {
-	panic("unimplemented")
-}
-
-// Topup implements Client.
-func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration) (err error) {
 	nodes, err := s.getNamespaceNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("get namespace nodes: %w", err)
 	}
 
 	for _, node := range nodes {
-		_ = node
-		// do something with node
+		if err := node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth); err != nil {
+			return fmt.Errorf("set node %s: %w", node.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// Topup implements Client.
+func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration) (err error) {
+	s.log.WithFields(map[string]interface{}{
+		"ttlThreshold": ttlThreshold,
+		"topupTo":      topupTo,
+	}).Infof("topup namespace %s", s.namespace)
+
+	nodes, err := s.getNamespaceNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("get namespace nodes: %w", err)
+	}
+
+	for _, node := range nodes {
+		if err := node.Topup(ctx, ttlThreshold, topupTo); err != nil {
+			return fmt.Errorf("topup node %s: %w", node.Name, err)
+		}
 	}
 
 	return nil
