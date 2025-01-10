@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -24,6 +25,7 @@ type ClientConfig struct {
 	Log           logging.Logger
 	Namespace     string
 	K8sClient     *k8s.Client
+	BeeClients    map[string]*bee.Client
 	LabelSelector string
 	InCluster     bool
 }
@@ -32,6 +34,7 @@ type StamperClient struct {
 	log           logging.Logger
 	namespace     string
 	k8sClient     *k8s.Client
+	beeClients    map[string]*bee.Client
 	labelSelector string
 	inCluster     bool
 }
@@ -49,6 +52,7 @@ func NewStamperClient(cfg *ClientConfig) *StamperClient {
 		log:           cfg.Log,
 		namespace:     cfg.Namespace,
 		k8sClient:     cfg.K8sClient,
+		beeClients:    cfg.BeeClients,
 		labelSelector: cfg.LabelSelector,
 		inCluster:     cfg.InCluster,
 	}
@@ -59,11 +63,11 @@ func (s *StamperClient) Create(ctx context.Context, amount uint64, depth uint16)
 	s.log.WithFields(map[string]interface{}{
 		"amount": amount,
 		"depth":  depth,
-	}).Infof("creating postage batch for namespace %s", s.namespace)
+	}).Infof("creating postage batch on nodes")
 
-	nodes, err := s.getNamespaceNodes(ctx)
+	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("get namespace nodes: %w", err)
+		return fmt.Errorf("get nodes: %w", err)
 	}
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -87,11 +91,11 @@ func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilu
 	s.log.WithFields(map[string]interface{}{
 		"usageThreshold": usageThreshold,
 		"dilutionDepth":  dilutionDepth,
-	}).Infof("diluting namespace %s", s.namespace)
+	}).Infof("diluting postage batch on nodes")
 
-	nodes, err := s.getNamespaceNodes(ctx)
+	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("get namespace nodes: %w", err)
+		return fmt.Errorf("get nodes: %w", err)
 	}
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -112,9 +116,16 @@ func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilu
 
 // Set implements Client.
 func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, usageThreshold float64, dilutionDepth uint16) error {
-	nodes, err := s.getNamespaceNodes(ctx)
+	s.log.WithFields(map[string]interface{}{
+		"ttlThreshold":   ttlThreshold,
+		"topupTo":        topupTo,
+		"usageThreshold": usageThreshold,
+		"dilutionDepth":  dilutionDepth,
+	}).Infof("setting topup and dilution on postage batch on nodes")
+
+	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("get namespace nodes: %w", err)
+		return fmt.Errorf("get nodes: %w", err)
 	}
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -138,11 +149,11 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 	s.log.WithFields(map[string]interface{}{
 		"ttlThreshold": ttlThreshold,
 		"topupTo":      topupTo,
-	}).Infof("topup namespace %s", s.namespace)
+	}).Infof("topup postage batch on nodes")
 
-	nodes, err := s.getNamespaceNodes(ctx)
+	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("get namespace nodes: %w", err)
+		return fmt.Errorf("get nodes: %w", err)
 	}
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -159,6 +170,23 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 	}
 
 	return nil
+}
+
+func (sc *StamperClient) getNodes(ctx context.Context) (nodes []Node, err error) {
+	if sc.namespace != "" {
+		return sc.getNamespaceNodes(ctx)
+	}
+
+	if sc.beeClients == nil {
+		return nil, fmt.Errorf("bee clients not provided")
+	}
+
+	nodes = make([]Node, 0, len(sc.beeClients))
+	for nodeName, beeClient := range sc.beeClients {
+		nodes = append(nodes, *NewNodeInfo(beeClient.API(), nodeName, sc.log))
+	}
+
+	return nodes, nil
 }
 
 func (sc *StamperClient) getNamespaceNodes(ctx context.Context) (nodes []Node, err error) {

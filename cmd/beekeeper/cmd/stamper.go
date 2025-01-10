@@ -3,8 +3,10 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
 	"github.com/ethersphere/beekeeper/pkg/stamper"
 	"github.com/spf13/cobra"
@@ -72,10 +74,25 @@ func (c *command) initStamperTopup() *cobra.Command {
 				return errors.New("either cluster name or namespace must be provided")
 			}
 
+			var beeClients map[string]*bee.Client
+
+			if clusterName != "" {
+				cluster, err := c.setupCluster(ctx, clusterName, false)
+				if err != nil {
+					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+				}
+
+				beeClients, err = cluster.NodesClients(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to retrieve node clients: %w", err)
+				}
+			}
+
 			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
 				Log:           c.log,
 				Namespace:     namespace,
 				K8sClient:     c.k8sClient,
+				BeeClients:    beeClients,
 				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
 			})
@@ -140,10 +157,25 @@ func (c *command) initStamperDilute() *cobra.Command {
 				return errors.New("either cluster name or namespace must be provided")
 			}
 
+			var beeClients map[string]*bee.Client
+
+			if clusterName != "" {
+				cluster, err := c.setupCluster(ctx, clusterName, false)
+				if err != nil {
+					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+				}
+
+				beeClients, err = cluster.NodesClients(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to retrieve node clients: %w", err)
+				}
+			}
+
 			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
 				Log:           c.log,
 				Namespace:     namespace,
 				K8sClient:     c.k8sClient,
+				BeeClients:    beeClients,
 				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
 			})
@@ -202,11 +234,31 @@ func (c *command) initStamperCreate() *cobra.Command {
 			}
 
 			namespace := c.globalConfig.GetString(optionNameNamespace)
+			clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+			if clusterName == "" && namespace == "" {
+				return errors.New("either cluster name or namespace must be provided")
+			}
+
+			var beeClients map[string]*bee.Client
+
+			if clusterName != "" {
+				cluster, err := c.setupCluster(ctx, clusterName, false)
+				if err != nil {
+					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+				}
+
+				beeClients, err = cluster.NodesClients(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to retrieve node clients: %w", err)
+				}
+			}
 
 			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
 				Log:           c.log,
 				Namespace:     namespace,
 				K8sClient:     c.k8sClient,
+				BeeClients:    beeClients,
 				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
 			})
@@ -250,12 +302,31 @@ func (c *command) initStamperSet() *cobra.Command {
 			}
 
 			namespace := c.globalConfig.GetString(optionNameNamespace)
-			// clusterName := c.globalConfig.GetString(optionNameClusterName)
+			clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+			if clusterName == "" && namespace == "" {
+				return errors.New("either cluster name or namespace must be provided")
+			}
+
+			var beeClients map[string]*bee.Client
+
+			if clusterName != "" {
+				cluster, err := c.setupCluster(ctx, clusterName, false)
+				if err != nil {
+					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+				}
+
+				beeClients, err = cluster.NodesClients(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to retrieve node clients: %w", err)
+				}
+			}
 
 			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
 				Log:           c.log,
 				Namespace:     namespace,
 				K8sClient:     c.k8sClient,
+				BeeClients:    beeClients,
 				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
 			})
@@ -281,13 +352,13 @@ func (c *command) initStamperSet() *cobra.Command {
 			})
 			defer func() {
 				if err := periodicExecutor.Close(); err != nil {
-					c.log.Errorf("failed to close dilution periodic executor: %v", err)
+					c.log.Errorf("failed to close topup and dilute periodic executor: %v", err)
 				}
 			}()
 
 			<-ctx.Done()
 
-			c.log.Infof("dilution stopped: %v", ctx.Err())
+			c.log.Infof("topup and dilute stopped: %v", ctx.Err())
 
 			return nil
 		},
