@@ -90,7 +90,7 @@ func (n *Node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDurat
 		batchTTL := time.Unix(batch.BatchTTL, 0)
 		if time.Until(batchTTL) <= ttlThreshold {
 			// TODO: calculate amount to topup based on topupDuration
-			if err := n.client.Postage.TopUpPostageBatch(ctx, batch.BatchID, int64(batch.Amount.Int64())+10000, ""); err != nil {
+			if err := n.client.Postage.TopUpPostageBatch(ctx, batch.BatchID, 10000, ""); err != nil {
 				return fmt.Errorf("node %s: topup batch %s: %w", n.name, batch.BatchID, err)
 			}
 
