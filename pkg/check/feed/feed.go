@@ -13,6 +13,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // Options represents check options
@@ -57,12 +58,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	if o.RootRef != "" {
 		c.logger.Infof("running availability check")
-		return c.availability(ctx, cluster, o)
+		return c.checkAvailability(ctx, cluster, o)
 	}
-	return c.regular(ctx, cluster, o)
+	return c.feedCheck(ctx, cluster, o)
 }
 
-func (c *Check) availability(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+func (c *Check) checkAvailability(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	ref, err := swarm.ParseHexAddress(o.RootRef)
 	if err != nil {
 		return fmt.Errorf("invalid root ref: %w", err)
@@ -83,14 +84,23 @@ func (c *Check) availability(ctx context.Context, cluster orchestration.Cluster,
 	return nil
 }
 
-func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Options) error {
-	nodeNames := cluster.FullNodeNames()
-	nodeName := nodeNames[0]
+// feedCheck creates a root feed manifest, makes a series of updates to the feed
+// and verifies that the updates are retrievable via another node.
+func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+	rnd := random.PseudoGenerator(time.Now().UnixNano())
+	perm := rnd.Perm(cluster.Size())
+	names := cluster.FullNodeNames()
+
+	if len(names) < 2 {
+		return fmt.Errorf("not enough nodes to run feed check")
+	}
+
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
-	upClient := clients[nodeName]
+	upClient := clients[names[perm[0]]]
+	downClient := clients[names[perm[1]]]
 
 	c.logger.Infof("upload client: %s", upClient.Name())
 
@@ -115,7 +125,7 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 	if err != nil {
 		return err
 	}
-	c.logger.Infof("node %s: manifest created", nodeName)
+	c.logger.Infof("node %s: manifest created", upClient.Name())
 	c.logger.Infof("reference: %s", createManifestRes.Reference)
 	c.logger.Infof("owner: %s", createManifestRes.Owner)
 	c.logger.Infof("topic: %s", createManifestRes.Topic)
@@ -138,7 +148,7 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 		if err != nil {
 			return err
 		}
-		c.logger.Infof("node %s: feed updated", nodeName)
+		c.logger.Infof("node %s: feed updated", upClient.Name())
 		c.logger.Infof("soc reference: %s", socRes.Reference)
 		c.logger.Infof("wrapped reference: %s", file.Address())
 	}
@@ -146,7 +156,6 @@ func (c *Check) regular(ctx context.Context, cluster orchestration.Cluster, o Op
 
 	// fetch update
 	c.logger.Infof("fetching feed update")
-	downClient := clients[nodeNames[1]]
 	c.logger.Infof("download client: %s", downClient.Name())
 	update, err := downClient.FindFeedUpdate(ctx, signer, topic, nil)
 	if err != nil {
