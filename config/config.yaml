@@ -387,6 +387,13 @@ checks:
     timeout: 10m
     type: gsoc
 
+  feed:
+    options:
+      postage-amount: 100000
+      postage-depth: 20
+      postage-label: feed-label
+    type: feed
+
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options
 simulations:

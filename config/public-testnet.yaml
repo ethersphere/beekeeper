@@ -143,3 +143,13 @@ checks:
         - bee-4
     timeout: 12h
     type: load
+  pt-feed:
+    options:
+      postage-amount: 140000000
+      postage-depth: 20
+      postage-label: feed-label
+    type: feed
+  pt-feed-availability:
+    options:
+      root-ref: "6c8ee8e33d1eb652cd595dc34ab212ca1970762ad02364c7b45e8c3ba7742666"
+    type: feed

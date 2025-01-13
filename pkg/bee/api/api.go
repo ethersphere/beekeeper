@@ -19,6 +19,7 @@ import (
 const (
 	apiVersion                  = "v1"
 	contentType                 = "application/json, text/plain, */*; charset=utf-8"
+	etagHeader                  = "ETag"
 	postageStampBatchHeader     = "Swarm-Postage-Batch-Id"
 	deferredUploadHeader        = "Swarm-Deferred-Upload"
 	swarmAct                    = "Swarm-Act"
@@ -29,6 +30,10 @@ const (
 	swarmTagHeader              = "Swarm-Tag"
 	swarmCacheDownloadHeader    = "Swarm-Cache"
 	swarmRedundancyFallbackMode = "Swarm-Redundancy-Fallback-Mode"
+	swarmOnlyRootChunk          = "Swarm-Only-Root-Chunk"
+	swarmSocSignatureHeader     = "Swarm-Soc-Signature"
+	swarmFeedIndexHeader        = "Swarm-Feed-Index"
+	swarmFeedIndexNextHeader    = "Swarm-Feed-Index-Next"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -53,6 +58,7 @@ type Client struct {
 	PingPong    *PingPongService
 	Postage     *PostageService
 	Stake       *StakingService
+	Feed        *FeedService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -92,6 +98,7 @@ func newClient(httpClient *http.Client) (c *Client) {
 	c.PingPong = (*PingPongService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
 	c.Stake = (*StakingService)(&c.service)
+	c.Feed = (*FeedService)(&c.service)
 	return c
 }
 
@@ -177,9 +184,15 @@ func encodeJSON(w io.Writer, v interface{}) (err error) {
 
 // requestData handles the HTTP request response cycle.
 func (c *Client) requestData(ctx context.Context, method, path string, body io.Reader, opts *DownloadOptions) (resp io.ReadCloser, err error) {
+	b, _, err := c.requestDataGetHeader(ctx, method, path, body, opts)
+	return b, err
+}
+
+// requestDataGetHeader handles the HTTP request response cycle and returns the response body and header.
+func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, body io.Reader, opts *DownloadOptions) (resp io.ReadCloser, h http.Header, err error) {
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req = req.WithContext(ctx)
 
@@ -203,6 +216,10 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 		}
 	}
 
+	if opts != nil && opts.OnlyRootChunk != nil {
+		req.Header.Set(swarmOnlyRootChunk, strconv.FormatBool(*opts.OnlyRootChunk))
+	}
+
 	if opts != nil && opts.Cache != nil {
 		req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
 	}
@@ -211,14 +228,13 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 	}
 	r, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err = responseErrorHandler(r); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	return r.Body, nil
+	return r.Body, r.Header, nil
 }
 
 // requestWithHeader handles the HTTP request response cycle.
@@ -333,4 +349,5 @@ type DownloadOptions struct {
 	ActTimestamp           *uint64
 	Cache                  *bool
 	RedundancyFallbackMode *bool
+	OnlyRootChunk          *bool
 }
