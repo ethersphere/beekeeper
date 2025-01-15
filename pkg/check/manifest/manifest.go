@@ -69,8 +69,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	rnd := random.PseudoGenerator(o.Seed)
-	perm := rnd.Perm(cluster.Size())
 	names := cluster.FullNodeNames()
+	perm := rnd.Perm(len(names))
 
 	if len(names) < 2 {
 		return fmt.Errorf("not enough nodes to run feed check")
