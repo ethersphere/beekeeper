@@ -9,23 +9,21 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
-var _ Client = (*Node)(nil)
-
-type Node struct {
+type node struct {
 	client *api.Client
 	name   string
 	log    logging.Logger
 }
 
-func NewNodeInfo(client *api.Client, name string, log logging.Logger) *Node {
-	return &Node{
+func newNodeInfo(client *api.Client, name string, log logging.Logger) *node {
+	return &node{
 		client: client,
 		name:   name,
 		log:    log,
 	}
 }
 
-func (n *Node) Create(ctx context.Context, amount uint64, depth uint16) error {
+func (n *node) Create(ctx context.Context, amount uint64, depth uint16) error {
 	batchID, err := n.client.Postage.CreatePostageBatch(ctx, int64(amount), uint64(depth), "beekeeper")
 	if err != nil {
 		return fmt.Errorf("node %s: create postage batch: %w", n.name, err)
@@ -36,14 +34,14 @@ func (n *Node) Create(ctx context.Context, amount uint64, depth uint16) error {
 	return nil
 }
 
-func (n *Node) Dilute(ctx context.Context, threshold float64, depthIncrement uint16) error {
+func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uint16) error {
 	batches, err := n.client.Postage.PostageBatches(ctx)
 	if err != nil {
 		return fmt.Errorf("node %s: get postage batches: %w", n.name, err)
 	}
 
 	for _, batch := range batches {
-		if !batch.Usable || batch.ImmutableFlag || batch.Utilization == 0 {
+		if !batch.Usable || batch.Utilization == 0 {
 			continue
 		}
 
@@ -64,26 +62,35 @@ func (n *Node) Dilute(ctx context.Context, threshold float64, depthIncrement uin
 	return nil
 }
 
-func (n *Node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, threshold float64, depth uint16) error {
-	if err := n.Dilute(ctx, threshold, depth); err != nil {
-		return fmt.Errorf("node %s: dilute: %w", n.name, err)
+func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, threshold float64, depth uint16, blockTime int64) error {
+	if err := n.Topup(ctx, ttlThreshold, topupDuration, blockTime); err != nil {
+		return fmt.Errorf("node %s: topup: %w", n.name, err)
 	}
 
-	if err := n.Topup(ctx, ttlThreshold, topupDuration); err != nil {
-		return fmt.Errorf("node %s: topup: %w", n.name, err)
+	if err := n.Dilute(ctx, threshold, depth); err != nil {
+		return fmt.Errorf("node %s: dilute: %w", n.name, err)
 	}
 
 	return nil
 }
 
-func (n *Node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration) error {
+func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, blockTime int64) error {
+	chainState, err := n.client.Postage.GetChainState(ctx)
+	if err != nil {
+		return fmt.Errorf("node %s: get chain state: %w", n.name, err)
+	}
+
+	n.log.Infof("node %s: chain state: %v", n.name, chainState)
+
+	// TODO: use price and blockTime to calculate topup amount
+
 	batches, err := n.client.Postage.PostageBatches(ctx)
 	if err != nil {
 		return fmt.Errorf("node %s: get postage batches: %w", n.name, err)
 	}
 
 	for _, batch := range batches {
-		if !batch.Usable || batch.ImmutableFlag || batch.Utilization == 0 {
+		if !batch.Usable || batch.Utilization == 0 {
 			continue
 		}
 

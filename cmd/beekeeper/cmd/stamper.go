@@ -92,6 +92,7 @@ func (c *command) initStamperTopup() *cobra.Command {
 				Log:           c.log,
 				Namespace:     namespace,
 				K8sClient:     c.k8sClient,
+				SwapClient:    c.swapClient,
 				BeeClients:    beeClients,
 				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 				InCluster:     c.globalConfig.GetBool(optionNameInCluster),

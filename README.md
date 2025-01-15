@@ -24,6 +24,9 @@
   - [node-funder](#node-funder)
   - [node-operator](#node-operator)
 - [Global flags](#global-flags)
+- [Public Testnet Checks](#public-testnet-checks)
+  - [One by one](#one-by-one)
+  - [All at once, sequentially](#all-at-once-sequentially)
 
 ## Introduction
 
@@ -39,7 +42,7 @@ Beekeeper simplifies managing and testing Bee nodes, whether deployed in Kuberne
 
 ## Requirements
 
-- Kubernetes cluster (v1.19+)
+- Kubernetes cluster (v1.31+)
 - [Geth Swap node](https://github.com/ethersphere/helm/tree/master/charts/geth-swap)
 
 ## Installation
@@ -381,10 +384,22 @@ It has following flags:
 --wallet-key string       Hex-encoded private key for the Bee node wallet. Required.
 ```
 
-example:
+#### Fund specific addresses
 
 ```bash
-beekeeper node-funder --geth-url="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --namespace=default --min-swarm=180 --min-native=2.2 --log-verbosity=3
+beekeeper node-funder --geth-url="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0 --min-swarm=180 --min-native=2.2
+```
+
+#### Fund K8S namespace (use label selector to filter nodes)
+
+```bash
+beekeeper node-funder --geth-url="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --namespace=default --min-swarm=180 --min-native=2.2 --label-selector="app=bee"
+```
+
+#### Fund all nodes in the cluster (beekeeper configuration)
+
+```bash
+beekeeper node-funder --geth-url="http://geth-swap.default.testnet.internal" --wallet-key="4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d" --cluster-name=default --min-swarm=180 --min-native=2.2
 ```
 
 ### node-operator

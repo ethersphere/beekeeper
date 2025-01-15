@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,6 +26,7 @@ type ClientConfig struct {
 	Log           logging.Logger
 	Namespace     string
 	K8sClient     *k8s.Client
+	SwapClient    swap.Client
 	BeeClients    map[string]*bee.Client
 	LabelSelector string
 	InCluster     bool
@@ -34,6 +36,7 @@ type StamperClient struct {
 	log           logging.Logger
 	namespace     string
 	k8sClient     *k8s.Client
+	swapClient    swap.Client
 	beeClients    map[string]*bee.Client
 	labelSelector string
 	inCluster     bool
@@ -108,7 +111,7 @@ func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilu
 	}
 
 	if err := g.Wait(); err != nil {
-		return fmt.Errorf("dilute postage batch: %w", err)
+		s.log.Errorf("dilute postage batch: %w", err)
 	}
 
 	return nil
@@ -128,17 +131,22 @@ func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, top
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
+	blockTime, err := s.swapClient.FetchBlockTime(ctx)
+	if err != nil {
+		return fmt.Errorf("fetching block time: %w", err)
+	}
+
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(10)
 
 	for _, node := range nodes {
 		g.TryGo(func() error {
-			return node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth)
+			return node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime)
 		})
 	}
 
 	if err := g.Wait(); err != nil {
-		return fmt.Errorf("set postage batch: %w", err)
+		s.log.Errorf("set postage batch: %w", err)
 	}
 
 	return nil
@@ -156,23 +164,28 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
+	blockTime, err := s.swapClient.FetchBlockTime(ctx)
+	if err != nil {
+		return fmt.Errorf("fetching block time: %w", err)
+	}
+
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(10)
 
 	for _, node := range nodes {
 		g.TryGo(func() error {
-			return node.Topup(ctx, ttlThreshold, topupTo)
+			return node.Topup(ctx, ttlThreshold, topupTo, blockTime)
 		})
 	}
 
 	if err := g.Wait(); err != nil {
-		return fmt.Errorf("topup postage batch: %w", err)
+		s.log.Errorf("topup postage batch: %w", err)
 	}
 
 	return nil
 }
 
-func (sc *StamperClient) getNodes(ctx context.Context) (nodes []Node, err error) {
+func (sc *StamperClient) getNodes(ctx context.Context) (nodes []node, err error) {
 	if sc.namespace != "" {
 		return sc.getNamespaceNodes(ctx)
 	}
@@ -181,15 +194,15 @@ func (sc *StamperClient) getNodes(ctx context.Context) (nodes []Node, err error)
 		return nil, fmt.Errorf("bee clients not provided")
 	}
 
-	nodes = make([]Node, 0, len(sc.beeClients))
+	nodes = make([]node, 0, len(sc.beeClients))
 	for nodeName, beeClient := range sc.beeClients {
-		nodes = append(nodes, *NewNodeInfo(beeClient.API(), nodeName, sc.log))
+		nodes = append(nodes, *newNodeInfo(beeClient.API(), nodeName, sc.log))
 	}
 
 	return nodes, nil
 }
 
-func (sc *StamperClient) getNamespaceNodes(ctx context.Context) (nodes []Node, err error) {
+func (sc *StamperClient) getNamespaceNodes(ctx context.Context) (nodes []node, err error) {
 	if sc.namespace == "" {
 		return nil, fmt.Errorf("namespace not provided")
 	}
@@ -207,13 +220,13 @@ func (sc *StamperClient) getNamespaceNodes(ctx context.Context) (nodes []Node, e
 	return nodes, nil
 }
 
-func (sc *StamperClient) getServiceNodes(ctx context.Context) ([]Node, error) {
+func (sc *StamperClient) getServiceNodes(ctx context.Context) ([]node, error) {
 	svcNodes, err := sc.k8sClient.Service.GetNodes(ctx, sc.namespace, sc.labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("list api services: %w", err)
 	}
 
-	nodes := make([]Node, len(svcNodes))
+	nodes := make([]node, len(svcNodes))
 	for i, node := range svcNodes {
 		parsedURL, err := url.Parse(node.Endpoint)
 		if err != nil {
@@ -222,13 +235,13 @@ func (sc *StamperClient) getServiceNodes(ctx context.Context) ([]Node, error) {
 
 		apiClient := api.NewClient(parsedURL, nil)
 
-		nodes[i] = *NewNodeInfo(apiClient, node.Name, sc.log)
+		nodes[i] = *newNodeInfo(apiClient, node.Name, sc.log)
 	}
 
 	return nodes, nil
 }
 
-func (sc *StamperClient) getIngressNodes(ctx context.Context) ([]Node, error) {
+func (sc *StamperClient) getIngressNodes(ctx context.Context) ([]node, error) {
 	ingressNodes, err := sc.k8sClient.Ingress.GetNodes(ctx, sc.namespace, sc.labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("list ingress api nodes hosts: %w", err)
@@ -240,7 +253,7 @@ func (sc *StamperClient) getIngressNodes(ctx context.Context) ([]Node, error) {
 	}
 
 	allNodes := append(ingressNodes, ingressRouteNodes...)
-	nodes := make([]Node, len(allNodes))
+	nodes := make([]node, len(allNodes))
 	for i, node := range allNodes {
 		parsedURL, err := url.Parse(fmt.Sprintf("http://%s", node.Host))
 		if err != nil {
@@ -249,7 +262,7 @@ func (sc *StamperClient) getIngressNodes(ctx context.Context) ([]Node, error) {
 
 		apiClient := api.NewClient(parsedURL, nil)
 
-		nodes[i] = *NewNodeInfo(apiClient, node.Name, sc.log)
+		nodes[i] = *newNodeInfo(apiClient, node.Name, sc.log)
 	}
 
 	return nodes, nil
