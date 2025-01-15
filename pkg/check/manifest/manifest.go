@@ -158,6 +158,9 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	}
 
 	tarReader, err := tarFiles(files)
+	if err != nil {
+		return err
+	}
 	tarFile := bee.NewBufferFile("", tarReader)
 	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
 		return err
@@ -185,6 +188,9 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	}
 	files[0] = tmp[0]
 	tarReader, err = tarFiles(files)
+	if err != nil {
+		return err
+	}
 	tarFile = bee.NewBufferFile("", tarReader)
 	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID, Direct: true}); err != nil {
 		return err
