@@ -162,7 +162,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 		return err
 	}
 	tarFile := bee.NewBufferFile("", tarReader)
-	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID}); err != nil {
+	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID, IndexDocument: "index.html"}); err != nil {
 		return err
 	}
 	c.logger.Infof("collection uploaded: %s", tarFile.Address())
@@ -181,18 +181,18 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 		return err
 	}
 
-	// update index.html file
-	tmp, err := generateFilesWithPaths(rnd, []string{"index.html"}, int(o.MaxPathnameLength))
+	// update  website files
+	files, err = generateFilesWithPaths(rnd, paths, int(o.MaxPathnameLength))
 	if err != nil {
 		return err
 	}
-	files[0] = tmp[0]
+
 	tarReader, err = tarFiles(files)
 	if err != nil {
 		return err
 	}
 	tarFile = bee.NewBufferFile("", tarReader)
-	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID, Direct: true}); err != nil {
+	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID, IndexDocument: "index.html"}); err != nil {
 		return err
 	}
 	time.Sleep(3 * time.Second)
