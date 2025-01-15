@@ -206,7 +206,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 
 	// download other paths and compare
 	for i := 0; i < len(files); i++ {
-		err = c.download(downClient, rootFeedRef.Reference, &files[i], files[0])
+		err = c.download(downClient, tarFile.Address(), &files[i], files[0])
 		if err != nil {
 			return err
 		}
