@@ -168,7 +168,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	c.logger.Infof("collection uploaded: %s", tarFile.Address())
 	time.Sleep(3 * time.Second)
 
-	//push first version of website to the feed
+	// push first version of website to the feed
 	ref, err := upClient.UpdateFeedWithReference(ctx, signer, topic, 0, tarFile.Address(), api.UploadOptions{BatchID: batchID})
 	if err != nil {
 		return err
