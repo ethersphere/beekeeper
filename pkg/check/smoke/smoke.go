@@ -241,7 +241,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
 		}
 		rxCancel()
-		
+
 		time.Sleep(o.IterationWait)
 	}
 
