@@ -36,6 +36,7 @@ type Options struct {
 	MaxUseBatch            time.Duration
 	MaxStorageRadius       uint8
 	StorageRadiusCheckWait time.Duration
+	IterationWait          time.Duration
 }
 
 // NewDefaultOptions returns new default options
@@ -54,6 +55,7 @@ func NewDefaultOptions() Options {
 		MaxUseBatch:            12 * time.Hour,
 		MaxStorageRadius:       2,
 		StorageRadiusCheckWait: 5 * time.Minute,
+		IterationWait:          5 * time.Minute,
 	}
 }
 
@@ -83,6 +85,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	c.logger.Info("random seed: ", o.RndSeed)
 	c.logger.Info("content size: ", o.ContentSize)
+	c.logger.Info("upload timeout: ", o.UploadTimeout)
+	c.logger.Info("download timeout: ", o.DownloadTimeout)
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 
@@ -237,6 +241,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
 		}
 		rxCancel()
+
+		time.Sleep(o.IterationWait)
 	}
 
 	return nil
