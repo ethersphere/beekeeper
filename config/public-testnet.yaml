@@ -1,55 +1,52 @@
 clusters:
   bee-testnet:
-    _inherit: "default"
+    _inherit: ""
+    name: bee
     namespace: bee-testnet
-    use-static-endpoints: true
+    disable-namespace: true
+    api-domain: bee-testnet.testnet.internal
+    api-domain-internal: bee-testnet.svc.swarm1.local:1633
+    api-insecure-tls: true
+    api-scheme: http
+    funding:
+      eth: 0.1
+      gbzz: 2.0
+      bzz: 5.0
     node-groups:
-      bee:
+      bee-1:
         mode: node
-        bee-config: default
-        config: default
-        count: 20
-        endpoints:
-          - name: bee-1-0
-            api-url: http://bee-1-0.bee-testnet.testnet.internal
-          - name: bee-1-1
-            api-url: http://bee-1-1.bee-testnet.testnet.internal
-          - name: bee-1-2
-            api-url: http://bee-1-2.bee-testnet.testnet.internal
-          - name: bee-1-3
-            api-url: http://bee-1-3.bee-testnet.testnet.internal
-          - name: bee-1-4
-            api-url: http://bee-1-4.bee-testnet.testnet.internal
-          - name: bee-2-0
-            api-url: http://bee-2-0.bee-testnet.testnet.internal
-          - name: bee-2-1
-            api-url: http://bee-2-1.bee-testnet.testnet.internal
-          - name: bee-2-2
-            api-url: http://bee-2-2.bee-testnet.testnet.internal
-          - name: bee-2-3
-            api-url: http://bee-2-3.bee-testnet.testnet.internal
-          - name: bee-2-4
-            api-url: http://bee-2-4.bee-testnet.testnet.internal
-          - name: bee-3-0
-            api-url: http://bee-3-0.bee-testnet.testnet.internal
-          - name: bee-3-1
-            api-url: http://bee-3-1.bee-testnet.testnet.internal
-          - name: bee-3-2
-            api-url: http://bee-3-2.bee-testnet.testnet.internal
-          - name: bee-3-3
-            api-url: http://bee-3-3.bee-testnet.testnet.internal
-          - name: bee-3-4
-            api-url: http://bee-3-4.bee-testnet.testnet.internal
-          - name: bee-4-0
-            api-url: http://bee-4-0.bee-testnet.testnet.internal
-          - name: bee-4-1
-            api-url: http://bee-4-1.bee-testnet.testnet.internal
-          - name: bee-4-2
-            api-url: http://bee-4-2.bee-testnet.testnet.internal
-          - name: bee-4-3
-            api-url: http://bee-4-3.bee-testnet.testnet.internal
-          - name: bee-4-4
-            api-url: http://bee-4-4.bee-testnet.testnet.internal
+        bee-config: sepolia
+        config: ng-bee-testnet
+        count: 5
+      bee-2:
+        mode: node
+        bee-config: sepolia
+        config: ng-bee-testnet
+        count: 5
+      bee-3:
+        mode: node
+        bee-config: sepolia
+        config: ng-bee-testnet
+        count: 5
+      bee-4:
+        mode: node
+        bee-config: sepolia
+        config: ng-bee-testnet
+        count: 5
+
+# node-groups defines node groups that can be registered in the cluster
+# node-groups may inherit it's configuration from already defined node-group and override specific fields from it
+node-groups:
+  ng-bee-testnet:
+    _inherit: ""
+#    persistence-enabled: true
+
+# bee-configs defines Bee configuration that can be assigned to node-groups
+# bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
+bee-configs:
+  sepolia:
+    _inherit: ""
+    bootnodes: "/dnsaddr/testnet.ethswarm.org"
 
 checks:
   pt-retrieval:

@@ -3,9 +3,11 @@
 clusters:
   staging:
     _inherit: ""
-    namespace: staging
+    namespace: bee-playground
     disable-namespace: false
-    api-domain: testnet.internal
+    use-static-endpoints: false
+    api-domain: testnet.internal # testnet.ethswarm.org
+    api-domain-internal: svc.swarm1.local:1633 # Internal API domain with port when in-cluster is set to true
     api-insecure-tls: true
     api-scheme: http
     funding:
@@ -16,7 +18,7 @@ clusters:
         mode: node
         bee-config: staging
         config: staging
-        count: 20
+        count: 5
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
@@ -29,12 +31,19 @@ node-groups:
 # bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
 bee-configs:
   staging:
-    _inherit: "default"
-    swap-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
+    _inherit: ""
+    api-addr: ":1633"
     bootnodes: /dnsaddr/testnet.ethswarm.org
+    full-node: true
+    mainnet: false
     network-id: 10
-    swap-initial-deposit: 0
-    swap-factory-address: ""
+    p2p-addr: ":1634"
+    password: "beekeeper"
+    swap-enable: true
+    swap-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
+    tracing-enabled: true
+    tracing-endpoint: "10.10.11.199:6831"
+    tracing-service-name: "bee"
     verbosity: 4
     welcome-message: Welcome to the bee staging environment created by Beekeeper!
 
@@ -48,6 +57,7 @@ checks:
       uploader-count: 2
       downloader-count: 0
       max-use-batch: 1h
+      max-storage-radius: 3
       upload-groups:
         - bee-1
         - bee-2
