@@ -329,6 +329,7 @@ checks:
       nodes-sync-wait: 1m
       upload-timeout: 1m
       download-timeout: 1m
+      iteration-wait: 5m
       duration: 15m
     timeout: 30m
     type: smoke
