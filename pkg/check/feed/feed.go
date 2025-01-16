@@ -88,8 +88,8 @@ func (c *Check) checkAvailability(ctx context.Context, cluster orchestration.Clu
 // and verifies that the updates are retrievable via another node.
 func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	rnd := random.PseudoGenerator(time.Now().UnixNano())
-	perm := rnd.Perm(cluster.Size())
 	names := cluster.FullNodeNames()
+	perm := rnd.Perm(len(names))
 
 	if len(names) < 2 {
 		return fmt.Errorf("not enough nodes to run feed check")
