@@ -14,7 +14,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
-	"github.com/ethersphere/beekeeper/pkg/stamper"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
@@ -57,7 +56,6 @@ type command struct {
 	homeDir          string
 	config           *config.Config // beekeeper clusters configuration (config dir)
 	k8sClient        *k8s.Client    // kubernetes client
-	stamper          stamper.Client
 	swapClient       swap.Client
 	log              logging.Logger
 }

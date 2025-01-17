@@ -42,7 +42,7 @@ type StamperClient struct {
 	inCluster     bool
 }
 
-func NewStamperClient(cfg *ClientConfig) *StamperClient {
+func New(cfg *ClientConfig) *StamperClient {
 	if cfg == nil {
 		return nil
 	}

@@ -66,39 +66,13 @@ func (c *command) initStamperTopup() *cobra.Command {
 				defer cancel()
 			}
 
-			namespace := c.globalConfig.GetString(optionNameNamespace)
-			clusterName := c.globalConfig.GetString(optionNameClusterName)
-
-			if clusterName == "" && namespace == "" {
-				return errors.New("either cluster name or namespace must be provided")
+			stamper, err := c.getStamper(ctx)
+			if err != nil {
+				return fmt.Errorf("get stamper client: %w", err)
 			}
-
-			var beeClients map[string]*bee.Client
-
-			if clusterName != "" {
-				cluster, err := c.setupCluster(ctx, clusterName, false)
-				if err != nil {
-					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-				}
-
-				beeClients, err = cluster.NodesClients(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to retrieve node clients: %w", err)
-				}
-			}
-
-			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
-				Log:           c.log,
-				Namespace:     namespace,
-				K8sClient:     c.k8sClient,
-				SwapClient:    c.swapClient,
-				BeeClients:    beeClients,
-				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
-				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
-			})
 
 			return c.executePeriodically(ctx, func(ctx context.Context) error {
-				return c.stamper.Topup(ctx, c.globalConfig.GetDuration(optionTTLThreshold), c.globalConfig.GetDuration(optionTopUpTo))
+				return stamper.Topup(ctx, c.globalConfig.GetDuration(optionTTLThreshold), c.globalConfig.GetDuration(optionTopUpTo))
 			})
 		},
 		PreRunE: c.preRunE,
@@ -134,38 +108,13 @@ func (c *command) initStamperDilute() *cobra.Command {
 				defer cancel()
 			}
 
-			namespace := c.globalConfig.GetString(optionNameNamespace)
-			clusterName := c.globalConfig.GetString(optionNameClusterName)
-
-			if clusterName == "" && namespace == "" {
-				return errors.New("either cluster name or namespace must be provided")
+			stamper, err := c.getStamper(ctx)
+			if err != nil {
+				return fmt.Errorf("get stamper client: %w", err)
 			}
-
-			var beeClients map[string]*bee.Client
-
-			if clusterName != "" {
-				cluster, err := c.setupCluster(ctx, clusterName, false)
-				if err != nil {
-					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-				}
-
-				beeClients, err = cluster.NodesClients(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to retrieve node clients: %w", err)
-				}
-			}
-
-			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
-				Log:           c.log,
-				Namespace:     namespace,
-				K8sClient:     c.k8sClient,
-				BeeClients:    beeClients,
-				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
-				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
-			})
 
 			return c.executePeriodically(ctx, func(ctx context.Context) error {
-				return c.stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
+				return stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
 			})
 		},
 		PreRunE: c.preRunE,
@@ -200,40 +149,15 @@ func (c *command) initStamperCreate() *cobra.Command {
 				defer cancel()
 			}
 
-			namespace := c.globalConfig.GetString(optionNameNamespace)
-			clusterName := c.globalConfig.GetString(optionNameClusterName)
-
-			if clusterName == "" && namespace == "" {
-				return errors.New("either cluster name or namespace must be provided")
+			stamper, err := c.getStamper(ctx)
+			if err != nil {
+				return fmt.Errorf("get stamper client: %w", err)
 			}
-
-			var beeClients map[string]*bee.Client
-
-			if clusterName != "" {
-				cluster, err := c.setupCluster(ctx, clusterName, false)
-				if err != nil {
-					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-				}
-
-				beeClients, err = cluster.NodesClients(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to retrieve node clients: %w", err)
-				}
-			}
-
-			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
-				Log:           c.log,
-				Namespace:     namespace,
-				K8sClient:     c.k8sClient,
-				BeeClients:    beeClients,
-				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
-				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
-			})
 
 			amount := c.globalConfig.GetUint64(optionNameAmount)
 			depth := c.globalConfig.GetUint16(optionNameDepth)
 
-			return c.stamper.Create(ctx, amount, depth)
+			return stamper.Create(ctx, amount, depth)
 		},
 		PreRunE: c.preRunE,
 	}
@@ -269,39 +193,13 @@ func (c *command) initStamperSet() *cobra.Command {
 				defer cancel()
 			}
 
-			namespace := c.globalConfig.GetString(optionNameNamespace)
-			clusterName := c.globalConfig.GetString(optionNameClusterName)
-
-			if clusterName == "" && namespace == "" {
-				return errors.New("either cluster name or namespace must be provided")
+			stamper, err := c.getStamper(ctx)
+			if err != nil {
+				return fmt.Errorf("get stamper client: %w", err)
 			}
-
-			var beeClients map[string]*bee.Client
-
-			if clusterName != "" {
-				cluster, err := c.setupCluster(ctx, clusterName, false)
-				if err != nil {
-					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-				}
-
-				beeClients, err = cluster.NodesClients(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to retrieve node clients: %w", err)
-				}
-			}
-
-			c.stamper = stamper.NewStamperClient(&stamper.ClientConfig{
-				Log:           c.log,
-				Namespace:     namespace,
-				K8sClient:     c.k8sClient,
-				SwapClient:    c.swapClient,
-				BeeClients:    beeClients,
-				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
-				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
-			})
 
 			return c.executePeriodically(ctx, func(ctx context.Context) error {
-				return c.stamper.Set(ctx,
+				return stamper.Set(ctx,
 					c.globalConfig.GetDuration(optionTTLThreshold),
 					c.globalConfig.GetDuration(optionTopUpTo),
 					c.globalConfig.GetFloat64(optionUsageThreshold),
@@ -321,4 +219,36 @@ func (c *command) initStamperSet() *cobra.Command {
 	c.root.AddCommand(cmd)
 
 	return cmd
+}
+
+func (c *command) getStamper(ctx context.Context) (*stamper.StamperClient, error) {
+	namespace := c.globalConfig.GetString(optionNameNamespace)
+	clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+	if clusterName == "" && namespace == "" {
+		return nil, errors.New("either cluster name or namespace must be provided")
+	}
+
+	var beeClients map[string]*bee.Client
+
+	if clusterName != "" {
+		cluster, err := c.setupCluster(ctx, clusterName, false)
+		if err != nil {
+			return nil, fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+		}
+
+		beeClients, err = cluster.NodesClients(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve node clients: %w", err)
+		}
+	}
+
+	return stamper.New(&stamper.ClientConfig{
+		Log:           c.log,
+		Namespace:     namespace,
+		K8sClient:     c.k8sClient,
+		BeeClients:    beeClients,
+		LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
+		InCluster:     c.globalConfig.GetBool(optionNameInCluster),
+	}), nil
 }
