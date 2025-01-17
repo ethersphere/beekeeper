@@ -37,7 +37,7 @@ func (pe *PeriodicExecutor) Start(ctx context.Context, task func(ctx context.Con
 		for {
 			select {
 			case <-pe.ticker.C:
-				pe.log.Tracef("Executing task after %s interval", pe.interval)
+				pe.log.Debugf("Executing task after %s interval", pe.interval)
 				if err := task(ctx); err != nil {
 					pe.log.Errorf("Task execution failed: %v", err)
 				}

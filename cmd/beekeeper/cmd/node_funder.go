@@ -60,7 +60,9 @@ func (c *command) initNodeFunderCmd() (err error) {
 			addresses := c.globalConfig.GetStringSlice(optionNameAddresses)
 			if len(addresses) > 0 {
 				cfg.Addresses = addresses
-				return funder.Fund(ctx, cfg, nil, nil, logger)
+				return c.executePeriodically(ctx, func(ctx context.Context) error {
+					return funder.Fund(ctx, cfg, nil, nil, logger)
+				})
 			}
 
 			namespace := c.globalConfig.GetString(optionNameNamespace)
@@ -69,7 +71,9 @@ func (c *command) initNodeFunderCmd() (err error) {
 				funderClient := nodefunder.NewClient(c.k8sClient, c.globalConfig.GetBool(optionNameInCluster), label, c.log)
 
 				cfg.Namespace = namespace
-				return funder.Fund(ctx, cfg, funderClient, nil, logger)
+				return c.executePeriodically(ctx, func(ctx context.Context) error {
+					return funder.Fund(ctx, cfg, funderClient, nil, logger)
+				})
 			}
 
 			clusterName := c.globalConfig.GetString(optionNameClusterName)
@@ -92,7 +96,9 @@ func (c *command) initNodeFunderCmd() (err error) {
 					cfg.Addresses = append(cfg.Addresses, addr.Ethereum)
 				}
 
-				return funder.Fund(ctx, cfg, nil, nil, logger)
+				return c.executePeriodically(ctx, func(ctx context.Context) error {
+					return funder.Fund(ctx, cfg, nil, nil, logger)
+				})
 			}
 
 			// NOTE: Swarm key address is the same as the nodeEndpoint/wallet walletAddress.
@@ -114,6 +120,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")
 	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources within the specified namespace. Use an empty string to select all resources.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Timeout.")
+	cmd.Flags().Duration(optionNamePeriodicCheck, 0*time.Minute, "Periodic execution check interval.")
 
 	c.root.AddCommand(cmd)
 

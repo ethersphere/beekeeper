@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"github.com/ethersphere/beekeeper/pkg/scheduler"
 	"github.com/ethersphere/beekeeper/pkg/stamper"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/go-git/go-billy/v5/memfs"
@@ -376,6 +378,32 @@ func (c *command) setK8sClient() (err error) {
 	}
 
 	return
+}
+
+func (c *command) executePeriodically(ctx context.Context, action func(ctx context.Context) error) error {
+	periodicCheck := c.globalConfig.GetDuration(optionNamePeriodicCheck)
+
+	if periodicCheck == 0 {
+		return action(ctx)
+	}
+
+	periodicExecutor := scheduler.NewPeriodicExecutor(periodicCheck, c.log)
+
+	periodicExecutor.Start(ctx, func(ctx context.Context) error {
+		if err := action(ctx); err != nil {
+			c.log.Errorf("failed to execute action periodically: %v", err)
+		}
+		return nil
+	})
+	defer func() {
+		if err := periodicExecutor.Close(); err != nil {
+			c.log.Errorf("failed to close periodic executor: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+
+	return ctx.Err()
 }
 
 func (c *command) setSwapClient() (err error) {
