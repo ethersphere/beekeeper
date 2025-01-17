@@ -107,7 +107,7 @@ func (c *command) initStamperTopup() *cobra.Command {
 	cmd.Flags().Duration(optionTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
 	cmd.Flags().Duration(optionTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
 	cmd.Flags().String(optionGethUrl, "", "Geth URL for chain state retrieval.")
-	cmd.Flags().Duration(optionNamePeriodicCheck, 0*time.Minute, "Periodic stamper check interval.")
+	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
 	c.root.AddCommand(cmd)
 
@@ -173,7 +173,7 @@ func (c *command) initStamperDilute() *cobra.Command {
 
 	cmd.Flags().Float64(optionUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
 	cmd.Flags().Uint8(optionDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
-	cmd.Flags().Duration(optionNamePeriodicCheck, 0*time.Minute, "Periodic stamper check interval.")
+	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
 	c.root.AddCommand(cmd)
 
@@ -188,8 +188,8 @@ func (c *command) initStamperCreate() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create a new postage batch",
-		Long:  `Create a new postage batch.`,
+		Short: "Create a postage batch for selected nodes",
+		Long:  `Create a postage batch for selected nodes. Nodes are selected by namespace (use label-selector for filtering) or cluster name.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			timeout := c.globalConfig.GetDuration(optionNameTimeout)
 			ctx := cmd.Context()
@@ -238,8 +238,8 @@ func (c *command) initStamperCreate() *cobra.Command {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().Uint64(optionNameAmount, 100000000, "Amount of tokens to be staked in the postage batch.")
-	cmd.Flags().Uint16(optionNameDepth, 0, "Depth of the postage batch.")
+	cmd.Flags().Uint64(optionNameAmount, 100000000, "Amount of BZZ in PLURS added that the postage batch will have.")
+	cmd.Flags().Uint16(optionNameDepth, 16, "Batch depth which specifies how many chunks can be signed with the batch. It is a logarithm. Must be higher than default bucket depth (16)")
 
 	c.root.AddCommand(cmd)
 
@@ -316,7 +316,7 @@ func (c *command) initStamperSet() *cobra.Command {
 	cmd.Flags().Float64(optionUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
 	cmd.Flags().Uint16(optionDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
 	cmd.Flags().String(optionGethUrl, "", "Geth URL for chain state retrieval.")
-	cmd.Flags().Duration(optionNamePeriodicCheck, 0*time.Minute, "Periodic stamper check interval.")
+	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
 	c.root.AddCommand(cmd)
 

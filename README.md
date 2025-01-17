@@ -23,6 +23,8 @@
   - [version](#version)
   - [node-funder](#node-funder)
   - [node-operator](#node-operator)
+  - [restart](#restart)
+  - [stamper](#stamper)
 - [Global flags](#global-flags)
 - [Public Testnet Checks](#public-testnet-checks)
   - [One by one](#one-by-one)
@@ -201,6 +203,8 @@ This setting means that pushsync check can be executed choosing *pushsync-chunks
 | version | Print version number |
 | node-funder | Fund (top up) Bee nodes |
 | node-operator | Auto-funds (top up) Bee nodes on deployment. |
+| restart | Restart Bee nodes in Kubernetes |
+| stamper | Manage postage batches for nodes |
 
 ### check
 
@@ -372,16 +376,17 @@ Command **node-funder** uses <https://github.com/ethersphere/node-funder> tool t
 It has following flags:
 
 ```console
---addresses strings       Comma-separated list of Bee node addresses (must start with 0x). Overrides namespace and cluster name.
---geth-url string         Endpoint to chain node. Required.
---cluster-name string     Cluster name. Ignored if addresses or namespace are set.
---help                    help for node-funder
---min-native float        Minimum amount of chain native coins (xDAI) nodes should have.
---min-swarm float         Minimum amount of swarm tokens (xBZZ) nodes should have.
---namespace string        Kubernetes namespace. Overrides cluster name if set.
---label-selector string   Kubernetes label selector for filtering resources within the specified namespace. An empty string disables filtering, allowing all resources to be selected.
---timeout duration        Timeout. (default 5m0s)
---wallet-key string       Hex-encoded private key for the Bee node wallet. Required.
+--addresses strings         Comma-separated list of Bee node addresses (must start with 0x). Overrides namespace and cluster name.
+--cluster-name string       Name of the Beekeeper cluster to target. Ignored if a namespace is specified.
+--geth-url string           Endpoint to chain node. Required.
+--help                      help for node-funder
+--label-selector string     Kubernetes label selector for filtering resources within the specified namespace. Use an empty string to select all resources. (default "beekeeper.ethswarm.org/node-funder=true")
+--min-native float          Minimum amount of chain native coins (xDAI) nodes should have.
+--min-swarm float           Minimum amount of swarm tokens (xBZZ) nodes should have.
+--namespace string          Kubernetes namespace. Overrides cluster name if set.
+--periodic-check duration   Periodic execution check interval.
+--timeout duration          Timeout. (default 5m0s)
+--wallet-key string         Hex-encoded private key for the Bee node wallet. Required.
 ```
 
 #### Fund specific addresses
@@ -452,6 +457,121 @@ or
 beekeeper restart -namespace=default --label-selector="app=bee" --timeout=10m
 ```
 
+### stamper
+
+Command **stamper** manage postage batches for nodes and has following subcommands:
+
+- **create** - creates a postage batch for selected nodes
+
+  It has following flags:
+
+  ```console
+  --amount uint             Amount of BZZ in PLURS added that the postage batch will have. (default 100000000)
+  --cluster-name string     Target Beekeeper cluster name.
+  --depth uint16            Batch depth which specifies how many chunks can be signed with the batch. It is a logarithm. Must be higher than default bucket depth (16)
+  --help                    help for create
+  --label-selector string   Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
+  --namespace string        Kubernetes namespace (overrides cluster name).
+  --timeout duration        Operation timeout.
+  ```
+
+  example:
+  
+  ```bash
+  beekeeper stamper create --cluster-name=default --amount=1000 --depth=16 --timeout=5m
+  ```
+
+  or
+
+  ```bash
+  beekeeper stamper create --namespace=default --label-selector="app=bee" --amount=1000 --depth=16 --timeout=5m
+  ```
+
+- **topup** - tops up postage batch for selected nodes
+
+  It has following flags:
+
+  ```console
+  --cluster-name string       Target Beekeeper cluster name.
+  --geth-url string           Geth URL for chain state retrieval.
+  --help                      help for topup
+  --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
+  --namespace string          Kubernetes namespace (overrides cluster name).
+  --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
+  --timeout duration          Operation timeout.
+  --topup-to duration         Duration to top up the TTL of a stamp to. (default 720h0m0s)
+  --ttl-threshold duration    Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value. (default 120h0m0s)
+  ```
+
+  example:
+  
+  ```bash
+  beekeeper stamper topup --cluster-name=default --topup-to=720h --ttl-threshold=120h --periodic-check=1h --timeout=24h
+  ```
+
+  or
+
+  ```bash
+  beekeeper stamper topup --namespace=default --label-selector="app=bee" --topup-to=720h --ttl-threshold=120h --periodic-check=1h --timeout=24h
+  ```
+
+- **dilute** - dilutes postage batch for selected nodes
+
+  It has following flags:
+
+  ```console
+  --cluster-name string       Target Beekeeper cluster name.
+  --dilution-depth uint8      Number of levels by which to increase the depth of a stamp during dilution. (default 1)
+  --help                      help for dilute
+  --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
+  --namespace string          Kubernetes namespace (overrides cluster name).
+  --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
+  --timeout duration          Operation timeout.
+  --usage-threshold float     Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value. (default 90)
+  ```
+
+  example:
+  
+  ```bash
+  beekeeper stamper dilute --cluster-name=default --dilution-depth=1 --usage-threshold=90 --periodic-check=1h --timeout=24h
+  ```
+
+  or
+
+  ```bash
+  beekeeper stamper dilute --namespace=default --label-selector="app=bee" --dilution-depth=1 --usage-threshold=90 --periodic-check=1h --timeout=24h
+  ```
+
+- **set** - sets postage batch for selected nodes
+
+  It has following flags:
+
+  ```console
+  --cluster-name string       Target Beekeeper cluster name.
+  --dilution-depth uint16     Number of levels by which to increase the depth of a stamp during dilution. (default 1)
+  --geth-url string           Geth URL for chain state retrieval.
+  --help                      help for set
+  --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
+  --namespace string          Kubernetes namespace (overrides cluster name).
+  --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
+  --timeout duration          Operation timeout.
+  --topup-to duration         Duration to top up the TTL of a stamp to. (default 720h0m0s)
+  --ttl-threshold duration    Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value. (default 120h0m0s)
+  --usage-threshold float     Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value. (default 90)
+  ```
+
+  example:
+  
+  ```bash
+  beekeeper stamper set --cluster-name=default --dilution-depth=1 --usage-threshold=90 --ttl-threshold=120h --topup-to=720h --periodic-check=1h --timeout=24h
+  ```
+
+  or
+
+  ```bash
+  beekeeper stamper set --namespace=default --label-selector="app=bee" --dilution-depth=1 --usage-threshold=90 --ttl-threshold=120h --topup-to=720h --periodic-check=1h --timeout=24h
+  ```
+
 ## Global flags
 
 Global flags can be used with any command.
@@ -459,19 +579,23 @@ Global flags can be used with any command.
 example:
 
 ```console
---config string                 config file (default is $HOME/.beekeeper.yaml)
---config-dir string             config directory (default is $HOME/.beekeeper/)
---config-git-branch string      Git branch (default "main")
---config-git-password string    Git password or personal access tokens (needed for private repos)
---config-git-repo string        Git repository with configurations (uses config directory when Git repo is not specified) (default "")
---config-git-username string    Git username (needed for private repos)
---log-verbosity string          log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace (default "info")
---loki-endpoint string          loki http endpoint for pushing local logs (use http://loki.testnet.internal/loki/api/v1/push)
---tracing-enable                enable tracing
---tracing-endpoint string       endpoint to send tracing data (default "tempo-tempo-distributed-distributor.observability:6831")
---tracing-host string           host to send tracing data
---tracing-port string           port to send tracing data
---tracing-service-name string   service name identifier for tracing (default "beekeeper")
+--config string                 Path to the configuration file (default is $HOME/.beekeeper.yaml)
+--config-dir string             Directory for configuration files (default "C:\\Users\\ljubi\\.beekeeper")
+--config-git-branch string      Git branch to use for configuration files (default "main")
+--config-git-dir string         Directory within the Git repository containing configuration files. Defaults to the root directory (default ".")
+--config-git-password string    Git password or personal access token for authentication (required for private repositories)
+--config-git-repo string        URL of the Git repository containing configuration files (uses the config-dir if not specified)
+--config-git-username string    Git username for authentication (required for private repositories)
+--enable-k8s                    Enable Kubernetes client functionality (default true)
+--in-cluster                    Use the in-cluster Kubernetes client
+--kubeconfig string             Path to the kubeconfig file (default "~/.kube/config")
+--log-verbosity string          Log verbosity level (0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace) (default "info")
+--loki-endpoint string          HTTP endpoint for sending logs to Loki (e.g., http://loki.testnet.internal/loki/api/v1/push)
+--tracing-enable                Enable tracing for performance monitoring and debugging
+--tracing-endpoint string       Endpoint for sending tracing data, specified as host:port (default "127.0.0.1:6831")
+--tracing-host string           Host address for sending tracing data
+--tracing-port string           Port for sending tracing data
+--tracing-service-name string   Service name identifier used in tracing data (default "beekeeper")
 ```
 
 ## Public Testnet Checks

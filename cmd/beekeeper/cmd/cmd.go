@@ -156,7 +156,7 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch to use for configuration files")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username for authentication (required for private repositories)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access token for authentication (required for private repositories)")
-	globalFlags.String(optionNameLogVerbosity, "info", "Log verbosity level (0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace;")
+	globalFlags.String(optionNameLogVerbosity, "info", "Log verbosity level (0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace)")
 	globalFlags.String(optionNameLokiEndpoint, "", "HTTP endpoint for sending logs to Loki (e.g., http://loki.testnet.internal/loki/api/v1/push)")
 	globalFlags.Bool(optionNameTracingEnabled, false, "Enable tracing for performance monitoring and debugging")
 	globalFlags.String(optionNameTracingEndpoint, "127.0.0.1:6831", "Endpoint for sending tracing data, specified as host:port")
