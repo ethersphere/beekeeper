@@ -55,6 +55,7 @@ func NewStamperClient(cfg *ClientConfig) *StamperClient {
 		log:           cfg.Log,
 		namespace:     cfg.Namespace,
 		k8sClient:     cfg.K8sClient,
+		swapClient:    cfg.SwapClient,
 		beeClients:    cfg.BeeClients,
 		labelSelector: cfg.LabelSelector,
 		inCluster:     cfg.InCluster,
@@ -111,7 +112,7 @@ func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilu
 	}
 
 	if err := g.Wait(); err != nil {
-		s.log.Errorf("dilute postage batch: %w", err)
+		s.log.Errorf("dilute postage batch: %v", err)
 	}
 
 	return nil
@@ -131,6 +132,10 @@ func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, top
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
+	if s.swapClient == nil {
+		return fmt.Errorf("swap client not provided")
+	}
+
 	blockTime, err := s.swapClient.FetchBlockTime(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching block time: %w", err)
@@ -146,7 +151,7 @@ func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, top
 	}
 
 	if err := g.Wait(); err != nil {
-		s.log.Errorf("set postage batch: %w", err)
+		s.log.Errorf("set postage batch: %v", err)
 	}
 
 	return nil
@@ -164,6 +169,10 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
+	if s.swapClient == nil {
+		return fmt.Errorf("swap client not provided")
+	}
+
 	blockTime, err := s.swapClient.FetchBlockTime(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching block time: %w", err)
@@ -179,7 +188,7 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 	}
 
 	if err := g.Wait(); err != nil {
-		s.log.Errorf("topup postage batch: %w", err)
+		s.log.Errorf("topup postage batch: %v", err)
 	}
 
 	return nil
@@ -205,6 +214,10 @@ func (sc *StamperClient) getNodes(ctx context.Context) (nodes []node, err error)
 func (sc *StamperClient) getNamespaceNodes(ctx context.Context) (nodes []node, err error) {
 	if sc.namespace == "" {
 		return nil, fmt.Errorf("namespace not provided")
+	}
+
+	if sc.k8sClient == nil {
+		return nil, fmt.Errorf("k8s client not provided")
 	}
 
 	if sc.inCluster {

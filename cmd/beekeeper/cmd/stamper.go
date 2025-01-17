@@ -51,6 +51,7 @@ func (c *command) initStamperTopup() *cobra.Command {
 	const (
 		optionTTLThreshold = "ttl-threshold"
 		optionTopUpTo      = "topup-to"
+		optionGethUrl      = "geth-url"
 	)
 
 	cmd := &cobra.Command{
@@ -125,6 +126,7 @@ func (c *command) initStamperTopup() *cobra.Command {
 
 	cmd.Flags().Duration(optionTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
 	cmd.Flags().Duration(optionTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
+	cmd.Flags().String(optionGethUrl, "", "Geth URL for chain state retrieval.")
 
 	c.root.AddCommand(cmd)
 
@@ -286,6 +288,7 @@ func (c *command) initStamperSet() *cobra.Command {
 		optionTopUpTo        = "topup-to"
 		optionUsageThreshold = "usage-threshold"
 		optionDiutionDepth   = "dilution-depth"
+		optionGethUrl        = "geth-url"
 	)
 
 	cmd := &cobra.Command{
@@ -327,6 +330,7 @@ func (c *command) initStamperSet() *cobra.Command {
 				Log:           c.log,
 				Namespace:     namespace,
 				K8sClient:     c.k8sClient,
+				SwapClient:    c.swapClient,
 				BeeClients:    beeClients,
 				LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 				InCluster:     c.globalConfig.GetBool(optionNameInCluster),
@@ -369,6 +373,7 @@ func (c *command) initStamperSet() *cobra.Command {
 	cmd.Flags().Duration(optionTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
 	cmd.Flags().Float64(optionUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
 	cmd.Flags().Uint16(optionDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
+	cmd.Flags().String(optionGethUrl, "", "Geth URL for chain state retrieval.")
 
 	c.root.AddCommand(cmd)
 
