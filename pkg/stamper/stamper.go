@@ -15,10 +15,15 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Client is the interface for stamper client.
 type Client interface {
+	// Create creates a postage batch.
 	Create(ctx context.Context, amount uint64, depth uint16) error
+	// Dilute dilutes a postage batch.
 	Dilute(ctx context.Context, threshold float64, depth uint16) error
+	// Set sets the topup and dilution parameters.
 	Set(ctx context.Context, ttlThreshold, topupDuration time.Duration, threshold float64, depth uint16) error
+	// Topup tops up a postage batch.
 	Topup(ctx context.Context, ttlThreshold, topupDuration time.Duration) error
 }
 

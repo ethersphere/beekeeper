@@ -41,7 +41,7 @@ func initStamperDefaultFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name).")
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name.")
 	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources (use empty string for all).")
-	cmd.Flags().Duration(optionNameTimeout, 0*time.Minute, "Operation timeout.")
+	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 	return cmd
 }
 
@@ -57,22 +57,18 @@ func (c *command) initStamperTopup() *cobra.Command {
 		Short: "Top up the TTL of postage batches",
 		Long:  `Top up the TTL of postage batches.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			timeout := c.globalConfig.GetDuration(optionNameTimeout)
-			ctx := cmd.Context()
-			var cancel context.CancelFunc
+			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
+				stamper, err := c.createStamperClient(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to create stamper client: %w", err)
+				}
 
-			if timeout > 0 {
-				ctx, cancel = context.WithTimeout(ctx, timeout)
-				defer cancel()
-			}
-
-			stamper, err := c.getStamper(ctx)
-			if err != nil {
-				return fmt.Errorf("get stamper client: %w", err)
-			}
-
-			return c.executePeriodically(ctx, func(ctx context.Context) error {
-				return stamper.Topup(ctx, c.globalConfig.GetDuration(optionTTLThreshold), c.globalConfig.GetDuration(optionTopUpTo))
+				return c.executePeriodically(ctx, func(ctx context.Context) error {
+					return stamper.Topup(ctx,
+						c.globalConfig.GetDuration(optionTTLThreshold),
+						c.globalConfig.GetDuration(optionTopUpTo),
+					)
+				})
 			})
 		},
 		PreRunE: c.preRunE,
@@ -99,22 +95,18 @@ func (c *command) initStamperDilute() *cobra.Command {
 		Short: "Dilute postage batches",
 		Long:  `Dilute postage batches.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			timeout := c.globalConfig.GetDuration(optionNameTimeout)
-			ctx := cmd.Context()
-			var cancel context.CancelFunc
+			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
+				stamper, err := c.createStamperClient(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to create stamper client: %w", err)
+				}
 
-			if timeout > 0 {
-				ctx, cancel = context.WithTimeout(ctx, timeout)
-				defer cancel()
-			}
-
-			stamper, err := c.getStamper(ctx)
-			if err != nil {
-				return fmt.Errorf("get stamper client: %w", err)
-			}
-
-			return c.executePeriodically(ctx, func(ctx context.Context) error {
-				return stamper.Dilute(ctx, c.globalConfig.GetFloat64(optionUsageThreshold), c.globalConfig.GetUint16(optionDiutionDepth))
+				return c.executePeriodically(ctx, func(ctx context.Context) error {
+					return stamper.Dilute(ctx,
+						c.globalConfig.GetFloat64(optionUsageThreshold),
+						c.globalConfig.GetUint16(optionDiutionDepth),
+					)
+				})
 			})
 		},
 		PreRunE: c.preRunE,
@@ -140,24 +132,17 @@ func (c *command) initStamperCreate() *cobra.Command {
 		Short: "Create a postage batch for selected nodes",
 		Long:  `Create a postage batch for selected nodes. Nodes are selected by namespace (use label-selector for filtering) or cluster name.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			timeout := c.globalConfig.GetDuration(optionNameTimeout)
-			ctx := cmd.Context()
-			var cancel context.CancelFunc
+			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
+				stamper, err := c.createStamperClient(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to create stamper client: %w", err)
+				}
 
-			if timeout > 0 {
-				ctx, cancel = context.WithTimeout(ctx, timeout)
-				defer cancel()
-			}
-
-			stamper, err := c.getStamper(ctx)
-			if err != nil {
-				return fmt.Errorf("get stamper client: %w", err)
-			}
-
-			amount := c.globalConfig.GetUint64(optionNameAmount)
-			depth := c.globalConfig.GetUint16(optionNameDepth)
-
-			return stamper.Create(ctx, amount, depth)
+				return stamper.Create(ctx,
+					c.globalConfig.GetUint64(optionNameAmount),
+					c.globalConfig.GetUint16(optionNameDepth),
+				)
+			})
 		},
 		PreRunE: c.preRunE,
 	}
@@ -184,27 +169,20 @@ func (c *command) initStamperSet() *cobra.Command {
 		Short: "Set stamper configuration",
 		Long:  `Set stamper configuration.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			timeout := c.globalConfig.GetDuration(optionNameTimeout)
-			ctx := cmd.Context()
-			var cancel context.CancelFunc
+			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
+				stamper, err := c.createStamperClient(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to create stamper client: %w", err)
+				}
 
-			if timeout > 0 {
-				ctx, cancel = context.WithTimeout(ctx, timeout)
-				defer cancel()
-			}
-
-			stamper, err := c.getStamper(ctx)
-			if err != nil {
-				return fmt.Errorf("get stamper client: %w", err)
-			}
-
-			return c.executePeriodically(ctx, func(ctx context.Context) error {
-				return stamper.Set(ctx,
-					c.globalConfig.GetDuration(optionTTLThreshold),
-					c.globalConfig.GetDuration(optionTopUpTo),
-					c.globalConfig.GetFloat64(optionUsageThreshold),
-					c.globalConfig.GetUint16(optionDiutionDepth),
-				)
+				return c.executePeriodically(ctx, func(ctx context.Context) error {
+					return stamper.Set(ctx,
+						c.globalConfig.GetDuration(optionTTLThreshold),
+						c.globalConfig.GetDuration(optionTopUpTo),
+						c.globalConfig.GetFloat64(optionUsageThreshold),
+						c.globalConfig.GetUint16(optionDiutionDepth),
+					)
+				})
 			})
 		},
 	}
@@ -221,7 +199,7 @@ func (c *command) initStamperSet() *cobra.Command {
 	return cmd
 }
 
-func (c *command) getStamper(ctx context.Context) (*stamper.StamperClient, error) {
+func (c *command) createStamperClient(ctx context.Context) (stamper.Client, error) {
 	namespace := c.globalConfig.GetString(optionNameNamespace)
 	clusterName := c.globalConfig.GetString(optionNameClusterName)
 
@@ -251,4 +229,17 @@ func (c *command) getStamper(ctx context.Context) (*stamper.StamperClient, error
 		LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 		InCluster:     c.globalConfig.GetBool(optionNameInCluster),
 	}), nil
+}
+
+func (c *command) withTimeoutHandler(cmd *cobra.Command, f func(ctx context.Context) error) error {
+	timeout := c.globalConfig.GetDuration(optionNameTimeout)
+	ctx := cmd.Context()
+	var cancel context.CancelFunc
+
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
+	return f(ctx)
 }

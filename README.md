@@ -420,7 +420,7 @@ It has following flags:
 --min-swarm float         Minimum amount of swarm tokens (xBZZ) nodes should have.
 --namespace string        Kubernetes namespace to scan for scheduled pods.
 --label-selector string   Kubernetes label selector for filtering resources within the specified namespace. An empty string disables filtering, allowing all resources to be selected.
---timeout duration        Timeout. Default is infinite.
+--timeout duration        Operation timeout (e.g., 5s, 10m, 1.5h). Default is 0, which means no timeout.
 --wallet-key string       Hex-encoded private key for the Bee node wallet. Required.
 ```
 
@@ -472,7 +472,7 @@ Command **stamper** manage postage batches for nodes and has following subcomman
   --help                    help for create
   --label-selector string   Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string        Kubernetes namespace (overrides cluster name).
-  --timeout duration        Operation timeout.
+  --timeout duration        Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
   ```
 
   example:
@@ -498,7 +498,7 @@ Command **stamper** manage postage batches for nodes and has following subcomman
   --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string          Kubernetes namespace (overrides cluster name).
   --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
-  --timeout duration          Operation timeout.
+  --timeout duration          Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
   --topup-to duration         Duration to top up the TTL of a stamp to. (default 720h0m0s)
   --ttl-threshold duration    Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value. (default 120h0m0s)
   ```
@@ -526,7 +526,7 @@ Command **stamper** manage postage batches for nodes and has following subcomman
   --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string          Kubernetes namespace (overrides cluster name).
   --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
-  --timeout duration          Operation timeout.
+  --timeout duration          Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
   --usage-threshold float     Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value. (default 90)
   ```
 
@@ -554,7 +554,7 @@ Command **stamper** manage postage batches for nodes and has following subcomman
   --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string          Kubernetes namespace (overrides cluster name).
   --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
-  --timeout duration          Operation timeout.
+  --timeout duration          Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
   --topup-to duration         Duration to top up the TTL of a stamp to. (default 720h0m0s)
   --ttl-threshold duration    Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value. (default 120h0m0s)
   --usage-threshold float     Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value. (default 90)
