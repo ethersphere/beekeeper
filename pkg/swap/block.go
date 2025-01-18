@@ -27,28 +27,35 @@ func (g *GethClient) FetchBlockTime(ctx context.Context) (blockTime int64, err e
 }
 
 type rpcRequest struct {
-	ID      string
-	JsonRPC string
-	Method  string
-	Params  []interface{}
+	ID      string        `json:"id"`
+	JsonRPC string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
 }
 
 func (g *GethClient) fetchLatestBlockNumber(ctx context.Context) (int64, error) {
 	req := rpcRequest{
-		ID:      "1",
 		JsonRPC: "2.0",
 		Method:  "eth_blockNumber",
-		Params:  []interface{}{},
+		ID:      "1",
 	}
 
 	resp := new(struct {
-		ID      string `json:"id"`
 		JsonRPC string `json:"jsonrpc"`
 		Result  string `json:"result"`
+		ID      string `json:"id"`
 	})
 
 	if err := requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
 		return 0, fmt.Errorf("request json: %w", err)
+	}
+
+	if len(resp.Result) == 0 {
+		return 0, fmt.Errorf("empty result")
+	}
+
+	if resp.Result[:2] != "0x" {
+		return 0, fmt.Errorf("invalid result")
 	}
 
 	blockNumber, err := strconv.ParseInt(resp.Result[2:], 16, 64)
@@ -77,6 +84,14 @@ func (g *GethClient) fetchBlockTimestamp(ctx context.Context, blockNumber int64)
 
 	if err := requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
 		return 0, fmt.Errorf("request json: %w", err)
+	}
+
+	if len(resp.Result.Timestamp) == 0 {
+		return 0, fmt.Errorf("empty timestamp")
+	}
+
+	if resp.Result.Timestamp[:2] != "0x" {
+		return 0, fmt.Errorf("invalid timestamp")
 	}
 
 	return strconv.ParseInt(resp.Result.Timestamp[2:], 16, 64)

@@ -78,11 +78,7 @@ func httpClientWithTransport(baseURL *url.URL, c *http.Client) *http.Client {
 
 	c.Transport = roundTripperFunc(func(r *http.Request) (resp *http.Response, err error) {
 		r.Header.Set("User-Agent", userAgent)
-		u, err := baseURL.Parse(r.URL.String())
-		if err != nil {
-			return nil, err
-		}
-		r.URL = u
+		r.URL = baseURL
 		return transport.RoundTrip(r)
 	})
 	return c

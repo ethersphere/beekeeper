@@ -55,6 +55,9 @@ func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uin
 
 		if stampsUsage >= threshold {
 			newDepth := uint16(batch.Depth) + depthIncrement
+
+			n.log.Tracef("node %s: batch %s: stamps usage %.2f%%, diluting to depth %d", n.name, batch.BatchID, stampsUsage, newDepth)
+
 			if err := n.client.Postage.DilutePostageBatch(ctx, batch.BatchID, uint64(newDepth), ""); err != nil {
 				return fmt.Errorf("node %s: dilute batch %s: %w", n.name, batch.BatchID, err)
 			}
@@ -117,6 +120,8 @@ func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuratio
 			if requiredDuration > 0 {
 				amount := (requiredDuration / blockTime) * multiplier * price
 
+				n.log.Tracef("node %s: batch %s: required duration %d, amount %d", n.name, batch.BatchID, requiredDuration, amount)
+
 				if err := n.client.Postage.TopUpPostageBatch(ctx, batch.BatchID, amount, ""); err != nil {
 					return fmt.Errorf("node %s: top-up batch %s: %w", n.name, batch.BatchID, err)
 				}
@@ -132,6 +137,9 @@ func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuratio
 
 		if stampsUsage >= threshold {
 			newDepth := uint16(batch.Depth) + depth
+
+			n.log.Tracef("node %s: batch %s: stamps usage %.2f%%, diluting to depth %d", n.name, batch.BatchID, stampsUsage, newDepth)
+
 			if err := n.client.Postage.DilutePostageBatch(ctx, batch.BatchID, uint64(newDepth), ""); err != nil {
 				return fmt.Errorf("node %s: dilute batch %s: %w", n.name, batch.BatchID, err)
 			}
@@ -189,6 +197,8 @@ func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDurat
 			}
 
 			amount := (requiredDuration / blockTime) * multiplier * price
+
+			n.log.Tracef("node %s: batch %s: required duration %d, amount %d", n.name, batch.BatchID, requiredDuration, amount)
 
 			if err := n.client.Postage.TopUpPostageBatch(ctx, batch.BatchID, amount, ""); err != nil {
 				return fmt.Errorf("node %s: top-up batch %s: %w", n.name, batch.BatchID, err)
