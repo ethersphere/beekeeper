@@ -281,6 +281,7 @@ checks:
       nodes-sync-wait: 1m
       upload-timeout: 1m
       download-timeout: 1m
+      iteration-wait: 5m
     timeout: 5m
     type: smoke
   ci-soc:
@@ -341,3 +342,10 @@ checks:
       postage-label: gsoc-label
     timeout: 10m
     type: gsoc
+  ci-feed:
+    options:
+      postage-amount: 100000
+      postage-depth: 20
+      postage-label: feed-label
+    type: feed
+
