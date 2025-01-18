@@ -20,11 +20,23 @@ type Client interface {
 	// Create creates a postage batch.
 	Create(ctx context.Context, amount uint64, depth uint16) error
 	// Dilute dilutes a postage batch.
-	Dilute(ctx context.Context, threshold float64, depth uint16) error
+	Dilute(ctx context.Context, threshold float64, depth uint16, opts ...Option) error
 	// Set sets the topup and dilution parameters.
-	Set(ctx context.Context, ttlThreshold, topupDuration time.Duration, threshold float64, depth uint16) error
+	Set(ctx context.Context, ttlThreshold, topupDuration time.Duration, threshold float64, depth uint16, opts ...Option) error
 	// Topup tops up a postage batch.
-	Topup(ctx context.Context, ttlThreshold, topupDuration time.Duration) error
+	Topup(ctx context.Context, ttlThreshold, topupDuration time.Duration, opts ...Option) error
+}
+
+type Option func(*options)
+
+type options struct {
+	batchIds []string
+}
+
+func WithBatchIDs(batchIds []string) Option {
+	return func(o *options) {
+		o.batchIds = batchIds
+	}
 }
 
 type ClientConfig struct {
@@ -96,7 +108,7 @@ func (s *StamperClient) Create(ctx context.Context, amount uint64, depth uint16)
 }
 
 // Dilute implements Client.
-func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint16) error {
+func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint16, opts ...Option) error {
 	s.log.WithFields(map[string]interface{}{
 		"usageThreshold": usageThreshold,
 		"dilutionDepth":  dilutionDepth,
@@ -112,7 +124,7 @@ func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilu
 
 	for _, node := range nodes {
 		g.TryGo(func() error {
-			return node.Dilute(ctx, usageThreshold, dilutionDepth)
+			return node.Dilute(ctx, usageThreshold, dilutionDepth, processOptions(opts...).batchIds)
 		})
 	}
 
@@ -124,7 +136,7 @@ func (s *StamperClient) Dilute(ctx context.Context, usageThreshold float64, dilu
 }
 
 // Set implements Client.
-func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, usageThreshold float64, dilutionDepth uint16) error {
+func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, usageThreshold float64, dilutionDepth uint16, opts ...Option) error {
 	s.log.WithFields(map[string]interface{}{
 		"ttlThreshold":   ttlThreshold,
 		"topupTo":        topupTo,
@@ -137,10 +149,6 @@ func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, top
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
-	if s.swapClient == nil {
-		return fmt.Errorf("swap client not provided")
-	}
-
 	blockTime, err := s.swapClient.FetchBlockTime(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching block time: %w", err)
@@ -151,7 +159,7 @@ func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, top
 
 	for _, node := range nodes {
 		g.TryGo(func() error {
-			return node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime)
+			return node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime, processOptions(opts...).batchIds)
 		})
 	}
 
@@ -163,7 +171,7 @@ func (s *StamperClient) Set(ctx context.Context, ttlThreshold time.Duration, top
 }
 
 // Topup implements Client.
-func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration) (err error) {
+func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, opts ...Option) (err error) {
 	s.log.WithFields(map[string]interface{}{
 		"ttlThreshold": ttlThreshold,
 		"topupTo":      topupTo,
@@ -172,10 +180,6 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("get nodes: %w", err)
-	}
-
-	if s.swapClient == nil {
-		return fmt.Errorf("swap client not provided")
 	}
 
 	blockTime, err := s.swapClient.FetchBlockTime(ctx)
@@ -188,7 +192,7 @@ func (s *StamperClient) Topup(ctx context.Context, ttlThreshold time.Duration, t
 
 	for _, node := range nodes {
 		g.TryGo(func() error {
-			return node.Topup(ctx, ttlThreshold, topupTo, blockTime)
+			return node.Topup(ctx, ttlThreshold, topupTo, blockTime, processOptions(opts...).batchIds)
 		})
 	}
 
@@ -284,4 +288,12 @@ func (sc *StamperClient) getIngressNodes(ctx context.Context) ([]node, error) {
 	}
 
 	return nodes, nil
+}
+
+func processOptions(opts ...Option) *options {
+	o := &options{}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
 }

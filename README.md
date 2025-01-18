@@ -459,7 +459,17 @@ beekeeper restart -namespace=default --label-selector="app=bee" --timeout=10m
 
 ### stamper
 
-Command **stamper** manage postage batches for nodes and has following subcommands:
+Command **stamper** manage postage batches for nodes.
+
+General Notes:
+
+- `namespace` or `cluster-name` must be specified to locate the bee nodes.
+- If both are provided, `namespace` takes precedence.
+- When `namespace` is set, you can use a `label-selector` to filter specific nodes.
+- Use `batch-ids` to target specific postage batches, but this is applied after finding/filtering nodes. If `batch-ids` is not provided, all batches in the filtered nodes are targeted.
+- If `timeout` is set to 0 and `periodic-check` is bigger than 0, the operation will run indefinitely with periodic checks.
+
+It has following subcommands:
 
 - **create** - creates a postage batch for selected nodes
 
@@ -492,6 +502,7 @@ Command **stamper** manage postage batches for nodes and has following subcomman
   It has following flags:
 
   ```console
+  --batch-ids strings         Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up.
   --cluster-name string       Target Beekeeper cluster name.
   --geth-url string           Geth URL for chain state retrieval.
   --help                      help for topup
@@ -520,6 +531,7 @@ Command **stamper** manage postage batches for nodes and has following subcomman
   It has following flags:
 
   ```console
+  --batch-ids strings         Comma separated list of postage batch IDs to dilute. If not provided, all batches are diluted.
   --cluster-name string       Target Beekeeper cluster name.
   --dilution-depth uint8      Number of levels by which to increase the depth of a stamp during dilution. (default 1)
   --help                      help for dilute
@@ -547,6 +559,7 @@ Command **stamper** manage postage batches for nodes and has following subcomman
   It has following flags:
 
   ```console
+  --batch-ids strings         Comma separated list of postage batch IDs to set. If not provided, all batches are set.
   --cluster-name string       Target Beekeeper cluster name.
   --dilution-depth uint16     Number of levels by which to increase the depth of a stamp during dilution. (default 1)
   --geth-url string           Geth URL for chain state retrieval.

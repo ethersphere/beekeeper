@@ -34,13 +34,17 @@ func (n *node) Create(ctx context.Context, amount uint64, depth uint16) error {
 	return nil
 }
 
-func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uint16) error {
+func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uint16, batchIds []string) error {
 	batches, err := n.client.Postage.PostageBatches(ctx)
 	if err != nil {
 		return fmt.Errorf("node %s: get postage batches: %w", n.name, err)
 	}
 
 	for _, batch := range batches {
+		if len(batchIds) > 0 && !contains(batchIds, batch.BatchID) {
+			continue
+		}
+
 		if !batch.Usable || batch.Utilization == 0 {
 			continue
 		}
@@ -67,7 +71,7 @@ func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uin
 // which directly affects the calculations for Topup by reducing the effective batch TTL.
 // Therefore, Topup is handled first, considering the original depth, followed by Dilute
 // which accounts for the new depth and utilization threshold.
-func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, threshold float64, depth uint16, blockTime int64) error {
+func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, threshold float64, depth uint16, blockTime int64, batchIds []string) error {
 	chainState, err := n.client.Postage.GetChainState(ctx)
 	if err != nil {
 		return fmt.Errorf("node %s: get chain state: %w", n.name, err)
@@ -84,6 +88,10 @@ func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuratio
 	}
 
 	for _, batch := range batches {
+		if len(batchIds) > 0 && !contains(batchIds, batch.BatchID) {
+			continue
+		}
+
 		if !batch.Usable || batch.Utilization == 0 {
 			continue
 		}
@@ -117,7 +125,7 @@ func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuratio
 			}
 		}
 
-		// Dilute logic
+		// Dilute
 		usageFactor := batch.Depth - batch.BucketDepth              // depth - bucketDepth
 		divisor := float64(int(1) << usageFactor)                   // 2^(depth - bucketDepth)
 		stampsUsage := (float64(batch.Utilization) / divisor) * 100 // (utilization / 2^(depth - bucketDepth)) * 100
@@ -135,7 +143,7 @@ func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuratio
 	return nil
 }
 
-func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, blockTime int64) error {
+func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, blockTime int64, batchIds []string) error {
 	chainState, err := n.client.Postage.GetChainState(ctx)
 	if err != nil {
 		return fmt.Errorf("node %s: get chain state: %w", n.name, err)
@@ -152,6 +160,10 @@ func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDurat
 	}
 
 	for _, batch := range batches {
+		if len(batchIds) > 0 && !contains(batchIds, batch.BatchID) {
+			continue
+		}
+
 		if !batch.Usable || batch.Utilization == 0 {
 			continue
 		}
@@ -187,4 +199,13 @@ func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topupDurat
 	}
 
 	return nil
+}
+
+func contains(slice []string, value string) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }

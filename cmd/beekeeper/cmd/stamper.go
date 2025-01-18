@@ -47,9 +47,10 @@ func initStamperDefaultFlags(cmd *cobra.Command) *cobra.Command {
 
 func (c *command) initStamperTopup() *cobra.Command {
 	const (
-		optionTTLThreshold = "ttl-threshold"
-		optionTopUpTo      = "topup-to"
-		optionGethUrl      = "geth-url"
+		optionNameTTLThreshold = "ttl-threshold"
+		optionNameTopUpTo      = "topup-to"
+		optionNameGethUrl      = "geth-url"
+		optionNameBatchIDs     = "batch-ids"
 	)
 
 	cmd := &cobra.Command{
@@ -58,15 +59,16 @@ func (c *command) initStamperTopup() *cobra.Command {
 		Long:  `Top up the TTL of postage batches.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
-				stamper, err := c.createStamperClient(ctx)
+				stamperClient, err := c.createStamperClient(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to create stamper client: %w", err)
 				}
 
 				return c.executePeriodically(ctx, func(ctx context.Context) error {
-					return stamper.Topup(ctx,
-						c.globalConfig.GetDuration(optionTTLThreshold),
-						c.globalConfig.GetDuration(optionTopUpTo),
+					return stamperClient.Topup(ctx,
+						c.globalConfig.GetDuration(optionNameTTLThreshold),
+						c.globalConfig.GetDuration(optionNameTopUpTo),
+						stamper.WithBatchIDs(c.globalConfig.GetStringSlice(optionNameBatchIDs)),
 					)
 				})
 			})
@@ -74,20 +76,20 @@ func (c *command) initStamperTopup() *cobra.Command {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().Duration(optionTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
-	cmd.Flags().Duration(optionTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
-	cmd.Flags().String(optionGethUrl, "", "Geth URL for chain state retrieval.")
+	cmd.Flags().Duration(optionNameTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
+	cmd.Flags().Duration(optionNameTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up.")
+	cmd.Flags().String(optionNameGethUrl, "", "Geth URL for chain state retrieval.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
-
-	c.root.AddCommand(cmd)
 
 	return cmd
 }
 
 func (c *command) initStamperDilute() *cobra.Command {
 	const (
-		optionUsageThreshold = "usage-threshold"
-		optionDiutionDepth   = "dilution-depth"
+		optionNameUsageThreshold = "usage-threshold"
+		optionNameDiutionDepth   = "dilution-depth"
+		optionNameBatchIDs       = "batch-ids"
 	)
 
 	cmd := &cobra.Command{
@@ -96,15 +98,16 @@ func (c *command) initStamperDilute() *cobra.Command {
 		Long:  `Dilute postage batches.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
-				stamper, err := c.createStamperClient(ctx)
+				stamperClient, err := c.createStamperClient(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to create stamper client: %w", err)
 				}
 
 				return c.executePeriodically(ctx, func(ctx context.Context) error {
-					return stamper.Dilute(ctx,
-						c.globalConfig.GetFloat64(optionUsageThreshold),
-						c.globalConfig.GetUint16(optionDiutionDepth),
+					return stamperClient.Dilute(ctx,
+						c.globalConfig.GetFloat64(optionNameUsageThreshold),
+						c.globalConfig.GetUint16(optionNameDiutionDepth),
+						stamper.WithBatchIDs(c.globalConfig.GetStringSlice(optionNameBatchIDs)),
 					)
 				})
 			})
@@ -112,11 +115,10 @@ func (c *command) initStamperDilute() *cobra.Command {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().Float64(optionUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
-	cmd.Flags().Uint8(optionDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
+	cmd.Flags().Float64(optionNameUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
+	cmd.Flags().Uint8(optionNameDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to dilute. If not provided, all batches are diluted.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
-
-	c.root.AddCommand(cmd)
 
 	return cmd
 }
@@ -133,12 +135,12 @@ func (c *command) initStamperCreate() *cobra.Command {
 		Long:  `Create a postage batch for selected nodes. Nodes are selected by namespace (use label-selector for filtering) or cluster name.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
-				stamper, err := c.createStamperClient(ctx)
+				stamperClient, err := c.createStamperClient(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to create stamper client: %w", err)
 				}
 
-				return stamper.Create(ctx,
+				return stamperClient.Create(ctx,
 					c.globalConfig.GetUint64(optionNameAmount),
 					c.globalConfig.GetUint16(optionNameDepth),
 				)
@@ -148,20 +150,19 @@ func (c *command) initStamperCreate() *cobra.Command {
 	}
 
 	cmd.Flags().Uint64(optionNameAmount, 100000000, "Amount of BZZ in PLURS added that the postage batch will have.")
-	cmd.Flags().Uint16(optionNameDepth, 16, "Batch depth which specifies how many chunks can be signed with the batch. It is a logarithm. Must be higher than default bucket depth (16)")
-
-	c.root.AddCommand(cmd)
+	cmd.Flags().Uint16(optionNameDepth, 17, "Batch depth which specifies how many chunks can be signed with the batch. It is a logarithm. Must be higher than default bucket depth (16)")
 
 	return cmd
 }
 
 func (c *command) initStamperSet() *cobra.Command {
 	const (
-		optionTTLThreshold   = "ttl-threshold"
-		optionTopUpTo        = "topup-to"
-		optionUsageThreshold = "usage-threshold"
-		optionDiutionDepth   = "dilution-depth"
-		optionGethUrl        = "geth-url"
+		optionNameTTLThreshold   = "ttl-threshold"
+		optionNameTopUpTo        = "topup-to"
+		optionNameUsageThreshold = "usage-threshold"
+		optionNameDiutionDepth   = "dilution-depth"
+		optionNameGethUrl        = "geth-url"
+		optionNameBatchIDs       = "batch-ids"
 	)
 
 	cmd := &cobra.Command{
@@ -170,31 +171,31 @@ func (c *command) initStamperSet() *cobra.Command {
 		Long:  `Set stamper configuration.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
-				stamper, err := c.createStamperClient(ctx)
+				stamperClient, err := c.createStamperClient(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to create stamper client: %w", err)
 				}
 
 				return c.executePeriodically(ctx, func(ctx context.Context) error {
-					return stamper.Set(ctx,
-						c.globalConfig.GetDuration(optionTTLThreshold),
-						c.globalConfig.GetDuration(optionTopUpTo),
-						c.globalConfig.GetFloat64(optionUsageThreshold),
-						c.globalConfig.GetUint16(optionDiutionDepth),
+					return stamperClient.Set(ctx,
+						c.globalConfig.GetDuration(optionNameTTLThreshold),
+						c.globalConfig.GetDuration(optionNameTopUpTo),
+						c.globalConfig.GetFloat64(optionNameUsageThreshold),
+						c.globalConfig.GetUint16(optionNameDiutionDepth),
+						stamper.WithBatchIDs(c.globalConfig.GetStringSlice(optionNameBatchIDs)),
 					)
 				})
 			})
 		},
 	}
 
-	cmd.Flags().Duration(optionTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
-	cmd.Flags().Duration(optionTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
-	cmd.Flags().Float64(optionUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
-	cmd.Flags().Uint16(optionDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
-	cmd.Flags().String(optionGethUrl, "", "Geth URL for chain state retrieval.")
+	cmd.Flags().Duration(optionNameTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
+	cmd.Flags().Duration(optionNameTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
+	cmd.Flags().Float64(optionNameUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
+	cmd.Flags().Uint16(optionNameDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to set. If not provided, all batches are set.")
+	cmd.Flags().String(optionNameGethUrl, "", "Geth URL for chain state retrieval.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
-
-	c.root.AddCommand(cmd)
 
 	return cmd
 }
@@ -226,6 +227,7 @@ func (c *command) createStamperClient(ctx context.Context) (stamper.Client, erro
 		Namespace:     namespace,
 		K8sClient:     c.k8sClient,
 		BeeClients:    beeClients,
+		SwapClient:    c.swapClient,
 		LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 		InCluster:     c.globalConfig.GetBool(optionNameInCluster),
 	}), nil
