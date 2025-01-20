@@ -126,9 +126,9 @@ checks:
   pt-testnet-load:
     options:
       content-size: 50000000
-      postage-amount: 1000000000 # 1024/15*60*60*24*7
+      postage-amount: 3480503040 # 86322/15*60*60*24*7
       postage-depth: 24
-      duration: 12h
+      duration: 24h
       uploader-count: 2
       downloader-count: 0
       max-use-batch: 1h
