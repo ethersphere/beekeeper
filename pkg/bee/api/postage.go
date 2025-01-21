@@ -122,3 +122,8 @@ func (p *PostageService) GetChainState(ctx context.Context) (ChainStateResponse,
 	}
 	return resp, nil
 }
+
+func (batch *PostageStampResponse) BatchUsage() float64 {
+	maxUtilization := 1 << (batch.Depth - batch.BucketDepth)            // 2^(depth - bucketDepth)
+	return (float64(batch.Utilization) / float64(maxUtilization)) * 100 // batch utilization between 0 and 100 percent
+}
