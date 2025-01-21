@@ -74,7 +74,8 @@ func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uin
 // which directly affects the calculations for Topup by reducing the effective batch TTL.
 // Therefore, Topup is handled first, considering the original depth, followed by Dilute
 // which accounts for the new depth and utilization threshold.
-func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuration time.Duration, threshold float64, depth uint16, blockTime int64, batchIds []string) error {
+func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topUpFinalTTL time.Duration, utilizationThreshold float64, extraDepth uint16, secondsPerBlock int64, batchIds []string) error {
+
 	chainState, err := n.client.Postage.GetChainState(ctx)
 	if err != nil {
 		return fmt.Errorf("node %s: get chain state: %w", n.name, err)
@@ -99,46 +100,63 @@ func (n *node) Set(ctx context.Context, ttlThreshold time.Duration, topupDuratio
 			continue
 		}
 
-		// Topup
-		batchTTL := time.Unix(batch.BatchTTL, 0)
-		if time.Until(batchTTL) <= ttlThreshold {
-			originalDepth := batch.Depth - batch.BucketDepth + uint8(depth)
-			adjustedDepth := originalDepth + uint8(depth)
-			multiplier := int64(1 << adjustedDepth)
+		batchTTL := time.Duration(batch.BatchTTL) * time.Second
+		var topUpTTL time.Duration
 
-			if blockTime <= 0 {
-				blockTime = 1 // avoid division by zero
-			}
-
-			remainingTTL := batchTTL.Unix() - time.Now().Unix()
-			if remainingTTL < 0 {
-				remainingTTL = 0 // handle expired batches
-			}
-
-			requiredDuration := int64(topupDuration.Seconds()) - remainingTTL
-
-			if requiredDuration > 0 {
-				amount := (requiredDuration / blockTime) * multiplier * price
-
-				n.log.Tracef("node %s: batch %s: required duration %d, amount %d", n.name, batch.BatchID, requiredDuration, amount)
-
-				if err := n.client.Postage.TopUpPostageBatch(ctx, batch.BatchID, amount, ""); err != nil {
-					return fmt.Errorf("node %s: top-up batch %s: %w", n.name, batch.BatchID, err)
-				}
-
-				n.log.Infof("node %s: topped up batch %s with amount %d", n.name, batch.BatchID, amount)
-			}
+		if batchTTL <= 0 {
+			continue
 		}
 
-		// Dilute
-		usageFactor := batch.Depth - batch.BucketDepth              // depth - bucketDepth
-		divisor := float64(int(1) << usageFactor)                   // 2^(depth - bucketDepth)
-		stampsUsage := (float64(batch.Utilization) / divisor) * 100 // (utilization / 2^(depth - bucketDepth)) * 100
+		// calculate batch usage
+		maxUtilization := 1 << (batch.Depth - batch.BucketDepth)                   // 2^(depth - bucketDepth)
+		batchUsage := (float64(batch.Utilization) / float64(maxUtilization)) * 100 // batch utilization between 0 and 100 percent
+		needsDilution := false
 
-		if stampsUsage >= threshold {
-			newDepth := uint16(batch.Depth) + depth
+		// dilution needed
+		if batchUsage >= utilizationThreshold {
+			needsDilution = true
+			batchTTL = batchTTL / (1 << extraDepth) // reduce batch TTL by 2^extraDepth
+		}
 
-			n.log.Tracef("node %s: batch %s: stamps usage %.2f%%, diluting to depth %d", n.name, batch.BatchID, stampsUsage, newDepth)
+		if batchTTL > ttlThreshold {
+
+			if needsDilution {
+				goto DILUTE
+			}
+
+			continue
+		}
+
+		// dilution needed
+		if batchUsage >= utilizationThreshold {
+			needsDilution = true
+			batchTTL = batchTTL / (1 << extraDepth) // reduce batch TTL by 2^extraDepth
+		}
+
+		// Topup
+		if secondsPerBlock <= 0 {
+			secondsPerBlock = 1 // avoid division by zero
+		}
+
+		topUpTTL = topUpFinalTTL - batchTTL
+
+		if topUpTTL > 0 {
+			amount := (int64(topUpTTL.Seconds()) / secondsPerBlock) * price // number of blocks * price per block
+
+			n.log.Tracef("node %s: batch %s: required duration %d, amount %d", n.name, batch.BatchID, topUpTTL, amount)
+
+			if err := n.client.Postage.TopUpPostageBatch(ctx, batch.BatchID, amount, ""); err != nil {
+				return fmt.Errorf("node %s: top-up batch %s: %w", n.name, batch.BatchID, err)
+			}
+
+			n.log.Infof("node %s: topped up batch %s with amount %d", n.name, batch.BatchID, amount)
+		}
+
+	DILUTE:
+		if needsDilution {
+			newDepth := uint16(batch.Depth) + extraDepth
+
+			n.log.Tracef("node %s: batch %s: stamps usage %.2f%%, diluting to depth %d", n.name, batch.BatchID, batchUsage, newDepth)
 
 			if err := n.client.Postage.DilutePostageBatch(ctx, batch.BatchID, uint64(newDepth), ""); err != nil {
 				return fmt.Errorf("node %s: dilute batch %s: %w", n.name, batch.BatchID, err)
