@@ -187,6 +187,7 @@ func (c *command) initStamperSet() *cobra.Command {
 				})
 			})
 		},
+		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().Duration(optionNameTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
