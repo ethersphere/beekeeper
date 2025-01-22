@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func (g *GethClient) FetchBlockTime(ctx context.Context) (blockTime int64, err error) {
+func (g *GethClient) FetchBlockTime(ctx context.Context) (int64, error) {
 	latestBlockNumber, err := g.fetchLatestBlockNumber(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("fetch latest block number: %w", err)
@@ -23,7 +23,11 @@ func (g *GethClient) FetchBlockTime(ctx context.Context) (blockTime int64, err e
 		return 0, fmt.Errorf("fetch previous block timestamp: %w", err)
 	}
 
-	return timestampLatest - timestampPrevious, nil
+	blockTime := timestampLatest - timestampPrevious
+
+	g.logger.Tracef("block time: %d seconds", blockTime)
+
+	return blockTime, nil
 }
 
 type rpcRequest struct {

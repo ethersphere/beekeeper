@@ -14,18 +14,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
-// Client is the interface for stamper client.
-type Client interface {
-	// Create creates a postage batch.
-	Create(ctx context.Context, amount uint64, depth uint16) error
-	// Dilute dilutes a postage batch.
-	Dilute(ctx context.Context, threshold float64, depth uint16, opts ...Option) error
-	// Set sets the topup and dilution parameters.
-	Set(ctx context.Context, ttlThreshold, topupDuration time.Duration, threshold float64, depth uint16, opts ...Option) error
-	// Topup tops up a postage batch.
-	Topup(ctx context.Context, ttlThreshold, topupDuration time.Duration, opts ...Option) error
-}
-
 type Option func(*options)
 
 type options struct {
@@ -48,7 +36,7 @@ type ClientConfig struct {
 	InCluster     bool
 }
 
-type client struct {
+type Client struct {
 	log           logging.Logger
 	namespace     string
 	k8sClient     *k8s.Client
@@ -58,7 +46,7 @@ type client struct {
 	inCluster     bool
 }
 
-func New(cfg *ClientConfig) *client {
+func New(cfg *ClientConfig) *Client {
 	if cfg == nil {
 		return nil
 	}
@@ -67,7 +55,7 @@ func New(cfg *ClientConfig) *client {
 		cfg.Log = logging.New(io.Discard, 0)
 	}
 
-	return &client{
+	return &Client{
 		log:           cfg.Log,
 		namespace:     cfg.Namespace,
 		k8sClient:     cfg.K8sClient,
@@ -78,8 +66,8 @@ func New(cfg *ClientConfig) *client {
 	}
 }
 
-// Create implements Client.
-func (s *client) Create(ctx context.Context, amount uint64, depth uint16) error {
+// Create creates a postage batch.
+func (s *Client) Create(ctx context.Context, amount uint64, depth uint16) error {
 	s.log.WithFields(map[string]interface{}{
 		"amount": amount,
 		"depth":  depth,
@@ -99,8 +87,8 @@ func (s *client) Create(ctx context.Context, amount uint64, depth uint16) error 
 	return nil
 }
 
-// Dilute implements Client.
-func (s *client) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint16, opts ...Option) error {
+// Dilute dilutes a postage batch.
+func (s *Client) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint16, opts ...Option) error {
 	s.log.WithFields(map[string]interface{}{
 		"usageThreshold": usageThreshold,
 		"dilutionDepth":  dilutionDepth,
@@ -120,8 +108,8 @@ func (s *client) Dilute(ctx context.Context, usageThreshold float64, dilutionDep
 	return nil
 }
 
-// Set implements Client.
-func (s *client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, usageThreshold float64, dilutionDepth uint16, opts ...Option) error {
+// Set sets the topup and dilution parameters.
+func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, usageThreshold float64, dilutionDepth uint16, opts ...Option) error {
 	s.log.WithFields(map[string]interface{}{
 		"ttlThreshold":   ttlThreshold,
 		"topupTo":        topupTo,
@@ -148,8 +136,8 @@ func (s *client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo ti
 	return nil
 }
 
-// Topup implements Client.
-func (s *client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, opts ...Option) (err error) {
+// Topup tops up a postage batch.
+func (s *Client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, opts ...Option) (err error) {
 	s.log.WithFields(map[string]interface{}{
 		"ttlThreshold": ttlThreshold,
 		"topupTo":      topupTo,
@@ -174,7 +162,7 @@ func (s *client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo 
 	return nil
 }
 
-func (sc *client) getNodes(ctx context.Context) (nodes []node, err error) {
+func (sc *Client) getNodes(ctx context.Context) (nodes []node, err error) {
 	if sc.namespace != "" {
 		return sc.getNamespaceNodes(ctx)
 	}
@@ -191,7 +179,7 @@ func (sc *client) getNodes(ctx context.Context) (nodes []node, err error) {
 	return nodes, nil
 }
 
-func (sc *client) getNamespaceNodes(ctx context.Context) (nodes []node, err error) {
+func (sc *Client) getNamespaceNodes(ctx context.Context) (nodes []node, err error) {
 	if sc.namespace == "" {
 		return nil, fmt.Errorf("namespace not provided")
 	}
@@ -212,7 +200,7 @@ func (sc *client) getNamespaceNodes(ctx context.Context) (nodes []node, err erro
 	return nodes, nil
 }
 
-func (sc *client) getServiceNodes(ctx context.Context) ([]node, error) {
+func (sc *Client) getServiceNodes(ctx context.Context) ([]node, error) {
 	svcNodes, err := sc.k8sClient.Service.GetNodes(ctx, sc.namespace, sc.labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("list api services: %w", err)
@@ -233,7 +221,7 @@ func (sc *client) getServiceNodes(ctx context.Context) ([]node, error) {
 	return nodes, nil
 }
 
-func (sc *client) getIngressNodes(ctx context.Context) ([]node, error) {
+func (sc *Client) getIngressNodes(ctx context.Context) ([]node, error) {
 	ingressNodes, err := sc.k8sClient.Ingress.GetNodes(ctx, sc.namespace, sc.labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("list ingress api nodes hosts: %w", err)

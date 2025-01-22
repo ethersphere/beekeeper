@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -244,14 +245,11 @@ func (g *GethClient) ethAccounts(ctx context.Context) (a []string, err error) {
 	return resp.Result, nil
 }
 
-// contains checks if list contains string
+// contains checks if list contains string and ignores case
 func contains(list []string, find string) bool {
-	for _, s := range list {
-		if strings.EqualFold(s, find) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(list, func(s string) bool {
+		return strings.EqualFold(s, find)
+	})
 }
 
 // addPrefix adds prefix to string if it doesn't exist

@@ -3,6 +3,7 @@ package stamper
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
@@ -178,18 +179,9 @@ func isValidBatch(batch *api.PostageStampResponse, batchIDs []string) bool {
 		return false
 	}
 
-	if len(batchIDs) > 0 && !contains(batchIDs, batch.BatchID) {
+	if len(batchIDs) > 0 && !slices.Contains(batchIDs, batch.BatchID) {
 		return false
 	}
 
 	return true
-}
-
-func contains(slice []string, value string) bool {
-	for _, v := range slice {
-		if v == value {
-			return true
-		}
-	}
-	return false
 }

@@ -201,7 +201,7 @@ func (c *command) initStamperSet() *cobra.Command {
 	return cmd
 }
 
-func (c *command) createStamperClient(ctx context.Context) (stamper.Client, error) {
+func (c *command) createStamperClient(ctx context.Context) (*stamper.Client, error) {
 	namespace := c.globalConfig.GetString(optionNameNamespace)
 	clusterName := c.globalConfig.GetString(optionNameClusterName)
 
