@@ -362,20 +362,27 @@ func (c *command) preRunE(cmd *cobra.Command, args []string) (err error) {
 	return nil
 }
 
-func (c *command) setK8sClient() (err error) {
-	if c.globalConfig.GetBool(optionNameEnableK8S) {
-		options := []k8s.ClientOption{
-			k8s.WithLogger(c.log),
-			k8s.WithInCluster(c.globalConfig.GetBool(optionNameInCluster)),
-			k8s.WithKubeconfigPath(c.globalConfig.GetString(optionNameKubeconfig)),
-		}
-
-		if c.k8sClient, err = k8s.NewClient(options...); err != nil && !errors.Is(err, k8s.ErrKubeconfigNotSet) {
-			return fmt.Errorf("creating Kubernetes client: %w", err)
-		}
+func (c *command) setK8sClient() error {
+	if !c.globalConfig.GetBool(optionNameEnableK8S) {
+		c.log.Info("Kubernetes client disabled. Enable it with --enable-k8s=true flag if required")
+		return nil
 	}
 
-	return
+	c.log.Info("Kubernetes client enabled. Disable it with --enable-k8s=false flag if not required")
+
+	options := []k8s.ClientOption{
+		k8s.WithLogger(c.log),
+		k8s.WithInCluster(c.globalConfig.GetBool(optionNameInCluster)),
+		k8s.WithKubeconfigPath(c.globalConfig.GetString(optionNameKubeconfig)),
+	}
+
+	k8sClient, err := k8s.NewClient(options...)
+	if err != nil && !errors.Is(err, k8s.ErrKubeconfigNotSet) {
+		return fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	c.k8sClient = k8sClient
+	return nil
 }
 
 func (c *command) executePeriodically(ctx context.Context, action func(ctx context.Context) error) error {

@@ -105,7 +105,10 @@ If *config-dir* is kept in a Git repo, field *config-git-repo* should point to i
 
 Official GitHub repository with Beekeeper's configuration is **<https://github.com/ethersphere/beekeeper-config>**
 
-NOTE: command flags can be also set through the config file
+General Notes:
+
+- command flags can be also set through the config file
+- k8s client can be disabled with *enable-k8s* flag (default is true)
 
 ## Config directory
 
