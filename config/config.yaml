@@ -348,7 +348,7 @@ checks:
       insufficient-amount: 102400
       contract-addr: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
-      geth-url: "http://geth-swap.bee-playground.testnet.internal"
+      geth-url: "http://geth-swap.bee-playground.svc.swarm1.local"
       geth-chain-id: 12345
   withdraw:
     options:
