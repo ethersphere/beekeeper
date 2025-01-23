@@ -70,6 +70,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	rnd := random.PseudoGenerator(o.Seed)
 	clients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
+	if err != nil {
+		return fmt.Errorf("node clients shuffle: %w", err)
+	}
 
 	if len(clients) < 2 {
 		return fmt.Errorf("not enough nodes to run feed check")
@@ -322,6 +325,6 @@ func tarFiles(files []bee.File) (*bytes.Buffer, error) {
 			return nil, err
 		}
 	}
-	
+
 	return &buf, nil
 }
