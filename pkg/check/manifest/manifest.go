@@ -69,19 +69,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	rnd := random.PseudoGenerator(o.Seed)
-	names := cluster.FullNodeNames()
-	perm := rnd.Perm(len(names))
+	clients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
 
-	if len(names) < 2 {
+	if len(clients) < 2 {
 		return fmt.Errorf("not enough nodes to run feed check")
 	}
-
-	clients, err := cluster.NodesClients(ctx)
-	if err != nil {
-		return err
-	}
-	upClient := clients[names[perm[0]]]
-	downClient := clients[names[perm[1]]]
+	upClient := clients[0]
+	downClient := clients[1]
 
 	err = c.checkWithoutSubDirs(ctx, rnd, o, upClient, downClient)
 	if err != nil {
@@ -229,38 +223,37 @@ func (c *Check) download(client *bee.Client, address swarm.Address, file *bee.Fi
 	}
 	c.logger.Infof("downloading file: %s/%s", address, fName)
 
-	try := 0
-DOWNLOAD:
-	time.Sleep(5 * time.Second)
-	try++
-	if try > 5 {
+	var hash []byte
+	for i := 0; i < 5; i++ {
+		_, h, err := client.DownloadManifestFile(context.Background(), address, fName)
+		hash = h
+		if err == nil {
+			break
+		}
+		c.logger.Infof("node %s. Error retrieving file: %s", client.Name(), err.Error())
+		time.Sleep(5 * time.Second)
+	}
+	if hash == nil {
 		return fmt.Errorf("failed getting manifest files after too many retries")
 	}
-	_, hash, err := client.DownloadManifestFile(context.Background(), address, fName)
-	if err != nil {
-		c.logger.Infof("node %s. Error retrieving file: %s", client.Name(), err.Error())
-		goto DOWNLOAD
+
+	expectedHash := indexFile.Hash()
+	if file != nil {
+		expectedHash = file.Hash()
 	}
 
-	if file != nil {
-		if !bytes.Equal(file.Hash(), hash) {
-			c.logger.Infof("node %s. File hash does not match", client.Name())
-			return errManifest
-		}
-	} else {
-		if !bytes.Equal(indexFile.Hash(), hash) {
-			c.logger.Infof("node %s. Index hash does not match", client.Name())
-			return errManifest
-		}
+	if !bytes.Equal(expectedHash, hash) {
+		c.logger.Infof("node %s: file hash does not match", client.Name())
+		return errManifest
 	}
-	c.logger.Infof("node %s. File retrieved successfully", client.Name())
+
+	c.logger.Infof("node %s: file retrieved successfully", client.Name())
 	return nil
 }
 
 func generateFilesWithPaths(r *rand.Rand, paths []string, maxSize int) ([]bee.File, error) {
 	files := make([]bee.File, len(paths))
-	for i := 0; i < len(paths); i++ {
-		path := paths[i]
+	for i, path := range paths {
 		size := int64(r.Intn(maxSize)) + 1
 		file := bee.NewRandomFile(r, path, size)
 		err := file.CalculateHash()
@@ -306,6 +299,8 @@ func tarFiles(files []bee.File) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 
+	defer tw.Close()
+
 	for _, file := range files {
 		// create tar header and write it
 		hdr := &tar.Header{
@@ -327,10 +322,6 @@ func tarFiles(files []bee.File) (*bytes.Buffer, error) {
 			return nil, err
 		}
 	}
-
-	if err := tw.Close(); err != nil {
-		return nil, err
-	}
-
+	
 	return &buf, nil
 }
