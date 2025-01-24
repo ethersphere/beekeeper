@@ -32,6 +32,10 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logg
 
 	sortedNodes := c.FullNodeNames()
 
+	if o.UploadNodeCount > len(sortedNodes) {
+		return fmt.Errorf("not enough nodes in the cluster to run the test, required %d, available %d", o.UploadNodeCount, len(sortedNodes))
+	}
+
 	for i := 0; i < o.UploadNodeCount; i++ {
 
 		nodeName := sortedNodes[i]
