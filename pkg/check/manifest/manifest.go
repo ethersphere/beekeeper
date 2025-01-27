@@ -75,7 +75,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	if len(clients) < 2 {
-		return fmt.Errorf("not enough nodes to run feed check")
+		return fmt.Errorf("not enough nodes to run manifest check")
 	}
 	upClient := clients[0]
 	downClient := clients[1]
@@ -116,7 +116,7 @@ func (c *Check) checkWithoutSubDirs(ctx context.Context, rnd *rand.Rand, o Optio
 	}
 
 	for _, file := range files {
-		if err := c.download(downClient, tarFile.Address(), &file, bee.File{}); err != nil {
+		if err := c.downloadAndVerify(ctx, downClient, tarFile.Address(), &file, bee.File{}); err != nil {
 			return err
 		}
 	}
@@ -173,7 +173,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	c.logger.Infof("feed updated: %s", ref.Reference)
 
 	// download root (index.html) from the feed
-	err = c.download(downClient, rootFeedRef.Reference, nil, files[0])
+	err = c.downloadAndVerify(ctx, downClient, rootFeedRef.Reference, nil, files[0])
 	if err != nil {
 		return err
 	}
@@ -202,14 +202,14 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	c.logger.Infof("feed updated: %s", ref.Reference)
 
 	// download updated index.html from the feed
-	err = c.download(downClient, rootFeedRef.Reference, nil, files[0])
+	err = c.downloadAndVerify(ctx, downClient, rootFeedRef.Reference, nil, files[0])
 	if err != nil {
 		return err
 	}
 
 	// download other paths and compare
 	for i := 0; i < len(files); i++ {
-		err = c.download(downClient, tarFile.Address(), &files[i], files[0])
+		err = c.downloadAndVerify(ctx, downClient, tarFile.Address(), &files[i], files[0])
 		if err != nil {
 			return err
 		}
@@ -217,32 +217,35 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	return nil
 }
 
-// download retrieves a file from the given address using the specified client.
+// downloadAndVerify retrieves a file from the given address using the specified client.
 // If the file parameter is nil, it downloads the index file in the collection.
-func (c *Check) download(client *bee.Client, address swarm.Address, file *bee.File, indexFile bee.File) error {
+// Then it verifies the hash of the downloaded file against the expected hash.
+func (c *Check) downloadAndVerify(ctx context.Context, client *bee.Client, address swarm.Address, file *bee.File, indexFile bee.File) error {
+	expectedHash := indexFile.Hash()
 	fName := ""
 	if file != nil {
 		fName = file.Name()
+		expectedHash = file.Hash()
 	}
 	c.logger.Infof("downloading file: %s/%s", address, fName)
 
 	var hash []byte
 	for i := 0; i < 5; i++ {
-		_, h, err := client.DownloadManifestFile(context.Background(), address, fName)
+		_, h, err := client.DownloadManifestFile(ctx, address, fName)
 		hash = h
 		if err == nil {
 			break
 		}
 		c.logger.Infof("node %s. Error retrieving file: %s", client.Name(), err.Error())
-		time.Sleep(5 * time.Second)
+		select {
+		case <-time.After(5 * time.Second):
+			continue
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	if hash == nil {
 		return fmt.Errorf("failed getting manifest files after too many retries")
-	}
-
-	expectedHash := indexFile.Hash()
-	if file != nil {
-		expectedHash = file.Hash()
 	}
 
 	if !bytes.Equal(expectedHash, hash) {
