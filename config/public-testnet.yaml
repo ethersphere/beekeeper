@@ -50,6 +50,10 @@ bee-configs:
     full-node: true
 
 checks:
+  pt-pingpong:
+    options:
+    timeout: 30m
+    type: pingpong
   pt-retrieval:
     options:
       chunks-per-node: 3
