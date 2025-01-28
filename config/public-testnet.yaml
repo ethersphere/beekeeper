@@ -47,8 +47,13 @@ bee-configs:
   sepolia:
     _inherit: ""
     bootnodes: "/dnsaddr/testnet.ethswarm.org"
+    full-node: true
 
 checks:
+  pt-pingpong:
+    options:
+    timeout: 30m
+    type: pingpong
   pt-retrieval:
     options:
       chunks-per-node: 3
@@ -76,7 +81,7 @@ checks:
       max-pathname-length: 64
       postage-amount: 140000000
       postage-depth: 17
-    timeout: 5m
+    timeout: 30m
     type: manifest
   pt-pss:
     options:
@@ -146,6 +151,7 @@ checks:
       postage-amount: 140000000
       postage-depth: 20
       postage-label: feed-label
+    timeout: 30m
     type: feed
   pt-feed-availability:
     options:
