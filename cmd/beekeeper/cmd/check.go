@@ -127,12 +127,12 @@ func (c *command) initCheckCmd() (err error) {
 				}()
 
 				select {
-				case <-ctx.Done():
-					deadline, ok := ctx.Deadline()
+				case <-checkCtx.Done():
+					deadline, ok := checkCtx.Deadline()
 					if ok {
-						return fmt.Errorf("running check %s: %w: deadline %v", checkName, ctx.Err(), deadline)
+						return fmt.Errorf("running check %s: %w: deadline %v", checkName, checkCtx.Err(), deadline)
 					}
-					return fmt.Errorf("check %s failed due to: %w", checkName, ctx.Err())
+					return fmt.Errorf("check %s failed due to: %w", checkName, checkCtx.Err())
 				case err = <-ch:
 					if err != nil {
 						return fmt.Errorf("check %s failed with error: %w", checkName, err)
