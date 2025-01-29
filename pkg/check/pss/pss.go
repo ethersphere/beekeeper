@@ -122,6 +122,8 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 		return err
 	}
 
+	c.logger.Info("pss: listen public key", addrB.PSSPublicKey)
+
 	batchID, err := nodeA.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		cancel()
@@ -181,12 +183,14 @@ func listenWebsocket(ctx context.Context, host string, topic string, logger logg
 	ch := make(chan string)
 
 	go func() {
-		_, data, err := ws.ReadMessage()
+		t, data, err := ws.ReadMessage()
 		if err != nil {
 			logger.Infof("pss: websocket error %v", err)
 			close(ch)
 			return
 		}
+
+		logger.Infof("pss: received data %s, type", string(data), t)
 
 		ch <- string(data)
 	}()
