@@ -77,10 +77,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	upClient := clients[0]
 	downClient := clients[1]
 
-	//err = c.checkWithoutSubDirs(ctx, rnd, o, upClient, downClient)
-	//if err != nil {
-	//	return fmt.Errorf("check without subdirs: %w", err)
-	//}
+	err = c.checkWithoutSubDirs(ctx, rnd, o, upClient, downClient)
+	if err != nil {
+		return fmt.Errorf("check without subdirs: %w", err)
+	}
 
 	err = c.checkWithSubDirs(ctx, rnd, o, upClient, downClient)
 	if err != nil {
