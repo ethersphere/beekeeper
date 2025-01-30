@@ -233,6 +233,21 @@ func (c *Cluster) FullNodeNames() (names []string) {
 	return
 }
 
+// ShuffledFullNodeClients returns a list of full node clients shuffled
+func (c *Cluster) ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error) {
+	var res []*bee.Client
+	for _, node := range c.Nodes() {
+		cfg := node.Config()
+		if cfg.FullNode && !cfg.BootnodeMode {
+			res = append(res, node.Client())
+		}
+	}
+	r.Shuffle(len(res), func(i, j int) {
+		res[i], res[j] = res[j], res[i]
+	})
+	return res, nil
+}
+
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes
 func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, error) {
 	clients := make(map[string]*bee.Client)

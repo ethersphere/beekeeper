@@ -120,29 +120,27 @@ func (c *command) initCheckCmd() error {
 				}
 				chk = beekeeper.NewActionMiddleware(tracer, chk, checkName)
 
-				if checkConfig.Timeout != nil {
-					ctx, cancel = context.WithTimeout(ctx, *checkConfig.Timeout)
-					defer cancel()
-				}
+				checkCtx, cancelCheck := createChildContext(ctx, checkConfig.Timeout)
+				defer cancelCheck()
 
 				c.log.Infof("running check: %s", checkName)
 
 				ch := make(chan error, 1)
 				go func() {
-					ch <- chk.Run(ctx, cluster, o)
+					ch <- chk.Run(checkCtx, cluster, o)
 					close(ch)
 				}()
 
 				select {
-				case <-ctx.Done():
-					deadline, ok := ctx.Deadline()
+				case <-checkCtx.Done():
+					deadline, ok := checkCtx.Deadline()
 					if ok {
-						return fmt.Errorf("running check %s: %w: deadline %v", checkName, ctx.Err(), deadline)
+						return fmt.Errorf("running check %s: %w: deadline %v", checkName, checkCtx.Err(), deadline)
 					}
-					return fmt.Errorf("running check %s: %w", checkName, ctx.Err())
+					return fmt.Errorf("check %s failed due to: %w", checkName, checkCtx.Err())
 				case err = <-ch:
 					if err != nil {
-						return fmt.Errorf("running check %s: %w", checkName, err)
+						return fmt.Errorf("check %s failed with error: %w", checkName, err)
 					}
 					c.log.Infof("%s check completed successfully", checkName)
 				}
@@ -163,4 +161,11 @@ func (c *command) initCheckCmd() error {
 	c.root.AddCommand(cmd)
 
 	return nil
+}
+
+func createChildContext(ctx context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
+	if timeout != nil {
+		return context.WithTimeout(ctx, *timeout)
+	}
+	return context.WithCancel(ctx)
 }
