@@ -34,6 +34,8 @@ const (
 	swarmSocSignatureHeader     = "Swarm-Soc-Signature"
 	swarmFeedIndexHeader        = "Swarm-Feed-Index"
 	swarmFeedIndexNextHeader    = "Swarm-Feed-Index-Next"
+	swarmIndexDocumentHeader    = "Swarm-Index-Document"
+	swarmErrorDocumentHeader    = "Swarm-Error-Document"
 )
 
 var userAgent = "beekeeper/" + beekeeper.Version
@@ -340,6 +342,10 @@ type UploadOptions struct {
 	BatchID           string
 	Direct            bool
 	ActHistoryAddress swarm.Address
+
+	// Dirs
+	IndexDocument string
+	ErrorDocument string
 }
 
 type DownloadOptions struct {

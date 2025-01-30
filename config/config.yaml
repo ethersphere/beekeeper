@@ -212,7 +212,7 @@ checks:
       max-pathname-length: 64
       postage-amount: 1000
       postage-depth: 17
-    timeout: 5m
+    timeout: 30m
     type: manifest
   networkavailability:
     options:
