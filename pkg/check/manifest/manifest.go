@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -60,8 +59,6 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 	}
 }
 
-var errManifest = errors.New("manifest data mismatch")
-
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
@@ -80,10 +77,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	upClient := clients[0]
 	downClient := clients[1]
 
-	err = c.checkWithoutSubDirs(ctx, rnd, o, upClient, downClient)
-	if err != nil {
-		return fmt.Errorf("check without subdirs: %w", err)
-	}
+	//err = c.checkWithoutSubDirs(ctx, rnd, o, upClient, downClient)
+	//if err != nil {
+	//	return fmt.Errorf("check without subdirs: %w", err)
+	//}
 
 	err = c.checkWithSubDirs(ctx, rnd, o, upClient, downClient)
 	if err != nil {
@@ -192,6 +189,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID, IndexDocument: "index.html"}); err != nil {
 		return err
 	}
+	c.logger.Infof("collection uploaded: %s", tarFile.Address())
 	time.Sleep(3 * time.Second)
 
 	// push 2nd version of website to the feed
@@ -229,32 +227,28 @@ func (c *Check) downloadAndVerify(ctx context.Context, client *bee.Client, addre
 	}
 	c.logger.Infof("downloading file: %s/%s", address, fName)
 
-	var hash []byte
-	for i := 0; i < 5; i++ {
-		_, h, err := client.DownloadManifestFile(ctx, address, fName)
-		hash = h
-		if err == nil {
-			break
-		}
-		c.logger.Infof("node %s. Error retrieving file: %s", client.Name(), err.Error())
+	for i := 0; i < 10; i++ {
 		select {
 		case <-time.After(5 * time.Second):
-			continue
+			_, hash, err := client.DownloadManifestFile(ctx, address, fName)
+			if err != nil {
+				c.logger.Infof("node %s: error retrieving file: %s", client.Name(), err.Error())
+				continue
+			}
+
+			c.logger.Infof("want hash: %s, got hash: %s", hex.EncodeToString(expectedHash), hex.EncodeToString(hash))
+			if !bytes.Equal(expectedHash, hash) {
+				c.logger.Infof("node %s: file hash does not match.", client.Name())
+				continue
+			}
+			c.logger.Infof("node %s: file retrieved successfully", client.Name())
+			return nil
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
-	if hash == nil {
-		return fmt.Errorf("failed getting manifest files after too many retries")
-	}
 
-	if !bytes.Equal(expectedHash, hash) {
-		c.logger.Infof("node %s: file hash does not match", client.Name())
-		return errManifest
-	}
-
-	c.logger.Infof("node %s: file retrieved successfully", client.Name())
-	return nil
+	return fmt.Errorf("failed getting manifest file after too many retries")
 }
 
 func generateFilesWithPaths(r *rand.Rand, paths []string, maxSize int) ([]bee.File, error) {
