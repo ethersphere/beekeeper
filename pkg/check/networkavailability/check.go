@@ -107,7 +107,7 @@ iteration:
 			}
 
 			// mine chunk
-			ch := testing.GenerateValidRandomChunkAt(n, int(storageRadius))
+			ch := testing.GenerateValidRandomChunkAt(nil, n, int(storageRadius))
 			c.metrics.UploadAttempts.Inc()
 			t := time.Now()
 
