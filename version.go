@@ -1,7 +1,7 @@
 package beekeeper
 
 var (
-	version = "0.24.0" // manually set semantic version number
+	version = "0.25.0" // manually set semantic version number
 	commit  string     // automatically set git commit hash
 
 	// Version TODO
