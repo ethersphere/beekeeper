@@ -83,6 +83,10 @@ func (c *Client) Config() ClientOptions {
 	return c.opts
 }
 
+func (c *Client) API() *api.Client {
+	return c.api
+}
+
 // Addresses returns node's addresses
 func (c *Client) Addresses(ctx context.Context) (resp Addresses, err error) {
 	a, err := c.api.Node.Addresses(ctx)

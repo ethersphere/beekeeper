@@ -14,38 +14,43 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *command) initCheckCmd() (err error) {
+var errMissingClusterName = fmt.Errorf("cluster name not provided")
+
+func (c *command) initCheckCmd() error {
 	const (
-		optionNameClusterName          = "cluster-name"
 		optionNameCreateCluster        = "create-cluster"
 		optionNameChecks               = "checks"
 		optionNameMetricsEnabled       = "metrics-enabled"
 		optionNameSeed                 = "seed"
 		optionNameTimeout              = "timeout"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
-		// TODO: optionNameStages         = "stages"
 	)
 
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "runs integration tests on a Bee cluster",
 		Long:  `runs integration tests on a Bee cluster.`,
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
 
-			// set cluster config
-			cfgCluster, ok := c.config.Clusters[c.globalConfig.GetString(optionNameClusterName)]
-			if !ok {
-				return fmt.Errorf("cluster %s not defined", c.globalConfig.GetString(optionNameClusterName))
+			checks := c.globalConfig.GetStringSlice(optionNameChecks)
+			if len(checks) == 0 {
+				return fmt.Errorf("no checks provided")
 			}
 
-			// setup cluster
-			cluster, err := c.setupCluster(ctx,
-				c.globalConfig.GetString(optionNameClusterName),
-				c.config,
-				c.globalConfig.GetBool(optionNameCreateCluster),
-			)
+			clusterName := c.globalConfig.GetString(optionNameClusterName)
+			if clusterName == "" {
+				return errMissingClusterName
+			}
+
+			// set cluster config
+			cfgCluster, ok := c.config.Clusters[clusterName]
+			if !ok {
+				return fmt.Errorf("cluster %s not defined", clusterName)
+			}
+
+			cluster, err := c.setupCluster(ctx, clusterName, c.globalConfig.GetBool(optionNameCreateCluster))
 			if err != nil {
 				return fmt.Errorf("cluster setup: %w", err)
 			}
@@ -88,7 +93,7 @@ func (c *command) initCheckCmd() (err error) {
 			}
 
 			// run checks
-			for _, checkName := range c.globalConfig.GetStringSlice(optionNameChecks) {
+			for _, checkName := range checks {
 				checkName = strings.TrimSpace(checkName)
 				// get configuration
 				checkConfig, ok := c.config.Checks[checkName]
@@ -145,7 +150,7 @@ func (c *command) initCheckCmd() (err error) {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().String(optionNameClusterName, "", "cluster name. Required")
 	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.staging.internal", "prometheus metrics pusher address")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing checks")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")

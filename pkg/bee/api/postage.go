@@ -105,3 +105,25 @@ func (p *PostageService) ReserveState(ctx context.Context) (ReserveState, error)
 	err := p.client.request(ctx, http.MethodGet, "/reservestate", nil, &resp)
 	return resp, err
 }
+
+type ChainStateResponse struct {
+	ChainTip     uint64         `json:"chainTip"`     // ChainTip (block height).
+	Block        uint64         `json:"block"`        // The block number of the last postage event.
+	TotalAmount  *bigint.BigInt `json:"totalAmount"`  // Cumulative amount paid per stamp. //*big.Int
+	CurrentPrice *bigint.BigInt `json:"currentPrice"` // Bzz/chunk/block normalised price. //*big.Int
+}
+
+// GetChainState returns the chain state of the node
+func (p *PostageService) GetChainState(ctx context.Context) (ChainStateResponse, error) {
+	var resp ChainStateResponse
+	err := p.client.request(ctx, http.MethodGet, "/chainstate", nil, &resp)
+	if err != nil {
+		return ChainStateResponse{}, err
+	}
+	return resp, nil
+}
+
+func (batch *PostageStampResponse) BatchUsage() float64 {
+	maxUtilization := 1 << (batch.Depth - batch.BucketDepth)            // 2^(depth - bucketDepth)
+	return (float64(batch.Utilization) / float64(maxUtilization)) * 100 // batch utilization between 0 and 100 percent
+}

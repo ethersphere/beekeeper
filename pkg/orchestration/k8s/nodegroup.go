@@ -74,8 +74,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, o 
 	}
 
 	for _, opt := range opts {
-		err := opt(&beeClientOpts)
-		if err != nil {
+		if err := opt(&beeClientOpts); err != nil {
 			return fmt.Errorf("bee client option: %w", err)
 		}
 	}
