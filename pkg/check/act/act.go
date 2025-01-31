@@ -33,7 +33,7 @@ func NewDefaultOptions() Options {
 		FileSize:      1 * 1024,
 		PostageAmount: 420000000,
 		PostageDepth:  20,
-		PostageLabel:  "act-label",
+		PostageLabel:  "test-label",
 		Seed:          0,
 	}
 }

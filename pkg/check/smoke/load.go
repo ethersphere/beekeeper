@@ -124,7 +124,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					var duration time.Duration
 					c.logger.Infof("uploading to: %s", txName)
 
-					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, "load-test")
+					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 					if err != nil {
 						c.logger.Errorf("create new batch: %v", err)
 						return

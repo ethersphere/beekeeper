@@ -219,6 +219,7 @@ checks:
       rnd-seed:
       postage-amount: 50000000
       postage-depth: 24
+      postage-label: test-label
       sleep-duration: 1h
     timeout: 5m
     type: networkavailability
@@ -297,6 +298,7 @@ checks:
     options:
       postage-amount:
       postage-depth:
+      postage-label: test-label
       seed:
       data-size:
     type: redundancy
@@ -326,6 +328,7 @@ checks:
       content-size: 5000
       postage-amount: 1000000
       postage-depth: 20
+      postage-label: test-label
       nodes-sync-wait: 1m
       upload-timeout: 1m
       download-timeout: 1m
@@ -368,6 +371,7 @@ checks:
       postage-amount: 1000000
       gas-price: 10000000000
       postage-depth: 20
+      postage-label: test-label
       nodes-sync-wait: 2m
       duration: 12h
       downloader-count: 3

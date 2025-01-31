@@ -278,6 +278,7 @@ checks:
       content-size: 5000000
       postage-amount: 1000000
       postage-depth: 20
+      postage-label: test-label
       nodes-sync-wait: 1m
       upload-timeout: 1m
       download-timeout: 1m
@@ -332,6 +333,7 @@ checks:
     options:
       postage-amount:
       postage-depth:
+      postage-label: test-label
       seed:
       data-size:
     type: redundancy

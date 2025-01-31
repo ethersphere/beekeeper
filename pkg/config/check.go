@@ -386,6 +386,7 @@ var Checks = map[string]CheckType{
 				RndSeed       *int64         `yaml:"rnd-seed"`
 				PostageAmount *int64         `yaml:"postage-amount"`
 				PostageDepth  *uint64        `yaml:"postage-depth"`
+				PostageLabel  *string        `yaml:"postage-label"`
 				TxOnErrWait   *time.Duration `yaml:"tx-on-err-wait"`
 				RxOnErrWait   *time.Duration `yaml:"rx-on-err-wait"`
 				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
@@ -411,6 +412,7 @@ var Checks = map[string]CheckType{
 				RndSeed                *int64         `yaml:"rnd-seed"`
 				PostageAmount          *int64         `yaml:"postage-amount"`
 				PostageDepth           *uint64        `yaml:"postage-depth"`
+				PostageLabel           *string        `yaml:"postage-label"`
 				GasPrice               *string        `yaml:"gas-price"`
 				TxOnErrWait            *time.Duration `yaml:"tx-on-err-wait"`
 				RxOnErrWait            *time.Duration `yaml:"rx-on-err-wait"`
@@ -529,6 +531,7 @@ var Checks = map[string]CheckType{
 				RndSeed       *int64         `yaml:"rnd-seed"`
 				PostageAmount *int64         `yaml:"postage-amount"`
 				PostageDepth  *uint64        `yaml:"postage-depth"`
+				PostageLabel  *string        `yaml:"postage-label"`
 				SleepDuration *time.Duration `yaml:"sleep-duration"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
@@ -569,6 +572,7 @@ var Checks = map[string]CheckType{
 			checkOpts := new(struct {
 				PostageAmount *int `yaml:"postage-amount"`
 				PostageDepth  *int `yaml:"postage-depth"`
+				PostageLabel  *int `yaml:"postage-label"`
 				Seed          *int `yaml:"seed"`
 				DataSize      *int `yaml:"data-size"`
 			})

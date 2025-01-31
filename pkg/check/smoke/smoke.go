@@ -22,6 +22,7 @@ type Options struct {
 	RndSeed         int64
 	PostageAmount   int64
 	PostageDepth    uint64
+	PostageLabel    string
 	TxOnErrWait     time.Duration
 	RxOnErrWait     time.Duration
 	NodesSyncWait   time.Duration
@@ -46,6 +47,7 @@ func NewDefaultOptions() Options {
 		RndSeed:                time.Now().UnixNano(),
 		PostageAmount:          50_000_000,
 		PostageDepth:           24,
+		PostageLabel:           "test-label",
 		TxOnErrWait:            10 * time.Second,
 		RxOnErrWait:            10 * time.Second,
 		NodesSyncWait:          time.Minute,
@@ -160,7 +162,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.BatchCreateAttempts.Inc()
 
-			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageAmount, o.PostageDepth, "smoke-test")
+			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 			if err != nil {
 				c.logger.Errorf("create new batch: %v", err)
 				c.metrics.BatchCreateErrors.Inc()
