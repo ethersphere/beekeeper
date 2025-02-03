@@ -53,6 +53,7 @@ checks:
       content-size: 50000000
       postage-amount: 1000000000
       postage-depth: 24
+      postage-label: test-label
       duration: 12h
       uploader-count: 2
       downloader-count: 0

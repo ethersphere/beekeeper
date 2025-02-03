@@ -17,7 +17,6 @@ func (c *command) initFundCmd() (err error) {
 		optionNameAddressCount    = "address-count"
 		optionNameEthAccount      = "eth-account"
 		optionNameBzzTokenAddress = "bzz-token-address"
-		optionNameGethURL         = "geth-url"
 		optionNameBzzDeposit      = "bzz-deposit"
 		optionNameEthDeposit      = "eth-deposit"
 		optionNameGBzzDeposit     = "gBzz-deposit"
@@ -109,7 +108,6 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-depo
 	cmd.Flags().Int(optionNameAddressCount, 1, "number of Ethereum addresses to create")
 	cmd.Flags().String(optionNameBzzTokenAddress, "0x6aab14fe9cccd64a502d23842d916eb5321c26e7", "BZZ token address")
 	cmd.Flags().String(optionNameEthAccount, "0x62cab2b3b55f341f10348720ca18063cdb779ad5", "ETH account address")
-	cmd.Flags().String(optionNameGethURL, "http://geth-swap.geth-swap.staging.internal", "Geth node URL")
 	cmd.Flags().Float64(optionNameBzzDeposit, 0, "BZZ tokens amount to deposit")
 	cmd.Flags().Float64(optionNameGBzzDeposit, 0, "gBZZ tokens amount to deposit")
 	cmd.Flags().Float64(optionNameEthDeposit, 0, "ETH amount to deposit")

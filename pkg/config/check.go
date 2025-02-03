@@ -54,7 +54,8 @@ type CheckType struct {
 
 // CheckGlobalConfig represents global configs for all checks
 type CheckGlobalConfig struct {
-	Seed int64
+	Seed    int64
+	GethURL string
 }
 
 // Checks represents all available check types
@@ -386,6 +387,7 @@ var Checks = map[string]CheckType{
 				RndSeed       *int64         `yaml:"rnd-seed"`
 				PostageAmount *int64         `yaml:"postage-amount"`
 				PostageDepth  *uint64        `yaml:"postage-depth"`
+				PostageLabel  *string        `yaml:"postage-label"`
 				TxOnErrWait   *time.Duration `yaml:"tx-on-err-wait"`
 				RxOnErrWait   *time.Duration `yaml:"rx-on-err-wait"`
 				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
@@ -411,6 +413,7 @@ var Checks = map[string]CheckType{
 				RndSeed                *int64         `yaml:"rnd-seed"`
 				PostageAmount          *int64         `yaml:"postage-amount"`
 				PostageDepth           *uint64        `yaml:"postage-depth"`
+				PostageLabel           *string        `yaml:"postage-label"`
 				GasPrice               *string        `yaml:"gas-price"`
 				TxOnErrWait            *time.Duration `yaml:"tx-on-err-wait"`
 				RxOnErrWait            *time.Duration `yaml:"rx-on-err-wait"`
@@ -487,8 +490,6 @@ var Checks = map[string]CheckType{
 				InsufficientAmount *big.Int `yaml:"insufficient-amount"`
 				ContractAddr       *string  `yaml:"contract-addr"`
 				CallerPrivateKey   *string  `yaml:"private-key"`
-				GethURL            *string  `yaml:"geth-url"`
-				GethChainID        *big.Int `yaml:"geth-chain-id"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -529,6 +530,7 @@ var Checks = map[string]CheckType{
 				RndSeed       *int64         `yaml:"rnd-seed"`
 				PostageAmount *int64         `yaml:"postage-amount"`
 				PostageDepth  *uint64        `yaml:"postage-depth"`
+				PostageLabel  *string        `yaml:"postage-label"`
 				SleepDuration *time.Duration `yaml:"sleep-duration"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
@@ -569,6 +571,7 @@ var Checks = map[string]CheckType{
 			checkOpts := new(struct {
 				PostageAmount *int `yaml:"postage-amount"`
 				PostageDepth  *int `yaml:"postage-depth"`
+				PostageLabel  *int `yaml:"postage-label"`
 				Seed          *int `yaml:"seed"`
 				DataSize      *int `yaml:"data-size"`
 			})

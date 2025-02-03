@@ -219,6 +219,7 @@ checks:
       rnd-seed:
       postage-amount: 50000000
       postage-depth: 24
+      postage-label: test-label
       sleep-duration: 1h
     timeout: 5m
     type: networkavailability
@@ -297,6 +298,7 @@ checks:
     options:
       postage-amount:
       postage-depth:
+      postage-label: test-label
       seed:
       data-size:
     type: redundancy
@@ -326,6 +328,7 @@ checks:
       content-size: 5000
       postage-amount: 1000000
       postage-depth: 20
+      postage-label: test-label
       nodes-sync-wait: 1m
       upload-timeout: 1m
       download-timeout: 1m
@@ -348,8 +351,6 @@ checks:
       insufficient-amount: 102400
       contract-addr: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
-      geth-url: "http://geth-swap.bee-playground.svc.swarm1.local:8545"
-      geth-chain-id: 12345
   withdraw:
     options:
       target-address: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
@@ -368,6 +369,7 @@ checks:
       postage-amount: 1000000
       gas-price: 10000000000
       postage-depth: 20
+      postage-label: test-label
       nodes-sync-wait: 2m
       duration: 12h
       downloader-count: 3
