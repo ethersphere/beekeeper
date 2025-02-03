@@ -54,7 +54,8 @@ type CheckType struct {
 
 // CheckGlobalConfig represents global configs for all checks
 type CheckGlobalConfig struct {
-	Seed int64
+	Seed    int64
+	GethURL string
 }
 
 // Checks represents all available check types
@@ -489,8 +490,6 @@ var Checks = map[string]CheckType{
 				InsufficientAmount *big.Int `yaml:"insufficient-amount"`
 				ContractAddr       *string  `yaml:"contract-addr"`
 				CallerPrivateKey   *string  `yaml:"private-key"`
-				GethURL            *string  `yaml:"geth-url"`
-				GethChainID        *big.Int `yaml:"geth-chain-id"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

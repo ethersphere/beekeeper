@@ -22,7 +22,6 @@ type Options struct {
 	ContractAddr       string
 	CallerPrivateKey   string
 	GethURL            string
-	GethChainID        *big.Int
 }
 
 // NewDefaultOptions returns new default options
@@ -30,7 +29,6 @@ func NewDefaultOptions() Options {
 	return Options{
 		Amount:             big.NewInt(100000000000000000),
 		InsufficientAmount: big.NewInt(102400),
-		GethChainID:        big.NewInt(12345),
 	}
 }
 

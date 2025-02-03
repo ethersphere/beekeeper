@@ -242,7 +242,6 @@ It has following flags:
 
 ```console
 --cluster-name string   cluster name (default "default")
---geth-url string       Endpoint to chain node. Required.
 --help                  help for bee-cluster
 --timeout duration      timeout (default 30m0s)
 --wallet-key string     Hex-encoded private key for the Bee node wallet. Required.
@@ -307,7 +306,6 @@ It has the following flags:
 --bzz-token-address string   BZZ token address (default "0x6aab14fe9cccd64a502d23842d916eb5321c26e7")
 --eth-account string         ETH account address (default "0x62cab2b3b55f341f10348720ca18063cdb779ad5")
 --eth-deposit float          ETH amount to deposit
---geth-url string            Geth node URL (default "http://geth-swap.geth-swap.dai.internal")
 --help                       help for fund
 --password                   password for generating Ethereum addresses (default "beekeeper")
 --timeout duration           timeout (default 5m0s)
@@ -381,7 +379,6 @@ It has following flags:
 ```console
 --addresses strings         Comma-separated list of Bee node addresses (must start with 0x). Overrides namespace and cluster name.
 --cluster-name string       Name of the Beekeeper cluster to target. Ignored if a namespace is specified.
---geth-url string           Endpoint to chain node. Required.
 --help                      help for node-funder
 --label-selector string     Kubernetes label selector for filtering resources within the specified namespace. Use an empty string to select all resources. (default "beekeeper.ethswarm.org/node-funder=true")
 --min-native float          Minimum amount of chain native coins (xDAI) nodes should have.
@@ -417,7 +414,6 @@ Command **node-operator** uses <https://github.com/ethersphere/node-funder> tool
 It has following flags:
 
 ```console
---geth-url string         Endpoint to chain node. Required.
 --help                    help for node-operator
 --min-native float        Minimum amount of chain native coins (xDAI) nodes should have.
 --min-swarm float         Minimum amount of swarm tokens (xBZZ) nodes should have.
@@ -507,7 +503,6 @@ It has following subcommands:
   ```console
   --batch-ids strings         Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up.
   --cluster-name string       Target Beekeeper cluster name.
-  --geth-url string           Geth URL for chain state retrieval.
   --help                      help for topup
   --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string          Kubernetes namespace (overrides cluster name).
@@ -565,7 +560,6 @@ It has following subcommands:
   --batch-ids strings         Comma separated list of postage batch IDs to set. If not provided, all batches are set.
   --cluster-name string       Target Beekeeper cluster name.
   --dilution-depth uint16     Number of levels by which to increase the depth of a stamp during dilution. (default 1)
-  --geth-url string           Geth URL for chain state retrieval.
   --help                      help for set
   --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string          Kubernetes namespace (overrides cluster name).
@@ -603,6 +597,7 @@ example:
 --config-git-repo string        URL of the Git repository containing configuration files (uses the config-dir if not specified)
 --config-git-username string    Git username for authentication (required for private repositories)
 --enable-k8s                    Enable Kubernetes client functionality (default true)
+--geth-url string               URL of the RPC blockchain endpoint
 --in-cluster                    Use the in-cluster Kubernetes client
 --kubeconfig string             Path to the kubeconfig file (default "~/.kube/config")
 --log-verbosity string          Log verbosity level (0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace) (default "info")

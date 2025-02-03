@@ -55,7 +55,12 @@ func newSession(contract *Stake, geth *ethclient.Client, opts Options) (*StakeSe
 		return nil, fmt.Errorf("get nonce: %w", err)
 	}
 
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, opts.GethChainID)
+	chainID, err := geth.ChainID(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("get chain ID: %w", err)
+	}
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
 		return nil, fmt.Errorf("new transactor: %w", err)
 	}
