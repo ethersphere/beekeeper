@@ -123,6 +123,7 @@ func (c *command) initCheckCmd() error {
 				defer cancelCheck()
 
 				c.log.Infof("running check: %s", checkName)
+				c.log.Debugf("check options: %+v", o)
 
 				ch := make(chan error, 1)
 				go func() {

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/ethersphere/bee/pkg/postage"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
@@ -17,12 +18,19 @@ import (
 type Option func(*options)
 
 type options struct {
-	batchIds []string
+	batchIDs      []string
+	postageLabels []string
 }
 
 func WithBatchIDs(batchIds []string) Option {
 	return func(o *options) {
-		o.batchIds = batchIds
+		o.batchIDs = batchIds
+	}
+}
+
+func WithPostageLabels(postageLabels []string) Option {
+	return func(o *options) {
+		o.postageLabels = postageLabels
 	}
 }
 
@@ -67,10 +75,18 @@ func New(cfg *ClientConfig) *Client {
 }
 
 // Create creates a postage batch.
-func (s *Client) Create(ctx context.Context, amount uint64, depth uint16) error {
+func (s *Client) Create(ctx context.Context, duration time.Duration, depth uint16, postageLabel string) error {
+	if duration == 0 {
+		return fmt.Errorf("duration must be greater than 0")
+	}
+
+	if depth <= postage.BucketDepth {
+		return fmt.Errorf("depth must be greater than %d", postage.BucketDepth)
+	}
+
 	s.log.WithFields(map[string]interface{}{
-		"amount": amount,
-		"depth":  depth,
+		"duration": duration,
+		"depth":    depth,
 	}).Infof("creating postage batch on nodes")
 
 	nodes, err := s.getNodes(ctx)
@@ -78,8 +94,13 @@ func (s *Client) Create(ctx context.Context, amount uint64, depth uint16) error 
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
+	blockTime, err := s.swapClient.FetchBlockTime(ctx)
+	if err != nil {
+		return fmt.Errorf("fetching block time: %w", err)
+	}
+
 	for _, node := range nodes {
-		if err := node.Create(ctx, amount, depth); err != nil {
+		if err := node.Create(ctx, duration, depth, postageLabel, blockTime); err != nil {
 			s.log.Errorf("node %s create postage batch: %v", node.name, err)
 		}
 	}
@@ -100,7 +121,7 @@ func (s *Client) Dilute(ctx context.Context, usageThreshold float64, dilutionDep
 	}
 
 	for _, node := range nodes {
-		if err := node.Dilute(ctx, usageThreshold, dilutionDepth, processOptions(opts...).batchIds); err != nil {
+		if err := node.Dilute(ctx, usageThreshold, dilutionDepth, processOptions(opts...)); err != nil {
 			s.log.Errorf("node %s dilute postage batch: %v", node.name, err)
 		}
 	}
@@ -128,7 +149,7 @@ func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo ti
 	}
 
 	for _, node := range nodes {
-		if err := node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime, processOptions(opts...).batchIds); err != nil {
+		if err := node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime, processOptions(opts...)); err != nil {
 			s.log.Errorf("node %s set postage batch: %v", node.name, err)
 		}
 	}
@@ -154,7 +175,7 @@ func (s *Client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo 
 	}
 
 	for _, node := range nodes {
-		if err := node.Topup(ctx, ttlThreshold, topupTo, blockTime, processOptions(opts...).batchIds); err != nil {
+		if err := node.Topup(ctx, ttlThreshold, topupTo, blockTime, processOptions(opts...)); err != nil {
 			s.log.Errorf("node %s topup postage batch: %v", node.name, err)
 		}
 	}

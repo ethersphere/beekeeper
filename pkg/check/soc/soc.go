@@ -22,6 +22,7 @@ import (
 type Options struct {
 	GasPrice       string
 	PostageAmount  int64
+	PostageTTL     time.Duration
 	PostageDepth   uint64
 	PostageLabel   string
 	RequestTimeout time.Duration
@@ -32,6 +33,7 @@ func NewDefaultOptions() Options {
 	return Options{
 		GasPrice:       "",
 		PostageAmount:  1,
+		PostageTTL:     24 * time.Hour,
 		PostageDepth:   16,
 		PostageLabel:   "test-label",
 		RequestTimeout: 5 * time.Minute,

@@ -71,6 +71,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, o 
 		APIURL:         aURL,
 		APIInsecureTLS: g.clusterOpts.APIInsecureTLS,
 		Retry:          5,
+		SwapClient:     g.clusterOpts.SwapClient,
 	}
 
 	for _, opt := range opts {

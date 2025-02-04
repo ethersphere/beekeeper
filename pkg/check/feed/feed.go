@@ -19,6 +19,7 @@ import (
 // Options represents check options
 type Options struct {
 	PostageAmount int64
+	PostageTTL    time.Duration
 	PostageDepth  uint64
 	PostageLabel  string
 	NUpdates      int
@@ -29,6 +30,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		PostageAmount: 1000,
+		PostageTTL:    24 * time.Hour,
 		PostageDepth:  17,
 		PostageLabel:  "test-label",
 		NUpdates:      2,

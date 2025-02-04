@@ -20,6 +20,7 @@ import (
 type Options struct {
 	RndSeed       int64
 	PostageAmount int64
+	PostageTTL    time.Duration
 	PostageDepth  uint64
 	PostageLabel  string
 	SleepDuration time.Duration
@@ -30,6 +31,7 @@ func NewDefaultOptions() Options {
 	return Options{
 		RndSeed:       time.Now().UnixNano(),
 		PostageAmount: 50_000_000,
+		PostageTTL:    24 * time.Hour,
 		PostageDepth:  24,
 		PostageLabel:  "test-label",
 		SleepDuration: time.Hour,

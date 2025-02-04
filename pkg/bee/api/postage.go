@@ -42,11 +42,11 @@ func (p *PostageService) CreatePostageBatch(ctx context.Context, amount int64, d
 	h := http.Header{}
 	h.Add("Immutable", "false")
 
-	err = p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, &resp)
-	if err != nil {
+	if err := p.client.requestWithHeader(ctx, http.MethodPost, url, h, nil, &resp); err != nil {
 		return "", err
 	}
-	return resp.BatchID, err
+
+	return resp.BatchID, nil
 }
 
 // Sends a topup batch request to a node that returns the batchID
@@ -74,17 +74,18 @@ func (p *PostageService) DilutePostageBatch(ctx context.Context, batchID string,
 // Fetches the list postage stamp batches
 func (p *PostageService) PostageBatches(ctx context.Context) ([]PostageStampResponse, error) {
 	var resp postageStampsResponse
-	err := p.client.request(ctx, http.MethodGet, "/stamps", nil, &resp)
-	if err != nil {
+
+	if err := p.client.request(ctx, http.MethodGet, "/stamps", nil, &resp); err != nil {
 		return nil, err
 	}
+
 	return resp.Stamps, nil
 }
 
 func (p *PostageService) PostageStamp(ctx context.Context, batchID string) (PostageStampResponse, error) {
 	var resp PostageStampResponse
-	err := p.client.request(ctx, http.MethodGet, "/stamps/"+batchID, nil, &resp)
-	if err != nil {
+
+	if err := p.client.request(ctx, http.MethodGet, "/stamps/"+batchID, nil, &resp); err != nil {
 		return PostageStampResponse{}, err
 	}
 	return resp, nil
@@ -116,10 +117,11 @@ type ChainStateResponse struct {
 // GetChainState returns the chain state of the node
 func (p *PostageService) GetChainState(ctx context.Context) (ChainStateResponse, error) {
 	var resp ChainStateResponse
-	err := p.client.request(ctx, http.MethodGet, "/chainstate", nil, &resp)
-	if err != nil {
+
+	if err := p.client.request(ctx, http.MethodGet, "/chainstate", nil, &resp); err != nil {
 		return ChainStateResponse{}, err
 	}
+
 	return resp, nil
 }
 

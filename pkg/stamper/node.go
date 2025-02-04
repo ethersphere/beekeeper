@@ -24,25 +24,34 @@ func newNodeInfo(client *api.Client, name string, log logging.Logger) *node {
 	}
 }
 
-func (n *node) Create(ctx context.Context, amount uint64, depth uint16) error {
-	batchID, err := n.client.Postage.CreatePostageBatch(ctx, int64(amount), uint64(depth), "beekeeper")
+func (n *node) Create(ctx context.Context, duration time.Duration, depth uint16, postageLabel string, secondsPerBlock int64) error {
+	price, err := n.getPrice(ctx)
+	if err != nil {
+		return err
+	}
+
+	amount := (int64(duration.Seconds()) / secondsPerBlock) * price
+
+	batchID, err := n.client.Postage.CreatePostageBatch(ctx, amount, uint64(depth), postageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: create postage batch: %w", n.name, err)
 	}
 
-	n.log.Infof("node %s: created postage batch %s", n.name, batchID)
+	totalPrice := amount * int64(1<<depth) / (10 ^ 16)
+
+	n.log.WithField("totalPriceBZZ", totalPrice).Infof("node %s: created postage batch %s", n.name, batchID)
 
 	return nil
 }
 
-func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uint16, batchIds []string) error {
+func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uint16, opts *options) error {
 	batches, _, err := n.getPostageBatches(ctx, false)
 	if err != nil {
 		return err
 	}
 
 	for _, batch := range batches {
-		if !isValidBatch(&batch, batchIds) {
+		if !isValidBatch(&batch, opts) {
 			continue
 		}
 
@@ -64,7 +73,7 @@ func (n *node) Set(
 	utilizationThreshold float64,
 	extraDepth uint16,
 	secondsPerBlock int64,
-	batchIds []string,
+	opts *options,
 ) error {
 	batches, price, err := n.getPostageBatches(ctx, true)
 	if err != nil {
@@ -72,7 +81,7 @@ func (n *node) Set(
 	}
 
 	for _, batch := range batches {
-		if !isValidBatch(&batch, batchIds) {
+		if !isValidBatch(&batch, opts) {
 			continue
 		}
 
@@ -100,14 +109,14 @@ func (n *node) Set(
 	return nil
 }
 
-func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topUpFinalTTL time.Duration, secondsPerBlock int64, batchIds []string) error {
+func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topUpFinalTTL time.Duration, secondsPerBlock int64, opts *options) error {
 	batches, price, err := n.getPostageBatches(ctx, true)
 	if err != nil {
 		return err
 	}
 
 	for _, batch := range batches {
-		if !isValidBatch(&batch, batchIds) {
+		if !isValidBatch(&batch, opts) {
 			continue
 		}
 
@@ -152,16 +161,25 @@ func (n *node) handleTopup(ctx context.Context, batch api.PostageStampResponse, 
 	return nil
 }
 
+func (n *node) getPrice(ctx context.Context) (int64, error) {
+	chainState, err := n.client.Postage.GetChainState(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("node %s: get chain state: %w", n.name, err)
+	}
+
+	price := chainState.CurrentPrice.Int64()
+	if price <= 0 {
+		return 0, fmt.Errorf("node %s: invalid chain price: %d", n.name, price)
+	}
+
+	return price, nil
+}
+
 func (n *node) getPostageBatches(ctx context.Context, needPrice bool) (batches []api.PostageStampResponse, price int64, err error) {
 	if needPrice {
-		chainState, err := n.client.Postage.GetChainState(ctx)
+		price, err = n.getPrice(ctx)
 		if err != nil {
-			return nil, 0, fmt.Errorf("node %s: get chain state: %w", n.name, err)
-		}
-
-		price = chainState.CurrentPrice.Int64()
-		if price <= 0 {
-			return nil, 0, fmt.Errorf("node %s: invalid chain price: %d", n.name, price)
+			return nil, 0, fmt.Errorf("node %s: get price: %w", n.name, err)
 		}
 	}
 
@@ -174,12 +192,16 @@ func (n *node) getPostageBatches(ctx context.Context, needPrice bool) (batches [
 }
 
 // isValidBatch checks if a batch should be processed
-func isValidBatch(batch *api.PostageStampResponse, batchIDs []string) bool {
+func isValidBatch(batch *api.PostageStampResponse, opts *options) bool {
 	if !batch.Usable || batch.Utilization == 0 || batch.BatchTTL <= 0 {
 		return false
 	}
 
-	if len(batchIDs) > 0 && !slices.Contains(batchIDs, batch.BatchID) {
+	if len(opts.batchIDs) > 0 && !slices.Contains(opts.batchIDs, batch.BatchID) {
+		return false
+	}
+
+	if len(opts.postageLabels) > 0 && !slices.Contains(opts.postageLabels, batch.Label) {
 		return false
 	}
 

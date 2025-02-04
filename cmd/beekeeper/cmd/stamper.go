@@ -47,9 +47,10 @@ func initStamperDefaultFlags(cmd *cobra.Command) *cobra.Command {
 
 func (c *command) initStamperTopup() *cobra.Command {
 	const (
-		optionNameTTLThreshold = "ttl-threshold"
-		optionNameTopUpTo      = "topup-to"
-		optionNameBatchIDs     = "batch-ids"
+		optionNameTTLThreshold  = "ttl-threshold"
+		optionNameTopUpTo       = "topup-to"
+		optionNameBatchIDs      = "batch-ids"
+		optionNamePostageLabels = "postage-labels"
 	)
 
 	cmd := &cobra.Command{
@@ -68,6 +69,7 @@ func (c *command) initStamperTopup() *cobra.Command {
 						c.globalConfig.GetDuration(optionNameTTLThreshold),
 						c.globalConfig.GetDuration(optionNameTopUpTo),
 						stamper.WithBatchIDs(c.globalConfig.GetStringSlice(optionNameBatchIDs)),
+						stamper.WithPostageLabels(c.globalConfig.GetStringSlice(optionNamePostageLabels)),
 					)
 				})
 			})
@@ -77,7 +79,8 @@ func (c *command) initStamperTopup() *cobra.Command {
 
 	cmd.Flags().Duration(optionNameTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
 	cmd.Flags().Duration(optionNameTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
-	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up. Overides postage labels.")
+	cmd.Flags().StringSlice(optionNamePostageLabels, nil, "Comma separated list of postage labels to top up. If not provided, all batches are topped up.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
 	return cmd
@@ -88,6 +91,7 @@ func (c *command) initStamperDilute() *cobra.Command {
 		optionNameUsageThreshold = "usage-threshold"
 		optionNameDiutionDepth   = "dilution-depth"
 		optionNameBatchIDs       = "batch-ids"
+		optionNamePostageLabels  = "postage-labels"
 	)
 
 	cmd := &cobra.Command{
@@ -106,6 +110,7 @@ func (c *command) initStamperDilute() *cobra.Command {
 						c.globalConfig.GetFloat64(optionNameUsageThreshold),
 						c.globalConfig.GetUint16(optionNameDiutionDepth),
 						stamper.WithBatchIDs(c.globalConfig.GetStringSlice(optionNameBatchIDs)),
+						stamper.WithPostageLabels(c.globalConfig.GetStringSlice(optionNamePostageLabels)),
 					)
 				})
 			})
@@ -115,7 +120,8 @@ func (c *command) initStamperDilute() *cobra.Command {
 
 	cmd.Flags().Float64(optionNameUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
 	cmd.Flags().Uint8(optionNameDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
-	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to dilute. If not provided, all batches are diluted.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to dilute. If not provided, all batches are diluted. Overides postage labels.")
+	cmd.Flags().StringSlice(optionNamePostageLabels, nil, "Comma separated list of postage labels to top up. If not provided, all batches are topped up.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
 	return cmd
@@ -123,8 +129,9 @@ func (c *command) initStamperDilute() *cobra.Command {
 
 func (c *command) initStamperCreate() *cobra.Command {
 	const (
-		optionNameAmount = "amount"
-		optionNameDepth  = "depth"
+		optionNameDuration     = "duration"
+		optionNameDepth        = "depth"
+		optionNamePostageLabel = "postage-label"
 	)
 
 	cmd := &cobra.Command{
@@ -139,16 +146,18 @@ func (c *command) initStamperCreate() *cobra.Command {
 				}
 
 				return stamperClient.Create(ctx,
-					c.globalConfig.GetUint64(optionNameAmount),
+					c.globalConfig.GetDuration(optionNameDuration),
 					c.globalConfig.GetUint16(optionNameDepth),
+					c.globalConfig.GetString(optionNamePostageLabel),
 				)
 			})
 		},
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().Uint64(optionNameAmount, 100000000, "Amount of BZZ in PLURS added that the postage batch will have.")
+	cmd.Flags().Duration(optionNameDuration, 24*time.Hour, "Duration of the postage batch")
 	cmd.Flags().Uint16(optionNameDepth, 17, "Batch depth which specifies how many chunks can be signed with the batch. It is a logarithm. Must be higher than default bucket depth (16)")
+	cmd.Flags().String(optionNamePostageLabel, "beekeeper", "Postage label for the batch")
 
 	return cmd
 }
@@ -160,6 +169,7 @@ func (c *command) initStamperSet() *cobra.Command {
 		optionNameUsageThreshold = "usage-threshold"
 		optionNameDiutionDepth   = "dilution-depth"
 		optionNameBatchIDs       = "batch-ids"
+		optionNamePostageLabels  = "postage-labels"
 	)
 
 	cmd := &cobra.Command{
@@ -180,6 +190,7 @@ func (c *command) initStamperSet() *cobra.Command {
 						c.globalConfig.GetFloat64(optionNameUsageThreshold),
 						c.globalConfig.GetUint16(optionNameDiutionDepth),
 						stamper.WithBatchIDs(c.globalConfig.GetStringSlice(optionNameBatchIDs)),
+						stamper.WithPostageLabels(c.globalConfig.GetStringSlice(optionNamePostageLabels)),
 					)
 				})
 			})
@@ -191,7 +202,8 @@ func (c *command) initStamperSet() *cobra.Command {
 	cmd.Flags().Duration(optionNameTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
 	cmd.Flags().Float64(optionNameUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
 	cmd.Flags().Uint16(optionNameDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
-	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to set. If not provided, all batches are set.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to set. If not provided, all batches are set. Overides postage labels.")
+	cmd.Flags().StringSlice(optionNamePostageLabels, nil, "Comma separated list of postage labels to set. If not provided, all batches are set.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
 	return cmd

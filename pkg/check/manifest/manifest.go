@@ -26,6 +26,7 @@ type Options struct {
 	GasPrice          string
 	MaxPathnameLength int32
 	PostageAmount     int64
+	PostageTTL        time.Duration
 	PostageDepth      uint64
 	PostageLabel      string
 	Seed              int64
@@ -38,6 +39,7 @@ func NewDefaultOptions() Options {
 		GasPrice:          "",
 		MaxPathnameLength: 64,
 		PostageAmount:     1,
+		PostageTTL:        24 * time.Hour,
 		PostageDepth:      16,
 		PostageLabel:      "test-label",
 		Seed:              0,

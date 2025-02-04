@@ -130,7 +130,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 						return
 					}
 
-					c.logger.Info("using batch", "batch_id", batchID)
+					c.logger.WithField("batch_id", batchID).Info("using batch")
 
 					address, duration, err = test.upload(ctx, txName, txData, batchID)
 					if err != nil {

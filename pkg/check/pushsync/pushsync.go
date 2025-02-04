@@ -19,6 +19,7 @@ type Options struct {
 	GasPrice          string
 	Mode              string
 	PostageAmount     int64
+	PostageTTL        time.Duration
 	PostageDepth      uint64
 	PostageLabel      string
 	Retries           int           // number of reties on problems
@@ -35,6 +36,7 @@ func NewDefaultOptions() Options {
 		GasPrice:          "",
 		Mode:              "default",
 		PostageAmount:     1000,
+		PostageTTL:        24 * time.Hour,
 		PostageDepth:      16,
 		PostageLabel:      "test-label",
 		Retries:           5,

@@ -21,17 +21,19 @@ type Options struct {
 	FileName      string
 	FileSize      int64
 	PostageAmount int64
+	PostageTTL    time.Duration
 	PostageDepth  uint64
 	PostageLabel  string
 	Seed          int64
 }
 
-// NewDefaultOptions returns new default options
-func NewDefaultOptions() Options {
+// NewOptions returns new default options
+func NewOptions() Options {
 	return Options{
 		FileName:      "act",
 		FileSize:      1 * 1024,
 		PostageAmount: 420000000,
+		PostageTTL:    24 * time.Hour,
 		PostageDepth:  20,
 		PostageLabel:  "test-label",
 		Seed:          0,

@@ -74,7 +74,7 @@ var Checks = map[string]CheckType{
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
-			opts := act.NewDefaultOptions()
+			opts := act.NewOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

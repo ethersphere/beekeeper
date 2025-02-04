@@ -26,6 +26,7 @@ import (
 // Options represents check options
 type Options struct {
 	PostageAmount int64
+	PostageTTL    time.Duration
 	PostageDepth  uint64
 	PostageLabel  string
 }
@@ -34,6 +35,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		PostageAmount: 1000,
+		PostageTTL:    24 * time.Hour,
 		PostageDepth:  17,
 		PostageLabel:  "test-label",
 	}
@@ -125,7 +127,7 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	logger.Infof("gsoc: socAddress=%s, listner node address=%s", socAddress, addresses.Overlay)
 
 	listener := &socListener{}
-	ch, err := listener.Listen(ctx, listenClient.Config().APIURL.Host, socAddress, logger)
+	ch, err := listener.Listen(ctx, listenClient.Host(), socAddress, logger)
 	if err != nil {
 		return fmt.Errorf("listen websocket: %w", err)
 	}

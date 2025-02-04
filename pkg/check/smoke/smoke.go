@@ -21,6 +21,7 @@ type Options struct {
 	ContentSize     int64
 	RndSeed         int64
 	PostageAmount   int64
+	PostageTTL      time.Duration
 	PostageDepth    uint64
 	PostageLabel    string
 	TxOnErrWait     time.Duration
@@ -46,6 +47,7 @@ func NewDefaultOptions() Options {
 		ContentSize:            5000000,
 		RndSeed:                time.Now().UnixNano(),
 		PostageAmount:          50_000_000,
+		PostageTTL:             24 * time.Hour,
 		PostageDepth:           24,
 		PostageLabel:           "test-label",
 		TxOnErrWait:            10 * time.Second,
@@ -169,7 +171,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				continue
 			}
 
-			c.logger.Info("using batch", "batch_id", batchID)
+			c.logger.WithField("batch_id", batchID).Info("using batch")
 
 			c.metrics.UploadAttempts.Inc()
 			address, txDuration, err = test.upload(txCtx, txName, txData, batchID)

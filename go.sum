@@ -80,6 +80,8 @@ github.com/ethereum/c-kzg-4844 v1.0.0 h1:0X1LBXxaEtYD9xsyj9B9ctQEZIpnvVDeoBx8aHE
 github.com/ethereum/c-kzg-4844 v1.0.0/go.mod h1:VewdlzQmpT5QSrVhbBuGoCdFJkpaJlO1aQputP83wc0=
 github.com/ethereum/go-ethereum v1.14.3 h1:5zvnAqLtnCZrU9uod1JCvHWJbPMURzYFHfc2eHz4PHA=
 github.com/ethereum/go-ethereum v1.14.3/go.mod h1:1STrq471D0BQbCX9He0hUj4bHxX2k6mt5nOQJhDNOJ8=
+github.com/ethersphere/bee v1.18.2 h1:bSngtJGDBYkB8HcPHMjKcoBiYNllqChuykpy1IVaGfA=
+github.com/ethersphere/bee v1.18.2/go.mod h1:k5jZVd/o6WCz9JLACiJKccyR0efhftZ98Qbx5GYMb+k=
 github.com/ethersphere/bee/v2 v2.2.0 h1:UOrnGuacIlRD9RHSux9W13eI0ppsJvz6Xa0MTn6UuJ4=
 github.com/ethersphere/bee/v2 v2.2.0/go.mod h1:9mrRirUnAJwSmnB9kJBx6Bo94LCgFrj2jYDJA20SIe0=
 github.com/ethersphere/bmt v0.1.4 h1:+rkWYNtMgDx6bkNqGdWu+U9DgGI1rRZplpSW3YhBr1Q=

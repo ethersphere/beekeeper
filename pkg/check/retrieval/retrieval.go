@@ -19,6 +19,7 @@ import (
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
 	PostageAmount   int64
+	PostageTTL      time.Duration
 	PostageDepth    uint64
 	PostageLabel    string
 	Seed            int64
@@ -30,6 +31,7 @@ func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
 		PostageAmount:   1,
+		PostageTTL:      24 * time.Hour,
 		PostageLabel:    "test-label",
 		PostageDepth:    16,
 		Seed:            random.Int64(),

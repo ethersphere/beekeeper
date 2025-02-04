@@ -23,6 +23,7 @@ type Options struct {
 	Full            bool
 	GasPrice        string
 	PostageAmount   int64
+	PostageTTL      time.Duration
 	PostageLabel    string
 	Seed            int64
 	UploadNodeCount int
@@ -37,6 +38,7 @@ func NewDefaultOptions() Options {
 		Full:            false,
 		GasPrice:        "",
 		PostageAmount:   1,
+		PostageTTL:      24 * time.Hour,
 		PostageLabel:    "test-label",
 		Seed:            0,
 		UploadNodeCount: 1,

@@ -21,6 +21,7 @@ type Options struct {
 	ChunksPerNode              int // number of chunks to upload per node
 	GasPrice                   string
 	PostageAmount              int64
+	PostageTTL                 time.Duration
 	PostageLabel               string
 	ReplicationFactorThreshold int // minimal replication factor per chunk
 	Seed                       int64
@@ -33,6 +34,7 @@ func NewDefaultOptions() Options {
 		ChunksPerNode:              1,
 		GasPrice:                   "",
 		PostageAmount:              1,
+		PostageTTL:                 24 * time.Hour,
 		PostageLabel:               "test-label",
 		ReplicationFactorThreshold: 2,
 		Seed:                       random.Int64(),
