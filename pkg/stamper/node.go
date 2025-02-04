@@ -37,9 +37,9 @@ func (n *node) Create(ctx context.Context, duration time.Duration, depth uint16,
 		return fmt.Errorf("node %s: create postage batch: %w", n.name, err)
 	}
 
-	totalPrice := amount * int64(1<<depth) / (10 ^ 16)
+	totalPrice := float64(amount*int64(1<<depth)) / 1e16
 
-	n.log.WithField("totalPriceBZZ", totalPrice).Infof("node %s: created postage batch %s", n.name, batchID)
+	n.log.WithField("totalPriceBZZ", fmt.Sprintf("%.16f", totalPrice)).Infof("node %s: created postage batch %s", n.name, batchID)
 
 	return nil
 }
