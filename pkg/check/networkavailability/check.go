@@ -3,11 +3,13 @@ package networkavailability
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/bee/v2/pkg/storage/testing"
+	"github.com/ethersphere/bee/v2/pkg/cac"
+	postagetesting "github.com/ethersphere/bee/v2/pkg/postage/testing"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -107,7 +109,7 @@ iteration:
 			}
 
 			// mine chunk
-			ch := testing.GenerateValidRandomChunkAt(nil, n, int(storageRadius))
+			ch := generateValidRandomChunkAt(n, int(storageRadius))
 			c.metrics.UploadAttempts.Inc()
 			t := time.Now()
 
@@ -188,4 +190,25 @@ func bytesToAddr(b []byte) swarm.Address {
 	addr := make([]byte, swarm.HashSize)
 	copy(addr, b)
 	return swarm.NewAddress(addr)
+}
+
+// generateValidRandomChunkAt generates an invalid (!) chunk with address of proximity order po wrt target.
+func generateValidRandomChunkAt(target swarm.Address, po int) swarm.Chunk {
+	data := make([]byte, swarm.ChunkSize)
+
+	var ch swarm.Chunk
+	var err error
+	for {
+		_, _ = rand.Read(data)
+		ch, err = cac.New(data)
+		if err != nil {
+			continue
+		}
+		if swarm.Proximity(ch.Address().Bytes(), target.Bytes()) > uint8(po) {
+			break
+		}
+	}
+
+	stamp := postagetesting.MustNewStamp()
+	return ch.WithStamp(stamp)
 }
