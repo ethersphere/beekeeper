@@ -7,7 +7,25 @@ import (
 	"strconv"
 )
 
-func (g *GethClient) FetchBlockTime(ctx context.Context) (int64, error) {
+type Option func(*options)
+
+type options struct {
+	offset int64
+}
+
+func WithOffset(offset int64) Option {
+	return func(o *options) {
+		if offset > 0 {
+			o.offset = offset
+		} else {
+			o.offset = 1
+		}
+	}
+}
+
+func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64, error) {
+	o := processOptions(opts...)
+
 	latestBlockNumber, err := g.fetchLatestBlockNumber(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("fetch latest block number: %w", err)
@@ -18,12 +36,12 @@ func (g *GethClient) FetchBlockTime(ctx context.Context) (int64, error) {
 		return 0, fmt.Errorf("fetch latest block timestamp: %w", err)
 	}
 
-	timestampPrevious, err := g.fetchBlockTimestamp(ctx, latestBlockNumber-1)
+	timestampPrevious, err := g.fetchBlockTimestamp(ctx, latestBlockNumber-o.offset)
 	if err != nil {
 		return 0, fmt.Errorf("fetch previous block timestamp: %w", err)
 	}
 
-	blockTime := timestampLatest - timestampPrevious
+	blockTime := (timestampLatest - timestampPrevious) / o.offset
 
 	g.logger.Tracef("block time: %d seconds", blockTime)
 
@@ -99,4 +117,12 @@ func (g *GethClient) fetchBlockTimestamp(ctx context.Context, blockNumber int64)
 	}
 
 	return strconv.ParseInt(resp.Result.Timestamp[2:], 16, 64)
+}
+
+func processOptions(opts ...Option) *options {
+	o := &options{}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
 }

@@ -33,6 +33,6 @@ func (n *NotSet) AttestOverlayEthAddress(ctx context.Context, ethAddr string) (t
 }
 
 // FetchBlockTime(ctx context.Context) (blockTime int64, err error)
-func (n *NotSet) FetchBlockTime(ctx context.Context) (blockTime int64, err error) {
+func (n *NotSet) FetchBlockTime(ctx context.Context, opts ...Option) (blockTime int64, err error) {
 	return 0, ErrNotSet
 }
