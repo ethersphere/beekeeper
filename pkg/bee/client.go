@@ -460,17 +460,20 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 		return "", fmt.Errorf("get chain state: %w", err)
 	}
 
-	price := csr.CurrentPrice.Int64()
-	if price <= 0 {
-		return "", fmt.Errorf("node %s: invalid chain price: %d", c.name, price)
-	}
-
 	blockTime, err := c.swapClient.FetchBlockTime(ctx, swap.WithOffset(100))
 	if err != nil {
 		return "", fmt.Errorf("fetching block time: %w", err)
 	}
 
-	amount := (int64(postageTTL.Seconds()) / blockTime) * price
+	var amount int64
+
+	price := csr.CurrentPrice.Int64()
+	if price > 0 {
+		amount = (int64(postageTTL.Seconds()) / blockTime) * price
+	} else {
+		c.log.Warningf("invalid chain price: %d", price)
+		amount = 1000
+	}
 
 	batches, err := c.PostageBatches(ctx)
 	if err != nil {
