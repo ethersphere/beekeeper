@@ -489,11 +489,6 @@ func (g *NodeGroup) NodesClients(ctx context.Context) (map[string]*bee.Client, e
 	return clients, nil
 }
 
-// NodesClientsAll returns map of node's clients in the node group
-func (g *NodeGroup) NodesClientsAll(ctx context.Context) map[string]*bee.Client {
-	return g.getClients()
-}
-
 // NodesSorted returns list of nodes sorted by names from the node group.
 func (g *NodeGroup) NodesSorted() []string {
 	nodes := g.getNodes()
@@ -505,11 +500,6 @@ func (g *NodeGroup) NodesSorted() []string {
 	sort.Strings(l)
 
 	return l
-}
-
-// Node returns node
-func (g *NodeGroup) Node(name string) (orchestration.Node, error) {
-	return g.getNode(name)
 }
 
 // NodeClient returns node's client

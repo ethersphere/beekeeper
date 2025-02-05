@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"sort"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -167,20 +166,6 @@ func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
 	return nodeGroups
 }
 
-// NodeGroupsSorted returns sorted list of node names in the node group
-func (c *Cluster) NodeGroupsSorted() (l []string) {
-	l = make([]string, len(c.nodeGroups))
-
-	i := 0
-	for k := range c.nodeGroups {
-		l[i] = k
-		i++
-	}
-	sort.Strings(l)
-
-	return
-}
-
 // NodeGroup returns node group
 func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error) {
 	ng, ok := c.nodeGroups[name]
@@ -257,17 +242,6 @@ func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, err
 			return nil, fmt.Errorf("nodes clients: %w", err)
 		}
 		for n, client := range ngc {
-			clients[n] = client
-		}
-	}
-	return clients, nil
-}
-
-// NodesClientsAll returns map of node's clients in the cluster
-func (c *Cluster) NodesClientsAll(ctx context.Context) (map[string]*bee.Client, error) {
-	clients := make(map[string]*bee.Client)
-	for _, ng := range c.NodeGroups() {
-		for n, client := range ng.NodesClientsAll(ctx) {
 			clients[n] = client
 		}
 	}

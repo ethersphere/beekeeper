@@ -28,11 +28,9 @@ type Cluster interface {
 	Name() string
 	NodeGroup(name string) (ng NodeGroup, err error)
 	NodeGroups() (l map[string]NodeGroup)
-	NodeGroupsSorted() (l []string)
 	NodeNames() (names []string)
 	Nodes() map[string]Node
 	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
-	NodesClientsAll(ctx context.Context) (map[string]*bee.Client, error)
 	Overlays(ctx context.Context, exclude ...string) (overlays ClusterOverlays, err error)
 	Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error)
 	RandomNode(ctx context.Context, r *rand.Rand) (node Node, err error)
