@@ -176,7 +176,7 @@ checks:
     options:
       file-size: 1024
       postage-depth: 20
-      postage-amount: 420000000
+      postage-ttl: 24h
       postage-label: act-label
       seed: 0
     timeout: 5m
@@ -202,7 +202,7 @@ checks:
     options:
       files-in-collection: 10
       max-pathname-length: 64
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 17
     timeout: 30m
     type: manifest
@@ -219,7 +219,7 @@ checks:
     options:
       count: 3
       address-prefix: 2
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 17
       request-timeout: 5m
     timeout: 5m
@@ -228,7 +228,7 @@ checks:
     options:
       chunks-per-node: 3
       mode: chunks
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 17
       retries: 5
       retry-delay: 15s
@@ -242,7 +242,7 @@ checks:
     options:
       chunks-per-node: 3
       mode: light-chunks
-      postage-amount: 10000
+      postage-ttl: 24h
       postage-depth: 17
       retries: 5
       retry-delay: 30s
@@ -255,7 +255,7 @@ checks:
   ci-retrieval:
     options:
       chunks-per-node: 3
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 17
       upload-node-count: 3
     timeout: 5m
@@ -266,7 +266,7 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 20
       threshold: 100000000
       upload-node-count: 3
@@ -276,7 +276,7 @@ checks:
   ci-smoke:
     options:
       content-size: 5000000
-      postage-amount: 1000000
+      postage-ttl: 24h
       postage-depth: 20
       postage-label: test-label
       nodes-sync-wait: 1m
@@ -287,7 +287,7 @@ checks:
     type: smoke
   ci-soc:
     options:
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 17
       request-timeout: 5m
     timeout: 5m
@@ -297,13 +297,13 @@ checks:
     timeout: 5m
     options:
       content-size: 16384
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 17
   ci-postage:
     type: postage
     timeout: 5m
     options:
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
@@ -329,7 +329,7 @@ checks:
     type: datadurability
   ci-redundancy:
     options:
-      postage-amount:
+      postage-ttl: 24h
       postage-depth:
       postage-label: test-label
       seed:
@@ -337,14 +337,14 @@ checks:
     type: redundancy
   ci-gsoc:
     options:
-      postage-amount: 100000
+      postage-ttl: 24h
       postage-depth: 20
       postage-label: gsoc-label
     timeout: 10m
     type: gsoc
   ci-feed:
     options:
-      postage-amount: 100000
+      postage-ttl: 24h
       postage-depth: 20
       postage-label: feed-label
     type: feed

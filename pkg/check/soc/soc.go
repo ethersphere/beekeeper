@@ -21,7 +21,6 @@ import (
 // Options represents check options
 type Options struct {
 	GasPrice       string
-	PostageAmount  int64
 	PostageTTL     time.Duration
 	PostageDepth   uint64
 	PostageLabel   string
@@ -32,7 +31,6 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		GasPrice:       "",
-		PostageAmount:  1,
 		PostageTTL:     24 * time.Hour,
 		PostageDepth:   16,
 		PostageLabel:   "test-label",
@@ -112,7 +110,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
 
-	batchID, err := node.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := node.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}

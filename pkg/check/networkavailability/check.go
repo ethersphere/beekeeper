@@ -19,7 +19,6 @@ import (
 // Options represents smoke test options
 type Options struct {
 	RndSeed       int64
-	PostageAmount int64
 	PostageTTL    time.Duration
 	PostageDepth  uint64
 	PostageLabel  string
@@ -30,7 +29,6 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		RndSeed:       time.Now().UnixNano(),
-		PostageAmount: 50_000_000,
 		PostageTTL:    24 * time.Hour,
 		PostageDepth:  24,
 		PostageLabel:  "test-label",
@@ -104,7 +102,7 @@ iteration:
 		// upload
 		var chunks []swarm.Chunk
 		for _, n := range neighborhoods(int(storageRadius)) {
-			batch, err := uploadClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+			batch, err := uploadClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 			if err != nil {
 				c.logger.Errorf("create batch failed failed")
 				continue iteration

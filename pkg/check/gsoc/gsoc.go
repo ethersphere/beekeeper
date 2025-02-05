@@ -25,19 +25,17 @@ import (
 
 // Options represents check options
 type Options struct {
-	PostageAmount int64
-	PostageTTL    time.Duration
-	PostageDepth  uint64
-	PostageLabel  string
+	PostageTTL   time.Duration
+	PostageDepth uint64
+	PostageLabel string
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		PostageAmount: 1000,
-		PostageTTL:    24 * time.Hour,
-		PostageDepth:  17,
-		PostageLabel:  "test-label",
+		PostageTTL:   24 * time.Hour,
+		PostageDepth: 17,
+		PostageLabel: "test-label",
 	}
 }
 
@@ -83,8 +81,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	batches := make([]string, 2)
 	for i := 0; i < 2; i++ {
-		c.logger.Infof("gsoc: creating postage batch. amount=%d, depth=%d, label=%s", o.PostageAmount, o.PostageDepth, o.PostageLabel)
-		batchID, err := uploadClient.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel, false)
+		c.logger.Infof("gsoc: creating postage batch. duration=%d, depth=%d, label=%s", o.PostageTTL, o.PostageDepth, o.PostageLabel)
+		batchID, err := uploadClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		if err != nil {
 			return err
 		}

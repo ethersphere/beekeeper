@@ -17,7 +17,6 @@ type Options struct {
 	FileName           string
 	FileSize           int64
 	GasPrice           string
-	PostageAmount      int64
 	PostageTTL         time.Duration
 	PostageDepth       uint64
 	PostageLabel       string
@@ -33,7 +32,6 @@ func NewDefaultOptions() Options {
 		FileName:           "balances",
 		FileSize:           1 * 1024 * 1024, // 1mb,
 		GasPrice:           "",
-		PostageAmount:      1,
 		PostageTTL:         24 * time.Hour,
 		PostageDepth:       16,
 		PostageLabel:       "test-label",
@@ -72,13 +70,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	var checkCase *test.CheckCase
 
 	caseOpts := test.CaseOptions{
-		FileName:      o.FileName,
-		FileSize:      o.FileSize,
-		GasPrice:      o.GasPrice,
-		PostageAmount: o.PostageAmount,
-		PostageDepth:  o.PostageDepth,
-		PostageLabel:  o.PostageLabel,
-		Seed:          o.Seed,
+		FileName:     o.FileName,
+		FileSize:     o.FileSize,
+		GasPrice:     o.GasPrice,
+		PostageDepth: o.PostageDepth,
+		PostageLabel: o.PostageLabel,
+		Seed:         o.Seed,
 	}
 
 	if checkCase, err = test.NewCheckCase(ctx, cluster, caseOpts, c.logger); err != nil {

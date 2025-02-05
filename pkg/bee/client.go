@@ -454,11 +454,23 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	return id, nil
 }
 
-func (c *Client) GetOrCreateMutableBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
-	_, err := c.api.Postage.GetChainState(ctx)
+func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Duration, depth uint64, label string) (string, error) {
+	csr, err := c.api.Postage.GetChainState(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get chain state: %w", err)
 	}
+
+	price := csr.CurrentPrice.Int64()
+	if price <= 0 {
+		return "", fmt.Errorf("node %s: invalid chain price: %d", c.name, price)
+	}
+
+	blockTime, err := c.swapClient.FetchBlockTime(ctx, swap.WithOffset(100))
+	if err != nil {
+		return "", fmt.Errorf("fetching block time: %w", err)
+	}
+
+	amount := (int64(postageTTL.Seconds()) / blockTime) * price
 
 	batches, err := c.PostageBatches(ctx)
 	if err != nil {

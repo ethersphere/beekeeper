@@ -21,7 +21,6 @@ type Options struct {
 	Count          int64
 	AddressPrefix  int
 	GasPrice       string
-	PostageAmount  int64
 	PostageTTL     time.Duration
 	PostageDepth   uint64
 	PostageLabel   string
@@ -35,7 +34,6 @@ func NewDefaultOptions() Options {
 		Count:          1,
 		AddressPrefix:  1,
 		GasPrice:       "",
-		PostageAmount:  1,
 		PostageTTL:     24 * time.Hour,
 		PostageDepth:   16,
 		PostageLabel:   "test-label",
@@ -124,7 +122,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 		return err
 	}
 
-	batchID, err := nodeA.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := nodeA.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		cancel()
 		return fmt.Errorf("node %s: batched id %w", nodeAName, err)

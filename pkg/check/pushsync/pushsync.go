@@ -18,7 +18,6 @@ type Options struct {
 	ChunksPerNode     int
 	GasPrice          string
 	Mode              string
-	PostageAmount     int64
 	PostageTTL        time.Duration
 	PostageDepth      uint64
 	PostageLabel      string
@@ -35,7 +34,6 @@ func NewDefaultOptions() Options {
 		ChunksPerNode:     1,
 		GasPrice:          "",
 		Mode:              "default",
-		PostageAmount:     1000,
 		PostageTTL:        24 * time.Hour,
 		PostageDepth:      16,
 		PostageLabel:      "test-label",
@@ -101,7 +99,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 		nodeName := sortedNodes[i]
 		client := clients[nodeName]
 
-		batchID, err := client.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+		batchID, err := client.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", nodeName, err)
 		}

@@ -51,7 +51,7 @@ checks:
   st-testnet-load:
     options:
       content-size: 50000000
-      postage-amount: 1000000000
+      postage-ttl: 24h
       postage-depth: 24
       postage-label: test-label
       duration: 12h

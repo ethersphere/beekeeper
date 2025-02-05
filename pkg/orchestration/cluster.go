@@ -23,7 +23,6 @@ type Cluster interface {
 	FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
 	FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error)
 	FullNodeNames() (names []string)
-	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
 	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	LightNodeNames() (names []string)
 	Name() string
@@ -38,6 +37,7 @@ type Cluster interface {
 	Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error)
 	RandomNode(ctx context.Context, r *rand.Rand) (node Node, err error)
 	Settlements(ctx context.Context) (settlements ClusterSettlements, err error)
+	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
 }

@@ -3,6 +3,7 @@ package bee
 import (
 	"context"
 	"math/rand"
+	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -25,13 +26,13 @@ type CheckCase struct {
 }
 
 type CaseOptions struct {
-	FileName      string
-	FileSize      int64
-	GasPrice      string
-	PostageAmount int64
-	PostageLabel  string
-	Seed          int64
-	PostageDepth  uint64
+	FileName     string
+	FileSize     int64
+	GasPrice     string
+	PostageTTL   time.Duration
+	PostageLabel string
+	Seed         int64
+	PostageDepth uint64
 }
 
 func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts CaseOptions, logger logging.Logger) (*CheckCase, error) {

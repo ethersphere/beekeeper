@@ -25,7 +25,6 @@ type Options struct {
 	FilesInCollection int
 	GasPrice          string
 	MaxPathnameLength int32
-	PostageAmount     int64
 	PostageTTL        time.Duration
 	PostageDepth      uint64
 	PostageLabel      string
@@ -38,7 +37,6 @@ func NewDefaultOptions() Options {
 		FilesInCollection: 10,
 		GasPrice:          "",
 		MaxPathnameLength: 64,
-		PostageAmount:     1,
 		PostageTTL:        24 * time.Hour,
 		PostageDepth:      16,
 		PostageLabel:      "test-label",
@@ -104,7 +102,7 @@ func (c *Check) checkWithoutSubDirs(ctx context.Context, rnd *rand.Rand, o Optio
 	}
 
 	tarFile := bee.NewBufferFile("", tarReader)
-	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", upClient.Name(), err)
 	}
@@ -134,7 +132,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 		return err
 	}
 
-	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", upClient.Name(), err)
 	}

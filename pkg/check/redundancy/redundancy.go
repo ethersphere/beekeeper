@@ -20,22 +20,20 @@ import (
 )
 
 type Options struct {
-	PostageLabel  string
-	PostageAmount int64
-	PostageTTL    time.Duration
-	PostageDepth  uint64
-	Seed          int64
-	DataSize      int64
+	PostageLabel string
+	PostageTTL   time.Duration
+	PostageDepth uint64
+	Seed         int64
+	DataSize     int64
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		PostageLabel:  "test-label",
-		PostageAmount: 1500000,
-		PostageTTL:    24 * time.Hour,
-		PostageDepth:  22,
-		Seed:          time.Now().UnixNano(),
-		DataSize:      307200,
+		PostageLabel: "test-label",
+		PostageTTL:   24 * time.Hour,
+		PostageDepth: 22,
+		Seed:         time.Now().UnixNano(),
+		DataSize:     307200,
 	}
 }
 
@@ -81,7 +79,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interf
 		}
 		c.logger.Infof("root hash: %s, chunks: %d", root.String(), len(chunks))
 
-		batchID, err := uploadClient.GetOrCreateMutableBatch(ctx, opts.PostageAmount, opts.PostageDepth, opts.PostageLabel)
+		batchID, err := uploadClient.GetOrCreateMutableBatch(ctx, opts.PostageTTL, opts.PostageDepth, opts.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("get or create batch: %w", err)
 		}

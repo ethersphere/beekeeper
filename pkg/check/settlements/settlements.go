@@ -23,7 +23,6 @@ type Options struct {
 	FileName           string
 	FileSize           int64
 	GasPrice           string
-	PostageAmount      int64
 	PostageTTL         time.Duration
 	PostageDepth       uint64
 	PostageLabel       string
@@ -42,7 +41,6 @@ func NewDefaultOptions() Options {
 		FileName:           "settlements",
 		FileSize:           1 * 1024 * 1024, // 1mb
 		GasPrice:           "",
-		PostageAmount:      1,
 		PostageTTL:         24 * time.Hour,
 		PostageDepth:       20,
 		PostageLabel:       "test-label",
@@ -122,7 +120,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		client := clients[uNode]
 
 		c.logger.Info("node", uNode)
-		batchID, err := client.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+		batchID, err := client.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", uNode, err)
 		}

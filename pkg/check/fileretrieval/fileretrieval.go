@@ -22,7 +22,6 @@ type Options struct {
 	FilesPerNode    int
 	Full            bool
 	GasPrice        string
-	PostageAmount   int64
 	PostageTTL      time.Duration
 	PostageLabel    string
 	Seed            int64
@@ -37,7 +36,6 @@ func NewDefaultOptions() Options {
 		FilesPerNode:    1,
 		Full:            false,
 		GasPrice:        "",
-		PostageAmount:   1,
 		PostageTTL:      24 * time.Hour,
 		PostageLabel:    "test-label",
 		Seed:            0,
@@ -100,7 +98,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.PostageLabel, false)
+			batchID, err := clients[nodeName].GetOrCreateMutableBatch(ctx, o.PostageTTL, depth, o.PostageLabel)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}
@@ -173,7 +171,7 @@ func (c *Check) fullCheck(ctx context.Context, cluster orchestration.Cluster, o 
 			file := bee.NewRandomFile(rnds[i], fmt.Sprintf("%s-%d-%d", o.FileName, i, j), o.FileSize)
 
 			depth := 2 + bee.EstimatePostageBatchDepth(file.Size())
-			batchID, err := clients[nodeName].CreatePostageBatch(ctx, o.PostageAmount, depth, o.PostageLabel, false)
+			batchID, err := clients[nodeName].GetOrCreateMutableBatch(ctx, o.PostageTTL, depth, o.PostageLabel)
 			if err != nil {
 				return fmt.Errorf("node %s: created batched id %w", nodeName, err)
 			}

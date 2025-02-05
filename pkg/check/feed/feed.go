@@ -18,22 +18,20 @@ import (
 
 // Options represents check options
 type Options struct {
-	PostageAmount int64
-	PostageTTL    time.Duration
-	PostageDepth  uint64
-	PostageLabel  string
-	NUpdates      int
-	RootRef       string
+	PostageTTL   time.Duration
+	PostageDepth uint64
+	PostageLabel string
+	NUpdates     int
+	RootRef      string
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		PostageAmount: 1000,
-		PostageTTL:    24 * time.Hour,
-		PostageDepth:  17,
-		PostageLabel:  "test-label",
-		NUpdates:      2,
+		PostageTTL:   24 * time.Hour,
+		PostageDepth: 17,
+		PostageLabel: "test-label",
+		NUpdates:     2,
 	}
 }
 
@@ -106,7 +104,7 @@ func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o 
 
 	c.logger.Infof("upload client: %s", upClient.Name())
 
-	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return err
 	}

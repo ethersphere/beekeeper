@@ -57,7 +57,7 @@ checks:
   pt-retrieval:
     options:
       chunks-per-node: 3
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 17
       upload-node-count: 3
     timeout: 15m
@@ -68,7 +68,7 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 20
       threshold: 100000000
       upload-node-count: 3
@@ -79,7 +79,7 @@ checks:
     options:
       files-in-collection: 10
       max-pathname-length: 64
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 17
     timeout: 30m
     type: manifest
@@ -87,14 +87,14 @@ checks:
     options:
       count: 3
       address-prefix: 2
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 17
       request-timeout: 5m
     timeout: 30m
     type: pss
   pt-soc:
     options:
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 17
       request-timeout: 5m
     timeout: 5m
@@ -103,7 +103,7 @@ checks:
     options:
       chunks-per-node: 3
       mode: chunks
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 17
       retries: 5
       retry-delay: 15s
@@ -117,13 +117,13 @@ checks:
     type: postage
     timeout: 30m
     options:
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
   pt-gsoc:
     options:
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 20
       postage-label: gsoc-label
     timeout: 10m
@@ -131,7 +131,7 @@ checks:
   pt-testnet-load:
     options:
       content-size: 50000000
-      postage-amount: 1000000000 # 1024/15*60*60*24*7
+      postage-ttl: 168h
       postage-depth: 24
       postage-label: test-label
       duration: 12h
@@ -149,7 +149,7 @@ checks:
     type: load
   pt-feed:
     options:
-      postage-amount: 140000000
+      postage-ttl: 24h
       postage-depth: 20
       postage-label: feed-label
     timeout: 30m

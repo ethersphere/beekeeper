@@ -46,7 +46,7 @@ func (b *BeeV2) UploadRandomFile(ctx context.Context) (File, error) {
 
 func (b *BeeV2) UploadFile(ctx context.Context, file File) error {
 	depth := 2 + bee.EstimatePostageBatchDepth(b.opts.FileSize)
-	batchID, err := b.client.CreatePostageBatch(ctx, b.opts.PostageAmount, depth, b.opts.PostageLabel, false)
+	batchID, err := b.client.GetOrCreateMutableBatch(ctx, b.opts.PostageTTL, depth, b.opts.PostageLabel)
 	if err != nil {
 		return fmt.Errorf("node %s: created batch id %w", b.name, err)
 	}
@@ -79,7 +79,7 @@ func (b *BeeV2) ExpectToHaveFile(ctx context.Context, file File) error {
 
 func (b *BeeV2) NewChunkUploader(ctx context.Context) (*ChunkUploader, error) {
 	o := b.opts
-	batchID, err := b.client.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := b.client.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		return nil, fmt.Errorf("node %s: batch id %w", b.name, err)
 	}
