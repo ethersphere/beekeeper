@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/postage"
+	"github.com/ethersphere/bee/v2/pkg/postage"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
