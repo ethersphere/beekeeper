@@ -27,7 +27,7 @@ type Options struct {
 	PostageDepth       uint64
 	PostageLabel       string
 	Seed               int64
-	Threshold          int64 // balances treshold
+	Threshold          int64 // balances threshold
 	UploadNodeCount    int
 	WaitAfterUpload    time.Duration // seconds to wait before downloading a file
 	WaitBeforeDownload time.Duration // seconds to wait before downloading a file
@@ -75,7 +75,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	if o.DryRun {
 		c.logger.Info("running settlements (dry mode)")
-		return dryRun(ctx, cluster, o, c.logger)
+		return dryRun(ctx, cluster, c.logger)
 	}
 
 	rnd := random.PseudoGenerator(o.Seed)
@@ -97,7 +97,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	if err := validateSettlements(overlays, accounting, settlements, c.logger); err != nil {
+	if err := validateSettlements(accounting, settlements, c.logger); err != nil {
 		return fmt.Errorf("invalid initial settlements: %s", err.Error())
 	}
 	c.logger.Info("Settlements are valid")
@@ -120,7 +120,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		client := clients[uNode]
 
 		c.logger.Info("node", uNode)
-		batchID, err := client.GetOrCreateBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+		batchID, err := client.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: batch id %w", uNode, err)
 		}
@@ -152,8 +152,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				settlementsHappened = true
 			}
 
-			err = validateSettlements(overlays, accounting, settlements, c.logger)
-			if err != nil {
+			if err = validateSettlements(accounting, settlements, c.logger); err != nil {
 				c.logger.Infof("Invalid settlements after uploading a file: %s", err.Error())
 				c.logger.Info("Retrying ...")
 				continue
@@ -203,7 +202,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 				settlementsHappened = true
 			}
 
-			err = validateSettlements(overlays, accounting, settlements, c.logger)
+			err = validateSettlements(accounting, settlements, c.logger)
 			if err != nil {
 				c.logger.Infof("Invalid settlements after downloading a file: %s", err.Error())
 				c.logger.Info("Retrying ...")
@@ -228,12 +227,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 }
 
 // dryRun executes settlements validation check without files uploading/downloading
-func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options, logger logging.Logger) (err error) {
-	overlays, err := cluster.FlattenOverlays(ctx)
-	if err != nil {
-		return err
-	}
-
+func dryRun(ctx context.Context, cluster orchestration.Cluster, logger logging.Logger) (err error) {
 	accounting, err := cluster.FlattenAccounting(ctx)
 	if err != nil {
 		return err
@@ -244,7 +238,7 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options, logge
 		return err
 	}
 
-	if err := validateSettlements(overlays, accounting, settlements, logger); err != nil {
+	if err := validateSettlements(accounting, settlements, logger); err != nil {
 		return fmt.Errorf("invalid settlements")
 	}
 	logger.Info("Settlements are valid")
@@ -253,7 +247,7 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, o Options, logge
 }
 
 // validateSettlements checks if settlements are valid
-func validateSettlements(overlays orchestration.NodeGroupOverlays, accounting orchestration.NodeGroupAccounting, settlements orchestration.NodeGroupSettlements, logger logging.Logger) (err error) {
+func validateSettlements(accounting orchestration.NodeGroupAccounting, settlements orchestration.NodeGroupSettlements, logger logging.Logger) (err error) {
 	// threshold validation
 	for node, v := range accounting {
 		for _, peerInfo := range v {
@@ -273,10 +267,10 @@ func validateSettlements(overlays orchestration.NodeGroupOverlays, accounting or
 		for peer, peerInfo := range v {
 			diff := peerInfo.Balance + accounting[peer][node].Balance
 			if diff != 0 {
-				logger.Infof("Node %s has asymmetric balance with peer %s\n", node, peer)
-				logger.Infof("Node %s has balance %d with peer %s\n", node, peerInfo.Balance, peer)
-				logger.Infof("Peer %s has balance %d with node %s\n", peer, accounting[peer][node].Balance, node)
-				logger.Infof("Difference: %d\n", diff)
+				logger.Infof("Node %s has asymmetric balance with peer %s", node, peer)
+				logger.Infof("Node %s has balance %d with peer %s", node, peerInfo.Balance, peer)
+				logger.Infof("Peer %s has balance %d with node %s", peer, accounting[peer][node].Balance, node)
+				logger.Infof("Difference: %d", diff)
 				noBalanceSymmetry = true
 			}
 		}

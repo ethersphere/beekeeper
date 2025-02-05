@@ -32,8 +32,7 @@ func (c *Config) PrintYaml(w io.Writer) (err error) {
 	if c == nil {
 		return fmt.Errorf("config not initialized")
 	}
-	enc := yaml.NewEncoder(w)
-	if err := enc.Encode(c); err != nil {
+	if err := yaml.NewEncoder(w).Encode(c); err != nil {
 		return fmt.Errorf("config can not be encoded: %s", err.Error())
 	}
 	return
@@ -41,73 +40,82 @@ func (c *Config) PrintYaml(w io.Writer) (err error) {
 
 // merge combines Config objects using inheritance
 func (c *Config) merge() (err error) {
-	// merge BeeConfigs
-	mergedBC := map[string]BeeConfig{}
-	for name, v := range c.BeeConfigs {
-		if len(v.ParentName) == 0 {
-			mergedBC[name] = v
-		} else {
-			parent, ok := c.BeeConfigs[v.ParentName]
-			if !ok {
-				return fmt.Errorf("bee profile %s doesn't exist", v.ParentName)
-			}
-			p := reflect.ValueOf(&parent).Elem()
-			m := reflect.ValueOf(&v).Elem()
-			for i := 0; i < m.NumField(); i++ {
-				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
-					m.Field(i).Set(p.Field(i))
-				}
-			}
-			mergedBC[name] = m.Interface().(BeeConfig)
-		}
+	c.BeeConfigs, err = mergeConfigs(c.BeeConfigs)
+	if err != nil {
+		return fmt.Errorf("merging bee configs: %w", err)
 	}
-	c.BeeConfigs = mergedBC
 
-	// merge NodeGroups
-	mergedNG := map[string]NodeGroup{}
-	for name, v := range c.NodeGroups {
-		if len(v.ParentName) == 0 {
-			mergedNG[name] = v
-		} else {
-			parent, ok := c.NodeGroups[v.ParentName]
-			if !ok {
-				return fmt.Errorf("node group profile %s doesn't exist", v.ParentName)
-			}
-			p := reflect.ValueOf(&parent).Elem()
-			m := reflect.ValueOf(&v).Elem()
-			for i := 0; i < m.NumField(); i++ {
-				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
-					m.Field(i).Set(p.Field(i))
-				}
-			}
-			mergedNG[name] = m.Interface().(NodeGroup)
-		}
+	c.NodeGroups, err = mergeConfigs(c.NodeGroups)
+	if err != nil {
+		return fmt.Errorf("merging node groups: %w", err)
 	}
-	c.NodeGroups = mergedNG
 
-	// merge clusters
-	mergedC := map[string]Cluster{}
-	for name, v := range c.Clusters {
-		if len(v.ParentName) == 0 {
-			mergedC[name] = v
-		} else {
-			parent, ok := c.Clusters[v.ParentName]
-			if !ok {
-				return fmt.Errorf("bee profile %s doesn't exist", v.ParentName)
-			}
-			p := reflect.ValueOf(&parent).Elem()
-			m := reflect.ValueOf(&v).Elem()
-			for i := 0; i < m.NumField(); i++ {
-				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
-					m.Field(i).Set(p.Field(i))
-				}
-			}
-			mergedC[name] = m.Interface().(Cluster)
-		}
+	c.Clusters, err = mergeConfigs(c.Clusters)
+	if err != nil {
+		return fmt.Errorf("merging clusters: %w", err)
 	}
-	c.Clusters = mergedC
 
 	return
+}
+
+func mergeConfigs[T any](configs map[string]T) (map[string]T, error) {
+	mergedConfigs := make(map[string]T)
+	visited := map[string]bool{}
+
+	// recursively merge configs (internal function)
+	var mergeParent func(name string) (T, error)
+	mergeParent = func(name string) (T, error) {
+		if config, ok := mergedConfigs[name]; ok {
+			return config, nil // already merged
+		}
+		var zero T
+
+		// detect circular inheritance
+		if visited[name] {
+			return zero, fmt.Errorf("circular inheritance detected with bee profile %s", name)
+		}
+		visited[name] = true
+
+		v, ok := configs[name]
+		if !ok {
+			return zero, fmt.Errorf("bee profile %s doesn't exist", name)
+		}
+
+		// check if T implements Inheritable to get parent name
+		vIneheritable, ok := any(v).(Inheritable)
+		if !ok {
+			return zero, fmt.Errorf("type %T does not implement Inheritable interface", v)
+		}
+
+		// merge the parent
+		if len(vIneheritable.GetParentName()) > 0 {
+			parentConfig, err := mergeParent(vIneheritable.GetParentName())
+			if err != nil {
+				return zero, err
+			}
+
+			// merge parent fields into the current config
+			p := reflect.ValueOf(&parentConfig).Elem()
+			m := reflect.ValueOf(&v).Elem()
+			for i := 0; i < m.NumField(); i++ {
+				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
+					m.Field(i).Set(p.Field(i))
+				}
+			}
+		}
+
+		mergedConfigs[name] = v
+		delete(visited, name) // remove after merge
+		return v, nil
+	}
+
+	for name := range configs {
+		if _, err := mergeParent(name); err != nil {
+			return nil, err
+		}
+	}
+
+	return mergedConfigs, nil
 }
 
 // Read reads given YAML files and unmarshals them into Config
@@ -121,9 +129,17 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 	}
 
 	for _, file := range yamlFiles {
+		log.Tracef("reading file %s", file.Name)
+
 		var tmp *Config
 		if err := yaml.Unmarshal(file.Content, &tmp); err != nil {
 			return nil, fmt.Errorf("unmarshaling yaml file: %w", err)
+		}
+
+		// Set the cluster name to the key
+		for key, cluster := range tmp.Clusters {
+			cluster.Name = &key
+			tmp.Clusters[key] = cluster
 		}
 
 		// join Clusters
@@ -135,6 +151,7 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 				log.Warningf("cluster '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
+
 		// join NodeGroups
 		for k, v := range tmp.NodeGroups {
 			_, ok := c.NodeGroups[k]
@@ -144,6 +161,7 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 				log.Warningf("node group '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
+
 		// join BeeConfigs
 		for k, v := range tmp.BeeConfigs {
 			_, ok := c.BeeConfigs[k]
@@ -153,6 +171,7 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 				log.Warningf("bee config '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
+
 		// join Checks
 		for k, v := range tmp.Checks {
 			_, ok := c.Checks[k]
@@ -162,6 +181,7 @@ func Read(log logging.Logger, yamlFiles []YamlFile) (*Config, error) {
 				log.Warningf("check '%s' in file '%s' already exits in configuration", k, file.Name)
 			}
 		}
+
 		// join Simulations
 		for k, v := range tmp.Simulations {
 			_, ok := c.Simulations[k]

@@ -1,22 +1,23 @@
 package retrieval
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	test "github.com/ethersphere/beekeeper/pkg/test"
 )
 
 // Options represents check options
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
-	GasPrice        string
 	PostageAmount   int64
 	PostageDepth    uint64
 	PostageLabel    string
@@ -28,7 +29,6 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
-		GasPrice:        "",
 		PostageAmount:   1,
 		PostageLabel:    "test-label",
 		PostageDepth:    16,
@@ -63,67 +63,77 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("invalid options type")
 	}
 
-	caseOpts := test.CaseOptions{
-		GasPrice:      o.GasPrice,
-		PostageAmount: o.PostageAmount,
-		PostageLabel:  o.PostageLabel,
-		PostageDepth:  o.PostageDepth,
-		Seed:          o.Seed,
-	}
+	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 
-	checkCase, err := test.NewCheckCase(ctx, cluster, caseOpts, c.logger)
+	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
 		return err
 	}
 
-	lastBee := checkCase.LastBee()
+	clients, err := cluster.NodesClients(ctx)
+	if err != nil {
+		return err
+	}
+
+	nodes := cluster.FullNodeNames()
 
 	for i := 0; i < o.UploadNodeCount; i++ {
-		uploader, err := checkCase.Bee(i).NewChunkUploader(ctx)
+		uploadNode := clients[nodes[i]]
+		downloadNodeIndex := (i + 1) % len(nodes) // download from the next node
+		downloadNode := clients[nodes[downloadNodeIndex]]
+
+		batchID, err := uploadNode.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 		if err != nil {
-			return err
+			return fmt.Errorf("node %s: created batched id %w", uploadNode.Name(), err)
 		}
+		c.logger.Infof("node %s: created batched id %s", uploadNode.Name(), batchID)
 
 		for j := 0; j < o.ChunksPerNode; j++ {
 			// time upload
 			t0 := time.Now()
 
-			chunk, err := uploader.UploadRandomChunk()
+			chunk, err := bee.NewRandomChunk(rnds[i], c.logger)
 			if err != nil {
-				return err
+				return fmt.Errorf("node %s: %w", uploadNode.Name(), err)
 			}
+
+			addr, err := uploadNode.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
+			if err != nil {
+				return fmt.Errorf("node %s: %w", uploadNode.Name(), err)
+			}
+			c.logger.Infof("Uploaded chunk address: %s", addr.String())
 
 			d0 := time.Since(t0)
 
-			c.metrics.UploadedCounter.WithLabelValues(uploader.Overlay).Inc()
-			c.metrics.UploadTimeGauge.WithLabelValues(uploader.Overlay, chunk.AddrString()).Set(d0.Seconds())
+			c.metrics.UploadedCounter.WithLabelValues(overlays[uploadNode.Name()].String()).Inc()
+			c.metrics.UploadTimeGauge.WithLabelValues(overlays[uploadNode.Name()].String(), chunk.Address().String()).Set(d0.Seconds())
 			c.metrics.UploadTimeHistogram.Observe(d0.Seconds())
 
 			// time download
 			t1 := time.Now()
 
-			data, err := lastBee.DownloadChunk(ctx, chunk.Addr())
+			downloadData, err := downloadNode.DownloadChunk(ctx, chunk.Address(), "", nil)
 			if err != nil {
-				return fmt.Errorf("node %s: %w", lastBee.Name(), err)
+				return fmt.Errorf("node %s: %w", downloadNode.Name(), err)
 			}
 
 			d1 := time.Since(t1)
 
-			c.metrics.DownloadedCounter.WithLabelValues(uploader.Name()).Inc()
-			c.metrics.DownloadTimeGauge.WithLabelValues(uploader.Name(), chunk.AddrString()).Set(d1.Seconds())
+			c.metrics.DownloadedCounter.WithLabelValues(uploadNode.Name()).Inc()
+			c.metrics.DownloadTimeGauge.WithLabelValues(uploadNode.Name(), chunk.Address().String()).Set(d1.Seconds())
 			c.metrics.DownloadTimeHistogram.Observe(d1.Seconds())
 
-			if !chunk.Equals(data) {
-				c.metrics.NotRetrievedCounter.WithLabelValues(uploader.Name()).Inc()
-				c.logger.Infof("Node %s. Chunk %d not retrieved successfully. Uploaded size: %d Downloaded size: %d Node: %s Chunk: %s", lastBee.Name(), j, chunk.Size(), len(data), uploader.Name(), chunk.AddrString())
-				if chunk.Contains(data) {
+			if !bytes.Equal(chunk.Data(), downloadData) {
+				c.metrics.NotRetrievedCounter.WithLabelValues(uploadNode.Name()).Inc()
+				c.logger.Errorf("Chunk not retrieved successfully: DownloadNode=%s, ChunkIndex=%d, UploadedSize=%d, DownloadedSize=%d, UploadNode=%s, ChunkAddress=%s", downloadNode.Name(), j, chunk.Size(), len(downloadData), uploadNode.Name(), chunk.Address().String())
+				if bytes.Contains(chunk.Data(), downloadData) {
 					c.logger.Infof("Downloaded data is subset of the uploaded data")
 				}
 				return errRetrieval
 			}
 
-			c.metrics.RetrievedCounter.WithLabelValues(uploader.Name()).Inc()
-			c.logger.Infof("Node %s. Chunk %d retrieved successfully. Node: %s Chunk: %s", lastBee.Name(), j, uploader.Name(), chunk.AddrString())
+			c.metrics.RetrievedCounter.WithLabelValues(uploadNode.Name()).Inc()
+			c.logger.Infof("Chunk retrieved successfully: DownloadNode=%s, ChunkIndex=%d, DownloadedSize=%d, UploadNode=%s, ChunkAddress=%s", downloadNode.Name(), j, len(downloadData), uploadNode.Name(), chunk.Address().String())
 		}
 	}
 

@@ -1,4 +1,4 @@
-package debugapi
+package api
 
 import (
 	"context"
@@ -14,6 +14,10 @@ type StakingService service
 
 type getStakeResponse struct {
 	StakedAmount *bigint.BigInt `json:"stakedAmount"`
+}
+
+type getWithdrawableResponse struct {
+	WithdrawableAmount *bigint.BigInt `json:"withdrawableAmount"`
 }
 type stakeDepositResponse struct {
 	TxHash string `json:"txhash"`
@@ -42,8 +46,18 @@ func (s *StakingService) GetStakedAmount(ctx context.Context) (stakedAmount *big
 	return r.StakedAmount.Int, nil
 }
 
-// WithdrawStake withdraws stake
-func (s *StakingService) WithdrawStake(ctx context.Context) (txHash string, err error) {
+// GetWithdrawableStake gets stake
+func (s *StakingService) GetWithdrawableStake(ctx context.Context) (withdrawableStake *big.Int, err error) {
+	r := new(getWithdrawableResponse)
+	err = s.client.requestJSON(ctx, http.MethodGet, "/stake/withdrawable", nil, r)
+	if err != nil {
+		return nil, err
+	}
+	return r.WithdrawableAmount.Int, nil
+}
+
+// MigrateStake withdraws stake
+func (s *StakingService) MigrateStake(ctx context.Context) (txHash string, err error) {
 	r := new(stakeWithdrawResponse)
 	err = s.client.requestJSON(ctx, http.MethodDelete, "/stake", nil, r)
 	if err != nil {

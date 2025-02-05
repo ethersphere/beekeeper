@@ -5,6 +5,12 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
+const (
+	CreateBad string = "create_bad"
+	UpdateBad string = "update_bad"
+	DeleteBad string = "delete_bad"
+)
+
 // compile simulation whether ClientsetMock implements interface
 var _ v1.AppsV1Interface = (*AppV1)(nil)
 

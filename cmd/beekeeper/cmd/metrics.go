@@ -12,7 +12,7 @@ import (
 // newMetricsPusher returns a new metrics pusher and a cleanup function.
 func newMetricsPusher(pusherAddress, job string, logger logging.Logger) (*push.Pusher, func()) {
 	metricsPusher := push.New(pusherAddress, job)
-	metricsPusher.Format(expfmt.FmtText)
+	metricsPusher.Format(expfmt.NewFormat(expfmt.TypeTextPlain))
 
 	killC := make(chan struct{})
 	var wg sync.WaitGroup

@@ -3,8 +3,8 @@ package ingress
 import (
 	"context"
 	"fmt"
-	"strings"
 
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	v1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,12 +14,14 @@ import (
 // Client manages communication with the Kubernetes Ingress.
 type Client struct {
 	clientset kubernetes.Interface
+	logger    logging.Logger
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset kubernetes.Interface) *Client {
+func NewClient(clientset kubernetes.Interface, log logging.Logger) *Client {
 	return &Client{
 		clientset: clientset,
+		logger:    log,
 	}
 }
 
@@ -76,10 +78,11 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 	return
 }
 
-// ListDebugNodesHosts list Ingresses that are nodes
-func (c *Client) ListDebugNodesHosts(ctx context.Context, namespace string) (nodes []NodeInfo, err error) {
+// GetNodes list Ingresses hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.
+func (c *Client) GetNodes(ctx context.Context, namespace, label string) (nodes []NodeInfo, err error) {
+	c.logger.Debugf("listing Ingresses in namespace %s, label selector %s", namespace, label)
 	ingreses, err := c.clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=bee",
+		LabelSelector: label,
 	})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -88,15 +91,16 @@ func (c *Client) ListDebugNodesHosts(ctx context.Context, namespace string) (nod
 		return nil, fmt.Errorf("list ingresses in namespace %s: %w", namespace, err)
 	}
 
+	c.logger.Debugf("found %d ingresses in namespace %s", len(ingreses.Items), namespace)
+
 	for _, ingress := range ingreses.Items {
-		if strings.HasSuffix(ingress.Name, "-debug") {
-			for _, rule := range ingress.Spec.Rules {
-				if rule.Host != "" {
-					nodes = append(nodes, NodeInfo{
-						Name: strings.TrimSuffix(ingress.Name, "-debug"),
-						Host: rule.Host,
-					})
-				}
+		for _, rule := range ingress.Spec.Rules {
+			if rule.Host != "" {
+				nodes = append(nodes, NodeInfo{
+					Name: ingress.Name,
+					Host: rule.Host,
+				})
+				c.logger.Tracef("found Ingress %s in namespace %s with host %s", ingress.Name, namespace, rule.Host)
 			}
 		}
 	}

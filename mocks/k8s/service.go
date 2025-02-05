@@ -41,7 +41,7 @@ func (*Service) ApplyStatus(ctx context.Context, service *configcorev1.ServiceAp
 
 // Create implements v1.ServiceInterface
 func (*Service) Create(ctx context.Context, service *v1.Service, opts metav1.CreateOptions) (*v1.Service, error) {
-	if service.ObjectMeta.Name == "create_bad" {
+	if service.ObjectMeta.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create service")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -50,7 +50,7 @@ func (*Service) Create(ctx context.Context, service *v1.Service, opts metav1.Cre
 
 // Delete implements v1.ServiceInterface
 func (*Service) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	if name == "delete_bad" {
+	if name == DeleteBad {
 		return fmt.Errorf("mock error: cannot delete service")
 	} else {
 		return errors.NewNotFound(schema.GroupResource{}, name)
@@ -59,9 +59,9 @@ func (*Service) Delete(ctx context.Context, name string, opts metav1.DeleteOptio
 
 // Get implements v1.ServiceInterface
 func (*Service) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Service, error) {
-	if name == "create_bad" {
+	if name == CreateBad {
 		return nil, errors.NewNotFound(schema.GroupResource{}, name)
-	} else if name == "update_bad" {
+	} else if name == UpdateBad {
 		return &v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
@@ -83,7 +83,7 @@ func (*Service) Patch(ctx context.Context, name string, pt types.PatchType, data
 
 // Update implements v1.ServiceInterface
 func (*Service) Update(ctx context.Context, service *v1.Service, opts metav1.UpdateOptions) (*v1.Service, error) {
-	if service.ObjectMeta.Name == "update_bad" {
+	if service.ObjectMeta.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update service")
 	} else {
 		return nil, errors.NewNotFound(schema.GroupResource{}, service.ObjectMeta.Name)

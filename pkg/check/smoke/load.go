@@ -9,7 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -29,10 +30,10 @@ type LoadCheck struct {
 }
 
 // NewCheck returns new check
-func NewLoadCheck(logger logging.Logger) beekeeper.Action {
+func NewLoadCheck(log logging.Logger) beekeeper.Action {
 	return &LoadCheck{
 		metrics: newMetrics("check_load"),
-		logger:  logger,
+		logger:  log,
 	}
 }
 
@@ -47,9 +48,15 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return errors.New("no uploaders requested, quiting")
 	}
 
-	c.logger.Info("random seed: ", o.RndSeed)
-	c.logger.Info("content size: ", o.ContentSize)
-	c.logger.Info("max batch lifespan: ", o.MaxUseBatch)
+	if o.MaxStorageRadius == 0 {
+		return errors.New("max storage radius is not set")
+	}
+
+	c.logger.Infof("random seed: %v", o.RndSeed)
+	c.logger.Infof("content size: %v", o.ContentSize)
+	c.logger.Infof("max batch lifespan: %v", o.MaxUseBatch)
+	c.logger.Infof("max storage radius: %v", o.MaxStorageRadius)
+	c.logger.Infof("storage radius check wait time: %v", o.StorageRadiusCheckWait)
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -63,8 +70,6 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 	uploaders := selectNames(cluster, o.UploadGroups...)
 	downloaders := selectNames(cluster, o.DownloadGroups...)
-
-	batches := NewStore(o.MaxUseBatch)
 
 	for i := 0; true; i++ {
 		select {
@@ -99,10 +104,10 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		upload.Add(1)
 
 		for _, txName := range txNames {
-			txName := txName
-
 			go func() {
-				defer once.Do(func() { upload.Done() }) // don't wait for all uploads
+				defer once.Do(func() {
+					upload.Done()
+				}) // don't wait for all uploads
 				for retries := 10; txDuration == 0 && retries > 0; retries-- {
 					select {
 					case <-ctx.Done():
@@ -111,19 +116,21 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					default:
 					}
 
+					if !c.checkStorageRadius(ctx, test.clients[txName], o.MaxStorageRadius, o.StorageRadiusCheckWait) {
+						return
+					}
+
 					c.metrics.UploadAttempts.Inc()
 					var duration time.Duration
 					c.logger.Infof("uploading to: %s", txName)
 
-					batchID := batches.Get(txName)
-					if batchID == "" {
-						batchID, err = clients[txName].CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, "load-test", true)
-						if err != nil {
-							c.logger.Errorf("create new batch: %v", err)
-							return
-						}
-						batches.Store(txName, batchID)
+					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, "load-test")
+					if err != nil {
+						c.logger.Errorf("create new batch: %v", err)
+						return
 					}
+
+					c.logger.Info("using batch", "batch_id", batchID)
 
 					address, duration, err = test.upload(ctx, txName, txData, batchID)
 					if err != nil {
@@ -154,7 +161,6 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		var wg sync.WaitGroup
 
 		for _, rxName := range rxNames {
-			rxName := rxName
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -223,6 +229,27 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	}
 
 	return nil
+}
+
+func (c *LoadCheck) checkStorageRadius(ctx context.Context, client *bee.Client, maxRadius uint8, wait time.Duration) bool {
+	for {
+		rs, err := client.ReserveState(ctx)
+		if err != nil {
+			c.logger.Infof("error getting state: %v", err)
+			return false
+		}
+		if rs.StorageRadius < maxRadius {
+			return true
+		}
+		c.logger.Infof("waiting %v for StorageRadius to decrease. Current: %d, Max: %d", wait, rs.StorageRadius, maxRadius)
+
+		select {
+		case <-ctx.Done():
+			c.logger.Infof("context done in StorageRadius check: %v", ctx.Err())
+			return false
+		case <-time.After(wait):
+		}
+	}
 }
 
 func pickRandom(count int, peers []string) (names []string) {

@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethersphere/beekeeper/pkg/bee/api"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/bee/debugapi"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -84,14 +85,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	client := clients[node]
 
 	if err := expectStakeAmountIs(ctx, client, zero); err != nil {
-		return errors.New("check initial staked amount")
+		return err
 	}
 
 	// depositing insufficient amount should fail
 	_, err = client.DepositStake(ctx, o.InsufficientAmount)
 
-	if !debugapi.IsHTTPStatusErrorCode(err, 400) {
-		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %v", 400, err)
+	if !api.IsHTTPStatusErrorCode(err, 400) {
+		return fmt.Errorf("deposit insufficient stake amount: expected code %v, got %w", 400, err)
 	}
 
 	if err := expectStakeAmountIs(ctx, client, zero); err != nil {
@@ -108,6 +109,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
+	if err := expectWithdrawableStake(ctx, client, o.Amount); err != nil {
+		return err
+	}
+
 	// should allow increasing the stake amount
 	stakedAmount := new(big.Int).Add(o.Amount, big.NewInt(1))
 
@@ -120,8 +125,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
+	if err := expectWithdrawableStake(ctx, client, stakedAmount); err != nil {
+		return err
+	}
+
 	// should not allow withdrawing from a running contract
-	_, err = client.WithdrawStake(ctx)
+	_, err = client.MigrateStake(ctx)
 	if err == nil {
 		return errors.New("withdraw from running contract should fail")
 	}
@@ -147,12 +156,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}()
 
 	// successful withdraw should set the staked amount to 0
-	_, err = client.WithdrawStake(ctx)
+	_, err = client.MigrateStake(ctx)
 	if err != nil {
 		return fmt.Errorf("withdraw from paused contract: %w", err)
 	}
 
 	if err := expectStakeAmountIs(ctx, client, zero); err != nil {
+		return err
+	}
+
+	if err := expectWithdrawableStake(ctx, client, zero); err != nil {
 		return err
 	}
 
@@ -167,6 +180,24 @@ func expectStakeAmountIs(ctx context.Context, client *bee.Client, expected *big.
 
 	if current.Cmp(expected) != 0 {
 		return fmt.Errorf("expected stake amount to be %d, got: %d", expected, current)
+	}
+
+	return nil
+}
+
+func expectWithdrawableStake(ctx context.Context, client *bee.Client, expected *big.Int) error {
+	withdrawable, err := client.GetWithdrawableStake(ctx)
+	if err != nil {
+		return fmt.Errorf("get stake amount: %w", err)
+	}
+
+	if (expected.Cmp(zero) == 0 && withdrawable.Cmp(expected) != 0) ||
+		(expected.Cmp(zero) != 0 && withdrawable.Cmp(zero) == 0) {
+		if expected.Cmp(zero) == 0 {
+			return fmt.Errorf("expected withdrawable stake to be %d, got: %d", expected, withdrawable)
+		} else {
+			return fmt.Errorf("expected withdrawable stake should not be equal to 0")
+		}
 	}
 
 	return nil

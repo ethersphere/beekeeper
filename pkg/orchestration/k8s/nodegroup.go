@@ -3,13 +3,14 @@ package k8s
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -49,17 +50,12 @@ func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestrat
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
+func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, o orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
 	var aURL *url.URL
-	var dURL *url.URL
 
-	aURL, err = g.clusterOpts.ApiURL(name)
+	aURL, err = g.clusterOpts.ApiURL(name, inCluster)
 	if err != nil {
 		return fmt.Errorf("API URL %s: %w", name, err)
-	}
-	dURL, err = g.clusterOpts.DebugAPIURL(name)
-	if err != nil {
-		return fmt.Errorf("debug API URL %s: %w", name, err)
 	}
 
 	// TODO: make more granular, check every sub-option
@@ -71,17 +67,14 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 	}
 
 	beeClientOpts := bee.ClientOptions{
-		APIURL:              aURL,
-		APIInsecureTLS:      g.clusterOpts.APIInsecureTLS,
-		DebugAPIURL:         dURL,
-		DebugAPIInsecureTLS: g.clusterOpts.DebugAPIInsecureTLS,
-		Retry:               5,
-		Restricted:          config.Restricted,
+		Name:           name,
+		APIURL:         aURL,
+		APIInsecureTLS: g.clusterOpts.APIInsecureTLS,
+		Retry:          5,
 	}
 
 	for _, opt := range opts {
-		err := opt(&beeClientOpts)
-		if err != nil {
+		if err := opt(&beeClientOpts); err != nil {
 			return fmt.Errorf("bee client option: %w", err)
 		}
 	}
@@ -89,12 +82,10 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, o orchestration.No
 	client := bee.NewClient(beeClientOpts, g.log)
 
 	n := NewNode(name, orchestration.NodeOptions{
-		ClefKey:      o.ClefKey,
-		ClefPassword: o.ClefPassword,
-		Client:       client,
-		Config:       config,
-		LibP2PKey:    o.LibP2PKey,
-		SwarmKey:     o.SwarmKey,
+		Client:    client,
+		Config:    config,
+		LibP2PKey: o.LibP2PKey,
+		SwarmKey:  o.SwarmKey,
 	}, g.nodeOrchestrator, g.log)
 
 	g.addNode(n)
@@ -335,19 +326,12 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 		Name:                      name,
 		Namespace:                 g.clusterOpts.Namespace,
 		Annotations:               g.opts.Annotations,
-		ClefImage:                 g.opts.ClefImage,
-		ClefImagePullPolicy:       g.opts.ClefImagePullPolicy,
-		ClefKey:                   n.ClefKey(),
-		ClefPassword:              n.ClefPassword(),
 		Image:                     g.opts.Image,
 		ImagePullPolicy:           g.opts.ImagePullPolicy,
 		ImagePullSecrets:          g.opts.ImagePullSecrets,
 		IngressAnnotations:        g.opts.IngressAnnotations,
 		IngressClass:              g.opts.IngressClass,
 		IngressHost:               g.clusterOpts.IngressHost(name),
-		IngressDebugAnnotations:   g.opts.IngressDebugAnnotations,
-		IngressDebugClass:         g.opts.IngressDebugClass,
-		IngressDebugHost:          g.clusterOpts.IngressDebugHost(name),
 		Labels:                    labels,
 		LibP2PKey:                 n.LibP2PKey(),
 		NodeSelector:              g.opts.NodeSelector,
@@ -683,41 +667,19 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 	if !n.Config().SwapEnable || !n.Config().ChequebookEnable {
 		var swarmKey string
 
-		if n.Config().ClefSignerEnable {
-			if n.ClefKey() == "" {
-				password := n.ClefPassword()
-				if password == "" {
-					password = "clefbeesecret"
-					n = n.SetClefPassword(password)
-				}
-				swarmKey, err = utils.CreateSwarmKey(password)
-				if err != nil {
-					return fmt.Errorf("create Clef key for node %s: %w", name, err)
-				}
+		if n.SwarmKey() == "" {
+			swarmKey, err = utils.CreateSwarmKey(n.Config().Password)
+			if err != nil {
+				return fmt.Errorf("create Swarm key for node %s: %w", name, err)
+			}
 
-				n = n.SetClefKey(swarmKey)
+			n = n.SetSwarmKey(swarmKey)
 
-				if err := g.setNode(name, n); err != nil {
-					return fmt.Errorf("setting node %s: %w", name, err)
-				}
-			} else {
-				swarmKey = n.ClefKey()
+			if err := g.setNode(name, n); err != nil {
+				return fmt.Errorf("setting node %s: %w", name, err)
 			}
 		} else {
-			if n.SwarmKey() == "" {
-				swarmKey, err = utils.CreateSwarmKey(n.Config().Password)
-				if err != nil {
-					return fmt.Errorf("create Swarm key for node %s: %w", name, err)
-				}
-
-				n = n.SetSwarmKey(swarmKey)
-
-				if err := g.setNode(name, n); err != nil {
-					return fmt.Errorf("setting node %s: %w", name, err)
-				}
-			} else {
-				swarmKey = n.SwarmKey()
-			}
+			swarmKey = n.SwarmKey()
 		}
 
 		var key utils.EncryptedKey
@@ -741,7 +703,7 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 // TODO: filter by labels
 func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err error) {
 	allRunning, err := g.nodeOrchestrator.RunningNodes(ctx, g.clusterOpts.Namespace)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil && !errors.Is(err, orchestration.ErrNotSet) {
 		return nil, fmt.Errorf("running nodes in namespace %s: %w", g.clusterOpts.Namespace, err)
 	}
 
@@ -755,10 +717,10 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
-func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.NodeOptions) (ethAddress string, err error) {
+func (g *NodeGroup) SetupNode(ctx context.Context, name string, inCluster bool, o orchestration.NodeOptions) (ethAddress string, err error) {
 	g.log.Infof("starting setup node: %s", name)
 
-	if err := g.AddNode(ctx, name, o); err != nil {
+	if err := g.AddNode(ctx, name, inCluster, o); err != nil {
 		return "", fmt.Errorf("add node %s: %w", name, err)
 	}
 
@@ -779,7 +741,7 @@ func (g *NodeGroup) SetupNode(ctx context.Context, name string, o orchestration.
 		return "", fmt.Errorf("get eth address for funding: %w", err)
 	}
 
-	return
+	return ethAddress, nil
 }
 
 // Settlements returns NodeGroupSettlements
@@ -921,7 +883,7 @@ func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
 // TODO: filter by labels
 func (g *NodeGroup) StoppedNodes(ctx context.Context) (stopped []string, err error) {
 	allStopped, err := g.nodeOrchestrator.StoppedNodes(ctx, g.clusterOpts.Namespace)
-	if err != nil && err != orchestration.ErrNotSet {
+	if err != nil && !errors.Is(err, orchestration.ErrNotSet) {
 		return nil, fmt.Errorf("stopped nodes in namespace %s: %w", g.clusterOpts.Namespace, err)
 	}
 

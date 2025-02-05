@@ -28,7 +28,7 @@ type PersistentVolumeClaim struct {
 	Namespace   string
 	Annotations map[string]string
 	Labels      map[string]string
-	Spec        PersistentVolumeClaimSpec
+	Spec        Spec
 }
 
 // toK8S converts PersistentVolumeClaim to Kuberntes client object
@@ -44,8 +44,8 @@ func (pvc PersistentVolumeClaim) toK8S() v1.PersistentVolumeClaim {
 	}
 }
 
-// PersistentVolumeClaimSpec represents Kubernetes PersistentVolumeClaimSpec
-type PersistentVolumeClaimSpec struct {
+// Spec represents Kubernetes Spec
+type Spec struct {
 	Name           string
 	AccessModes    AccessModes
 	DataSource     DataSource
@@ -57,11 +57,11 @@ type PersistentVolumeClaimSpec struct {
 }
 
 // toK8S converts PersistentVolumeClaimSpec to Kuberntes client object
-func (pvcs PersistentVolumeClaimSpec) toK8S() v1.PersistentVolumeClaimSpec {
+func (pvcs Spec) toK8S() v1.PersistentVolumeClaimSpec {
 	return v1.PersistentVolumeClaimSpec{
 		AccessModes: pvcs.AccessModes.toK8S(),
 		DataSource:  pvcs.DataSource.toK8S(),
-		Resources: v1.ResourceRequirements{
+		Resources: v1.VolumeResourceRequirements{
 			Requests: func() (m v1.ResourceList) {
 				if len(pvcs.RequestStorage) > 0 {
 					m = make(map[v1.ResourceName]resource.Quantity)

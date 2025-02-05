@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -29,27 +29,33 @@ type Options struct {
 	UploadTimeout   time.Duration
 	DownloadTimeout time.Duration
 	// load test params
-	UploaderCount   int
-	UploadGroups    []string
-	DownloaderCount int
-	DownloadGroups  []string
-	MaxUseBatch     time.Duration
+	UploaderCount          int
+	UploadGroups           []string
+	DownloaderCount        int
+	DownloadGroups         []string
+	MaxUseBatch            time.Duration
+	MaxStorageRadius       uint8
+	StorageRadiusCheckWait time.Duration
+	IterationWait          time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ContentSize:     5000000,
-		RndSeed:         time.Now().UnixNano(),
-		PostageAmount:   50_000_000,
-		PostageDepth:    24,
-		TxOnErrWait:     10 * time.Second,
-		RxOnErrWait:     10 * time.Second,
-		NodesSyncWait:   time.Minute,
-		Duration:        12 * time.Hour,
-		UploadTimeout:   60 * time.Minute,
-		DownloadTimeout: 60 * time.Minute,
-		MaxUseBatch:     12 * time.Hour,
+		ContentSize:            5000000,
+		RndSeed:                time.Now().UnixNano(),
+		PostageAmount:          50_000_000,
+		PostageDepth:           24,
+		TxOnErrWait:            10 * time.Second,
+		RxOnErrWait:            10 * time.Second,
+		NodesSyncWait:          time.Minute,
+		Duration:               12 * time.Hour,
+		UploadTimeout:          60 * time.Minute,
+		DownloadTimeout:        60 * time.Minute,
+		MaxUseBatch:            12 * time.Hour,
+		MaxStorageRadius:       2,
+		StorageRadiusCheckWait: 5 * time.Minute,
+		IterationWait:          5 * time.Minute,
 	}
 }
 
@@ -79,6 +85,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	c.logger.Info("random seed: ", o.RndSeed)
 	c.logger.Info("content size: ", o.ContentSize)
+	c.logger.Info("upload timeout: ", o.UploadTimeout)
+	c.logger.Info("download timeout: ", o.DownloadTimeout)
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 
@@ -152,7 +160,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.BatchCreateAttempts.Inc()
 
-			batchID, err = clients[txName].GetOrCreateBatch(txCtx, o.PostageAmount, o.PostageDepth, "smoke-test")
+			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageAmount, o.PostageDepth, "smoke-test")
 			if err != nil {
 				c.logger.Errorf("create new batch: %v", err)
 				c.metrics.BatchCreateErrors.Inc()
@@ -233,6 +241,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 			c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
 		}
 		rxCancel()
+
+		time.Sleep(o.IterationWait)
 	}
 
 	return nil

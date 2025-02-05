@@ -9,7 +9,6 @@ import (
 
 func (c *command) initDeleteBeeCluster() *cobra.Command {
 	const (
-		optionNameClusterName = "cluster-name"
 		optionNameWithStorage = "with-storage"
 		optionNameTimeout     = "timeout"
 	)
@@ -27,7 +26,7 @@ func (c *command) initDeleteBeeCluster() *cobra.Command {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
+	cmd.Flags().String(optionNameClusterName, "", "cluster name")
 	cmd.Flags().Bool(optionNameWithStorage, false, "delete storage")
 	cmd.Flags().Duration(optionNameTimeout, 15*time.Minute, "timeout")
 

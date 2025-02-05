@@ -3,11 +3,13 @@ package ingress_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"reflect"
 	"testing"
 
 	mock "github.com/ethersphere/beekeeper/mocks/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -109,13 +111,13 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:        "create_error",
-			ingressName: "create_bad",
+			ingressName: mock.CreateBad,
 			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("creating ingress create_bad in namespace test: mock error: cannot create ingress"),
 		},
 		{
 			name:        "update_error",
-			ingressName: "update_bad",
+			ingressName: mock.UpdateBad,
 			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("updating ingress update_bad in namespace test: mock error: cannot update ingress"),
 		},
@@ -123,7 +125,7 @@ func TestSet(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := ingress.NewClient(test.clientset)
+			client := ingress.NewClient(test.clientset, logging.New(io.Discard, 0))
 			response, err := client.Set(context.Background(), test.ingressName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
@@ -190,7 +192,7 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:        "delete_error",
-			ingressName: "delete_bad",
+			ingressName: mock.DeleteBad,
 			clientset:   mock.NewClientset(),
 			errorMsg:    fmt.Errorf("deleting ingress delete_bad in namespace test: mock error: cannot delete ingress"),
 		},
@@ -198,7 +200,7 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
-			client := ingress.NewClient(test.clientset)
+			client := ingress.NewClient(test.clientset, logging.New(io.Discard, 0))
 			err := client.Delete(context.Background(), test.ingressName, "test")
 			if test.errorMsg == nil {
 				if err != nil {

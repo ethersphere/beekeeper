@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// IngressRouteInterface has methods to work with IngressRoute resources.
+// Interface has methods to work with IngressRoute resources.
 type IngressRouteInterface interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*IngressRouteList, error)
 	Get(ctx context.Context, name string, options metav1.GetOptions) (*IngressRoute, error)

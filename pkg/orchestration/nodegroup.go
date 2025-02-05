@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
 type NodeGroup interface {
 	Accounting(ctx context.Context) (infos NodeGroupAccounting, err error)
-	AddNode(ctx context.Context, name string, o NodeOptions, opts ...BeeClientOption) (err error)
+	AddNode(ctx context.Context, name string, inCluster bool, o NodeOptions, opts ...BeeClientOption) (err error)
 	Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error)
 	Balances(ctx context.Context) (balances NodeGroupBalances, err error)
 	CreateNode(ctx context.Context, name string) (err error)
@@ -30,7 +30,7 @@ type NodeGroup interface {
 	Peers(ctx context.Context) (peers NodeGroupPeers, err error)
 	RunningNodes(ctx context.Context) (running []string, err error)
 	Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
-	SetupNode(ctx context.Context, name string, o NodeOptions) (ethAddress string, err error)
+	SetupNode(ctx context.Context, name string, inCluster bool, o NodeOptions) (ethAddress string, err error)
 	Size() int
 	StartNode(ctx context.Context, name string) (err error)
 	StopNode(ctx context.Context, name string) (err error)
@@ -41,16 +41,12 @@ type NodeGroup interface {
 // NodeGroupOptions represents node group options
 type NodeGroupOptions struct {
 	Annotations               map[string]string
-	ClefImage                 string
-	ClefImagePullPolicy       string
 	BeeConfig                 *Config
 	Image                     string
 	ImagePullPolicy           string
 	ImagePullSecrets          []string
 	IngressAnnotations        map[string]string
 	IngressClass              string
-	IngressDebugAnnotations   map[string]string
-	IngressDebugClass         string
 	Labels                    map[string]string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
@@ -101,21 +97,15 @@ type NodeGroupTopologies map[string]bee.Topology
 // BeeClientOption represents bee client option
 type BeeClientOption func(*bee.ClientOptions) error
 
-// WithAPIURL returns BeeClientOption with given api url and debug api url
-func WithURLs(apiURL, debugAPIURL string) BeeClientOption {
+// WithURL returns BeeClientOption with given api url
+func WithURL(apiURL string) BeeClientOption {
 	return func(o *bee.ClientOptions) error {
 		api, err := url.Parse(apiURL)
 		if err != nil {
 			return fmt.Errorf("invalid api url: %w", err)
 		}
 
-		debug, err := url.Parse(debugAPIURL)
-		if err != nil {
-			return fmt.Errorf("invalid debug api url: %w", err)
-		}
-
 		o.APIURL = api
-		o.DebugAPIURL = debug
 		return nil
 	}
 }

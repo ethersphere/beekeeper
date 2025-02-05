@@ -37,7 +37,7 @@ func TestToK8S_Containers(t *testing.T) {
 }
 
 func TestToK8S(t *testing.T) {
-	var trueBoolPointer bool = true
+	optional := true
 
 	testTable := []struct {
 		name      string
@@ -127,14 +127,14 @@ func TestToK8S(t *testing.T) {
 									Name: "configMapName",
 								},
 								Key:      "key",
-								Optional: &trueBoolPointer,
+								Optional: &optional,
 							},
 							SecretKeyRef: &v1.SecretKeySelector{
 								LocalObjectReference: v1.LocalObjectReference{
 									Name: "secretName",
 								},
 								Key:      "key",
-								Optional: &trueBoolPointer,
+								Optional: &optional,
 							},
 						},
 					},
@@ -168,13 +168,13 @@ func TestToK8S(t *testing.T) {
 							LocalObjectReference: v1.LocalObjectReference{
 								Name: "configMapName",
 							},
-							Optional: &trueBoolPointer,
+							Optional: &optional,
 						},
 						SecretRef: &v1.SecretEnvSource{
 							LocalObjectReference: v1.LocalObjectReference{
 								Name: "secretName",
 							},
-							Optional: &trueBoolPointer,
+							Optional: &optional,
 						},
 					},
 				}
@@ -185,14 +185,14 @@ func TestToK8S(t *testing.T) {
 			name: "lifecycle_exec",
 			container: containers.Container{
 				Lifecycle: containers.Lifecycle{
-					PostStart: &containers.Handler{
+					PostStart: &containers.LifecycleHandler{
 						Exec: &containers.ExecHandler{
 							Command: []string{"cmd_start1", "cmd_start2"},
 						},
 						HTTPGet:   &containers.HTTPGetHandler{},
 						TCPSocket: &containers.TCPSocketHandler{},
 					},
-					PreStop: &containers.Handler{
+					PreStop: &containers.LifecycleHandler{
 						Exec: &containers.ExecHandler{
 							Command: []string{"cmd_stop1", "cmd_stop2"},
 						},
@@ -204,12 +204,12 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.Lifecycle = &v1.Lifecycle{
-					PostStart: &v1.Handler{
+					PostStart: &v1.LifecycleHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{"cmd_start1", "cmd_start2"},
 						},
 					},
-					PreStop: &v1.Handler{
+					PreStop: &v1.LifecycleHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{"cmd_stop1", "cmd_stop2"},
 						},
@@ -222,7 +222,7 @@ func TestToK8S(t *testing.T) {
 			name: "lifecycle_http",
 			container: containers.Container{
 				Lifecycle: containers.Lifecycle{
-					PostStart: &containers.Handler{
+					PostStart: &containers.LifecycleHandler{
 						HTTPGet: &containers.HTTPGetHandler{
 							Host:   "host_start",
 							Path:   "path",
@@ -237,7 +237,7 @@ func TestToK8S(t *testing.T) {
 						},
 						TCPSocket: &containers.TCPSocketHandler{},
 					},
-					PreStop: &containers.Handler{
+					PreStop: &containers.LifecycleHandler{
 						HTTPGet: &containers.HTTPGetHandler{
 							Host:   "host_stop",
 							Path:   "path",
@@ -257,7 +257,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.Lifecycle = &v1.Lifecycle{
-					PostStart: &v1.Handler{
+					PostStart: &v1.LifecycleHandler{
 						HTTPGet: &v1.HTTPGetAction{
 							Host: "host_start",
 							Path: "path",
@@ -275,7 +275,7 @@ func TestToK8S(t *testing.T) {
 							},
 						},
 					},
-					PreStop: &v1.Handler{
+					PreStop: &v1.LifecycleHandler{
 						HTTPGet: &v1.HTTPGetAction{
 							Host: "host_stop",
 							Path: "path",
@@ -301,13 +301,13 @@ func TestToK8S(t *testing.T) {
 			name: "lifecycle_tcp",
 			container: containers.Container{
 				Lifecycle: containers.Lifecycle{
-					PostStart: &containers.Handler{
+					PostStart: &containers.LifecycleHandler{
 						TCPSocket: &containers.TCPSocketHandler{
 							Host: "tcp_post_start",
 							Port: "10000",
 						},
 					},
-					PreStop: &containers.Handler{
+					PreStop: &containers.LifecycleHandler{
 						TCPSocket: &containers.TCPSocketHandler{
 							Host: "tcp_pre_stop",
 							Port: "10000",
@@ -318,7 +318,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.Lifecycle = &v1.Lifecycle{
-					PostStart: &v1.Handler{
+					PostStart: &v1.LifecycleHandler{
 						TCPSocket: &v1.TCPSocketAction{
 							Port: intstr.IntOrString{
 								Type:   1,
@@ -328,7 +328,7 @@ func TestToK8S(t *testing.T) {
 							Host: "tcp_post_start",
 						},
 					},
-					PreStop: &v1.Handler{
+					PreStop: &v1.LifecycleHandler{
 						TCPSocket: &v1.TCPSocketAction{
 							Port: intstr.IntOrString{
 								Type:   1,
@@ -346,15 +346,15 @@ func TestToK8S(t *testing.T) {
 			name: "lifecycle_no_handlers",
 			container: containers.Container{
 				Lifecycle: containers.Lifecycle{
-					PostStart: &containers.Handler{},
-					PreStop:   &containers.Handler{},
+					PostStart: &containers.LifecycleHandler{},
+					PreStop:   &containers.LifecycleHandler{},
 				},
 			},
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.Lifecycle = &v1.Lifecycle{
-					PostStart: &v1.Handler{},
-					PreStop:   &v1.Handler{},
+					PostStart: &v1.LifecycleHandler{},
+					PreStop:   &v1.LifecycleHandler{},
 				}
 				return container
 			}(),
@@ -380,7 +380,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.LivenessProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{"cmd_probe_1"},
 						},
@@ -423,7 +423,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.LivenessProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						HTTPGet: &v1.HTTPGetAction{
 							Path: "path",
 							Port: intstr.IntOrString{
@@ -470,7 +470,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.LivenessProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						TCPSocket: &v1.TCPSocketAction{
 							Port: intstr.IntOrString{
 								Type:   1,
@@ -537,7 +537,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.ReadinessProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{"cmd_ready_1"},
 						},
@@ -580,7 +580,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.ReadinessProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						HTTPGet: &v1.HTTPGetAction{
 							Path: "path",
 							Port: intstr.IntOrString{
@@ -627,7 +627,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.ReadinessProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						TCPSocket: &v1.TCPSocketAction{
 							Port: intstr.IntOrString{
 								Type:   1,
@@ -719,7 +719,7 @@ func TestToK8S(t *testing.T) {
 						Drop: []v1.Capability{"drop"},
 					},
 					Privileged: func() *bool {
-						var pointerBool bool = true
+						pointerBool := true
 						return &pointerBool
 					}(),
 					SELinuxOptions: &v1.SELinuxOptions{
@@ -751,15 +751,15 @@ func TestToK8S(t *testing.T) {
 						return &pointerInt64
 					}(),
 					RunAsNonRoot: func() *bool {
-						var pointerBool bool = true
+						pointerBool := true
 						return &pointerBool
 					}(),
 					ReadOnlyRootFilesystem: func() *bool {
-						var pointerBool bool = true
+						pointerBool := true
 						return &pointerBool
 					}(),
 					AllowPrivilegeEscalation: func() *bool {
-						var pointerBool bool = true
+						pointerBool := true
 						return &pointerBool
 					}(),
 					ProcMount: func() *v1.ProcMountType {
@@ -791,7 +791,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.StartupProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{"cmd_startup_1"},
 						},
@@ -834,7 +834,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.StartupProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						HTTPGet: &v1.HTTPGetAction{
 							Path: "path",
 							Port: intstr.IntOrString{
@@ -881,7 +881,7 @@ func TestToK8S(t *testing.T) {
 			expected: func() v1.Container {
 				container := newExpectedDefaultContainer()
 				container.StartupProbe = &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						TCPSocket: &v1.TCPSocketAction{
 							Port: intstr.IntOrString{
 								Type:   1,

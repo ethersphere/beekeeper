@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"net/url"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/swap"
@@ -23,6 +23,7 @@ type Cluster interface {
 	FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
 	FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error)
 	FullNodeNames() (names []string)
+	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
 	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	LightNodeNames() (names []string)
 	Name() string
@@ -43,19 +44,16 @@ type Cluster interface {
 
 // ClusterOptions represents Bee cluster options
 type ClusterOptions struct {
-	Annotations         map[string]string
-	APIDomain           string
-	APIInsecureTLS      bool
-	APIScheme           string
-	DebugAPIDomain      string
-	DebugAPIInsecureTLS bool
-	DebugAPIScheme      string
-	K8SClient           *k8s.Client
-	SwapClient          swap.Client
-	Labels              map[string]string
-	Namespace           string
-	DisableNamespace    bool
-	AdminPassword       string
+	Annotations       map[string]string
+	APIDomain         string
+	APIDomainInternal string
+	APIInsecureTLS    bool
+	APIScheme         string
+	K8SClient         *k8s.Client
+	SwapClient        swap.Client
+	Labels            map[string]string
+	Namespace         string
+	DisableNamespace  bool
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster
@@ -110,11 +108,17 @@ func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string
 }
 
 // ApiURL generates URL for node's API
-func (c ClusterOptions) ApiURL(name string) (u *url.URL, err error) {
+func (c ClusterOptions) ApiURL(name string, inCluster bool) (u *url.URL, err error) {
+	apiDomain := c.APIDomain
+	apiScheme := c.APIScheme
+	if inCluster {
+		apiDomain = c.APIDomainInternal
+		apiScheme = "http"
+	}
 	if c.DisableNamespace {
-		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", c.APIScheme, name, c.APIDomain))
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s", apiScheme, name, apiDomain))
 	} else {
-		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", c.APIScheme, name, c.Namespace, c.APIDomain))
+		u, err = url.Parse(fmt.Sprintf("%s://%s.%s.%s", apiScheme, name, c.Namespace, apiDomain))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)
@@ -128,25 +132,4 @@ func (c ClusterOptions) IngressHost(name string) string {
 		return fmt.Sprintf("%s.%s", name, c.APIDomain)
 	}
 	return fmt.Sprintf("%s.%s.%s", name, c.Namespace, c.APIDomain)
-}
-
-// DebugAPIURL generates URL for node's DebugAPI
-func (c ClusterOptions) DebugAPIURL(name string) (u *url.URL, err error) {
-	if c.DisableNamespace {
-		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s", c.DebugAPIScheme, name, c.DebugAPIDomain))
-	} else {
-		u, err = url.Parse(fmt.Sprintf("%s://%s-debug.%s.%s", c.DebugAPIScheme, name, c.Namespace, c.DebugAPIDomain))
-	}
-	if err != nil {
-		return nil, fmt.Errorf("bad debug API url for node %s: %w", name, err)
-	}
-	return
-}
-
-// IngressDebugHost generates host for node's DebugAPI ingress
-func (c ClusterOptions) IngressDebugHost(name string) string {
-	if c.DisableNamespace {
-		return fmt.Sprintf("%s-debug.%s", name, c.DebugAPIDomain)
-	}
-	return fmt.Sprintf("%s-debug.%s.%s", name, c.Namespace, c.DebugAPIDomain)
 }

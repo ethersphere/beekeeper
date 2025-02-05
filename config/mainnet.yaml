@@ -3,15 +3,11 @@
 clusters:
   mainnet:
     _inherit: ""
-    name: bee
     namespace: beekeeper
     disable-namespace: true
     api-domain: gateway.ethswarm.org
     api-insecure-tls: true
     api-scheme: https
-    debug-api-domain: bee-gateway.mainnet.internal
-    debug-api-insecure-tls: true
-    debug-api-scheme: https
     funding:
       eth: 0.1
       gbzz: 2.0

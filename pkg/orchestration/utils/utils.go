@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethersphere/bee/pkg/crypto"
+	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/scrypt"
 )
@@ -44,7 +44,7 @@ type EncryptedKey struct {
 	Address string    `json:"address"`
 	Crypto  keyCripto `json:"crypto"`
 	Version int       `json:"version"`
-	Id      string    `json:"id"`
+	ID      string    `json:"id"`
 }
 
 type keyCripto struct {
@@ -85,7 +85,7 @@ func encryptKey(k *ecdsa.PrivateKey, password string) ([]byte, error) {
 		Address: hex.EncodeToString(addr),
 		Crypto:  *kc,
 		Version: keyVersion,
-		Id:      uuid.NewString(),
+		ID:      uuid.NewString(),
 	})
 }
 

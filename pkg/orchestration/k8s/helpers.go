@@ -17,16 +17,12 @@ block-time: {{ .BlockTime }}
 bootnode: {{.Bootnodes}}
 bootnode-mode: {{.BootnodeMode}}
 cache-capacity: {{.CacheCapacity}}
-clef-signer-enable: {{.ClefSignerEnable}}
-clef-signer-endpoint: {{.ClefSignerEndpoint}}
 cors-allowed-origins: {{.CORSAllowedOrigins}}
 data-dir: {{.DataDir}}
 db-open-files-limit: {{.DbOpenFilesLimit}}
 db-block-cache-capacity: {{.DbBlockCacheCapacity}}
 db-write-buffer-size: {{.DbWriteBufferSize}}
 db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
-debug-api-addr: {{.DebugAPIAddr}}
-debug-api-enable: {{.DebugAPIEnable}}
 full-node: {{.FullNode}}
 mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
@@ -44,9 +40,6 @@ redistribution-address: {{ .RedistributionAddress }}
 staking-address: {{ .StakingAddress }}
 storage-incentives-enable: {{ .StorageIncentivesEnable }}
 resolver-options: {{.ResolverOptions}}
-restricted: {{.Restricted}}
-token-encryption-key: {{.TokenEncryptionKey}}
-admin-password: {{.AdminPassword}}
 chequebook-enable: {{.ChequebookEnable}}
 swap-enable: {{.SwapEnable}}
 swap-endpoint: {{.SwapEndpoint}}
@@ -63,44 +56,20 @@ withdrawal-addresses-whitelist: {{.WithdrawAddress}}
 `
 )
 
-type setInitContainersOptions struct {
-	ClefEnabled         bool
-	ClefSecretEnabled   bool
-	ClefImage           string
-	ClefImagePullPolicy string
-	ClefPassword        string
-	LibP2PEnabled       bool
-	SwarmEnabled        bool
-}
-
-func setInitContainers(o setInitContainersOptions) (inits containers.Containers) {
-	if o.ClefEnabled {
-		inits = append(inits, containers.Container{
-			Name:            "init-clef",
-			Image:           o.ClefImage,
-			ImagePullPolicy: o.ClefImagePullPolicy,
-			Command:         []string{"sh", "-c", "/entrypoint.sh init; echo 'clef initialization done';"},
-			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
-				ClefEnabled:       o.ClefEnabled,
-				ClefSecretEnabled: o.ClefSecretEnabled,
-			}),
-		})
-	}
-	if o.LibP2PEnabled || o.SwarmEnabled {
-		inits = append(inits, containers.Container{
-			Name:  "init-bee",
-			Image: "ethersphere/busybox:1.33",
-			Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
+func setInitContainers() (inits containers.Containers) {
+	inits = append(inits, containers.Container{
+		Name:  "init-bee",
+		Image: "ethersphere/busybox:1.33",
+		Command: []string{"sh", "-c", `mkdir -p /home/bee/.bee/keys;
 chown -R 999:999 /home/bee/.bee/keys;
 echo 'bee initialization done';`},
-			VolumeMounts: containers.VolumeMounts{
-				{
-					Name:      "data",
-					MountPath: "home/bee/.bee",
-				},
+		VolumeMounts: containers.VolumeMounts{
+			{
+				Name:      "data",
+				MountPath: "home/bee/.bee",
 			},
-		})
-	}
+		},
+	})
 
 	return
 }
@@ -110,18 +79,12 @@ type setContainersOptions struct {
 	Image                  string
 	ImagePullPolicy        string
 	PortAPI                int32
-	PortDebug              int32
 	PortP2P                int32
 	PersistenceEnabled     bool
 	ResourcesLimitCPU      string
 	ResourcesLimitMemory   string
 	ResourcesRequestCPU    string
 	ResourcesRequestMemory string
-	ClefEnabled            bool
-	ClefSecretEnabled      bool
-	ClefImage              string
-	ClefImagePullPolicy    string
-	ClefPassword           string
 	LibP2PEnabled          bool
 	SwarmEnabled           bool
 }
@@ -139,11 +102,6 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 				Protocol:      "TCP",
 			},
 			{
-				Name:          "debug",
-				ContainerPort: o.PortDebug,
-				Protocol:      "TCP",
-			},
-			{
 				Name:          "p2p",
 				ContainerPort: o.PortP2P,
 				Protocol:      "TCP",
@@ -153,7 +111,7 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 			InitialDelaySeconds: 5,
 			Handler: containers.HTTPGetHandler{
 				Path: "/health",
-				Port: "debug",
+				Port: "api",
 			},
 		}},
 		ReadinessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
@@ -163,7 +121,7 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 				// because Beekeeper does funding it needs node to be ready before it is funded
 				// if Bee readiness is changed to be ready before funding, path can be set to "/readiness"
 				Path: "/health",
-				Port: "debug",
+				Port: "api",
 			},
 		}},
 		Resources: containers.Resources{
@@ -185,26 +143,6 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 			SwarmEnabled:  o.SwarmEnabled,
 		}),
 	})
-
-	if o.ClefEnabled {
-		c = append(c, containers.Container{
-			Name:            "clef",
-			Image:           o.ClefImage,
-			ImagePullPolicy: o.ClefImagePullPolicy,
-			Command:         []string{"sh", "-c", "/entrypoint.sh run;"},
-			Ports: containers.Ports{
-				{
-					Name:          "api",
-					ContainerPort: int32(8550),
-					Protocol:      "TCP",
-				},
-			},
-			VolumeMounts: setClefVolumeMounts(setClefVolumeMountsOptions{
-				ClefEnabled:       o.ClefEnabled,
-				ClefSecretEnabled: o.ClefSecretEnabled,
-			}),
-		})
-	}
 
 	return
 }
@@ -245,44 +183,10 @@ func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts containers.Vo
 	return
 }
 
-type setClefVolumeMountsOptions struct {
-	ClefEnabled       bool
-	ClefSecretEnabled bool
-}
-
-func setClefVolumeMounts(o setClefVolumeMountsOptions) (volumeMounts containers.VolumeMounts) {
-	if o.ClefEnabled {
-		volumeMounts = append(volumeMounts, containers.VolumeMount{
-			Name:      "clef",
-			MountPath: "/app/data",
-			ReadOnly:  false,
-		})
-		if o.ClefSecretEnabled {
-			volumeMounts = append(volumeMounts, containers.VolumeMount{
-				Name:      "clef-key",
-				MountPath: "/app/data/keystore/clef.key",
-				SubPath:   "clef.key",
-				ReadOnly:  true,
-			})
-			volumeMounts = append(volumeMounts, containers.VolumeMount{
-				Name:      "clef-secret",
-				MountPath: "/app/data/password",
-				SubPath:   "password",
-				ReadOnly:  true,
-			})
-		}
-	}
-
-	return
-}
-
 type setVolumesOptions struct {
 	ConfigCM           string
 	KeysSecret         string
-	ClefSecret         string
 	PersistenceEnabled bool
-	ClefEnabled        bool
-	ClefSecretEnabled  bool
 	LibP2PEnabled      bool
 	SwarmEnabled       bool
 }
@@ -300,35 +204,6 @@ func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
 				Name: "data",
 			},
 		})
-	}
-	if o.ClefEnabled {
-		volumes = append(volumes, pod.Volume{
-			EmptyDir: &pod.EmptyDirVolume{
-				Name: "clef",
-			},
-		})
-		if o.ClefSecretEnabled {
-			volumes = append(volumes, pod.Volume{
-				Secret: &pod.SecretVolume{
-					Name:       "clef-key",
-					SecretName: o.ClefSecret,
-					Items: pod.Items{{
-						Key:   "key",
-						Value: "clef.key",
-					}},
-				},
-			})
-			volumes = append(volumes, pod.Volume{
-				Secret: &pod.SecretVolume{
-					Name:       "clef-secret",
-					SecretName: o.ClefSecret,
-					Items: pod.Items{{
-						Key:   "password",
-						Value: "password",
-					}},
-				},
-			})
-		}
 	}
 	if o.LibP2PEnabled {
 		volumes = append(volumes, pod.Volume{
@@ -368,7 +243,7 @@ func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.Per
 	if o.Enabled {
 		pvcs = append(pvcs, pvc.PersistentVolumeClaim{
 			Name: "data",
-			Spec: pvc.PersistentVolumeClaimSpec{
+			Spec: pvc.Spec{
 				AccessModes: pvc.AccessModes{
 					pvc.AccessMode("ReadWriteOnce"),
 				},

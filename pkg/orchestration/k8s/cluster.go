@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"sort"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -231,6 +231,21 @@ func (c *Cluster) FullNodeNames() (names []string) {
 		}
 	}
 	return
+}
+
+// ShuffledFullNodeClients returns a list of full node clients shuffled
+func (c *Cluster) ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error) {
+	var res []*bee.Client
+	for _, node := range c.Nodes() {
+		cfg := node.Config()
+		if cfg.FullNode && !cfg.BootnodeMode {
+			res = append(res, node.Client())
+		}
+	}
+	r.Shuffle(len(res), func(i, j int) {
+		res[i], res[j] = res[j], res[i]
+	})
+	return res, nil
 }
 
 // NodesClients returns map of node's clients in the cluster excluding stopped nodes

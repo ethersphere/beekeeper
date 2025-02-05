@@ -53,13 +53,13 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:       "create_error",
-			configName: "create_bad",
+			configName: mock.CreateBad,
 			clientset:  mock.NewClientset(),
 			errorMsg:   fmt.Errorf("creating configmap create_bad in namespace test: mock error: cannot create config map"),
 		},
 		{
 			name:       "update_error",
-			configName: "update_bad",
+			configName: mock.UpdateBad,
 			clientset:  mock.NewClientset(),
 			errorMsg:   fmt.Errorf("updating configmap update_bad in namespace test: mock error: cannot update config map"),
 		},
@@ -92,7 +92,6 @@ func TestSet(t *testing.T) {
 				if !reflect.DeepEqual(response, expected) {
 					t.Errorf("response expected: %q, got: %q", response, expected)
 				}
-
 			} else {
 				if err == nil {
 					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
@@ -137,7 +136,7 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:       "delete_error",
-			configName: "delete_bad",
+			configName: mock.DeleteBad,
 			clientset:  mock.NewClientset(),
 			errorMsg:   fmt.Errorf("deleting configmap delete_bad in namespace test: mock error: cannot delete config map"),
 		},

@@ -31,3 +31,8 @@ func (n *NotSet) SendGBZZ(ctx context.Context, to string, amount float64) (tx st
 func (n *NotSet) AttestOverlayEthAddress(ctx context.Context, ethAddr string) (tx string, err error) {
 	return "", ErrNotSet
 }
+
+// FetchBlockTime(ctx context.Context) (blockTime int64, err error)
+func (n *NotSet) FetchBlockTime(ctx context.Context) (blockTime int64, err error) {
+	return 0, ErrNotSet
+}

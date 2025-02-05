@@ -69,11 +69,11 @@ func (ir *IngressRoute) DeepCopyObject() runtime.Object {
 
 // DeepCopyInto copies all properties of this object into another object of the
 // same type that is provided as a pointer.
-func (in *IngressRoute) DeepCopyInto(out *IngressRoute) {
-	out.TypeMeta = in.TypeMeta
-	out.ObjectMeta = in.ObjectMeta
-	out.Spec = in.Spec
-	copy(out.Spec.Routes, in.Spec.Routes)
+func (ir *IngressRoute) DeepCopyInto(out *IngressRoute) {
+	out.TypeMeta = ir.TypeMeta
+	out.ObjectMeta = ir.ObjectMeta
+	out.Spec = ir.Spec
+	copy(out.Spec.Routes, ir.Spec.Routes)
 }
 
 func (r *Route) GetHost() string {

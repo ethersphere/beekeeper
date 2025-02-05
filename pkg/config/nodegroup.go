@@ -12,15 +12,11 @@ type NodeGroup struct {
 	*Inherit `yaml:",inline"`
 	// node group configuration
 	Annotations               *map[string]string `yaml:"annotations"`
-	ClefImage                 *string            `yaml:"clef-image"`
-	ClefImagePullPolicy       *string            `yaml:"clef-image-pull-policy"`
 	Image                     *string            `yaml:"image"`
 	ImagePullPolicy           *string            `yaml:"image-pull-policy"`
 	ImagePullSecrets          *[]string          `yaml:"image-pull-secrets"`
 	IngressAnnotations        *map[string]string `yaml:"ingress-annotations"`
 	IngressClass              *string            `yaml:"ingress-class"`
-	IngressDebugAnnotations   *map[string]string `yaml:"ingress-debug-annotations"`
-	IngressDebugClass         *string            `yaml:"ingress-debug-class"`
 	Labels                    *map[string]string `yaml:"labels"`
 	NodeSelector              *map[string]string `yaml:"node-selector"`
 	PersistenceEnabled        *bool              `yaml:"persistence-enabled"`
@@ -33,6 +29,13 @@ type NodeGroup struct {
 	ResourcesRequestMemory    *string            `yaml:"resources-request-memory"`
 	RestartPolicy             *string            `yaml:"restart-policy"`
 	UpdateStrategy            *string            `yaml:"update-strategy"`
+}
+
+func (b NodeGroup) GetParentName() string {
+	if b.Inherit != nil {
+		return b.Inherit.ParentName
+	}
+	return ""
 }
 
 // Export exports NodeGroup to orchestration.NodeGroupOptions

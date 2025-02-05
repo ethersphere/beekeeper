@@ -5,24 +5,29 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// Handler represents Kubernetes Handler
-type Handler struct {
+// LifecycleHandler represents Kubernetes LifecycleHandler
+type LifecycleHandler struct {
 	Exec      *ExecHandler
 	HTTPGet   *HTTPGetHandler
 	TCPSocket *TCPSocketHandler
 }
 
 // toK8S converts Handler to Kuberntes client object
-func (h *Handler) toK8S() v1.Handler {
+func (h *LifecycleHandler) toK8S() v1.LifecycleHandler {
 	if h.Exec != nil {
-		return h.Exec.toK8S()
+		return v1.LifecycleHandler{
+			Exec: h.Exec.toK8S(),
+		}
 	} else if h.HTTPGet != nil {
-		return h.HTTPGet.toK8S()
+		return v1.LifecycleHandler{
+			HTTPGet: h.HTTPGet.toK8S(),
+		}
 	} else if h.TCPSocket != nil {
-		return h.TCPSocket.toK8S()
-	} else {
-		return v1.Handler{}
+		return v1.LifecycleHandler{
+			TCPSocket: h.TCPSocket.toK8S(),
+		}
 	}
+	return v1.LifecycleHandler{}
 }
 
 // ExecHandler represents Kubernetes ExecAction Handler
@@ -31,11 +36,9 @@ type ExecHandler struct {
 }
 
 // toK8S converts ExecHandler to Kuberntes client object
-func (eh *ExecHandler) toK8S() v1.Handler {
-	return v1.Handler{
-		Exec: &v1.ExecAction{
-			Command: eh.Command,
-		},
+func (eh *ExecHandler) toK8S() *v1.ExecAction {
+	return &v1.ExecAction{
+		Command: eh.Command,
 	}
 }
 
@@ -49,15 +52,13 @@ type HTTPGetHandler struct {
 }
 
 // toK8S converts HTTPGetHandler to Kuberntes client object
-func (hg *HTTPGetHandler) toK8S() v1.Handler {
-	return v1.Handler{
-		HTTPGet: &v1.HTTPGetAction{
-			Host:        hg.Host,
-			Path:        hg.Path,
-			Port:        intstr.FromString(hg.Port),
-			Scheme:      v1.URIScheme(hg.Scheme),
-			HTTPHeaders: hg.HTTPHeaders.toK8S(),
-		},
+func (hg *HTTPGetHandler) toK8S() *v1.HTTPGetAction {
+	return &v1.HTTPGetAction{
+		Host:        hg.Host,
+		Path:        hg.Path,
+		Port:        intstr.FromString(hg.Port),
+		Scheme:      v1.URIScheme(hg.Scheme),
+		HTTPHeaders: hg.HTTPHeaders.toK8S(),
 	}
 }
 
@@ -96,11 +97,9 @@ type TCPSocketHandler struct {
 }
 
 // toK8S converts TCPSocketHandler to Kuberntes client object
-func (tcps *TCPSocketHandler) toK8S() v1.Handler {
-	return v1.Handler{
-		TCPSocket: &v1.TCPSocketAction{
-			Host: tcps.Host,
-			Port: intstr.FromString(tcps.Port),
-		},
+func (tcps *TCPSocketHandler) toK8S() *v1.TCPSocketAction {
+	return &v1.TCPSocketAction{
+		Host: tcps.Host,
+		Port: intstr.FromString(tcps.Port),
 	}
 }

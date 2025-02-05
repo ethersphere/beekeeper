@@ -1,0 +1,159 @@
+clusters:
+  bee-testnet:
+    _inherit: ""
+    name: bee
+    namespace: bee-testnet
+    disable-namespace: true
+    api-domain: bee-testnet.testnet.internal
+    api-domain-internal: bee-testnet.svc.swarm1.local:1633
+    api-insecure-tls: true
+    api-scheme: http
+    funding:
+      eth: 0.1
+      gbzz: 2.0
+      bzz: 5.0
+    node-groups:
+      bee-1:
+        mode: node
+        bee-config: sepolia
+        config: ng-bee-testnet
+        count: 5
+      bee-2:
+        mode: node
+        bee-config: sepolia
+        config: ng-bee-testnet
+        count: 5
+      bee-3:
+        mode: node
+        bee-config: sepolia
+        config: ng-bee-testnet
+        count: 5
+      bee-4:
+        mode: node
+        bee-config: sepolia
+        config: ng-bee-testnet
+        count: 5
+
+# node-groups defines node groups that can be registered in the cluster
+# node-groups may inherit it's configuration from already defined node-group and override specific fields from it
+node-groups:
+  ng-bee-testnet:
+    _inherit: ""
+#    persistence-enabled: true
+
+# bee-configs defines Bee configuration that can be assigned to node-groups
+# bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
+bee-configs:
+  sepolia:
+    _inherit: ""
+    bootnodes: "/dnsaddr/testnet.ethswarm.org"
+    full-node: true
+
+checks:
+  pt-pingpong:
+    options:
+    timeout: 30m
+    type: pingpong
+  pt-retrieval:
+    options:
+      chunks-per-node: 3
+      postage-amount: 140000000
+      postage-depth: 17
+      upload-node-count: 3
+    timeout: 15m
+    type: retrieval
+  pt-settlements:
+    options:
+      dry-run: false
+      expect-settlements: true
+      file-name: settlements
+      file-size: 14680064 # 14mb = 14*1024*1024
+      postage-amount: 140000000
+      postage-depth: 20
+      threshold: 100000000
+      upload-node-count: 3
+      wait-before-download: 15s
+    timeout: 15m
+    type: settlements
+  pt-manifest:
+    options:
+      files-in-collection: 10
+      max-pathname-length: 64
+      postage-amount: 140000000
+      postage-depth: 17
+    timeout: 30m
+    type: manifest
+  pt-pss:
+    options:
+      count: 3
+      address-prefix: 2
+      postage-amount: 140000000
+      postage-depth: 17
+      request-timeout: 5m
+    timeout: 30m
+    type: pss
+  pt-soc:
+    options:
+      postage-amount: 140000000
+      postage-depth: 17
+      request-timeout: 5m
+    timeout: 5m
+    type: soc
+  pt-pushsync-chunks:
+    options:
+      chunks-per-node: 3
+      mode: chunks
+      postage-amount: 140000000
+      postage-depth: 17
+      retries: 5
+      retry-delay: 15s
+      upload-node-count: 3
+      exclude-node-group:
+        - light
+        - bootnode
+    timeout: 30m
+    type: pushsync
+  pt-postage:
+    type: postage
+    timeout: 30m
+    options:
+      postage-amount: 140000000
+      postage-depth: 17
+      postage-topup-amount: 100
+      postage-new-depth: 18
+  pt-gsoc:
+    options:
+      postage-amount: 140000000
+      postage-depth: 20
+      postage-label: gsoc-label
+    timeout: 10m
+    type: gsoc
+  pt-testnet-load:
+    options:
+      content-size: 50000000
+      postage-amount: 1000000000 # 1024/15*60*60*24*7
+      postage-depth: 24
+      duration: 12h
+      uploader-count: 2
+      downloader-count: 0
+      max-use-batch: 1h
+      max-storage-radius: 3
+      upload-groups:
+        - bee-1
+        - bee-2
+      download-groups:
+        - bee-3
+        - bee-4
+    timeout: 12h
+    type: load
+  pt-feed:
+    options:
+      postage-amount: 140000000
+      postage-depth: 20
+      postage-label: feed-label
+    timeout: 30m
+    type: feed
+  pt-feed-availability:
+    options:
+      root-ref: "6c8ee8e33d1eb652cd595dc34ab212ca1970762ad02364c7b45e8c3ba7742666"
+    type: feed

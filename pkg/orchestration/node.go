@@ -15,14 +15,10 @@ import (
 var ErrNotSet = errors.New("orchestration client not set")
 
 type Node interface {
-	ClefKey() string
-	ClefPassword() string
 	Client() *bee.Client
 	Config() *Config
 	LibP2PKey() string
 	Name() string
-	SetClefKey(key string) Node
-	SetClefPassword(key string) Node
 	SetSwarmKey(key string) Node
 	SwarmKey() string
 	Create(ctx context.Context, o CreateOptions) (err error)
@@ -73,12 +69,10 @@ func (ek EncryptedKey) GetEthAddress() (string, error) {
 
 // NodeOptions holds optional parameters for the Node.
 type NodeOptions struct {
-	ClefKey      string
-	ClefPassword string
-	Client       *bee.Client
-	Config       *Config
-	LibP2PKey    string
-	SwarmKey     EncryptedKey
+	Client    *bee.Client
+	Config    *Config
+	LibP2PKey string
+	SwarmKey  EncryptedKey
 }
 
 // CreateOptions represents available options for creating node
@@ -89,10 +83,6 @@ type CreateOptions struct {
 	Name                      string
 	Namespace                 string
 	Annotations               map[string]string
-	ClefImage                 string
-	ClefImagePullPolicy       string
-	ClefKey                   string
-	ClefPassword              string
 	Labels                    map[string]string
 	Image                     string
 	ImagePullPolicy           string
@@ -100,9 +90,6 @@ type CreateOptions struct {
 	IngressAnnotations        map[string]string
 	IngressClass              string
 	IngressHost               string
-	IngressDebugAnnotations   map[string]string
-	IngressDebugClass         string
-	IngressDebugHost          string
 	LibP2PKey                 string
 	NodeSelector              map[string]string
 	PersistenceEnabled        bool
@@ -127,16 +114,12 @@ type Config struct {
 	Bootnodes                 string        // initial nodes to connect to
 	BootnodeMode              bool          // cause the node to always accept incoming connections
 	CacheCapacity             uint64        // cache capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
-	ClefSignerEnable          bool          // enable clef signer
-	ClefSignerEndpoint        string        // clef signer endpoint
 	CORSAllowedOrigins        string        // origins with CORS headers enabled
 	DataDir                   string        // data directory
 	DbOpenFilesLimit          int           // number of open files allowed by database
 	DbBlockCacheCapacity      int           // size of block cache of the database in bytes
 	DbWriteBufferSize         int           // size of the database write buffer in bytes
 	DbDisableSeeksCompaction  bool          // disables DB compactions triggered by seeks
-	DebugAPIAddr              string        // debug HTTP API listen address
-	DebugAPIEnable            bool          // enable debug HTTP API
 	FullNode                  bool          // cause the node to start in full mode
 	Mainnet                   bool          // enable mainnet
 	NATAddr                   string        // NAT exposed address
@@ -151,9 +134,6 @@ type Config struct {
 	PostageContractStartBlock uint64        // postage stamp address
 	PriceOracleAddress        string        // price Oracle address
 	ResolverOptions           string        // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
-	Restricted                bool          // start node in restricted mode
-	TokenEncryptionKey        string        // username for API authentication
-	AdminPassword             string        // password hash for API authentication
 	ChequebookEnable          bool          // enable chequebook
 	SwapEnable                bool          // enable swap
 	SwapEndpoint              string        // swap ethereum blockchain endpoint

@@ -19,9 +19,8 @@ func (p *Probe) toK8S() *v1.Probe {
 		return p.HTTPGet.toK8S()
 	} else if p.TCPSocket != nil {
 		return p.TCPSocket.toK8S()
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // ExecProbe represents Kubernetes ExecHandler Probe
@@ -37,8 +36,10 @@ type ExecProbe struct {
 // toK8S converts ExecProbe to Kuberntes client object
 func (ep *ExecProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
-		FailureThreshold:    ep.FailureThreshold,
-		Handler:             ep.Handler.toK8S(),
+		FailureThreshold: ep.FailureThreshold,
+		ProbeHandler: v1.ProbeHandler{
+			Exec: ep.Handler.toK8S(),
+		},
 		InitialDelaySeconds: ep.InitialDelaySeconds,
 		PeriodSeconds:       ep.PeriodSeconds,
 		SuccessThreshold:    ep.SuccessThreshold,
@@ -59,8 +60,10 @@ type HTTPGetProbe struct {
 // toK8S converts HTTPGetProbe to Kuberntes client object
 func (hgp *HTTPGetProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
-		FailureThreshold:    hgp.FailureThreshold,
-		Handler:             hgp.Handler.toK8S(),
+		FailureThreshold: hgp.FailureThreshold,
+		ProbeHandler: v1.ProbeHandler{
+			HTTPGet: hgp.Handler.toK8S(),
+		},
 		InitialDelaySeconds: hgp.InitialDelaySeconds,
 		PeriodSeconds:       hgp.PeriodSeconds,
 		SuccessThreshold:    hgp.SuccessThreshold,
@@ -81,8 +84,10 @@ type TCPSocketProbe struct {
 // toK8S converts TCPSocketProbe to Kuberntes client object
 func (tsp *TCPSocketProbe) toK8S() *v1.Probe {
 	return &v1.Probe{
-		FailureThreshold:    tsp.FailureThreshold,
-		Handler:             tsp.Handler.toK8S(),
+		FailureThreshold: tsp.FailureThreshold,
+		ProbeHandler: v1.ProbeHandler{
+			TCPSocket: tsp.Handler.toK8S(),
+		},
 		InitialDelaySeconds: tsp.InitialDelaySeconds,
 		PeriodSeconds:       tsp.PeriodSeconds,
 		SuccessThreshold:    tsp.SuccessThreshold,

@@ -1,8 +1,9 @@
 package beekeeper
 
 var (
-	version = "0.15.8" // manually set semantic version number
-	commit  string     // automatically set git commit hash
+	version = "0.25.0" // manually set semantic version number
+
+	commit string // automatically set git commit hash
 
 	// Version TODO
 	Version = func() string {

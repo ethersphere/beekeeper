@@ -19,13 +19,17 @@ type nodeResult struct {
 	err        error
 }
 
-func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config, deleteStorage bool) (err error) {
+func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *config.Config, deleteStorage bool) error {
+	if clusterName == "" {
+		return errMissingClusterName
+	}
+
 	clusterConfig, ok := cfg.Clusters[clusterName]
 	if !ok {
 		return fmt.Errorf("cluster %s not defined", clusterName)
 	}
 
-	cluster := configureCluster(clusterConfig, c)
+	cluster := initializeCluster(clusterConfig, c)
 
 	// delete node groups
 	for ngName, v := range clusterConfig.GetNodeGroups() {
@@ -51,7 +55,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 					nName = v.Nodes[i].Name
 				}
 				if err := g.DeleteNode(ctx, nName); err != nil {
-					return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
+					return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 				}
 
 				if deleteStorage && *ngConfig.PersistenceEnabled {
@@ -70,14 +74,16 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			if err != nil {
 				return err
 			}
+
 			if len(v.Nodes) > 0 {
 				for i := 0; i < len(v.Nodes); i++ {
 					nName := fmt.Sprintf("%s-%d", ngName, i)
 					if len(v.Nodes[i].Name) > 0 {
 						nName = v.Nodes[i].Name
 					}
+
 					if err := ng.DeleteNode(ctx, nName); err != nil {
-						return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
+						return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 					}
 
 					if deleteStorage && *ngConfig.PersistenceEnabled {
@@ -91,7 +97,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 				for i := 0; i < v.Count; i++ {
 					nName := fmt.Sprintf("%s-%d", ngName, i)
 					if err := ng.DeleteNode(ctx, nName); err != nil {
-						return fmt.Errorf("deleting node %s from the node group %s", nName, ngName)
+						return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 					}
 
 					if deleteStorage && *ngConfig.PersistenceEnabled {
@@ -105,11 +111,15 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 		}
 	}
 
-	return
+	return nil
 }
 
-func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *config.Config, startCluster bool) (cluster orchestration.Cluster, err error) {
-	clusterConfig, ok := cfg.Clusters[clusterName]
+func (c *command) setupCluster(ctx context.Context, clusterName string, startCluster bool) (cluster orchestration.Cluster, err error) {
+	if clusterName == "" {
+		return nil, errMissingClusterName
+	}
+
+	clusterConfig, ok := c.config.Clusters[clusterName]
 	if !ok {
 		return nil, fmt.Errorf("cluster %s not defined", clusterName)
 	}
@@ -131,41 +141,42 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, cfg *con
 		fundOpts = ensureFundingDefaults(clusterConfig.Funding.Export(), c.log)
 	}
 
-	cluster = configureCluster(clusterConfig, c)
+	cluster = initializeCluster(clusterConfig, c)
 
 	nodeResultChan := make(chan nodeResult)
 	defer close(nodeResultChan)
 
+	inCluster := c.globalConfig.GetBool(optionNameInCluster)
+
 	// setup bootnode node group
-	fundAddresses, bootnodes, err := setupNodes(ctx, clusterConfig, cfg, true, cluster, startCluster, "", nodeResultChan)
+	fundAddresses, bootnodes, err := setupNodes(ctx, clusterConfig, c.config, true, cluster, startCluster, inCluster, "", nodeResultChan)
 	if err != nil {
 		return nil, fmt.Errorf("setup node group bootnode: %w", err)
 	}
 
 	// fund bootnode node group if cluster is started
 	if startCluster {
-		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log)
-		if err != nil {
+		if err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log); err != nil {
 			return nil, fmt.Errorf("funding node group bootnode: %w", err)
 		}
 		c.log.Infof("bootnode node group funded")
 	}
 
 	// setup other node groups
-	fundAddresses, _, err = setupNodes(ctx, clusterConfig, cfg, false, cluster, startCluster, bootnodes, nodeResultChan)
+	fundAddresses, _, err = setupNodes(ctx, clusterConfig, c.config, false, cluster, startCluster, inCluster, bootnodes, nodeResultChan)
 	if err != nil {
 		return nil, fmt.Errorf("setup other node groups: %w", err)
 	}
 
 	// fund other node groups if cluster is started
 	if startCluster {
-		err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log)
-		if err != nil {
+		if err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log); err != nil {
 			return nil, fmt.Errorf("fund other node groups: %w", err)
 		}
 		c.log.Infof("node groups funded")
 	}
-	c.log.Infof("cluster %s setup completed", clusterName)
+
+	c.log.WithField("use-static-endpoints", clusterConfig.IsUsingStaticEndpoints()).Infof("cluster %s setup completed", clusterName)
 
 	return cluster, nil
 }
@@ -183,14 +194,23 @@ func ensureFundingDefaults(fundOpts orchestration.FundingOptions, log logging.Lo
 	return fundOpts
 }
 
-func configureCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
+func initializeCluster(clusterConfig config.Cluster, c *command) orchestration.Cluster {
 	clusterOpts := clusterConfig.Export()
 	clusterOpts.SwapClient = c.swapClient
 	clusterOpts.K8SClient = c.k8sClient
 	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 
-func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.Config, bootnode bool, cluster orchestration.Cluster, startCluster bool, bootnodesIn string, nodeResultCh chan nodeResult) (fundAddresses []string, bootnodesOut string, err error) {
+func setupNodes(ctx context.Context,
+	clusterConfig config.Cluster,
+	cfg *config.Config,
+	bootnode bool,
+	cluster orchestration.Cluster,
+	startCluster bool,
+	inCluster bool,
+	bootnodesIn string,
+	nodeResultCh chan nodeResult,
+) (fundAddresses []string, bootnodesOut string, err error) {
 	var nodeCount uint32
 
 	for ngName, v := range clusterConfig.GetNodeGroups() {
@@ -226,9 +246,9 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 
 		if clusterConfig.IsUsingStaticEndpoints() {
 			for nodeName, endpoint := range v.GetEndpoints() {
-				beeOpt := orchestration.WithURLs(endpoint.APIURL, endpoint.DebugAPIURL)
+				beeOpt := orchestration.WithURL(endpoint.APIURL)
 				nodeCount++
-				go setupOrAddNode(ctx, false, ng, nodeName, orchestration.NodeOptions{
+				go setupOrAddNode(ctx, false, inCluster, ng, nodeName, orchestration.NodeOptions{
 					Config: &bConfig,
 				}, nodeResultCh, beeOpt)
 			}
@@ -252,7 +272,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 				nodeOpts = setupNodeOptions(node, nil)
 			}
 			nodeCount++
-			go setupOrAddNode(ctx, startCluster, ng, nodeName, nodeOpts, nodeResultCh, orchestration.WithNoOptions())
+			go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, nodeOpts, nodeResultCh, orchestration.WithNoOptions())
 		}
 
 		if len(v.Nodes) == 0 && !bootnode {
@@ -260,7 +280,7 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 				// set node name
 				nodeName := fmt.Sprintf("%s-%d", ngName, i)
 				nodeCount++
-				go setupOrAddNode(ctx, startCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, orchestration.WithNoOptions())
+				go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, orchestration.WithNoOptions())
 			}
 		}
 	}
@@ -280,13 +300,25 @@ func setupNodes(ctx context.Context, clusterConfig config.Cluster, cfg *config.C
 	return fundAddresses, bootnodesOut, nil
 }
 
-func setupOrAddNode(ctx context.Context, startCluster bool, ng orchestration.NodeGroup, nName string, nodeOpts orchestration.NodeOptions, ch chan<- nodeResult, beeOpt orchestration.BeeClientOption) {
+func setupOrAddNode(ctx context.Context,
+	startCluster bool,
+	inCluster bool,
+	ng orchestration.NodeGroup,
+	nodeName string,
+	nodeOpts orchestration.NodeOptions,
+	ch chan<- nodeResult,
+	beeOpt orchestration.BeeClientOption,
+) {
 	if startCluster {
-		ethAddress, err := ng.SetupNode(ctx, nName, nodeOpts)
-		ch <- nodeResult{ethAddress: ethAddress, err: err}
+		ethAddress, err := ng.SetupNode(ctx, nodeName, inCluster, nodeOpts)
+		ch <- nodeResult{
+			ethAddress: ethAddress,
+			err:        err,
+		}
 	} else {
-		err := ng.AddNode(ctx, nName, nodeOpts, beeOpt)
-		ch <- nodeResult{err: err}
+		ch <- nodeResult{
+			err: ng.AddNode(ctx, nodeName, inCluster, nodeOpts, beeOpt),
+		}
 	}
 }
 
@@ -294,12 +326,7 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 	nOptions := orchestration.NodeOptions{
 		Config: bConfig,
 	}
-	if len(node.Clef.Key) > 0 {
-		nOptions.ClefKey = node.Clef.Key
-	}
-	if len(node.Clef.Password) > 0 {
-		nOptions.ClefPassword = node.Clef.Password
-	}
+
 	if len(node.LibP2PKey) > 0 {
 		nOptions.LibP2PKey = node.LibP2PKey
 	}

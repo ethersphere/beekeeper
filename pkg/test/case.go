@@ -4,7 +4,7 @@ import (
 	"context"
 	"math/rand"
 
-	"github.com/ethersphere/bee/pkg/swarm"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -32,10 +32,6 @@ type CaseOptions struct {
 	PostageLabel  string
 	Seed          int64
 	PostageDepth  uint64
-
-	AdminPassword       string
-	RestrictedGroupName string
-	Role                string
 }
 
 func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts CaseOptions, logger logging.Logger) (*CheckCase, error) {
@@ -49,8 +45,9 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 		return nil, err
 	}
 
-	rnd := random.PseudoGenerator(caseOpts.Seed)
 	logger.Infof("Seed: %d", caseOpts.Seed)
+
+	rnd := random.PseudoGenerator(caseOpts.Seed)
 
 	flatOverlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
@@ -58,12 +55,12 @@ func NewCheckCase(ctx context.Context, cluster orchestration.Cluster, caseOpts C
 	}
 
 	rnds := random.PseudoGenerators(caseOpts.Seed, len(flatOverlays))
-	logger.Infof("Seed: %d", caseOpts.Seed)
 
 	var (
 		nodes []BeeV2
 		count int
 	)
+
 	for name, addr := range flatOverlays {
 		nodes = append(nodes, BeeV2{
 			name:   name,
