@@ -234,7 +234,7 @@ checks:
     type: postage
     timeout: 5m
     options:
-      postage-ttl: 24h
+      postage-amount: 1000
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
@@ -381,20 +381,18 @@ checks:
         - light
     timeout: 12h
     type: load
-
   gsoc:
     options:
       postage-ttl: 24h
       postage-depth: 20
-      postage-label: gsoc-label
+      postage-label: test-label
     timeout: 10m
     type: gsoc
-
   feed:
     options:
       postage-ttl: 24h
       postage-depth: 20
-      postage-label: feed-label
+      postage-label: test-label
     type: feed
 
 # simulations defines simulations Beekeeper can execute against the cluster

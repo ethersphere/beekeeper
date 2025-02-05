@@ -57,8 +57,9 @@ checks:
   pt-retrieval:
     options:
       chunks-per-node: 3
-      postage-ttl: 24h
-      postage-depth: 17
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
       upload-node-count: 3
     timeout: 15m
     type: retrieval
@@ -68,8 +69,9 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      postage-ttl: 24h
-      postage-depth: 20
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
       threshold: 100000000
       upload-node-count: 3
       wait-before-download: 15s
@@ -79,23 +81,26 @@ checks:
     options:
       files-in-collection: 10
       max-pathname-length: 64
-      postage-ttl: 24h
-      postage-depth: 17
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
     timeout: 30m
     type: manifest
   pt-pss:
     options:
       count: 3
       address-prefix: 2
-      postage-ttl: 24h
-      postage-depth: 17
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
       request-timeout: 5m
     timeout: 30m
     type: pss
   pt-soc:
     options:
-      postage-ttl: 24h
-      postage-depth: 17
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
       request-timeout: 5m
     timeout: 5m
     type: soc
@@ -103,8 +108,9 @@ checks:
     options:
       chunks-per-node: 3
       mode: chunks
-      postage-ttl: 24h
-      postage-depth: 17
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
@@ -117,22 +123,22 @@ checks:
     type: postage
     timeout: 30m
     options:
-      postage-ttl: 24h
+      postage-amount: 140000000
       postage-depth: 17
       postage-topup-amount: 100
       postage-new-depth: 18
   pt-gsoc:
     options:
-      postage-ttl: 24h
-      postage-depth: 20
-      postage-label: gsoc-label
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
     timeout: 10m
     type: gsoc
   pt-testnet-load:
     options:
       content-size: 50000000
-      postage-ttl: 168h
-      postage-depth: 24
+      postage-ttl: 336h
+      postage-depth: 21
       postage-label: test-label
       duration: 12h
       uploader-count: 2
@@ -149,9 +155,9 @@ checks:
     type: load
   pt-feed:
     options:
-      postage-ttl: 24h
-      postage-depth: 20
-      postage-label: feed-label
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
     timeout: 30m
     type: feed
   pt-feed-availability:

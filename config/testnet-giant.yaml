@@ -107,9 +107,3 @@ bee-configs:
   bootnode-giant:
     _inherit: "testnet-giant"
     bootnode-mode: true
-
-checks:
-  testnet-giant-pingpong:
-    options:
-    timeout: 5m
-    type: pingpong
