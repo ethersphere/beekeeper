@@ -490,6 +490,7 @@ var Checks = map[string]CheckType{
 				InsufficientAmount *big.Int `yaml:"insufficient-amount"`
 				ContractAddr       *string  `yaml:"contract-addr"`
 				CallerPrivateKey   *string  `yaml:"private-key"`
+				GethURL            *string  `yaml:"geth-url"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -666,6 +667,20 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err er
 					ov.FieldByName(fieldName).Set(v)
 				} else {
 					v := reflect.ValueOf(random.Int64())
+					ov.FieldByName(fieldName).Set(v)
+				}
+			} else { // set locally
+				fieldType := lt.Field(i).Type
+				fieldValue := lv.FieldByName(fieldName).Elem()
+				ft, ok := ot.FieldByName(fieldName)
+				if ok && fieldType.Elem().AssignableTo(ft.Type) {
+					ov.FieldByName(fieldName).Set(fieldValue)
+				}
+			}
+		case "GethURL":
+			if lv.Field(i).IsNil() { // set globally
+				if global.GethURL != "" {
+					v := reflect.ValueOf(global.GethURL)
 					ov.FieldByName(fieldName).Set(v)
 				}
 			} else { // set locally

@@ -465,14 +465,13 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 		return "", fmt.Errorf("fetching block time: %w", err)
 	}
 
-	var amount int64
+	amount := int64(1000)
 
 	price := csr.CurrentPrice.Int64()
 	if price > 0 {
 		amount = (int64(postageTTL.Seconds()) / blockTime) * price
 	} else {
 		c.log.Warningf("invalid chain price: %d", price)
-		amount = 1000
 	}
 
 	batches, err := c.PostageBatches(ctx)
