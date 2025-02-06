@@ -413,6 +413,7 @@ var Checks = map[string]CheckType{
 				RndSeed                 *int64         `yaml:"rnd-seed"`
 				PostageAmount           *int64         `yaml:"postage-amount"`
 				PostageDepth            *uint64        `yaml:"postage-depth"`
+				PostageLabel            *string        `yaml:"postage-label"`
 				GasPrice                *string        `yaml:"gas-price"`
 				TxOnErrWait             *time.Duration `yaml:"tx-on-err-wait"`
 				RxOnErrWait             *time.Duration `yaml:"rx-on-err-wait"`
@@ -422,7 +423,6 @@ var Checks = map[string]CheckType{
 				UploadGroups            *[]string      `yaml:"upload-groups"`
 				DownloaderCount         *int           `yaml:"downloader-count"`
 				DownloadGroups          *[]string      `yaml:"download-groups"`
-				MaxUseBatch             *time.Duration `yaml:"max-use-batch"`
 				MaxCommittedDepth       *uint8         `yaml:"max-committed-depth"`
 				CommittedDepthCheckWait *time.Duration `yaml:"committed-depth-check-wait"`
 			})

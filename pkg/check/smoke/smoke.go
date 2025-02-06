@@ -34,7 +34,6 @@ type Options struct {
 	UploadGroups            []string
 	DownloaderCount         int
 	DownloadGroups          []string
-	MaxUseBatch             time.Duration
 	MaxCommittedDepth       uint8
 	CommittedDepthCheckWait time.Duration
 	IterationWait           time.Duration
@@ -54,7 +53,6 @@ func NewDefaultOptions() Options {
 		Duration:                12 * time.Hour,
 		UploadTimeout:           60 * time.Minute,
 		DownloadTimeout:         60 * time.Minute,
-		MaxUseBatch:             12 * time.Hour,
 		MaxCommittedDepth:       2,
 		CommittedDepthCheckWait: 5 * time.Minute,
 		IterationWait:           5 * time.Minute,
