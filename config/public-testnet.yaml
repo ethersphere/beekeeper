@@ -144,6 +144,8 @@ checks:
       download-groups:
         - bee-3
         - bee-4
+    timeout: 12h
+    type: load
   pt-feed:
     options:
       postage-amount: 140000000
