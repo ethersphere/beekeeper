@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 )
@@ -31,12 +32,13 @@ func WithOffset(offset int64) Option {
 	}
 }
 
+// FetchBlockTime estimates the average block time by comparing timestamps
+// of the latest block and an earlier block, adjusting the offset if needed.
 func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64, error) {
 	o := processOptions(opts...)
 
 	retryOffset := o.offset
 
-	var timestampLatest, timestampPrevious int64
 	var err error
 
 	latestBlockNumber, err := g.fetchLatestBlockNumber(ctx)
@@ -44,19 +46,21 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 		return 0, fmt.Errorf("fetch latest block number: %w", err)
 	}
 
-	timestampLatest, err = g.fetchBlockTimestamp(ctx, latestBlockNumber)
+	timestampLatest, err := g.fetchBlockTimestamp(ctx, latestBlockNumber)
 	if err != nil {
 		return 0, fmt.Errorf("fetch latest block timestamp: %w", err)
 	}
 
-	for retryOffset >= 1 {
-		// enusure that blockNumber is between 1 and latestBlockNumber
-		if retryOffset > latestBlockNumber {
-			retryOffset = latestBlockNumber - 1
-			g.logger.Warningf("offset too large, reduced to %d", retryOffset)
-		}
-		blockNumber := latestBlockNumber - retryOffset
+	// limit retryOffset to at most half of the latest block number
+	if retryOffset > latestBlockNumber/2 {
+		retryOffset = latestBlockNumber / 2
+		g.logger.Warningf("offset too large, reduced to %d", retryOffset)
+	}
 
+	var timestampPrevious int64
+
+	for retryOffset >= 1 {
+		blockNumber := latestBlockNumber - retryOffset
 		timestampPrevious, err = g.fetchBlockTimestamp(ctx, blockNumber)
 		if err == nil {
 			break
@@ -65,16 +69,17 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 			return 0, fmt.Errorf("fetch previous block timestamp (block %d): %w", blockNumber, err)
 		}
 
-		// if not the first iteration, reduce the offset by half and retry
-		retryOffset /= 2
-		g.logger.Warningf("%v at at block %d, offset reduced to %d and retrying...", err, blockNumber, retryOffset)
+		// reduce offset for next attempt, ensuring it remains >= 1
+		retryOffset = int64(math.Max(1, float64(retryOffset)/2))
+		g.logger.Warningf("%v at block %d, offset reduced to %d and retrying...", err, blockNumber, retryOffset)
 	}
 
-	blockTime := (timestampLatest - timestampPrevious) / retryOffset
+	blockTime := float64(timestampLatest-timestampPrevious) / float64(retryOffset)
+	roundedBlockTime := int64(math.Round(blockTime))
 
-	g.logger.Tracef("block time: %d seconds", blockTime)
+	g.logger.Tracef("avg block time for last %d blocks: %f, using rounded seconds: %d", retryOffset, blockTime, roundedBlockTime)
 
-	return blockTime, nil
+	return roundedBlockTime, nil
 }
 
 type rpcRequest struct {
