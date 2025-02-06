@@ -570,11 +570,11 @@ var Checks = map[string]CheckType{
 		NewAction: redundancy.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				PostageTTL   *time.Duration `yaml:"postage-ttl"`
-				PostageDepth *int           `yaml:"postage-depth"`
-				PostageLabel *int           `yaml:"postage-label"`
-				Seed         *int           `yaml:"seed"`
 				DataSize     *int           `yaml:"data-size"`
+				PostageDepth *int           `yaml:"postage-depth"`
+				PostageLabel *string        `yaml:"postage-label"`
+				PostageTTL   *time.Duration `yaml:"postage-ttl"`
+				Seed         *int           `yaml:"seed"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

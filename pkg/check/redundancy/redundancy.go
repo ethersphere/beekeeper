@@ -20,20 +20,20 @@ import (
 )
 
 type Options struct {
+	DataSize     int64
+	PostageDepth uint64
 	PostageLabel string
 	PostageTTL   time.Duration
-	PostageDepth uint64
 	Seed         int64
-	DataSize     int64
 }
 
 func NewDefaultOptions() Options {
 	return Options{
+		DataSize:     307200,
+		PostageDepth: 22,
 		PostageLabel: "test-label",
 		PostageTTL:   24 * time.Hour,
-		PostageDepth: 22,
 		Seed:         time.Now().UnixNano(),
-		DataSize:     307200,
 	}
 }
 
