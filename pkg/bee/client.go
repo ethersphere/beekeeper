@@ -960,3 +960,7 @@ func (c *Client) UpdateFeedWithReference(ctx context.Context, signer crypto.Sign
 func (c *Client) FindFeedUpdate(ctx context.Context, signer crypto.Signer, topic []byte, o *api.DownloadOptions) (*api.FindFeedUpdateResponse, error) {
 	return c.api.Feed.FindUpdate(ctx, signer, topic, o)
 }
+
+func (c *Client) Status(ctx context.Context) (*api.StatusResponse, error) {
+	return c.api.Status.Status(ctx)
+}
