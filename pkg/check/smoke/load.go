@@ -48,15 +48,15 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return errors.New("no uploaders requested, quiting")
 	}
 
-	if o.MaxStorageRadius == 0 {
-		return errors.New("max storage radius is not set")
+	if o.MaxCommittedDepth == 0 {
+		return errors.New("max commited depth is not set")
 	}
 
 	c.logger.Infof("random seed: %v", o.RndSeed)
 	c.logger.Infof("content size: %v", o.ContentSize)
 	c.logger.Infof("max batch lifespan: %v", o.MaxUseBatch)
-	c.logger.Infof("max storage radius: %v", o.MaxStorageRadius)
-	c.logger.Infof("storage radius check wait time: %v", o.StorageRadiusCheckWait)
+	c.logger.Infof("max commited depth: %v", o.MaxCommittedDepth)
+	c.logger.Infof("commited depth check wait time: %v", o.CommittedDepthCheckWait)
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -116,7 +116,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					default:
 					}
 
-					if !c.checkStorageRadius(ctx, test.clients[txName], o.MaxStorageRadius, o.StorageRadiusCheckWait) {
+					if !c.checkCommitedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
 						return
 					}
 
@@ -231,21 +231,21 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	return nil
 }
 
-func (c *LoadCheck) checkStorageRadius(ctx context.Context, client *bee.Client, maxRadius uint8, wait time.Duration) bool {
+func (c *LoadCheck) checkCommitedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
 	for {
 		statusResp, err := client.Status(ctx)
 		if err != nil {
 			c.logger.Infof("error getting state: %v", err)
 			return false
 		}
-		if statusResp.CommittedDepth < maxRadius {
+		if statusResp.CommittedDepth < maxDepth {
 			return true
 		}
-		c.logger.Infof("waiting %v for CommittedDepth to decrease. Current: %d, Max: %d", wait, statusResp.CommittedDepth, maxRadius)
+		c.logger.Infof("waiting %v for CommittedDepth to decrease. Current: %d, Max: %d", wait, statusResp.CommittedDepth, maxDepth)
 
 		select {
 		case <-ctx.Done():
-			c.logger.Infof("context done in StorageRadius check: %v", ctx.Err())
+			c.logger.Infof("context done while waiting for CommittedDepth to decrease: %v", ctx.Err())
 			return false
 		case <-time.After(wait):
 		}
