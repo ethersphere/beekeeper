@@ -54,7 +54,6 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 	c.logger.Infof("random seed: %v", o.RndSeed)
 	c.logger.Infof("content size: %v", o.ContentSize)
-	c.logger.Infof("max batch lifespan: %v", o.MaxUseBatch)
 	c.logger.Infof("max committed depth: %v", o.MaxCommittedDepth)
 	c.logger.Infof("committed depth check wait time: %v", o.CommittedDepthCheckWait)
 
@@ -124,7 +123,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					var duration time.Duration
 					c.logger.Infof("uploading to: %s", txName)
 
-					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, "load-test")
+					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 					if err != nil {
 						c.logger.Errorf("create new batch: %v", err)
 						return
