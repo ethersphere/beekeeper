@@ -233,15 +233,15 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 func (c *LoadCheck) checkStorageRadius(ctx context.Context, client *bee.Client, maxRadius uint8, wait time.Duration) bool {
 	for {
-		status, err := client.API().Status.Status(ctx)
+		statusResp, err := client.Status(ctx)
 		if err != nil {
 			c.logger.Infof("error getting state: %v", err)
 			return false
 		}
-		if status.CommittedDepth < maxRadius {
+		if statusResp.CommittedDepth < maxRadius {
 			return true
 		}
-		c.logger.Infof("waiting %v for StorageRadius to decrease. Current: %d, Max: %d", wait, rs.StorageRadius, maxRadius)
+		c.logger.Infof("waiting %v for StorageRadius to decrease. Current: %d, Max: %d", wait, statusResp.CommittedDepth, maxRadius)
 
 		select {
 		case <-ctx.Done():
