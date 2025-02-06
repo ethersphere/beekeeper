@@ -49,14 +49,14 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	}
 
 	if o.MaxCommittedDepth == 0 {
-		return errors.New("max commited depth is not set")
+		return errors.New("max committed depth is not set")
 	}
 
 	c.logger.Infof("random seed: %v", o.RndSeed)
 	c.logger.Infof("content size: %v", o.ContentSize)
 	c.logger.Infof("max batch lifespan: %v", o.MaxUseBatch)
-	c.logger.Infof("max commited depth: %v", o.MaxCommittedDepth)
-	c.logger.Infof("commited depth check wait time: %v", o.CommittedDepthCheckWait)
+	c.logger.Infof("max committed depth: %v", o.MaxCommittedDepth)
+	c.logger.Infof("committed depth check wait time: %v", o.CommittedDepthCheckWait)
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
@@ -116,7 +116,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					default:
 					}
 
-					if !c.checkCommitedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
+					if !c.checkcommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
 						return
 					}
 
@@ -231,7 +231,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	return nil
 }
 
-func (c *LoadCheck) checkCommitedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
+func (c *LoadCheck) checkcommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
 	for {
 		statusResp, err := client.Status(ctx)
 		if err != nil {
