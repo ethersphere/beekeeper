@@ -30,34 +30,34 @@ type Options struct {
 	UploadTimeout   time.Duration
 	DownloadTimeout time.Duration
 	// load test params
-	UploaderCount          int
-	UploadGroups           []string
-	DownloaderCount        int
-	DownloadGroups         []string
-	MaxUseBatch            time.Duration
-	MaxStorageRadius       uint8
-	StorageRadiusCheckWait time.Duration
-	IterationWait          time.Duration
+	UploaderCount           int
+	UploadGroups            []string
+	DownloaderCount         int
+	DownloadGroups          []string
+	MaxUseBatch             time.Duration
+	MaxCommittedDepth       uint8
+	CommittedDepthCheckWait time.Duration
+	IterationWait           time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ContentSize:            5000000,
-		RndSeed:                time.Now().UnixNano(),
-		PostageTTL:             24 * time.Hour,
-		PostageDepth:           24,
-		PostageLabel:           "test-label",
-		TxOnErrWait:            10 * time.Second,
-		RxOnErrWait:            10 * time.Second,
-		NodesSyncWait:          time.Minute,
-		Duration:               12 * time.Hour,
-		UploadTimeout:          60 * time.Minute,
-		DownloadTimeout:        60 * time.Minute,
-		MaxUseBatch:            12 * time.Hour,
-		MaxStorageRadius:       2,
-		StorageRadiusCheckWait: 5 * time.Minute,
-		IterationWait:          5 * time.Minute,
+		ContentSize:             5000000,
+		RndSeed:                 time.Now().UnixNano(),
+		PostageTTL:              24 * time.Hour,
+		PostageDepth:            24,
+		PostageLabel:            "test-label",
+		TxOnErrWait:             10 * time.Second,
+		RxOnErrWait:             10 * time.Second,
+		NodesSyncWait:           time.Minute,
+		Duration:                12 * time.Hour,
+		UploadTimeout:           60 * time.Minute,
+		DownloadTimeout:         60 * time.Minute,
+		MaxUseBatch:             12 * time.Hour,
+		MaxCommittedDepth:       2,
+		CommittedDepthCheckWait: 5 * time.Minute,
+		IterationWait:           5 * time.Minute,
 	}
 }
 

@@ -376,7 +376,8 @@ checks:
       duration: 12h
       downloader-count: 3
       uploader-count: 2
-      max-storage-radius: 2
+      max-committed-depth: 2
+      committed-depth-check-wait: 5m
       upload-groups:
         - bee
       download-groups:

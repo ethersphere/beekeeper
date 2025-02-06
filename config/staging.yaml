@@ -58,7 +58,8 @@ checks:
       uploader-count: 2
       downloader-count: 0
       max-use-batch: 1h
-      max-storage-radius: 3
+      max-committed-depth: 3
+      committed-depth-check-wait: 5m
       upload-groups:
         - bee-1
         - bee-2
