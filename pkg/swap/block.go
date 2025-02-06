@@ -120,7 +120,9 @@ func (g *GethClient) fetchBlockTimestamp(ctx context.Context, blockNumber int64)
 }
 
 func processOptions(opts ...Option) *options {
-	o := &options{}
+	o := &options{
+		offset: 1,
+	}
 	for _, opt := range opts {
 		opt(o)
 	}
