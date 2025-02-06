@@ -131,21 +131,19 @@ checks:
   pt-testnet-load:
     options:
       content-size: 50000000
-      postage-amount: 1000000000 # 1024/15*60*60*24*7
+      postage-amount: 1428084000 # (28335/12)*60*60*24*7
       postage-depth: 24
-      duration: 12h
+      duration: 24h
       uploader-count: 2
       downloader-count: 0
       max-use-batch: 1h
-      max-storage-radius: 3
+      max-storage-radius: 2
       upload-groups:
         - bee-1
         - bee-2
       download-groups:
         - bee-3
         - bee-4
-    timeout: 12h
-    type: load
   pt-feed:
     options:
       postage-amount: 140000000
