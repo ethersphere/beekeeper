@@ -241,7 +241,7 @@ func (c *LoadCheck) checkStorageRadius(ctx context.Context, client *bee.Client, 
 		if statusResp.CommittedDepth < maxRadius {
 			return true
 		}
-		c.logger.Infof("waiting %v for StorageRadius to decrease. Current: %d, Max: %d", wait, statusResp.CommittedDepth, maxRadius)
+		c.logger.Infof("waiting %v for CommittedDepth to decrease. Current: %d, Max: %d", wait, statusResp.CommittedDepth, maxRadius)
 
 		select {
 		case <-ctx.Done():
