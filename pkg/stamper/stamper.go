@@ -94,7 +94,7 @@ func (s *Client) Create(ctx context.Context, duration time.Duration, depth uint1
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
-	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(100))
+	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
 	if err != nil {
 		return fmt.Errorf("fetching block time: %w", err)
 	}
@@ -143,7 +143,7 @@ func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo ti
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
-	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(100))
+	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
 	if err != nil {
 		return fmt.Errorf("fetching block time: %w", err)
 	}
@@ -169,7 +169,7 @@ func (s *Client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo 
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
-	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(100))
+	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
 	if err != nil {
 		return fmt.Errorf("fetching block time: %w", err)
 	}

@@ -460,7 +460,7 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 		return "", fmt.Errorf("get chain state: %w", err)
 	}
 
-	blockTime, err := c.swapClient.FetchBlockTime(ctx, swap.WithOffset(100))
+	blockTime, err := c.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
 	if err != nil {
 		return "", fmt.Errorf("fetching block time: %w", err)
 	}
