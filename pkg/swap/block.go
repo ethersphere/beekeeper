@@ -53,6 +53,7 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 		// enusure that blockNumber is between 1 and latestBlockNumber
 		if retryOffset > latestBlockNumber {
 			retryOffset = latestBlockNumber - 1
+			g.logger.Warningf("offset too large, reduced to %d", retryOffset)
 		}
 		blockNumber := latestBlockNumber - retryOffset
 
