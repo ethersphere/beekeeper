@@ -22,6 +22,7 @@ type Options struct {
 	RndSeed         int64
 	PostageAmount   int64
 	PostageDepth    uint64
+	PostageLabel    string
 	TxOnErrWait     time.Duration
 	RxOnErrWait     time.Duration
 	NodesSyncWait   time.Duration
@@ -33,7 +34,6 @@ type Options struct {
 	UploadGroups            []string
 	DownloaderCount         int
 	DownloadGroups          []string
-	MaxUseBatch             time.Duration
 	MaxCommittedDepth       uint8
 	CommittedDepthCheckWait time.Duration
 	IterationWait           time.Duration
@@ -46,13 +46,13 @@ func NewDefaultOptions() Options {
 		RndSeed:                 time.Now().UnixNano(),
 		PostageAmount:           50_000_000,
 		PostageDepth:            24,
+		PostageLabel:            "test-label",
 		TxOnErrWait:             10 * time.Second,
 		RxOnErrWait:             10 * time.Second,
 		NodesSyncWait:           time.Minute,
 		Duration:                12 * time.Hour,
 		UploadTimeout:           60 * time.Minute,
 		DownloadTimeout:         60 * time.Minute,
-		MaxUseBatch:             12 * time.Hour,
 		MaxCommittedDepth:       2,
 		CommittedDepthCheckWait: 5 * time.Minute,
 		IterationWait:           5 * time.Minute,
@@ -160,7 +160,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.BatchCreateAttempts.Inc()
 
-			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageAmount, o.PostageDepth, "smoke-test")
+			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
 			if err != nil {
 				c.logger.Errorf("create new batch: %v", err)
 				c.metrics.BatchCreateErrors.Inc()
