@@ -2,9 +2,17 @@ package swap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+)
+
+var (
+	ErrEmptyTimestamp   = errors.New("empty timestamp, offset too large")
+	ErrInvalidTimestamp = errors.New("invalid timestamp")
+	ErrEmptyResult      = errors.New("empty result")
+	ErrInvalidResult    = errors.New("invalid result")
 )
 
 type Option func(*options)
@@ -26,22 +34,42 @@ func WithOffset(offset int64) Option {
 func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64, error) {
 	o := processOptions(opts...)
 
+	retryOffset := o.offset
+
+	var timestampLatest, timestampPrevious int64
+	var err error
+
 	latestBlockNumber, err := g.fetchLatestBlockNumber(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("fetch latest block number: %w", err)
 	}
 
-	timestampLatest, err := g.fetchBlockTimestamp(ctx, latestBlockNumber)
+	timestampLatest, err = g.fetchBlockTimestamp(ctx, latestBlockNumber)
 	if err != nil {
 		return 0, fmt.Errorf("fetch latest block timestamp: %w", err)
 	}
 
-	timestampPrevious, err := g.fetchBlockTimestamp(ctx, latestBlockNumber-o.offset)
-	if err != nil {
-		return 0, fmt.Errorf("fetch previous block timestamp: %w", err)
+	for retryOffset >= 1 {
+		// enusure that blockNumber is between 1 and latestBlockNumber
+		if retryOffset > latestBlockNumber {
+			retryOffset = latestBlockNumber - 1
+		}
+		blockNumber := latestBlockNumber - retryOffset
+
+		timestampPrevious, err = g.fetchBlockTimestamp(ctx, blockNumber)
+		if err == nil {
+			break
+		}
+		if !errors.Is(err, ErrEmptyTimestamp) || retryOffset == 1 {
+			return 0, fmt.Errorf("fetch previous block timestamp (block %d): %w", blockNumber, err)
+		}
+
+		// if not the first iteration, reduce the offset by half and retry
+		retryOffset /= 2
+		g.logger.Warningf("%v at at block %d, offset reduced to %d and retrying...", err, blockNumber, retryOffset)
 	}
 
-	blockTime := (timestampLatest - timestampPrevious) / o.offset
+	blockTime := (timestampLatest - timestampPrevious) / retryOffset
 
 	g.logger.Tracef("block time: %d seconds", blockTime)
 
@@ -73,11 +101,11 @@ func (g *GethClient) fetchLatestBlockNumber(ctx context.Context) (int64, error) 
 	}
 
 	if len(resp.Result) == 0 {
-		return 0, fmt.Errorf("empty result")
+		return 0, ErrEmptyResult
 	}
 
 	if resp.Result[:2] != "0x" {
-		return 0, fmt.Errorf("invalid result")
+		return 0, ErrInvalidResult
 	}
 
 	blockNumber, err := strconv.ParseInt(resp.Result[2:], 16, 64)
@@ -109,11 +137,11 @@ func (g *GethClient) fetchBlockTimestamp(ctx context.Context, blockNumber int64)
 	}
 
 	if len(resp.Result.Timestamp) == 0 {
-		return 0, fmt.Errorf("empty timestamp")
+		return 0, ErrEmptyTimestamp
 	}
 
 	if resp.Result.Timestamp[:2] != "0x" {
-		return 0, fmt.Errorf("invalid timestamp")
+		return 0, ErrInvalidTimestamp
 	}
 
 	return strconv.ParseInt(resp.Result.Timestamp[2:], 16, 64)

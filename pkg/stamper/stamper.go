@@ -94,7 +94,7 @@ func (s *Client) Create(ctx context.Context, duration time.Duration, depth uint1
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
-	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(100))
+	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(1_000_000))
 	if err != nil {
 		return fmt.Errorf("fetching block time: %w", err)
 	}
