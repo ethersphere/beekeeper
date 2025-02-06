@@ -49,18 +49,19 @@ type Client struct {
 	Act         *ActService
 	Bytes       *BytesService
 	Chunks      *ChunksService
-	Files       *FilesService
 	Dirs        *DirsService
-	Pinning     *PinningService
-	Tags        *TagsService
-	PSS         *PSSService
-	SOC         *SOCService
-	Stewardship *StewardshipService
+	Feed        *FeedService
+	Files       *FilesService
 	Node        *NodeService
 	PingPong    *PingPongService
+	Pinning     *PinningService
 	Postage     *PostageService
+	PSS         *PSSService
+	SOC         *SOCService
 	Stake       *StakingService
-	Feed        *FeedService
+	Status      *StatusService
+	Stewardship *StewardshipService
+	Tags        *TagsService
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -86,21 +87,24 @@ func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
 func newClient(httpClient *http.Client) (c *Client) {
 	c = &Client{httpClient: httpClient}
 	c.service.client = c
+
 	c.Act = (*ActService)(&c.service)
 	c.Bytes = (*BytesService)(&c.service)
 	c.Chunks = (*ChunksService)(&c.service)
-	c.Files = (*FilesService)(&c.service)
 	c.Dirs = (*DirsService)(&c.service)
-	c.Pinning = (*PinningService)(&c.service)
-	c.Tags = (*TagsService)(&c.service)
-	c.PSS = (*PSSService)(&c.service)
-	c.SOC = (*SOCService)(&c.service)
-	c.Stewardship = (*StewardshipService)(&c.service)
+	c.Feed = (*FeedService)(&c.service)
+	c.Files = (*FilesService)(&c.service)
 	c.Node = (*NodeService)(&c.service)
 	c.PingPong = (*PingPongService)(&c.service)
+	c.Pinning = (*PinningService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
+	c.PSS = (*PSSService)(&c.service)
+	c.SOC = (*SOCService)(&c.service)
 	c.Stake = (*StakingService)(&c.service)
-	c.Feed = (*FeedService)(&c.service)
+	c.Status = (*StatusService)(&c.service)
+	c.Stewardship = (*StewardshipService)(&c.service)
+	c.Tags = (*TagsService)(&c.service)
+
 	return c
 }
 

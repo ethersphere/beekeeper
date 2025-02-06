@@ -233,12 +233,12 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 
 func (c *LoadCheck) checkStorageRadius(ctx context.Context, client *bee.Client, maxRadius uint8, wait time.Duration) bool {
 	for {
-		rs, err := client.ReserveState(ctx)
+		status, err := client.API().Status.Status(ctx)
 		if err != nil {
 			c.logger.Infof("error getting state: %v", err)
 			return false
 		}
-		if rs.StorageRadius < maxRadius {
+		if status.CommittedDepth < maxRadius {
 			return true
 		}
 		c.logger.Infof("waiting %v for StorageRadius to decrease. Current: %d, Max: %d", wait, rs.StorageRadius, maxRadius)
