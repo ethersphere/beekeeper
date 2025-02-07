@@ -63,6 +63,10 @@ func New(cfg *ClientConfig) *Client {
 		cfg.Log = logging.New(io.Discard, 0)
 	}
 
+	if cfg.SwapClient == nil {
+		cfg.SwapClient = &swap.NotSet{}
+	}
+
 	return &Client{
 		log:           cfg.Log,
 		namespace:     cfg.Namespace,
