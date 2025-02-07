@@ -597,7 +597,7 @@ example:
 --config-git-repo string        URL of the Git repository containing configuration files (uses the config-dir if not specified)
 --config-git-username string    Git username for authentication (required for private repositories)
 --enable-k8s                    Enable Kubernetes client functionality (default true)
---geth-url string               URL of the RPC blockchain endpoint
+--geth-url string               URL of the Ethereum-compatible blockchain RPC endpoint
 --in-cluster                    Use the in-cluster Kubernetes client
 --kubeconfig string             Path to the kubeconfig file (default "~/.kube/config")
 --log-verbosity string          Log verbosity level (0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace) (default "info")
