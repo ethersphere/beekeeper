@@ -10,6 +10,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
 // compile check whether client implements interface
@@ -32,6 +33,10 @@ func NewCluster(name string, o orchestration.ClusterOptions, log logging.Logger)
 		no = &notset.BeeClient{}
 	} else {
 		no = newNodeOrchestrator(o.K8SClient, log)
+	}
+
+	if o.SwapClient == nil {
+		o.SwapClient = &swap.NotSet{}
 	}
 
 	return &Cluster{
