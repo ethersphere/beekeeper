@@ -132,12 +132,15 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, startClu
 		if clusterConfig.IsUsingStaticEndpoints() {
 			return nil, errors.New("static endpoints are not supported for starting the cluster")
 		}
-		if chainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); chainNodeEndpoint == "" {
-			return nil, errors.New("chain node endpoint (geth-url) not provided")
+
+		if chainNodeEndpoint = c.globalConfig.GetString(optionNameGethURL); chainNodeEndpoint == "" {
+			return nil, errBlockchainEndpointNotProvided
 		}
+
 		if walletKey = c.globalConfig.GetString(optionNameWalletKey); walletKey == "" {
 			return nil, errors.New("wallet key not provided")
 		}
+
 		fundOpts = ensureFundingDefaults(clusterConfig.Funding.Export(), c.log)
 	}
 

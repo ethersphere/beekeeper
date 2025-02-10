@@ -11,13 +11,12 @@ import (
 
 func (c *command) initOperatorCmd() error {
 	const (
-		optionNameNamespace         = "namespace"
-		optionNameChainNodeEndpoint = "geth-url"
-		optionNameWalletKey         = "wallet-key"
-		optionNameMinNative         = "min-native"
-		optionNameMinSwarm          = "min-swarm"
-		optionNameTimeout           = "timeout"
-		optionNameLabelSelector     = "label-selector"
+		optionNameNamespace     = "namespace"
+		optionNameWalletKey     = "wallet-key"
+		optionNameMinNative     = "min-native"
+		optionNameMinSwarm      = "min-swarm"
+		optionNameTimeout       = "timeout"
+		optionNameLabelSelector = "label-selector"
 	)
 
 	cmd := &cobra.Command{
@@ -31,9 +30,8 @@ func (c *command) initOperatorCmd() error {
 					return errors.New("namespace not provided")
 				}
 
-				chainNodeEndpoint := c.globalConfig.GetString(optionNameChainNodeEndpoint)
-				if chainNodeEndpoint == "" {
-					return errors.New("chain node endpoint (geth-url) not provided")
+				if !c.globalConfig.IsSet(optionNameGethURL) {
+					return errBlockchainEndpointNotProvided
 				}
 
 				walletKey := c.globalConfig.GetString(optionNameWalletKey)
@@ -45,7 +43,7 @@ func (c *command) initOperatorCmd() error {
 					Log:               c.log,
 					Namespace:         namespace,
 					WalletKey:         walletKey,
-					ChainNodeEndpoint: chainNodeEndpoint,
+					ChainNodeEndpoint: c.globalConfig.GetString(optionNameGethURL),
 					NativeToken:       c.globalConfig.GetFloat64(optionNameMinNative),
 					SwarmToken:        c.globalConfig.GetFloat64(optionNameMinSwarm),
 					K8sClient:         c.k8sClient,
@@ -57,7 +55,6 @@ func (c *command) initOperatorCmd() error {
 	}
 
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace to scan for scheduled pods.")
-	cmd.Flags().String(optionNameChainNodeEndpoint, "", "Endpoint to chain node. Required.")
 	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")

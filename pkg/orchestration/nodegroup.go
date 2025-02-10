@@ -19,12 +19,10 @@ type NodeGroup interface {
 	GetEthAddress(ctx context.Context, name string, o NodeOptions) (ethAddress string, err error)
 	GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	Name() string
-	Node(name string) (Node, error)
 	NodeClient(name string) (*bee.Client, error)
 	NodeReady(ctx context.Context, name string) (ok bool, err error)
 	Nodes() map[string]Node
 	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
-	NodesClientsAll(ctx context.Context) map[string]*bee.Client
 	NodesSorted() (l []string)
 	Overlays(ctx context.Context) (overlays NodeGroupOverlays, err error)
 	Peers(ctx context.Context) (peers NodeGroupPeers, err error)

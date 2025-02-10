@@ -18,7 +18,7 @@ import (
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
 	GasPrice        string
-	PostageAmount   int64
+	PostageTTL      time.Duration
 	PostageDepth    uint64
 	PostageLabel    string
 	Seed            int64
@@ -31,7 +31,7 @@ func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
 		GasPrice:        "",
-		PostageAmount:   1000,
+		PostageTTL:      24 * time.Hour,
 		PostageDepth:    16,
 		PostageLabel:    "test-label",
 		Seed:            random.Int64(),
@@ -84,7 +84,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 			nodeName := sortedNodes[i]
 			client := clients[nodeName]
 
-			batchID, err := client.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+			batchID, err := client.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 			if err != nil {
 				s.logger.Infof("error: node %s: batch id %v", nodeName, err)
 				continue

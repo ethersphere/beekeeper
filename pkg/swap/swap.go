@@ -20,5 +20,5 @@ type Client interface {
 	SendBZZ(ctx context.Context, to string, amount float64) (tx string, err error)
 	SendGBZZ(ctx context.Context, to string, amount float64) (tx string, err error)
 	AttestOverlayEthAddress(ctx context.Context, ethAddr string) (tx string, err error)
-	FetchBlockTime(ctx context.Context) (blockTime int64, err error)
+	FetchBlockTime(ctx context.Context, opts ...Option) (blockTime int64, err error)
 }

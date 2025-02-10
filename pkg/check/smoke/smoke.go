@@ -20,7 +20,7 @@ import (
 type Options struct {
 	ContentSize     int64
 	RndSeed         int64
-	PostageAmount   int64
+	PostageTTL      time.Duration
 	PostageDepth    uint64
 	PostageLabel    string
 	TxOnErrWait     time.Duration
@@ -44,7 +44,7 @@ func NewDefaultOptions() Options {
 	return Options{
 		ContentSize:             5000000,
 		RndSeed:                 time.Now().UnixNano(),
-		PostageAmount:           50_000_000,
+		PostageTTL:              24 * time.Hour,
 		PostageDepth:            24,
 		PostageLabel:            "test-label",
 		TxOnErrWait:             10 * time.Second,
@@ -160,14 +160,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.BatchCreateAttempts.Inc()
 
-			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 			if err != nil {
 				c.logger.Errorf("create new batch: %v", err)
 				c.metrics.BatchCreateErrors.Inc()
 				continue
 			}
 
-			c.logger.Info("using batch", "batch_id", batchID)
+			c.logger.WithField("batch_id", batchID).Info("using batch")
 
 			c.metrics.UploadAttempts.Inc()
 			address, txDuration, err = test.upload(txCtx, txName, txData, batchID)

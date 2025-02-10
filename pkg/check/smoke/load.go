@@ -123,13 +123,13 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					var duration time.Duration
 					c.logger.Infof("uploading to: %s", txName)
 
-					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 					if err != nil {
 						c.logger.Errorf("create new batch: %v", err)
 						return
 					}
 
-					c.logger.Info("using batch", "batch_id", batchID)
+					c.logger.WithField("batch_id", batchID).Info("using batch")
 
 					address, duration, err = test.upload(ctx, txName, txData, batchID)
 					if err != nil {
