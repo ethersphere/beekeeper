@@ -102,7 +102,7 @@ checks:
       postage-depth: 21
       postage-label: test-label
       request-timeout: 5m
-    timeout: 5m
+    timeout: 15m
     type: soc
   pt-pushsync-chunks:
     options:
@@ -164,3 +164,12 @@ checks:
     options:
       root-ref: "6c8ee8e33d1eb652cd595dc34ab212ca1970762ad02364c7b45e8c3ba7742666"
     type: feed
+  pt-redundancy:
+    options:
+      postage-ttl: 336h
+      postage-depth: 21
+      postage-label: test-label
+      seed:
+      data-size: 307200
+    timeout: 15m
+    type: redundancy
