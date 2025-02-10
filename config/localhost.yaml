@@ -10,4 +10,4 @@ clusters:
         count: 1
         endpoints:
           - name: bee-0
-            api-url: http://bee-0.localhost
+            api-url: http://localhost:1633
