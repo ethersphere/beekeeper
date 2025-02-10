@@ -21,7 +21,7 @@ type Options struct {
 	Count          int64
 	AddressPrefix  int
 	GasPrice       string
-	PostageAmount  int64
+	PostageTTL     time.Duration
 	PostageDepth   uint64
 	PostageLabel   string
 	RequestTimeout time.Duration
@@ -34,7 +34,7 @@ func NewDefaultOptions() Options {
 		Count:          1,
 		AddressPrefix:  1,
 		GasPrice:       "",
-		PostageAmount:  1,
+		PostageTTL:     24 * time.Hour,
 		PostageDepth:   16,
 		PostageLabel:   "test-label",
 		RequestTimeout: 5 * time.Minute,
@@ -122,14 +122,14 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 		return err
 	}
 
-	batchID, err := nodeA.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+	batchID, err := nodeA.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
 		cancel()
 		return fmt.Errorf("node %s: batched id %w", nodeAName, err)
 	}
 	c.logger.Infof("node %s: batched id %s", nodeAName, batchID)
 
-	ch, close, err := listenWebsocket(ctx, nodeB.Config().APIURL.Host, testTopic, c.logger)
+	ch, close, err := listenWebsocket(ctx, nodeB.Host(), testTopic, c.logger)
 	if err != nil {
 		cancel()
 		return err

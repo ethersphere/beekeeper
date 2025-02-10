@@ -141,7 +141,7 @@ checks:
     options:
       file-size: 1024
       postage-depth: 20
-      postage-amount: 420000000
+      postage-ttl: 72h
       postage-label: act-label
       seed: 0
     timeout: 5m
@@ -151,7 +151,7 @@ checks:
       dry-run: false
       file-name: balances
       file-size: 1048576 # 1mb = 1*1024*1024
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 16
       upload-node-count: 3
       wait-before-download: 5s
@@ -174,7 +174,8 @@ checks:
       file-size: 1048576 # 1mb = 1*1024*1024
       files-per-node: 1
       full: false
-      postage-amount: 1000
+      postage-ttl: 24h
+      postage-label: test-label
       upload-node-count: 3
     timeout: 5m
     type: file-retrieval
@@ -210,15 +211,17 @@ checks:
     options:
       files-in-collection: 10
       max-pathname-length: 64
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
     timeout: 30m
     type: manifest
   networkavailability:
     options:
       rnd-seed:
-      postage-amount: 50000000
-      postage-depth: 24
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       sleep-duration: 1h
     timeout: 5m
     type: networkavailability
@@ -241,15 +244,16 @@ checks:
     options:
       count: 3
       address-prefix: 2
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       request-timeout: 5m
     timeout: 5m
     type: pss
   pullsync:
     options:
       chunks-per-node: 1
-      postage-amount: 1000
+      postage-ttl: 24h
       replication-factor-threshold: 2
       upload-node-count: 1
     timeout: 5m
@@ -258,8 +262,9 @@ checks:
     options:
       chunks-per-node: 1
       mode: default
-      postage-amount: 1000
-      postage-depth: 16
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       retries: 5
       retry-delay: 1s
       upload-node-count: 1
@@ -269,8 +274,9 @@ checks:
     options:
       chunks-per-node: 3
       mode: chunks
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
@@ -283,8 +289,9 @@ checks:
     options:
       chunks-per-node: 3
       mode: light-chunks
-      postage-amount: 10000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       retries: 5
       retry-delay: 30s
       upload-node-count: 3
@@ -295,16 +302,18 @@ checks:
     type: pushsync
   redundancy:
     options:
-      postage-amount:
-      postage-depth:
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       seed:
       data-size:
     type: redundancy
   retrieval:
     options:
       chunks-per-node: 3
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       upload-node-count: 3
     timeout: 5m
     type: retrieval
@@ -314,8 +323,9 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      postage-amount: 1000
-      postage-depth: 20
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       threshold: 100000000
       upload-node-count: 3
       wait-before-download: 15s
@@ -324,8 +334,9 @@ checks:
   smoke:
     options:
       content-size: 5000
-      postage-amount: 1000000
-      postage-depth: 20
+      postage-ttl: 72h
+      postage-depth: 21
+      postage-label: test-label
       nodes-sync-wait: 1m
       upload-timeout: 1m
       download-timeout: 1m
@@ -335,8 +346,9 @@ checks:
     type: smoke
   soc:
     options:
-      postage-amount: 1000
-      postage-depth: 16
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       request-timeout: 5m
     timeout: 5m
     type: soc
@@ -348,51 +360,42 @@ checks:
       insufficient-amount: 102400
       contract-addr: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
-      geth-url: "http://geth-swap.bee-playground.svc.swarm1.local:8545"
-      geth-chain-id: 12345
   withdraw:
     options:
       target-address: 0xec44cb15b1b033e74d55ac5d0e24d861bde54532
     timeout: 5m
     type: withdraw
-  content-availability:
-    type: content-availability
-    timeout: 5m
-    options:
-      content-size: 16384
-      postage-amount: 1000
-      postage-depth: 16
   load:
     options:
       content-size: 500000 #5000000
-      postage-amount: 1000000
       gas-price: 10000000000
-      postage-depth: 20
+      postage-ttl: 72h
+      postage-depth: 21
+      postage-label: test-label
       nodes-sync-wait: 2m
       duration: 12h
       downloader-count: 3
       uploader-count: 2
-      max-storage-radius: 2
+      max-committed-depth: 2
+      committed-depth-check-wait: 5m
       upload-groups:
         - bee
       download-groups:
         - light
     timeout: 12h
     type: load
-
   gsoc:
     options:
-      postage-amount: 100000
-      postage-depth: 20
-      postage-label: gsoc-label
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
     timeout: 10m
     type: gsoc
-
   feed:
     options:
-      postage-amount: 100000
-      postage-depth: 20
-      postage-label: feed-label
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
     type: feed
 
 # simulations defines simulations Beekeeper can execute against the cluster
@@ -404,7 +407,7 @@ simulations:
       gas-price: "10000000000"
       max-file-size: 2097152 # 2mb = 2*1024*1024
       min-file-size: 1048576 # 1mb = 1*1024*1024
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 16
       retries: 5
       retry-delay: 1s
@@ -418,7 +421,7 @@ simulations:
     options:
       chunks-per-node: 1
       gas-price: "10000000000"
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 16
       upload-node-count: 1
       upload-delay: 10s
@@ -426,7 +429,7 @@ simulations:
     type: retrieval
   pushsync:
     options:
-      postage-amount: 1000
+      postage-ttl: 24h
       postage-depth: 20
       seed:
       proxy-api-endpoint: "http://ethproxy.localhost"

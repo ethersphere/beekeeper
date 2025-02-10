@@ -18,23 +18,23 @@ import (
 
 // Options represents check options
 type Options struct {
-	FileName      string
-	FileSize      int64
-	PostageAmount int64
-	PostageDepth  uint64
-	PostageLabel  string
-	Seed          int64
+	FileName     string
+	FileSize     int64
+	PostageTTL   time.Duration
+	PostageDepth uint64
+	PostageLabel string
+	Seed         int64
 }
 
-// NewDefaultOptions returns new default options
-func NewDefaultOptions() Options {
+// NewOptions returns new default options
+func NewOptions() Options {
 	return Options{
-		FileName:      "act",
-		FileSize:      1 * 1024,
-		PostageAmount: 420000000,
-		PostageDepth:  20,
-		PostageLabel:  "act-label",
-		Seed:          0,
+		FileName:     "act",
+		FileSize:     1 * 1024,
+		PostageTTL:   24 * time.Hour,
+		PostageDepth: 20,
+		PostageLabel: "test-label",
+		Seed:         0,
 	}
 }
 
@@ -95,7 +95,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	file := bee.NewRandomFile(rnds[0], fileName, o.FileSize)
 
-	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, postagelabel)
+	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, postagelabel)
 	if err != nil {
 		return fmt.Errorf("created batched id %w", err)
 	}

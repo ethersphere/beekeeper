@@ -19,15 +19,18 @@ import (
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
 const retryCount int = 5
 
 // Client manages communication with the Bee node
 type Client struct {
-	api  *api.Client
-	opts ClientOptions
-	log  logging.Logger
+	api        *api.Client
+	swapClient swap.Client
+	log        logging.Logger
+	name       string
+	apiURL     *url.URL
 	// number of times to retry call
 	retry int
 }
@@ -38,14 +41,17 @@ type ClientOptions struct {
 	APIURL         *url.URL
 	Name           string
 	Retry          int
+	SwapClient     swap.Client
 }
 
 // NewClient returns Bee client
 func NewClient(opts ClientOptions, log logging.Logger) (c *Client) {
 	c = &Client{
-		retry: retryCount,
-		opts:  opts,
-		log:   log,
+		retry:      retryCount,
+		log:        log,
+		swapClient: opts.SwapClient,
+		name:       opts.Name,
+		apiURL:     opts.APIURL,
 	}
 
 	httpClient := &http.Client{
@@ -76,11 +82,11 @@ type Addresses struct {
 }
 
 func (c *Client) Name() string {
-	return c.opts.Name
+	return c.name
 }
 
-func (c *Client) Config() ClientOptions {
-	return c.opts
+func (c *Client) Host() string {
+	return c.apiURL.Host
 }
 
 func (c *Client) API() *api.Client {
@@ -448,10 +454,29 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	return id, nil
 }
 
-func (c *Client) GetOrCreateMutableBatch(ctx context.Context, amount int64, depth uint64, label string) (string, error) {
+func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Duration, depth uint64, label string) (string, error) {
+	csr, err := c.api.Postage.GetChainState(ctx)
+	if err != nil {
+		return "", fmt.Errorf("get chain state: %w", err)
+	}
+
+	blockTime, err := c.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
+	if err != nil {
+		return "", fmt.Errorf("fetching block time: %w", err)
+	}
+
+	amount := int64(1000)
+
+	price := csr.CurrentPrice.Int64()
+	if price > 0 {
+		amount = (int64(postageTTL.Seconds()) / blockTime) * price
+	} else {
+		c.log.Warningf("invalid chain price: %d", price)
+	}
+
 	batches, err := c.PostageBatches(ctx)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get postage batches: %w", err)
 	}
 
 	for _, b := range batches {
@@ -959,4 +984,8 @@ func (c *Client) UpdateFeedWithReference(ctx context.Context, signer crypto.Sign
 // FindFeedUpdate finds the latest update for a feed
 func (c *Client) FindFeedUpdate(ctx context.Context, signer crypto.Signer, topic []byte, o *api.DownloadOptions) (*api.FindFeedUpdateResponse, error) {
 	return c.api.Feed.FindUpdate(ctx, signer, topic, o)
+}
+
+func (c *Client) Status(ctx context.Context) (*api.StatusResponse, error) {
+	return c.api.Status.Status(ctx)
 }

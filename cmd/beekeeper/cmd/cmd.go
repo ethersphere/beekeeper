@@ -18,7 +18,7 @@ import (
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	httptransport "github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -27,11 +27,15 @@ import (
 
 const (
 	optionNameConfigDir          = "config-dir"
-	optionNameConfigGitRepo      = "config-git-repo"
-	optionNameConfigGitDir       = "config-git-dir"
 	optionNameConfigGitBranch    = "config-git-branch"
-	optionNameConfigGitUsername  = "config-git-username"
+	optionNameConfigGitDir       = "config-git-dir"
 	optionNameConfigGitPassword  = "config-git-password"
+	optionNameConfigGitRepo      = "config-git-repo"
+	optionNameConfigGitUsername  = "config-git-username"
+	optionNameEnableK8S          = "enable-k8s"
+	optionNameGethURL            = "geth-url"
+	optionNameInCluster          = "in-cluster"
+	optionNameKubeconfig         = "kubeconfig"
 	optionNameLogVerbosity       = "log-verbosity"
 	optionNameLokiEndpoint       = "loki-endpoint"
 	optionNameTracingEnabled     = "tracing-enable"
@@ -39,9 +43,11 @@ const (
 	optionNameTracingHost        = "tracing-host"
 	optionNameTracingPort        = "tracing-port"
 	optionNameTracingServiceName = "tracing-service-name"
-	optionNameEnableK8S          = "enable-k8s"
-	optionNameInCluster          = "in-cluster"
-	optionNameKubeconfig         = "kubeconfig"
+)
+
+var (
+	errBlockchainEndpointNotProvided = errors.New("URL of the Ethereum-compatible blockchain RPC endpoint not provided; use the --geth-url flag")
+	errMissingClusterName            = errors.New("cluster name not provided")
 )
 
 func init() {
@@ -154,6 +160,7 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch to use for configuration files")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username for authentication (required for private repositories)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access token for authentication (required for private repositories)")
+	globalFlags.String(optionNameGethURL, "", "URL of the ethereum compatible blockchain RPC endpoint")
 	globalFlags.String(optionNameLogVerbosity, "info", "Log verbosity level (0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace)")
 	globalFlags.String(optionNameLokiEndpoint, "", "HTTP endpoint for sending logs to Loki (e.g., http://loki.testnet.internal/loki/api/v1/push)")
 	globalFlags.Bool(optionNameTracingEnabled, false, "Enable tracing for performance monitoring and debugging")
@@ -169,11 +176,12 @@ func (c *command) initGlobalFlags() {
 func (c *command) bindGlobalFlags() error {
 	for _, flag := range []string{
 		optionNameConfigDir,
-		optionNameConfigGitRepo,
 		optionNameConfigGitBranch,
 		optionNameConfigGitDir,
-		optionNameConfigGitUsername,
 		optionNameConfigGitPassword,
+		optionNameConfigGitRepo,
+		optionNameConfigGitUsername,
+		optionNameGethURL,
 		optionNameLogVerbosity,
 		optionNameLokiEndpoint,
 	} {
@@ -255,7 +263,7 @@ func (c *command) loadConfigDirectory() error {
 		// read configuration from git repo
 		fs := memfs.New()
 		if _, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
-			Auth: &httptransport.BasicAuth{
+			Auth: &http.BasicAuth{
 				Username: c.globalConfig.GetString(optionNameConfigGitUsername),
 				Password: c.globalConfig.GetString(optionNameConfigGitPassword),
 			},
@@ -412,8 +420,8 @@ func (c *command) executePeriodically(ctx context.Context, action func(ctx conte
 }
 
 func (c *command) setSwapClient() (err error) {
-	if len(c.globalConfig.GetString("geth-url")) > 0 {
-		gethUrl, err := url.Parse(c.globalConfig.GetString("geth-url"))
+	if c.globalConfig.IsSet(optionNameGethURL) {
+		gethUrl, err := url.Parse(c.globalConfig.GetString(optionNameGethURL))
 		if err != nil {
 			return fmt.Errorf("parsing Geth URL: %w", err)
 		}

@@ -18,14 +18,13 @@ const (
 
 func (c *command) initNodeFunderCmd() (err error) {
 	const (
-		optionNameAddresses         = "addresses"
-		optionNameNamespace         = "namespace"
-		optionNameChainNodeEndpoint = "geth-url"
-		optionNameWalletKey         = "wallet-key"
-		optionNameMinNative         = "min-native"
-		optionNameMinSwarm          = "min-swarm"
-		optionNameTimeout           = "timeout"
-		optionNameLabelSelector     = "label-selector"
+		optionNameAddresses     = "addresses"
+		optionNameNamespace     = "namespace"
+		optionNameWalletKey     = "wallet-key"
+		optionNameMinNative     = "min-native"
+		optionNameMinSwarm      = "min-swarm"
+		optionNameTimeout       = "timeout"
+		optionNameLabelSelector = "label-selector"
 	)
 
 	cmd := &cobra.Command{
@@ -41,8 +40,8 @@ func (c *command) initNodeFunderCmd() (err error) {
 					},
 				}
 
-				if cfg.ChainNodeEndpoint = c.globalConfig.GetString(optionNameChainNodeEndpoint); cfg.ChainNodeEndpoint == "" {
-					return errors.New("chain node endpoint (geth-url) not provided")
+				if cfg.ChainNodeEndpoint = c.globalConfig.GetString(optionNameGethURL); cfg.ChainNodeEndpoint == "" {
+					return errBlockchainEndpointNotProvided
 				}
 
 				if cfg.WalletKey = c.globalConfig.GetString(optionNameWalletKey); cfg.WalletKey == "" {
@@ -51,13 +50,13 @@ func (c *command) initNodeFunderCmd() (err error) {
 
 				defer c.log.Infof("node-funder done")
 
-				logger := funder.WithLoggerOption(c.log)
+				logOpt := funder.WithLoggerOption(c.log)
 
 				addresses := c.globalConfig.GetStringSlice(optionNameAddresses)
 				if len(addresses) > 0 {
 					cfg.Addresses = addresses
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
-						return funder.Fund(ctx, cfg, nil, nil, logger)
+						return funder.Fund(ctx, cfg, nil, nil, logOpt)
 					})
 				}
 
@@ -68,7 +67,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 
 					cfg.Namespace = namespace
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
-						return funder.Fund(ctx, cfg, funderClient, nil, logger)
+						return funder.Fund(ctx, cfg, funderClient, nil, logOpt)
 					})
 				}
 
@@ -93,7 +92,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 					}
 
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
-						return funder.Fund(ctx, cfg, nil, nil, logger)
+						return funder.Fund(ctx, cfg, nil, nil, logOpt)
 					})
 				}
 
@@ -111,7 +110,6 @@ func (c *command) initNodeFunderCmd() (err error) {
 	cmd.Flags().StringSliceP(optionNameAddresses, "a", nil, "Comma-separated list of Bee node addresses (must start with 0x). Overrides namespace and cluster name.")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace. Overrides cluster name if set.")
 	cmd.Flags().String(optionNameClusterName, "", "Name of the Beekeeper cluster to target. Ignored if a namespace is specified.")
-	cmd.Flags().String(optionNameChainNodeEndpoint, "", "Endpoint to chain node. Required.")
 	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
 	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")

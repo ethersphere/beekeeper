@@ -18,7 +18,7 @@ import (
 // Options represents check options
 type Options struct {
 	ChunksPerNode   int // number of chunks to upload per node
-	PostageAmount   int64
+	PostageTTL      time.Duration
 	PostageDepth    uint64
 	PostageLabel    string
 	Seed            int64
@@ -29,7 +29,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		ChunksPerNode:   1,
-		PostageAmount:   1,
+		PostageTTL:      24 * time.Hour,
 		PostageLabel:    "test-label",
 		PostageDepth:    16,
 		Seed:            random.Int64(),
@@ -82,7 +82,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		downloadNodeIndex := (i + 1) % len(nodes) // download from the next node
 		downloadNode := clients[nodes[downloadNodeIndex]]
 
-		batchID, err := uploadNode.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+		batchID, err := uploadNode.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		if err != nil {
 			return fmt.Errorf("node %s: created batched id %w", uploadNode.Name(), err)
 		}

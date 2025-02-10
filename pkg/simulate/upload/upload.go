@@ -24,7 +24,7 @@ type Options struct {
 	GasPrice             string
 	MaxFileSize          int64
 	MinFileSize          int64
-	PostageAmount        int64
+	PostageTTL           time.Duration
 	PostageDepth         uint64
 	PostageLabel         string
 	Retries              int
@@ -43,7 +43,7 @@ func NewDefaultOptions() Options {
 		GasPrice:             "",
 		MaxFileSize:          1048576, // 1mb = 1*1024*1024
 		MinFileSize:          1048576, // 1mb = 1*1024*1024
-		PostageAmount:        1000,
+		PostageTTL:           24 * time.Hour,
 		PostageDepth:         16,
 		PostageLabel:         "test-label",
 		Retries:              5,
@@ -160,7 +160,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 						return ctx.Err()
 					}
 
-					batchID, err = c.GetOrCreateMutableBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel)
+					batchID, err = c.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 					if err != nil {
 						if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 							return nil

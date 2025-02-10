@@ -14,8 +14,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var errMissingClusterName = fmt.Errorf("cluster name not provided")
-
 func (c *command) initCheckCmd() error {
 	const (
 		optionNameCreateCluster        = "create-cluster"
@@ -89,7 +87,8 @@ func (c *command) initCheckCmd() error {
 
 			// set global config
 			checkGlobalConfig := config.CheckGlobalConfig{
-				Seed: c.globalConfig.GetInt64(optionNameSeed),
+				Seed:    c.globalConfig.GetInt64(optionNameSeed),
+				GethURL: c.globalConfig.GetString(optionNameGethURL),
 			}
 
 			// run checks
@@ -124,6 +123,7 @@ func (c *command) initCheckCmd() error {
 				defer cancelCheck()
 
 				c.log.Infof("running check: %s", checkName)
+				c.log.Debugf("check options: %+v", o)
 
 				ch := make(chan error, 1)
 				go func() {

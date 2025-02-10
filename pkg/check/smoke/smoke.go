@@ -20,8 +20,9 @@ import (
 type Options struct {
 	ContentSize     int64
 	RndSeed         int64
-	PostageAmount   int64
+	PostageTTL      time.Duration
 	PostageDepth    uint64
+	PostageLabel    string
 	TxOnErrWait     time.Duration
 	RxOnErrWait     time.Duration
 	NodesSyncWait   time.Duration
@@ -29,33 +30,32 @@ type Options struct {
 	UploadTimeout   time.Duration
 	DownloadTimeout time.Duration
 	// load test params
-	UploaderCount          int
-	UploadGroups           []string
-	DownloaderCount        int
-	DownloadGroups         []string
-	MaxUseBatch            time.Duration
-	MaxStorageRadius       uint8
-	StorageRadiusCheckWait time.Duration
-	IterationWait          time.Duration
+	UploaderCount           int
+	UploadGroups            []string
+	DownloaderCount         int
+	DownloadGroups          []string
+	MaxCommittedDepth       uint8
+	CommittedDepthCheckWait time.Duration
+	IterationWait           time.Duration
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ContentSize:            5000000,
-		RndSeed:                time.Now().UnixNano(),
-		PostageAmount:          50_000_000,
-		PostageDepth:           24,
-		TxOnErrWait:            10 * time.Second,
-		RxOnErrWait:            10 * time.Second,
-		NodesSyncWait:          time.Minute,
-		Duration:               12 * time.Hour,
-		UploadTimeout:          60 * time.Minute,
-		DownloadTimeout:        60 * time.Minute,
-		MaxUseBatch:            12 * time.Hour,
-		MaxStorageRadius:       2,
-		StorageRadiusCheckWait: 5 * time.Minute,
-		IterationWait:          5 * time.Minute,
+		ContentSize:             5000000,
+		RndSeed:                 time.Now().UnixNano(),
+		PostageTTL:              24 * time.Hour,
+		PostageDepth:            24,
+		PostageLabel:            "test-label",
+		TxOnErrWait:             10 * time.Second,
+		RxOnErrWait:             10 * time.Second,
+		NodesSyncWait:           time.Minute,
+		Duration:                12 * time.Hour,
+		UploadTimeout:           60 * time.Minute,
+		DownloadTimeout:         60 * time.Minute,
+		MaxCommittedDepth:       2,
+		CommittedDepthCheckWait: 5 * time.Minute,
+		IterationWait:           5 * time.Minute,
 	}
 }
 
@@ -160,14 +160,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 			c.metrics.BatchCreateAttempts.Inc()
 
-			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageAmount, o.PostageDepth, "smoke-test")
+			batchID, err = clients[txName].GetOrCreateMutableBatch(txCtx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 			if err != nil {
 				c.logger.Errorf("create new batch: %v", err)
 				c.metrics.BatchCreateErrors.Inc()
 				continue
 			}
 
-			c.logger.Info("using batch", "batch_id", batchID)
+			c.logger.WithField("batch_id", batchID).Info("using batch")
 
 			c.metrics.UploadAttempts.Inc()
 			address, txDuration, err = test.upload(txCtx, txName, txData, batchID)

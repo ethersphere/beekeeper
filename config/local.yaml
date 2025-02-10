@@ -175,9 +175,9 @@ checks:
   ci-act:
     options:
       file-size: 1024
-      postage-depth: 20
-      postage-amount: 420000000
-      postage-label: act-label
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       seed: 0
     timeout: 5m
     type: act
@@ -202,8 +202,9 @@ checks:
     options:
       files-in-collection: 10
       max-pathname-length: 64
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
     timeout: 30m
     type: manifest
   ci-pingpong:
@@ -219,8 +220,9 @@ checks:
     options:
       count: 3
       address-prefix: 2
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       request-timeout: 5m
     timeout: 5m
     type: pss
@@ -228,8 +230,9 @@ checks:
     options:
       chunks-per-node: 3
       mode: chunks
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       retries: 5
       retry-delay: 15s
       upload-node-count: 3
@@ -242,8 +245,9 @@ checks:
     options:
       chunks-per-node: 3
       mode: light-chunks
-      postage-amount: 10000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       retries: 5
       retry-delay: 30s
       upload-node-count: 3
@@ -255,8 +259,9 @@ checks:
   ci-retrieval:
     options:
       chunks-per-node: 3
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       upload-node-count: 3
     timeout: 5m
     type: retrieval
@@ -266,8 +271,9 @@ checks:
       expect-settlements: true
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
-      postage-amount: 1000
-      postage-depth: 20
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       threshold: 100000000
       upload-node-count: 3
       wait-before-download: 15s
@@ -276,8 +282,9 @@ checks:
   ci-smoke:
     options:
       content-size: 5000000
-      postage-amount: 1000000
-      postage-depth: 20
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       nodes-sync-wait: 1m
       upload-timeout: 1m
       download-timeout: 1m
@@ -286,8 +293,9 @@ checks:
     type: smoke
   ci-soc:
     options:
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       request-timeout: 5m
     timeout: 5m
     type: soc
@@ -296,8 +304,9 @@ checks:
     timeout: 5m
     options:
       content-size: 16384
-      postage-amount: 1000
-      postage-depth: 17
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
   ci-postage:
     type: postage
     timeout: 5m
@@ -314,8 +323,6 @@ checks:
       insufficient-amount: 102400
       contract-addr: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
       private-key: "4663c222787e30c1994b59044aa5045377a6e79193a8ead88293926b535c722d"
-      geth-url: "http://geth-swap.localhost"
-      geth-chain-id: 12345
   ci-longavailability:
     options:
       refs:
@@ -330,22 +337,22 @@ checks:
     type: datadurability
   ci-redundancy:
     options:
-      postage-amount:
-      postage-depth:
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
       seed:
       data-size:
     type: redundancy
   ci-gsoc:
     options:
-      postage-amount: 100000
-      postage-depth: 20
-      postage-label: gsoc-label
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
     timeout: 10m
     type: gsoc
   ci-feed:
     options:
-      postage-amount: 100000
-      postage-depth: 20
-      postage-label: feed-label
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
     type: feed
-

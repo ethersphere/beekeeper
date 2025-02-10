@@ -6,7 +6,7 @@ import (
 )
 
 // ErrNotSet represents error when Swap client is not set
-var ErrNotSet = errors.New("swap client not set")
+var ErrNotSet = errors.New("swap client not initialized because geth-url is missing")
 
 // compile check whether NotSet implements Swap interface
 var _ Client = (*NotSet)(nil)
@@ -33,6 +33,6 @@ func (n *NotSet) AttestOverlayEthAddress(ctx context.Context, ethAddr string) (t
 }
 
 // FetchBlockTime(ctx context.Context) (blockTime int64, err error)
-func (n *NotSet) FetchBlockTime(ctx context.Context) (blockTime int64, err error) {
+func (n *NotSet) FetchBlockTime(ctx context.Context, opts ...Option) (blockTime int64, err error) {
 	return 0, ErrNotSet
 }
