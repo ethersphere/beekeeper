@@ -1,0 +1,13 @@
+clusters:
+  localhost:
+    _inherit: "default"
+    use-static-endpoints: true
+    node-groups:
+      bee-1:
+        mode: node
+        bee-config: default
+        config: default
+        count: 1
+        endpoints:
+          - name: bee-0
+            api-url: http://localhost:1633
