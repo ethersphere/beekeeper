@@ -8,6 +8,7 @@ package logging
 
 import (
 	"io"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
 )
@@ -64,10 +65,10 @@ func (l *logger) GetLevel() string {
 }
 
 // WithLokiOption sets the hook for Loki logging.
-func WithLokiOption(lokiEndpoint string) LoggerOption {
+func WithLokiOption(lokiEndpoint string, httpClient *http.Client) LoggerOption {
 	return func(l *logger) {
 		if lokiEndpoint != "" {
-			l.Logger.AddHook(newLoki(lokiEndpoint))
+			l.Logger.AddHook(newLoki(lokiEndpoint, httpClient))
 		}
 	}
 }

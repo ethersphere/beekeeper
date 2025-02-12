@@ -5,23 +5,20 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/ethersphere/beekeeper"
 )
 
 const contentType = "application/json; charset=utf-8"
-
-var userAgent = "beekeeper/" + beekeeper.Version
 
 // requestJSON handles the HTTP request response cycle. It JSON encodes the request
 // body, creates an HTTP request with provided method on a path with required
 // headers and decodes request body if the v argument is not nil and content type is
 // application/json.
-func requestJSON(ctx context.Context, httpClient *http.Client, method, path string, body, v interface{}) (err error) {
+func (c *GethClient) requestJSON(ctx context.Context, httpClient *http.Client, method, path string, body, v interface{}) (err error) {
 	var bodyBuffer io.ReadWriter
 	if body != nil {
 		bodyBuffer = new(bytes.Buffer)
@@ -30,12 +27,25 @@ func requestJSON(ctx context.Context, httpClient *http.Client, method, path stri
 		}
 	}
 
-	return request(ctx, httpClient, method, path, bodyBuffer, v)
+	return c.request(ctx, httpClient, method, path, bodyBuffer, v)
+}
+
+func (c *GethClient) getFullURL(path string) (string, error) {
+	rel, err := url.Parse(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse path: %w", err)
+	}
+	return c.baseURL.ResolveReference(rel).String(), nil
 }
 
 // request handles the HTTP request response cycle.
-func request(ctx context.Context, httpClient *http.Client, method, path string, body io.Reader, v interface{}) (err error) {
-	req, err := http.NewRequest(method, path, body)
+func (c *GethClient) request(ctx context.Context, httpClient *http.Client, method, path string, body io.Reader, v interface{}) (err error) {
+	fullURL, err := c.getFullURL(path)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(method, fullURL, body)
 	if err != nil {
 		return err
 	}
@@ -60,28 +70,6 @@ func request(ctx context.Context, httpClient *http.Client, method, path string, 
 		return json.NewDecoder(r.Body).Decode(&v)
 	}
 	return nil
-}
-
-func httpClientWithTransport(baseURL *url.URL, c *http.Client) *http.Client {
-	if c == nil {
-		c = new(http.Client)
-	}
-
-	transport := c.Transport
-	if transport == nil {
-		transport = http.DefaultTransport
-	}
-
-	if !strings.HasSuffix(baseURL.Path, "/") {
-		baseURL.Path += "/"
-	}
-
-	c.Transport = roundTripperFunc(func(r *http.Request) (resp *http.Response, err error) {
-		r.Header.Set("User-Agent", userAgent)
-		r.URL = baseURL
-		return transport.RoundTrip(r)
-	})
-	return c
 }
 
 // encodeJSON writes a JSON-encoded v object to the provided writer with
@@ -151,18 +139,4 @@ func decodeBadRequest(r *http.Response) (err error) {
 		return err
 	}
 	return NewBadRequestError(e.Errors...)
-}
-
-// Bool is a helper routine that allocates a new bool value to store v and
-// returns a pointer to it.
-func Bool(v bool) (p *bool) { return &v }
-
-// roundTripperFunc type is an adapter to allow the use of ordinary functions as
-// http.RoundTripper interfaces. If f is a function with the appropriate
-// signature, roundTripperFunc(f) is a http.RoundTripper that calls f.
-type roundTripperFunc func(*http.Request) (*http.Response, error)
-
-// RoundTrip calls f(r).
-func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return f(r)
 }

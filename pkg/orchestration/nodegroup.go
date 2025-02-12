@@ -14,13 +14,10 @@ type NodeGroup interface {
 	AddNode(ctx context.Context, name string, inCluster bool, o NodeOptions, opts ...BeeClientOption) (err error)
 	Addresses(ctx context.Context) (addrs NodeGroupAddresses, err error)
 	Balances(ctx context.Context) (balances NodeGroupBalances, err error)
-	CreateNode(ctx context.Context, name string) (err error)
 	DeleteNode(ctx context.Context, name string) (err error)
-	GetEthAddress(ctx context.Context, name string, o NodeOptions) (ethAddress string, err error)
+	DeployNode(ctx context.Context, name string, inCluster bool, o NodeOptions) (ethAddress string, err error)
 	GroupReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
-	Name() string
 	NodeClient(name string) (*bee.Client, error)
-	NodeReady(ctx context.Context, name string) (ok bool, err error)
 	Nodes() map[string]Node
 	NodesClients(ctx context.Context) (map[string]*bee.Client, error)
 	NodesSorted() (l []string)
@@ -28,10 +25,7 @@ type NodeGroup interface {
 	Peers(ctx context.Context) (peers NodeGroupPeers, err error)
 	RunningNodes(ctx context.Context) (running []string, err error)
 	Settlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
-	SetupNode(ctx context.Context, name string, inCluster bool, o NodeOptions) (ethAddress string, err error)
 	Size() int
-	StartNode(ctx context.Context, name string) (err error)
-	StopNode(ctx context.Context, name string) (err error)
 	StoppedNodes(ctx context.Context) (stopped []string, err error)
 	Topologies(ctx context.Context) (topologies NodeGroupTopologies, err error)
 }

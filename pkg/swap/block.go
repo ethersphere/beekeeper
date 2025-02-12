@@ -102,7 +102,7 @@ func (g *GethClient) fetchLatestBlockNumber(ctx context.Context) (int64, error) 
 		ID      string `json:"id"`
 	})
 
-	if err := requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+	if err := g.requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
 		return 0, fmt.Errorf("request json: %w", err)
 	}
 
@@ -138,7 +138,7 @@ func (g *GethClient) fetchBlockTimestamp(ctx context.Context, blockNumber int64)
 		} `json:"result"`
 	})
 
-	if err := requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+	if err := g.requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
 		return 0, fmt.Errorf("request json: %w", err)
 	}
 

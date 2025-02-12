@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
+	"github.com/ethersphere/beekeeper/pkg/httpx"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
@@ -18,7 +21,7 @@ import (
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	httptransport "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -61,7 +64,8 @@ type command struct {
 	globalConfigFile string
 	homeDir          string
 	config           *config.Config // beekeeper clusters configuration (config dir)
-	k8sClient        *k8s.Client    // kubernetes client
+	httpClient       *http.Client
+	k8sClient        *k8s.Client // kubernetes client
 	swapClient       swap.Client
 	log              logging.Logger
 }
@@ -78,6 +82,12 @@ func newCommand(opts ...option) (c *command, err error) {
 			PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 				return c.initConfig(cmd.Flags().Changed(optionNameClusterName))
 			},
+		},
+		httpClient: &http.Client{
+			Transport: &httpx.HeaderRoundTripper{
+				Next: http.DefaultTransport,
+			},
+			Timeout: 30 * time.Second,
 		},
 	}
 
@@ -248,7 +258,7 @@ func (c *command) initLogger() error {
 	verbosity := c.globalConfig.GetString(optionNameLogVerbosity)
 	lokiEndpoint := c.globalConfig.GetString(optionNameLokiEndpoint)
 
-	log, err := newLogger(c.root, verbosity, lokiEndpoint)
+	log, err := newLogger(c.root, verbosity, lokiEndpoint, c.httpClient)
 	if err != nil {
 		return fmt.Errorf("new logger: %w", err)
 	}
@@ -263,7 +273,7 @@ func (c *command) loadConfigDirectory() error {
 		// read configuration from git repo
 		fs := memfs.New()
 		if _, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
-			Auth: &http.BasicAuth{
+			Auth: &httptransport.BasicAuth{
 				Username: c.globalConfig.GetString(optionNameConfigGitUsername),
 				Password: c.globalConfig.GetString(optionNameConfigGitPassword),
 			},
@@ -429,6 +439,7 @@ func (c *command) setSwapClient() (err error) {
 		c.swapClient = swap.NewGethClient(gethUrl, &swap.GethClientOptions{
 			BzzTokenAddress: c.globalConfig.GetString("bzz-token-address"),
 			EthAccount:      c.globalConfig.GetString("eth-account"),
+			HTTPClient:      c.httpClient,
 		}, c.log)
 	} else {
 		c.swapClient = &swap.NotSet{}
@@ -437,10 +448,10 @@ func (c *command) setSwapClient() (err error) {
 	return
 }
 
-func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string) (logging.Logger, error) {
+func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string, httpClient *http.Client) (logging.Logger, error) {
 	var logger logging.Logger
 	opts := []logging.LoggerOption{
-		logging.WithLokiOption(lokiEndpoint),
+		logging.WithLokiOption(lokiEndpoint, httpClient),
 		logging.WithMetricsOption(),
 	}
 

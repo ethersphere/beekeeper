@@ -169,7 +169,7 @@ func (n *node) getPrice(ctx context.Context) (int64, error) {
 
 	price := chainState.CurrentPrice.Int64()
 	if price <= 0 {
-		return 0, fmt.Errorf("node %s: invalid chain price: %d", n.name, price)
+		return 0, fmt.Errorf("node %s: invalid chain price: %v", n.name, price)
 	}
 
 	return price, nil

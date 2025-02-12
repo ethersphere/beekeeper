@@ -44,7 +44,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			cluster.AddNodeGroup(ngName, ngConfig.Export())
 
 			// delete nodes from the node group
-			g, err := cluster.NodeGroup(ngName)
+			ng, err := cluster.NodeGroup(ngName)
 			if err != nil {
 				return fmt.Errorf("get node group: %w", err)
 			}
@@ -54,7 +54,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 				if len(v.Nodes[i].Name) > 0 {
 					nName = v.Nodes[i].Name
 				}
-				if err := g.DeleteNode(ctx, nName); err != nil {
+				if err := ng.DeleteNode(ctx, nName); err != nil {
 					return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
 				}
 
@@ -201,6 +201,7 @@ func initializeCluster(clusterConfig config.Cluster, c *command) orchestration.C
 	clusterOpts := clusterConfig.Export()
 	clusterOpts.SwapClient = c.swapClient
 	clusterOpts.K8SClient = c.k8sClient
+	clusterOpts.HTTPClient = c.httpClient
 	return orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterOpts, c.log)
 }
 
@@ -313,7 +314,7 @@ func setupOrAddNode(ctx context.Context,
 	beeOpt orchestration.BeeClientOption,
 ) {
 	if startCluster {
-		ethAddress, err := ng.SetupNode(ctx, nodeName, inCluster, nodeOpts)
+		ethAddress, err := ng.DeployNode(ctx, nodeName, inCluster, nodeOpts)
 		ch <- nodeResult{
 			ethAddress: ethAddress,
 			err:        err,
@@ -326,17 +327,11 @@ func setupOrAddNode(ctx context.Context,
 }
 
 func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) orchestration.NodeOptions {
-	nOptions := orchestration.NodeOptions{
-		Config: bConfig,
+	return orchestration.NodeOptions{
+		Config:    bConfig,
+		LibP2PKey: node.LibP2PKey,
+		SwarmKey:  orchestration.EncryptedKey(node.SwarmKey),
 	}
-
-	if len(node.LibP2PKey) > 0 {
-		nOptions.LibP2PKey = node.LibP2PKey
-	}
-	if len(node.SwarmKey) > 0 {
-		nOptions.SwarmKey = orchestration.EncryptedKey(node.SwarmKey)
-	}
-	return nOptions
 }
 
 func fund(

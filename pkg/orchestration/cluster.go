@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"net/url"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
@@ -35,7 +36,7 @@ type Cluster interface {
 	Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error)
 	RandomNode(ctx context.Context, r *rand.Rand) (node Node, err error)
 	Settlements(ctx context.Context) (settlements ClusterSettlements, err error)
-	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
+	RandomClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
 }
@@ -47,11 +48,12 @@ type ClusterOptions struct {
 	APIDomainInternal string
 	APIInsecureTLS    bool
 	APIScheme         string
-	K8SClient         *k8s.Client
-	SwapClient        swap.Client
+	DisableNamespace  bool
 	Labels            map[string]string
 	Namespace         string
-	DisableNamespace  bool
+	K8SClient         *k8s.Client
+	SwapClient        swap.Client
+	HTTPClient        *http.Client
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster

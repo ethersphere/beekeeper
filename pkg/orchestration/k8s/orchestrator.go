@@ -40,7 +40,7 @@ func (n *nodeOrchestrator) RunningNodes(ctx context.Context, namespace string) (
 	if err != nil {
 		return nil, fmt.Errorf("running statefulsets in namespace %s: %w", namespace, err)
 	}
-	return
+	return running, nil
 }
 
 // StoppedNodes implements orchestration.NodeOrchestrator.
@@ -49,7 +49,7 @@ func (n *nodeOrchestrator) StoppedNodes(ctx context.Context, namespace string) (
 	if err != nil {
 		return nil, fmt.Errorf("stopped statefulsets in namespace %s: %w", namespace, err)
 	}
-	return
+	return stopped, nil
 }
 
 // Create
@@ -309,7 +309,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	}
 	n.log.Infof("statefulset %s is set in namespace %s", sSet, o.Namespace)
 
-	return
+	return nil
 }
 
 func (n *nodeOrchestrator) Delete(ctx context.Context, name string, namespace string) (err error) {
@@ -373,7 +373,8 @@ func (n *nodeOrchestrator) Delete(ctx context.Context, name string, namespace st
 	n.log.Infof("configmap %s is deleted in namespace %s", configCM, namespace)
 
 	n.log.Infof("node %s is deleted in namespace %s", name, namespace)
-	return
+
+	return nil
 }
 
 func (n *nodeOrchestrator) Ready(ctx context.Context, name string, namespace string) (ready bool, err error) {
@@ -393,7 +394,8 @@ func (n *nodeOrchestrator) Start(ctx context.Context, name string, namespace str
 	}
 
 	n.log.Infof("node %s is started in namespace %s", name, namespace)
-	return
+
+	return nil
 }
 
 func (n *nodeOrchestrator) Stop(ctx context.Context, name string, namespace string) (err error) {
@@ -403,5 +405,6 @@ func (n *nodeOrchestrator) Stop(ctx context.Context, name string, namespace stri
 	}
 
 	n.log.Infof("node %s is stopped in namespace %s", name, namespace)
-	return
+
+	return nil
 }

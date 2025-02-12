@@ -13,7 +13,7 @@ import (
 // newClientConfig returns a new default ClienConfig.
 func newClientConfig() *ClientConfig {
 	return &ClientConfig{
-		NewForConfig:                   kubernetes.NewForConfig,
+		NewForConfig:                   kubernetes.NewForConfig, // TODO: use NewForConfigAndClient
 		NewIngressRouteClientForConfig: ingressroute.NewForConfig,
 		InClusterConfig:                rest.InClusterConfig,
 		BuildConfigFromFlags:           clientcmd.BuildConfigFromFlags,

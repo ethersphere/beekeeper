@@ -11,9 +11,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/ethersphere/bee/v2/pkg/swarm"
-	"github.com/ethersphere/beekeeper"
 )
 
 const (
@@ -38,11 +35,10 @@ const (
 	swarmErrorDocumentHeader    = "Swarm-Error-Document"
 )
 
-var userAgent = "beekeeper/" + beekeeper.Version
-
 // Client manages communication with the Bee API.
 type Client struct {
 	httpClient *http.Client // HTTP client must handle authentication implicitly.
+	apiURL     *url.URL     // Base URL for API requests.
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
@@ -70,22 +66,24 @@ type ClientOptions struct {
 }
 
 // NewClient constructs a new Client.
-func NewClient(baseURL *url.URL, o *ClientOptions) (c *Client) {
-	if o == nil {
-		o = new(ClientOptions)
+func NewClient(apiURL *url.URL, httpClient *http.Client) (*Client, error) {
+	if httpClient == nil {
+		httpClient = &http.Client{}
 	}
-	if o.HTTPClient == nil {
-		o.HTTPClient = new(http.Client)
+	if apiURL == nil {
+		return nil, errors.New("baseURL is required")
 	}
 
-	c = newClient(httpClientWithTransport(baseURL, o.HTTPClient))
-	return
+	return newClient(apiURL, httpClient), nil
 }
 
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all API services.
-func newClient(httpClient *http.Client) (c *Client) {
-	c = &Client{httpClient: httpClient}
+func newClient(apiURL *url.URL, httpClient *http.Client) (c *Client) {
+	c = &Client{
+		httpClient: httpClient,
+		apiURL:     apiURL,
+	}
 	c.service.client = c
 
 	c.Act = (*ActService)(&c.service)
@@ -108,32 +106,6 @@ func newClient(httpClient *http.Client) (c *Client) {
 	return c
 }
 
-func httpClientWithTransport(baseURL *url.URL, c *http.Client) *http.Client {
-	if c == nil {
-		c = new(http.Client)
-	}
-
-	transport := c.Transport
-	if transport == nil {
-		transport = http.DefaultTransport
-	}
-
-	if !strings.HasSuffix(baseURL.Path, "/") {
-		baseURL.Path += "/"
-	}
-
-	c.Transport = roundTripperFunc(func(r *http.Request) (resp *http.Response, err error) {
-		r.Header.Set("User-Agent", userAgent)
-		u, err := baseURL.Parse(r.URL.String())
-		if err != nil {
-			return nil, err
-		}
-		r.URL = u
-		return transport.RoundTrip(r)
-	})
-	return c
-}
-
 // requestJSON handles the HTTP request response cycle. It JSON encodes the request
 // body, creates an HTTP request with provided method on a path with required
 // headers and decodes request body if the v argument is not nil and content type is
@@ -150,9 +122,22 @@ func (c *Client) requestJSON(ctx context.Context, method, path string, body, v i
 	return c.request(ctx, method, path, bodyBuffer, v)
 }
 
+func (c *Client) getFullURL(path string) (string, error) {
+	rel, err := url.Parse(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse path: %w", err)
+	}
+	return c.apiURL.ResolveReference(rel).String(), nil
+}
+
 // request handles the HTTP request response cycle.
 func (c *Client) request(ctx context.Context, method, path string, body io.Reader, v interface{}) (err error) {
-	req, err := http.NewRequest(method, path, body)
+	fullURL, err := c.getFullURL(path)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(method, fullURL, body)
 	if err != nil {
 		return err
 	}
@@ -196,7 +181,12 @@ func (c *Client) requestData(ctx context.Context, method, path string, body io.R
 
 // requestDataGetHeader handles the HTTP request response cycle and returns the response body and header.
 func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, body io.Reader, opts *DownloadOptions) (resp io.ReadCloser, h http.Header, err error) {
-	req, err := http.NewRequest(method, path, body)
+	fullURL, err := c.getFullURL(path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := http.NewRequest(method, fullURL, body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -245,7 +235,12 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 
 // requestWithHeader handles the HTTP request response cycle.
 func (c *Client) requestWithHeader(ctx context.Context, method, path string, header http.Header, body io.Reader, v interface{}, headerParser ...func(http.Header)) (err error) {
-	req, err := http.NewRequest(method, path, body)
+	fullURL, err := c.getFullURL(path)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(method, fullURL, body)
 	if err != nil {
 		return err
 	}
@@ -323,41 +318,4 @@ func responseErrorHandler(r *http.Response) (err error) {
 // for them to use.
 type service struct {
 	client *Client
-}
-
-// Bool is a helper routine that allocates a new bool value to store v and
-// returns a pointer to it.
-func Bool(v bool) (p *bool) { return &v }
-
-// roundTripperFunc type is an adapter to allow the use of ordinary functions as
-// http.RoundTripper interfaces. If f is a function with the appropriate
-// signature, roundTripperFunc(f) is a http.RoundTripper that calls f.
-type roundTripperFunc func(*http.Request) (*http.Response, error)
-
-// RoundTrip calls f(r).
-func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return f(r)
-}
-
-type UploadOptions struct {
-	Act               bool
-	Pin               bool
-	Tag               uint64
-	BatchID           string
-	Direct            bool
-	ActHistoryAddress swarm.Address
-
-	// Dirs
-	IndexDocument string
-	ErrorDocument string
-}
-
-type DownloadOptions struct {
-	Act                    *bool
-	ActHistoryAddress      *swarm.Address
-	ActPublicKey           *swarm.Address
-	ActTimestamp           *uint64
-	Cache                  *bool
-	RedundancyFallbackMode *bool
-	OnlyRootChunk          *bool
 }

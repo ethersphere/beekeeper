@@ -19,7 +19,8 @@ var _ Client = (*GethClient)(nil)
 type GethClient struct {
 	bzzTokenAddress string
 	ethAccount      string
-	httpClient      *http.Client // HTTP client must handle authentication implicitly
+	httpClient      *http.Client
+	baseURL         *url.URL
 	logger          logging.Logger
 }
 
@@ -31,7 +32,7 @@ type GethClientOptions struct {
 }
 
 // NewClient constructs a new Client.
-func NewGethClient(baseURL *url.URL, o *GethClientOptions, logger logging.Logger) (gc *GethClient) {
+func NewGethClient(baseURL *url.URL, o *GethClientOptions, logger logging.Logger) *GethClient {
 	if o == nil {
 		o = new(GethClientOptions)
 	}
@@ -48,14 +49,13 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions, logger logging.Logger
 		o.EthAccount = EthAccount
 	}
 
-	gc = &GethClient{
+	return &GethClient{
 		bzzTokenAddress: o.BzzTokenAddress,
 		ethAccount:      o.EthAccount,
-		httpClient:      httpClientWithTransport(baseURL, o.HTTPClient),
+		httpClient:      o.HTTPClient,
 		logger:          logger,
+		baseURL:         baseURL,
 	}
-
-	return
 }
 
 // ethRequest represents common eth request
@@ -106,7 +106,7 @@ func (g *GethClient) SendETH(ctx context.Context, to string, amount float64) (tx
 		Result  string `json:"result"`
 	})
 
-	if err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+	if err = g.requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
 		return "", err
 	}
 
@@ -143,7 +143,7 @@ func (g *GethClient) SendBZZ(ctx context.Context, to string, amount float64) (tx
 		Result  string `json:"result"`
 	})
 
-	if err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+	if err = g.requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
 		return "", err
 	}
 
@@ -180,7 +180,7 @@ func (g *GethClient) SendGBZZ(ctx context.Context, to string, amount float64) (t
 		Result  string `json:"result"`
 	})
 
-	if err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+	if err = g.requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
 		return "", err
 	}
 
@@ -216,7 +216,7 @@ func (g *GethClient) AttestOverlayEthAddress(ctx context.Context, ethAddr string
 		Result  string `json:"result"`
 	})
 
-	if err = requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
+	if err = g.requestJSON(ctx, g.httpClient, http.MethodPost, "/", req, &resp); err != nil {
 		return "", err
 	}
 
@@ -238,7 +238,7 @@ func (g *GethClient) ethAccounts(ctx context.Context) (a []string, err error) {
 		Result  []string `json:"result"`
 	})
 
-	if err := requestJSON(ctx, g.httpClient, http.MethodGet, "/", req, &resp); err != nil {
+	if err := g.requestJSON(ctx, g.httpClient, http.MethodGet, "/", req, &resp); err != nil {
 		return nil, err
 	}
 
