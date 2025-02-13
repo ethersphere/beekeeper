@@ -43,10 +43,10 @@ type ClusterNodeGroup struct {
 
 // ClusterNode represents node in the cluster
 type ClusterNode struct {
-	Name      string `yaml:"name"`
-	Bootnodes string `yaml:"bootnodes"`
-	LibP2PKey string `yaml:"libp2p-key"`
-	SwarmKey  string `yaml:"swarm-key"`
+	Name      string                      `yaml:"name"`
+	Bootnodes string                      `yaml:"bootnodes"`
+	LibP2PKey string                      `yaml:"libp2p-key"`
+	SwarmKey  *orchestration.EncryptedKey `yaml:"swarm-key"`
 }
 
 type NodeEndpoint struct {

@@ -78,8 +78,11 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	if len(o.LibP2PKey) > 0 {
 		keysSecretData["libp2p"] = o.LibP2PKey
 	}
-	if len(o.SwarmKey) > 0 {
-		keysSecretData["swarm"] = o.SwarmKey
+	if o.SwarmKey != nil {
+		keysSecretData["swarm"], err = o.SwarmKey.StringJSON()
+		if err != nil {
+			return fmt.Errorf("json encode swarm key: %w", err)
+		}
 	}
 
 	if _, err := n.k8s.Secret.Set(ctx, keysSecret, o.Namespace, secret.Options{
@@ -248,7 +251,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	// statefulset
 	sSet := o.Name
 	libP2PEnabled := len(o.LibP2PKey) > 0
-	swarmEnabled := len(o.SwarmKey) > 0
+	swarmEnabled := o.SwarmKey != nil
 
 	if _, err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
