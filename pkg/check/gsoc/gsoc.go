@@ -125,7 +125,7 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	logger.Infof("gsoc: socAddress=%s, listner node address=%s", socAddress, addresses.Overlay)
 
 	listener := &socListener{}
-	ch, err := listener.Listen(ctx, listenClient.Host(), socAddress, logger)
+	ch, err := listener.Listen(ctx, listenClient, socAddress, logger)
 	if err != nil {
 		return fmt.Errorf("listen websocket: %w", err)
 	}
@@ -306,13 +306,13 @@ func (s *socListener) Close() {
 	close(s.ch)
 }
 
-func (s *socListener) Listen(ctx context.Context, host string, addr swarm.Address, logger logging.Logger) (<-chan string, error) {
+func (s *socListener) Listen(ctx context.Context, client *bee.Client, addr swarm.Address, logger logging.Logger) (<-chan string, error) {
 	dialer := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: 45 * time.Second,
 	}
 
-	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/gsoc/subscribe/%s", host, addr), http.Header{})
+	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/gsoc/subscribe/%s", client.Host(), addr), http.Header{})
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (s *socListener) Listen(ctx context.Context, host string, addr swarm.Addres
 	s.ch = make(chan string)
 	s.listening = true
 
-	go func() {
+	go func(nodeName string) {
 		for {
 			select {
 			case <-ctx.Done():
@@ -328,19 +328,19 @@ func (s *socListener) Listen(ctx context.Context, host string, addr swarm.Addres
 			default:
 				msgType, data, err := ws.ReadMessage()
 				if err != nil {
-					logger.Infof("gsoc: websocket error %v", err)
+					logger.WithField("node", nodeName).Infof("gsoc: websocket error: %v", err)
 					return
 				}
 				if msgType != websocket.BinaryMessage {
-					logger.Info("gsoc: websocket received non-binary message")
+					logger.WithField("node", nodeName).Info("gsoc: websocket received non-binary message")
 					continue
 				}
 
-				logger.Infof("gsoc: websocket received message %s", string(data))
+				logger.WithField("node", nodeName).Infof("gsoc: websocket received message: %s", string(data))
 				s.ch <- string(data)
 			}
 		}
-	}()
+	}(client.Name())
 
 	return s.ch, nil
 }
