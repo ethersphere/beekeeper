@@ -320,7 +320,7 @@ func (s *socListener) Listen(ctx context.Context, client *bee.Client, addr swarm
 	s.ch = make(chan string)
 	s.listening = true
 
-	go func() {
+	go func(nodeName string) {
 		for {
 			select {
 			case <-ctx.Done():
@@ -328,19 +328,19 @@ func (s *socListener) Listen(ctx context.Context, client *bee.Client, addr swarm
 			default:
 				msgType, data, err := ws.ReadMessage()
 				if err != nil {
-					logger.WithField("node", client.Name()).Infof("gsoc: websocket error: %v", err)
+					logger.WithField("node", nodeName).Infof("gsoc: websocket error: %v", err)
 					return
 				}
 				if msgType != websocket.BinaryMessage {
-					logger.WithField("node", client.Name()).Info("gsoc: websocket received non-binary message")
+					logger.WithField("node", nodeName).Info("gsoc: websocket received non-binary message")
 					continue
 				}
 
-				logger.WithField("node", client.Name()).Infof("gsoc: websocket received message: %s", string(data))
+				logger.WithField("node", nodeName).Infof("gsoc: websocket received message: %s", string(data))
 				s.ch <- string(data)
 			}
 		}
-	}()
+	}(client.Name())
 
 	return s.ch, nil
 }
