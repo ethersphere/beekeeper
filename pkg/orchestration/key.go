@@ -13,6 +13,7 @@ import (
 	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/scrypt"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -45,6 +46,19 @@ type EncryptedKey struct {
 	Crypto  keyCripto `json:"crypto"`
 	Version int       `json:"version"`
 	ID      string    `json:"id"`
+}
+
+func (k *EncryptedKey) UnmarshalYAML(value *yaml.Node) error {
+	var raw string
+	if err := value.Decode(&raw); err != nil {
+		return fmt.Errorf("expected swarm-key as a JSON string but got something else: %w", err)
+	}
+
+	if err := json.Unmarshal([]byte(raw), k); err != nil {
+		return fmt.Errorf("failed to parse EncryptedKey from JSON: %w", err)
+	}
+
+	return nil
 }
 
 func (k *EncryptedKey) StringJSON() (string, error) {
