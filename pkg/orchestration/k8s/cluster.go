@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -61,7 +60,6 @@ func NewCluster(name string, o orchestration.ClusterOptions, k8s *k8s.Client, sw
 					},
 				},
 			},
-			Timeout: 30 * time.Second,
 		},
 		k8sClient:  k8s,
 		swapClient: swapClient,
