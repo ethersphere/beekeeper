@@ -24,7 +24,7 @@ import (
 // Client manages communication with the Bee node
 type Client struct {
 	api        *api.Client
-	swapClient swap.Client
+	swapClient swap.BlockTimeFetcher
 	log        logging.Logger
 	name       string
 	apiURL     *url.URL
@@ -36,7 +36,7 @@ type ClientOptions struct {
 	APIURL     *url.URL
 	Name       string
 	Retry      int
-	SwapClient swap.Client
+	SwapClient swap.BlockTimeFetcher
 	HTTPClient *http.Client
 	Logger     logging.Logger
 }
@@ -459,7 +459,7 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 		return "", fmt.Errorf("fetching block time: %w", err)
 	}
 
-	amount := int64(1000)
+	amount := int64(1)
 
 	price := csr.CurrentPrice.Int64()
 	if price > 0 {

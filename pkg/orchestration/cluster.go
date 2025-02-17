@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"net/url"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
-	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
 type Cluster interface {
@@ -51,9 +48,6 @@ type ClusterOptions struct {
 	DisableNamespace  bool
 	Labels            map[string]string
 	Namespace         string
-	K8SClient         *k8s.Client
-	SwapClient        swap.Client
-	HTTPClient        *http.Client
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster

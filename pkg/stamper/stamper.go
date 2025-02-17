@@ -40,7 +40,7 @@ type ClientConfig struct {
 	Namespace     string
 	HTTPClient    *http.Client
 	K8sClient     *k8s.Client
-	SwapClient    swap.Client
+	SwapClient    swap.BlockTimeFetcher
 	BeeClients    map[string]*bee.Client
 	LabelSelector string
 	InCluster     bool
@@ -50,7 +50,7 @@ type Client struct {
 	log           logging.Logger
 	namespace     string
 	k8sClient     *k8s.Client
-	swapClient    swap.Client
+	swapClient    swap.BlockTimeFetcher
 	httpClient    *http.Client
 	beeClients    map[string]*bee.Client
 	labelSelector string

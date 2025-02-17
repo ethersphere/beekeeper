@@ -13,6 +13,8 @@ import (
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -32,12 +34,23 @@ type NodeGroup struct {
 	opts             orchestration.NodeGroupOptions
 	clusterOpts      orchestration.ClusterOptions
 	httpClient       *http.Client
+	swapClient       swap.Client
+	k8sClient        *k8s.Client
 	log              logging.Logger
 	lock             sync.RWMutex
 }
 
 // NewNodeGroup returns new node group
-func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestration.NodeOrchestrator, ngopts orchestration.NodeGroupOptions, httpClient *http.Client, log logging.Logger) *NodeGroup {
+func NewNodeGroup(
+	name string,
+	copts orchestration.ClusterOptions,
+	no orchestration.NodeOrchestrator,
+	ngopts orchestration.NodeGroupOptions,
+	httpClient *http.Client,
+	swapClient swap.Client,
+	k8sClient *k8s.Client,
+	log logging.Logger,
+) *NodeGroup {
 	ngopts.Annotations = mergeMaps(ngopts.Annotations, copts.Annotations)
 	ngopts.Labels = mergeMaps(ngopts.Labels, copts.Labels)
 
@@ -47,6 +60,9 @@ func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestrat
 		nodes:            make(map[string]orchestration.Node),
 		opts:             ngopts,
 		clusterOpts:      copts,
+		httpClient:       httpClient,
+		swapClient:       swapClient,
+		k8sClient:        k8sClient,
 		log:              log,
 	}
 }
@@ -72,7 +88,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, no
 		Name:       name,
 		APIURL:     apiURL,
 		Retry:      5,
-		SwapClient: g.clusterOpts.SwapClient,
+		SwapClient: g.swapClient,
 		HTTPClient: g.httpClient,
 		Logger:     g.log,
 	}
@@ -678,7 +694,7 @@ func (g *NodeGroup) pregenerateSwarmKey(ctx context.Context, name string) (err e
 			return err
 		}
 
-		txHash, err := g.clusterOpts.SwapClient.AttestOverlayEthAddress(ctx, key.Address)
+		txHash, err := g.swapClient.AttestOverlayEthAddress(ctx, key.Address)
 		if err != nil {
 			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
 		}
