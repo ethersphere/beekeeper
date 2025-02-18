@@ -13,6 +13,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	websocket2 "github.com/ethersphere/beekeeper/pkg/websocket"
 	"github.com/gorilla/websocket"
 )
 
@@ -112,59 +113,59 @@ var (
 
 func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Options) error {
 	ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
+	defer cancel()
 
 	nodeA := clients[nodeAName]
 	nodeB := clients[nodeBName]
 
 	addrB, err := nodeB.Addresses(ctx)
 	if err != nil {
-		cancel()
 		return err
 	}
 
 	batchID, err := nodeA.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
-		cancel()
 		return fmt.Errorf("node %s: batched id %w", nodeAName, err)
 	}
 	c.logger.Infof("node %s: batched id %s", nodeAName, batchID)
 
-	ch, close, err := listenWebsocket(ctx, nodeB.Host(), testTopic, c.logger)
+	ch, closer, err := listenWebsocket(ctx, nodeB.Host(), testTopic, c.logger)
 	if err != nil {
-		cancel()
 		return err
 	}
 
 	c.logger.Infof("pss: sending test data to node %s and listening on node %s", nodeAName, nodeBName)
 
+	defer closer()
+
 	tStart := time.Now()
 	err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
 	if err != nil {
-		close()
-		cancel()
 		return err
 	}
 
-	msg, ok := <-ch
-	if ok {
-		if msg == string(testData) {
-			c.logger.Info("pss: websocket connection received correct message")
-			c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
-		} else {
-			err = errDataMismatch
+L:
+	for {
+		select {
+		case <-time.After(1 * time.Minute):
+			err = fmt.Errorf("correct message not received after %s", 1*time.Minute)
+			break L
+		default:
+			msg, ok := <-ch
+			if !ok {
+				break L
+			}
+
+			if msg == string(testData) {
+				c.logger.Info("pss: websocket connection received correct message")
+				c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
+				break L
+			}
+			c.logger.Infof("pss: received incorrect message. trying again. want %s, got %s", string(testData), msg)
 		}
-	} else {
-		err = errWebsocketConnection
 	}
 
-	cancel()
-	close()
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func listenWebsocket(ctx context.Context, host string, topic string, logger logging.Logger) (<-chan string, func(), error) {
@@ -178,18 +179,5 @@ func listenWebsocket(ctx context.Context, host string, topic string, logger logg
 		return nil, nil, err
 	}
 
-	ch := make(chan string)
-
-	go func() {
-		_, data, err := ws.ReadMessage()
-		if err != nil {
-			logger.Infof("pss: websocket error %v", err)
-			close(ch)
-			return
-		}
-
-		ch <- string(data)
-	}()
-
-	return ch, func() { ws.Close() }, nil
+	return websocket2.ListenWebSocket(ctx, ws, logger)
 }
