@@ -122,17 +122,3 @@ func (ng *ClusterNodeGroup) GetEndpoints() map[string]NodeEndpoint {
 	}
 	return endpoints
 }
-
-func (cn *ClusterNode) GetSwarmKey() *orchestration.EncryptedKey {
-	if cn == nil {
-		return nil
-	}
-	return cn.SwarmKey
-}
-
-func (cn *ClusterNode) GetLibP2PKey() string {
-	if cn == nil {
-		return ""
-	}
-	return cn.LibP2PKey
-}

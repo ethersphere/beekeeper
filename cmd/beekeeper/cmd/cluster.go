@@ -321,8 +321,8 @@ func setupOrAddNode(ctx context.Context,
 func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) orchestration.NodeOptions {
 	return orchestration.NodeOptions{
 		Config:    bConfig,
-		LibP2PKey: node.GetLibP2PKey(),
-		SwarmKey:  node.GetSwarmKey(),
+		LibP2PKey: node.LibP2PKey,
+		SwarmKey:  node.SwarmKey,
 	}
 }
 
