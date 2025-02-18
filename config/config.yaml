@@ -248,7 +248,7 @@ checks:
       postage-depth: 21
       postage-label: test-label
       request-timeout: 5m
-    timeout: 5m
+    timeout: 30m
     type: pss
   pullsync:
     options:
