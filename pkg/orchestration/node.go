@@ -2,10 +2,7 @@ package orchestration
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -19,8 +16,8 @@ type Node interface {
 	Config() *Config
 	LibP2PKey() string
 	Name() string
-	SetSwarmKey(key string) Node
-	SwarmKey() string
+	SetSwarmKey(key *EncryptedKey) Node
+	SwarmKey() *EncryptedKey
 	Create(ctx context.Context, o CreateOptions) (err error)
 	Delete(ctx context.Context, namespace string) (err error)
 	Ready(ctx context.Context, namespace string) (ready bool, err error)
@@ -38,41 +35,12 @@ type NodeOrchestrator interface {
 	StoppedNodes(ctx context.Context, namespace string) (stopped []string, err error)
 }
 
-// EncryptedKey is part of Ethereum JSON v3 key file format.
-type EncryptedKey string
-
-func (ek EncryptedKey) String() string {
-	return string(ek)
-}
-
-// EncryptedKeyJson is json string for EncryptedKey.
-type EncryptedKeyJson struct {
-	Address string `json:"address"`
-	// TODO map complete key to Ethereum JSON v3 key file format
-}
-
-// GetEthAddress extracts ethereum address from EncryptedKey.
-func (ek EncryptedKey) GetEthAddress() (string, error) {
-	var skj EncryptedKeyJson
-
-	err := json.Unmarshal([]byte(ek), &skj)
-	if err != nil {
-		return "", fmt.Errorf("unmarshal swarm encrypted key address: %s", err.Error())
-	}
-
-	if skj.Address != "" && !strings.HasPrefix(skj.Address, "0x") {
-		skj.Address = fmt.Sprintf("0x%s", skj.Address)
-	}
-
-	return skj.Address, nil
-}
-
 // NodeOptions holds optional parameters for the Node.
 type NodeOptions struct {
 	Client    *bee.Client
 	Config    *Config
 	LibP2PKey string
-	SwarmKey  EncryptedKey
+	SwarmKey  *EncryptedKey
 }
 
 // CreateOptions represents available options for creating node
@@ -102,7 +70,7 @@ type CreateOptions struct {
 	ResourcesRequestCPU       string
 	ResourcesRequestMemory    string
 	Selector                  map[string]string
-	SwarmKey                  string
+	SwarmKey                  *EncryptedKey
 	UpdateStrategy            string
 }
 

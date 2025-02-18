@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
 	"github.com/spf13/cobra"
+
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 func (c *command) initFundCmd() (err error) {
@@ -34,20 +35,16 @@ beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e0
 beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-deposit 0.1`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			var addresses []string
-			var createdKeys []utils.EncryptedKey
+			var createdKeys []orchestration.EncryptedKey
 			if c.globalConfig.GetBool(optionNameAddressCreate) {
 				for i := 0; i < c.globalConfig.GetInt(optionNameAddressCount); i++ {
-					swarmKey, err := utils.CreateSwarmKey(c.globalConfig.GetString(optionNamePassword))
+					key, err := orchestration.NewEncryptedKey(c.globalConfig.GetString(optionNamePassword))
 					if err != nil {
 						return fmt.Errorf("creating Swarm key: %w", err)
 					}
 
-					var key utils.EncryptedKey
-					if err := json.Unmarshal([]byte(swarmKey), &key); err != nil {
-						return fmt.Errorf("unmarshaling Swarm address: %w", err)
-					}
 					addresses = append(addresses, "0x"+key.Address)
-					createdKeys = append(createdKeys, key)
+					createdKeys = append(createdKeys, *key)
 				}
 				if c.globalConfig.GetBool(optionNamePrintKeys) {
 					k, err := json.Marshal(createdKeys)

@@ -333,8 +333,8 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 	if len(node.LibP2PKey) > 0 {
 		nOptions.LibP2PKey = node.LibP2PKey
 	}
-	if len(node.SwarmKey) > 0 {
-		nOptions.SwarmKey = orchestration.EncryptedKey(node.SwarmKey)
+	if node.SwarmKey != nil {
+		nOptions.SwarmKey = node.SwarmKey
 	}
 	return nOptions
 }
