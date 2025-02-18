@@ -2,7 +2,6 @@ package pss
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -100,11 +99,6 @@ func pickAtRandom(r *rand.Rand, names []string, skip string) string {
 		}
 	}
 }
-
-var (
-	errDataMismatch        = errors.New("pss: data sent and received are not equal")
-	errWebsocketConnection = errors.New("pss: websocket connection terminated with an error")
-)
 
 var (
 	testData  = []byte("Hello Swarm :)")
