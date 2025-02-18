@@ -1,4 +1,4 @@
-package utils
+package orchestration
 
 import (
 	"crypto/aes"
@@ -13,6 +13,7 @@ import (
 	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/scrypt"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -25,18 +26,18 @@ const (
 	scryptDKLen = 32
 )
 
-func CreateSwarmKey(password string) (swarmKey string, err error) {
+func NewEncryptedKey(password string) (*EncryptedKey, error) {
 	key, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	encrypted, err := encryptKey(key, password)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(encrypted), nil
+	return encrypted, nil
 }
 
 // This format is compatible with Ethereum JSON v3 key file format.
@@ -45,6 +46,27 @@ type EncryptedKey struct {
 	Crypto  keyCripto `json:"crypto"`
 	Version int       `json:"version"`
 	ID      string    `json:"id"`
+}
+
+func (k *EncryptedKey) UnmarshalYAML(value *yaml.Node) error {
+	var raw string
+	if err := value.Decode(&raw); err != nil {
+		return fmt.Errorf("expected swarm-key as a JSON string but got something else: %w", err)
+	}
+
+	if err := json.Unmarshal([]byte(raw), k); err != nil {
+		return fmt.Errorf("failed to parse EncryptedKey from JSON: %w", err)
+	}
+
+	return nil
+}
+
+func (k *EncryptedKey) StringJSON() (string, error) {
+	data, err := json.Marshal(k)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 type keyCripto struct {
@@ -68,7 +90,7 @@ type kdfParams struct {
 	Salt  string `json:"salt"`
 }
 
-func encryptKey(k *ecdsa.PrivateKey, password string) ([]byte, error) {
+func encryptKey(k *ecdsa.PrivateKey, password string) (*EncryptedKey, error) {
 	data, err := crypto.EncodeSecp256k1PrivateKey(k)
 	if err != nil {
 		return nil, err
@@ -81,12 +103,12 @@ func encryptKey(k *ecdsa.PrivateKey, password string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(EncryptedKey{
+	return &EncryptedKey{
 		Address: hex.EncodeToString(addr),
 		Crypto:  *kc,
 		Version: keyVersion,
 		ID:      uuid.NewString(),
-	})
+	}, nil
 }
 
 func encryptData(data, password []byte) (*keyCripto, error) {

@@ -52,13 +52,13 @@ func (n Node) LibP2PKey() string {
 }
 
 // SwarmKey returns node's swarmKey
-func (n Node) SwarmKey() string {
-	return n.opts.SwarmKey.String()
+func (n Node) SwarmKey() *orchestration.EncryptedKey {
+	return n.opts.SwarmKey
 }
 
 // SetSwarmKey sets node's Swarm key
-func (n Node) SetSwarmKey(key string) orchestration.Node {
-	n.opts.SwarmKey = orchestration.EncryptedKey(key)
+func (n Node) SetSwarmKey(key *orchestration.EncryptedKey) orchestration.Node {
+	n.opts.SwarmKey = key
 	return n
 }
 

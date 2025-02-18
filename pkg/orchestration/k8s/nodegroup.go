@@ -2,12 +2,12 @@ package k8s
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,7 +18,6 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/orchestration/utils"
 )
 
 const nodeRetryTimeout = 5 * time.Second
@@ -387,31 +386,35 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	return
 }
 
-// GetEthAddress returns ethereum address of the node
+// getEthAddress returns ethereum address of the node
 func (ng *NodeGroup) getEthAddress(ctx context.Context, name string, o orchestration.NodeOptions) (string, error) {
-	var a bee.Addresses
-	a.Ethereum, _ = o.SwarmKey.GetEthAddress()
-	if a.Ethereum == "" {
-		retries := 5
-		for {
-			c, err := ng.NodeClient(name)
-			if err != nil {
-				return "", fmt.Errorf("get %s node client: %w", name, err)
-			}
-			a, err = c.Addresses(ctx)
-			if err != nil {
-				retries--
-				if retries == 0 {
-					return "", fmt.Errorf("get %s address: %w", name, err)
-				}
-				time.Sleep(nodeRetryTimeout)
-				continue
-			}
-			break
+	if o.SwarmKey != nil {
+		address := o.SwarmKey.Address
+		if !strings.HasPrefix(address, "0x") {
+			address = "0x" + address
 		}
+		ng.log.Infof("fund eth address in node options: %s", address)
+		return address, nil
 	}
-	ng.log.Infof("fund eth address: %s", a.Ethereum)
-	return a.Ethereum, nil
+
+	retries := 5
+	for {
+		c, err := ng.NodeClient(name)
+		if err != nil {
+			return "", fmt.Errorf("get %s node client: %w", name, err)
+		}
+		a, err := c.Addresses(ctx)
+		if err != nil {
+			retries--
+			if retries == 0 {
+				return "", fmt.Errorf("get %s address: %w", name, err)
+			}
+			time.Sleep(nodeRetryTimeout)
+			continue
+		}
+		ng.log.Infof("fund eth address using node api: %s", a.Ethereum)
+		return a.Ethereum, nil
+	}
 }
 
 // GroupReplicationFactor returns the total number of nodes in the node group that contain given chunk
@@ -671,27 +674,21 @@ func (g *NodeGroup) pregenerateSwarmKey(ctx context.Context, name string) (err e
 	}
 
 	if !n.Config().SwapEnable || !n.Config().ChequebookEnable {
-		var swarmKey string
+		var key *orchestration.EncryptedKey
 
-		if n.SwarmKey() == "" {
-			swarmKey, err = utils.CreateSwarmKey(n.Config().Password)
+		if n.SwarmKey() == nil {
+			key, err = orchestration.NewEncryptedKey(n.Config().Password)
 			if err != nil {
 				return fmt.Errorf("create Swarm key for node %s: %w", name, err)
 			}
 
-			n = n.SetSwarmKey(swarmKey)
+			n = n.SetSwarmKey(key)
 
 			if err := g.setNode(name, n); err != nil {
 				return fmt.Errorf("setting node %s: %w", name, err)
 			}
 		} else {
-			swarmKey = n.SwarmKey()
-		}
-
-		var key utils.EncryptedKey
-		err = json.Unmarshal([]byte(swarmKey), &key)
-		if err != nil {
-			return err
+			key = n.SwarmKey()
 		}
 
 		txHash, err := g.swapClient.AttestOverlayEthAddress(ctx, key.Address)
