@@ -82,6 +82,12 @@ func ListenWebSocket(ctx context.Context, client *bee.Client, endpoint string, l
 	var once sync.Once
 	closer := func() {
 		once.Do(func() {
+			deadline := time.Now().Add(5 * time.Second)
+			msg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+			if err := ws.WriteControl(websocket.CloseMessage, msg, deadline); err != nil {
+				logger.Infof("failed to send close message: %v", err)
+			}
+
 			close(done)
 			ws.Close()
 		})
