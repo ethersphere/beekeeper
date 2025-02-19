@@ -1,14 +1,29 @@
-package websocket
+package wslistener
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"sync"
+	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/gorilla/websocket"
 )
 
 // ListenWebSocket listens for messages on a websocket connection.
-func ListenWebSocket(ctx context.Context, ws *websocket.Conn, logger logging.Logger) (<-chan string, func(), error) {
+func ListenWebSocket(ctx context.Context, client *bee.Client, endpoint string, logger logging.Logger) (<-chan string, func(), error) {
+	dialer := &websocket.Dialer{
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: 45 * time.Second,
+	}
+
+	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s%s", client.Host(), endpoint), http.Header{})
+	if err != nil {
+		return nil, nil, err
+	}
+
 	ch := make(chan string)
 	readCh := make(chan []byte)
 	errCh := make(chan error)
@@ -19,6 +34,12 @@ func ListenWebSocket(ctx context.Context, ws *websocket.Conn, logger logging.Log
 		defer close(errCh)
 
 		for {
+			// ping should be received every 60s (defined on bee)
+			err := ws.SetReadDeadline(time.Now().Add(90 * time.Second))
+			if err != nil {
+				errCh <- err
+				return
+			}
 			_, data, err := ws.ReadMessage()
 			if err != nil {
 				errCh <- err
@@ -27,6 +48,8 @@ func ListenWebSocket(ctx context.Context, ws *websocket.Conn, logger logging.Log
 			select {
 			case readCh <- data:
 			case <-done:
+				return
+			case <-ctx.Done():
 				return
 			}
 		}
@@ -38,6 +61,7 @@ func ListenWebSocket(ctx context.Context, ws *websocket.Conn, logger logging.Log
 		for {
 			select {
 			case data := <-readCh:
+				logger.WithField("node", client.Name()).Infof("websocket received message: %s", string(data))
 				select {
 				case ch <- string(data):
 				case <-done:
@@ -55,9 +79,12 @@ func ListenWebSocket(ctx context.Context, ws *websocket.Conn, logger logging.Log
 		}
 	}()
 
+	var once sync.Once
 	closer := func() {
-		close(done)
-		ws.Close()
+		once.Do(func() {
+			close(done)
+			ws.Close()
+		})
 	}
 
 	return ch, closer, nil

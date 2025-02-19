@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -19,8 +18,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	websocket2 "github.com/ethersphere/beekeeper/pkg/websocket"
-	"github.com/gorilla/websocket"
+	"github.com/ethersphere/beekeeper/pkg/wslistener"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -126,7 +124,7 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	logger.Infof("gsoc: socAddress=%s, listener node address=%s, node=%s", socAddress, addresses.Overlay, listenClient.Name())
 
 	ctx, cancel := context.WithCancel(ctx)
-	ch, closer, err := listenWebsocket(ctx, listenClient, socAddress, logger)
+	ch, closer, err := wslistener.ListenWebSocket(ctx, listenClient, fmt.Sprintf("/gsoc/subscribe/%s", socAddress), logger)
 	if err != nil {
 		cancel()
 		return fmt.Errorf("listen websocket: %w", err)
@@ -301,18 +299,4 @@ func makeSoc(msg string, id []byte, privKey *ecdsa.PrivateKey) (*socData, error)
 		Sig:   hex.EncodeToString(signatureBytes),
 		Data:  ch.Data(),
 	}, nil
-}
-
-func listenWebsocket(ctx context.Context, client *bee.Client, addr swarm.Address, logger logging.Logger) (<-chan string, func(), error) {
-	dialer := &websocket.Dialer{
-		Proxy:            http.ProxyFromEnvironment,
-		HandshakeTimeout: 45 * time.Second,
-	}
-
-	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/gsoc/subscribe/%s", client.Host(), addr), http.Header{})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return websocket2.ListenWebSocket(ctx, ws, logger)
 }

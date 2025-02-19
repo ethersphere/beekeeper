@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -12,8 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	websocket2 "github.com/ethersphere/beekeeper/pkg/websocket"
-	"github.com/gorilla/websocket"
+	"github.com/ethersphere/beekeeper/pkg/wslistener"
 )
 
 // Options represents check options
@@ -123,7 +121,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	}
 	c.logger.Infof("node %s: batched id %s", nodeAName, batchID)
 
-	ch, closer, err := listenWebsocket(ctx, nodeB.Host(), testTopic, c.logger)
+	ch, closer, err := wslistener.ListenWebSocket(ctx, nodeB, fmt.Sprintf("/pss/subscribe/%s", testTopic), c.logger)
 	if err != nil {
 		return err
 	}
@@ -137,6 +135,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	if err != nil {
 		return err
 	}
+	c.logger.Infof("pss: test data sent successfully to node %s. Waiting for response from node %s", nodeAName, nodeBName)
 
 L:
 	for {
@@ -160,18 +159,4 @@ L:
 	}
 
 	return err
-}
-
-func listenWebsocket(ctx context.Context, host string, topic string, logger logging.Logger) (<-chan string, func(), error) {
-	dialer := &websocket.Dialer{
-		Proxy:            http.ProxyFromEnvironment,
-		HandshakeTimeout: 45 * time.Second,
-	}
-
-	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/pss/subscribe/%s", host, topic), http.Header{})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return websocket2.ListenWebSocket(ctx, ws, logger)
 }
