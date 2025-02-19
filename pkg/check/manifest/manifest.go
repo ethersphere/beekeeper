@@ -66,7 +66,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	rnd := random.PseudoGenerator(o.Seed)
-	clients, err := cluster.RandomClients(ctx, rnd)
+	clients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
 	if err != nil {
 		return fmt.Errorf("node clients shuffle: %w", err)
 	}

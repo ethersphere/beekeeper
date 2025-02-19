@@ -33,7 +33,7 @@ type Cluster interface {
 	Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error)
 	RandomNode(ctx context.Context, r *rand.Rand) (node Node, err error)
 	Settlements(ctx context.Context) (settlements ClusterSettlements, err error)
-	RandomClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
+	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
 }

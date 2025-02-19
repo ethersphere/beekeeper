@@ -459,7 +459,7 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 		return "", fmt.Errorf("fetching block time: %w", err)
 	}
 
-	amount := int64(1)
+	amount := int64(1) // use 1 as the minimum amount when the chain price is 0, since any amount is valid
 
 	price := csr.CurrentPrice.Int64()
 	if price > 0 {

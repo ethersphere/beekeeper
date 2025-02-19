@@ -241,8 +241,8 @@ func (c *Cluster) FullNodeNames() (names []string) {
 	return
 }
 
-// RandomClients returns a shuffled list of full node clients
-func (c *Cluster) RandomClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error) {
+// ShuffledFullNodeClients returns a shuffled list of full node clients
+func (c *Cluster) ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error) {
 	var res []*bee.Client
 	for _, node := range c.Nodes() {
 		cfg := node.Config()
