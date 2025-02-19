@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/check"
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/ethersphere/beekeeper/pkg/tracing"
@@ -91,61 +91,9 @@ func (c *command) initCheckCmd() error {
 				GethURL: c.globalConfig.GetString(optionNameGethURL),
 			}
 
-			// run checks
-			for _, checkName := range checks {
-				checkName = strings.TrimSpace(checkName)
-				// get configuration
-				checkConfig, ok := c.config.Checks[checkName]
-				if !ok {
-					return fmt.Errorf("check '%s' doesn't exist", checkName)
-				}
+			checkRunner := check.NewCheckRunner(checkGlobalConfig, c.config.Checks, cluster, metricsPusher, tracer, c.log)
 
-				// choose check type
-				check, ok := config.Checks[checkConfig.Type]
-				if !ok {
-					return fmt.Errorf("check %s not implemented", checkConfig.Type)
-				}
-
-				// create check options
-				o, err := check.NewOptions(checkGlobalConfig, checkConfig)
-				if err != nil {
-					return fmt.Errorf("creating check %s options: %w", checkName, err)
-				}
-
-				// create check
-				chk := check.NewAction(c.log)
-				if r, ok := chk.(metrics.Reporter); ok && metricsEnabled {
-					metrics.RegisterCollectors(metricsPusher, r.Report()...)
-				}
-				chk = beekeeper.NewActionMiddleware(tracer, chk, checkName)
-
-				checkCtx, cancelCheck := createChildContext(ctx, checkConfig.Timeout)
-				defer cancelCheck()
-
-				c.log.Infof("running check: %s", checkName)
-				c.log.Debugf("check options: %+v", o)
-
-				ch := make(chan error, 1)
-				go func() {
-					ch <- chk.Run(checkCtx, cluster, o)
-					close(ch)
-				}()
-
-				select {
-				case <-checkCtx.Done():
-					deadline, ok := checkCtx.Deadline()
-					if ok {
-						return fmt.Errorf("running check %s: %w: deadline %v", checkName, checkCtx.Err(), deadline)
-					}
-					return fmt.Errorf("check %s failed due to: %w", checkName, checkCtx.Err())
-				case err = <-ch:
-					if err != nil {
-						return fmt.Errorf("check %s failed with error: %w", checkName, err)
-					}
-					c.log.Infof("%s check completed successfully", checkName)
-				}
-			}
-			return nil
+			return checkRunner.Run(ctx, checks)
 		},
 		PreRunE: c.preRunE,
 	}
@@ -161,11 +109,4 @@ func (c *command) initCheckCmd() error {
 	c.root.AddCommand(cmd)
 
 	return nil
-}
-
-func createChildContext(ctx context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
-	if timeout != nil {
-		return context.WithTimeout(ctx, *timeout)
-	}
-	return context.WithCancel(ctx)
 }
