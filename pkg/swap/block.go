@@ -23,6 +23,7 @@ type options struct {
 	refresh bool
 }
 
+// WithOffset sets the number of blocks to use for block time estimation.
 func WithOffset(offset int64) Option {
 	return func(o *options) {
 		if offset > 0 {
@@ -33,6 +34,7 @@ func WithOffset(offset int64) Option {
 	}
 }
 
+// WithRefresh forces the block time to be recalculated.
 func WithRefresh() Option {
 	return func(o *options) {
 		o.refresh = true
@@ -41,6 +43,7 @@ func WithRefresh() Option {
 
 // FetchBlockTime estimates the average block time by comparing timestamps
 // of the latest block and an earlier block, adjusting the offset if needed.
+// The block time is cached and reused until forced to refresh.
 func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64, error) {
 	o := processOptions(opts...)
 
