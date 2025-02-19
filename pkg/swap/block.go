@@ -19,7 +19,8 @@ var (
 type Option func(*options)
 
 type options struct {
-	offset int64
+	offset  int64
+	refresh bool
 }
 
 func WithOffset(offset int64) Option {
@@ -32,6 +33,12 @@ func WithOffset(offset int64) Option {
 	}
 }
 
+func WithRefresh() Option {
+	return func(o *options) {
+		o.refresh = true
+	}
+}
+
 // FetchBlockTime estimates the average block time by comparing timestamps
 // of the latest block and an earlier block, adjusting the offset if needed.
 func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64, error) {
@@ -40,6 +47,11 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 	retryOffset := o.offset
 
 	var err error
+
+	// return cached block time if available and not forced to refresh
+	if g.blockTime > 0 && !o.refresh {
+		return g.blockTime, nil
+	}
 
 	latestBlockNumber, err := g.fetchLatestBlockNumber(ctx)
 	if err != nil {
@@ -79,7 +91,9 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 
 	g.logger.Tracef("avg block time for last %d blocks: %f, using rounded seconds: %d", retryOffset, blockTime, roundedBlockTime)
 
-	return roundedBlockTime, nil
+	g.blockTime = roundedBlockTime
+
+	return g.blockTime, nil
 }
 
 type rpcRequest struct {
@@ -155,7 +169,8 @@ func (g *GethClient) fetchBlockTimestamp(ctx context.Context, blockNumber int64)
 
 func processOptions(opts ...Option) *options {
 	o := &options{
-		offset: 1,
+		offset:  1,
+		refresh: false,
 	}
 	for _, opt := range opts {
 		opt(o)

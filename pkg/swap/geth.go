@@ -21,6 +21,7 @@ type GethClient struct {
 	ethAccount      string
 	httpClient      *http.Client // HTTP client must handle authentication implicitly
 	logger          logging.Logger
+	blockTime       int64
 }
 
 // GethClientOptions holds optional parameters for the GethClient
