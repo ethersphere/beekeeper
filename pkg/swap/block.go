@@ -52,8 +52,8 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 	var err error
 
 	// return cached block time if available and not forced to refresh
-	if g.blockTime > 0 && !o.refresh {
-		return g.blockTime, nil
+	if cachedBlockTime := g.cache.BlockTime(); cachedBlockTime > 0 && !o.refresh {
+		return cachedBlockTime, nil
 	}
 
 	latestBlockNumber, err := g.fetchLatestBlockNumber(ctx)
@@ -94,9 +94,9 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 
 	g.logger.Tracef("avg block time for last %d blocks: %f, using rounded seconds: %d", retryOffset, blockTime, roundedBlockTime)
 
-	g.blockTime = roundedBlockTime
+	g.cache.SetBlockTime(roundedBlockTime)
 
-	return g.blockTime, nil
+	return roundedBlockTime, nil
 }
 
 type rpcRequest struct {
