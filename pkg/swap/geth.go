@@ -21,6 +21,7 @@ type GethClient struct {
 	ethAccount      string
 	httpClient      *http.Client // HTTP client must handle authentication implicitly
 	logger          logging.Logger
+	cache           *cache
 }
 
 // GethClientOptions holds optional parameters for the GethClient
@@ -53,6 +54,7 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions, logger logging.Logger
 		ethAccount:      o.EthAccount,
 		httpClient:      httpClientWithTransport(baseURL, o.HTTPClient),
 		logger:          logger,
+		cache:           newCache(),
 	}
 
 	return
