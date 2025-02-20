@@ -22,6 +22,7 @@ type GethClient struct {
 	httpClient      *http.Client
 	baseURL         *url.URL
 	logger          logging.Logger
+	cache           *cache
 }
 
 // GethClientOptions holds optional parameters for the GethClient
@@ -55,6 +56,7 @@ func NewGethClient(baseURL *url.URL, o *GethClientOptions, logger logging.Logger
 		httpClient:      o.HTTPClient,
 		logger:          logger,
 		baseURL:         baseURL,
+		cache:           newCache(),
 	}
 }
 

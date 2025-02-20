@@ -19,9 +19,11 @@ var (
 type Option func(*options)
 
 type options struct {
-	offset int64
+	offset  int64
+	refresh bool
 }
 
+// WithOffset sets the number of blocks to use for block time estimation.
 func WithOffset(offset int64) Option {
 	return func(o *options) {
 		if offset > 0 {
@@ -32,14 +34,27 @@ func WithOffset(offset int64) Option {
 	}
 }
 
+// WithRefresh forces the block time to be recalculated.
+func WithRefresh() Option {
+	return func(o *options) {
+		o.refresh = true
+	}
+}
+
 // FetchBlockTime estimates the average block time by comparing timestamps
 // of the latest block and an earlier block, adjusting the offset if needed.
+// The block time is cached and reused until forced to refresh.
 func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64, error) {
 	o := processOptions(opts...)
 
 	retryOffset := o.offset
 
 	var err error
+
+	// return cached block time if available and not forced to refresh
+	if cachedBlockTime := g.cache.BlockTime(); cachedBlockTime > 0 && !o.refresh {
+		return cachedBlockTime, nil
+	}
 
 	latestBlockNumber, err := g.fetchLatestBlockNumber(ctx)
 	if err != nil {
@@ -78,6 +93,8 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 	roundedBlockTime := int64(math.Round(blockTime))
 
 	g.logger.Tracef("avg block time for last %d blocks: %f, using rounded seconds: %d", retryOffset, blockTime, roundedBlockTime)
+
+	g.cache.SetBlockTime(roundedBlockTime)
 
 	return roundedBlockTime, nil
 }
@@ -155,7 +172,8 @@ func (g *GethClient) fetchBlockTimestamp(ctx context.Context, blockNumber int64)
 
 func processOptions(opts ...Option) *options {
 	o := &options{
-		offset: 1,
+		offset:  1,
+		refresh: false,
 	}
 	for _, opt := range opts {
 		opt(o)
