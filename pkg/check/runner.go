@@ -51,16 +51,7 @@ func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
 		return nil
 	}
 
-	type errorCheck struct {
-		check string
-		err   error
-	}
-
-	checkChan := make(chan *checkRun, len(checks))
-	errChan := make(chan errorCheck, len(checks))
-	done := make(chan struct{})
-	defer close(done)
-	var errors []errorCheck
+	validatedChecks := make([]checkRun, 0, len(checks))
 
 	// validate and prepare checks
 	for _, checkName := range checks {
@@ -90,45 +81,37 @@ func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
 		}
 		chk = beekeeper.NewActionMiddleware(c.tracer, chk, checkName)
 
-		check := &checkRun{
+		// append to validated checks
+		validatedChecks = append(validatedChecks, checkRun{
 			name:     checkName,
 			typeName: checkConfig.Type,
 			action:   chk,
 			options:  o,
 			timeout:  *checkConfig.Timeout,
-		}
-
-		// send checks for execution
-		checkChan <- check
+		})
 	}
 
-	close(checkChan)
-
-	go func() {
-		for check := range checkChan {
-			c.logger.WithField("type", check.typeName).Infof("running check: %s", check.name)
-			c.logger.Debugf("check options: %+v", check.options)
-
-			if err := check.Run(ctx, c.cluster); err != nil {
-				c.logger.WithField("type", check.typeName).Errorf("check '%s' failed: %v", check.name, err)
-				errChan <- errorCheck{
-					check: check.name,
-					err:   fmt.Errorf("check %s failed: %w", check.name, err),
-				}
-			} else {
-				c.logger.WithField("type", check.typeName).Infof("%s check completed successfully", check.name)
-			}
-		}
-
-		close(errChan)
-		done <- struct{}{}
-	}()
-
-	// collect all execution errors
-	for err := range errChan {
-		errors = append(errors, err)
+	type errorCheck struct {
+		check string
+		err   error
 	}
-	<-done
+
+	var errors []errorCheck
+
+	for _, check := range validatedChecks {
+		c.logger.WithField("type", check.typeName).Infof("running check: %s", check.name)
+		c.logger.Debugf("check options: %+v", check.options)
+
+		if err := check.Run(ctx, c.cluster); err != nil {
+			c.logger.WithField("type", check.typeName).Errorf("check '%s' failed: %v", check.name, err)
+			errors = append(errors, errorCheck{
+				check: check.name,
+				err:   fmt.Errorf("check %s failed: %w", check.name, err),
+			})
+		} else {
+			c.logger.WithField("type", check.typeName).Infof("%s check completed successfully", check.name)
+		}
+	}
 
 	if len(errors) == 1 {
 		return errors[0].err
@@ -153,7 +136,6 @@ type checkRun struct {
 }
 
 func (c *checkRun) Run(ctx context.Context, cluster orchestration.Cluster) error {
-	var err error
 	checkCtx, cancelCheck := createChildContext(ctx, &c.timeout)
 	defer cancelCheck()
 
@@ -170,12 +152,12 @@ func (c *checkRun) Run(ctx context.Context, cluster orchestration.Cluster) error
 			return fmt.Errorf("%w: deadline %v", checkCtx.Err(), deadline)
 		}
 		return checkCtx.Err()
-	case err = <-ch:
+	case err := <-ch:
 		if err != nil {
 			return err
 		}
+		return nil
 	}
-	return nil
 }
 
 func createChildContext(ctx context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
