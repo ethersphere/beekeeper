@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -19,7 +18,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/gorilla/websocket"
+	"github.com/ethersphere/beekeeper/pkg/wslistener"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -122,22 +121,36 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	if err != nil {
 		return err
 	}
-	logger.Infof("gsoc: socAddress=%s, listner node address=%s", socAddress, addresses.Overlay)
+	logger.Infof("gsoc: socAddress=%s, listener node address=%s, node=%s", socAddress, addresses.Overlay, listenClient.Name())
 
-	listener := &socListener{}
-	ch, err := listener.Listen(ctx, listenClient, socAddress, logger)
+	ctx, cancel := context.WithCancel(ctx)
+	ch, closer, err := wslistener.ListenWebSocket(ctx, listenClient, fmt.Sprintf("/gsoc/subscribe/%s", socAddress), logger)
 	if err != nil {
+		cancel()
 		return fmt.Errorf("listen websocket: %w", err)
 	}
-	defer listener.Close()
+
+	defer func() {
+		cancel()
+		closer()
+	}()
 
 	received := make(map[string]bool, numChunks)
 	receivedMtx := new(sync.Mutex)
+	done := make(chan struct{})
 
 	go func() {
 		for p := range ch {
 			receivedMtx.Lock()
+			if !received[p] {
+				logger.Infof("gsoc: received message %s on node %s", p, listenClient.Name())
+			}
 			received[p] = true
+			if len(received) == numChunks {
+				close(done)
+				receivedMtx.Unlock()
+				return
+			}
 			receivedMtx.Unlock()
 		}
 	}()
@@ -151,16 +164,14 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 		return err
 	}
 
-	// wait for listener to receive all messages
-	time.Sleep(5 * time.Second)
-	listener.Close()
+	select {
+	case <-time.After(1 * time.Minute):
+		return fmt.Errorf("timeout: not all messages received")
+	case <-done:
+	}
 
 	receivedMtx.Lock()
 	defer receivedMtx.Unlock()
-	if len(received) != numChunks {
-		return fmt.Errorf("expected %d messages, got %d", numChunks, len(received))
-	}
-
 	for i := 0; i < numChunks; i++ {
 		want := fmt.Sprintf("data %d", i)
 		if !received[want] {
@@ -288,59 +299,4 @@ func makeSoc(msg string, id []byte, privKey *ecdsa.PrivateKey) (*socData, error)
 		Sig:   hex.EncodeToString(signatureBytes),
 		Data:  ch.Data(),
 	}, nil
-}
-
-type socListener struct {
-	listening bool
-	ws        *websocket.Conn
-	ch        chan string
-}
-
-func (s *socListener) Close() {
-	if !s.listening {
-		return
-	}
-
-	s.listening = false
-	s.ws.Close()
-	close(s.ch)
-}
-
-func (s *socListener) Listen(ctx context.Context, client *bee.Client, addr swarm.Address, logger logging.Logger) (<-chan string, error) {
-	dialer := &websocket.Dialer{
-		Proxy:            http.ProxyFromEnvironment,
-		HandshakeTimeout: 45 * time.Second,
-	}
-
-	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/gsoc/subscribe/%s", client.Host(), addr), http.Header{})
-	if err != nil {
-		return nil, err
-	}
-	s.ws = ws
-	s.ch = make(chan string)
-	s.listening = true
-
-	go func(nodeName string) {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				msgType, data, err := ws.ReadMessage()
-				if err != nil {
-					logger.WithField("node", nodeName).Infof("gsoc: websocket error: %v", err)
-					return
-				}
-				if msgType != websocket.BinaryMessage {
-					logger.WithField("node", nodeName).Info("gsoc: websocket received non-binary message")
-					continue
-				}
-
-				logger.WithField("node", nodeName).Infof("gsoc: websocket received message: %s", string(data))
-				s.ch <- string(data)
-			}
-		}
-	}(client.Name())
-
-	return s.ch, nil
 }

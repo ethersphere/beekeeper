@@ -2,10 +2,8 @@ package pss
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -13,7 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
-	"github.com/gorilla/websocket"
+	"github.com/ethersphere/beekeeper/pkg/wslistener"
 )
 
 // Options represents check options
@@ -101,95 +99,59 @@ func pickAtRandom(r *rand.Rand, names []string, skip string) string {
 }
 
 var (
-	errDataMismatch        = errors.New("pss: data sent and received are not equal")
-	errWebsocketConnection = errors.New("pss: websocket connection terminated with an error")
-)
-
-var (
 	testData  = []byte("Hello Swarm :)")
 	testTopic = "test"
 )
 
 func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Client, o Options) error {
 	ctx, cancel := context.WithTimeout(context.Background(), o.RequestTimeout)
+	defer cancel()
 
 	nodeA := clients[nodeAName]
 	nodeB := clients[nodeBName]
 
 	addrB, err := nodeB.Addresses(ctx)
 	if err != nil {
-		cancel()
 		return err
 	}
 
 	batchID, err := nodeA.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
-		cancel()
 		return fmt.Errorf("node %s: batched id %w", nodeAName, err)
 	}
 	c.logger.Infof("node %s: batched id %s", nodeAName, batchID)
 
-	ch, close, err := listenWebsocket(ctx, nodeB.Host(), testTopic, c.logger)
+	ch, closer, err := wslistener.ListenWebSocket(ctx, nodeB, fmt.Sprintf("/pss/subscribe/%s", testTopic), c.logger)
 	if err != nil {
-		cancel()
 		return err
 	}
 
 	c.logger.Infof("pss: sending test data to node %s and listening on node %s", nodeAName, nodeBName)
 
+	defer closer()
+
 	tStart := time.Now()
 	err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
 	if err != nil {
-		close()
-		cancel()
 		return err
 	}
+	c.logger.Infof("pss: test data sent successfully to node %s. Waiting for response from node %s", nodeAName, nodeBName)
 
-	msg, ok := <-ch
-	if ok {
-		if msg == string(testData) {
-			c.logger.Info("pss: websocket connection received correct message")
-			c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
-		} else {
-			err = errDataMismatch
+	for {
+		select {
+		case <-time.After(1 * time.Minute):
+			return fmt.Errorf("correct message not received after %s", 1*time.Minute)
+		case msg, ok := <-ch:
+			if !ok {
+				return fmt.Errorf("ws closed before receiving correct message")
+			}
+
+			if msg == string(testData) {
+				c.logger.Info("pss: websocket connection received correct message")
+				c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
+				return nil
+			}
+			c.logger.Infof("pss: received incorrect message. trying again. want %s, got %s", string(testData), msg)
 		}
-	} else {
-		err = errWebsocketConnection
 	}
-
-	cancel()
-	close()
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func listenWebsocket(ctx context.Context, host string, topic string, logger logging.Logger) (<-chan string, func(), error) {
-	dialer := &websocket.Dialer{
-		Proxy:            http.ProxyFromEnvironment,
-		HandshakeTimeout: 45 * time.Second,
-	}
-
-	ws, _, err := dialer.DialContext(ctx, fmt.Sprintf("ws://%s/pss/subscribe/%s", host, topic), http.Header{})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ch := make(chan string)
-
-	go func() {
-		_, data, err := ws.ReadMessage()
-		if err != nil {
-			logger.Infof("pss: websocket error %v", err)
-			close(ch)
-			return
-		}
-
-		ch <- string(data)
-	}()
-
-	return ch, func() { ws.Close() }, nil
 }

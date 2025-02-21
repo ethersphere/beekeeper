@@ -93,7 +93,7 @@ checks:
       postage-ttl: 336h
       postage-depth: 21
       postage-label: test-label
-      request-timeout: 5m
+      request-timeout: 10m
     timeout: 30m
     type: pss
   pt-soc:
