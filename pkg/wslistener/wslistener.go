@@ -68,7 +68,7 @@ func ListenWebSocket(ctx context.Context, client *bee.Client, endpoint string, l
 					return
 				}
 			case err := <-errCh:
-				logger.Infof("websocket error: %v", err)
+				logger.Errorf("websocket error: %v", err)
 				return
 			case <-ctx.Done():
 				logger.Info("context canceled, closing websocket")
@@ -85,11 +85,13 @@ func ListenWebSocket(ctx context.Context, client *bee.Client, endpoint string, l
 			deadline := time.Now().Add(5 * time.Second)
 			msg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
 			if err := ws.WriteControl(websocket.CloseMessage, msg, deadline); err != nil {
-				logger.Infof("failed to send close message: %v", err)
+				logger.Errorf("failed to send close message: %v", err)
 			}
 
 			close(done)
-			ws.Close()
+			if err := ws.Close(); err != nil {
+				logger.Errorf("failed to close websocket: %v", err)
+			}
 		})
 	}
 

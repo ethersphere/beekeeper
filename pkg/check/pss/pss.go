@@ -137,26 +137,22 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	}
 	c.logger.Infof("pss: test data sent successfully to node %s. Waiting for response from node %s", nodeAName, nodeBName)
 
-L:
 	for {
 		select {
 		case <-time.After(1 * time.Minute):
-			err = fmt.Errorf("correct message not received after %s", 1*time.Minute)
-			break L
+			return fmt.Errorf("correct message not received after %s", 1*time.Minute)
 		default:
 			msg, ok := <-ch
 			if !ok {
-				break L
+				return fmt.Errorf("ws closed before receiving correct message")
 			}
 
 			if msg == string(testData) {
 				c.logger.Info("pss: websocket connection received correct message")
 				c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
-				break L
+				return nil
 			}
 			c.logger.Infof("pss: received incorrect message. trying again. want %s, got %s", string(testData), msg)
 		}
 	}
-
-	return err
 }
