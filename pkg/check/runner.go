@@ -87,7 +87,7 @@ func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
 			typeName: checkConfig.Type,
 			action:   chk,
 			options:  o,
-			timeout:  *checkConfig.Timeout,
+			timeout:  checkConfig.Timeout,
 		})
 	}
 
@@ -132,11 +132,11 @@ type checkRun struct {
 	typeName string
 	action   beekeeper.Action
 	options  interface{}
-	timeout  time.Duration
+	timeout  *time.Duration
 }
 
 func (c *checkRun) Run(ctx context.Context, cluster orchestration.Cluster) error {
-	checkCtx, cancelCheck := createChildContext(ctx, &c.timeout)
+	checkCtx, cancelCheck := createChildContext(ctx, c.timeout)
 	defer cancelCheck()
 
 	ch := make(chan error, 1)
