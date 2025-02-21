@@ -34,12 +34,6 @@ func ListenWebSocket(ctx context.Context, client *bee.Client, endpoint string, l
 		defer close(errCh)
 
 		for {
-			// ping should be received every 60s (defined on bee)
-			err := ws.SetReadDeadline(time.Now().Add(90 * time.Second))
-			if err != nil {
-				errCh <- err
-				return
-			}
 			_, data, err := ws.ReadMessage()
 			if err != nil {
 				errCh <- err
