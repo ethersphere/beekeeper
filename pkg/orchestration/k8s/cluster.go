@@ -2,11 +2,15 @@ package k8s
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"math/rand"
+	"net/http"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/httpx"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
@@ -22,35 +26,49 @@ type Cluster struct {
 	name             string
 	opts             orchestration.ClusterOptions
 	nodeGroups       map[string]orchestration.NodeGroup // set when groups are added to the cluster
+	httpClient       *http.Client
+	k8sClient        *k8s.Client
+	swapClient       swap.Client
 	log              logging.Logger
 }
 
 // NewCluster returns new cluster
-func NewCluster(name string, o orchestration.ClusterOptions, log logging.Logger) *Cluster {
-	var no orchestration.NodeOrchestrator
+func NewCluster(name string, o orchestration.ClusterOptions, k8s *k8s.Client, swapClient swap.Client, log logging.Logger) *Cluster {
+	var nodeOrchestrator orchestration.NodeOrchestrator
 
-	if o.K8SClient == nil {
-		no = &notset.BeeClient{}
+	if k8s == nil {
+		nodeOrchestrator = &notset.BeeClient{}
 	} else {
-		no = newNodeOrchestrator(o.K8SClient, log)
+		nodeOrchestrator = newNodeOrchestrator(k8s, log)
 	}
 
-	if o.SwapClient == nil {
-		o.SwapClient = &swap.NotSet{}
+	if swapClient == nil {
+		swapClient = &swap.NotSet{}
 	}
 
 	return &Cluster{
 		name:             name,
-		nodeOrchestrator: no,
+		nodeOrchestrator: nodeOrchestrator,
 		opts:             o,
 		nodeGroups:       make(map[string]orchestration.NodeGroup),
 		log:              log,
+		httpClient: &http.Client{
+			Transport: &httpx.HeaderRoundTripper{
+				Next: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: o.APIInsecureTLS,
+					},
+				},
+			},
+		},
+		k8sClient:  k8s,
+		swapClient: swapClient,
 	}
 }
 
 // AddNodeGroup adds new node group to the cluster
 func (c *Cluster) AddNodeGroup(name string, o orchestration.NodeGroupOptions) {
-	c.nodeGroups[name] = NewNodeGroup(name, c.opts, c.nodeOrchestrator, o, c.log)
+	c.nodeGroups[name] = NewNodeGroup(name, c.opts, c.nodeOrchestrator, o, c.httpClient, c.swapClient, c.k8sClient, c.log)
 }
 
 // Addresses returns ClusterAddresses
@@ -223,7 +241,7 @@ func (c *Cluster) FullNodeNames() (names []string) {
 	return
 }
 
-// ShuffledFullNodeClients returns a list of full node clients shuffled
+// ShuffledFullNodeClients returns a shuffled list of full node clients
 func (c *Cluster) ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error) {
 	var res []*bee.Client
 	for _, node := range c.Nodes() {

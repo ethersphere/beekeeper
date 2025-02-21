@@ -105,9 +105,9 @@ func NewClient(opts ...ClientOption) (c *Client, err error) {
 	ct := NewCustomTransport(config, semaphore, c.logger)
 
 	// Wrap the default transport with our custom transport.
-	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+	config.Wrap(func(rt http.RoundTripper) http.RoundTripper {
 		return ct.SetBaseTransport(rt)
-	}
+	})
 
 	clientset, err := c.clientConfig.NewForConfig(config)
 	if err != nil {

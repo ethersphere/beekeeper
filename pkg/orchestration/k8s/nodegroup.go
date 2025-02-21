@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"strings"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
+	"github.com/ethersphere/beekeeper/pkg/swap"
 
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -29,12 +32,24 @@ type NodeGroup struct {
 	nodes            map[string]orchestration.Node
 	opts             orchestration.NodeGroupOptions
 	clusterOpts      orchestration.ClusterOptions
+	httpClient       *http.Client
+	swapClient       swap.Client
+	k8sClient        *k8s.Client
 	log              logging.Logger
 	lock             sync.RWMutex
 }
 
 // NewNodeGroup returns new node group
-func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestration.NodeOrchestrator, ngopts orchestration.NodeGroupOptions, log logging.Logger) *NodeGroup {
+func NewNodeGroup(
+	name string,
+	copts orchestration.ClusterOptions,
+	no orchestration.NodeOrchestrator,
+	ngopts orchestration.NodeGroupOptions,
+	httpClient *http.Client,
+	swapClient swap.Client,
+	k8sClient *k8s.Client,
+	log logging.Logger,
+) *NodeGroup {
 	ngopts.Annotations = mergeMaps(ngopts.Annotations, copts.Annotations)
 	ngopts.Labels = mergeMaps(ngopts.Labels, copts.Labels)
 
@@ -44,33 +59,37 @@ func NewNodeGroup(name string, copts orchestration.ClusterOptions, no orchestrat
 		nodes:            make(map[string]orchestration.Node),
 		opts:             ngopts,
 		clusterOpts:      copts,
+		httpClient:       httpClient,
+		swapClient:       swapClient,
+		k8sClient:        k8sClient,
 		log:              log,
 	}
 }
 
 // AddNode adss new node to the node group
-func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, o orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
-	var aURL *url.URL
+func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, nodeOptions orchestration.NodeOptions, opts ...orchestration.BeeClientOption) (err error) {
+	var apiURL *url.URL
 
-	aURL, err = g.clusterOpts.ApiURL(name, inCluster)
+	apiURL, err = g.clusterOpts.ApiURL(name, inCluster)
 	if err != nil {
 		return fmt.Errorf("API URL %s: %w", name, err)
 	}
 
 	// TODO: make more granular, check every sub-option
 	var config *orchestration.Config
-	if o.Config != nil {
-		config = o.Config
+	if nodeOptions.Config != nil {
+		config = nodeOptions.Config
 	} else {
 		config = g.opts.BeeConfig
 	}
 
 	beeClientOpts := bee.ClientOptions{
-		Name:           name,
-		APIURL:         aURL,
-		APIInsecureTLS: g.clusterOpts.APIInsecureTLS,
-		Retry:          5,
-		SwapClient:     g.clusterOpts.SwapClient,
+		Name:       name,
+		APIURL:     apiURL,
+		Retry:      5,
+		SwapClient: g.swapClient,
+		HTTPClient: g.httpClient,
+		Logger:     g.log,
 	}
 
 	for _, opt := range opts {
@@ -79,13 +98,15 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, o 
 		}
 	}
 
-	client := bee.NewClient(beeClientOpts, g.log)
+	client, err := bee.NewClient(beeClientOpts)
+	if err != nil {
+		return fmt.Errorf("bee client: %w", err)
+	}
 
-	n := NewNode(name, orchestration.NodeOptions{
-		Client:    client,
+	n := NewNode(name, client, orchestration.NodeOptions{
 		Config:    config,
-		LibP2PKey: o.LibP2PKey,
-		SwarmKey:  o.SwarmKey,
+		LibP2PKey: nodeOptions.LibP2PKey,
+		SwarmKey:  nodeOptions.SwarmKey,
 	}, g.nodeOrchestrator, g.log)
 
 	g.addNode(n)
@@ -309,7 +330,7 @@ func (g *NodeGroup) BalancesStream(ctx context.Context) (<-chan BalancesStreamMs
 }
 
 // CreateNode creates new node in the k8s cluster
-func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
+func (g *NodeGroup) createNode(ctx context.Context, name string) (err error) {
 	labels := mergeMaps(g.opts.Labels, map[string]string{
 		"app.kubernetes.io/instance": name,
 	})
@@ -356,8 +377,7 @@ func (g *NodeGroup) CreateNode(ctx context.Context, name string) (err error) {
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
 func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
-	n := NewNode(name, orchestration.NodeOptions{}, g.nodeOrchestrator, g.log)
-	if err := n.Delete(ctx, g.clusterOpts.Namespace); err != nil {
+	if err := g.nodeOrchestrator.Delete(ctx, name, g.clusterOpts.Namespace); err != nil {
 		return err
 	}
 
@@ -366,8 +386,8 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 	return
 }
 
-// GetEthAddress returns ethereum address of the node
-func (ng *NodeGroup) GetEthAddress(ctx context.Context, name string, o orchestration.NodeOptions) (string, error) {
+// getEthAddress returns ethereum address of the node
+func (ng *NodeGroup) getEthAddress(ctx context.Context, name string, o orchestration.NodeOptions) (string, error) {
 	if o.SwarmKey != nil {
 		address := o.SwarmKey.Address
 		if !strings.HasPrefix(address, "0x") {
@@ -461,11 +481,6 @@ func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan
 	}()
 
 	return hasChunkStream, nil
-}
-
-// Name returns name of the node group
-func (g *NodeGroup) Name() string {
-	return g.name
 }
 
 // Nodes returns map of nodes in the node group
@@ -641,8 +656,8 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 	return peersStream, nil
 }
 
-// NodeReady returns node's readiness
-func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err error) {
+// nodeReady returns node's readiness
+func (g *NodeGroup) nodeReady(ctx context.Context, name string) (ok bool, err error) {
 	n, err := g.getNode(name)
 	if err != nil {
 		return false, err
@@ -651,8 +666,8 @@ func (g *NodeGroup) NodeReady(ctx context.Context, name string) (ok bool, err er
 	return n.Ready(ctx, g.clusterOpts.Namespace)
 }
 
-// PregenerateSwarmKey for a node if needed
-func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err error) {
+// pregenerateSwarmKey for a node if needed
+func (g *NodeGroup) pregenerateSwarmKey(ctx context.Context, name string) (err error) {
 	n, err := g.getNode(name)
 	if err != nil {
 		return err
@@ -676,7 +691,7 @@ func (g *NodeGroup) PregenerateSwarmKey(ctx context.Context, name string) (err e
 			key = n.SwarmKey()
 		}
 
-		txHash, err := g.clusterOpts.SwapClient.AttestOverlayEthAddress(ctx, key.Address)
+		txHash, err := g.swapClient.AttestOverlayEthAddress(ctx, key.Address)
 		if err != nil {
 			return fmt.Errorf("attest overlay Ethereum address for node %s: %w", name, err)
 		}
@@ -705,26 +720,26 @@ func (g *NodeGroup) RunningNodes(ctx context.Context) (running []string, err err
 }
 
 // SetupNode creates new node in the node group, starts it in the k8s cluster and funds it
-func (g *NodeGroup) SetupNode(ctx context.Context, name string, inCluster bool, o orchestration.NodeOptions) (ethAddress string, err error) {
-	g.log.Infof("starting setup node: %s", name)
+func (g *NodeGroup) DeployNode(ctx context.Context, name string, inCluster bool, nodeOptions orchestration.NodeOptions) (ethAddress string, err error) {
+	g.log.Infof("deploying node %s", name)
 
-	if err := g.AddNode(ctx, name, inCluster, o); err != nil {
+	if err := g.AddNode(ctx, name, inCluster, nodeOptions); err != nil {
 		return "", fmt.Errorf("add node %s: %w", name, err)
 	}
 
-	if err := g.PregenerateSwarmKey(ctx, name); err != nil {
+	if err := g.pregenerateSwarmKey(ctx, name); err != nil {
 		return "", fmt.Errorf("pregenerate Swarm key for node %s: %w", name, err)
 	}
 
-	if err := g.CreateNode(ctx, name); err != nil {
+	if err := g.createNode(ctx, name); err != nil {
 		return "", fmt.Errorf("create node %s in k8s: %w", name, err)
 	}
 
-	if err := g.StartNode(ctx, name); err != nil {
+	if err := g.startNode(ctx, name); err != nil {
 		return "", fmt.Errorf("start node %s in k8s: %w", name, err)
 	}
 
-	ethAddress, err = g.GetEthAddress(ctx, name, o)
+	ethAddress, err = g.getEthAddress(ctx, name, nodeOptions)
 	if err != nil {
 		return "", fmt.Errorf("get eth address for funding: %w", err)
 	}
@@ -816,7 +831,7 @@ func (g *NodeGroup) Size() int {
 }
 
 // StartNode start node by scaling its statefulset to 1
-func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
+func (g *NodeGroup) startNode(ctx context.Context, name string) (err error) {
 	n, err := g.getNode(name)
 	if err != nil {
 		return err
@@ -829,39 +844,13 @@ func (g *NodeGroup) StartNode(ctx context.Context, name string) (err error) {
 	g.log.Infof("wait for %s to become ready", name)
 
 	for {
-		ok, err := g.NodeReady(ctx, name)
+		ok, err := g.nodeReady(ctx, name)
 		if err != nil {
 			return fmt.Errorf("node %s readiness: %w", name, err)
 		}
 
 		if ok {
 			g.log.Infof("%s is ready", name)
-			return nil
-		}
-	}
-}
-
-// StopNode stops node by scaling down its statefulset to 0
-func (g *NodeGroup) StopNode(ctx context.Context, name string) (err error) {
-	n, err := g.getNode(name)
-	if err != nil {
-		return err
-	}
-
-	if err := n.Stop(ctx, g.clusterOpts.Namespace); err != nil {
-		return err
-	}
-
-	g.log.Infof("wait for %s to stop", name)
-
-	for {
-		ok, err := g.NodeReady(ctx, name)
-		if err != nil {
-			return fmt.Errorf("node %s readiness: %w", name, err)
-		}
-
-		if !ok {
-			g.log.Infof("%s is stopped", name)
 			return nil
 		}
 	}

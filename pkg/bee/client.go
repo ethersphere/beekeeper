@@ -3,7 +3,6 @@ package bee
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,54 +21,50 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
-const retryCount int = 5
-
 // Client manages communication with the Bee node
 type Client struct {
 	api        *api.Client
-	swapClient swap.Client
+	swapClient swap.BlockTimeFetcher
 	log        logging.Logger
 	name       string
 	apiURL     *url.URL
-	// number of times to retry call
-	retry int
+	retryCount int
 }
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
-	APIInsecureTLS bool
-	APIURL         *url.URL
-	Name           string
-	Retry          int
-	SwapClient     swap.Client
+	APIURL     *url.URL
+	Name       string
+	Retry      int
+	SwapClient swap.BlockTimeFetcher
+	HTTPClient *http.Client
+	Logger     logging.Logger
 }
 
 // NewClient returns Bee client
-func NewClient(opts ClientOptions, log logging.Logger) (c *Client) {
+func NewClient(opts ClientOptions) (c *Client, err error) {
+	if opts.HTTPClient == nil {
+		opts.HTTPClient = &http.Client{}
+	}
+
 	c = &Client{
-		retry:      retryCount,
-		log:        log,
+		retryCount: 5,
+		log:        opts.Logger,
 		swapClient: opts.SwapClient,
 		name:       opts.Name,
 		apiURL:     opts.APIURL,
 	}
 
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: opts.APIInsecureTLS,
-			},
-		},
+	c.api, err = api.NewClient(opts.APIURL, opts.HTTPClient)
+	if err != nil {
+		return nil, fmt.Errorf("new api client: %w", err)
 	}
 
-	if opts.APIURL != nil {
-		c.api = api.NewClient(opts.APIURL, &api.ClientOptions{HTTPClient: httpClient})
-	}
 	if opts.Retry > 0 {
-		c.retry = opts.Retry
+		c.retryCount = opts.Retry
 	}
 
-	return
+	return c, nil
 }
 
 // Addresses represents node's addresses
@@ -281,24 +276,23 @@ func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, 
 	return has, count, nil
 }
 
-// Overlay returns node's overlay address
-func (c *Client) Overlay(ctx context.Context) (o swarm.Address, err error) {
+// Overlay returns node's overlay address with retry mechanism
+func (c *Client) Overlay(ctx context.Context) (swarm.Address, error) {
 	var a api.Addresses
-	for r := 0; r < c.retry; r++ {
-		time.Sleep(2 * time.Duration(r) * time.Second)
+	var err error
+
+	for r := 0; r < c.retryCount; r++ {
+		if r > 0 {
+			time.Sleep(2 * time.Duration(r) * time.Second)
+		}
 
 		a, err = c.api.Node.Addresses(ctx)
-		if err != nil {
-			continue
+		if err == nil {
+			return a.Overlay, nil
 		}
-		break
 	}
-	if err != nil {
-		return swarm.Address{}, fmt.Errorf("get addresses: %w", err)
-	}
-	o = a.Overlay
 
-	return
+	return swarm.Address{}, fmt.Errorf("get addresses: %w", err)
 }
 
 // Peers returns addresses of node's peers
@@ -465,13 +459,13 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 		return "", fmt.Errorf("fetching block time: %w", err)
 	}
 
-	amount := int64(1000)
+	amount := int64(1) // use 1 as the minimum amount when the chain price is 0, since any amount is valid
 
 	price := csr.CurrentPrice.Int64()
 	if price > 0 {
 		amount = (int64(postageTTL.Seconds()) / blockTime) * price
 	} else {
-		c.log.Warningf("invalid chain price: %d", price)
+		c.log.Warningf("invalid chain price: %v", price)
 	}
 
 	batches, err := c.PostageBatches(ctx)
@@ -711,8 +705,10 @@ type Bin struct {
 // Topology returns Kademlia topology
 func (c *Client) Topology(ctx context.Context) (topology Topology, err error) {
 	var t api.Topology
-	for r := 0; r < c.retry; r++ {
-		time.Sleep(2 * time.Duration(r) * time.Second)
+	for r := 0; r < c.retryCount; r++ {
+		if r > 0 {
+			time.Sleep(2 * time.Duration(r) * time.Second)
+		}
 
 		t, err = c.api.Node.Topology(ctx)
 		if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -37,8 +38,9 @@ func WithPostageLabels(postageLabels []string) Option {
 type ClientConfig struct {
 	Log           logging.Logger
 	Namespace     string
+	HTTPClient    *http.Client
 	K8sClient     *k8s.Client
-	SwapClient    swap.Client
+	SwapClient    swap.BlockTimeFetcher
 	BeeClients    map[string]*bee.Client
 	LabelSelector string
 	InCluster     bool
@@ -48,7 +50,8 @@ type Client struct {
 	log           logging.Logger
 	namespace     string
 	k8sClient     *k8s.Client
-	swapClient    swap.Client
+	swapClient    swap.BlockTimeFetcher
+	httpClient    *http.Client
 	beeClients    map[string]*bee.Client
 	labelSelector string
 	inCluster     bool
@@ -67,6 +70,10 @@ func New(cfg *ClientConfig) *Client {
 		cfg.SwapClient = &swap.NotSet{}
 	}
 
+	if cfg.HTTPClient == nil {
+		cfg.HTTPClient = &http.Client{}
+	}
+
 	return &Client{
 		log:           cfg.Log,
 		namespace:     cfg.Namespace,
@@ -75,6 +82,7 @@ func New(cfg *ClientConfig) *Client {
 		beeClients:    cfg.BeeClients,
 		labelSelector: cfg.LabelSelector,
 		inCluster:     cfg.InCluster,
+		httpClient:    cfg.HTTPClient,
 	}
 }
 
@@ -238,7 +246,10 @@ func (sc *Client) getServiceNodes(ctx context.Context) ([]node, error) {
 			return nil, fmt.Errorf("extract base URL: %w", err)
 		}
 
-		apiClient := api.NewClient(parsedURL, nil)
+		apiClient, err := api.NewClient(parsedURL, sc.httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("create api client: %w", err)
+		}
 
 		nodes[i] = *newNodeInfo(apiClient, node.Name, sc.log)
 	}
@@ -260,12 +271,15 @@ func (sc *Client) getIngressNodes(ctx context.Context) ([]node, error) {
 	allNodes := append(ingressNodes, ingressRouteNodes...)
 	nodes := make([]node, len(allNodes))
 	for i, node := range allNodes {
-		parsedURL, err := url.Parse(fmt.Sprintf("http://%s", node.Host))
+		apiURL, err := url.Parse(fmt.Sprintf("http://%s", node.Host))
 		if err != nil {
 			return nil, fmt.Errorf("extract base URL: %w", err)
 		}
 
-		apiClient := api.NewClient(parsedURL, nil)
+		apiClient, err := api.NewClient(apiURL, sc.httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("create api client: %w", err)
+		}
 
 		nodes[i] = *newNodeInfo(apiClient, node.Name, sc.log)
 	}

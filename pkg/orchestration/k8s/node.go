@@ -14,16 +14,18 @@ var _ orchestration.Node = (*Node)(nil)
 // Node represents Bee node
 type Node struct {
 	orchestration.NodeOrchestrator
-	name string
-	opts orchestration.NodeOptions
-	log  logging.Logger
+	name   string
+	client *bee.Client
+	opts   orchestration.NodeOptions
+	log    logging.Logger
 }
 
 // NewNode returns Bee node
-func NewNode(name string, opts orchestration.NodeOptions, no orchestration.NodeOrchestrator, log logging.Logger) (n *Node) {
+func NewNode(name string, client *bee.Client, opts orchestration.NodeOptions, no orchestration.NodeOrchestrator, log logging.Logger) (n *Node) {
 	return &Node{
 		NodeOrchestrator: no,
 		name:             name,
+		client:           client,
 		opts:             opts,
 		log:              log,
 	}
@@ -36,7 +38,7 @@ func (n Node) Name() string {
 
 // Client returns node's name
 func (n Node) Client() *bee.Client {
-	return n.opts.Client
+	return n.client
 }
 
 // Config returns node's config

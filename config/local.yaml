@@ -196,6 +196,7 @@ checks:
     options:
       cache-size: 10
       reserve-size: 16
+      postage-label: gc-check
     timeout: 5m
     type: gc
   ci-manifest:
@@ -311,6 +312,7 @@ checks:
     type: postage
     timeout: 5m
     options:
+      postage-label: postage-check
       postage-amount: 1000
       postage-depth: 17
       postage-topup-amount: 100

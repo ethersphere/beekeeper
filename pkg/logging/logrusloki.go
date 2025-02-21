@@ -19,15 +19,20 @@ type LokiHook struct {
 	httpclient   *http.Client
 }
 
-func newLoki(lokiEndpoint string) LokiHook {
+func newLoki(lokiEndpoint string, httpClient *http.Client) LokiHook {
 	hostname, err := os.Hostname()
 	if err != nil {
 		hostname = "unknown"
 	}
+
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 5 * time.Second}
+	}
+
 	return LokiHook{
 		hostname:     hostname,
 		lokiEndpoint: lokiEndpoint,
-		httpclient:   &http.Client{Timeout: 5 * time.Second},
+		httpclient:   httpClient,
 	}
 }
 
@@ -67,7 +72,7 @@ func (l LokiHook) executeHTTPRequest(batch *loki.Batch) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", l.lokiEndpoint, bytes.NewReader(data))
+	req, err := http.NewRequest(http.MethodPost, l.lokiEndpoint, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}

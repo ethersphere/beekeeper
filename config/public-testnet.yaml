@@ -123,6 +123,7 @@ checks:
     type: postage
     timeout: 30m
     options:
+      postage-label: postage-check
       postage-amount: 140000000
       postage-depth: 17
       postage-topup-amount: 100

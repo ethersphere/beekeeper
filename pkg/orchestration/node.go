@@ -8,7 +8,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 )
 
-// ErrNotSet represents error when orchestration client is not set
 var ErrNotSet = errors.New("orchestration client not set")
 
 type Node interface {
@@ -37,7 +36,6 @@ type NodeOrchestrator interface {
 
 // NodeOptions holds optional parameters for the Node.
 type NodeOptions struct {
-	Client    *bee.Client
 	Config    *Config
 	LibP2PKey string
 	SwarmKey  *EncryptedKey

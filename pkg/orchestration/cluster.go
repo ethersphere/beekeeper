@@ -8,8 +8,6 @@ import (
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
-	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
 type Cluster interface {
@@ -47,11 +45,9 @@ type ClusterOptions struct {
 	APIDomainInternal string
 	APIInsecureTLS    bool
 	APIScheme         string
-	K8SClient         *k8s.Client
-	SwapClient        swap.Client
+	DisableNamespace  bool
 	Labels            map[string]string
 	Namespace         string
-	DisableNamespace  bool
 }
 
 // ClusterAddresses represents addresses of all nodes in the cluster

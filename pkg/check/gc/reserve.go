@@ -142,8 +142,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	rnd := random.PseudoGenerator(o.Seed)
-	c.logger.Info("gc: reserve check")
-	c.logger.Infof("Seed: %d", o.Seed)
 
 	node, err := cluster.RandomNode(ctx, rnd)
 	if err != nil {
@@ -153,17 +151,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	client := node.Client()
 
-	addr, err := client.Addresses(ctx)
+	overlay, err := client.Overlay(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("overlay: %w", err)
 	}
-	overlay := addr.Overlay
 
 	const (
-		cheapBatchAmount     = 1
-		expensiveBatchAmount = 3
-		batchDepth           = uint64(8) // the depth for the batches that we buy
-
+		cheapBatchAmount       = 1
+		expensiveBatchAmount   = 3
+		batchDepth             = uint64(8)
 		radiusAfterSecondBatch = 5
 	)
 
