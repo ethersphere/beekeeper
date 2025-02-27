@@ -77,7 +77,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	uploadClient := fullNodeClients[0]
-	listenClient, err := cluster.ClosetFullNodeClient(ctx, uploadClient, rnd)
+	listenClient, err := cluster.ClosestFullNodeClient(ctx, uploadClient)
 	if err != nil {
 		return err
 	}
