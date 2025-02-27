@@ -443,3 +443,43 @@ func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]
 
 	return
 }
+
+// ClosetFullNodeClient returns the closest full node client to the supplied node.
+func (c *Cluster) ClosetFullNodeClient(ctx context.Context, s *bee.Client, r *rand.Rand) (*bee.Client, error) {
+	addrToNode := make(map[string]orchestration.Node)
+	for _, n := range c.Nodes() {
+		res, err := n.Client().Addresses(ctx)
+		if err != nil {
+			return nil, err
+		}
+		addrToNode[res.Overlay.String()] = n
+	}
+
+	t, err := s.Topology(ctx)
+	if err != nil {
+		return nil, err
+	}
+	const maxBin = 32
+	for b := range maxBin {
+		bin := t.Bins[fmt.Sprintf("bin_%d", b)]
+		var fullNodes []orchestration.Node
+		for _, peer := range bin.ConnectedPeers {
+			node, ok := addrToNode[peer.Address.String()]
+			if !ok {
+				return nil, fmt.Errorf("peer overlay %s not found in address map", peer.Address.String())
+			}
+			cfg := node.Config()
+			if cfg.FullNode && !cfg.BootnodeMode {
+				fullNodes = append(fullNodes, node)
+			}
+		}
+		if len(fullNodes) == 0 {
+			continue
+		}
+		r.Shuffle(len(fullNodes), func(i, j int) {
+			fullNodes[i], fullNodes[j] = fullNodes[j], fullNodes[i]
+		})
+		return fullNodes[0].Client(), nil
+	}
+	return nil, fmt.Errorf("cannot find closest fullnode")
+}
