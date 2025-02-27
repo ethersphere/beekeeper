@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"math"
 	"math/rand"
 	"net/http"
 
@@ -456,38 +455,25 @@ func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*be
 		addrToNode[res.Overlay.String()] = n
 	}
 
-	t, err := s.Topology(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	minProx := uint8(math.MaxUint8)
-	overlay, err := s.Overlay(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var closest *bee.Client
+	var skipList []swarm.Address
 	const maxBin = 32
-	for b := range maxBin {
-		bin := t.Bins[fmt.Sprintf("bin_%d", b)]
-		for _, peer := range bin.ConnectedPeers {
-			node, ok := addrToNode[peer.Address.String()]
-			if !ok {
-				return nil, fmt.Errorf("peer overlay %s not found in address map", peer.Address.String())
-			}
-			cfg := node.Config()
-			if !cfg.FullNode || cfg.BootnodeMode {
-				continue
-			}
-			prox := swarm.Proximity(overlay.Bytes(), peer.Address.Bytes())
-			if prox < minProx {
-				minProx = prox
-				closest = node.Client()
-			}
+	for b := 0; b < maxBin; b++ {
+		addr, err := s.ClosestPeer(ctx, uint8(b), skipList)
+		if err != nil {
+			return nil, err
 		}
-		if closest != nil {
-			return closest, nil
+		node, ok := addrToNode[addr.String()]
+		if !ok {
+			continue
 		}
+		cfg := node.Config()
+		// closet peer is not a full node. Check other peers in the same bin
+		if !cfg.FullNode || cfg.BootnodeMode {
+			skipList = append(skipList, addr)
+			b--
+			continue
+		}
+		return node.Client(), nil
 	}
 	return nil, fmt.Errorf("cannot find closest fullnode")
 }

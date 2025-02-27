@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"net/http"
 	"net/url"
+	"slices"
 	"sync"
 	"time"
 
@@ -337,6 +339,45 @@ func (c *Client) Ping(ctx context.Context, node swarm.Address) (rtt string, err 
 		return "", fmt.Errorf("ping node %s: %w", node, err)
 	}
 	return r.RTT, nil
+}
+
+// ClosestPeer returns the address of the peer closest to the node in the provided bin.
+func (c *Client) ClosestPeer(ctx context.Context, binId uint8, skipList []swarm.Address) (swarm.Address, error) {
+	t, err := c.Topology(ctx)
+	if err != nil {
+		return swarm.ZeroAddress, err
+	}
+
+	bin, ok := t.Bins[fmt.Sprintf("bin_%d", binId)]
+	if !ok {
+		return swarm.ZeroAddress, fmt.Errorf("no such bin")
+	}
+
+	if len(bin.ConnectedPeers) == 0 {
+		return swarm.ZeroAddress, nil
+	}
+
+	overlay, err := c.Overlay(ctx)
+	if err != nil {
+		return swarm.ZeroAddress, err
+	}
+
+	closest := swarm.ZeroAddress
+	minProx := uint8(math.MaxUint8)
+	for _, peer := range bin.ConnectedPeers {
+		skip := slices.ContainsFunc(skipList, func(addr swarm.Address) bool {
+			return addr.Equal(peer.Address)
+		})
+		if skip {
+			continue
+		}
+		prox := swarm.Proximity(overlay.Bytes(), peer.Address.Bytes())
+		if prox < minProx {
+			minProx = prox
+			closest = peer.Address
+		}
+	}
+	return closest, nil
 }
 
 // PingStreamMsg represents message sent over the PingStream channel
