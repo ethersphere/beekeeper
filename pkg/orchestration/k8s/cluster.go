@@ -476,7 +476,7 @@ func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*be
 				return nil, fmt.Errorf("peer overlay %s not found in address map", peer.Address.String())
 			}
 			cfg := node.Config()
-			if !cfg.FullNode && cfg.BootnodeMode {
+			if !cfg.FullNode || cfg.BootnodeMode {
 				continue
 			}
 			o2, err := node.Client().Overlay(ctx)
