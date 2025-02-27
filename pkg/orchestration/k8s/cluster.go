@@ -462,7 +462,7 @@ func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*be
 	}
 
 	minProx := uint8(math.MaxUint8)
-	o1, err := s.Overlay(ctx)
+	overlay, err := s.Overlay(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -479,11 +479,7 @@ func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*be
 			if !cfg.FullNode || cfg.BootnodeMode {
 				continue
 			}
-			o2, err := node.Client().Overlay(ctx)
-			if err != nil {
-				return nil, err
-			}
-			prox := swarm.Proximity(o1.Bytes(), o2.Bytes())
+			prox := swarm.Proximity(overlay.Bytes(), peer.Address.Bytes())
 			if prox < minProx {
 				minProx = prox
 				closest = node.Client()
