@@ -18,6 +18,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/wslistener"
 	"golang.org/x/sync/errgroup"
 )
@@ -65,18 +66,21 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("invalid options type")
 	}
 
-	fullNodeNames := cluster.FullNodeNames()
-	clients, err := cluster.NodesClients(ctx)
+	rnd := random.PseudoGenerator(time.Now().UnixNano())
+	fullNodeClients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
 	if err != nil {
 		return err
 	}
 
-	if len(fullNodeNames) < 2 {
+	if len(fullNodeClients) < 2 {
 		return fmt.Errorf("gsoc test require at least 2 full nodes")
 	}
 
-	uploadClient := clients[fullNodeNames[0]]
-	listenClient := clients[fullNodeNames[1]]
+	uploadClient := fullNodeClients[0]
+	listenClient, err := cluster.ClosestFullNodeClient(ctx, uploadClient)
+	if err != nil {
+		return err
+	}
 
 	batches := make([]string, 2)
 	for i := 0; i < 2; i++ {
@@ -92,14 +96,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	c.logger.Infof("send messages with different postage batches sequentially...")
 	err = run(ctx, uploadClient, listenClient, batches, c.logger, false)
 	if err != nil {
-		return err
+		return fmt.Errorf("sequential: %w", err)
 	}
 	c.logger.Infof("done")
 
 	c.logger.Infof("send messages with different postage batches parallel...")
 	err = run(ctx, uploadClient, listenClient, batches, c.logger, true)
 	if err != nil {
-		return err
+		return fmt.Errorf("parallel: %w", err)
 	}
 	c.logger.Infof("done")
 

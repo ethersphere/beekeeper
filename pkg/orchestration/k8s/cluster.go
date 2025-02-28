@@ -443,3 +443,37 @@ func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]
 
 	return
 }
+
+// ClosestFullNodeClient returns the closest full node client to the supplied client.
+func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*bee.Client, error) {
+	addrToNode := make(map[string]orchestration.Node)
+	for _, n := range c.Nodes() {
+		res, err := n.Client().Addresses(ctx)
+		if err != nil {
+			return nil, err
+		}
+		addrToNode[res.Overlay.String()] = n
+	}
+
+	var skipList []swarm.Address
+	const maxBin = 32
+	for b := 0; b < maxBin; b++ {
+		addr, err := s.ClosestPeer(ctx, uint8(b), skipList)
+		if err != nil {
+			return nil, err
+		}
+		node, ok := addrToNode[addr.String()]
+		if !ok {
+			continue
+		}
+		cfg := node.Config()
+		// closet peer is not a full node. Check other peers in the same bin
+		if !cfg.FullNode || cfg.BootnodeMode {
+			skipList = append(skipList, addr)
+			b--
+			continue
+		}
+		return node.Client(), nil
+	}
+	return nil, fmt.Errorf("cannot find closest fullnode")
+}
