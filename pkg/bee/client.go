@@ -348,11 +348,7 @@ func (c *Client) ClosestPeer(ctx context.Context, binId uint8, skipList []swarm.
 		return swarm.ZeroAddress, err
 	}
 
-	bin, ok := t.Bins[fmt.Sprintf("bin_%d", binId)]
-	if !ok {
-		return swarm.ZeroAddress, fmt.Errorf("no such bin")
-	}
-
+	bin := t.Bins[fmt.Sprintf("bin_%d", binId)]
 	if len(bin.ConnectedPeers) == 0 {
 		return swarm.ZeroAddress, nil
 	}
