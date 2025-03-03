@@ -121,7 +121,9 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	if err != nil {
 		return err
 	}
-	resourceId, socAddress, err := mineResourceId(ctx, addresses.Overlay, privKey, 1)
+	depth := 6
+	logger.Infof("gsoc: mining resource id for overlay=%s, depth=%d", addresses.Overlay, depth)
+	resourceId, socAddress, err := mineResourceId(ctx, addresses.Overlay, privKey, depth)
 	if err != nil {
 		return err
 	}
@@ -169,7 +171,7 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	}
 
 	select {
-	case <-time.After(1 * time.Minute):
+	case <-time.After(3 * time.Minute):
 		return fmt.Errorf("timeout: not all messages received")
 	case <-done:
 	}
