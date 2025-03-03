@@ -91,39 +91,40 @@ func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
 		})
 	}
 
-	type errorCheck struct {
-		check string
-		err   error
-	}
+	checkResults := make([]checkResult, 0, len(validatedChecks))
+	hasFailures := false
 
-	var errors []errorCheck
-
+	// run checks
 	for _, check := range validatedChecks {
-		c.logger.WithField("type", check.typeName).Infof("running check: %s", check.name)
-		c.logger.Debugf("check options: %+v", check.options)
+		c.logger.WithFields(map[string]interface{}{
+			"type":    check.typeName,
+			"options": fmt.Sprintf("%+v", check.options),
+		}).Infof("running check: %s", check.name)
 
-		if err := check.Run(ctx, c.cluster); err != nil {
-			c.logger.WithField("type", check.typeName).Errorf("check '%s' failed: %v", check.name, err)
-			errors = append(errors, errorCheck{
-				check: check.name,
-				err:   fmt.Errorf("check %s failed: %w", check.name, err),
-			})
+		err := check.Run(ctx, c.cluster)
+		if err != nil {
+			hasFailures = true
+			c.logger.WithFields(map[string]interface{}{
+				"type":  check.typeName,
+				"error": err,
+			}).Errorf("'%s' check failed", check.name)
 		} else {
-			c.logger.WithField("type", check.typeName).Infof("%s check completed successfully", check.name)
+			c.logger.WithField("type", check.typeName).Infof("'%s' check completed successfully", check.name)
 		}
+
+		// append check result
+		checkResults = append(checkResults, checkResult{
+			check:     check.name,
+			err:       err,
+			timestamp: time.Now(),
+		})
 	}
 
-	if len(errors) == 1 {
-		return errors[0].err
-	} else if len(errors) > 1 {
-		var errStrings []string
-		for _, e := range errors {
-			errStrings = append(errStrings, fmt.Sprintf("[%s]: {%v}", e.check, e.err))
-			c.logger.Errorf("%s: %v", e.check, e.err)
-		}
-		return fmt.Errorf("multiple checks failed: %s", strings.Join(errStrings, "; "))
+	if hasFailures {
+		return formatErrorReport(checkResults)
 	}
 
+	c.logger.WithField("total_checks", len(checkResults)).Info("All checks completed successfully")
 	return nil
 }
 
@@ -165,4 +166,53 @@ func createChildContext(ctx context.Context, timeout *time.Duration) (context.Co
 		return context.WithTimeout(ctx, *timeout)
 	}
 	return context.WithCancel(ctx)
+}
+
+type checkResult struct {
+	check     string
+	err       error
+	timestamp time.Time
+}
+
+func formatErrorReport(results []checkResult) error {
+	var failedChecks []string
+	var failedDetails []string
+
+	// if there is only one error, return it directly
+	if len(results) == 1 {
+		return results[0].err
+	}
+
+	for _, result := range results {
+		if result.err != nil {
+			failedChecks = append(failedChecks, result.check)
+			failedDetails = append(failedDetails, result.DetailString())
+		}
+	}
+
+	totalChecks := len(results)
+	failedCount := len(failedChecks)
+
+	return fmt.Errorf("CHECK_FAILED | %d/%d checks failed | Checks: %s | %s",
+		failedCount,
+		totalChecks,
+		strings.Join(failedChecks, ","),
+		strings.Join(failedDetails, " | "))
+}
+
+func (e checkResult) String() string {
+	if e.err != nil {
+		return fmt.Sprintf("%s: %v", e.check, e.err)
+	}
+	return fmt.Sprintf("%s: success", e.check)
+}
+
+func (e checkResult) DetailString() string {
+	timestamp := e.timestamp.Format("2006-01-02T15:04:05")
+	if e.err != nil {
+		return fmt.Sprintf(`{"check":"%s","time":"%s","error":"%v"}`,
+			e.check, timestamp, e.err)
+	}
+	return fmt.Sprintf(`{"check":"%s","time":"%s","status":"success"}`,
+		e.check, timestamp)
 }

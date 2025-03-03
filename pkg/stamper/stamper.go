@@ -99,7 +99,7 @@ func (s *Client) Create(ctx context.Context, duration time.Duration, depth uint1
 	s.log.WithFields(map[string]interface{}{
 		"duration": duration,
 		"depth":    depth,
-	}).Infof("creating postage batch on nodes")
+	}).Info("creating postage batch on nodes")
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *Client) Dilute(ctx context.Context, usageThreshold float64, dilutionDep
 	s.log.WithFields(map[string]interface{}{
 		"usageThreshold": usageThreshold,
 		"dilutionDepth":  dilutionDepth,
-	}).Infof("diluting postage batch on nodes")
+	}).Info("diluting postage batch on nodes")
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
@@ -148,7 +148,7 @@ func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo ti
 		"topupTo":        topupTo,
 		"usageThreshold": usageThreshold,
 		"dilutionDepth":  dilutionDepth,
-	}).Infof("setting topup and dilution on postage batch on nodes")
+	}).Info("setting topup and dilution on postage batch on nodes")
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
@@ -174,7 +174,7 @@ func (s *Client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo 
 	s.log.WithFields(map[string]interface{}{
 		"ttlThreshold": ttlThreshold,
 		"topupTo":      topupTo,
-	}).Infof("topup postage batch on nodes")
+	}).Info("topup postage batch on nodes")
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
