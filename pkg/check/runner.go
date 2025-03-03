@@ -96,8 +96,10 @@ func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
 
 	// run checks
 	for _, check := range validatedChecks {
-		c.logger.WithField("type", check.typeName).Infof("running check: %s", check.name)
-		c.logger.Debugf("check options: %+v", check.options)
+		c.logger.WithFields(map[string]interface{}{
+			"type":    check.typeName,
+			"options": fmt.Sprintf("%+v", check.options),
+		}).Infof("running check: %s", check.name)
 
 		err := check.Run(ctx, c.cluster)
 		if err != nil {
