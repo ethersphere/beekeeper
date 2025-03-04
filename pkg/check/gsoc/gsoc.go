@@ -121,9 +121,9 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	if err != nil {
 		return err
 	}
-	depth := 6
-	logger.Infof("gsoc: mining resource id for overlay=%s, depth=%d", addresses.Overlay, depth)
-	resourceId, socAddress, err := mineResourceId(ctx, addresses.Overlay, privKey, depth)
+	prefixMatchDepth := 6
+	logger.Infof("gsoc: mining resource id for overlay=%s, prefixMatchDepth=%d", addresses.Overlay, prefixMatchDepth)
+	resourceId, socAddress, err := mineResourceId(ctx, addresses.Overlay, privKey, prefixMatchDepth)
 	if err != nil {
 		return err
 	}
