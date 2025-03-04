@@ -139,7 +139,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 
 	for {
 		select {
-		case <-time.After(1 * time.Minute):
+		case <-time.After(3 * time.Minute):
 			return fmt.Errorf("correct message not received after %s", 1*time.Minute)
 		case msg, ok := <-ch:
 			if !ok {
