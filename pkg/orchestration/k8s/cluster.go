@@ -444,8 +444,8 @@ func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]
 	return
 }
 
-// ClosestFullNodeClient returns the closest full node client to the supplied client.
-func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*bee.Client, error) {
+// ClosestFullNodeClient returns the closest full node to a given address.
+func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client, addr swarm.Address, filter *bee.ClosestPeerFilter) (*bee.Client, error) {
 	addrToNode := make(map[string]orchestration.Node)
 	for _, n := range c.Nodes() {
 		res, err := n.Client().Addresses(ctx)
@@ -458,7 +458,7 @@ func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*be
 	var skipList []swarm.Address
 	const maxBin = 32
 	for b := 0; b < maxBin; b++ {
-		addr, err := s.ClosestPeer(ctx, uint8(b), skipList)
+		addr, err := s.ClosestPeer(ctx, addr, uint8(b), filter, skipList)
 		if err != nil {
 			return nil, err
 		}
