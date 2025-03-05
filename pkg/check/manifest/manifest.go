@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/ethersphere/bee/v2/pkg/cac"
 	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -160,10 +161,20 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 		return err
 	}
 	c.logger.Infof("collection uploaded: %s", tarFile.Address())
+	rChData, err := upClient.DownloadChunk(ctx, tarFile.Address(), "", nil)
+	if err != nil {
+		return err
+	}
+	// make chunk from byte array rChData
+	rCh, err := cac.New(rChData)
+	if err != nil {
+		return err
+	}
+
 	time.Sleep(3 * time.Second)
 
 	// push first version of website to the feed
-	ref, err := upClient.UpdateFeedWithReference(ctx, signer, topic, 0, tarFile.Address(), api.UploadOptions{BatchID: batchID})
+	ref, err := upClient.UpdateFeedWithRootChunk(ctx, signer, topic, 0, rCh, api.UploadOptions{BatchID: batchID})
 	if err != nil {
 		return err
 	}
@@ -190,10 +201,19 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 		return err
 	}
 	c.logger.Infof("collection uploaded: %s", tarFile.Address())
+	// Download Root Chunk of the new collection
+	rChData, err = upClient.DownloadChunk(ctx, tarFile.Address(), "", nil)
+	if err != nil {
+		return err
+	}
+	rCh, err = cac.New(rChData)
+	if err != nil {
+		return err
+	}
 	time.Sleep(3 * time.Second)
 
 	// push 2nd version of website to the feed
-	ref, err = upClient.UpdateFeedWithReference(ctx, signer, topic, 1, tarFile.Address(), api.UploadOptions{BatchID: batchID})
+	ref, err = upClient.UpdateFeedWithRootChunk(ctx, signer, topic, 1, rCh, api.UploadOptions{BatchID: batchID})
 	if err != nil {
 		return err
 	}

@@ -1009,9 +1009,9 @@ func (c *Client) CreateRootFeedManifest(ctx context.Context, signer crypto.Signe
 	return c.api.Feed.CreateRootManifest(ctx, signer, topic, o)
 }
 
-// UpdateFeedWithReference updates a feed with a reference
-func (c *Client) UpdateFeedWithReference(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, addr swarm.Address, o api.UploadOptions) (*api.SocResponse, error) {
-	return c.api.Feed.UpdateWithReference(ctx, signer, topic, i, addr, o)
+// UpdateFeedWithRootChunk updates a feed with a root chunk
+func (c *Client) UpdateFeedWithRootChunk(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, ch swarm.Chunk, o api.UploadOptions) (*api.SocResponse, error) {
+	return c.api.Feed.UpdateWithRootChunk(ctx, signer, topic, i, ch, o)
 }
 
 // FindFeedUpdate finds the latest update for a feed

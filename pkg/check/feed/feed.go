@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/bee/v2/pkg/cac"
 	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -143,8 +144,18 @@ func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o 
 		if err != nil {
 			return err
 		}
-		ref := file.Address()
-		socRes, err := upClient.UpdateFeedWithReference(ctx, signer, topic, uint64(i), ref, api.UploadOptions{BatchID: batchID})
+		// download root chunk of file
+		rChData, err := upClient.DownloadChunk(ctx, createManifestRes.Reference, "", nil)
+		if err != nil {
+			return err
+		}
+		// make chunk from byte array rChData
+		rCh, err := cac.New(rChData)
+		if err != nil {
+			return err
+		}
+
+		socRes, err := upClient.UpdateFeedWithRootChunk(ctx, signer, topic, uint64(i), rCh, api.UploadOptions{BatchID: batchID})
 		if err != nil {
 			return err
 		}
