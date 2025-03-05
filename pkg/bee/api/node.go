@@ -240,6 +240,7 @@ type MetricSnapshotView struct {
 	SessionConnectionDirection string  `json:"sessionConnectionDirection"`
 	LatencyEWMA                int64   `json:"latencyEWMA"`
 	Reachability               string  `json:"reachability"`
+	Healthy                    bool    `json:"healthy"`
 }
 
 // Topology returns Kademlia topology
