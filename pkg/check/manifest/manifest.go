@@ -161,6 +161,9 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 		return err
 	}
 	c.logger.Infof("collection uploaded: %s", tarFile.Address())
+
+	time.Sleep(3 * time.Second)
+
 	rChData, err := upClient.DownloadChunk(ctx, tarFile.Address(), "", nil)
 	if err != nil {
 		return err
@@ -170,9 +173,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	if err != nil {
 		return err
 	}
-
-	time.Sleep(3 * time.Second)
-
+	c.logger.Infof("rChData downloaded: chunk data length %s", len(rChData))
 	// push first version of website to the feed
 	ref, err := upClient.UpdateFeedWithRootChunk(ctx, signer, topic, 0, rCh, api.UploadOptions{BatchID: batchID})
 	if err != nil {
@@ -201,6 +202,8 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 		return err
 	}
 	c.logger.Infof("collection uploaded: %s", tarFile.Address())
+	time.Sleep(3 * time.Second)
+
 	// Download Root Chunk of the new collection
 	rChData, err = upClient.DownloadChunk(ctx, tarFile.Address(), "", nil)
 	if err != nil {
@@ -210,8 +213,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	if err != nil {
 		return err
 	}
-	time.Sleep(3 * time.Second)
-
+	c.logger.Infof("feed root chunk downloaded: %d bytes", len(rChData))
 	// push 2nd version of website to the feed
 	ref, err = upClient.UpdateFeedWithRootChunk(ctx, signer, topic, 1, rCh, api.UploadOptions{BatchID: batchID})
 	if err != nil {
