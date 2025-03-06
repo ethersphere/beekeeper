@@ -910,14 +910,14 @@ func (c *Client) UploadCollection(ctx context.Context, f *File, o api.UploadOpti
 func (c *Client) DownloadManifestFile(ctx context.Context, a swarm.Address, path string) (size int64, hash []byte, err error) {
 	r, err := c.api.Dirs.Download(ctx, a, path)
 	if err != nil {
-		return 0, nil, fmt.Errorf("download manifest file %s: %w", path, err)
+		return 0, nil, fmt.Errorf("download manifest file `%s`: %w", path, err)
 	}
 	defer r.Close()
 
 	h := fileHasher()
 	size, err = io.Copy(h, r)
 	if err != nil {
-		return 0, nil, fmt.Errorf("download manifest file %s: %w", path, err)
+		return 0, nil, fmt.Errorf("download manifest file `%s`: %w", path, err)
 	}
 
 	return size, h.Sum(nil), nil
