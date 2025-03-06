@@ -59,9 +59,18 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	if o.RootRef != "" {
 		c.logger.Infof("running availability check")
-		return c.checkAvailability(ctx, cluster, o)
+		if err := c.checkAvailability(ctx, cluster, o); err != nil {
+			return fmt.Errorf("availability check: %w", err)
+		}
+		return nil
 	}
-	return c.feedCheck(ctx, cluster, o)
+
+	c.logger.Infof("running feed check")
+	if err := c.feedCheck(ctx, cluster, o); err != nil {
+		return fmt.Errorf("feed check: %w", err)
+	}
+
+	return nil
 }
 
 func (c *Check) checkAvailability(ctx context.Context, cluster orchestration.Cluster, o Options) error {
@@ -70,55 +79,54 @@ func (c *Check) checkAvailability(ctx context.Context, cluster orchestration.Clu
 		return fmt.Errorf("invalid root ref: %w", err)
 	}
 
-	nodeNames := cluster.FullNodeNames()
-	nodeName := nodeNames[0]
-	clients, err := cluster.NodesClients(ctx)
+	clients, err := cluster.ShuffledFullNodeClients(ctx, random.PseudoGenerator(time.Now().UnixNano()))
 	if err != nil {
-		return err
+		return fmt.Errorf("node clients: %w", err)
 	}
 
-	client := clients[nodeName]
-	_, _, err = client.DownloadFile(ctx, ref, nil)
-	if err != nil {
-		return err
+	if len(clients) < 1 {
+		return fmt.Errorf("availability check requires at least 1 full node")
 	}
+
+	_, _, err = clients[0].DownloadFile(ctx, ref, nil)
+	if err != nil {
+		return fmt.Errorf("download root feed: %w", err)
+	}
+
 	return nil
 }
 
 // feedCheck creates a root feed manifest, makes a series of updates to the feed
 // and verifies that the updates are retrievable via another node.
 func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o Options) error {
-	rnd := random.PseudoGenerator(time.Now().UnixNano())
-	names := cluster.FullNodeNames()
-	perm := rnd.Perm(len(names))
-
-	if len(names) < 2 {
-		return fmt.Errorf("not enough nodes to run feed check")
-	}
-
-	clients, err := cluster.NodesClients(ctx)
+	clients, err := cluster.ShuffledFullNodeClients(ctx, random.PseudoGenerator(time.Now().UnixNano()))
 	if err != nil {
-		return err
+		return fmt.Errorf("node clients: %w", err)
 	}
-	upClient := clients[names[perm[0]]]
-	downClient := clients[names[perm[1]]]
+
+	if len(clients) < 2 {
+		return fmt.Errorf("feed check requires at least 2 full nodes")
+	}
+
+	upClient := clients[0]
+	downClient := clients[1]
 
 	c.logger.Infof("upload client: %s", upClient.Name())
 
 	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
-		return err
+		return fmt.Errorf("get or create mutable batch: %w", err)
 	}
 
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
-		return err
+		return fmt.Errorf("generate private key: %w", err)
 	}
 
 	signer := crypto.NewDefaultSigner(privKey)
 	topic, err := crypto.LegacyKeccak256([]byte("my-topic"))
 	if err != nil {
-		return err
+		return fmt.Errorf("topic hash: %w", err)
 	}
 
 	// create root
@@ -126,14 +134,16 @@ func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o 
 	if err != nil {
 		return err
 	}
+
 	c.logger.Infof("node %s: manifest created", upClient.Name())
 	c.logger.Infof("reference: %s", createManifestRes.Reference)
 	c.logger.Infof("owner: %s", createManifestRes.Owner)
 	c.logger.Infof("topic: %s", createManifestRes.Topic)
 
 	// make updates
-	for i := 0; i < o.NUpdates; i++ {
+	for i := range o.NUpdates {
 		time.Sleep(3 * time.Second)
+
 		data := fmt.Sprintf("update-%d", i)
 		fName := fmt.Sprintf("file-%d", i)
 		file := bee.NewBufferFile(fName, bytes.NewBuffer([]byte(data)))
@@ -142,23 +152,26 @@ func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o 
 			Direct:  true,
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("upload file `%s`: %w", fName, err)
 		}
+
 		// download root chunk of file
 		rChData, err := upClient.DownloadChunk(ctx, createManifestRes.Reference, "", nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("download root chunk: %w", err)
 		}
+
 		// make chunk from byte array rChData
 		rCh, err := cac.New(rChData)
 		if err != nil {
-			return err
+			return fmt.Errorf("create chunk: %w", err)
 		}
 
 		socRes, err := upClient.UpdateFeedWithRootChunk(ctx, signer, topic, uint64(i), rCh, api.UploadOptions{BatchID: batchID})
 		if err != nil {
-			return err
+			return fmt.Errorf("update feed with root chunk: %w", err)
 		}
+
 		c.logger.Infof("node %s: feed updated", upClient.Name())
 		c.logger.Infof("soc reference: %s", socRes.Reference)
 		c.logger.Infof("wrapped reference: %s", file.Address())
@@ -170,7 +183,7 @@ func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o 
 	c.logger.Infof("download client: %s", downClient.Name())
 	update, err := downClient.FindFeedUpdate(ctx, signer, topic, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("find feed update: %w", err)
 	}
 
 	c.logger.Infof("node %s: feed update found", downClient.Name())
@@ -186,9 +199,11 @@ func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o 
 	if err != nil {
 		return fmt.Errorf("download root feed: %w", err)
 	}
+
 	lastUpdateData := fmt.Sprintf("update-%d", o.NUpdates-1)
 	if string(d) != lastUpdateData {
 		return fmt.Errorf("expected file content to be %s, got %s", lastUpdateData, string(d))
 	}
+
 	return nil
 }
