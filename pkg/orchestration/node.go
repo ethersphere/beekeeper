@@ -102,7 +102,7 @@ type Config struct {
 	ResolverOptions           string        // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
 	ChequebookEnable          bool          // enable chequebook
 	SwapEnable                bool          // enable swap
-	SwapEndpoint              string        // swap ethereum blockchain endpoint
+	BlockchainRPCEndpoint     string        // blockchain RPC endpoint
 	SwapDeploymentGasPrice    string        // gas price in wei to use for deployment and funding
 	SwapFactoryAddress        string        // swap factory address
 	RedistributionAddress     string        // redistribution address

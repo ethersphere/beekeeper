@@ -69,17 +69,20 @@ node-groups:
 bee-configs:
   testnet-giant:
     _inherit: ""
+    allow-private-cidrs: true
     api-addr: ":1633"
     block-time: 15
-    bootnodes: ""
+    blockchain-rpc-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
     bootnode-mode: false
+    bootnodes: ""
     cache-capacity: 1000000
+    chequebook-enable: true
     cors-allowed-origins: ""
     data-dir: "/home/bee/.bee"
-    db-open-files-limit: 200
     db-block-cache-capacity: 33554432
-    db-write-buffer-size: 33554432
     db-disable-seeks-compaction: false
+    db-open-files-limit: 200
+    db-write-buffer-size: 33554432
     full-node: true
     mainnet: false
     nat-addr: ""
@@ -93,9 +96,7 @@ bee-configs:
     postage-stamp-address: ""
     price-oracle-address: ""
     resolver-options: "https://cloudflare-eth.com"
-    chequebook-enable: true
     swap-enable: true
-    swap-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
     swap-factory-address: ""
     swap-initial-deposit: 10000000000000000
     tracing-enabled: false
@@ -103,7 +104,6 @@ bee-configs:
     tracing-service-name: "bee"
     verbosity: 5
     welcome-message: "Welcome to the giant!"
-    allow-private-cidrs: true
   bootnode-giant:
     _inherit: "testnet-giant"
     bootnode-mode: true
