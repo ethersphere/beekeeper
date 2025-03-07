@@ -11,18 +11,21 @@ import (
 )
 
 const (
-	configTemplate = `api-addr: {{.APIAddr}}
+	configTemplate = `
 allow-private-cidrs: {{ .AllowPrivateCIDRs }}
+api-addr: {{.APIAddr}}
 block-time: {{ .BlockTime }}
-bootnode: {{.Bootnodes}}
+blockchain-rpc-endpoint: {{.BlockchainRPCEndpoint}}
 bootnode-mode: {{.BootnodeMode}}
+bootnode: {{.Bootnodes}}
 cache-capacity: {{.CacheCapacity}}
+chequebook-enable: {{.ChequebookEnable}}
 cors-allowed-origins: {{.CORSAllowedOrigins}}
 data-dir: {{.DataDir}}
-db-open-files-limit: {{.DbOpenFilesLimit}}
 db-block-cache-capacity: {{.DbBlockCacheCapacity}}
-db-write-buffer-size: {{.DbWriteBufferSize}}
 db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
+db-open-files-limit: {{.DbOpenFilesLimit}}
+db-write-buffer-size: {{.DbWriteBufferSize}}
 full-node: {{.FullNode}}
 mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
@@ -37,21 +40,19 @@ postage-stamp-address: {{ .PostageStampAddress }}
 postage-stamp-start-block: {{ .PostageContractStartBlock }}
 price-oracle-address: {{ .PriceOracleAddress }}
 redistribution-address: {{ .RedistributionAddress }}
+resolver-options: {{.ResolverOptions}}
 staking-address: {{ .StakingAddress }}
 storage-incentives-enable: {{ .StorageIncentivesEnable }}
-resolver-options: {{.ResolverOptions}}
-chequebook-enable: {{.ChequebookEnable}}
-swap-enable: {{.SwapEnable}}
-swap-endpoint: {{.SwapEndpoint}}
 swap-deployment-gas-price: {{.SwapDeploymentGasPrice}}
+swap-enable: {{.SwapEnable}}
 swap-factory-address: {{.SwapFactoryAddress}}
 swap-initial-deposit: {{.SwapInitialDeposit}}
 tracing-enable: {{.TracingEnabled}}
 tracing-endpoint: {{.TracingEndpoint}}
 tracing-service-name: {{.TracingServiceName}}
 verbosity: {{.Verbosity}}
-welcome-message: {{.WelcomeMessage}}
 warmup-time: {{.WarmupTime}}
+welcome-message: {{.WelcomeMessage}}
 withdrawal-addresses-whitelist: {{.WithdrawAddress}}
 `
 )

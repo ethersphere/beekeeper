@@ -119,7 +119,7 @@ bee-configs:
     resolver-options: ""
     chequebook-enable: true
     swap-enable: true
-    swap-endpoint: "ws://geth-swap.bee-playground.svc.swarm1.local:8546"
+    blockchain-rpc-endpoint: "ws://geth-swap.bee-playground.svc.swarm1.local:8546"
     swap-factory-address: "0xdD661f2500bA5831e3d1FEbAc379Ea1bF80773Ac"
     swap-initial-deposit: 500000000000000000
     tracing-enabled: true

@@ -97,7 +97,7 @@ bee-configs:
     resolver-options: "https://cloudflare-eth.com"
     chequebook-enable: true
     swap-enable: true
-    swap-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
+    blockchain-rpc-endpoint: "ws://private-goerli-geth.private-goerli-geth:8546"
     swap-factory-address: ""
     swap-initial-deposit: 10000000000000000
     tracing-enabled: false

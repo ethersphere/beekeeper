@@ -40,7 +40,7 @@ bee-configs:
     p2p-addr: ":1634"
     password: "beekeeper"
     swap-enable: true
-    swap-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
+    blockchain-rpc-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
     tracing-enabled: true
     tracing-endpoint: "10.10.11.199:6831"
     tracing-service-name: "bee"
