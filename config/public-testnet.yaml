@@ -135,25 +135,7 @@ checks:
       postage-label: test-label
     timeout: 10m
     type: gsoc
-  pt-testnet-load:
-    options:
-      content-size: 50000000
-      postage-ttl: 720h
-      postage-depth: 22
-      postage-label: test-label
-      duration: 720h
-      uploader-count: 2
-      downloader-count: 0
-      max-committed-depth: 2
-      committed-depth-check-wait: 5m
-      upload-groups:
-        - bee-1
-        - bee-2
-      download-groups:
-        - bee-3
-        - bee-4
-    timeout: 721h
-    type: load
+
   pt-feed:
     options:
       postage-ttl: 336h
@@ -174,3 +156,31 @@ checks:
       data-size: 307200
     timeout: 15m
     type: redundancy
+  pt-testnet-load:
+    options:
+      content-size: 50000000
+      postage-ttl: 720h
+      postage-depth: 22
+      postage-label: test-label
+      duration: 720h
+      uploader-count: 2
+      downloader-count: 0
+      max-committed-depth: 2
+      committed-depth-check-wait: 5m
+      upload-groups:
+        - bee-1
+        - bee-2
+      download-groups:
+        - bee-3
+        - bee-4
+    timeout: 721h
+    type: load
+  pt-smoke:
+    options:
+      content-size: 50000000
+      postage-ttl: 336h
+      postage-depth: 22
+      postage-label: test-label
+      duration: 720h
+    timeout: 721h
+    type: smoke
