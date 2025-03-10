@@ -172,7 +172,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	}
 
 	// make chunk from byte array rChData
-	rCh, err := cac.New(rChData)
+	rCh, err := cac.NewWithDataSpan(rChData)
 	if err != nil {
 		return fmt.Errorf("create chunk from data: %w", err)
 	}
