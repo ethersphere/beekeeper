@@ -188,7 +188,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	// download root (index.html) from the feed
 	err = c.downloadAndVerify(ctx, downClient, rootFeedRef.Reference, nil, files[0])
 	if err != nil {
-		return fmt.Errorf("download and verify intial index document: %w", err)
+		return fmt.Errorf("download and verify initial index document: %w", err)
 	}
 
 	// update  website files
