@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"time"
 
@@ -80,13 +81,35 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
 	o, ok := opts.(Options)
 	if !ok {
-		return fmt.Errorf("invalid options type")
+		return errors.New("invalid options type")
 	}
 
-	c.logger.Info("random seed: ", o.RndSeed)
-	c.logger.Info("content size: ", o.ContentSize)
-	c.logger.Info("upload timeout: ", o.UploadTimeout)
-	c.logger.Info("download timeout: ", o.DownloadTimeout)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	doneCh := make(chan error, 1)
+
+	go func() {
+		doneCh <- c.run(ctx, cluster, o)
+	}()
+
+	select {
+	case err := <-doneCh:
+		return err
+	case <-time.After(o.Duration):
+		c.logger.Info("Duration expired, stopping execution")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+	c.logger.Infof("random seed: %d", o.RndSeed)
+	c.logger.Infof("content size: %d", o.ContentSize)
+	c.logger.Infof("upload timeout: %s", o.UploadTimeout.String())
+	c.logger.Infof("download timeout: %s", o.DownloadTimeout.String())
+	c.logger.Infof("total duration: %s", o.Duration.String())
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 

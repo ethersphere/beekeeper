@@ -44,6 +44,27 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return errors.New("invalid options type")
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	doneCh := make(chan error, 1)
+
+	go func() {
+		doneCh <- c.run(ctx, cluster, o)
+	}()
+
+	select {
+	case err := <-doneCh:
+		return err
+	case <-time.After(o.Duration):
+		c.logger.Info("Duration expired, stopping execution")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	if o.UploaderCount == 0 || len(o.UploadGroups) == 0 {
 		return errors.New("no uploaders requested, quiting")
 	}
@@ -56,14 +77,12 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	c.logger.Infof("content size: %v", o.ContentSize)
 	c.logger.Infof("max committed depth: %v", o.MaxCommittedDepth)
 	c.logger.Infof("committed depth check wait time: %v", o.CommittedDepthCheckWait)
+	c.logger.Infof("total duration: %s", o.Duration.String())
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, o.Duration)
-	defer cancel()
 
 	test := &test{clients: clients, logger: c.logger}
 
@@ -115,7 +134,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					default:
 					}
 
-					if !c.checkcommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
+					if !c.checkCommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
 						return
 					}
 
@@ -230,13 +249,14 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	return nil
 }
 
-func (c *LoadCheck) checkcommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
+func (c *LoadCheck) checkCommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
 	for {
 		statusResp, err := client.Status(ctx)
 		if err != nil {
 			c.logger.Infof("error getting state: %v", err)
 			return false
 		}
+
 		if statusResp.CommittedDepth < maxDepth {
 			return true
 		}
