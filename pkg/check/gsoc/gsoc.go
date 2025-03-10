@@ -12,6 +12,7 @@ import (
 
 	"github.com/ethersphere/bee/v2/pkg/cac"
 	"github.com/ethersphere/bee/v2/pkg/crypto"
+	"github.com/ethersphere/bee/v2/pkg/p2p"
 	"github.com/ethersphere/bee/v2/pkg/soc"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -77,11 +78,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	uploadClient := fullNodeClients[0]
-	listenClient, err := cluster.ClosestFullNodeClient(ctx, uploadClient)
-	if err != nil {
-		return err
-	}
-
 	batches := make([]string, 2)
 	for i := 0; i < 2; i++ {
 		c.logger.Infof("gsoc: creating postage batch. duration=%d, depth=%d, label=%s", o.PostageTTL, o.PostageDepth, o.PostageLabel)
@@ -93,41 +89,68 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		batches[i] = batchID
 	}
 
-	c.logger.Infof("send messages with different postage batches sequentially...")
-	err = run(ctx, uploadClient, listenClient, batches, c.logger, false)
+	c.logger.Infof("gsoc: send messages with different postage batches sequentially...")
+	err = run(ctx, cluster, uploadClient, batches, c.logger, false)
 	if err != nil {
 		return fmt.Errorf("sequential: %w", err)
 	}
-	c.logger.Infof("done")
+	c.logger.Infof("gsoc: done")
 
-	c.logger.Infof("send messages with different postage batches parallel...")
-	err = run(ctx, uploadClient, listenClient, batches, c.logger, true)
+	c.logger.Infof("gsoc: send messages with different postage batches parallel...")
+	err = run(ctx, cluster, uploadClient, batches, c.logger, true)
 	if err != nil {
 		return fmt.Errorf("parallel: %w", err)
 	}
-	c.logger.Infof("done")
+	c.logger.Infof("gsoc: done")
 
 	return nil
 }
 
-func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client, batches []string, logger logging.Logger, parallel bool) error {
+func run(ctx context.Context, cluster orchestration.Cluster, uploadClient *bee.Client, batches []string, logger logging.Logger, parallel bool) error {
 	const numChunks = 10
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
 		return err
 	}
 
-	addresses, err := listenClient.Addresses(ctx)
+	overlay, err := uploadClient.Overlay(ctx)
 	if err != nil {
 		return err
 	}
-	prefixMatchDepth := 6
-	logger.Infof("gsoc: mining resource id for overlay=%s, prefixMatchDepth=%d", addresses.Overlay, prefixMatchDepth)
-	resourceId, socAddress, err := mineResourceId(ctx, addresses.Overlay, privKey, prefixMatchDepth)
+
+	h := true
+	r := p2p.ReachabilityStatusPublic
+	d := bee.PeerConnectionDirectionOutbound
+	filter := &bee.ClosestPeerFilter{Healthy: &h, Reachability: &r, ConnectionDirection: &d}
+
+	socClient, err := cluster.ClosestFullNodeClient(ctx, uploadClient, overlay, nil)
 	if err != nil {
 		return err
 	}
-	logger.Infof("gsoc: socAddress=%s, listener node address=%s, node=%s", socAddress, addresses.Overlay, listenClient.Name())
+	logger.Infof("gsoc: uploader overlay=%s, node=%s", overlay, uploadClient.Name())
+	socClientOverlay, err := socClient.Overlay(ctx)
+	if err != nil {
+		return err
+	}
+
+	logger.Infof("gsoc: soc client address=%s, node=%s", socClientOverlay, socClient.Name())
+
+	prefixMatchDepth := 2
+	logger.Infof("gsoc: mining resource id for overlay=%s, prefixMatchDepth=%d", socClientOverlay, prefixMatchDepth)
+	resourceId, socAddress, err := mineResourceId(ctx, socClientOverlay, privKey, prefixMatchDepth)
+	if err != nil {
+		return err
+	}
+
+	listenClient, err := cluster.ClosestFullNodeClient(ctx, uploadClient, socAddress, filter)
+	if err != nil {
+		return err
+	}
+	listenClientOverlay, err := listenClient.Overlay(ctx)
+	if err != nil {
+		return err
+	}
+	logger.Infof("gsoc: socAddress=%s, listener node address=%s, node=%s", socAddress, listenClientOverlay, listenClient.Name())
 
 	ctx, cancel := context.WithCancel(ctx)
 	ch, closer, err := wslistener.ListenWebSocket(ctx, listenClient, fmt.Sprintf("/gsoc/subscribe/%s", socAddress), logger)
