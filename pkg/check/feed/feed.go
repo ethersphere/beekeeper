@@ -156,13 +156,13 @@ func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o 
 		}
 
 		// download root chunk of file
-		rChData, err := upClient.DownloadChunk(ctx, createManifestRes.Reference, "", nil)
+		rChData, err := upClient.DownloadChunk(ctx, file.Address(), "", nil)
 		if err != nil {
 			return fmt.Errorf("download root chunk: %w", err)
 		}
 
 		// make chunk from byte array rChData
-		rCh, err := cac.New(rChData)
+		rCh, err := cac.NewWithDataSpan(rChData)
 		if err != nil {
 			return fmt.Errorf("create chunk: %w", err)
 		}
