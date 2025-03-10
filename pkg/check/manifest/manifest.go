@@ -176,7 +176,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 	if err != nil {
 		return fmt.Errorf("create chunk from data: %w", err)
 	}
-	c.logger.Infof("rChData downloaded: chunk data length %s", len(rChData))
+	c.logger.Infof("rChData downloaded: chunk data %v bytes", len(rChData))
 
 	// push first version of website to the feed
 	ref, err := upClient.UpdateFeedWithRootChunk(ctx, signer, topic, 0, rCh, api.UploadOptions{BatchID: batchID})
@@ -216,7 +216,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 		return err
 	}
 
-	rCh, err = cac.New(rChData)
+	rCh, err = cac.NewWithDataSpan(rChData)
 	if err != nil {
 		return fmt.Errorf("create chunk from data: %w", err)
 	}
