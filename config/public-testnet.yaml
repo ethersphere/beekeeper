@@ -58,7 +58,7 @@ checks:
     options:
       chunks-per-node: 3
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
       upload-node-count: 3
     timeout: 15m
@@ -70,7 +70,7 @@ checks:
       file-name: settlements
       file-size: 14680064 # 14mb = 14*1024*1024
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
       threshold: 100000000
       upload-node-count: 3
@@ -82,7 +82,7 @@ checks:
       files-in-collection: 10
       max-pathname-length: 64
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
     timeout: 30m
     type: manifest
@@ -91,7 +91,7 @@ checks:
       count: 3
       address-prefix: 2
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
       request-timeout: 10m
     timeout: 30m
@@ -99,7 +99,7 @@ checks:
   pt-soc:
     options:
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
       request-timeout: 5m
     timeout: 15m
@@ -109,7 +109,7 @@ checks:
       chunks-per-node: 3
       mode: chunks
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
       retries: 5
       retry-delay: 15s
@@ -131,7 +131,7 @@ checks:
   pt-gsoc:
     options:
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
     timeout: 10m
     type: gsoc
@@ -139,7 +139,7 @@ checks:
     options:
       content-size: 50000000
       postage-ttl: 720h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
       duration: 720h
       uploader-count: 2
@@ -157,7 +157,7 @@ checks:
   pt-feed:
     options:
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
     timeout: 30m
     type: feed
@@ -168,7 +168,7 @@ checks:
   pt-redundancy:
     options:
       postage-ttl: 336h
-      postage-depth: 21
+      postage-depth: 22
       postage-label: test-label
       seed:
       data-size: 307200
