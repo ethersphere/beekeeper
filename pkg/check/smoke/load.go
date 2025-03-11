@@ -25,6 +25,7 @@ var _ beekeeper.Action = (*LoadCheck)(nil)
 
 // Check instance
 type LoadCheck struct {
+	BaseCheck
 	metrics metrics
 	logger  logging.Logger
 }
@@ -32,6 +33,9 @@ type LoadCheck struct {
 // NewCheck returns new check
 func NewLoadCheck(log logging.Logger) beekeeper.Action {
 	return &LoadCheck{
+		BaseCheck: BaseCheck{
+			logger: log,
+		},
 		metrics: newMetrics("check_load"),
 		logger:  log,
 	}
@@ -44,24 +48,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return errors.New("invalid options type")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	doneCh := make(chan error, 1)
-
-	go func() {
-		doneCh <- c.run(ctx, cluster, o)
-	}()
-
-	select {
-	case err := <-doneCh:
-		return err
-	case <-time.After(o.Duration):
-		c.logger.Info("Duration expired, stopping execution")
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return c.RunWithDuration(ctx, cluster, opts, o.Duration, c.run)
 }
 
 func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {

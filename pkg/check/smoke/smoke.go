@@ -65,15 +65,19 @@ var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
 type Check struct {
+	BaseCheck
 	metrics metrics
 	logger  logging.Logger
 }
 
 // NewCheck returns new check
-func NewCheck(logger logging.Logger) beekeeper.Action {
+func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
+		BaseCheck: BaseCheck{
+			logger: log,
+		},
 		metrics: newMetrics("check_smoke"),
-		logger:  logger,
+		logger:  log,
 	}
 }
 
@@ -84,24 +88,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return errors.New("invalid options type")
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	doneCh := make(chan error, 1)
-
-	go func() {
-		doneCh <- c.run(ctx, cluster, o)
-	}()
-
-	select {
-	case err := <-doneCh:
-		return err
-	case <-time.After(o.Duration):
-		c.logger.Info("Duration expired, stopping execution")
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return c.RunWithDuration(ctx, cluster, opts, o.Duration, c.run)
 }
 
 func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {
