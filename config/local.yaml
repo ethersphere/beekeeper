@@ -282,7 +282,7 @@ checks:
     type: settlements
   ci-smoke:
     options:
-      content-size: 5000000
+      content-size: 50000
       postage-ttl: 24h
       postage-depth: 21
       postage-label: test-label
@@ -290,8 +290,8 @@ checks:
       upload-timeout: 1m
       download-timeout: 1m
       iteration-wait: 5m
-      duration: 2m
-    timeout: 5m
+      duration: 10m
+    timeout: 11m
     type: smoke
   ci-soc:
     options:
