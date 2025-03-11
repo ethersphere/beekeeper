@@ -15,6 +15,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/beekeeper/pkg/scheduler"
 )
 
 // Options represents smoke test options
@@ -65,7 +66,6 @@ var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
 type Check struct {
-	BaseCheck
 	metrics metrics
 	logger  logging.Logger
 }
@@ -73,9 +73,6 @@ type Check struct {
 // NewCheck returns new check
 func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
-		BaseCheck: BaseCheck{
-			logger: log,
-		},
 		metrics: newMetrics("check_smoke"),
 		logger:  log,
 	}
@@ -88,7 +85,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return errors.New("invalid options type")
 	}
 
-	return c.RunWithDuration(ctx, cluster, opts, o.Duration, c.run)
+	return scheduler.NewDurationExecutor(o.Duration, c.logger).Run(ctx, func(ctx context.Context) error {
+		return c.run(ctx, cluster, o)
+	})
 }
 
 func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {

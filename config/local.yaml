@@ -290,6 +290,7 @@ checks:
       upload-timeout: 1m
       download-timeout: 1m
       iteration-wait: 5m
+      duration: 2m
     timeout: 5m
     type: smoke
   ci-soc:

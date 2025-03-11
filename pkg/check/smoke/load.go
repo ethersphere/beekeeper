@@ -14,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/scheduler"
 )
 
 func init() {
@@ -25,7 +26,6 @@ var _ beekeeper.Action = (*LoadCheck)(nil)
 
 // Check instance
 type LoadCheck struct {
-	BaseCheck
 	metrics metrics
 	logger  logging.Logger
 }
@@ -33,9 +33,6 @@ type LoadCheck struct {
 // NewCheck returns new check
 func NewLoadCheck(log logging.Logger) beekeeper.Action {
 	return &LoadCheck{
-		BaseCheck: BaseCheck{
-			logger: log,
-		},
 		metrics: newMetrics("check_load"),
 		logger:  log,
 	}
@@ -48,7 +45,9 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return errors.New("invalid options type")
 	}
 
-	return c.RunWithDuration(ctx, cluster, opts, o.Duration, c.run)
+	return scheduler.NewDurationExecutor(o.Duration, c.logger).Run(ctx, func(ctx context.Context) error {
+		return c.run(ctx, cluster, o)
+	})
 }
 
 func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {

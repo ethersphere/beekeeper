@@ -167,7 +167,7 @@ func (c *command) initGlobalFlags() {
 	globalFlags.String(optionNameConfigDir, filepath.Join(c.homeDir, "/.beekeeper/"), "Directory for configuration files")
 	globalFlags.String(optionNameConfigGitRepo, "", "URL of the Git repository containing configuration files (uses the config-dir if not specified)")
 	globalFlags.String(optionNameConfigGitDir, ".", "Directory within the Git repository containing configuration files. Defaults to the root directory")
-	globalFlags.String(optionNameConfigGitBranch, "main", "Git branch to use for configuration files")
+	globalFlags.String(optionNameConfigGitBranch, "master", "Git branch to use for configuration files")
 	globalFlags.String(optionNameConfigGitUsername, "", "Git username for authentication (required for private repositories)")
 	globalFlags.String(optionNameConfigGitPassword, "", "Git password or personal access token for authentication (required for private repositories)")
 	globalFlags.String(optionNameGethURL, "", "URL of the ethereum compatible blockchain RPC endpoint")
