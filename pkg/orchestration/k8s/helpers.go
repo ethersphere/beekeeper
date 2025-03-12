@@ -43,7 +43,6 @@ redistribution-address: {{ .RedistributionAddress }}
 resolver-options: {{.ResolverOptions}}
 staking-address: {{ .StakingAddress }}
 storage-incentives-enable: {{ .StorageIncentivesEnable }}
-swap-deployment-gas-price: {{.SwapDeploymentGasPrice}}
 swap-enable: {{.SwapEnable}}
 swap-factory-address: {{.SwapFactoryAddress}}
 swap-initial-deposit: {{.SwapInitialDeposit}}

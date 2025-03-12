@@ -103,7 +103,6 @@ type Config struct {
 	ChequebookEnable          bool          // enable chequebook
 	SwapEnable                bool          // enable swap
 	BlockchainRPCEndpoint     string        // blockchain RPC endpoint
-	SwapDeploymentGasPrice    string        // gas price in wei to use for deployment and funding
 	SwapFactoryAddress        string        // swap factory address
 	RedistributionAddress     string        // redistribution address
 	StakingAddress            string        // staking address

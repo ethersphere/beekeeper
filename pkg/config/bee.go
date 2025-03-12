@@ -47,7 +47,6 @@ type BeeConfig struct {
 	ResolverOptions           *string        `yaml:"resolver-options"`
 	StakingAddress            *string        `yaml:"staking-address"`
 	StorageIncentivesEnable   *string        `yaml:"storage-incentives-enable"`
-	SwapDeploymentGasPrice    *string        `yaml:"swap-deployment-gas-price"`
 	SwapEnable                *bool          `yaml:"swap-enable"`
 	SwapEndpoint              *string        `yaml:"swap-endpoint"` // deprecated: use blockchain-rpc-endpoint
 	SwapFactoryAddress        *string        `yaml:"swap-factory-address"`
