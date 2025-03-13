@@ -7,7 +7,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
-// DurationExecutor executes a task and then stops gracefully after a specified duration.
+// DurationExecutor executes a task and then stops immediately after the specified duration.
 type DurationExecutor struct {
 	duration time.Duration
 	log      logging.Logger
