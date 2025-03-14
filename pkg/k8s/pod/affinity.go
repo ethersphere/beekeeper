@@ -32,7 +32,7 @@ type NodeAffinity struct {
 	RequiredDuringSchedulingIgnoredDuringExecution  NodeSelector
 }
 
-// toK8S converts NodeAffinity to Kuberntes client object
+// toK8S converts NodeAffinity to Kubernetes client object
 func (na *NodeAffinity) toK8S() *v1.NodeAffinity {
 	return &v1.NodeAffinity{
 		PreferredDuringSchedulingIgnoredDuringExecution: na.PreferredDuringSchedulingIgnoredDuringExecution.toK8S(),
@@ -59,7 +59,7 @@ type PreferredSchedulingTerm struct {
 	Weight     int32
 }
 
-// toK8S converts PreferredSchedulingTerm to Kuberntes client object
+// toK8S converts PreferredSchedulingTerm to Kubernetes client object
 func (pst *PreferredSchedulingTerm) toK8S() v1.PreferredSchedulingTerm {
 	return v1.PreferredSchedulingTerm{
 		Preference: pst.Preference.toK8S(),
@@ -72,7 +72,7 @@ type NodeSelector struct {
 	NodeSelectorTerms NodeSelectorTerms
 }
 
-// toK8S converts NodeSelector to Kuberntes client object
+// toK8S converts NodeSelector to Kubernetes client object
 func (ns *NodeSelector) toK8S() *v1.NodeSelector {
 	return &v1.NodeSelector{
 		NodeSelectorTerms: ns.NodeSelectorTerms.toK8S(),
@@ -82,7 +82,7 @@ func (ns *NodeSelector) toK8S() *v1.NodeSelector {
 // NodeSelectorTerms represents Kubernetes NodeSelectorTerms
 type NodeSelectorTerms []NodeSelectorTerm
 
-// toK8S converts NodeSelectorTerms to Kuberntes client objects
+// toK8S converts NodeSelectorTerms to Kubernetes client objects
 func (nsts NodeSelectorTerms) toK8S() (l []v1.NodeSelectorTerm) {
 	if len(nsts) > 0 {
 		l = make([]v1.NodeSelectorTerm, 0, len(nsts))
@@ -99,7 +99,7 @@ type NodeSelectorTerm struct {
 	MatchFields      NodeSelectorRequirements
 }
 
-// toK8S converts NodeSelectorTerm to Kuberntes client object
+// toK8S converts NodeSelectorTerm to Kubernetes client object
 func (nst *NodeSelectorTerm) toK8S() v1.NodeSelectorTerm {
 	return v1.NodeSelectorTerm{
 		MatchExpressions: nst.MatchExpressions.toK8S(),
@@ -110,7 +110,7 @@ func (nst *NodeSelectorTerm) toK8S() v1.NodeSelectorTerm {
 // NodeSelectorRequirements represents Kubernetes NodeSelectorRequirements
 type NodeSelectorRequirements []NodeSelectorRequirement
 
-// toK8S converts Items to Kuberntes client object
+// toK8S converts Items to Kubernetes client object
 func (nsrs NodeSelectorRequirements) toK8S() (l []v1.NodeSelectorRequirement) {
 	if len(nsrs) > 0 {
 		l = make([]v1.NodeSelectorRequirement, 0, len(nsrs))
@@ -128,7 +128,7 @@ type NodeSelectorRequirement struct {
 	Values   []string
 }
 
-// toK8S converts NodeSelectorRequirement to Kuberntes client object
+// toK8S converts NodeSelectorRequirement to Kubernetes client object
 func (nsr *NodeSelectorRequirement) toK8S() v1.NodeSelectorRequirement {
 	return v1.NodeSelectorRequirement{
 		Key:      nsr.Key,
@@ -143,7 +143,7 @@ type PodAffinity struct {
 	RequiredDuringSchedulingIgnoredDuringExecution  PodAffinityTerms
 }
 
-// toK8S converts PodAffinity to Kuberntes client object
+// toK8S converts PodAffinity to Kubernetes client object
 func (pa *PodAffinity) toK8S() *v1.PodAffinity {
 	return &v1.PodAffinity{
 		PreferredDuringSchedulingIgnoredDuringExecution: pa.PreferredDuringSchedulingIgnoredDuringExecution.toK8S(),
@@ -154,7 +154,7 @@ func (pa *PodAffinity) toK8S() *v1.PodAffinity {
 // PodAffinityTerms represents Kubernetes PodAffinityTerms
 type PodAffinityTerms []PodAffinityTerm
 
-// toK8S converts PodAffinityTerms to Kuberntes client object
+// toK8S converts PodAffinityTerms to Kubernetes client object
 func (pats PodAffinityTerms) toK8S() (l []v1.PodAffinityTerm) {
 	if len(pats) > 0 {
 		l = make([]v1.PodAffinityTerm, 0, len(pats))
@@ -172,7 +172,7 @@ type PodAffinityTerm struct {
 	TopologyKey   string
 }
 
-// toK8S converts PodAffinityTerm to Kuberntes client object
+// toK8S converts PodAffinityTerm to Kubernetes client object
 func (pat *PodAffinityTerm) toK8S() v1.PodAffinityTerm {
 	return v1.PodAffinityTerm{
 		LabelSelector: &metav1.LabelSelector{MatchLabels: pat.LabelSelector},
@@ -184,7 +184,7 @@ func (pat *PodAffinityTerm) toK8S() v1.PodAffinityTerm {
 // WeightedPodAffinityTerms represents Kubernetes WeightedPodAffinityTerms
 type WeightedPodAffinityTerms []WeightedPodAffinityTerm
 
-// toK8S converts WeightedPodAffinityTerms to Kuberntes client object
+// toK8S converts WeightedPodAffinityTerms to Kubernetes client object
 func (wpats WeightedPodAffinityTerms) toK8S() (l []v1.WeightedPodAffinityTerm) {
 	if len(wpats) > 0 {
 		l = make([]v1.WeightedPodAffinityTerm, 0, len(wpats))
@@ -201,7 +201,7 @@ type WeightedPodAffinityTerm struct {
 	Weight          int32
 }
 
-// toK8S converts WeightedPodAffinityTerm to Kuberntes client object
+// toK8S converts WeightedPodAffinityTerm to Kubernetes client object
 func (wpat *WeightedPodAffinityTerm) toK8S() v1.WeightedPodAffinityTerm {
 	return v1.WeightedPodAffinityTerm{
 		PodAffinityTerm: wpat.PodAffinityTerm.toK8S(),
@@ -215,7 +215,7 @@ type PodAntiAffinity struct {
 	PreferredDuringSchedulingIgnoredDuringExecution WeightedPodAffinityTerms
 }
 
-// toK8S converts PodAntiAffinity to Kuberntes client object
+// toK8S converts PodAntiAffinity to Kubernetes client object
 func (paa *PodAntiAffinity) toK8S() *v1.PodAntiAffinity {
 	return &v1.PodAntiAffinity{
 		PreferredDuringSchedulingIgnoredDuringExecution: paa.PreferredDuringSchedulingIgnoredDuringExecution.toK8S(),

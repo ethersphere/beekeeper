@@ -17,7 +17,7 @@ type PodSecurityContext struct {
 	WindowsOptions      WindowsOptions
 }
 
-// toK8S converts PodSecurityContext to Kuberntes client object
+// toK8S converts PodSecurityContext to Kubernetes client object
 func (psc *PodSecurityContext) toK8S() *v1.PodSecurityContext {
 	return &v1.PodSecurityContext{
 		FSGroup: &psc.FSGroup,
@@ -46,7 +46,7 @@ type SELinuxOptions struct {
 	Level string
 }
 
-// toK8S converts SELinuxOptions to Kuberntes client object
+// toK8S converts SELinuxOptions to Kubernetes client object
 func (se *SELinuxOptions) toK8S() *v1.SELinuxOptions {
 	return &v1.SELinuxOptions{
 		User:  se.User,
@@ -59,7 +59,7 @@ func (se *SELinuxOptions) toK8S() *v1.SELinuxOptions {
 // Sysctls represents Kubernetes Sysctls
 type Sysctls []Sysctl
 
-// toK8S converts Sysctls to Kuberntes client objects
+// toK8S converts Sysctls to Kubernetes client objects
 func (scs Sysctls) toK8S() (l []v1.Sysctl) {
 	if len(scs) > 0 {
 		l = make([]v1.Sysctl, 0, len(scs))

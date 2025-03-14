@@ -16,7 +16,7 @@ type SecurityContext struct {
 	WindowsOptions           WindowsOptions
 }
 
-// toK8S converts SecurityContext to Kuberntes client object
+// toK8S converts SecurityContext to Kubernetes client object
 func (sc *SecurityContext) toK8S() *v1.SecurityContext {
 	return &v1.SecurityContext{
 		AllowPrivilegeEscalation: &sc.AllowPrivilegeEscalation,
@@ -41,7 +41,7 @@ type Capabilities struct {
 	Drop []string
 }
 
-// toK8S converts Capabilities to Kuberntes client object
+// toK8S converts Capabilities to Kubernetes client object
 func (cap *Capabilities) toK8S() *v1.Capabilities {
 	if cap.Add == nil && cap.Drop == nil {
 		return nil
@@ -65,7 +65,7 @@ type SELinuxOptions struct {
 	Level string
 }
 
-// toK8S converts SELinuxOptions to Kuberntes client object
+// toK8S converts SELinuxOptions to Kubernetes client object
 func (se *SELinuxOptions) toK8S() *v1.SELinuxOptions {
 	return &v1.SELinuxOptions{
 		User:  se.User,

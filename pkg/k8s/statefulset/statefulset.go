@@ -24,7 +24,7 @@ type StatefulSetSpec struct {
 	VolumeClaimTemplates pvc.PersistentVolumeClaims
 }
 
-// ToK8S converts StatefulSetSpec to Kuberntes client object
+// ToK8S converts StatefulSetSpec to Kubernetes client object
 func (s *StatefulSetSpec) ToK8S() appsv1.StatefulSetSpec {
 	return appsv1.StatefulSetSpec{
 		PodManagementPolicy:  appsv1.PodManagementPolicyType(s.PodManagementPolicy),
@@ -57,7 +57,7 @@ func newUpdateStrategy(us appsv1.StatefulSetUpdateStrategy) UpdateStrategy {
 	}
 }
 
-// toK8S converts UpdateStrategy to Kuberntes client object
+// toK8S converts UpdateStrategy to Kubernetes client object
 func (u *UpdateStrategy) toK8S() appsv1.StatefulSetUpdateStrategy {
 	if u.Type == UpdateStrategyOnDelete {
 		return appsv1.StatefulSetUpdateStrategy{

@@ -11,7 +11,7 @@ type Resources struct {
 	Request Request
 }
 
-// toK8S converts Resources to Kuberntes client object
+// toK8S converts Resources to Kubernetes client object
 func (r *Resources) toK8S() v1.ResourceRequirements {
 	return v1.ResourceRequirements{
 		Limits:   r.Limit.toK8S(),
@@ -27,7 +27,7 @@ type Limit struct {
 	EphemeralStorage string
 }
 
-// toK8S converts Limit to Kuberntes client object
+// toK8S converts Limit to Kubernetes client object
 func (l *Limit) toK8S() v1.ResourceList {
 	m := map[v1.ResourceName]resource.Quantity{}
 	if len(l.CPU) > 0 {
@@ -53,7 +53,7 @@ type Request struct {
 	EphemeralStorage string
 }
 
-// toK8S converts Request to Kuberntes client object
+// toK8S converts Request to Kubernetes client object
 func (r *Request) toK8S() v1.ResourceList {
 	m := map[v1.ResourceName]resource.Quantity{}
 	if len(r.CPU) > 0 {

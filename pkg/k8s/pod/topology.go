@@ -8,7 +8,7 @@ import (
 // TopologySpreadConstraints represents Kubernetes TopologySpreadConstraints
 type TopologySpreadConstraints []TopologySpreadConstraint
 
-// toK8S converts TopologySpreadConstraints to Kuberntes client objects
+// toK8S converts TopologySpreadConstraints to Kubernetes client objects
 func (tscs TopologySpreadConstraints) toK8S() (l []v1.TopologySpreadConstraint) {
 	if len(tscs) > 0 {
 		l = make([]v1.TopologySpreadConstraint, 0, len(tscs))
@@ -27,7 +27,7 @@ type TopologySpreadConstraint struct {
 	LabelSelector     map[string]string
 }
 
-// toK8S converts TopologySpreadConstraint to Kuberntes client object
+// toK8S converts TopologySpreadConstraint to Kubernetes client object
 func (tsc *TopologySpreadConstraint) toK8S() v1.TopologySpreadConstraint {
 	return v1.TopologySpreadConstraint{
 		MaxSkew:           tsc.MaxSkew,

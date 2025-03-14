@@ -10,7 +10,7 @@ type Backend struct {
 	ServicePortName string
 }
 
-// toK8S converts Backend to Kuberntes client object
+// toK8S converts Backend to Kubernetes client object
 func (b *Backend) toK8S() v1.IngressBackend {
 	return v1.IngressBackend{
 		Service: &v1.IngressServiceBackend{

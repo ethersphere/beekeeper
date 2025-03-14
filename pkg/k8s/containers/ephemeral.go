@@ -5,7 +5,7 @@ import v1 "k8s.io/api/core/v1"
 // EphemeralContainers represents Kubernetes EphemeralContainers
 type EphemeralContainers []EphemeralContainer
 
-// ToK8S converts EphemeralContainers to Kuberntes client objects
+// ToK8S converts EphemeralContainers to Kubernetes client objects
 func (ecs EphemeralContainers) ToK8S() (l []v1.EphemeralContainer) {
 	if len(ecs) > 0 {
 		l = make([]v1.EphemeralContainer, 0, len(ecs))
@@ -22,7 +22,7 @@ type EphemeralContainer struct {
 	TargetContainerName string
 }
 
-// ToK8S converts EphemeralContainer to Kuberntes client object
+// ToK8S converts EphemeralContainer to Kubernetes client object
 func (ec *EphemeralContainer) ToK8S() v1.EphemeralContainer {
 	return v1.EphemeralContainer{
 		EphemeralContainerCommon: ec.EphemeralContainerCommon.toK8S(),
@@ -56,7 +56,7 @@ type EphemeralContainerCommon struct {
 	WorkingDir               string
 }
 
-// ToK8S converts EphemeralContainerCommon to Kuberntes client object
+// ToK8S converts EphemeralContainerCommon to Kubernetes client object
 func (ecc *EphemeralContainerCommon) toK8S() v1.EphemeralContainerCommon {
 	return v1.EphemeralContainerCommon{
 		Name:                     ecc.Name,

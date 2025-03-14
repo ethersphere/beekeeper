@@ -9,7 +9,7 @@ type Spec struct {
 	Rules Rules
 }
 
-// toK8S converts IngressSpec to Kuberntes client object
+// toK8S converts IngressSpec to Kubernetes client object
 func (s *Spec) toK8S() v1.IngressSpec {
 	return v1.IngressSpec{
 		IngressClassName: func(class string) *string {
