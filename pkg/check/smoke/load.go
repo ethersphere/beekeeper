@@ -14,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/scheduler"
 )
 
 func init() {
@@ -44,6 +45,12 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 		return errors.New("invalid options type")
 	}
 
+	return scheduler.NewDurationExecutor(o.Duration, c.logger).Run(ctx, func(ctx context.Context) error {
+		return c.run(ctx, cluster, o)
+	})
+}
+
+func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	if o.UploaderCount == 0 || len(o.UploadGroups) == 0 {
 		return errors.New("no uploaders requested, quiting")
 	}
@@ -56,14 +63,12 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	c.logger.Infof("content size: %v", o.ContentSize)
 	c.logger.Infof("max committed depth: %v", o.MaxCommittedDepth)
 	c.logger.Infof("committed depth check wait time: %v", o.CommittedDepthCheckWait)
+	c.logger.Infof("total duration: %s", o.Duration.String())
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
 		return err
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, o.Duration)
-	defer cancel()
 
 	test := &test{clients: clients, logger: c.logger}
 
@@ -115,7 +120,7 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 					default:
 					}
 
-					if !c.checkcommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
+					if !c.checkCommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
 						return
 					}
 
@@ -230,13 +235,14 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	return nil
 }
 
-func (c *LoadCheck) checkcommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
+func (c *LoadCheck) checkCommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
 	for {
 		statusResp, err := client.Status(ctx)
 		if err != nil {
 			c.logger.Infof("error getting state: %v", err)
 			return false
 		}
+
 		if statusResp.CommittedDepth < maxDepth {
 			return true
 		}

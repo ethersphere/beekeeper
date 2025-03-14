@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/ethersphere/beekeeper/pkg/scheduler"
 )
 
 // Options represents smoke test options
@@ -69,10 +71,10 @@ type Check struct {
 }
 
 // NewCheck returns new check
-func NewCheck(logger logging.Logger) beekeeper.Action {
+func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
 		metrics: newMetrics("check_smoke"),
-		logger:  logger,
+		logger:  log,
 	}
 }
 
@@ -80,13 +82,20 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
 	o, ok := opts.(Options)
 	if !ok {
-		return fmt.Errorf("invalid options type")
+		return errors.New("invalid options type")
 	}
 
-	c.logger.Info("random seed: ", o.RndSeed)
-	c.logger.Info("content size: ", o.ContentSize)
-	c.logger.Info("upload timeout: ", o.UploadTimeout)
-	c.logger.Info("download timeout: ", o.DownloadTimeout)
+	return scheduler.NewDurationExecutor(o.Duration, c.logger).Run(ctx, func(ctx context.Context) error {
+		return c.run(ctx, cluster, o)
+	})
+}
+
+func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+	c.logger.Infof("random seed: %d", o.RndSeed)
+	c.logger.Infof("content size: %d", o.ContentSize)
+	c.logger.Infof("upload timeout: %s", o.UploadTimeout.String())
+	c.logger.Infof("download timeout: %s", o.DownloadTimeout.String())
+	c.logger.Infof("total duration: %s", o.Duration.String())
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 
