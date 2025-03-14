@@ -7,7 +7,7 @@ import (
 // Containers represents Kubernetes Containers
 type Containers []Container
 
-// ToK8S converts Containers to Kuberntes client objects
+// ToK8S converts Containers to Kubernetes client objects
 func (cs Containers) ToK8S() (l []v1.Container) {
 	if len(cs) > 0 {
 		l = make([]v1.Container, 0, len(cs))
@@ -44,7 +44,7 @@ type Container struct {
 	WorkingDir               string
 }
 
-// ToK8S converts Container to Kuberntes client object
+// ToK8S converts Container to Kubernetes client object
 func (c *Container) ToK8S() v1.Container {
 	return v1.Container{
 		Name:                     c.Name,

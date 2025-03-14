@@ -15,7 +15,7 @@ type PodTemplateSpec struct {
 	Spec        PodSpec
 }
 
-// ToK8S converts PodTemplateSpec to Kuberntes client objects
+// ToK8S converts PodTemplateSpec to Kubernetes client objects
 func (pts *PodTemplateSpec) ToK8S() v1.PodTemplateSpec {
 	return v1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -62,7 +62,7 @@ type PodSpec struct {
 	Volumes                       Volumes
 }
 
-// toK8S converts PodSpec to Kuberntes client object
+// toK8S converts PodSpec to Kubernetes client object
 func (p *PodSpec) toK8S() v1.PodSpec {
 	return v1.PodSpec{
 		Affinity:                     p.Affinity.toK8S(),

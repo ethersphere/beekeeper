@@ -8,7 +8,7 @@ import (
 // EnvVars represents Kubernetes EnvVars
 type EnvVars []EnvVar
 
-// toK8S converts EnvVars to Kuberntes client objects
+// toK8S converts EnvVars to Kubernetes client objects
 func (evs EnvVars) toK8S() (l []v1.EnvVar) {
 	if len(evs) > 0 {
 		l = make([]v1.EnvVar, 0, len(evs))
@@ -27,7 +27,7 @@ type EnvVar struct {
 	ValueFrom ValueFrom
 }
 
-// toK8S converts EnvVar to Kuberntes client object
+// toK8S converts EnvVar to Kubernetes client object
 func (ev *EnvVar) toK8S() v1.EnvVar {
 	return v1.EnvVar{
 		Name:  ev.Name,
@@ -55,7 +55,7 @@ type Field struct {
 	Path       string
 }
 
-// toK8S converts Field to Kuberntes client object
+// toK8S converts Field to Kubernetes client object
 func (f *Field) toK8S() *v1.ObjectFieldSelector {
 	return &v1.ObjectFieldSelector{
 		APIVersion: f.APIVersion,
@@ -70,7 +70,7 @@ type ResourceField struct {
 	Divisor       string
 }
 
-// toK8S converts ResourceField to Kuberntes client object
+// toK8S converts ResourceField to Kubernetes client object
 func (rf *ResourceField) toK8S() *v1.ResourceFieldSelector {
 	return &v1.ResourceFieldSelector{
 		ContainerName: rf.ContainerName,
@@ -86,7 +86,7 @@ type ConfigMapKey struct {
 	Optional      bool
 }
 
-// toK8S converts ConfigMapKey to Kuberntes client object
+// toK8S converts ConfigMapKey to Kubernetes client object
 func (cmk *ConfigMapKey) toK8S() *v1.ConfigMapKeySelector {
 	return &v1.ConfigMapKeySelector{
 		LocalObjectReference: v1.LocalObjectReference{Name: cmk.ConfigMapName},
@@ -102,7 +102,7 @@ type SecretKey struct {
 	Optional   bool
 }
 
-// toK8S converts SecretKey to Kuberntes client object
+// toK8S converts SecretKey to Kubernetes client object
 func (sk *SecretKey) toK8S() *v1.SecretKeySelector {
 	return &v1.SecretKeySelector{
 		LocalObjectReference: v1.LocalObjectReference{Name: sk.SecretName},
@@ -131,7 +131,7 @@ type EnvFrom struct {
 	Secret    SecretRef
 }
 
-// toK8S converts EnvFrom to Kuberntes client object
+// toK8S converts EnvFrom to Kubernetes client object
 func (ef *EnvFrom) toK8S() v1.EnvFromSource {
 	return v1.EnvFromSource{
 		Prefix:       ef.Prefix,
@@ -146,7 +146,7 @@ type ConfigMapRef struct {
 	Optional bool
 }
 
-// toK8S converts ConfigMapRef to Kuberntes client object
+// toK8S converts ConfigMapRef to Kubernetes client object
 func (cm *ConfigMapRef) toK8S() *v1.ConfigMapEnvSource {
 	return &v1.ConfigMapEnvSource{
 		LocalObjectReference: v1.LocalObjectReference{Name: cm.Name},
@@ -160,7 +160,7 @@ type SecretRef struct {
 	Optional bool
 }
 
-// toK8S converts SecretRef to Kuberntes client object
+// toK8S converts SecretRef to Kubernetes client object
 func (s *SecretRef) toK8S() *v1.SecretEnvSource {
 	return &v1.SecretEnvSource{
 		LocalObjectReference: v1.LocalObjectReference{Name: s.Name},

@@ -9,7 +9,7 @@ type DataSource struct {
 	Name     string
 }
 
-// toK8S converts DataSource to Kuberntes client object
+// toK8S converts DataSource to Kubernetes client object
 func (d *DataSource) toK8S() *v1.TypedLocalObjectReference {
 	return &v1.TypedLocalObjectReference{
 		APIGroup: &d.APIGroup,

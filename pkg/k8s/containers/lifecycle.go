@@ -8,7 +8,7 @@ type Lifecycle struct {
 	PreStop   *LifecycleHandler
 }
 
-// toK8S converts Lifecycle to Kuberntes client object
+// toK8S converts Lifecycle to Kubernetes client object
 func (l *Lifecycle) toK8S() *v1.Lifecycle {
 	if l.PostStart == nil && l.PreStop == nil {
 		return nil

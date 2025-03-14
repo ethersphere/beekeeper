@@ -5,7 +5,7 @@ import v1 "k8s.io/api/networking/v1"
 // Rules represents Kubernetes IngressRules
 type Rules []Rule
 
-// toK8S converts Rules to Kuberntes client objects
+// toK8S converts Rules to Kubernetes client objects
 func (rs Rules) toK8S() (l []v1.IngressRule) {
 	if len(rs) > 0 {
 		l = make([]v1.IngressRule, 0, len(rs))
@@ -23,7 +23,7 @@ type Rule struct {
 	Paths Paths
 }
 
-// toK8S converts Rule to Kuberntes client object
+// toK8S converts Rule to Kubernetes client object
 func (r *Rule) toK8S() (rule v1.IngressRule) {
 	return v1.IngressRule{
 		Host: r.Host,
@@ -38,7 +38,7 @@ func (r *Rule) toK8S() (rule v1.IngressRule) {
 // Paths represents service's HTTPIngressPaths
 type Paths []Path
 
-// toK8S converts Paths to Kuberntes client objects
+// toK8S converts Paths to Kubernetes client objects
 func (ps Paths) toK8S() (l []v1.HTTPIngressPath) {
 	if len(ps) > 0 {
 		l = make([]v1.HTTPIngressPath, 0, len(ps))
@@ -57,7 +57,7 @@ type Path struct {
 	PathType string
 }
 
-// toK8S converts Path to Kuberntes client object
+// toK8S converts Path to Kubernetes client object
 func (p *Path) toK8S() (h v1.HTTPIngressPath) {
 	pt := v1.PathType(p.PathType)
 	return v1.HTTPIngressPath{

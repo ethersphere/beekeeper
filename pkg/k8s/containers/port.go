@@ -5,7 +5,7 @@ import v1 "k8s.io/api/core/v1"
 // Ports represents Kubernetes ContainerPorts
 type Ports []Port
 
-// toK8S converts Ports to Kuberntes client object
+// toK8S converts Ports to Kubernetes client object
 func (ps Ports) toK8S() (l []v1.ContainerPort) {
 	if len(ps) > 0 {
 		l = make([]v1.ContainerPort, 0, len(ps))
@@ -25,7 +25,7 @@ type Port struct {
 	Protocol      string
 }
 
-// toK8S converts Port to Kuberntes client object
+// toK8S converts Port to Kubernetes client object
 func (p *Port) toK8S() v1.ContainerPort {
 	return v1.ContainerPort{
 		Name:          p.Name,

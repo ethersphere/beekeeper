@@ -8,7 +8,7 @@ import (
 // Volumes represents Kubernetes Volumes
 type Volumes []Volume
 
-// toK8S converts Volumes to Kuberntes client objects
+// toK8S converts Volumes to Kubernetes client objects
 func (vs Volumes) toK8S() (l []v1.Volume) {
 	if len(vs) > 0 {
 		l = make([]v1.Volume, 0, len(vs))
@@ -26,7 +26,7 @@ type Volume struct {
 	Secret    *SecretVolume
 }
 
-// toK8S converts Volume to Kuberntes client object
+// toK8S converts Volume to Kubernetes client object
 func (v *Volume) toK8S() v1.Volume {
 	if v.EmptyDir != nil {
 		return v.EmptyDir.toK8S()
@@ -46,7 +46,7 @@ type EmptyDirVolume struct {
 	SizeLimit string
 }
 
-// toK8S converts EmptyDirVolume to Kuberntes client object
+// toK8S converts EmptyDirVolume to Kubernetes client object
 func (ed *EmptyDirVolume) toK8S() v1.Volume {
 	return v1.Volume{
 		Name: ed.Name,
@@ -74,7 +74,7 @@ type ConfigMapVolume struct {
 	Optional      bool
 }
 
-// toK8S converts ConfigMapVolume to Kuberntes client object
+// toK8S converts ConfigMapVolume to Kubernetes client object
 func (cm *ConfigMapVolume) toK8S() v1.Volume {
 	return v1.Volume{
 		Name: cm.Name,
@@ -98,7 +98,7 @@ type SecretVolume struct {
 	Optional    bool
 }
 
-// toK8S converts SecretVolume to Kuberntes client object
+// toK8S converts SecretVolume to Kubernetes client object
 func (s *SecretVolume) toK8S() v1.Volume {
 	return v1.Volume{
 		Name: s.Name,
@@ -116,7 +116,7 @@ func (s *SecretVolume) toK8S() v1.Volume {
 // Items represents Kubernetes Volume Items
 type Items []Item
 
-// toK8S converts Items to Kuberntes client object
+// toK8S converts Items to Kubernetes client object
 func (is Items) toK8S() (l []v1.KeyToPath) {
 	if len(is) > 0 {
 		l = make([]v1.KeyToPath, 0, len(is))
@@ -133,7 +133,7 @@ type Item struct {
 	Value string
 }
 
-// toK8S converts Item to Kuberntes client object
+// toK8S converts Item to Kubernetes client object
 func (i *Item) toK8S() v1.KeyToPath {
 	return v1.KeyToPath{
 		Key:  i.Key,

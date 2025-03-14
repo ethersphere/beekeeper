@@ -11,7 +11,7 @@ import (
 // PersistentVolumeClaims represents Kubernetes PersistentVolumeClaims
 type PersistentVolumeClaims []PersistentVolumeClaim
 
-// ToK8S converts PersistentVolumeClaims to Kuberntes client objects
+// ToK8S converts PersistentVolumeClaims to Kubernetes client objects
 func (ps PersistentVolumeClaims) ToK8S() (l []v1.PersistentVolumeClaim) {
 	if len(ps) > 0 {
 		l = make([]v1.PersistentVolumeClaim, 0, len(ps))
@@ -31,7 +31,7 @@ type PersistentVolumeClaim struct {
 	Spec        Spec
 }
 
-// toK8S converts PersistentVolumeClaim to Kuberntes client object
+// toK8S converts PersistentVolumeClaim to Kubernetes client object
 func (pvc PersistentVolumeClaim) toK8S() v1.PersistentVolumeClaim {
 	return v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -56,7 +56,7 @@ type Spec struct {
 	VolumeName     string
 }
 
-// toK8S converts PersistentVolumeClaimSpec to Kuberntes client object
+// toK8S converts PersistentVolumeClaimSpec to Kubernetes client object
 func (pvcs Spec) toK8S() v1.PersistentVolumeClaimSpec {
 	return v1.PersistentVolumeClaimSpec{
 		AccessModes: pvcs.AccessModes.toK8S(),

@@ -21,7 +21,7 @@ type Spec struct {
 	Type                          string
 }
 
-// ToK8S converts ServiceSpec to Kuberntes client object
+// ToK8S converts ServiceSpec to Kubernetes client object
 func (s *Spec) ToK8S() v1.ServiceSpec {
 	return v1.ServiceSpec{
 		ClusterIP:                s.ClusterIP,
@@ -46,7 +46,7 @@ func (s *Spec) ToK8S() v1.ServiceSpec {
 // Ports represents service's ports
 type Ports []Port
 
-// toK8S converts Ports to Kuberntes client objects
+// toK8S converts Ports to Kubernetes client objects
 func (ps Ports) toK8S() (l []v1.ServicePort) {
 	l = make([]v1.ServicePort, 0, len(ps))
 
@@ -67,7 +67,7 @@ type Port struct {
 	TargetPort  string
 }
 
-// toK8S converts Port to Kuberntes client object
+// toK8S converts Port to Kubernetes client object
 func (p *Port) toK8S() v1.ServicePort {
 	return v1.ServicePort{
 		Name:        p.Name,

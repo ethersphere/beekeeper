@@ -10,7 +10,7 @@ type Selector struct {
 	MatchExpressions LabelSelectorRequirements
 }
 
-// toK8S converts Selector to Kuberntes client object
+// toK8S converts Selector to Kubernetes client object
 func (s *Selector) toK8S() *metav1.LabelSelector {
 	return &metav1.LabelSelector{
 		MatchLabels:      s.MatchLabels,
@@ -21,7 +21,7 @@ func (s *Selector) toK8S() *metav1.LabelSelector {
 // LabelSelectorRequirements represents Kubernetes LabelSelectorRequirements
 type LabelSelectorRequirements []LabelSelectorRequirement
 
-// toK8S converts LabelSelectorRequirements to Kuberntes client object
+// toK8S converts LabelSelectorRequirements to Kubernetes client object
 func (lsrs LabelSelectorRequirements) toK8S() (l []metav1.LabelSelectorRequirement) {
 	if len(lsrs) > 0 {
 		l = make([]metav1.LabelSelectorRequirement, 0, len(lsrs))
@@ -39,7 +39,7 @@ type LabelSelectorRequirement struct {
 	Values   []string
 }
 
-// toK8S converts LabelSelectorRequirement to Kuberntes client object
+// toK8S converts LabelSelectorRequirement to Kubernetes client object
 func (l *LabelSelectorRequirement) toK8S() metav1.LabelSelectorRequirement {
 	return metav1.LabelSelectorRequirement{
 		Key:      l.Key,
