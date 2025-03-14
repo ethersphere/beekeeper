@@ -7,16 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"math/big"
 	"net/http"
 	"net/url"
-	"slices"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethersphere/bee/v2/pkg/crypto"
+	"github.com/ethersphere/bee/v2/pkg/p2p"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -341,8 +340,21 @@ func (c *Client) Ping(ctx context.Context, node swarm.Address) (rtt string, err 
 	return r.RTT, nil
 }
 
-// ClosestPeer returns the address of the peer closest to the node in the provided bin.
-func (c *Client) ClosestPeer(ctx context.Context, binId uint8, skipList []swarm.Address) (swarm.Address, error) {
+type PeerConnectionDirection string
+
+const (
+	PeerConnectionDirectionInbound  PeerConnectionDirection = "inbound"
+	PeerConnectionDirectionOutbound PeerConnectionDirection = "outbound"
+)
+
+type ClosestPeerFilter struct {
+	Reachability        *p2p.ReachabilityStatus
+	Healthy             *bool
+	ConnectionDirection *PeerConnectionDirection
+}
+
+// ClosestPeer returns the address of the peer closest to the address in the provided bin.
+func (c *Client) ClosestPeer(ctx context.Context, addr swarm.Address, binId uint8, filter *ClosestPeerFilter, skipList []swarm.Address) (swarm.Address, error) {
 	t, err := c.Topology(ctx)
 	if err != nil {
 		return swarm.ZeroAddress, err
@@ -353,23 +365,34 @@ func (c *Client) ClosestPeer(ctx context.Context, binId uint8, skipList []swarm.
 		return swarm.ZeroAddress, nil
 	}
 
-	overlay, err := c.Overlay(ctx)
-	if err != nil {
-		return swarm.ZeroAddress, err
-	}
-
 	closest := swarm.ZeroAddress
-	minProx := uint8(math.MaxUint8)
 	for _, peer := range bin.ConnectedPeers {
-		skip := slices.ContainsFunc(skipList, func(addr swarm.Address) bool {
-			return addr.Equal(peer.Address)
-		})
-		if skip {
+		if swarm.ContainsAddress(skipList, peer.Address) {
 			continue
 		}
-		prox := swarm.Proximity(overlay.Bytes(), peer.Address.Bytes())
-		if prox < minProx {
-			minProx = prox
+
+		if filter != nil {
+			if filter.Reachability != nil && peer.Metrics.Reachability != (*filter.Reachability).String() {
+				continue
+			}
+			if filter.Healthy != nil && peer.Metrics.Healthy != *filter.Healthy {
+				continue
+			}
+			if filter.ConnectionDirection != nil && peer.Metrics.SessionConnectionDirection != string(*filter.ConnectionDirection) {
+				continue
+			}
+		}
+
+		if closest.IsZero() {
+			closest = peer.Address
+			continue
+		}
+
+		closer, err := peer.Address.Closer(addr, closest)
+		if err != nil {
+			return swarm.ZeroAddress, err
+		}
+		if closer {
 			closest = peer.Address
 		}
 	}

@@ -36,7 +36,7 @@ type Cluster interface {
 	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
-	ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*bee.Client, error)
+	ClosestFullNodeClient(ctx context.Context, s *bee.Client, addr swarm.Address, filter *bee.ClosestPeerFilter) (*bee.Client, error)
 }
 
 // ClusterOptions represents Bee cluster options
