@@ -910,14 +910,14 @@ func (c *Client) UploadCollection(ctx context.Context, f *File, o api.UploadOpti
 func (c *Client) DownloadManifestFile(ctx context.Context, a swarm.Address, path string) (size int64, hash []byte, err error) {
 	r, err := c.api.Dirs.Download(ctx, a, path)
 	if err != nil {
-		return 0, nil, fmt.Errorf("download manifest file %s: %w", path, err)
+		return 0, nil, fmt.Errorf("download manifest file `%s`: %w", path, err)
 	}
 	defer r.Close()
 
 	h := fileHasher()
 	size, err = io.Copy(h, r)
 	if err != nil {
-		return 0, nil, fmt.Errorf("download manifest file %s: %w", path, err)
+		return 0, nil, fmt.Errorf("download manifest file `%s`: %w", path, err)
 	}
 
 	return size, h.Sum(nil), nil
@@ -1009,9 +1009,9 @@ func (c *Client) CreateRootFeedManifest(ctx context.Context, signer crypto.Signe
 	return c.api.Feed.CreateRootManifest(ctx, signer, topic, o)
 }
 
-// UpdateFeedWithReference updates a feed with a reference
-func (c *Client) UpdateFeedWithReference(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, addr swarm.Address, o api.UploadOptions) (*api.SocResponse, error) {
-	return c.api.Feed.UpdateWithReference(ctx, signer, topic, i, addr, o)
+// UpdateFeedWithRootChunk updates a feed with a root chunk
+func (c *Client) UpdateFeedWithRootChunk(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, ch swarm.Chunk, o api.UploadOptions) (*api.SocResponse, error) {
+	return c.api.Feed.UpdateWithRootChunk(ctx, signer, topic, i, ch, o)
 }
 
 // FindFeedUpdate finds the latest update for a feed
