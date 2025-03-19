@@ -475,12 +475,13 @@ It has following subcommands:
   It has following flags:
 
   ```console
-  --amount uint             Amount of BZZ in PLURS added that the postage batch will have. (default 100000000)
   --cluster-name string     Target Beekeeper cluster name.
-  --depth uint16            Batch depth which specifies how many chunks can be signed with the batch. It is a logarithm. Must be higher than default bucket depth (16)
+  --depth uint16            Batch depth which specifies how many chunks can be signed with the batch. It is a logarithm. Must be higher than default bucket depth (16) (default 17)
+  --duration duration       Duration of the postage batch (default 24h0m0s)
   --help                    help for create
   --label-selector string   Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string        Kubernetes namespace (overrides cluster name).
+  --postage-label string    Postage label for the batch (default "beekeeper")
   --timeout duration        Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
   ```
 
@@ -501,12 +502,13 @@ It has following subcommands:
   It has following flags:
 
   ```console
-  --batch-ids strings         Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up.
+  --batch-ids strings         Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up. Overrides postage labels.
   --cluster-name string       Target Beekeeper cluster name.
   --help                      help for topup
   --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string          Kubernetes namespace (overrides cluster name).
   --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
+  --postage-labels strings    Comma separated list of postage labels to top up. If not provided, all batches are topped up.
   --timeout duration          Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
   --topup-to duration         Duration to top up the TTL of a stamp to. (default 720h0m0s)
   --ttl-threshold duration    Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value. (default 120h0m0s)
@@ -529,13 +531,14 @@ It has following subcommands:
   It has following flags:
 
   ```console
-  --batch-ids strings         Comma separated list of postage batch IDs to dilute. If not provided, all batches are diluted.
+  --batch-ids strings         Comma separated list of postage batch IDs to dilute. If not provided, all batches are diluted. Overrides postage labels.
   --cluster-name string       Target Beekeeper cluster name.
   --dilution-depth uint8      Number of levels by which to increase the depth of a stamp during dilution. (default 1)
   --help                      help for dilute
   --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string          Kubernetes namespace (overrides cluster name).
   --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
+  --postage-labels strings    Comma separated list of postage labels to top up. If not provided, all batches are topped up.
   --timeout duration          Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
   --usage-threshold float     Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value. (default 90)
   ```
@@ -557,13 +560,14 @@ It has following subcommands:
   It has following flags:
 
   ```console
-  --batch-ids strings         Comma separated list of postage batch IDs to set. If not provided, all batches are set.
+  --batch-ids strings         Comma separated list of postage batch IDs to set. If not provided, all batches are set. Overrides postage labels.
   --cluster-name string       Target Beekeeper cluster name.
   --dilution-depth uint16     Number of levels by which to increase the depth of a stamp during dilution. (default 1)
   --help                      help for set
   --label-selector string     Kubernetes label selector for filtering resources (use empty string for all). (default "beekeeper.ethswarm.org/node-funder=true")
   --namespace string          Kubernetes namespace (overrides cluster name).
   --periodic-check duration   Periodic check interval. Default is 0, which means no periodic check.
+  --postage-labels strings    Comma separated list of postage labels to set. If not provided, all batches are set.
   --timeout duration          Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
   --topup-to duration         Duration to top up the TTL of a stamp to. (default 720h0m0s)
   --ttl-threshold duration    Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value. (default 120h0m0s)

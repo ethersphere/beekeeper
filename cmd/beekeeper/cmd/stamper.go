@@ -79,7 +79,7 @@ func (c *command) initStamperTopup() *cobra.Command {
 
 	cmd.Flags().Duration(optionNameTTLThreshold, 5*24*time.Hour, "Threshold for the remaining TTL of a stamp. Actions are triggered when TTL drops below this value.")
 	cmd.Flags().Duration(optionNameTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
-	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up. Overides postage labels.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to top up. If not provided, all batches are topped up. Overrides postage labels.")
 	cmd.Flags().StringSlice(optionNamePostageLabels, nil, "Comma separated list of postage labels to top up. If not provided, all batches are topped up.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
@@ -120,7 +120,7 @@ func (c *command) initStamperDilute() *cobra.Command {
 
 	cmd.Flags().Float64(optionNameUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
 	cmd.Flags().Uint8(optionNameDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
-	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to dilute. If not provided, all batches are diluted. Overides postage labels.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to dilute. If not provided, all batches are diluted. Overrides postage labels.")
 	cmd.Flags().StringSlice(optionNamePostageLabels, nil, "Comma separated list of postage labels to top up. If not provided, all batches are topped up.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
@@ -202,7 +202,7 @@ func (c *command) initStamperSet() *cobra.Command {
 	cmd.Flags().Duration(optionNameTopUpTo, 30*24*time.Hour, "Duration to top up the TTL of a stamp to.")
 	cmd.Flags().Float64(optionNameUsageThreshold, 90, "Percentage threshold for stamp utilization. Triggers dilution when usage exceeds this value.")
 	cmd.Flags().Uint16(optionNameDiutionDepth, 1, "Number of levels by which to increase the depth of a stamp during dilution.")
-	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to set. If not provided, all batches are set. Overides postage labels.")
+	cmd.Flags().StringSlice(optionNameBatchIDs, nil, "Comma separated list of postage batch IDs to set. If not provided, all batches are set. Overrides postage labels.")
 	cmd.Flags().StringSlice(optionNamePostageLabels, nil, "Comma separated list of postage labels to set. If not provided, all batches are set.")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0, "Periodic check interval. Default is 0, which means no periodic check.")
 
