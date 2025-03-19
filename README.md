@@ -385,7 +385,7 @@ It has following flags:
 --min-swarm float           Minimum amount of swarm tokens (xBZZ) nodes should have.
 --namespace string          Kubernetes namespace. Overrides cluster name if set.
 --periodic-check duration   Periodic execution check interval.
---timeout duration          Timeout. (default 5m0s)
+--timeout duration          Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
 --wallet-key string         Hex-encoded private key for the Bee node wallet. Required.
 ```
 
