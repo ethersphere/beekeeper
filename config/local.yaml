@@ -293,6 +293,23 @@ checks:
       duration: 10m
     timeout: 11m
     type: smoke
+  ci-load:
+    options:
+      content-size: 50000
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
+      duration: 10m
+      uploader-count: 2
+      downloader-count: 0
+      max-committed-depth: 2
+      committed-depth-check-wait: 5m
+      upload-groups:
+        - bee
+      download-groups:
+        - light
+    timeout: 30m
+    type: load
   ci-soc:
     options:
       postage-ttl: 24h
