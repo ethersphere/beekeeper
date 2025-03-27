@@ -34,12 +34,14 @@ func (de *DurationExecutor) Run(ctx context.Context, task func(ctx context.Conte
 	}()
 
 	select {
+	case <-ctx.Done():
+		return ctx.Err()
 	case err := <-doneCh:
 		return err
 	case <-time.After(de.duration):
 		de.log.Infof("Duration of %s expired, stopping executor", de.duration)
 		return nil
-	case <-ctx.Done():
-		return ctx.Err()
+	case err := <-doneCh:
+		return err
 	}
 }

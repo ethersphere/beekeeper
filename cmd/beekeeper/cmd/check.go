@@ -29,71 +29,70 @@ func (c *command) initCheckCmd() error {
 		Short: "runs integration tests on a Bee cluster",
 		Long:  `runs integration tests on a Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
-			defer cancel()
+			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
+				checks := c.globalConfig.GetStringSlice(optionNameChecks)
+				if len(checks) == 0 {
+					return fmt.Errorf("no checks provided")
+				}
 
-			checks := c.globalConfig.GetStringSlice(optionNameChecks)
-			if len(checks) == 0 {
-				return fmt.Errorf("no checks provided")
-			}
+				clusterName := c.globalConfig.GetString(optionNameClusterName)
+				if clusterName == "" {
+					return errMissingClusterName
+				}
 
-			clusterName := c.globalConfig.GetString(optionNameClusterName)
-			if clusterName == "" {
-				return errMissingClusterName
-			}
+				// set cluster config
+				cfgCluster, ok := c.config.Clusters[clusterName]
+				if !ok {
+					return fmt.Errorf("cluster %s not defined", clusterName)
+				}
 
-			// set cluster config
-			cfgCluster, ok := c.config.Clusters[clusterName]
-			if !ok {
-				return fmt.Errorf("cluster %s not defined", clusterName)
-			}
+				cluster, err := c.setupCluster(ctx, clusterName, c.globalConfig.GetBool(optionNameCreateCluster))
+				if err != nil {
+					return fmt.Errorf("cluster setup: %w", err)
+				}
 
-			cluster, err := c.setupCluster(ctx, clusterName, c.globalConfig.GetBool(optionNameCreateCluster))
-			if err != nil {
-				return fmt.Errorf("cluster setup: %w", err)
-			}
+				var (
+					metricsPusher  *push.Pusher
+					metricsEnabled = c.globalConfig.GetBool(optionNameMetricsEnabled)
+					cleanup        func()
+				)
 
-			var (
-				metricsPusher  *push.Pusher
-				metricsEnabled = c.globalConfig.GetBool(optionNameMetricsEnabled)
-				cleanup        func()
-			)
+				if metricsEnabled {
+					metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.log)
+					// cleanup executes when the calling context terminates
+					defer cleanup()
+				}
 
-			if metricsEnabled {
-				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.log)
-				// cleanup executes when the calling context terminates
-				defer cleanup()
-			}
+				// logger metrics
+				if l, ok := c.log.(metrics.Reporter); ok && metricsEnabled {
+					metrics.RegisterCollectors(metricsPusher, l.Report()...)
+				}
 
-			// logger metrics
-			if l, ok := c.log.(metrics.Reporter); ok && metricsEnabled {
-				metrics.RegisterCollectors(metricsPusher, l.Report()...)
-			}
+				// tracing
+				tracingEndpoint := c.globalConfig.GetString(optionNameTracingEndpoint)
+				if c.globalConfig.IsSet(optionNameTracingHost) && c.globalConfig.IsSet(optionNameTracingPort) {
+					tracingEndpoint = strings.Join([]string{c.globalConfig.GetString(optionNameTracingHost), c.globalConfig.GetString(optionNameTracingPort)}, ":")
+				}
+				tracer, tracerCloser, err := tracing.NewTracer(&tracing.Options{
+					Enabled:     c.globalConfig.GetBool(optionNameTracingEnabled),
+					Endpoint:    tracingEndpoint,
+					ServiceName: c.globalConfig.GetString(optionNameTracingServiceName),
+				})
+				if err != nil {
+					return fmt.Errorf("tracer: %w", err)
+				}
+				defer tracerCloser.Close()
 
-			// tracing
-			tracingEndpoint := c.globalConfig.GetString(optionNameTracingEndpoint)
-			if c.globalConfig.IsSet(optionNameTracingHost) && c.globalConfig.IsSet(optionNameTracingPort) {
-				tracingEndpoint = strings.Join([]string{c.globalConfig.GetString(optionNameTracingHost), c.globalConfig.GetString(optionNameTracingPort)}, ":")
-			}
-			tracer, tracerCloser, err := tracing.NewTracer(&tracing.Options{
-				Enabled:     c.globalConfig.GetBool(optionNameTracingEnabled),
-				Endpoint:    tracingEndpoint,
-				ServiceName: c.globalConfig.GetString(optionNameTracingServiceName),
+				// set global config
+				checkGlobalConfig := config.CheckGlobalConfig{
+					Seed:    c.globalConfig.GetInt64(optionNameSeed),
+					GethURL: c.globalConfig.GetString(optionNameGethURL),
+				}
+
+				checkRunner := check.NewCheckRunner(checkGlobalConfig, c.config.Checks, cluster, metricsPusher, tracer, c.log)
+
+				return checkRunner.Run(ctx, checks)
 			})
-			if err != nil {
-				return fmt.Errorf("tracer: %w", err)
-			}
-			defer tracerCloser.Close()
-
-			// set global config
-			checkGlobalConfig := config.CheckGlobalConfig{
-				Seed:    c.globalConfig.GetInt64(optionNameSeed),
-				GethURL: c.globalConfig.GetString(optionNameGethURL),
-			}
-
-			checkRunner := check.NewCheckRunner(checkGlobalConfig, c.config.Checks, cluster, metricsPusher, tracer, c.log)
-
-			return checkRunner.Run(ctx, checks)
 		},
 		PreRunE: c.preRunE,
 	}
