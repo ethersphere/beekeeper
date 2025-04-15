@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -23,23 +24,29 @@ func NewDurationExecutor(duration time.Duration, log logging.Logger) *DurationEx
 
 // Run executes the given task and waits for the specified duration before stopping.
 func (de *DurationExecutor) Run(ctx context.Context, task func(ctx context.Context) error) error {
+	if task == nil {
+		return errors.New("task cannot be nil")
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	doneCh := make(chan error, 1)
-	defer close(doneCh)
 
 	go func() {
-		doneCh <- task(ctx)
+		select {
+		case <-ctx.Done():
+		case doneCh <- task(ctx):
+		}
 	}()
 
 	select {
-	case err := <-doneCh:
-		return err
+	case <-ctx.Done():
+		return ctx.Err()
 	case <-time.After(de.duration):
 		de.log.Infof("Duration of %s expired, stopping executor", de.duration)
 		return nil
-	case <-ctx.Done():
-		return ctx.Err()
+	case err := <-doneCh:
+		return err
 	}
 }

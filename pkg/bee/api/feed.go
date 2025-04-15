@@ -8,9 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
-	"github.com/ethersphere/bee/v2/pkg/cac"
 	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/ethersphere/bee/v2/pkg/soc"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
@@ -69,14 +67,8 @@ func (f *FeedService) CreateRootManifest(ctx context.Context, signer crypto.Sign
 	return &response, nil
 }
 
-// UpdateWithReference updates a feed with a reference
-func (f *FeedService) UpdateWithReference(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, addr swarm.Address, o UploadOptions) (*SocResponse, error) {
-	ts := make([]byte, 8)
-	binary.BigEndian.PutUint64(ts, uint64(time.Now().Unix()))
-	ch, err := cac.New(append(append([]byte{}, ts...), addr.Bytes()...))
-	if err != nil {
-		return nil, err
-	}
+// UpdateWithRootChunk updates a feed with a root chunk
+func (f *FeedService) UpdateWithRootChunk(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, ch swarm.Chunk, o UploadOptions) (*SocResponse, error) {
 	ownerHex, err := ownerFromSigner(signer)
 	if err != nil {
 		return nil, err
