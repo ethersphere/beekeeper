@@ -1,6 +1,6 @@
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
-GOLANGCI_LINT_VERSION ?= v1.61.0
+GOLANGCI_LINT_VERSION ?= v1.64.5
 COMMIT ?= "$(shell git describe --long --dirty --always --match "" || true)"
 VERSION ?= "$(shell git describe --tags --abbrev=0 | cut -c2-)"
 LDFLAGS ?= -s -w \
