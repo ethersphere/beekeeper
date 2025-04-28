@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/ethersphere/bee/v2/pkg/crypto"
@@ -75,7 +76,7 @@ func (f *FeedService) UpdateWithRootChunk(ctx context.Context, signer crypto.Sig
 	}
 	index := make([]byte, 8)
 	binary.BigEndian.PutUint64(index, i)
-	idBytes, err := crypto.LegacyKeccak256(append(append([]byte{}, topic...), index...))
+	idBytes, err := crypto.LegacyKeccak256(slices.Concat(topic, index))
 	if err != nil {
 		return nil, err
 	}

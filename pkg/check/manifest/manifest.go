@@ -299,7 +299,7 @@ func generateFilesWithPaths(r *rand.Rand, paths []string, maxSize int) ([]bee.Fi
 func generateFiles(r *rand.Rand, filesCount int, maxPathnameLength int32) ([]bee.File, error) {
 	files := make([]bee.File, filesCount)
 
-	for i := 0; i < filesCount; i++ {
+	for i := range filesCount {
 		pathnameLength := int64(r.Int31n(maxPathnameLength-1)) + 1 // ensure path with length of at least one
 
 		b := make([]byte, pathnameLength)

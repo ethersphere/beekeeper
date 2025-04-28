@@ -60,11 +60,6 @@ type Client struct {
 	Tags        *TagsService
 }
 
-// ClientOptions holds optional parameters for the Client.
-type ClientOptions struct {
-	HTTPClient *http.Client
-}
-
 // NewClient constructs a new Client.
 func NewClient(apiURL *url.URL, httpClient *http.Client) (*Client, error) {
 	if httpClient == nil {
@@ -137,11 +132,10 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 		return err
 	}
 
-	req, err := http.NewRequest(method, fullURL, body)
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
 	if err != nil {
 		return err
 	}
-	req = req.WithContext(ctx)
 
 	if body != nil {
 		req.Header.Set("Content-Type", contentType)

@@ -159,10 +159,10 @@ checks:
   pt-testnet-load:
     options:
       content-size: 50000000
-      postage-ttl: 720h
+      postage-ttl: 336h
       postage-depth: 22
       postage-label: test-label
-      duration: 720h
+      duration: 12h
       uploader-count: 2
       downloader-count: 0
       max-committed-depth: 2
@@ -173,7 +173,7 @@ checks:
       download-groups:
         - bee-3
         - bee-4
-    timeout: 721h
+    timeout: 13h
     type: load
   pt-smoke:
     options:

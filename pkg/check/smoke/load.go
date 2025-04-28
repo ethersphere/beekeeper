@@ -5,6 +5,7 @@ import (
 	"context"
 	crand "crypto/rand"
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -67,7 +68,7 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("get clients: %w", err)
 	}
 
 	test := &test{clients: clients, logger: c.logger}
