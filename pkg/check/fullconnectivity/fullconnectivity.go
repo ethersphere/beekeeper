@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -100,13 +101,7 @@ func (c *Check) checkFullNodesConnectivity(ctx context.Context, cluster orchestr
 }
 
 func isBootNode(group string, bootnodes []string) bool {
-	for _, b := range bootnodes {
-		if group == b {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(bootnodes, group)
 }
 
 func (c *Check) checkLightNodesConnectivity(ctx context.Context, cluster orchestration.Cluster, skipNodes []string) (err error) {

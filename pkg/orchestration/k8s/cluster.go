@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"slices"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -315,12 +316,7 @@ func (c *Cluster) FlattenOverlays(ctx context.Context, exclude ...string) (map[s
 }
 
 func containsName(s []string, e string) bool {
-	for i := range s {
-		if s[i] == e {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s, e)
 }
 
 // Peers returns peers of all nodes in the cluster
