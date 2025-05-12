@@ -69,6 +69,14 @@ func NewClient(opts ClientOptions) (c *Client, err error) {
 	return c, nil
 }
 
+func (c *Client) BlockTime(ctx context.Context) (time.Duration, error) {
+	blockTime, err := c.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
+	if err != nil {
+		return 0, fmt.Errorf("fetching block time: %w", err)
+	}
+	return time.Duration(blockTime) * time.Second, nil
+}
+
 // Addresses represents node's addresses
 type Addresses struct {
 	Overlay      swarm.Address
@@ -527,6 +535,21 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 	}
 
 	return c.CreatePostageBatch(ctx, amount, depth, label, false)
+}
+
+func (c *Client) Batches(ctx context.Context) (map[string]api.Batch, error) {
+	batches, err := c.api.Postage.Batches(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get postage batches: %w", err)
+	}
+
+	batchMap := make(map[string]api.Batch)
+
+	for _, b := range batches {
+		batchMap[b.BatchID] = b
+	}
+
+	return batchMap, nil
 }
 
 // PostageBatches returns the list of batches of node

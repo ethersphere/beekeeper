@@ -399,6 +399,11 @@ checks:
       postage-depth: 21
       postage-label: test-label
     type: feed
+  snapshot:
+    options:
+      seed: 0
+    timeout: 5m
+    type: snapshot
 
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options

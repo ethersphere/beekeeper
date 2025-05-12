@@ -130,3 +130,28 @@ func (batch *PostageStampResponse) BatchUsage() float64 {
 	maxUtilization := 1 << (batch.Depth - batch.BucketDepth)            // 2^(depth - bucketDepth)
 	return (float64(batch.Utilization) / float64(maxUtilization)) * 100 // batch utilization between 0 and 100 percent
 }
+
+type BatchesResponse struct {
+	Batches []Batch `json:"batches"`
+}
+
+type Batch struct {
+	BatchID     string `json:"batchID"`
+	Value       string `json:"value"`
+	Start       int64  `json:"start"`
+	Owner       string `json:"owner"`
+	Depth       int64  `json:"depth"`
+	BucketDepth int64  `json:"bucketDepth"`
+	Immutable   bool   `json:"immutable"`
+	BatchTTL    int64  `json:"batchTTL"`
+}
+
+func (p *PostageService) Batches(ctx context.Context) ([]Batch, error) {
+	var resp BatchesResponse
+
+	if err := p.client.request(ctx, http.MethodGet, "/batches", nil, &resp); err != nil {
+		return nil, err
+	}
+
+	return resp.Batches, nil
+}
