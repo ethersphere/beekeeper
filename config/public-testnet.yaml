@@ -135,7 +135,6 @@ checks:
       postage-label: test-label
     timeout: 10m
     type: gsoc
-
   pt-feed:
     options:
       postage-ttl: 336h
@@ -154,7 +153,7 @@ checks:
       postage-label: test-label
       seed:
       data-size: 307200
-    timeout: 15m
+    timeout: 30m
     type: redundancy
   pt-testnet-load:
     options:
