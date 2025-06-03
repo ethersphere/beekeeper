@@ -128,7 +128,7 @@ bee-configs:
     nat-addr: ""
     network-id: 0
     p2p-addr: ":1634"
-    p2p-ws-enable: false
+    p2p-ws-enable: true
     password: "beekeeper"
     payment-early-percent: 50
     payment-threshold: 13500000
