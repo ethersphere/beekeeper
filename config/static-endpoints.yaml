@@ -68,3 +68,19 @@ clusters:
             api-url: http://bee-4-3.bee-testnet.testnet.internal
           - name: bee-4-4
             api-url: http://bee-4-4.bee-testnet.testnet.internal
+
+  bee-mainnet-static:
+    _inherit: "default"
+    namespace: dev-bee-storage
+    use-static-endpoints: true
+    node-groups:
+      bee-1:
+        mode: node
+        bee-config: default
+        config: default
+        count: 2
+        endpoints:
+          - name: bee-1
+            api-url: http://bee-1.dev-bee-storage.mainnet.internal
+          - name: bee-2
+            api-url: http://bee-2.dev-bee-storage.mainnet.internal

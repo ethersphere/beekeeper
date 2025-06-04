@@ -6,11 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/check/act"
-	"github.com/ethersphere/beekeeper/pkg/check/networkavailability"
-	"github.com/ethersphere/beekeeper/pkg/check/stake"
-
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/check/act"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
@@ -22,6 +19,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/kademlia"
 	"github.com/ethersphere/beekeeper/pkg/check/longavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/manifest"
+	"github.com/ethersphere/beekeeper/pkg/check/networkavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/peercount"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
 	"github.com/ethersphere/beekeeper/pkg/check/postage"
@@ -32,7 +30,9 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
+	"github.com/ethersphere/beekeeper/pkg/check/snapshot"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
+	"github.com/ethersphere/beekeeper/pkg/check/stake"
 	"github.com/ethersphere/beekeeper/pkg/check/withdraw"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -498,6 +498,24 @@ var Checks = map[string]CheckType{
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
+			return opts, nil
+		},
+	},
+	"snapshot": {
+		NewAction: snapshot.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				Seed *int64 `yaml:"seed"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := snapshot.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
 			return opts, nil
 		},
 	},
