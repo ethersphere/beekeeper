@@ -539,7 +539,7 @@ func (c *Client) PostageStamp(ctx context.Context, batchID string) (api.PostageS
 	return c.api.Postage.PostageStamp(ctx, batchID)
 }
 
-// TopupPostageBatch tops up the given batch with the amount per chunk
+// TopUpPostageBatch tops up the given batch with the amount per chunk
 func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount int64, gasPrice string) error {
 	batch, err := c.PostageStamp(ctx, batchID)
 	if err != nil {
