@@ -210,7 +210,7 @@ func (c *Cluster) Nodes() map[string]orchestration.Node {
 	return n
 }
 
-// NodeNamess returns a list of node names in the cluster across all node groups
+// NodeNames returns a list of node names in the cluster across all node groups
 func (c *Cluster) NodeNames() (names []string) {
 	for _, ng := range c.NodeGroups() {
 		for k := range ng.Nodes() {
