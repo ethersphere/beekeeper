@@ -77,7 +77,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	nodes := cluster.FullNodeNames()
 
-	for i := 0; i < o.UploadNodeCount; i++ {
+	for i := range o.UploadNodeCount {
 		uploadNode := clients[nodes[i]]
 		downloadNodeIndex := (i + 1) % len(nodes) // download from the next node
 		downloadNode := clients[nodes[downloadNodeIndex]]
@@ -88,7 +88,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 		c.logger.Infof("node %s: created batched id %s", uploadNode.Name(), batchID)
 
-		for j := 0; j < o.ChunksPerNode; j++ {
+		for j := range o.ChunksPerNode {
 			// time upload
 			t0 := time.Now()
 

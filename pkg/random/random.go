@@ -18,7 +18,7 @@ func PseudoGenerator(seed int64) (g *rand.Rand) {
 // goroutines, so that predictability of the generators can be maintained.
 func PseudoGenerators(seed int64, n int) (g []*rand.Rand) {
 	rnd := rand.New(rand.NewSource(seed))
-	for i := 0; i < n; i++ {
+	for range n {
 		g = append(g, rand.New(rand.NewSource(rnd.Int63())))
 	}
 	return

@@ -187,22 +187,17 @@ func (c *Check) uploadChunks(ctx context.Context, client *bee.Client, chunks []s
 }
 
 func getClients(ctx context.Context, cluster orchestration.Cluster, seed int64) (*bee.Client, *bee.Client, error) {
-	nodeNames := cluster.FullNodeNames()
-	clients, err := cluster.NodesClients(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
 	rnd := random.PseudoGenerator(seed)
-	var cUpload, cDownload *bee.Client
-	for {
-		perm := rnd.Perm(len(nodeNames))
-		if perm[0] != perm[1] {
-			cUpload = clients[nodeNames[perm[0]]]
-			cDownload = clients[nodeNames[perm[1]]]
-			break
-		}
+	clients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
+	if err != nil {
+		return nil, nil, fmt.Errorf("get shuffled full node clients: %w", err)
 	}
-	return cUpload, cDownload, nil
+
+	if len(clients) < 2 {
+		return nil, nil, fmt.Errorf("not enough full node clients in the cluster")
+	}
+
+	return clients[0], clients[1], nil
 }
 
 type splitPutter struct {
