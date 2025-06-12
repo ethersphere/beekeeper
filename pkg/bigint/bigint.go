@@ -15,7 +15,7 @@ type BigInt struct {
 }
 
 func (i *BigInt) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, i.String())), nil
+	return fmt.Appendf(nil, `"%s"`, i.String()), nil
 }
 
 func (i *BigInt) UnmarshalJSON(b []byte) error {
