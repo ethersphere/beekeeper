@@ -94,8 +94,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 	}
 
 	sortedNodes := cluster.NodeNames()
-	for i := 0; i < o.UploadNodeCount; i++ {
-
+	for i := range o.UploadNodeCount {
 		nodeName := sortedNodes[i]
 		client := clients[nodeName]
 
@@ -105,7 +104,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 		}
 		c.logger.Infof("node %s: batch id %s", nodeName, batchID)
 
-		for j := 0; j < o.ChunksPerNode; j++ {
+		for range o.ChunksPerNode {
 			chunk, err := bee.NewRandomChunk(rnds[i], c.logger)
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)

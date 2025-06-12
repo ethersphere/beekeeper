@@ -656,7 +656,7 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err er
 	ov := reflect.Indirect(reflect.ValueOf(opts).Elem())
 	ot := reflect.TypeOf(opts).Elem()
 
-	for i := 0; i < lv.NumField(); i++ {
+	for i := range lv.NumField() {
 		fieldName := lt.Field(i).Name
 		switch fieldName {
 		case "Seed":

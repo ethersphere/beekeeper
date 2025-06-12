@@ -104,8 +104,6 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		return err
 	}
 
-	time.Sleep(5 * time.Second) // Wait for the nodes to warmup.
-
 	test := &test{clients: clients, logger: c.logger}
 
 	c.metrics.UploadSize.Set(float64(o.ContentSize))
@@ -154,7 +152,8 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 			txCtx    context.Context
 			txCancel context.CancelFunc = func() {}
 		)
-		for retries := 0; retries < 3; retries++ {
+
+		for range 3 {
 			txCancel()
 
 			uploaded = false
@@ -202,7 +201,8 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 			rxCtx    context.Context
 			rxCancel context.CancelFunc = func() {}
 		)
-		for retries := 0; retries < 3; retries++ {
+
+		for range 3 {
 			rxCancel()
 
 			select {

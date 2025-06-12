@@ -83,7 +83,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	batches := make([]string, 2)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		c.logger.Infof("gsoc: creating postage batch. duration=%d, depth=%d, label=%s", o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		batchID, err := uploadClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		if err != nil {
@@ -192,15 +192,17 @@ func uploadSoc(ctx context.Context, client *bee.Client, payload string, resource
 	if err != nil {
 		return fmt.Errorf("make soc: %w", err)
 	}
+
 	_, err = client.UploadSOC(ctx, d.Owner, hex.EncodeToString(resourceId), d.Sig, d.Data, batchID)
 	if err != nil {
 		return fmt.Errorf("upload soc: %w", err)
 	}
+
 	return nil
 }
 
 func runInSequence(ctx context.Context, client *bee.Client, numChunks int, batches []string, resourceId []byte, privKey *ecdsa.PrivateKey, logger logging.Logger) error {
-	for i := 0; i < numChunks; i++ {
+	for i := range numChunks {
 		payload := fmt.Sprintf("data %d", i)
 		logger.Infof("gsoc: submitting soc to node=%s, payload=%s", client.Name(), payload)
 		err := uploadSoc(ctx, client, payload, resourceId, batches[i%2], privKey)
@@ -208,12 +210,13 @@ func runInSequence(ctx context.Context, client *bee.Client, numChunks int, batch
 			return err
 		}
 	}
+
 	return nil
 }
 
 func runInParallel(ctx context.Context, client *bee.Client, numChunks int, batches []string, resourceId []byte, privKey *ecdsa.PrivateKey, logger logging.Logger) error {
 	var errG errgroup.Group
-	for i := 0; i < numChunks; i++ {
+	for i := range numChunks {
 		errG.Go(func() error {
 			payload := fmt.Sprintf("data %d", i)
 			logger.Infof("gsoc: submitting soc to node=%s, payload=%s", client.Name(), payload)
@@ -225,7 +228,7 @@ func runInParallel(ctx context.Context, client *bee.Client, numChunks int, batch
 
 func getTargetNeighborhood(address swarm.Address, depth int) (string, error) {
 	var targetNeighborhood string
-	for i := 0; i < depth; i++ {
+	for i := range depth {
 		hexChar := address.String()[i : i+1]
 		value, err := strconv.ParseUint(hexChar, 16, 4)
 		if err != nil {
