@@ -261,5 +261,5 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("node %s: File downloaded with wrong public key successfully - this is an error", nodeName2)
 	}
 	c.logger.Info("ACT Access denied for not enabled grantee after patch")
-	return
+	return notGErr
 }
