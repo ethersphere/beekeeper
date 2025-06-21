@@ -104,7 +104,7 @@ func (c *Cluster) Accounting(ctx context.Context) (accounting orchestration.Clus
 	return
 }
 
-// FlattenBalances returns aggregated NodeGroupBalances
+// FlattenAccounting returns aggregated NodeGroupAccounting
 func (c *Cluster) FlattenAccounting(ctx context.Context) (accounting orchestration.NodeGroupAccounting, err error) {
 	a, err := c.Accounting(ctx)
 	if err != nil {
