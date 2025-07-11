@@ -92,7 +92,7 @@ func (c *Client) GetNodes(ctx context.Context, namespace, labelSelector string) 
 	// filter out services with api port and return clusterIP as Endpoint
 	for _, svc := range svcs.Items {
 		for _, port := range svc.Spec.Ports {
-			if port.Name == "api" {
+			if port.Name == "api" || svc.Spec.ClusterIP != "None" {
 				nodes = append(nodes, NodeInfo{
 					Name:     svc.Name,
 					Endpoint: fmt.Sprintf("http://%s:%v", svc.Spec.ClusterIP, port.Port),
