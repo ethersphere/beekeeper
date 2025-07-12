@@ -151,7 +151,7 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 				c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
 				return nil
 			}
-			c.logger.Infof("pss: received incorrect message. trying again. want %s, got %s", string(testData), msg)
+			c.logger.Infof("pss: received incorrect message. trying again. want: '%s', got: '%s'", string(testData), msg)
 		}
 	}
 }
