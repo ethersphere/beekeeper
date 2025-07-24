@@ -49,7 +49,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 				return fmt.Errorf("get node group: %w", err)
 			}
 
-			for i := 0; i < len(v.Nodes); i++ {
+			for i := range v.Nodes {
 				nName := fmt.Sprintf("%s-%d", ngName, i)
 				if len(v.Nodes[i].Name) > 0 {
 					nName = v.Nodes[i].Name
@@ -76,7 +76,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 			}
 
 			if len(v.Nodes) > 0 {
-				for i := 0; i < len(v.Nodes); i++ {
+				for i := range v.Nodes {
 					nName := fmt.Sprintf("%s-%d", ngName, i)
 					if len(v.Nodes[i].Name) > 0 {
 						nName = v.Nodes[i].Name
@@ -94,7 +94,7 @@ func (c *command) deleteCluster(ctx context.Context, clusterName string, cfg *co
 					}
 				}
 			} else {
-				for i := 0; i < v.Count; i++ {
+				for i := range v.Count {
 					nName := fmt.Sprintf("%s-%d", ngName, i)
 					if err := ng.DeleteNode(ctx, nName); err != nil {
 						return fmt.Errorf("deleting node %s from the node group %s: %w", nName, ngName, err)
@@ -146,19 +146,15 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, startClu
 
 	cluster = orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterConfig.Export(), c.k8sClient, c.swapClient, c.log)
 
-	nodeResultChan := make(chan nodeResult)
-	defer close(nodeResultChan)
-
 	inCluster := c.globalConfig.GetBool(optionNameInCluster)
 
-	// setup bootnode node group
-	fundAddresses, bootnodes, err := setupNodes(ctx, clusterConfig, c.config, true, cluster, startCluster, inCluster, "", nodeResultChan)
+	fundAddresses, bootnodes, err := setupBootnodes(ctx, clusterConfig, c.config, cluster, startCluster, inCluster)
 	if err != nil {
 		return nil, fmt.Errorf("setup node group bootnode: %w", err)
 	}
 
-	// fund bootnode node group if cluster is started
-	if startCluster {
+	// fund bootnode node group if cluster is started and bootnode is defined in config
+	if startCluster && len(fundAddresses) > 0 {
 		if err = fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log); err != nil {
 			return nil, fmt.Errorf("funding node group bootnode: %w", err)
 		}
@@ -166,7 +162,7 @@ func (c *command) setupCluster(ctx context.Context, clusterName string, startClu
 	}
 
 	// setup other node groups
-	fundAddresses, _, err = setupNodes(ctx, clusterConfig, c.config, false, cluster, startCluster, inCluster, bootnodes, nodeResultChan)
+	fundAddresses, err = setupNodes(ctx, clusterConfig, c.config, cluster, startCluster, inCluster, bootnodes)
 	if err != nil {
 		return nil, fmt.Errorf("setup other node groups: %w", err)
 	}
@@ -197,21 +193,19 @@ func ensureFundingDefaults(fundOpts orchestration.FundingOptions, log logging.Lo
 	return fundOpts
 }
 
-func setupNodes(ctx context.Context,
+func setupBootnodes(ctx context.Context,
 	clusterConfig config.Cluster,
 	cfg *config.Config,
-	bootnode bool,
 	cluster orchestration.Cluster,
 	startCluster bool,
 	inCluster bool,
-	bootnodesIn string,
-	nodeResultCh chan nodeResult,
 ) (fundAddresses []string, bootnodesOut string, err error) {
+	nodeResultChan := make(chan nodeResult)
+	defer close(nodeResultChan)
 	var nodeCount uint32
 
 	for ngName, v := range clusterConfig.GetNodeGroups() {
-
-		if (v.Mode != bootnodeMode && bootnode) || (v.Mode == bootnodeMode && !bootnode) {
+		if v.Mode != bootnodeMode {
 			continue
 		}
 
@@ -227,11 +221,6 @@ func setupNodes(ctx context.Context,
 		}
 		bConfig := beeConfig.Export()
 
-		if !bootnode {
-			bConfig.Bootnodes = bootnodesIn
-			ngOptions.BeeConfig = &bConfig
-		}
-
 		cluster.AddNodeGroup(ngName, ngOptions)
 
 		// start nodes in the node group
@@ -246,7 +235,7 @@ func setupNodes(ctx context.Context,
 				nodeCount++
 				go setupOrAddNode(ctx, false, inCluster, ng, nodeName, orchestration.NodeOptions{
 					Config: &bConfig,
-				}, nodeResultCh, beeOpt)
+				}, nodeResultChan, beeOpt)
 			}
 			continue
 		}
@@ -258,33 +247,18 @@ func setupNodes(ctx context.Context,
 				nodeName = node.Name
 			}
 
-			var nodeOpts orchestration.NodeOptions
-			if bootnode {
-				// set bootnodes
-				bConfig.Bootnodes = fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
-				bootnodesOut += bootnodesIn + bConfig.Bootnodes + " "
-				nodeOpts = setupNodeOptions(node, &bConfig)
-			} else {
-				nodeOpts = setupNodeOptions(node, nil)
-			}
+			bConfig.Bootnodes = fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
+			bootnodesOut = bConfig.Bootnodes
+			nodeOpts := setupNodeOptions(node, &bConfig)
 			nodeCount++
-			go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, nodeOpts, nodeResultCh, orchestration.WithNoOptions())
-		}
-
-		if len(v.Nodes) == 0 && !bootnode {
-			for i := 0; i < v.Count; i++ {
-				// set node name
-				nodeName := fmt.Sprintf("%s-%d", ngName, i)
-				nodeCount++
-				go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultCh, orchestration.WithNoOptions())
-			}
+			go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, nodeOpts, nodeResultChan, orchestration.WithNoOptions())
 		}
 	}
 
 	// wait for nodes to be setup and get their eth addresses
 	// or wait for nodes to be added and check for errors
-	for i := uint32(0); i < nodeCount; i++ {
-		nodeResult := <-nodeResultCh
+	for range nodeCount {
+		nodeResult := <-nodeResultChan
 		if nodeResult.err != nil {
 			return nil, "", fmt.Errorf("setup or add node result: %w", nodeResult.err)
 		}
@@ -294,6 +268,96 @@ func setupNodes(ctx context.Context,
 	}
 
 	return fundAddresses, bootnodesOut, nil
+}
+
+func setupNodes(ctx context.Context,
+	clusterConfig config.Cluster,
+	cfg *config.Config,
+	cluster orchestration.Cluster,
+	startCluster bool,
+	inCluster bool,
+	bootnodesIn string,
+) (fundAddresses []string, err error) {
+	nodeResultChan := make(chan nodeResult)
+	defer close(nodeResultChan)
+	var nodeCount uint32
+
+	for ngName, v := range clusterConfig.GetNodeGroups() {
+		if v.Mode == bootnodeMode {
+			continue
+		}
+
+		ngConfig, ok := cfg.NodeGroups[v.Config]
+		if !ok {
+			return nil, fmt.Errorf("node group profile %s not defined", v.Config)
+		}
+		ngOptions := ngConfig.Export()
+
+		beeConfig, ok := cfg.BeeConfigs[v.BeeConfig]
+		if !ok {
+			return nil, fmt.Errorf("bee profile %s not defined", v.BeeConfig)
+		}
+		bConfig := beeConfig.Export()
+
+		if bConfig.Bootnodes == "" {
+			bConfig.Bootnodes = bootnodesIn
+		}
+		ngOptions.BeeConfig = &bConfig
+
+		cluster.AddNodeGroup(ngName, ngOptions)
+
+		// start nodes in the node group
+		ng, err := cluster.NodeGroup(ngName)
+		if err != nil {
+			return nil, fmt.Errorf("get node group: %w", err)
+		}
+
+		if clusterConfig.IsUsingStaticEndpoints() {
+			for nodeName, endpoint := range v.GetEndpoints() {
+				beeOpt := orchestration.WithURL(endpoint.APIURL)
+				nodeCount++
+				go setupOrAddNode(ctx, false, inCluster, ng, nodeName, orchestration.NodeOptions{
+					Config: &bConfig,
+				}, nodeResultChan, beeOpt)
+			}
+			continue
+		}
+
+		for i, node := range v.Nodes {
+			// set node name
+			nodeName := fmt.Sprintf("%s-%d", ngName, i)
+			if len(node.Name) > 0 {
+				nodeName = node.Name
+			}
+
+			nodeOpts := setupNodeOptions(node, nil)
+			nodeCount++
+			go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, nodeOpts, nodeResultChan, orchestration.WithNoOptions())
+		}
+
+		if len(v.Nodes) == 0 {
+			for i := range v.Count {
+				// set node name
+				nodeName := fmt.Sprintf("%s-%d", ngName, i)
+				nodeCount++
+				go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, orchestration.NodeOptions{}, nodeResultChan, orchestration.WithNoOptions())
+			}
+		}
+	}
+
+	// wait for nodes to be setup and get their eth addresses
+	// or wait for nodes to be added and check for errors
+	for range nodeCount {
+		nodeResult := <-nodeResultChan
+		if nodeResult.err != nil {
+			return nil, fmt.Errorf("setup or add node result: %w", nodeResult.err)
+		}
+		if nodeResult.ethAddress != "" {
+			fundAddresses = append(fundAddresses, nodeResult.ethAddress)
+		}
+	}
+
+	return fundAddresses, nil
 }
 
 func setupOrAddNode(ctx context.Context,
