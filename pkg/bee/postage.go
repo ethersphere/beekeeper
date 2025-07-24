@@ -9,11 +9,7 @@ import (
 const MinimumBatchDepth = 2
 
 func EstimatePostageBatchDepth(contentLength int64) uint64 {
-	depth := uint64(math.Log2(float64(calculateNumberOfChunks(contentLength, false))))
-	if depth < MinimumBatchDepth {
-		depth = MinimumBatchDepth
-	}
-	return depth
+	return max(uint64(math.Log2(float64(calculateNumberOfChunks(contentLength, false)))), MinimumBatchDepth)
 }
 
 // calculateNumberOfChunks calculates the number of chunks in an arbitrary
