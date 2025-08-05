@@ -57,7 +57,7 @@ func (c *command) initK8sCmd() (err error) {
 					BeeClients: beeClients,
 				})
 
-				if _, err := commander.Run(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector), c.globalConfig.GetStringSlice(optionNameArgs)); err != nil {
+				if err := commander.Run(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector), c.globalConfig.GetStringSlice(optionNameArgs)); err != nil {
 					return fmt.Errorf("updating Bee cluster %s: %w", clusterName, err)
 				}
 
