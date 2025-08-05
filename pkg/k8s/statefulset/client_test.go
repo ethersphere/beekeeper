@@ -350,7 +350,7 @@ func TestRunningStatefulSets(t *testing.T) {
 				},
 				Status: appsv1.StatefulSetStatus{Replicas: 2},
 			}),
-			expectedResponse: []string{"test_statefulset_1", "test_statefulset_2"},
+			expectedResponse: []string{"test_statefulset_1", "test_statefulset_2", "test_statefulset_3"},
 		},
 		{
 			name:      "not_found_in_namespace",
