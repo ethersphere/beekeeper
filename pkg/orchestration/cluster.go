@@ -24,6 +24,7 @@ type Cluster interface {
 	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	LightNodeNames() (names []string)
 	Name() string
+	Namespace() string
 	NodeGroup(name string) (ng NodeGroup, err error)
 	NodeGroups() (l map[string]NodeGroup)
 	NodeNames() (names []string)

@@ -24,6 +24,10 @@ func (c *command) initK8sCmd() (err error) {
 					return errMissingClusterName
 				}
 
+				if !c.globalConfig.IsSet(optionNameArgs) {
+					return fmt.Errorf("no command specified to update Bee cluster %s", clusterName)
+				}
+
 				cluster, err := c.setupCluster(ctx, clusterName, false)
 				if err != nil {
 					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
