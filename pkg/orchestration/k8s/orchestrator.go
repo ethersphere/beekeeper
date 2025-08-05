@@ -36,7 +36,7 @@ func newNodeOrchestrator(k8s *k8s.Client, log logging.Logger) orchestration.Node
 
 // RunningNodes implements orchestration.NodeOrchestrator.
 func (n *nodeOrchestrator) RunningNodes(ctx context.Context, namespace string) (running []string, err error) {
-	running, err = n.k8s.StatefulSet.RunningStatefulSets(ctx, namespace)
+	running, err = n.k8s.StatefulSet.RunningStatefulSets(ctx, namespace, "")
 	if err != nil {
 		return nil, fmt.Errorf("running statefulsets in namespace %s: %w", namespace, err)
 	}

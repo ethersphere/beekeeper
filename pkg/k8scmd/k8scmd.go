@@ -3,6 +3,7 @@ package k8scmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -39,22 +40,32 @@ func New(cfg *ClientConfig) *Client {
 }
 
 // Run sends a update command to the Bee clients in the Kubernetes cluster
-func (c *Client) Run(ctx context.Context, namespace string, args []string) ([]string, error) {
+func (c *Client) Run(ctx context.Context, namespace, labelSelector string, args []string) (statefulSets []string, err error) {
 	c.log.Info("updating Bee cluster")
 
 	if namespace == "" {
 		return nil, errors.New("namespace cannot be empty")
 	}
 
-	var statefulSets []string
-	for _, client := range c.beeClients {
-		statefulSets = append(statefulSets, client.Name())
-		statefulSet, err := c.k8sClient.Pods.GetControllingStatefulSet(ctx, client.Name(), namespace)
+	if len(args) == 0 {
+		return nil, errors.New("args cannot be empty")
+	}
+
+	if len(c.beeClients) == 0 {
+		statefulSets, err = c.k8sClient.StatefulSet.RunningStatefulSets(ctx, namespace, labelSelector)
 		if err != nil {
-			c.log.Warning("failed to get controlling StatefulSet for Bee client %s: %v", client.Name(), err)
-			continue
+			return nil, fmt.Errorf("failed to get running stateful sets in namespace %s: %w", namespace, err)
 		}
-		statefulSets = append(statefulSets, statefulSet)
+	} else {
+		for _, client := range c.beeClients {
+			statefulSets = append(statefulSets, client.Name())
+			statefulSet, err := c.k8sClient.Pods.GetControllingStatefulSet(ctx, client.Name(), namespace)
+			if err != nil {
+				c.log.Warning("failed to get controlling StatefulSet for Bee client %s: %v", client.Name(), err)
+				continue
+			}
+			statefulSets = append(statefulSets, statefulSet)
+		}
 	}
 
 	c.log.Debugf("found %d stateful sets to update", len(statefulSets))

@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8scmd"
 	"github.com/spf13/cobra"
 )
@@ -19,23 +21,31 @@ func (c *command) initK8sCmd() (err error) {
 		Long:    `update Bee command in the stateful set.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
-				clusterName := c.globalConfig.GetString(optionNameClusterName)
-				if clusterName == "" {
-					return errMissingClusterName
-				}
-
 				if !c.globalConfig.IsSet(optionNameArgs) {
-					return fmt.Errorf("no command specified to update Bee cluster %s", clusterName)
+					return errors.New("args must be provided")
 				}
 
-				cluster, err := c.setupCluster(ctx, clusterName, false)
-				if err != nil {
-					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+				namespace := c.globalConfig.GetString(optionNameNamespace)
+				clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+				if clusterName == "" && namespace == "" {
+					return errors.New("either cluster name or namespace must be provided")
 				}
 
-				beeClients, err := cluster.NodesClients(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to retrieve node clients: %w", err)
+				var beeClients map[string]*bee.Client
+
+				if clusterName != "" {
+					cluster, err := c.setupCluster(ctx, clusterName, false)
+					if err != nil {
+						return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+					}
+
+					beeClients, err = cluster.NodesClients(ctx)
+					if err != nil {
+						return fmt.Errorf("failed to retrieve node clients: %w", err)
+					}
+
+					namespace = cluster.Namespace()
 				}
 
 				commander := k8scmd.New(&k8scmd.ClientConfig{
@@ -44,7 +54,7 @@ func (c *command) initK8sCmd() (err error) {
 					BeeClients: beeClients,
 				})
 
-				if _, err := commander.Run(ctx, c.globalConfig.GetStringSlice(optionNameArgs)); err != nil {
+				if _, err := commander.Run(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector), c.globalConfig.GetStringSlice(optionNameArgs)); err != nil {
 					return fmt.Errorf("updating Bee cluster %s: %w", clusterName, err)
 				}
 
@@ -54,7 +64,9 @@ func (c *command) initK8sCmd() (err error) {
 		PreRunE: c.preRunE,
 	}
 
-	cmd.Flags().String(optionNameClusterName, "", "cluster name")
+	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name.")
+	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name).")
+	cmd.Flags().String(optionNameLabelSelector, "", "Kubernetes label selector for filtering resources (use empty string for all).")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
 	cmd.Flags().String(optionNameArgs, "", "command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml'")
 
