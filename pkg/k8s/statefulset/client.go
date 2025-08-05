@@ -212,3 +212,24 @@ func (c *Client) GetUpdateStrategy(ctx context.Context, name, namespace string) 
 
 	return newUpdateStrategy(statefulSet.Spec.UpdateStrategy), nil
 }
+
+func (c *Client) UpdateCommand(ctx context.Context, namespace, name string, cmd []string) error {
+	statefulSet, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("getting statefulset %s in namespace %s: %w", name, namespace, err)
+	}
+
+	// Update the command in the first container
+	if len(statefulSet.Spec.Template.Spec.Containers) > 0 {
+		statefulSet.Spec.Template.Spec.Containers[0].Command = cmd
+	} else {
+		return fmt.Errorf("no containers found in statefulset %s in namespace %s", name, namespace)
+	}
+
+	_, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, statefulSet, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("updating command in statefulset %s in namespace %s: %w", name, namespace, err)
+	}
+
+	return nil
+}

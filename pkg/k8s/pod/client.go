@@ -145,3 +145,22 @@ func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector s
 		}
 	}
 }
+
+func (c *Client) GetControllingStatefulSet(ctx context.Context, name string, namespace string) (string, error) {
+	pod, err := c.clientset.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("getting pod %s in namespace %s: %w", name, namespace, err)
+	}
+
+	controllerRef := metav1.GetControllerOf(pod)
+	if controllerRef == nil || controllerRef.Kind != "StatefulSet" {
+		return "", fmt.Errorf("pod %s in namespace %s is not controlled by a StatefulSet", name, namespace)
+	}
+
+	statefulSet, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, controllerRef.Name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("getting StatefulSet %s in namespace %s: %w", controllerRef.Name, namespace, err)
+	}
+
+	return statefulSet.Name, nil
+}
