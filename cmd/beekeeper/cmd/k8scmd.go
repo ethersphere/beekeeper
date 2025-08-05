@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	optionNameArgs   = "args"
-	beeLabelSelector = "app.kubernetes.io/name=bee"
+	optionNameArgs           = "args"
+	optionNameUpdateStrategy = "update-strategy"
+	beeLabelSelector         = "app.kubernetes.io/name=bee"
 )
 
 func (c *command) initK8sCmd() (err error) {
@@ -26,6 +27,12 @@ func (c *command) initK8sCmd() (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				if !c.globalConfig.IsSet(optionNameArgs) {
 					return errors.New("args must be provided")
+				}
+
+				// Validate update strategy
+				updateStrategy := c.globalConfig.GetString(optionNameUpdateStrategy)
+				if updateStrategy != "RollingUpdate" && updateStrategy != "OnDelete" {
+					return fmt.Errorf("invalid update strategy '%s': must be 'RollingUpdate' or 'OnDelete'", updateStrategy)
 				}
 
 				namespace := c.globalConfig.GetString(optionNameNamespace)
@@ -52,9 +59,10 @@ func (c *command) initK8sCmd() (err error) {
 				}
 
 				commander := k8scmd.New(&k8scmd.ClientConfig{
-					Log:        c.log,
-					K8sClient:  c.k8sClient,
-					BeeClients: beeClients,
+					Log:            c.log,
+					K8sClient:      c.k8sClient,
+					BeeClients:     beeClients,
+					UpdateStrategy: updateStrategy,
 				})
 
 				if err := commander.Run(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector), c.globalConfig.GetStringSlice(optionNameArgs)); err != nil {
@@ -70,6 +78,7 @@ func (c *command) initK8sCmd() (err error) {
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name.")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name).")
 	cmd.Flags().String(optionNameLabelSelector, beeLabelSelector, "Kubernetes label selector for filtering resources when namespace is set (use empty string for all).")
+	cmd.Flags().String(optionNameUpdateStrategy, "OnDelete", "StatefulSet update strategy: 'RollingUpdate' or 'OnDelete'")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
 	cmd.Flags().StringSlice(optionNameArgs, []string{"bee", "start", "--config=.bee.yaml"}, "command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml'")
 

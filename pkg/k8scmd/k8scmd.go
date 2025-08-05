@@ -13,15 +13,17 @@ import (
 )
 
 type ClientConfig struct {
-	Log        logging.Logger
-	K8sClient  *k8s.Client
-	BeeClients map[string]*bee.Client
+	Log            logging.Logger
+	K8sClient      *k8s.Client
+	BeeClients     map[string]*bee.Client
+	UpdateStrategy string // "RollingUpdate" or "OnDelete"
 }
 
 type Client struct {
-	log        logging.Logger
-	k8sClient  *k8s.Client
-	beeClients map[string]*bee.Client
+	log            logging.Logger
+	k8sClient      *k8s.Client
+	beeClients     map[string]*bee.Client
+	updateStrategy string
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -33,10 +35,17 @@ func New(cfg *ClientConfig) *Client {
 		cfg.Log = logging.New(io.Discard, 0)
 	}
 
+	// Default to OnDelete strategy if not specified
+	updateStrategy := cfg.UpdateStrategy
+	if updateStrategy == "" {
+		updateStrategy = "OnDelete"
+	}
+
 	return &Client{
-		log:        cfg.Log,
-		k8sClient:  cfg.K8sClient,
-		beeClients: cfg.BeeClients,
+		log:            cfg.Log,
+		k8sClient:      cfg.K8sClient,
+		beeClients:     cfg.BeeClients,
+		updateStrategy: updateStrategy,
 	}
 }
 
@@ -86,7 +95,7 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, args 
 
 	for ss := range statefulSetsMap {
 		c.log.Debugf("changing stateful set cmd to update: %s", ss)
-		if err := c.k8sClient.StatefulSet.UpdateCommand(ctx, namespace, ss, args); err != nil {
+		if err := c.k8sClient.StatefulSet.UpdateCommand(ctx, namespace, ss, args, c.updateStrategy); err != nil {
 			return fmt.Errorf("failed to update command for stateful set %s in namespace %s: %w", ss, namespace, err)
 		}
 	}
