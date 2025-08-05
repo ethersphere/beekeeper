@@ -11,7 +11,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const optionNameArgs = "args"
+const (
+	optionNameArgs   = "args"
+	beeLabelSelector = "app.kubernetes.io/name=bee"
+)
 
 func (c *command) initK8sCmd() (err error) {
 	cmd := &cobra.Command{
@@ -66,9 +69,9 @@ func (c *command) initK8sCmd() (err error) {
 
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name.")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name).")
-	cmd.Flags().String(optionNameLabelSelector, "", "Kubernetes label selector for filtering resources (use empty string for all).")
+	cmd.Flags().String(optionNameLabelSelector, beeLabelSelector, "Kubernetes label selector for filtering resources when namespace is set (use empty string for all).")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
-	cmd.Flags().String(optionNameArgs, "", "command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml'")
+	cmd.Flags().StringSlice(optionNameArgs, []string{"bee", "start", "--config=.bee.yaml"}, "command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml'")
 
 	c.root.AddCommand(cmd)
 
