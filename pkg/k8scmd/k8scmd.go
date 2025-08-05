@@ -72,7 +72,7 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, args 
 
 	for _, ss := range statefulSets {
 		c.log.Debugf("changing stateful set cmd to update: %s", ss)
-		if err := c.k8sClient.StatefulSet.UpdateCommand(ctx, "local", ss, args); err != nil {
+		if err := c.k8sClient.StatefulSet.UpdateCommand(ctx, namespace, ss, args); err != nil {
 			return nil, err
 		}
 	}
