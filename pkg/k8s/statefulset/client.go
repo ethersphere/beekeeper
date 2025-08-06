@@ -8,6 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -108,12 +109,41 @@ func (c *Client) RunningStatefulSets(ctx context.Context, namespace, labelSelect
 	}
 
 	for _, s := range statefulSets.Items {
-		if s.Status.Replicas >= 1 {
+		if s.Status.Replicas == 1 {
 			running = append(running, s.Name)
 		}
 	}
 
 	return
+}
+
+// StatefulSets returns names of running StatefulSets
+func (c *Client) StatefulSets(ctx context.Context, namespace, labelSelector string) ([]*appsv1.StatefulSet, error) {
+	statefulSets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list statefulsets in namespace %s: %w", namespace, err)
+	}
+
+	list := make([]*appsv1.StatefulSet, 0, len(statefulSets.Items))
+
+	for i := range statefulSets.Items {
+		list = append(list, &statefulSets.Items[i])
+	}
+
+	return list, nil
+}
+
+func (c *Client) Get(ctx context.Context, name, namespace string) (*appsv1.StatefulSet, error) {
+	statefulSet, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("getting statefulset %s in namespace %s: %w", name, namespace, err)
+	}
+	return statefulSet, nil
 }
 
 // Scale scales StatefulSet
@@ -215,37 +245,14 @@ func (c *Client) GetUpdateStrategy(ctx context.Context, name, namespace string) 
 	return newUpdateStrategy(statefulSet.Spec.UpdateStrategy), nil
 }
 
-func (c *Client) UpdateCommand(ctx context.Context, namespace, name string, cmd []string, updateStrategy string) error {
-	statefulSet, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+func (c *Client) Update(ctx context.Context, namespace string, statefulSet *appsv1.StatefulSet) error {
+	if statefulSet == nil {
+		return fmt.Errorf("statefulSet cannot be nil")
+	}
+
+	_, err := c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, statefulSet, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("getting statefulset %s in namespace %s: %w", name, namespace, err)
-	}
-
-	// Update the command in the first container
-	if len(statefulSet.Spec.Template.Spec.Containers) > 0 {
-		statefulSet.Spec.Template.Spec.Containers[0].Command = cmd
-	} else {
-		return fmt.Errorf("no containers found in statefulset %s in namespace %s", name, namespace)
-	}
-
-	// Set update strategy based on parameter
-	var strategyType appsv1.StatefulSetUpdateStrategyType
-	switch updateStrategy {
-	case "RollingUpdate":
-		strategyType = appsv1.RollingUpdateStatefulSetStrategyType
-	case "OnDelete":
-		strategyType = appsv1.OnDeleteStatefulSetStrategyType
-	default:
-		strategyType = appsv1.OnDeleteStatefulSetStrategyType // default to OnDelete
-	}
-
-	statefulSet.Spec.UpdateStrategy = appsv1.StatefulSetUpdateStrategy{
-		Type: strategyType,
-	}
-
-	_, err = c.clientset.AppsV1().StatefulSets(namespace).Update(ctx, statefulSet, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("updating command in statefulset %s in namespace %s: %w", name, namespace, err)
+		return fmt.Errorf("updating statefulset %s in namespace %s: %w", statefulSet.Name, namespace, err)
 	}
 
 	return nil

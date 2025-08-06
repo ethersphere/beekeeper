@@ -3,8 +3,10 @@ package pod
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,6 +57,15 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (po
 		} else {
 			return nil, fmt.Errorf("updating pod %s in namespace %s: %w", name, namespace, err)
 		}
+	}
+
+	return pod, nil
+}
+
+func (c *Client) Get(ctx context.Context, podName string, namespace string) (*v1.Pod, error) {
+	pod, err := c.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("getting pod %s in namespace %s: %w", podName, namespace, err)
 	}
 
 	return pod, nil
@@ -146,21 +157,109 @@ func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector s
 	}
 }
 
-func (c *Client) GetControllingStatefulSet(ctx context.Context, name string, namespace string) (string, error) {
+func (c *Client) GetControllingStatefulSet(ctx context.Context, name string, namespace string) (*appsv1.StatefulSet, error) {
 	pod, err := c.clientset.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("getting pod %s in namespace %s: %w", name, namespace, err)
+		return nil, fmt.Errorf("getting pod %s in namespace %s: %w", name, namespace, err)
 	}
 
 	controllerRef := metav1.GetControllerOf(pod)
 	if controllerRef == nil || controllerRef.Kind != "StatefulSet" {
-		return "", fmt.Errorf("pod %s in namespace %s is not controlled by a StatefulSet", name, namespace)
+		return nil, fmt.Errorf("pod %s in namespace %s is not controlled by a StatefulSet", name, namespace)
 	}
 
 	statefulSet, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, controllerRef.Name, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("getting StatefulSet %s in namespace %s: %w", controllerRef.Name, namespace, err)
+		return nil, fmt.Errorf("getting StatefulSet %s in namespace %s: %w", controllerRef.Name, namespace, err)
 	}
 
-	return statefulSet.Name, nil
+	return statefulSet, nil
+}
+
+func (c *Client) WaitCompleted(ctx context.Context, pod *v1.Pod, namespace string) error {
+	c.log.Infof("waiting for pod %s to complete", pod.Name)
+	defer c.log.Debugf("watch for pod %s in namespace %s done", pod.Name, namespace)
+
+	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("metadata.name=%s", pod.Name),
+	})
+	if err != nil {
+		return fmt.Errorf("getting watch for pod %s in namespace %s: %w", pod.Name, namespace, err)
+	}
+	defer watcher.Stop()
+
+	watchCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	containerName := pod.Spec.Containers[0].Name
+	podName := pod.Name
+
+	var hasBeenRunning bool
+	var hasBeenDeleted bool
+	var hasBeenAdded bool
+
+	c.log.Debugf("watching for DELETED -> ADDED -> RUNNING -> COMPLETED sequence on pod %s, container %s", podName, containerName)
+
+	for {
+		select {
+		case event := <-watcher.ResultChan():
+			c.log.Debugf("received event type %s for pod %s", event.Type, podName)
+
+			if !hasBeenDeleted {
+				if event.Type != watch.Deleted {
+					continue
+				}
+				c.log.Debugf("pod %s has been deleted", podName)
+				hasBeenDeleted = true
+			}
+
+			if !hasBeenAdded {
+				if event.Type != watch.Added {
+					continue
+				}
+				c.log.Debugf("pod %s has been added", podName)
+				hasBeenAdded = true
+			}
+
+			if event.Type != watch.Modified {
+				continue
+			}
+
+			pod, ok := event.Object.(*v1.Pod)
+			if !ok {
+				c.log.Debugf("watch event is not a pod, skipping")
+				continue
+			}
+
+			for _, status := range pod.Status.ContainerStatuses {
+				if status.Name == containerName {
+					// Step 1: Check if the container is RUNNING.
+					if status.State.Running != nil {
+						if !hasBeenRunning {
+							c.log.Debugf("pod %s container %s is now RUNNING", podName, containerName)
+							hasBeenRunning = true
+						}
+					}
+
+					// Step 2: Check if the container is TERMINATED.
+					if status.State.Terminated != nil && hasBeenRunning {
+						termState := status.State.Terminated
+
+						if termState.Reason == "Error" {
+							return fmt.Errorf("pod %s container %s terminated with an error (ExitCode: %d)", podName, containerName, termState.ExitCode)
+						}
+
+						if termState.Reason == "Completed" {
+							c.log.Infof("pod %s container %s completed successfully", podName, containerName)
+							return nil
+						}
+					}
+					break
+				}
+			}
+
+		case <-watchCtx.Done():
+			return fmt.Errorf("timed out waiting for pod %s to complete", podName)
+		}
+	}
 }
