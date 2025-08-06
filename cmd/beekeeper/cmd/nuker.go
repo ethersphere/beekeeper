@@ -48,13 +48,13 @@ func (c *command) initNukeCmd() (err error) {
 					namespace = cluster.Namespace()
 				}
 
-				commander := nuker.New(&nuker.ClientConfig{
+				nuker := nuker.New(&nuker.ClientConfig{
 					Log:        c.log,
 					K8sClient:  c.k8sClient,
 					BeeClients: beeClients,
 				})
 
-				if err := commander.Run(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector), c.globalConfig.GetStringSlice(optionNameRestartArgs)); err != nil {
+				if err := nuker.Run(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector), c.globalConfig.GetStringSlice(optionNameRestartArgs)); err != nil {
 					return fmt.Errorf("updating Bee cluster %s: %w", clusterName, err)
 				}
 

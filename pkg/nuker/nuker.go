@@ -163,13 +163,9 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 		latestSS.Spec.Template.Spec.Containers[0].Command = updateArgs
 		latestSS.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
 
-		if err := c.k8sClient.StatefulSet.Update(ctx, namespace, latestSS); err != nil {
-			return fmt.Errorf("failed to apply update spec to stateful set %s: %w", ss.Name, err)
-		}
-
 		return c.k8sClient.StatefulSet.Update(ctx, namespace, latestSS)
 	}); err != nil {
-		return fmt.Errorf("failed to apply rollback spec to stateful set %s: %w", ss.Name, err)
+		return fmt.Errorf("failed to apply update spec to stateful set %s: %w", ss.Name, err)
 	}
 
 	// 3. Sequentially delete each pod and wait for it to be recreated and complete the task.
@@ -245,7 +241,7 @@ func (c *Client) waitForPodSucceeded(ctx context.Context, namespace, podName str
 		return fmt.Errorf("failed to get pod %s: %w", podName, err)
 	}
 
-	if err := c.k8sClient.Pods.WaitCompleted(ctx, pod, namespace); err != nil {
+	if err := c.k8sClient.Pods.WaitForPodRecreationAndCompletion(ctx, pod, namespace); err != nil {
 		return fmt.Errorf("pod %s did not complete successfully: %w", podName, err)
 	}
 

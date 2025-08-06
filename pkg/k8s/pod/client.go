@@ -176,90 +176,145 @@ func (c *Client) GetControllingStatefulSet(ctx context.Context, name string, nam
 	return statefulSet, nil
 }
 
-func (c *Client) WaitCompleted(ctx context.Context, pod *v1.Pod, namespace string) error {
-	c.log.Infof("waiting for pod %s to complete", pod.Name)
-	defer c.log.Debugf("watch for pod %s in namespace %s done", pod.Name, namespace)
+// PodRecreationState represents the different states in the pod recreation lifecycle
+type PodRecreationState int
+
+const (
+	WaitingForDeletion PodRecreationState = iota
+	WaitingForCreation
+	WaitingForRunning
+	WaitingForCompletion
+	Completed
+)
+
+func (s PodRecreationState) String() string {
+	switch s {
+	case WaitingForDeletion:
+		return "WaitingForDeletion"
+	case WaitingForCreation:
+		return "WaitingForCreation"
+	case WaitingForRunning:
+		return "WaitingForRunning"
+	case WaitingForCompletion:
+		return "WaitingForCompletion"
+	case Completed:
+		return "Completed"
+	default:
+		return "Unknown"
+	}
+}
+
+// WaitForPodRecreationAndCompletion waits for a pod to go through the complete lifecycle:
+// DELETED -> ADDED -> RUNNING -> COMPLETED
+func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, pod *v1.Pod, namespace string) error {
+	podName := pod.Name
+	containerName := pod.Spec.Containers[0].Name
+
+	c.log.Infof("waiting for pod %s to complete recreation and execution lifecycle", podName)
+	defer c.log.Debugf("watch for pod %s in namespace %s done", podName, namespace)
 
 	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("metadata.name=%s", pod.Name),
+		FieldSelector: fmt.Sprintf("metadata.name=%s", podName),
 	})
 	if err != nil {
-		return fmt.Errorf("getting watch for pod %s in namespace %s: %w", pod.Name, namespace, err)
+		return fmt.Errorf("getting watch for pod %s in namespace %s: %w", podName, namespace, err)
 	}
 	defer watcher.Stop()
 
 	watchCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	containerName := pod.Spec.Containers[0].Name
-	podName := pod.Name
-
-	var hasBeenRunning bool
-	var hasBeenDeleted bool
-	var hasBeenAdded bool
-
-	c.log.Debugf("watching for DELETED -> ADDED -> RUNNING -> COMPLETED sequence on pod %s, container %s", podName, containerName)
+	// Initialize state machine
+	currentState := WaitingForDeletion
+	c.log.Infof("starting pod recreation lifecycle watch for %s, container %s - initial state: %s", podName, containerName, currentState)
 
 	for {
 		select {
 		case event := <-watcher.ResultChan():
-			c.log.Debugf("received event type %s for pod %s", event.Type, podName)
-
-			if !hasBeenDeleted {
-				if event.Type != watch.Deleted {
-					continue
-				}
-				c.log.Debugf("pod %s has been deleted", podName)
-				hasBeenDeleted = true
+			newState, err := c.processEventInState(event, currentState, podName, containerName)
+			if err != nil {
+				return err
 			}
 
-			if !hasBeenAdded {
-				if event.Type != watch.Added {
-					continue
-				}
-				c.log.Debugf("pod %s has been added", podName)
-				hasBeenAdded = true
+			if newState != currentState {
+				c.log.Infof("pod %s transitioning from %s to %s", podName, currentState, newState)
+				currentState = newState
 			}
 
-			if event.Type != watch.Modified {
-				continue
-			}
-
-			pod, ok := event.Object.(*v1.Pod)
-			if !ok {
-				c.log.Debugf("watch event is not a pod, skipping")
-				continue
-			}
-
-			for _, status := range pod.Status.ContainerStatuses {
-				if status.Name == containerName {
-					// Step 1: Check if the container is RUNNING.
-					if status.State.Running != nil {
-						if !hasBeenRunning {
-							c.log.Debugf("pod %s container %s is now RUNNING", podName, containerName)
-							hasBeenRunning = true
-						}
-					}
-
-					// Step 2: Check if the container is TERMINATED.
-					if status.State.Terminated != nil && hasBeenRunning {
-						termState := status.State.Terminated
-
-						if termState.Reason == "Error" {
-							return fmt.Errorf("pod %s container %s terminated with an error (ExitCode: %d)", podName, containerName, termState.ExitCode)
-						}
-
-						if termState.Reason == "Completed" {
-							c.log.Infof("pod %s container %s completed successfully", podName, containerName)
-							return nil
-						}
-					}
-					break
-				}
+			if currentState == Completed {
+				c.log.Infof("pod %s container %s completed successfully", podName, containerName)
+				return nil
 			}
 
 		case <-watchCtx.Done():
-			return fmt.Errorf("timed out waiting for pod %s to complete", podName)
+			return fmt.Errorf("timed out waiting for pod %s to complete (current state: %s)", podName, currentState)
 		}
+	}
+}
+
+// processEventInState handles state transitions based on the received event
+func (c *Client) processEventInState(event watch.Event, currentState PodRecreationState, podName, containerName string) (PodRecreationState, error) {
+	switch currentState {
+	case WaitingForDeletion:
+		if event.Type == watch.Deleted {
+			c.log.Debugf("pod %s has been deleted", podName)
+			return WaitingForCreation, nil
+		}
+		return currentState, nil
+
+	case WaitingForCreation:
+		if event.Type == watch.Added {
+			c.log.Debugf("pod %s has been recreated", podName)
+			return WaitingForRunning, nil
+		}
+		return currentState, nil
+
+	case WaitingForRunning:
+		if event.Type != watch.Modified {
+			return currentState, nil
+		}
+
+		pod, ok := event.Object.(*v1.Pod)
+		if !ok {
+			c.log.Debugf("watch event is not a pod, skipping")
+			return currentState, nil
+		}
+
+		for _, status := range pod.Status.ContainerStatuses {
+			if status.Name == containerName && status.State.Running != nil {
+				c.log.Debugf("pod %s container %s is now running", podName, containerName)
+				return WaitingForCompletion, nil
+			}
+		}
+		return currentState, nil
+
+	case WaitingForCompletion:
+		if event.Type != watch.Modified {
+			return currentState, nil
+		}
+
+		pod, ok := event.Object.(*v1.Pod)
+		if !ok {
+			c.log.Debugf("watch event is not a pod, skipping")
+			return currentState, nil
+		}
+
+		for _, status := range pod.Status.ContainerStatuses {
+			if status.Name == containerName && status.State.Terminated != nil {
+				termState := status.State.Terminated
+
+				if termState.Reason == "Error" {
+					return currentState, fmt.Errorf("pod %s container %s terminated with an error (ExitCode: %d)", podName, containerName, termState.ExitCode)
+				}
+
+				if termState.Reason == "Completed" {
+					return Completed, nil
+				}
+			}
+		}
+		return currentState, nil
+
+	default:
+		return currentState, nil
 	}
 }
