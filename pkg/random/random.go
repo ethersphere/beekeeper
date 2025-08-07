@@ -3,9 +3,62 @@ package random
 import (
 	crand "crypto/rand"
 	"encoding/binary"
+	"errors"
 	"log"
 	"math/rand"
 )
+
+type Generator struct {
+	rnd    *rand.Rand
+	unique bool
+	used   map[int]struct{}
+}
+
+func NewGenerator(unique bool) *Generator {
+	return &Generator{
+		rnd:    rand.New(CryptoSource{}),
+		unique: unique,
+		used:   make(map[int]struct{}),
+	}
+}
+
+// GetRandom accepts will return positive random int between absolute values of min and max.
+// If the generator is set to unique, it will attempt to return a number
+// that has not been returned before within the given range.
+func (g *Generator) GetRandom(minVal, maxVal int) (int, error) {
+	minVal = abs(minVal)
+	maxVal = abs(maxVal)
+	if minVal > maxVal {
+		minVal, maxVal = maxVal, minVal
+	}
+
+	span := maxVal - minVal + 1
+	if span <= 0 {
+		return 0, errors.New("invalid range: max - min overflows int64")
+	}
+
+	if !g.unique {
+		return minVal + g.rnd.Intn(span), nil
+	}
+
+	if len(g.used) >= span {
+		return 0, errors.New("all unique numbers in the range have been generated")
+	}
+
+	for {
+		code := minVal + g.rnd.Intn(span)
+		if _, found := g.used[code]; !found {
+			g.used[code] = struct{}{}
+			return code, nil
+		}
+	}
+}
+
+// Reset clears the history of used numbers for a unique generator.
+// This allows the generator to be reused for a new sequence of unique numbers.
+func (g *Generator) Reset() {
+	g.used = make(map[int]struct{})
+}
 
 // PseudoGenerator returns *rand.Rand
 func PseudoGenerator(seed int64) (g *rand.Rand) {
@@ -46,4 +99,12 @@ func (s CryptoSource) Uint64() (v uint64) {
 		log.Fatal(err)
 	}
 	return v
+}
+
+// abs returns the absolute value of x.
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }

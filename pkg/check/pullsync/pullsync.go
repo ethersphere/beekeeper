@@ -72,17 +72,17 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	overlays, err := cluster.FlattenOverlays(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("flattening overlays: %w", err)
 	}
 
 	topologies, err := cluster.FlattenTopologies(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("flattening topologies: %w", err)
 	}
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting nodes clients: %w", err)
 	}
 
 	sortedNodes := cluster.NodeNames()

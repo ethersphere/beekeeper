@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/node"
 	"github.com/ethersphere/beekeeper/pkg/nuker"
 	"github.com/spf13/cobra"
 )
@@ -48,10 +49,33 @@ func (c *command) initNukeCmd() (err error) {
 					namespace = cluster.Namespace()
 				}
 
+				nodeClient := node.New(&node.ClientConfig{
+					Log:           c.log,
+					K8sClient:     c.k8sClient,
+					Namespace:     namespace,
+					HTTPClient:    c.httpClient,
+					LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
+					InCluster:     c.globalConfig.GetBool(optionNameInCluster),
+					BeeClients:    beeClients,
+				})
+
+				nodes, err := nodeClient.GetNodes(ctx)
+				if err != nil {
+					return fmt.Errorf("getting nodes: %w", err)
+				}
+
+				var neighborhoodArgProvider nuker.NeighborhoodArgProvider
+				if c.globalConfig.GetBool(optionNameUseRandomNeighboorhood) {
+					neighborhoodArgProvider = nuker.NewRandomNeighborhoodProvider(c.log, nodes)
+				} else {
+					neighborhoodArgProvider = &nuker.NeighborhoodArgProviderNotSet{}
+				}
+
 				nuker := nuker.New(&nuker.ClientConfig{
-					Log:        c.log,
-					K8sClient:  c.k8sClient,
-					BeeClients: beeClients,
+					Log:                     c.log,
+					K8sClient:               c.k8sClient,
+					BeeClients:              beeClients,
+					NeighborhoodArgProvider: neighborhoodArgProvider,
 				})
 
 				if err := nuker.Run(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector), c.globalConfig.GetStringSlice(optionNameRestartArgs)); err != nil {

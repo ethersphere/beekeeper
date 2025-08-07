@@ -16,15 +16,17 @@ import (
 )
 
 type ClientConfig struct {
-	Log        logging.Logger
-	K8sClient  *k8s.Client
-	BeeClients map[string]*bee.Client
+	Log                     logging.Logger
+	K8sClient               *k8s.Client
+	BeeClients              map[string]*bee.Client
+	NeighborhoodArgProvider NeighborhoodArgProvider
 }
 
 type Client struct {
-	log        logging.Logger
-	k8sClient  *k8s.Client
-	beeClients map[string]*bee.Client
+	log                     logging.Logger
+	k8sClient               *k8s.Client
+	beeClients              map[string]*bee.Client
+	neighborhoodArgProvider NeighborhoodArgProvider
 }
 
 // originalState holds the original configuration of a StatefulSet before an update.
@@ -45,9 +47,10 @@ func New(cfg *ClientConfig) *Client {
 	}
 
 	return &Client{
-		log:        cfg.Log,
-		k8sClient:  cfg.K8sClient,
-		beeClients: cfg.BeeClients,
+		log:                     cfg.Log,
+		k8sClient:               cfg.K8sClient,
+		beeClients:              cfg.BeeClients,
+		neighborhoodArgProvider: cfg.NeighborhoodArgProvider,
 	}
 }
 
@@ -76,8 +79,13 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 	// 2. Iterate through each StatefulSet and apply the update and rollback procedure.
 	c.log.Debugf("found %d stateful sets to update", len(statefulSetsMap))
 	for name, ss := range statefulSetsMap {
+		args, err := c.neighborhoodArgProvider.GetArgs(ctx, ss, restartArgs)
+		if err != nil {
+			return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
+		}
+
 		c.log.Infof("updating stateful set %s", name)
-		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, restartArgs); err != nil {
+		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, args); err != nil {
 			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
 		}
 		c.log.Infof("successfully updated stateful set %s", name)
@@ -209,9 +217,7 @@ type podWaitFunc func(ctx context.Context, namespace, podName string) error
 // recreatePodsAndWait handles the process of deleting pods one by one and waiting for them
 // to reach a specific state using the provided wait function.
 func (c *Client) recreatePodsAndWait(ctx context.Context, namespace string, ss *v1.StatefulSet, waitFunc podWaitFunc) error {
-	replicas := int(*ss.Spec.Replicas)
-	for i := range replicas {
-		podName := fmt.Sprintf("%s-%d", ss.Name, i)
+	for _, podName := range getPodNames(ss) {
 		c.log.Debugf("deleting pod %s", podName)
 
 		// Delete the pod to trigger the StatefulSet controller to recreate it.
@@ -226,4 +232,19 @@ func (c *Client) recreatePodsAndWait(ctx context.Context, namespace string, ss *
 		c.log.Infof("pod %s is ready", podName)
 	}
 	return nil
+}
+
+// getPodNames generates a list of pod names for a given StatefulSet based on its replicas.
+// Each pod name represents a Bee node.
+func getPodNames(ss *v1.StatefulSet) []string {
+	if ss == nil || ss.Spec.Replicas == nil {
+		return nil
+	}
+
+	replicas := int(*ss.Spec.Replicas)
+	podNames := make([]string, replicas)
+	for i := range replicas {
+		podNames[i] = fmt.Sprintf("%s-%d", ss.Name, i)
+	}
+	return podNames
 }
