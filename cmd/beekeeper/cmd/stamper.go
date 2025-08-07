@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
+	"github.com/ethersphere/beekeeper/pkg/node"
 	"github.com/ethersphere/beekeeper/pkg/stamper"
 	"github.com/spf13/cobra"
 )
@@ -231,14 +232,20 @@ func (c *command) createStamperClient(ctx context.Context) (*stamper.Client, err
 		}
 	}
 
-	return stamper.New(&stamper.ClientConfig{
+	nodeClient := node.New(&node.ClientConfig{
 		Log:           c.log,
 		Namespace:     namespace,
 		K8sClient:     c.k8sClient,
 		BeeClients:    beeClients,
-		SwapClient:    c.swapClient,
+		HTTPClient:    c.httpClient,
 		LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 		InCluster:     c.globalConfig.GetBool(optionNameInCluster),
+	})
+
+	return stamper.New(&stamper.ClientConfig{
+		Log:        c.log,
+		SwapClient: c.swapClient,
+		NodeClient: nodeClient,
 	}), nil
 }
 

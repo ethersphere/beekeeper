@@ -13,6 +13,10 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
+type NodeProvider interface {
+	GetNodes(ctx context.Context) (NodeList, error)
+}
+
 type ClientConfig struct {
 	Log           logging.Logger
 	Namespace     string
