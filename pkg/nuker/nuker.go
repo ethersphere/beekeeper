@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
@@ -13,7 +12,6 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry" // Add this import
 )
 
@@ -170,7 +168,7 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 
 	// 3. Sequentially delete each pod and wait for it to be recreated and complete the task.
 	c.log.Infof("deleting pods in stateful set %s to trigger update task", ss.Name)
-	if err := c.recreatePodsAndWait(ctx, namespace, ss, c.waitForPodSucceeded); err != nil {
+	if err := c.recreatePodsAndWait(ctx, namespace, ss, c.k8sClient.Pods.WaitForPodRecreationAndCompletion); err != nil {
 		return fmt.Errorf("failed during pod update task for %s: %w", ss.Name, err)
 	}
 	c.log.Infof("all pods for %s completed the update task", ss.Name)
@@ -190,7 +188,6 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 		latestSS.Spec.Template.Spec.Containers[0].Command = original.cmd
 		latestSS.Spec.Template.Spec.Containers[0].ReadinessProbe = original.readinessProbe
 
-		// Try to update the object.
 		return c.k8sClient.StatefulSet.Update(ctx, namespace, latestSS)
 	}); err != nil {
 		return fmt.Errorf("failed to apply rollback spec to stateful set %s: %w", ss.Name, err)
@@ -198,7 +195,7 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 
 	// 5. Sequentially delete each pod again to trigger the rollback.
 	c.log.Infof("deleting pods in stateful set %s to trigger rollback", ss.Name)
-	if err := c.recreatePodsAndWait(ctx, namespace, ss, c.waitForPodReady); err != nil {
+	if err := c.recreatePodsAndWait(ctx, namespace, ss, c.k8sClient.Pods.WaitForReady); err != nil {
 		return fmt.Errorf("failed during pod rollback for %s: %w", ss.Name, err)
 	}
 	c.log.Infof("all pods for %s have been rolled back and are ready", ss.Name)
@@ -229,56 +226,4 @@ func (c *Client) recreatePodsAndWait(ctx context.Context, namespace string, ss *
 		c.log.Infof("pod %s is ready", podName)
 	}
 	return nil
-}
-
-// waitForPodSucceeded polls a pod until its status phase is 'Succeeded'.
-func (c *Client) waitForPodSucceeded(ctx context.Context, namespace, podName string) error {
-	pod, err := c.k8sClient.Pods.Get(ctx, podName, namespace)
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return nil // Pod is not created yet, continue polling.
-		}
-		return fmt.Errorf("failed to get pod %s: %w", podName, err)
-	}
-
-	if err := c.k8sClient.Pods.WaitForPodRecreationAndCompletion(ctx, pod, namespace); err != nil {
-		return fmt.Errorf("pod %s did not complete successfully: %w", podName, err)
-	}
-
-	c.log.Debugf("pod %s has completed successfully", pod.Name)
-	return nil
-}
-
-// waitForPodReady polls a pod until its status is 'Running' and all its containers are ready.
-func (c *Client) waitForPodReady(ctx context.Context, namespace, podName string) error {
-	pollCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	return wait.PollUntilContextCancel(pollCtx, 5*time.Second, true, func(context.Context) (bool, error) {
-		pod, err := c.k8sClient.Pods.Get(pollCtx, podName, namespace)
-		if err != nil {
-			if k8serrors.IsNotFound(err) {
-				c.log.Debugf("pod %s not found yet, waiting...", podName)
-				return false, nil
-			}
-			return false, err
-		}
-
-		if pod.Status.Phase == corev1.PodRunning {
-			for _, cs := range pod.Status.ContainerStatuses {
-				if !cs.Ready {
-					c.log.Debugf("pod %s is running, but container %s is not ready yet", podName, cs.Name)
-					return false, nil
-				}
-			}
-			return true, nil
-		}
-
-		if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodUnknown {
-			return false, fmt.Errorf("pod %s entered a bad state: %s", podName, pod.Status.Phase)
-		}
-
-		c.log.Debugf("pod %s is in phase %s, waiting for Running...", podName, pod.Status.Phase)
-		return false, nil
-	})
 }

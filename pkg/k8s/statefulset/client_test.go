@@ -368,7 +368,7 @@ func TestRunningStatefulSets(t *testing.T) {
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := statefulset.NewClient(test.clientset, logging.New(io.Discard, 0))
-			response, err := client.RunningStatefulSets(context.Background(), test.namespace, "")
+			response, err := client.RunningStatefulSets(context.Background(), test.namespace)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())

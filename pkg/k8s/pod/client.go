@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 )
@@ -206,8 +207,12 @@ func (s PodRecreationState) String() string {
 
 // WaitForPodRecreationAndCompletion waits for a pod to go through the complete lifecycle:
 // DELETED -> ADDED -> RUNNING -> COMPLETED
-func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, pod *v1.Pod, namespace string) error {
-	podName := pod.Name
+func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespace, podName string) error {
+	pod, err := c.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("getting pod %s in namespace %s: %w", podName, namespace, err)
+	}
+
 	containerName := pod.Spec.Containers[0].Name
 
 	c.log.Infof("waiting for pod %s to complete recreation and execution lifecycle", podName)
@@ -317,4 +322,34 @@ func (c *Client) processEventInState(event watch.Event, currentState PodRecreati
 	default:
 		return currentState, nil
 	}
+}
+
+// WaitForReady polls a pod until its status is 'Running' and all its containers are ready.
+func (c *Client) WaitForReady(ctx context.Context, namespace, podName string) error {
+	pollCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	return wait.PollUntilContextCancel(pollCtx, 5*time.Second, true, func(context.Context) (bool, error) {
+		pod, err := c.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+		if err != nil {
+			return false, fmt.Errorf("getting pod %s in namespace %s: %w", podName, namespace, err)
+		}
+
+		if pod.Status.Phase == v1.PodRunning {
+			for _, cs := range pod.Status.ContainerStatuses {
+				if !cs.Ready {
+					c.log.Debugf("pod %s is running, but container %s is not ready yet", podName, cs.Name)
+					return false, nil
+				}
+			}
+			return true, nil
+		}
+
+		if pod.Status.Phase == v1.PodFailed || pod.Status.Phase == v1.PodUnknown {
+			return false, fmt.Errorf("pod %s entered a bad state: %s", podName, pod.Status.Phase)
+		}
+
+		c.log.Debugf("pod %s is in phase %s, waiting for Running...", podName, pod.Status.Phase)
+		return false, nil
+	})
 }

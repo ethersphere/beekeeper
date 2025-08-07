@@ -97,10 +97,8 @@ func (c *Client) ReadyReplicasWatch(ctx context.Context, name, namespace string)
 }
 
 // RunningStatefulSets returns names of running StatefulSets
-func (c *Client) RunningStatefulSets(ctx context.Context, namespace, labelSelector string) (running []string, err error) {
-	statefulSets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labelSelector,
-	})
+func (c *Client) RunningStatefulSets(ctx context.Context, namespace string) (running []string, err error) {
+	statefulSets, err := c.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
