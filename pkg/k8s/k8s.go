@@ -136,7 +136,7 @@ func (c *Client) setK8sClient(clientset kubernetes.Interface, apiClientset ingre
 	c.ServiceAccount = serviceaccount.NewClient(clientset)
 	c.Service = service.NewClient(clientset)
 	c.StatefulSet = statefulset.NewClient(clientset, c.logger)
-	c.IngressRoute = ingressroute.NewClient(apiClientset)
+	c.IngressRoute = ingressroute.NewClient(apiClientset, c.logger)
 }
 
 // WithMockClientConfig sets the ClientConfig function, which is used for only when mocking.

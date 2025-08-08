@@ -240,6 +240,7 @@ func (c *command) createStamperClient(ctx context.Context) (*stamper.Client, err
 		HTTPClient:    c.httpClient,
 		LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 		InCluster:     c.globalConfig.GetBool(optionNameInCluster),
+		UseNamespace:  c.globalConfig.IsSet(optionNameNamespace),
 	})
 
 	return stamper.New(&stamper.ClientConfig{

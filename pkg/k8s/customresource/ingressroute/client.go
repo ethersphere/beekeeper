@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -12,12 +13,14 @@ import (
 // Client manages communication with the Traefik IngressRoute.
 type Client struct {
 	clientset Interface
+	logger    logging.Logger
 }
 
 // NewClient constructs a new Client.
-func NewClient(clientset Interface) *Client {
+func NewClient(clientset Interface, log logging.Logger) *Client {
 	return &Client{
 		clientset: clientset,
+		logger:    log,
 	}
 }
 
@@ -83,6 +86,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 
 // GetNodes list Ingress Routes hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.
 func (c *Client) GetNodes(ctx context.Context, namespace, label string) (nodes []ingress.NodeInfo, err error) {
+	c.logger.Debugf("listing IngressRoutes in namespace %s, label selector %s", namespace, label)
 	ingressRoutes, err := c.clientset.IngressRoutes(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: label,
 	})
@@ -94,6 +98,8 @@ func (c *Client) GetNodes(ctx context.Context, namespace, label string) (nodes [
 	}
 
 	if ingressRoutes != nil {
+		c.logger.Debugf("found %d ingress routes in namespace %s", len(ingressRoutes.Items), namespace)
+
 		for _, ingressRoute := range ingressRoutes.Items {
 			for _, route := range ingressRoute.Spec.Routes {
 				host := route.GetHost()

@@ -113,11 +113,17 @@ func (s *Client) Dilute(ctx context.Context, usageThreshold float64, dilutionDep
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
+	count := 0
+
 	for _, node := range nodes {
-		if err := node.Dilute(ctx, usageThreshold, dilutionDepth, processOptions(opts...)); err != nil {
+		if ok, err := node.Dilute(ctx, usageThreshold, dilutionDepth, processOptions(opts...)); err != nil {
 			s.log.Errorf("node %s dilute postage batch: %v", node.name, err)
+		} else if ok {
+			count++
 		}
 	}
+
+	s.log.Infof("diluted postage batch on %d nodes", count)
 
 	return nil
 }
@@ -141,11 +147,25 @@ func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo ti
 		return fmt.Errorf("fetching block time: %w", err)
 	}
 
+	countTopped := 0
+	countDiluted := 0
+
 	for _, node := range nodes {
-		if err := node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime, processOptions(opts...)); err != nil {
+		topped, diluted, err := node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime, processOptions(opts...))
+		if err != nil {
 			s.log.Errorf("node %s set postage batch: %v", node.name, err)
 		}
+
+		if topped {
+			countTopped++
+		}
+		if diluted {
+			countDiluted++
+		}
 	}
+
+	s.log.Infof("diluted postage batch on %d nodes", countDiluted)
+	s.log.Infof("topped up postage batch on %d nodes", countTopped)
 
 	return nil
 }
@@ -167,11 +187,17 @@ func (s *Client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo 
 		return fmt.Errorf("fetching block time: %w", err)
 	}
 
+	count := 0
+
 	for _, node := range nodes {
-		if err := node.Topup(ctx, ttlThreshold, topupTo, blockTime, processOptions(opts...)); err != nil {
+		if ok, err := node.Topup(ctx, ttlThreshold, topupTo, blockTime, processOptions(opts...)); err != nil {
 			s.log.Errorf("node %s topup postage batch: %v", node.name, err)
+		} else if ok {
+			count++
 		}
 	}
+
+	s.log.Infof("topup postage batch on %d nodes", count)
 
 	return nil
 }

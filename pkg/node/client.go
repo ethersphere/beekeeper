@@ -25,6 +25,7 @@ type ClientConfig struct {
 	BeeClients    map[string]*bee.Client
 	LabelSelector string
 	InCluster     bool
+	UseNamespace  bool
 }
 
 type Client struct {
@@ -35,6 +36,7 @@ type Client struct {
 	beeClients    map[string]*bee.Client
 	labelSelector string
 	inCluster     bool
+	useNamespace  bool
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -58,11 +60,12 @@ func New(cfg *ClientConfig) *Client {
 		labelSelector: cfg.LabelSelector,
 		inCluster:     cfg.InCluster,
 		httpClient:    cfg.HTTPClient,
+		useNamespace:  cfg.UseNamespace,
 	}
 }
 
 func (sc *Client) GetNodes(ctx context.Context) (nodes NodeList, err error) {
-	if sc.namespace != "" {
+	if sc.useNamespace && sc.namespace != "" {
 		return sc.getNamespaceNodes(ctx)
 	}
 

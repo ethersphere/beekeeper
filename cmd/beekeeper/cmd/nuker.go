@@ -57,6 +57,7 @@ func (c *command) initNukeCmd() (err error) {
 					LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
 					InCluster:     c.globalConfig.GetBool(optionNameInCluster),
 					BeeClients:    beeClients,
+					UseNamespace:  c.globalConfig.IsSet(optionNameNamespace),
 				})
 
 				nodes, err := nodeClient.GetNodes(ctx)
