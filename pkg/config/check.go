@@ -383,7 +383,7 @@ var Checks = map[string]CheckType{
 		NewAction: smoke.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				ContentSize   *int64         `yaml:"content-size"`
+				FileSizes     *[]int64       `yaml:"file-sizes"`
 				RndSeed       *int64         `yaml:"rnd-seed"`
 				PostageTTL    *time.Duration `yaml:"postage-ttl"`
 				PostageDepth  *uint64        `yaml:"postage-depth"`

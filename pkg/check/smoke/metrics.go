@@ -8,14 +8,15 @@ import (
 type metrics struct {
 	BatchCreateErrors   prometheus.Counter
 	BatchCreateAttempts prometheus.Counter
-	UploadErrors        prometheus.Counter
-	UploadAttempts      prometheus.Counter
-	DownloadErrors      prometheus.Counter
-	DownloadMismatch    prometheus.Counter
-	DownloadAttempts    prometheus.Counter
-	UploadDuration      prometheus.Histogram
-	DownloadDuration    prometheus.Histogram
-	UploadSize          prometheus.Gauge
+	UploadErrors        *prometheus.CounterVec
+	UploadAttempts      *prometheus.CounterVec
+	DownloadErrors      *prometheus.CounterVec
+	DownloadMismatch    *prometheus.CounterVec
+	DownloadAttempts    *prometheus.CounterVec
+	UploadDuration      *prometheus.HistogramVec
+	DownloadDuration    *prometheus.HistogramVec
+	UploadThroughput    *prometheus.GaugeVec
+	DownloadThroughput  *prometheus.GaugeVec
 }
 
 func newMetrics(subsystem string) metrics {
@@ -36,69 +37,86 @@ func newMetrics(subsystem string) metrics {
 				Help:      "Total errors encountered while creating batches.",
 			},
 		),
-		UploadAttempts: prometheus.NewCounter(
+		UploadAttempts: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "upload_attempts",
 				Help:      "Number of upload attempts.",
 			},
+			[]string{"size_bytes"},
 		),
-		DownloadAttempts: prometheus.NewCounter(
+		DownloadAttempts: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_attempts",
 				Help:      "Number of download attempts.",
 			},
+			[]string{"size_bytes"},
 		),
-		UploadErrors: prometheus.NewCounter(
+		UploadErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "upload_errors_count",
 				Help:      "The total number of errors encountered before successful upload.",
 			},
+			[]string{"size_bytes"},
 		),
-		DownloadErrors: prometheus.NewCounter(
+		DownloadErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_errors_count",
 				Help:      "The total number of errors encountered before successful download.",
 			},
+			[]string{"size_bytes"},
 		),
-		DownloadMismatch: prometheus.NewCounter(
+		DownloadMismatch: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_mismatch",
 				Help:      "The total number of times uploaded data is different from downloaded data.",
 			},
+			[]string{"size_bytes"},
 		),
-		UploadDuration: prometheus.NewHistogram(
+		UploadDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "data_upload_duration",
 				Help:      "Data upload duration through the /bytes endpoint.",
 			},
+			[]string{"size_bytes"},
 		),
-		DownloadDuration: prometheus.NewHistogram(
+		DownloadDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "data_download_duration",
 				Help:      "Data download duration through the /bytes endpoint.",
 			},
+			[]string{"size_bytes"},
 		),
-		UploadSize: prometheus.NewGauge(
+		UploadThroughput: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
-				Name:      "upload_size",
-				Help:      "Amount of data uploaded per upload.",
+				Name:      "upload_throughput_bytes_per_second",
+				Help:      "Upload throughput in bytes per second.",
 			},
+			[]string{"size_bytes"},
+		),
+		DownloadThroughput: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "download_throughput_bytes_per_second",
+				Help:      "Download throughput in bytes per second.",
+			},
+			[]string{"size_bytes"},
 		),
 	}
 }
