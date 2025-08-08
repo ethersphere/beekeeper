@@ -84,7 +84,7 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 			return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
 		}
 
-		c.log.Infof("updating stateful set %s", name)
+		c.log.Infof("updating stateful set %s, with args: %v", name, args)
 		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, args); err != nil {
 			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
 		}
@@ -227,7 +227,7 @@ func (c *Client) recreatePodsAndWait(ctx context.Context, namespace string, ss *
 
 		c.log.Debugf("waiting for pod %s to be recreated and finish its process", podName)
 		if err := waitFunc(ctx, namespace, podName); err != nil {
-			return err
+			return fmt.Errorf("failed to wait for pod %s: %w", podName, err)
 		}
 		c.log.Infof("pod %s is ready", podName)
 	}
