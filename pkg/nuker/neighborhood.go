@@ -51,7 +51,7 @@ func (p *randomNeighborhoodProvider) GetArgs(ctx context.Context, ss *v1.Statefu
 		return nil, fmt.Errorf("failed to get node status: %w", err)
 	}
 
-	val, err := p.random.GetRandom(0, 1<<response.StorageRadius) // TODO: check if StorageRadius is the correct property to use for neighborhood value
+	val, err := p.random.GetRandom(0, 1<<response.StorageRadius)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get random neighborhood: %w", err)
 	}

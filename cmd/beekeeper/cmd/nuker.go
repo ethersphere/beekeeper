@@ -21,9 +21,10 @@ const (
 func (c *command) initNukeCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:     "nuke",
-		Short:   "nuke",
+		Short:   "Clears databases and restarts Bee.",
 		Example: `beekeeper nuke --cluster-name=default --restart-args="bee,start,--config=.bee.yaml"`,
-		Long:    `update Bee command in the stateful set.`,
+		Long: `Command executes cleanup operations across Bee nodes in a Kubernetes cluster. 
+		It provides StatefulSet update and rollback procedures to maintain cluster stability during the nuke operation`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				namespace := c.globalConfig.GetString(optionNameNamespace)

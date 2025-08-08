@@ -331,7 +331,7 @@ It has the following flags:
 --cluster-name string              Target Beekeeper cluster name.
 --namespace string                 Kubernetes namespace (overrides cluster name).
 --label-selector string            Kubernetes label selector for filtering resources when namespace is set (use empty string for all). (default "app.kubernetes.io/name=bee")
---restart-args strings             Command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml' (default ["bee" "start" "--config=.bee.yaml"])
+--restart-args strings             Command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml' (default [bee,start,--config=.bee.yaml])
 --use-random-neighborhood          Use random neighborhood for Bee nodes (default: false)
 --timeout duration                 timeout (default 30m0s)
 ```
