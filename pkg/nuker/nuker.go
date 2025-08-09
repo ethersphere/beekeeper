@@ -80,32 +80,23 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 	// 2. Iterate through each StatefulSet and apply the update and rollback procedure concurrently using errgroup.
 	c.log.Debugf("found %d stateful sets to update", len(statefulSetsMap))
 
-	eg, egCtx := errgroup.WithContext(ctx)
-
 	for name, ss := range statefulSetsMap {
-		eg.Go(func() error {
-			_, ok := c.neighborhoodArgProvider.(*randomNeighborhoodProvider)
-			podNames := getPodNames(ss)
-			if ok && len(podNames) != 1 {
-				return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
-			}
+		_, ok := c.neighborhoodArgProvider.(*randomNeighborhoodProvider)
+		podNames := getPodNames(ss)
+		if ok && len(podNames) != 1 {
+			return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
+		}
 
-			args, err := c.neighborhoodArgProvider.GetArgs(egCtx, podNames[0], restartArgs)
-			if err != nil {
-				return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
-			}
+		args, err := c.neighborhoodArgProvider.GetArgs(ctx, podNames[0], restartArgs)
+		if err != nil {
+			return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
+		}
 
-			c.log.Infof("updating stateful set %s, with args: %v", name, args)
-			if err := c.updateAndRollbackStatefulSet(egCtx, namespace, ss, args); err != nil {
-				return fmt.Errorf("failed to update stateful set %s: %w", name, err)
-			}
-			c.log.Infof("successfully updated stateful set %s", name)
-			return nil
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		return err
+		c.log.Infof("updating stateful set %s, with args: %v", name, args)
+		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, args); err != nil {
+			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
+		}
+		c.log.Infof("successfully updated stateful set %s", name)
 	}
 
 	c.log.Info("Bee cluster update completed successfully")
@@ -220,7 +211,7 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 
 	// 5. Sequentially delete each pod again to trigger the rollback.
 	c.log.Infof("deleting pods in stateful set %s to trigger rollback", ss.Name)
-	if err := c.recreatePodsAndWait(ctx, namespace, ss, c.k8sClient.Pods.WaitForReady); err != nil {
+	if err := c.recreatePodsAndWait(ctx, namespace, ss, c.k8sClient.Pods.WaitForRunning); err != nil {
 		return fmt.Errorf("failed during pod rollback for %s: %w", ss.Name, err)
 	}
 	c.log.Infof("all pods for %s have been rolled back and are ready", ss.Name)
@@ -234,21 +225,46 @@ type podWaitFunc func(ctx context.Context, namespace, podName string) error
 // recreatePodsAndWait handles the process of deleting pods one by one and waiting for them
 // to reach a specific state using the provided wait function.
 func (c *Client) recreatePodsAndWait(ctx context.Context, namespace string, ss *v1.StatefulSet, waitFunc podWaitFunc) error {
-	for _, podName := range getPodNames(ss) {
-		c.log.Debugf("deleting pod %s", podName)
+	pods := getPodNames(ss)
+	g, ctx := errgroup.WithContext(ctx)
 
-		// Delete the pod to trigger the StatefulSet controller to recreate it.
-		if _, err := c.k8sClient.Pods.Delete(ctx, podName, namespace); err != nil {
-			return fmt.Errorf("failed to delete pod %s: %w", podName, err)
-		}
+	// This flow is designed for current Helm deployments, where Beekeeper uses only one replica per StatefulSet.
+	// The nuke command is short-lived and causes pods to enter CrashLoopBackOff quickly after execution.
+	// To reliably detect nuke execution, we start a watcher goroutine for each pod before deletion.
+	// Pods are then deleted as quickly as possible to trigger immediate recreation, which is important due to the StatefulSet's pod management policy.
+	// If the nuke command were long-running (e.g., running as a service with a readiness probe and status reporting), the flow could be adapted for more robust handling.
+	// For faster pod recreation and deletion, consider setting podManagementPolicy: Parallel in the StatefulSet spec.
+	// Note: Even with Parallel, StatefulSet rolling updates remain sequential; only pod creation/deletion is parallelized.
 
-		c.log.Debugf("waiting for pod %s to be recreated and finish its process", podName)
-		if err := waitFunc(ctx, namespace, podName); err != nil {
-			return fmt.Errorf("failed to wait for pod %s: %w", podName, err)
-		}
-		c.log.Infof("pod %s is ready", podName)
+	// Start watcher goroutines for each pod
+	for _, podName := range pods {
+		g.Go(func() error {
+			c.log.Debugf("waiting for pod %s to be recreated and finish its process", podName)
+			if err := waitFunc(ctx, namespace, podName); err != nil {
+				return fmt.Errorf("failed to wait for pod %s: %w", podName, err)
+			}
+			c.log.Infof("pod %s is ready", podName)
+			return nil
+		})
 	}
-	return nil
+
+	// Start deleter goroutine
+	g.Go(func() error {
+		for _, podName := range pods {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+			c.log.Debugf("deleting pod %s", podName)
+			if _, err := c.k8sClient.Pods.Delete(ctx, podName, namespace); err != nil {
+				return fmt.Errorf("failed to delete pod %s: %w", podName, err)
+			}
+		}
+		return nil
+	})
+
+	return g.Wait()
 }
 
 // getPodNames generates a list of pod names for a given StatefulSet based on its replicas.
