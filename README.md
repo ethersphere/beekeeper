@@ -323,7 +323,9 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100 --eth-deposi
 
 ### nuke
 
-Command **nuke** executes cleanup operations across Bee nodes in a Kubernetes cluster. It provides StatefulSet update and rollback procedures to maintain cluster stability during the nuke operation.
+Command **nuke** executes a database nuke operation across Bee nodes in a Kubernetes cluster, forcing each node to resynchronize all data on next startup.
+
+This command provides StatefulSet update and rollback procedures to maintain cluster stability during the nuke process, ensuring safe and coordinated resets of node state.
 
 It has the following flags:
 
