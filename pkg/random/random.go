@@ -8,6 +8,8 @@ import (
 	"math/rand"
 )
 
+var ErrUniqueNumberExhausted = errors.New("all unique numbers in the range have been generated")
+
 type Generator struct {
 	rnd    *rand.Rand
 	unique bool
@@ -42,7 +44,7 @@ func (g *Generator) GetRandom(minVal, maxVal int) (int, error) {
 	}
 
 	if len(g.used) >= span {
-		return 0, errors.New("all unique numbers in the range have been generated")
+		return 0, ErrUniqueNumberExhausted
 	}
 
 	for {

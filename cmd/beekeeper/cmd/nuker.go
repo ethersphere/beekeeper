@@ -15,6 +15,7 @@ import (
 const (
 	optionNameRestartArgs            = "restart-args"
 	optionNameUseRandomNeighboorhood = "use-random-neighborhood"
+	optionNameDeploymentType         = "deployment-type"
 	beeLabelSelector                 = "app.kubernetes.io/name=bee"
 )
 
@@ -34,6 +35,10 @@ func (c *command) initNukeCmd() (err error) {
 					return errors.New("either cluster name or namespace must be provided")
 				}
 
+				if !isValidDeploymentType(c.globalConfig.GetString(optionNameDeploymentType)) {
+					return errors.New("unsupported deployment type: must be 'beekeeper' or 'helm'")
+				}
+
 				var beeClients map[string]*bee.Client
 
 				if clusterName != "" {
@@ -51,14 +56,15 @@ func (c *command) initNukeCmd() (err error) {
 				}
 
 				nodeClient := node.New(&node.ClientConfig{
-					Log:           c.log,
-					K8sClient:     c.k8sClient,
-					Namespace:     namespace,
-					HTTPClient:    c.httpClient,
-					LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
-					InCluster:     c.globalConfig.GetBool(optionNameInCluster),
-					BeeClients:    beeClients,
-					UseNamespace:  c.globalConfig.IsSet(optionNameNamespace),
+					Log:            c.log,
+					HTTPClient:     c.httpClient,
+					K8sClient:      c.k8sClient,
+					BeeClients:     beeClients,
+					Namespace:      namespace,
+					LabelSelector:  c.globalConfig.GetString(optionNameLabelSelector),
+					DeploymentType: node.DeploymentType(c.globalConfig.GetString(optionNameDeploymentType)),
+					InCluster:      c.globalConfig.GetBool(optionNameInCluster),
+					UseNamespace:   c.globalConfig.IsSet(optionNameNamespace),
 				})
 
 				nodes, err := nodeClient.GetNodes(ctx)
@@ -93,11 +99,16 @@ func (c *command) initNukeCmd() (err error) {
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name.")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name).")
 	cmd.Flags().String(optionNameLabelSelector, beeLabelSelector, "Kubernetes label selector for filtering resources when namespace is set (use empty string for all).")
-	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
-	cmd.Flags().StringSlice(optionNameRestartArgs, []string{"bee", "start", "--config=.bee.yaml"}, "command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml'")
-	cmd.Flags().Bool(optionNameUseRandomNeighboorhood, false, "use random neighborhood for Bee nodes (default: false)")
+	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "Timeout")
+	cmd.Flags().StringSlice(optionNameRestartArgs, []string{"bee", "start", "--config=.bee.yaml"}, "Command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml'")
+	cmd.Flags().Bool(optionNameUseRandomNeighboorhood, false, "Use random neighborhood for Bee nodes (default: false)")
+	cmd.Flags().String(optionNameDeploymentType, string(node.DeploymentTypeBeekeeper), "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
 
 	c.root.AddCommand(cmd)
 
 	return nil
+}
+
+func isValidDeploymentType(dt string) bool {
+	return dt == string(node.DeploymentTypeHelm) || dt == string(node.DeploymentTypeBeekeeper)
 }

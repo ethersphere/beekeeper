@@ -79,7 +79,12 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 	// 2. Iterate through each StatefulSet and apply the update and rollback procedure.
 	c.log.Debugf("found %d stateful sets to update", len(statefulSetsMap))
 	for name, ss := range statefulSetsMap {
-		args, err := c.neighborhoodArgProvider.GetArgs(ctx, ss, restartArgs)
+		podNames := getPodNames(ss)
+		if len(podNames) != 1 {
+			return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
+		}
+
+		args, err := c.neighborhoodArgProvider.GetArgs(ctx, podNames[0], restartArgs)
 		if err != nil {
 			return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
 		}

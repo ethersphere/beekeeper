@@ -13,30 +13,39 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
+type DeploymentType string
+
+const (
+	DeploymentTypeBeekeeper DeploymentType = "beekeeper"
+	DeploymentTypeHelm      DeploymentType = "helm"
+)
+
 type NodeProvider interface {
 	GetNodes(ctx context.Context) (NodeList, error)
 }
 
 type ClientConfig struct {
-	Log           logging.Logger
-	Namespace     string
-	HTTPClient    *http.Client
-	K8sClient     *k8s.Client
-	BeeClients    map[string]*bee.Client
-	LabelSelector string
-	InCluster     bool
-	UseNamespace  bool
+	Log            logging.Logger
+	HTTPClient     *http.Client
+	K8sClient      *k8s.Client
+	BeeClients     map[string]*bee.Client
+	Namespace      string
+	LabelSelector  string
+	DeploymentType DeploymentType
+	InCluster      bool
+	UseNamespace   bool // Overrides the usage of the bee clients
 }
 
 type Client struct {
-	log           logging.Logger
-	namespace     string
-	k8sClient     *k8s.Client
-	httpClient    *http.Client
-	beeClients    map[string]*bee.Client
-	labelSelector string
-	inCluster     bool
-	useNamespace  bool
+	log            logging.Logger
+	httpClient     *http.Client
+	k8sClient      *k8s.Client
+	beeClients     map[string]*bee.Client
+	namespace      string
+	labelSelector  string
+	deploymentType DeploymentType
+	inCluster      bool
+	useNamespace   bool
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -53,14 +62,15 @@ func New(cfg *ClientConfig) *Client {
 	}
 
 	return &Client{
-		log:           cfg.Log,
-		namespace:     cfg.Namespace,
-		k8sClient:     cfg.K8sClient,
-		beeClients:    cfg.BeeClients,
-		labelSelector: cfg.LabelSelector,
-		inCluster:     cfg.InCluster,
-		httpClient:    cfg.HTTPClient,
-		useNamespace:  cfg.UseNamespace,
+		log:            cfg.Log,
+		httpClient:     cfg.HTTPClient,
+		k8sClient:      cfg.K8sClient,
+		beeClients:     cfg.BeeClients,
+		namespace:      cfg.Namespace,
+		labelSelector:  cfg.LabelSelector,
+		deploymentType: cfg.DeploymentType,
+		inCluster:      cfg.InCluster,
+		useNamespace:   cfg.UseNamespace,
 	}
 }
 
@@ -75,7 +85,7 @@ func (sc *Client) GetNodes(ctx context.Context) (nodes NodeList, err error) {
 
 	nodes = make(NodeList, 0, len(sc.beeClients))
 	for nodeName, beeClient := range sc.beeClients {
-		nodes = append(nodes, *NewNode(beeClient.API(), nodeName))
+		nodes = append(nodes, *NewNode(beeClient.API(), sc.nodeName(nodeName)))
 	}
 
 	return nodes, nil
@@ -120,7 +130,7 @@ func (sc *Client) getServiceNodes(ctx context.Context) ([]Node, error) {
 			return nil, fmt.Errorf("create api client: %w", err)
 		}
 
-		nodes[i] = *NewNode(apiClient, node.Name)
+		nodes[i] = *NewNode(apiClient, sc.nodeName(node.Name))
 	}
 
 	return nodes, nil
@@ -150,8 +160,18 @@ func (sc *Client) getIngressNodes(ctx context.Context) ([]Node, error) {
 			return nil, fmt.Errorf("create api client: %w", err)
 		}
 
-		nodes[i] = *NewNode(apiClient, node.Name)
+		nodes[i] = *NewNode(apiClient, sc.nodeName(node.Name))
 	}
 
 	return nodes, nil
+}
+
+// nodeName returns the name of the node, and adds suffix based on deployment type.
+// In case of Beekeeper deployment, it adds "-0" suffix, because there is only one replica.
+// In case of other deployments, it returns the name as is.
+func (sc *Client) nodeName(name string) string {
+	if sc.deploymentType == DeploymentTypeBeekeeper {
+		return fmt.Sprintf("%s-0", name)
+	}
+	return name
 }
