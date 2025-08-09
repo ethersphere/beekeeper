@@ -6,14 +6,17 @@ import (
 	"errors"
 	"log"
 	"math/rand"
+	"sync"
 )
 
 var ErrUniqueNumberExhausted = errors.New("all unique numbers in the range have been generated")
 
+// Generator is a random number generator that can optionally enforce uniqueness of generated numbers.
 type Generator struct {
 	rnd    *rand.Rand
 	unique bool
 	used   map[int]struct{}
+	mu     sync.Mutex
 }
 
 func NewGenerator(unique bool) *Generator {
@@ -43,6 +46,9 @@ func (g *Generator) GetRandom(minVal, maxVal int) (int, error) {
 		return minVal + g.rnd.Intn(span), nil
 	}
 
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
 	if len(g.used) >= span {
 		return 0, ErrUniqueNumberExhausted
 	}
@@ -59,7 +65,9 @@ func (g *Generator) GetRandom(minVal, maxVal int) (int, error) {
 // Reset clears the history of used numbers for a unique generator.
 // This allows the generator to be reused for a new sequence of unique numbers.
 func (g *Generator) Reset() {
+	g.mu.Lock()
 	g.used = make(map[int]struct{})
+	g.mu.Unlock()
 }
 
 // PseudoGenerator returns *rand.Rand

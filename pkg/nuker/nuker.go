@@ -9,6 +9,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -76,24 +77,34 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 		return errors.New("no stateful sets found to update")
 	}
 
-	// 2. Iterate through each StatefulSet and apply the update and rollback procedure.
+	// 2. Iterate through each StatefulSet and apply the update and rollback procedure concurrently using errgroup.
 	c.log.Debugf("found %d stateful sets to update", len(statefulSetsMap))
+
+	eg, egCtx := errgroup.WithContext(ctx)
+
 	for name, ss := range statefulSetsMap {
-		podNames := getPodNames(ss)
-		if len(podNames) != 1 {
-			return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
-		}
+		eg.Go(func() error {
+			podNames := getPodNames(ss)
+			if len(podNames) != 1 {
+				return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
+			}
 
-		args, err := c.neighborhoodArgProvider.GetArgs(ctx, podNames[0], restartArgs)
-		if err != nil {
-			return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
-		}
+			args, err := c.neighborhoodArgProvider.GetArgs(egCtx, podNames[0], restartArgs)
+			if err != nil {
+				return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
+			}
 
-		c.log.Infof("updating stateful set %s, with args: %v", name, args)
-		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, args); err != nil {
-			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
-		}
-		c.log.Infof("successfully updated stateful set %s", name)
+			c.log.Infof("updating stateful set %s, with args: %v", name, args)
+			if err := c.updateAndRollbackStatefulSet(egCtx, namespace, ss, args); err != nil {
+				return fmt.Errorf("failed to update stateful set %s: %w", name, err)
+			}
+			c.log.Infof("successfully updated stateful set %s", name)
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 
 	c.log.Info("Bee cluster update completed successfully")
