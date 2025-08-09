@@ -84,8 +84,9 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 
 	for name, ss := range statefulSetsMap {
 		eg.Go(func() error {
+			_, ok := c.neighborhoodArgProvider.(*randomNeighborhoodProvider)
 			podNames := getPodNames(ss)
-			if len(podNames) != 1 {
+			if ok && len(podNames) != 1 {
 				return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
 			}
 
