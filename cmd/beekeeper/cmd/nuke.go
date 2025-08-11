@@ -72,21 +72,14 @@ func (c *command) initNukeCmd() (err error) {
 					return fmt.Errorf("getting nodes: %w", err)
 				}
 
-				var neighborhoodArgProvider nuker.NeighborhoodArgProvider
-				if c.globalConfig.GetBool(optionNameUseRandomNeighboorhood) {
-					neighborhoodArgProvider = nuker.NewRandomNeighborhoodProvider(c.log, nodes)
-				} else {
-					neighborhoodArgProvider = &nuker.NeighborhoodArgProviderNotSet{}
-				}
-
-				nuker := nuker.New(&nuker.ClientConfig{
-					Log:                     c.log,
-					K8sClient:               c.k8sClient,
-					NeighborhoodArgProvider: neighborhoodArgProvider,
-					NodeProvider:            nodeClient,
+				nukerClient := nuker.New(&nuker.ClientConfig{
+					Log:                   c.log,
+					K8sClient:             c.k8sClient,
+					Nodes:                 nodes,
+					UseRandomNeighborhood: c.globalConfig.GetBool(optionNameUseRandomNeighboorhood),
 				})
 
-				if err := nuker.Run(ctx, namespace, c.globalConfig.GetStringSlice(optionNameRestartArgs)); err != nil {
+				if err := nukerClient.Run(ctx, namespace, c.globalConfig.GetStringSlice(optionNameRestartArgs)); err != nil {
 					return fmt.Errorf("updating Bee cluster %s: %w", clusterName, err)
 				}
 

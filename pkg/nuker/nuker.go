@@ -15,17 +15,17 @@ import (
 )
 
 type ClientConfig struct {
-	Log                     logging.Logger
-	K8sClient               *k8s.Client
-	NeighborhoodArgProvider NeighborhoodArgProvider
-	NodeProvider            node.NodeProvider
+	Log                   logging.Logger
+	K8sClient             *k8s.Client
+	Nodes                 node.NodeList
+	UseRandomNeighborhood bool
 }
 
 type Client struct {
 	log                     logging.Logger
 	k8sClient               *k8s.Client
 	neighborhoodArgProvider NeighborhoodArgProvider
-	nodeProvider            node.NodeProvider
+	nodes                   node.NodeList
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -37,11 +37,13 @@ func New(cfg *ClientConfig) *Client {
 		cfg.Log = logging.New(io.Discard, 0)
 	}
 
+	neighborhoodProvider := NewNeighborhoodProvider(cfg.Log, cfg.Nodes, cfg.UseRandomNeighborhood)
+
 	return &Client{
 		log:                     cfg.Log,
 		k8sClient:               cfg.K8sClient,
-		neighborhoodArgProvider: cfg.NeighborhoodArgProvider,
-		nodeProvider:            cfg.NodeProvider,
+		neighborhoodArgProvider: neighborhoodProvider,
+		nodes:                   cfg.Nodes,
 	}
 }
 
@@ -67,13 +69,11 @@ func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string
 		return errors.New("no stateful sets found to update")
 	}
 
-	_, ok := c.neighborhoodArgProvider.(*randomNeighborhoodProvider)
-
 	// 2. Iterate through each StatefulSet and apply the update and rollback procedure concurrently using errgroup.
 	c.log.Debugf("found %d stateful sets to update", len(statefulSetsMap))
 
 	for name, ss := range statefulSetsMap {
-		if ok && *ss.Spec.Replicas != 1 {
+		if c.neighborhoodArgProvider.UsesRandomNeighborhood() && *ss.Spec.Replicas != 1 {
 			return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
 		}
 
@@ -96,12 +96,7 @@ func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string
 func (c *Client) findStatefulSets(ctx context.Context, namespace string) (map[string]*v1.StatefulSet, error) {
 	statefulSetsMap := make(map[string]*v1.StatefulSet)
 
-	nodes, err := c.nodeProvider.GetNodes(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get nodes: %w", err)
-	}
-
-	for _, node := range nodes {
+	for _, node := range c.nodes {
 		statefulSet, err := c.k8sClient.Pods.GetControllingStatefulSet(ctx, node.Name(), namespace)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get controlling stateful set for node %s: %w", node.Name(), err)

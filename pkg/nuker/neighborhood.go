@@ -14,27 +14,39 @@ import (
 // NeighborhoodArgProvider defines how to get extra restart args for a StatefulSet.
 type NeighborhoodArgProvider interface {
 	GetArgs(ctx context.Context, nodeName string, restartArgs []string) ([]string, error)
+	UsesRandomNeighborhood() bool
 }
 
-type randomNeighborhoodProvider struct {
-	log    logging.Logger
-	nodes  node.NodeList
-	random *random.Generator
+type neighborhoodProvider struct {
+	log       logging.Logger
+	nodes     node.NodeList
+	random    *random.Generator
+	useRandom bool
 }
 
-func NewRandomNeighborhoodProvider(log logging.Logger, nodes node.NodeList) NeighborhoodArgProvider {
+func NewNeighborhoodProvider(log logging.Logger, nodes node.NodeList, useRandom bool) NeighborhoodArgProvider {
 	if log == nil {
 		log = logging.New(io.Discard, 0)
 	}
 
-	return &randomNeighborhoodProvider{
-		log:    log,
-		nodes:  nodes,
-		random: random.NewGenerator(true),
+	var randomGen *random.Generator
+	if useRandom {
+		randomGen = random.NewGenerator(true)
+	}
+
+	return &neighborhoodProvider{
+		log:       log,
+		nodes:     nodes,
+		random:    randomGen,
+		useRandom: useRandom,
 	}
 }
 
-func (p *randomNeighborhoodProvider) GetArgs(ctx context.Context, nodeName string, restartArgs []string) ([]string, error) {
+func (p *neighborhoodProvider) GetArgs(ctx context.Context, nodeName string, restartArgs []string) ([]string, error) {
+	if !p.useRandom {
+		return restartArgs, nil
+	}
+
 	n := p.nodes.Get(nodeName)
 	if n == nil {
 		return nil, fmt.Errorf("node %s not found", nodeName)
@@ -64,4 +76,8 @@ func (p *randomNeighborhoodProvider) GetArgs(ctx context.Context, nodeName strin
 	args := append(restartArgs, fmt.Sprintf("--target-neighborhood=%b", val))
 
 	return args, nil
+}
+
+func (p *neighborhoodProvider) UsesRandomNeighborhood() bool {
+	return p.useRandom
 }
