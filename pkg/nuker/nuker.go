@@ -6,27 +6,26 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"github.com/ethersphere/beekeeper/pkg/node"
 	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/api/apps/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/util/retry"
 )
 
 type ClientConfig struct {
 	Log                     logging.Logger
 	K8sClient               *k8s.Client
-	BeeClients              map[string]*bee.Client
 	NeighborhoodArgProvider NeighborhoodArgProvider
+	NodeProvider            node.NodeProvider
 }
 
 type Client struct {
 	log                     logging.Logger
 	k8sClient               *k8s.Client
-	beeClients              map[string]*bee.Client
 	neighborhoodArgProvider NeighborhoodArgProvider
+	nodeProvider            node.NodeProvider
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -41,13 +40,13 @@ func New(cfg *ClientConfig) *Client {
 	return &Client{
 		log:                     cfg.Log,
 		k8sClient:               cfg.K8sClient,
-		beeClients:              cfg.BeeClients,
 		neighborhoodArgProvider: cfg.NeighborhoodArgProvider,
+		nodeProvider:            cfg.NodeProvider,
 	}
 }
 
 // Run sends a update command to the Bee clients in the Kubernetes cluster
-func (c *Client) Run(ctx context.Context, namespace, labelSelector string, restartArgs []string) (err error) {
+func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string) (err error) {
 	c.log.Info("starting Bee cluster update")
 
 	if namespace == "" {
@@ -59,7 +58,7 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 	}
 
 	// 1. Find all unique StatefulSets to update.
-	statefulSetsMap, err := c.findStatefulSets(ctx, namespace, labelSelector)
+	statefulSetsMap, err := c.findStatefulSets(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to find stateful sets: %w", err)
 	}
@@ -68,17 +67,17 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 		return errors.New("no stateful sets found to update")
 	}
 
+	_, ok := c.neighborhoodArgProvider.(*randomNeighborhoodProvider)
+
 	// 2. Iterate through each StatefulSet and apply the update and rollback procedure concurrently using errgroup.
 	c.log.Debugf("found %d stateful sets to update", len(statefulSetsMap))
 
 	for name, ss := range statefulSetsMap {
-		_, ok := c.neighborhoodArgProvider.(*randomNeighborhoodProvider)
-		podNames := getPodNames(ss)
-		if ok && len(podNames) != 1 {
+		if ok && *ss.Spec.Replicas != 1 {
 			return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
 		}
 
-		args, err := c.neighborhoodArgProvider.GetArgs(ctx, podNames[0], restartArgs)
+		args, err := c.neighborhoodArgProvider.GetArgs(ctx, getPodNames(ss)[0], restartArgs)
 		if err != nil {
 			return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
 		}
@@ -94,41 +93,20 @@ func (c *Client) Run(ctx context.Context, namespace, labelSelector string, resta
 	return nil
 }
 
-func (c *Client) findStatefulSets(ctx context.Context, namespace, labelSelector string) (map[string]*v1.StatefulSet, error) {
+func (c *Client) findStatefulSets(ctx context.Context, namespace string) (map[string]*v1.StatefulSet, error) {
 	statefulSetsMap := make(map[string]*v1.StatefulSet)
 
-	if len(c.beeClients) > 0 {
-		// If bee clients are provided, find their controlling StatefulSets.
-		for _, client := range c.beeClients {
-			// Skip if the client is already in the map.
-			if _, ok := statefulSetsMap[client.Name()]; ok {
-				continue
-			}
+	nodes, err := c.nodeProvider.GetNodes(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nodes: %w", err)
+	}
 
-			statefulSet, err := c.k8sClient.Pods.GetControllingStatefulSet(ctx, client.Name(), namespace)
-			if err != nil {
-				if k8serrors.IsNotFound(err) {
-					// Fallback to getting the StatefulSet directly if the pod is not found.
-					ss, getErr := c.k8sClient.StatefulSet.Get(ctx, client.Name(), namespace)
-					if getErr != nil {
-						return nil, fmt.Errorf("failed to get stateful set for Bee client %s: %w", client.Name(), getErr)
-					}
-					statefulSetsMap[ss.Name] = ss
-					continue
-				}
-				return nil, fmt.Errorf("failed to get controlling stateful set for Bee client %s: %w", client.Name(), err)
-			}
-			statefulSetsMap[statefulSet.Name] = statefulSet
-		}
-	} else {
-		// If no clients are provided, find StatefulSets using namespace and labels.
-		statefulSets, err := c.k8sClient.StatefulSet.StatefulSets(ctx, namespace, labelSelector)
+	for _, node := range nodes {
+		statefulSet, err := c.k8sClient.Pods.GetControllingStatefulSet(ctx, node.Name(), namespace)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get stateful sets in namespace %s: %w", namespace, err)
+			return nil, fmt.Errorf("failed to get controlling stateful set for node %s: %w", node.Name(), err)
 		}
-		for _, statefulSet := range statefulSets {
-			statefulSetsMap[statefulSet.Name] = statefulSet
-		}
+		statefulSetsMap[statefulSet.Name] = statefulSet
 	}
 
 	return statefulSetsMap, nil

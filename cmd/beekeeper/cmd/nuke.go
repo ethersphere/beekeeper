@@ -82,11 +82,11 @@ func (c *command) initNukeCmd() (err error) {
 				nuker := nuker.New(&nuker.ClientConfig{
 					Log:                     c.log,
 					K8sClient:               c.k8sClient,
-					BeeClients:              beeClients,
 					NeighborhoodArgProvider: neighborhoodArgProvider,
+					NodeProvider:            nodeClient,
 				})
 
-				if err := nuker.Run(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector), c.globalConfig.GetStringSlice(optionNameRestartArgs)); err != nil {
+				if err := nuker.Run(ctx, namespace, c.globalConfig.GetStringSlice(optionNameRestartArgs)); err != nil {
 					return fmt.Errorf("updating Bee cluster %s: %w", clusterName, err)
 				}
 
