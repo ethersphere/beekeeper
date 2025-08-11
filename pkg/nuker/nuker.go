@@ -73,11 +73,19 @@ func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string
 	c.log.Debugf("found %d stateful sets to update", len(statefulSetsMap))
 
 	for name, ss := range statefulSetsMap {
+		// Skip StatefulSets with 0 replicas
+		if ss.Spec.Replicas == nil || *ss.Spec.Replicas == 0 {
+			c.log.Infof("skipping stateful set %s: no replicas", name)
+			continue
+		}
+
 		if c.neighborhoodArgProvider.UsesRandomNeighborhood() && *ss.Spec.Replicas != 1 {
 			return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
 		}
 
-		args, err := c.neighborhoodArgProvider.GetArgs(ctx, getPodNames(ss)[0], restartArgs)
+		podNames := getPodNames(ss)
+
+		args, err := c.neighborhoodArgProvider.GetArgs(ctx, podNames[0], restartArgs)
 		if err != nil {
 			return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
 		}
@@ -89,7 +97,6 @@ func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string
 		c.log.Infof("successfully updated stateful set %s", name)
 	}
 
-	c.log.Info("Bee cluster update completed successfully")
 	return nil
 }
 
@@ -237,6 +244,10 @@ func getPodNames(ss *v1.StatefulSet) []string {
 	}
 
 	replicas := int(*ss.Spec.Replicas)
+	if replicas <= 0 {
+		return nil
+	}
+
 	podNames := make([]string, replicas)
 	for i := range replicas {
 		podNames[i] = fmt.Sprintf("%s-%d", ss.Name, i)
