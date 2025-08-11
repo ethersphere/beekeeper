@@ -11,7 +11,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/util/retry"
 )
@@ -28,14 +27,6 @@ type Client struct {
 	k8sClient               *k8s.Client
 	beeClients              map[string]*bee.Client
 	neighborhoodArgProvider NeighborhoodArgProvider
-}
-
-// originalState holds the original configuration of a StatefulSet before an update.
-type originalState struct {
-	cmd            []string
-	updateStrategy v1.StatefulSetUpdateStrategy
-	replicas       *int32
-	readinessProbe *corev1.Probe
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -145,21 +136,46 @@ func (c *Client) findStatefulSets(ctx context.Context, namespace, labelSelector 
 
 // updateAndRollbackStatefulSet orchestrates the full update cycle for a single StatefulSet.
 func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace string, ss *v1.StatefulSet, restartArgs []string) error {
-	// Work on a deep copy to avoid modifying the original object in the map.
-	ss = ss.DeepCopy()
 	updateArgs := []string{"bee", "db", "nuke", "--config=.bee.yaml", "--data-dir=/home/bee/.bee"}
 
-	// 1. Save the original state of the first container and the StatefulSet spec.
+	// 1. Save the original state by creating a deep copy before any modifications.
 	if len(ss.Spec.Template.Spec.Containers) == 0 {
 		return errors.New("stateful set has no containers")
 	}
-	original := originalState{
-		cmd:            restartArgs,
-		updateStrategy: ss.Spec.UpdateStrategy,
-		replicas:       ss.Spec.Replicas,
-		readinessProbe: ss.Spec.Template.Spec.Containers[0].ReadinessProbe,
-	}
-	c.log.Debugf("saved original state for stateful set %s: updateStrategy=%v, replicas=%d", ss.Name, original.updateStrategy.Type, *original.replicas)
+	originalSS := ss.DeepCopy()
+
+	c.log.Debugf("saved original state for stateful set %s: updateStrategy=%v, replicas=%d", ss.Name, originalSS.Spec.UpdateStrategy.Type, *originalSS.Spec.Replicas)
+
+	// Ensure rollback happens regardless of success or failure
+	defer func() {
+		c.log.Infof("rolling back stateful set %s to its original configuration", ss.Name)
+		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			// Fetch the latest version of the StatefulSet before updating.
+			latestSS, err := c.k8sClient.StatefulSet.Get(ctx, ss.Name, namespace)
+			if err != nil {
+				return fmt.Errorf("failed to get latest stateful set %s: %w", ss.Name, err)
+			}
+
+			// Restore the original configuration from our deep copy
+			latestSS.Spec.UpdateStrategy = originalSS.Spec.UpdateStrategy
+			latestSS.Spec.Replicas = originalSS.Spec.Replicas
+			latestSS.Spec.Template.Spec.Containers[0].Command = restartArgs
+			latestSS.Spec.Template.Spec.Containers[0].ReadinessProbe = originalSS.Spec.Template.Spec.Containers[0].ReadinessProbe
+
+			return c.k8sClient.StatefulSet.Update(ctx, namespace, latestSS)
+		}); err != nil {
+			c.log.Errorf("failed to apply rollback spec to stateful set %s: %v", ss.Name, err)
+			return
+		}
+
+		// Sequentially delete each pod again to trigger the rollback.
+		c.log.Infof("deleting pods in stateful set %s to trigger rollback", ss.Name)
+		if err := c.recreatePodsAndWait(ctx, namespace, ss, c.k8sClient.Pods.WaitForRunning); err != nil {
+			c.log.Errorf("failed during pod rollback for %s: %v", ss.Name, err)
+			return
+		}
+		c.log.Infof("all pods for %s have been rolled back and are ready", ss.Name)
+	}()
 
 	// 2. Modify the StatefulSet for the update task using a retry loop.
 	c.log.Debugf("updating stateful set %s with command: %v", ss.Name, updateArgs)
@@ -188,33 +204,6 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 		return fmt.Errorf("failed during pod update task for %s: %w", ss.Name, err)
 	}
 	c.log.Infof("all pods for %s completed the update task", ss.Name)
-
-	// 4. Roll back the StatefulSet to its original configuration using a retry loop.
-	c.log.Infof("rolling back stateful set %s to its original configuration", ss.Name)
-	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		// Fetch the latest version of the StatefulSet before updating.
-		latestSS, err := c.k8sClient.StatefulSet.Get(ctx, ss.Name, namespace)
-		if err != nil {
-			return fmt.Errorf("failed to get latest stateful set %s: %w", ss.Name, err)
-		}
-
-		// Apply the original configuration for rollback.
-		latestSS.Spec.UpdateStrategy = original.updateStrategy
-		latestSS.Spec.Replicas = original.replicas
-		latestSS.Spec.Template.Spec.Containers[0].Command = original.cmd
-		latestSS.Spec.Template.Spec.Containers[0].ReadinessProbe = original.readinessProbe
-
-		return c.k8sClient.StatefulSet.Update(ctx, namespace, latestSS)
-	}); err != nil {
-		return fmt.Errorf("failed to apply rollback spec to stateful set %s: %w", ss.Name, err)
-	}
-
-	// 5. Sequentially delete each pod again to trigger the rollback.
-	c.log.Infof("deleting pods in stateful set %s to trigger rollback", ss.Name)
-	if err := c.recreatePodsAndWait(ctx, namespace, ss, c.k8sClient.Pods.WaitForRunning); err != nil {
-		return fmt.Errorf("failed during pod rollback for %s: %w", ss.Name, err)
-	}
-	c.log.Infof("all pods for %s have been rolled back and are ready", ss.Name)
 
 	return nil
 }
