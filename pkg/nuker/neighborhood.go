@@ -62,7 +62,7 @@ func (p *neighborhoodProvider) GetArgs(ctx context.Context, nodeName string, res
 		return restartArgs, nil
 	}
 
-	val, err := p.random.GetRandom(0, 1<<response.StorageRadius)
+	val, err := p.random.GetRandom(0, (1<<response.StorageRadius)-1)
 	if err != nil {
 		if errors.Is(err, random.ErrUniqueNumberExhausted) {
 			p.log.Warningf("node %s has exhausted all unique neighborhood values", n.Name())
