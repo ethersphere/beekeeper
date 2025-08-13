@@ -1,6 +1,7 @@
 package random_test
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -302,7 +303,7 @@ func TestGetRandom_Unique(t *testing.T) {
 
 			// Try to generate one more - should fail with ErrUniqueNumberExhausted
 			_, err := g.GetRandom(tc.minVal, tc.maxVal)
-			if err != random.ErrUniqueNumberExhausted {
+			if !errors.Is(err, random.ErrUniqueNumberExhausted) {
 				t.Errorf("expected ErrUniqueNumberExhausted, got: %v", err)
 			}
 		})
@@ -320,7 +321,7 @@ func TestGetRandom_Reset(t *testing.T) {
 	}
 
 	_, err := g.GetRandom(1, 3)
-	if err != random.ErrUniqueNumberExhausted {
+	if !errors.Is(err, random.ErrUniqueNumberExhausted) {
 		t.Errorf("expected ErrUniqueNumberExhausted, got: %v", err)
 	}
 
@@ -465,7 +466,7 @@ func TestGetRandom_ZeroRange(t *testing.T) {
 
 		// Second call should fail with ErrUniqueNumberExhausted
 		_, err = g.GetRandom(0, 0)
-		if err != random.ErrUniqueNumberExhausted {
+		if !errors.Is(err, random.ErrUniqueNumberExhausted) {
 			t.Errorf("expected ErrUniqueNumberExhausted, got: %v", err)
 		}
 	})
