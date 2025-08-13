@@ -59,9 +59,10 @@ func (*Service) Delete(ctx context.Context, name string, opts metav1.DeleteOptio
 
 // Get implements v1.ServiceInterface
 func (*Service) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Service, error) {
-	if name == CreateBad {
+	switch name {
+	case CreateBad:
 		return nil, errors.NewNotFound(schema.GroupResource{}, name)
-	} else if name == UpdateBad {
+	case UpdateBad:
 		return &v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
