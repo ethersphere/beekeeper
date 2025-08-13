@@ -181,6 +181,11 @@ func (c *Cluster) Name() string {
 	return c.name
 }
 
+// Namespace returns namespace of the cluster
+func (c *Cluster) Namespace() string {
+	return c.opts.Namespace
+}
+
 // NodeGroups returns map of node groups in the cluster
 func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
 	nodeGroups := make(map[string]orchestration.NodeGroup)

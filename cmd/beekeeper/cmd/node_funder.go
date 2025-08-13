@@ -84,12 +84,15 @@ func (c *command) initNodeFunderCmd() (err error) {
 					}
 
 					for _, node := range clients {
+						c.log.Debugf("adding node address %s", node.Name())
 						addr, err := node.Addresses(ctx)
 						if err != nil {
 							return fmt.Errorf("error fetching addresses for node %s: %w", node.Name(), err)
 						}
 						cfg.Addresses = append(cfg.Addresses, addr.Ethereum)
 					}
+
+					c.log.Infof("funding %d nodes in cluster %s", len(cfg.Addresses), clusterName)
 
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
 						return funder.Fund(ctx, cfg, nil, nil, logOpt)

@@ -10,21 +10,21 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
-type node struct {
+type stamperNode struct {
 	client *api.Client
 	name   string
 	log    logging.Logger
 }
 
-func newNodeInfo(client *api.Client, name string, log logging.Logger) *node {
-	return &node{
+func newStamperNode(client *api.Client, name string, log logging.Logger) *stamperNode {
+	return &stamperNode{
 		client: client,
 		name:   name,
 		log:    log,
 	}
 }
 
-func (n *node) Create(ctx context.Context, duration time.Duration, depth uint16, postageLabel string, secondsPerBlock int64) error {
+func (n *stamperNode) Create(ctx context.Context, duration time.Duration, depth uint16, postageLabel string, secondsPerBlock int64) error {
 	price, err := n.getPrice(ctx)
 	if err != nil {
 		return err
@@ -44,10 +44,10 @@ func (n *node) Create(ctx context.Context, duration time.Duration, depth uint16,
 	return nil
 }
 
-func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uint16, opts *options) error {
+func (n *stamperNode) Dilute(ctx context.Context, threshold float64, depthIncrement uint16, opts *options) (bool, error) {
 	batches, _, err := n.getPostageBatches(ctx, false)
 	if err != nil {
-		return err
+		return false, fmt.Errorf("node %s: get postage batches: %w", n.name, err)
 	}
 
 	for _, batch := range batches {
@@ -60,13 +60,13 @@ func (n *node) Dilute(ctx context.Context, threshold float64, depthIncrement uin
 		}
 	}
 
-	return nil
+	return false, nil
 }
 
 // Set performs Topup and Dilute operations on postage batches.
 // Topup is handled first based on the original depth, followed by Dilute
 // which considers the new depth and utilization threshold.
-func (n *node) Set(
+func (n *stamperNode) Set(
 	ctx context.Context,
 	ttlThreshold time.Duration,
 	topUpFinalTTL time.Duration,
@@ -74,10 +74,10 @@ func (n *node) Set(
 	extraDepth uint16,
 	secondsPerBlock int64,
 	opts *options,
-) error {
+) (topped bool, diluted bool, err error) {
 	batches, price, err := n.getPostageBatches(ctx, true)
 	if err != nil {
-		return err
+		return false, false, fmt.Errorf("node %s: get postage batches: %w", n.name, err)
 	}
 
 	for _, batch := range batches {
@@ -97,22 +97,28 @@ func (n *node) Set(
 			continue
 		}
 
-		if err := n.handleTopup(ctx, batch, ttlThreshold, topUpFinalTTL, batchTTL, secondsPerBlock, price); err != nil {
-			return err
+		if ok, err := n.handleTopup(ctx, batch, ttlThreshold, topUpFinalTTL, batchTTL, secondsPerBlock, price); err != nil {
+			return false, false, fmt.Errorf("node %s: handle topup: %w", n.name, err)
+		} else if ok {
+			topped = true
 		}
 
 		if needsDilution {
-			return n.handleDilution(ctx, batch, extraDepth)
+			if ok, err := n.handleDilution(ctx, batch, extraDepth); err != nil {
+				return false, false, fmt.Errorf("node %s: handle dilution: %w", n.name, err)
+			} else if ok {
+				diluted = true
+			}
 		}
 	}
 
-	return nil
+	return topped, diluted, nil
 }
 
-func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topUpFinalTTL time.Duration, secondsPerBlock int64, opts *options) error {
+func (n *stamperNode) Topup(ctx context.Context, ttlThreshold time.Duration, topUpFinalTTL time.Duration, secondsPerBlock int64, opts *options) (bool, error) {
 	batches, price, err := n.getPostageBatches(ctx, true)
 	if err != nil {
-		return err
+		return false, fmt.Errorf("node %s: get postage batches: %w", n.name, err)
 	}
 
 	for _, batch := range batches {
@@ -125,24 +131,24 @@ func (n *node) Topup(ctx context.Context, ttlThreshold time.Duration, topUpFinal
 		return n.handleTopup(ctx, batch, ttlThreshold, topUpFinalTTL, batchTTL, secondsPerBlock, price)
 	}
 
-	return nil
+	return false, nil
 }
 
-func (n *node) handleDilution(ctx context.Context, batch api.PostageStampResponse, extraDepth uint16) error {
+func (n *stamperNode) handleDilution(ctx context.Context, batch api.PostageStampResponse, extraDepth uint16) (bool, error) {
 	newDepth := uint16(batch.Depth) + extraDepth
 
 	n.log.Tracef("node %s: batch %s: usage %.2f%%, diluting to depth %d", n.name, batch.BatchID, batch.BatchUsage(), newDepth)
 
 	if err := n.client.Postage.DilutePostageBatch(ctx, batch.BatchID, uint64(newDepth), ""); err != nil {
-		return fmt.Errorf("node %s: dilute batch %s: %w", n.name, batch.BatchID, err)
+		return false, fmt.Errorf("node %s: dilute batch %s: %w", n.name, batch.BatchID, err)
 	}
 
 	n.log.Infof("node %s: diluted batch %s to depth %d", n.name, batch.BatchID, newDepth)
 
-	return nil
+	return true, nil
 }
 
-func (n *node) handleTopup(ctx context.Context, batch api.PostageStampResponse, ttlThreshold, topUpFinalTTL, batchTTL time.Duration, secondsPerBlock, price int64) error {
+func (n *stamperNode) handleTopup(ctx context.Context, batch api.PostageStampResponse, ttlThreshold, topUpFinalTTL, batchTTL time.Duration, secondsPerBlock, price int64) (bool, error) {
 	if batchTTL <= ttlThreshold {
 		topUpTTL := topUpFinalTTL - batchTTL
 		if topUpTTL > 0 {
@@ -151,17 +157,19 @@ func (n *node) handleTopup(ctx context.Context, batch api.PostageStampResponse, 
 			n.log.Tracef("node %s: batch %s: required duration %d, amount %d", n.name, batch.BatchID, topUpTTL, amount)
 
 			if err := n.client.Postage.TopUpPostageBatch(ctx, batch.BatchID, amount, ""); err != nil {
-				return fmt.Errorf("node %s: top-up batch %s: %w", n.name, batch.BatchID, err)
+				return false, fmt.Errorf("node %s: top-up batch %s: %w", n.name, batch.BatchID, err)
 			}
 
 			n.log.Infof("node %s: topped up batch %s with amount %d", n.name, batch.BatchID, amount)
+
+			return true, nil
 		}
 	}
 
-	return nil
+	return false, nil
 }
 
-func (n *node) getPrice(ctx context.Context) (int64, error) {
+func (n *stamperNode) getPrice(ctx context.Context) (int64, error) {
 	chainState, err := n.client.Postage.GetChainState(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("node %s: get chain state: %w", n.name, err)
@@ -175,7 +183,7 @@ func (n *node) getPrice(ctx context.Context) (int64, error) {
 	return price, nil
 }
 
-func (n *node) getPostageBatches(ctx context.Context, needPrice bool) (batches []api.PostageStampResponse, price int64, err error) {
+func (n *stamperNode) getPostageBatches(ctx context.Context, needPrice bool) (batches []api.PostageStampResponse, price int64, err error) {
 	if needPrice {
 		price, err = n.getPrice(ctx)
 		if err != nil {

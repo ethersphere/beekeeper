@@ -18,6 +18,7 @@
   - [create](#create)
   - [delete](#delete)
   - [fund](#fund)
+  - [nuke](#nuke)
   - [print](#print)
   - [simulate](#simulate)
   - [version](#version)
@@ -201,6 +202,7 @@ This setting means that pushsync check can be executed choosing *pushsync-chunks
 | delete | Delete Bee infrastructure |
 | fund | Fund Ethereum addresses |
 | help | Help about any command |
+| nuke | Nuke Bee nodes in the cluster |
 | print | Print information about a Bee cluster |
 | simulate | Run simulations on a Bee cluster |
 | version | Print version number |
@@ -317,6 +319,36 @@ examples:
 beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0 --bzz-deposit 100 --eth-deposit 0.01
 
 beekeeper fund --address-create --address-count 2 --bzz-deposit 100 --eth-deposit 0.01
+```
+
+### nuke
+
+Command **nuke** executes a database nuke operation across Bee nodes in a Kubernetes cluster, forcing each node to resynchronize all data on next startup.
+
+This command provides StatefulSet update and rollback procedures to maintain cluster stability during the nuke process, ensuring safe and coordinated resets of node state.
+
+It has the following flags:
+
+```console
+--cluster-name string              Target Beekeeper cluster name.
+--namespace string                 Kubernetes namespace (overrides cluster name).
+--label-selector string            Kubernetes label selector for filtering resources when namespace is set (use empty string for all). (default "app.kubernetes.io/name=bee")
+--restart-args strings             Command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml' (default [bee,start,--config=.bee.yaml])
+--use-random-neighborhood          Use random neighborhood for Bee nodes (default: false)
+--timeout duration                 timeout (default 30m0s)
+```
+
+examples:
+
+```bash
+# Basic usage with cluster name
+beekeeper nuke --cluster-name=default --restart-args="bee,start,--config=.bee.yaml"
+
+# Namespace-based targeting
+beekeeper nuke --namespace=my-namespace --restart-args="bee,start,--config=.bee.yaml"
+
+# With random neighborhood targeting
+beekeeper nuke --cluster-name=default --restart-args="bee,start,--config=.bee.yaml" --use-random-neighborhood=true
 ```
 
 ### print
