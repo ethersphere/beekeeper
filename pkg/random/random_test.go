@@ -116,7 +116,7 @@ func TestInt64_Type(t *testing.T) {
 		t.Errorf("unexpected type, expected: %v, got: %v", reflect.Int64, vt)
 	}
 
-	if !(v > 0) {
+	if v <= 0 {
 		t.Errorf("value not in expected range, expected to be greater then 0 and less then MaxInt64")
 	}
 }
@@ -144,7 +144,7 @@ func TestCryptoSource_Int63(t *testing.T) {
 		t.Errorf("unexpected type, expected: %v, got: %v", reflect.Int64, vt)
 	}
 
-	if !(v > 0) {
+	if v <= 0 {
 		t.Errorf("value not in expected range, expected to be greater then 0 and less then MaxInt64")
 	}
 }

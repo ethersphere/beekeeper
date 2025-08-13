@@ -25,7 +25,7 @@ type EphemeralContainer struct {
 // ToK8S converts EphemeralContainer to Kubernetes client object
 func (ec *EphemeralContainer) ToK8S() v1.EphemeralContainer {
 	return v1.EphemeralContainer{
-		EphemeralContainerCommon: ec.EphemeralContainerCommon.toK8S(),
+		EphemeralContainerCommon: ec.toK8S(),
 		TargetContainerName:      ec.TargetContainerName,
 	}
 }
