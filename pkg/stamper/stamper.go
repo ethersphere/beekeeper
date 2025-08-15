@@ -4,15 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/postage"
-	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/bee/api"
-	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"github.com/ethersphere/beekeeper/pkg/node"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 )
 
@@ -36,25 +32,15 @@ func WithPostageLabels(postageLabels []string) Option {
 }
 
 type ClientConfig struct {
-	Log           logging.Logger
-	Namespace     string
-	HTTPClient    *http.Client
-	K8sClient     *k8s.Client
-	SwapClient    swap.BlockTimeFetcher
-	BeeClients    map[string]*bee.Client
-	LabelSelector string
-	InCluster     bool
+	Log        logging.Logger
+	SwapClient swap.BlockTimeFetcher
+	NodeClient node.NodeProvider
 }
 
 type Client struct {
-	log           logging.Logger
-	namespace     string
-	k8sClient     *k8s.Client
-	swapClient    swap.BlockTimeFetcher
-	httpClient    *http.Client
-	beeClients    map[string]*bee.Client
-	labelSelector string
-	inCluster     bool
+	log        logging.Logger
+	nodeClient node.NodeProvider
+	swapClient swap.BlockTimeFetcher
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -70,19 +56,14 @@ func New(cfg *ClientConfig) *Client {
 		cfg.SwapClient = &swap.NotSet{}
 	}
 
-	if cfg.HTTPClient == nil {
-		cfg.HTTPClient = &http.Client{}
+	if cfg.NodeClient == nil {
+		cfg.NodeClient = &node.NotSet{}
 	}
 
 	return &Client{
-		log:           cfg.Log,
-		namespace:     cfg.Namespace,
-		k8sClient:     cfg.K8sClient,
-		swapClient:    cfg.SwapClient,
-		beeClients:    cfg.BeeClients,
-		labelSelector: cfg.LabelSelector,
-		inCluster:     cfg.InCluster,
-		httpClient:    cfg.HTTPClient,
+		log:        cfg.Log,
+		nodeClient: cfg.NodeClient,
+		swapClient: cfg.SwapClient,
 	}
 }
 
@@ -132,11 +113,17 @@ func (s *Client) Dilute(ctx context.Context, usageThreshold float64, dilutionDep
 		return fmt.Errorf("get nodes: %w", err)
 	}
 
+	count := 0
+
 	for _, node := range nodes {
-		if err := node.Dilute(ctx, usageThreshold, dilutionDepth, processOptions(opts...)); err != nil {
+		if ok, err := node.Dilute(ctx, usageThreshold, dilutionDepth, processOptions(opts...)); err != nil {
 			s.log.Errorf("node %s dilute postage batch: %v", node.name, err)
+		} else if ok {
+			count++
 		}
 	}
+
+	s.log.Infof("diluted postage batch on %d nodes", count)
 
 	return nil
 }
@@ -160,11 +147,25 @@ func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo ti
 		return fmt.Errorf("fetching block time: %w", err)
 	}
 
+	countTopped := 0
+	countDiluted := 0
+
 	for _, node := range nodes {
-		if err := node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime, processOptions(opts...)); err != nil {
+		topped, diluted, err := node.Set(ctx, ttlThreshold, topupTo, usageThreshold, dilutionDepth, blockTime, processOptions(opts...))
+		if err != nil {
 			s.log.Errorf("node %s set postage batch: %v", node.name, err)
 		}
+
+		if topped {
+			countTopped++
+		}
+		if diluted {
+			countDiluted++
+		}
 	}
+
+	s.log.Infof("diluted postage batch on %d nodes", countDiluted)
+	s.log.Infof("topped up postage batch on %d nodes", countTopped)
 
 	return nil
 }
@@ -186,102 +187,30 @@ func (s *Client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo 
 		return fmt.Errorf("fetching block time: %w", err)
 	}
 
+	count := 0
+
 	for _, node := range nodes {
-		if err := node.Topup(ctx, ttlThreshold, topupTo, blockTime, processOptions(opts...)); err != nil {
+		if ok, err := node.Topup(ctx, ttlThreshold, topupTo, blockTime, processOptions(opts...)); err != nil {
 			s.log.Errorf("node %s topup postage batch: %v", node.name, err)
+		} else if ok {
+			count++
 		}
 	}
+
+	s.log.Infof("topup postage batch on %d nodes", count)
 
 	return nil
 }
 
-func (sc *Client) getNodes(ctx context.Context) (nodes []node, err error) {
-	if sc.namespace != "" {
-		return sc.getNamespaceNodes(ctx)
-	}
-
-	if sc.beeClients == nil {
-		return nil, fmt.Errorf("bee clients not provided")
-	}
-
-	nodes = make([]node, 0, len(sc.beeClients))
-	for nodeName, beeClient := range sc.beeClients {
-		nodes = append(nodes, *newNodeInfo(beeClient.API(), nodeName, sc.log))
-	}
-
-	return nodes, nil
-}
-
-func (sc *Client) getNamespaceNodes(ctx context.Context) (nodes []node, err error) {
-	if sc.namespace == "" {
-		return nil, fmt.Errorf("namespace not provided")
-	}
-
-	if sc.k8sClient == nil {
-		return nil, fmt.Errorf("k8s client not provided")
-	}
-
-	if sc.inCluster {
-		nodes, err = sc.getServiceNodes(ctx)
-	} else {
-		nodes, err = sc.getIngressNodes(ctx)
-	}
+func (s *Client) getNodes(ctx context.Context) (nodes []stamperNode, err error) {
+	nodeList, err := s.nodeClient.GetNodes(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get nodes: %w", err)
 	}
 
-	return nodes, nil
-}
-
-func (sc *Client) getServiceNodes(ctx context.Context) ([]node, error) {
-	svcNodes, err := sc.k8sClient.Service.GetNodes(ctx, sc.namespace, sc.labelSelector)
-	if err != nil {
-		return nil, fmt.Errorf("list api services: %w", err)
-	}
-
-	nodes := make([]node, len(svcNodes))
-	for i, node := range svcNodes {
-		parsedURL, err := url.Parse(node.Endpoint)
-		if err != nil {
-			return nil, fmt.Errorf("extract base URL: %w", err)
-		}
-
-		apiClient, err := api.NewClient(parsedURL, sc.httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("create api client: %w", err)
-		}
-
-		nodes[i] = *newNodeInfo(apiClient, node.Name, sc.log)
-	}
-
-	return nodes, nil
-}
-
-func (sc *Client) getIngressNodes(ctx context.Context) ([]node, error) {
-	ingressNodes, err := sc.k8sClient.Ingress.GetNodes(ctx, sc.namespace, sc.labelSelector)
-	if err != nil {
-		return nil, fmt.Errorf("list ingress api nodes hosts: %w", err)
-	}
-
-	ingressRouteNodes, err := sc.k8sClient.IngressRoute.GetNodes(ctx, sc.namespace, sc.labelSelector)
-	if err != nil {
-		return nil, fmt.Errorf("list ingress route api nodes hosts: %w", err)
-	}
-
-	allNodes := append(ingressNodes, ingressRouteNodes...)
-	nodes := make([]node, len(allNodes))
-	for i, node := range allNodes {
-		apiURL, err := url.Parse(fmt.Sprintf("http://%s", node.Host))
-		if err != nil {
-			return nil, fmt.Errorf("extract base URL: %w", err)
-		}
-
-		apiClient, err := api.NewClient(apiURL, sc.httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("create api client: %w", err)
-		}
-
-		nodes[i] = *newNodeInfo(apiClient, node.Name, sc.log)
+	nodes = make([]stamperNode, len(nodeList))
+	for i, n := range nodeList {
+		nodes[i] = *newStamperNode(n.Client(), n.Name(), s.log)
 	}
 
 	return nodes, nil

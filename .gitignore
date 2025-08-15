@@ -25,7 +25,7 @@ dist/
 .idea/
 .vscode/
 .vs/
-.DS_Store/
+.DS_Store
 tmp/
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)

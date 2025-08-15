@@ -16,7 +16,6 @@ import (
 const (
 	apiVersion                  = "v1"
 	contentType                 = "application/json, text/plain, */*; charset=utf-8"
-	etagHeader                  = "ETag"
 	postageStampBatchHeader     = "Swarm-Postage-Batch-Id"
 	deferredUploadHeader        = "Swarm-Deferred-Upload"
 	swarmAct                    = "Swarm-Act"

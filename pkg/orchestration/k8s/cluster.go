@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"slices"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -103,7 +104,7 @@ func (c *Cluster) Accounting(ctx context.Context) (accounting orchestration.Clus
 	return
 }
 
-// FlattenBalances returns aggregated NodeGroupBalances
+// FlattenAccounting returns aggregated NodeGroupAccounting
 func (c *Cluster) FlattenAccounting(ctx context.Context) (accounting orchestration.NodeGroupAccounting, err error) {
 	a, err := c.Accounting(ctx)
 	if err != nil {
@@ -180,6 +181,11 @@ func (c *Cluster) Name() string {
 	return c.name
 }
 
+// Namespace returns namespace of the cluster
+func (c *Cluster) Namespace() string {
+	return c.opts.Namespace
+}
+
 // NodeGroups returns map of node groups in the cluster
 func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
 	nodeGroups := make(map[string]orchestration.NodeGroup)
@@ -209,7 +215,7 @@ func (c *Cluster) Nodes() map[string]orchestration.Node {
 	return n
 }
 
-// NodeNamess returns a list of node names in the cluster across all node groups
+// NodeNames returns a list of node names in the cluster across all node groups
 func (c *Cluster) NodeNames() (names []string) {
 	for _, ng := range c.NodeGroups() {
 		for k := range ng.Nodes() {
@@ -315,12 +321,7 @@ func (c *Cluster) FlattenOverlays(ctx context.Context, exclude ...string) (map[s
 }
 
 func containsName(s []string, e string) bool {
-	for i := range s {
-		if s[i] == e {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s, e)
 }
 
 // Peers returns peers of all nodes in the cluster

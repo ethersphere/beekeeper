@@ -16,6 +16,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
 // Options represents check options
@@ -60,26 +61,26 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 	payload := []byte("Hello Swarm :)")
-	sortedNodes := cluster.FullNodeNames()
 
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
-		return err
+		return fmt.Errorf("generate secp256k1 key: %w", err)
 	}
 	signer := crypto.NewDefaultSigner(privKey)
 
 	ch, err := cac.New(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("create cac chunk: %w", err)
 	}
 
 	idBytes, err := randomID()
 	if err != nil {
-		return err
+		return fmt.Errorf("random id: %w", err)
 	}
+
 	sch, err := soc.New(idBytes, ch).Sign(signer)
 	if err != nil {
-		return err
+		return fmt.Errorf("sign soc chunk: %w", err)
 	}
 
 	chunkData := sch.Data()
@@ -87,24 +88,29 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	publicKey, err := signer.PublicKey()
 	if err != nil {
-		return err
+		return fmt.Errorf("get public key: %w", err)
 	}
 
 	ownerBytes, err := crypto.NewEthereumAddress(*publicKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("get ethereum address: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, o.RequestTimeout)
 	defer cancel()
 
-	nodeName := sortedNodes[0]
-
-	clients, err := cluster.NodesClients(ctx)
+	nodes, err := cluster.ShuffledFullNodeClients(ctx, random.PseudoGenerator(time.Now().UnixNano()))
 	if err != nil {
-		return err
+		return fmt.Errorf("shuffled full node clients: %w", err)
 	}
-	node := clients[nodeName]
+
+	if len(nodes) < 1 {
+		return fmt.Errorf("soc test requires at least 1 full node")
+	}
+
+	node := nodes[0]
+	nodeName := node.Name()
+	c.logger.Infof("using node %s for soc test", nodeName)
 
 	owner := hex.EncodeToString(ownerBytes)
 	id := hex.EncodeToString(idBytes)
@@ -114,8 +120,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	if err != nil {
 		return fmt.Errorf("node %s: batch id %w", nodeName, err)
 	}
-	c.logger.Infof("node %s: batch id %s", nodeName, batchID)
 
+	c.logger.Infof("node %s: batch id %s", nodeName, batchID)
 	c.logger.Infof("soc: submitting soc chunk %s to node %s", sch.Address().String(), nodeName)
 	c.logger.Infof("soc: owner %s", owner)
 	c.logger.Infof("soc: id %s", id)
@@ -123,14 +129,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data(), batchID)
 	if err != nil {
-		return err
+		return fmt.Errorf("node %s: upload soc chunk %w", nodeName, err)
 	}
 
 	c.logger.Infof("soc: chunk uploaded to node %s", nodeName)
 
 	retrieved, err := node.DownloadChunk(ctx, ref, "", nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("node %s: download soc chunk %w", nodeName, err)
 	}
 
 	c.logger.Infof("soc: chunk retrieved from node %s", nodeName)

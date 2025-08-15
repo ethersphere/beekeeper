@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"maps"
 	"strconv"
 	"strings"
 
@@ -292,12 +293,8 @@ func parsePort(port string) (int32, error) {
 
 func mergeMaps(a, b map[string]string) map[string]string {
 	m := map[string]string{}
-	for k, v := range a {
-		m[k] = v
-	}
-	for k, v := range b {
-		m[k] = v
-	}
+	maps.Copy(m, a)
+	maps.Copy(m, b)
 
 	return m
 }

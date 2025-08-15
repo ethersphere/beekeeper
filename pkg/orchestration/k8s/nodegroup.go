@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -1000,11 +1001,5 @@ func (g *NodeGroup) setNode(name string, n orchestration.Node) (err error) {
 }
 
 func contains(list []string, find string) bool {
-	for _, v := range list {
-		if v == find {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(list, find)
 }

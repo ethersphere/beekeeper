@@ -35,7 +35,7 @@ type BeeConfig struct {
 	NATAddr                   *string        `yaml:"nat-addr"`
 	NetworkID                 *uint64        `yaml:"network-id"`
 	P2PAddr                   *string        `yaml:"p2p-addr"`
-	P2PWSEnable               *bool          `yaml:"pwp-ws-enable"`
+	P2PWSEnable               *bool          `yaml:"p2p-ws-enable"`
 	Password                  *string        `yaml:"password"`
 	PaymentEarly              *uint64        `yaml:"payment-early-percent"`
 	PaymentThreshold          *uint64        `yaml:"payment-threshold"`
