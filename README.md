@@ -78,13 +78,13 @@ Beekeeper is configured with:
 
 Config file is used to set Beekeeper internals:
 
-- config directory location
-- Kubernetes client
-- Swap client
+- **`config-dir`**: config directory location
+- **`enable-k8s`**: Kubernetes client
+- **`geth-url`**: Swap client
 
-Default location for config file is: **$HOME/.beekeeper.yaml**
+Default location for config file is: **`$HOME/.beekeeper.yaml`**
 
-Location can also be set with the **--config** flag.
+Location can also be set with the **`--config`** flag.
 
 example:
 
@@ -123,20 +123,20 @@ Config directory is used to group configuration (.yaml) files describing:
 - checks (integration tests), and
 - simulations
 
-Default location for the config dir is: **$HOME/.beekeeper/**
+Default location for the config dir is: **`$HOME/.beekeeper/`**
 
-Location can also be set with the **--config-dir** flag.
+Location can also be set with the **`--config-dir`** flag.
 
 Examples of .yaml files can be found in the [Beekeeper repo](https://github.com/ethersphere/beekeeper/tree/master/config).
 
 Config dir's .yaml files have several main blocks:
 
-- **clusters** - defines clusters Beekeeper works with
-- **node-groups** - defines Bee node groups that are part of the cluster. Node group is a collection of Bee nodes sharing the same configuration parameters.
-- **bee-configs** - defines Bee configuration that can be assigned to node-groups
-- **checks** - defines checks Beekeeper can execute against the cluster
-- **simulations** - defines simulations Beekeeper can execute against the cluster
-- **stages** - defines stages for dynamic execution of checks and simulations
+- **`clusters`**: defines clusters Beekeeper works with
+- **`node-groups`**: defines Bee node groups that are part of the cluster. Node group is a collection of Bee nodes sharing the same configuration parameters.
+- **`bee-configs`**: defines Bee configuration that can be assigned to node-groups
+- **`checks`**: defines checks Beekeeper can execute against the cluster
+- **`simulations`**: defines simulations Beekeeper can execute against the cluster
+- **`stages`**: defines stages for dynamic execution of checks and simulations
 
 ### Inheritance
 
