@@ -61,7 +61,7 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 	}
 
 	c.logger.Infof("random seed: %v", o.RndSeed)
-	c.logger.Infof("content size: %v", o.ContentSize)
+	c.logger.Infof("file sizes: %v", o.FileSizes)
 	c.logger.Infof("max committed depth: %v", o.MaxCommittedDepth)
 	c.logger.Infof("committed depth check wait time: %v", o.CommittedDepthCheckWait)
 	c.logger.Infof("total duration: %s", o.Duration.String())
@@ -77,160 +77,173 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 	downloaders := selectNames(cluster, o.DownloadGroups...)
 
 	for i := 0; true; i++ {
-		select {
-		case <-ctx.Done():
-			c.logger.Info("we are done")
-			return nil
-		default:
-			c.logger.Infof("starting iteration: #%d", i)
-		}
+		for _, contentSize := range o.FileSizes {
 
-		var (
-			txDuration time.Duration
-			txData     []byte
-			address    swarm.Address
-		)
+			select {
+			case <-ctx.Done():
+				c.logger.Info("we are done")
+				return nil
+			default:
+				c.logger.Infof("starting iteration: #%d bytes (%.2f KB)", contentSize, float64(contentSize)/1024)
+			}
 
-		txData = make([]byte, o.ContentSize)
-		if _, err := crand.Read(txData); err != nil {
-			c.logger.Infof("unable to create random content: %v", err)
-			continue
-		}
+			sizeLabel := fmt.Sprintf("%d", contentSize)
 
-		txNames := pickRandom(o.UploaderCount, uploaders)
+			var (
+				txDuration time.Duration
+				txData     []byte
+				address    swarm.Address
+			)
 
-		c.logger.Infof("uploader: %s", txNames)
+			txData = make([]byte, contentSize)
+			if _, err := crand.Read(txData); err != nil {
+				c.logger.Infof("unable to create random content for size %d: %v", contentSize, err)
+				continue
+			}
 
-		var (
-			upload sync.WaitGroup
-			once   sync.Once
-		)
+			txNames := pickRandom(o.UploaderCount, uploaders)
 
-		upload.Add(1)
+			c.logger.Infof("uploader: %s", txNames)
 
-		for _, txName := range txNames {
-			go func() {
-				defer once.Do(func() {
-					upload.Done()
-				}) // don't wait for all uploads
-				for retries := 10; txDuration == 0 && retries > 0; retries-- {
-					select {
-					case <-ctx.Done():
-						c.logger.Info("we are done")
-						return
-					default:
-					}
+			var (
+				upload sync.WaitGroup
+				once   sync.Once
+			)
 
-					if !c.checkCommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
-						return
-					}
+			upload.Add(1)
 
-					c.metrics.UploadAttempts.Inc()
-					var duration time.Duration
-					c.logger.Infof("uploading to: %s", txName)
-
-					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
-					if err != nil {
-						c.logger.Errorf("create new batch: %v", err)
-						return
-					}
-
-					c.logger.WithField("batch_id", batchID).Info("using batch")
-
-					address, duration, err = test.upload(ctx, txName, txData, batchID)
-					if err != nil {
-						c.metrics.UploadErrors.Inc()
-						c.logger.Infof("upload failed: %v", err)
-						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
-						time.Sleep(o.TxOnErrWait)
-						return
-					}
-					txDuration += duration // dirty
-				}
-			}()
-		}
-
-		upload.Wait()
-
-		if txDuration == 0 {
-			continue
-		}
-
-		c.logger.Infof("sleeping for: %v seconds", o.NodesSyncWait.Seconds())
-		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
-
-		// pick a batch of downloaders
-		rxNames := pickRandom(o.DownloaderCount, downloaders)
-		c.logger.Infof("downloaders: %s", rxNames)
-
-		var wg sync.WaitGroup
-
-		for _, rxName := range rxNames {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
-				var (
-					rxDuration time.Duration
-					rxData     []byte
-				)
-
-				for retries := 10; rxDuration == 0 && retries > 0; retries-- {
-					select {
-					case <-ctx.Done():
-						c.logger.Infof("context done in retry: %v", retries)
-						return
-					default:
-					}
-
-					c.metrics.DownloadAttempts.Inc()
-
-					rxData, rxDuration, err = test.download(ctx, rxName, address)
-					if err != nil {
-						c.metrics.DownloadErrors.Inc()
-						c.logger.Infof("download failed: %v", err)
-						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
-						time.Sleep(o.RxOnErrWait)
-					}
-				}
-
-				// download error, skip comprarison below
-				if rxDuration == 0 {
-					return
-				}
-
-				if !bytes.Equal(rxData, txData) {
-					c.logger.Info("uploaded data does not match downloaded data")
-
-					c.metrics.DownloadMismatch.Inc()
-
-					rxLen, txLen := len(rxData), len(txData)
-					if rxLen != txLen {
-						c.logger.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
-						if txLen < rxLen {
-							c.logger.Info("length mismatch: rx length is bigger then tx length")
+			for _, txName := range txNames {
+				go func() {
+					defer once.Do(func() {
+						upload.Done()
+					}) // don't wait for all uploads
+					for retries := 10; txDuration == 0 && retries > 0; retries-- {
+						select {
+						case <-ctx.Done():
+							c.logger.Info("we are done")
+							return
+						default:
 						}
-						return
-					}
 
-					var diff int
-					for i := range txData {
-						if txData[i] != rxData[i] {
-							diff++
+						if !c.checkCommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
+							return
+						}
+
+						c.metrics.UploadAttempts.WithLabelValues(sizeLabel).Inc()
+						var duration time.Duration
+						c.logger.Infof("uploading to: %s", txName)
+
+						batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
+						if err != nil {
+							c.logger.Errorf("create new batch: %v", err)
+							return
+						}
+
+						c.logger.WithField("batch_id", batchID).Info("using batch")
+
+						address, duration, err = test.upload(ctx, txName, txData, batchID)
+						if err != nil {
+							c.metrics.UploadErrors.WithLabelValues(sizeLabel).Inc()
+							c.logger.Infof("upload failed: %v", err)
+							c.logger.Infof("retrying in: %v", o.TxOnErrWait)
+							time.Sleep(o.TxOnErrWait)
+							return
+						}
+						txDuration += duration // dirty
+					}
+				}()
+			}
+
+			upload.Wait()
+
+			if txDuration == 0 {
+				continue
+			}
+
+			c.logger.Infof("sleeping for: %v seconds", o.NodesSyncWait.Seconds())
+			time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
+
+			// pick a batch of downloaders
+			rxNames := pickRandom(o.DownloaderCount, downloaders)
+			c.logger.Infof("downloaders: %s", rxNames)
+
+			var wg sync.WaitGroup
+
+			for _, rxName := range rxNames {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+
+					var (
+						rxDuration time.Duration
+						rxData     []byte
+					)
+
+					for retries := 10; rxDuration == 0 && retries > 0; retries-- {
+						select {
+						case <-ctx.Done():
+							c.logger.Infof("context done in retry: %v", retries)
+							return
+						default:
+						}
+
+						c.metrics.DownloadAttempts.WithLabelValues(sizeLabel).Inc()
+
+						rxData, rxDuration, err = test.download(ctx, rxName, address)
+						if err != nil {
+							c.metrics.DownloadErrors.WithLabelValues(sizeLabel).Inc()
+							c.logger.Infof("download failed: %v", err)
+							c.logger.Infof("retrying in: %v", o.RxOnErrWait)
+							time.Sleep(o.RxOnErrWait)
 						}
 					}
-					c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
-					return
-				}
 
-				// We want to update the metrics when no error has been
-				// encountered in order to avoid counter mismatch.
-				c.metrics.UploadDuration.Observe(txDuration.Seconds())
-				c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
-			}()
+					// download error, skip comprarison below
+					if rxDuration == 0 {
+						return
+					}
+
+					if !bytes.Equal(rxData, txData) {
+						c.logger.Info("uploaded data does not match downloaded data")
+
+						c.metrics.DownloadMismatch.WithLabelValues(sizeLabel).Inc()
+
+						rxLen, txLen := len(rxData), len(txData)
+						if rxLen != txLen {
+							c.logger.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
+							if txLen < rxLen {
+								c.logger.Info("length mismatch: rx length is bigger then tx length")
+							}
+							return
+						}
+
+						var diff int
+						for i := range txData {
+							if txData[i] != rxData[i] {
+								diff++
+							}
+						}
+						c.logger.Infof("data mismatch: found %d different bytes, ~%.2f%%", diff, float64(diff)/float64(txLen)*100)
+						return
+					}
+
+					// We want to update the metrics when no error has been
+					// encountered in order to avoid counter mismatch.
+					c.metrics.UploadDuration.WithLabelValues(sizeLabel).Observe(txDuration.Seconds())
+					c.metrics.DownloadDuration.WithLabelValues(sizeLabel).Observe(rxDuration.Seconds())
+					if txDuration.Seconds() > 0 {
+						uploadThroughput := float64(contentSize) / txDuration.Seconds()
+						c.metrics.UploadThroughput.WithLabelValues(sizeLabel).Set(uploadThroughput)
+					}
+					if rxDuration.Seconds() > 0 {
+						downloadThroughput := float64(contentSize) / rxDuration.Seconds()
+						c.metrics.DownloadThroughput.WithLabelValues(sizeLabel).Set(downloadThroughput)
+					}
+				}()
+			}
+
+			wg.Wait()
 		}
-
-		wg.Wait()
 	}
 
 	return nil
