@@ -24,6 +24,7 @@ import (
 	certificatesv1alpha1 "k8s.io/client-go/kubernetes/typed/certificates/v1alpha1"
 	certificatesv1beta1 "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
+	"k8s.io/client-go/kubernetes/typed/coordination/v1alpha1"
 	coordinationv1beta1 "k8s.io/client-go/kubernetes/typed/coordination/v1beta1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	discoveryv1 "k8s.io/client-go/kubernetes/typed/discovery/v1"
@@ -46,7 +47,7 @@ import (
 	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	rbacv1alpha1 "k8s.io/client-go/kubernetes/typed/rbac/v1alpha1"
 	rbacv1beta1 "k8s.io/client-go/kubernetes/typed/rbac/v1beta1"
-	"k8s.io/client-go/kubernetes/typed/resource/v1alpha2"
+	"k8s.io/client-go/kubernetes/typed/resource/v1alpha3"
 	schedulingv1 "k8s.io/client-go/kubernetes/typed/scheduling/v1"
 	schedulingv1alpha1 "k8s.io/client-go/kubernetes/typed/scheduling/v1alpha1"
 	schedulingv1beta1 "k8s.io/client-go/kubernetes/typed/scheduling/v1beta1"
@@ -57,6 +58,16 @@ import (
 )
 
 type Clientset struct{}
+
+// CoordinationV1alpha1 implements kubernetes.Interface.
+func (c *Clientset) CoordinationV1alpha1() v1alpha1.CoordinationV1alpha1Interface {
+	panic("unimplemented")
+}
+
+// ResourceV1alpha3 implements kubernetes.Interface.
+func (c *Clientset) ResourceV1alpha3() v1alpha3.ResourceV1alpha3Interface {
+	panic("unimplemented")
+}
 
 // AdmissionregistrationV1alpha1 implements kubernetes.Interface.
 func (c *Clientset) AdmissionregistrationV1alpha1() admissionregistrationv1alpha1.AdmissionregistrationV1alpha1Interface {
@@ -95,11 +106,6 @@ func (c *Clientset) FlowcontrolV1beta3() v1beta3.FlowcontrolV1beta3Interface {
 
 // NetworkingV1alpha1 implements kubernetes.Interface.
 func (c *Clientset) NetworkingV1alpha1() networkingv1alpha1.NetworkingV1alpha1Interface {
-	panic("unimplemented")
-}
-
-// ResourceV1alpha2 implements kubernetes.Interface.
-func (c *Clientset) ResourceV1alpha2() v1alpha2.ResourceV1alpha2Interface {
 	panic("unimplemented")
 }
 
