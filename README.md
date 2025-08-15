@@ -55,6 +55,10 @@ make binary
 cp dist/beekeeper /usr/local/bin/beekeeper
 ```
 
+> **Note:**
+> - If you installed Beekeeper system-wide (e.g., copied to `/usr/local/bin`), use `beekeeper` in your commands.
+> - If you are running directly from the build output without installing, use `./dist/beekeeper` instead of `beekeeper` in all command examples.
+
 ## Run unit tests
 
 Runs available unit tests in pkg folder
@@ -164,7 +168,7 @@ checks:
   pushsync-chunks:
     options:
       chunks-per-node: 1
-      metrics-enabled:
+      metrics-enabled: true
       mode: chunks
       postage-amount: 1000
       postage-depth: 16
@@ -177,7 +181,7 @@ checks:
   pushsync-light-chunks:
     options:
       chunks-per-node: 1
-      metrics-enabled:
+      metrics-enabled: true
       mode: light-chunks
       postage-amount: 1000
       postage-depth: 16
@@ -485,7 +489,7 @@ beekeeper restart --cluster-name=default --image="bee:latest" --node-groups="gro
 or
 
 ```bash
-beekeeper restart -namespace=default --label-selector="app=bee" --timeout=10m
+beekeeper restart --namespace=default --label-selector="app=bee" --timeout=10m
 ```
 
 ### stamper
