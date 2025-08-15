@@ -50,14 +50,33 @@ Beekeeper simplifies the management and testing of Bee nodes, whether deployed i
 
 ## Installation
 
+### Build from source
+
 ```bash
 make binary
+```
+
+### Install the binary
+
+#### macOS/Linux
+```bash
 cp dist/beekeeper /usr/local/bin/beekeeper
 ```
 
+#### Windows
+```bash
+copy dist\beekeeper.exe C:\Windows\System32\beekeeper.exe
+```
+
+#### Alternative: Add to PATH
+You can also add the `dist/` directory to your system PATH instead of copying the binary:
+
+- **macOS/Linux**: Add `export PATH="$PATH:$(pwd)/dist"` to your shell profile
+- **Windows**: Add the full path to `dist\` in your system Environment Variables
+
 > **Note:**
-> - If you installed Beekeeper system-wide (e.g., copied to `/usr/local/bin`), use `beekeeper` in your commands.
-> - If you are running directly from the build output without installing, use `./dist/beekeeper` instead of `beekeeper` in all command examples.
+> - If you installed Beekeeper system-wide (e.g., copied to `/usr/local/bin` or `C:\Windows\System32`), use `beekeeper` in your commands.
+> - If you are running directly from the build output without installing, use `./dist/beekeeper` (macOS/Linux) or `.\dist\beekeeper.exe` (Windows) instead of `beekeeper` in all command examples.
 
 ## Run unit tests
 
