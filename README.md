@@ -5,6 +5,7 @@
 ## Table of Contents
 
 - [Introduction](#introduction)
+- [Quick Start](#quick-start)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Run unit tests](#run-unit-tests)
@@ -42,6 +43,41 @@
 - **Dynamic Configuration**: Use flexible YAML-based configs for customizable actions.
 
 Beekeeper simplifies the management and testing of Bee nodes, whether deployed in Kubernetes or standalone environments.
+
+## Quick Start
+
+
+### Local Development
+
+**Prerequisites:**
+- Docker
+- kubectl
+- make
+- go
+
+**Quick setup:**
+```bash
+# Clone and build Beekeeper
+git clone https://github.com/ethersphere/beekeeper
+cd beekeeper
+make binary
+
+# Clone Bee repository for local setup
+git clone https://github.com/ethersphere/bee
+cd bee
+
+# Install K3s cluster and Geth node
+make beelocal ACTION=prepare SETUP_CONTRACT_IMAGE_TAG=0.9.2 OPTS='skip-vet'
+
+# Deploy Bee nodes locally
+cd ../beekeeper
+./dist/beekeeper create bee-cluster --cluster-name=local-dns
+
+# Verify deployment
+./dist/beekeeper check --cluster-name=local-dns --checks=ci-pingpong
+```
+
+**Need help?** See the [Bee Deployment Guide](https://github.com/ethersphere/bee-staging) for detailed step-by-step instructions.
 
 ## Requirements
 
