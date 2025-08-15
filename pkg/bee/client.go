@@ -428,8 +428,8 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 
 	return Settlement{
 		Peer:     b.Peer,
-		Received: b.Received.Int.Int64(),
-		Sent:     b.Sent.Int.Int64(),
+		Received: b.Received.Int64(),
+		Sent:     b.Sent.Int64(),
 	}, nil
 }
 

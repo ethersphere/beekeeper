@@ -97,7 +97,7 @@ func (c *Client) DeletePods(ctx context.Context, namespace, labelSelector string
 	var deletionErrors []error
 
 	for _, pod := range pods.Items {
-		if pod.ObjectMeta.DeletionTimestamp == nil {
+		if pod.DeletionTimestamp == nil {
 			if err := c.clientset.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{}); err != nil {
 				c.log.Errorf("failed to delete pod %s in namespace %s: %v", pod.Name, namespace, err)
 				deletionErrors = append(deletionErrors, err)
@@ -144,7 +144,7 @@ func (c *Client) WatchNewRunning(ctx context.Context, namespace, labelSelector s
 			case watch.Modified:
 				pod, ok := event.Object.(*v1.Pod)
 				if ok {
-					if pod.Status.PodIP != "" && pod.ObjectMeta.DeletionTimestamp == nil && pod.Status.Phase == v1.PodRunning {
+					if pod.Status.PodIP != "" && pod.DeletionTimestamp == nil && pod.Status.Phase == v1.PodRunning {
 						for _, condition := range pod.Status.Conditions {
 							if condition.Type == v1.PodReady && condition.Status == v1.ConditionTrue {
 								newPods <- pod

@@ -35,7 +35,7 @@ func (*Pvc) ApplyStatus(ctx context.Context, persistentVolumeClaim *configcorev1
 
 // Create implements v1.PersistentVolumeClaimInterface
 func (*Pvc) Create(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.CreateOptions) (*v1.PersistentVolumeClaim, error) {
-	if persistentVolumeClaim.ObjectMeta.Name == CreateBad {
+	if persistentVolumeClaim.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create pvc")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -73,10 +73,10 @@ func (*Pvc) Patch(ctx context.Context, name string, pt types.PatchType, data []b
 
 // Update implements v1.PersistentVolumeClaimInterface
 func (*Pvc) Update(ctx context.Context, persistentVolumeClaim *v1.PersistentVolumeClaim, opts metav1.UpdateOptions) (*v1.PersistentVolumeClaim, error) {
-	if persistentVolumeClaim.ObjectMeta.Name == UpdateBad {
+	if persistentVolumeClaim.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update pvc")
 	} else {
-		return nil, errors.NewNotFound(schema.GroupResource{}, persistentVolumeClaim.ObjectMeta.Name)
+		return nil, errors.NewNotFound(schema.GroupResource{}, persistentVolumeClaim.Name)
 	}
 }
 
