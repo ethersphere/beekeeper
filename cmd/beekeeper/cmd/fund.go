@@ -30,9 +30,22 @@ func (c *command) initFundCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "fund",
 		Short: "Funds Ethereum addresses",
-		Long: `Fund makes BZZ tokens and ETH deposits to given Ethereum addresses.
-beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0 --bzz-deposit 100.0 --eth-deposit 0.1
-beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-deposit 0.1`,
+		Long: `Funds Ethereum addresses with BZZ tokens and ETH for Bee node operations.
+
+The fund command provides two main funding approaches:
+• Fund existing addresses: Provide a list of Ethereum addresses to fund
+• Create and fund new addresses: Generate new encrypted keys and fund them
+
+Supported token types:
+• BZZ: Swarm's native token for postage and incentives
+• gBZZ: Governance token for network decisions
+• ETH: Native currency for gas fees and transactions
+
+Examples:
+  beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa569 --bzz-deposit 100.0 --eth-deposit 0.1
+  beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-deposit 0.1
+
+Use --print-keys to display generated private keys or --print-addresses to show funded addresses.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			var addresses []string
 			var createdKeys []orchestration.EncryptedKey

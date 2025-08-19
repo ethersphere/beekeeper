@@ -30,7 +30,20 @@ func (c *command) initNodeFunderCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   nodeFunderCmd,
 		Short: "Funds bee nodes with ETH and BZZ",
-		Long:  `Fund makes BZZ tokens and ETH deposits to given Ethereum addresses. beekeeper node-funder`,
+		Long: `Funds Bee nodes with ETH and BZZ tokens to maintain operational requirements.
+
+The node-funder command automatically manages funding for Bee nodes in three ways:
+• Fund specific addresses: Provide a list of Ethereum addresses to fund
+• Fund by namespace: Target all nodes in a specific Kubernetes namespace
+• Fund by cluster: Fund all nodes in a Beekeeper-managed cluster
+
+The command ensures nodes maintain minimum balances for:
+• Native coins (xDAI) for gas fees and transactions
+• Swarm tokens (xBZZ) for postage and network operations
+
+Use --periodic-check to set up continuous funding monitoring.
+Use --label-selector to filter nodes within a namespace.
+Requires --wallet-key for the funding account and --geth-url for blockchain access.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				cfg := funder.Config{

@@ -22,7 +22,24 @@ func (c *command) initRestartCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "restart",
 		Short: "restart pods in a cluster or namespace",
-		Long:  `Restarts pods by deleting them. Uses cluster name as the primary scope or falls back to namespace, with optional label filtering.`,
+		Long: `Restarts Bee nodes in a Kubernetes cluster or namespace by deleting and recreating pods.
+
+The restart command provides two restart strategies:
+• Cluster-based restart: Restart all nodes in a Beekeeper-managed cluster
+• Namespace-based restart: Restart pods in a specific namespace with optional filtering
+
+Restart options:
+• Use --image to specify a new container image for the restarted pods
+• Use --node-groups to target specific node groups within a cluster
+• Use --label-selector to filter which pods to restart in a namespace
+
+This command is useful for:
+• Applying configuration changes that require pod restart
+• Updating to new Bee versions
+• Troubleshooting node issues
+• Rolling out updates across the cluster
+
+Requires either --cluster-name or --namespace to be specified.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()

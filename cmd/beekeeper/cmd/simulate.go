@@ -27,7 +27,20 @@ func (c *command) initSimulateCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "simulate",
 		Short: "Runs simulations on a Bee cluster",
-		Long:  `Runs simulations on a Bee cluster.`,
+		Long: `Runs simulations on a Bee cluster to test network behavior under various conditions.
+
+The simulate command executes predefined simulation scenarios that test:
+• upload: Simulates file uploads and distribution across the network
+• retrieval: Tests data retrieval patterns and performance
+• pushsync: Validates data synchronization mechanisms
+• and other network simulation scenarios
+
+Simulations help validate cluster performance, identify bottlenecks, and ensure
+network reliability under different load conditions. Use --simulations flag to
+specify which scenarios to run, or run all simulations sequentially.
+
+Use --create-cluster to automatically create a cluster before simulation.
+Use --metrics-enabled to collect performance metrics during simulation.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
