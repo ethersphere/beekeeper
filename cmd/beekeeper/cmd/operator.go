@@ -21,7 +21,7 @@ func (c *command) initOperatorCmd() error {
 
 	cmd := &cobra.Command{
 		Use:   "node-operator",
-		Short: "scans for scheduled Kubernetes pods and funds them",
+		Short: "Scans for scheduled Kubernetes pods and funds them",
 		Long:  `Node operator scans for scheduled Kubernetes pods and funds them using node-funder. beekeeper node-operator`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {

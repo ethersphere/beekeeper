@@ -21,7 +21,7 @@ func (c *command) initRestartCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "restart",
-		Short: "Restart pods in a cluster or namespace",
+		Short: "restart pods in a cluster or namespace",
 		Long:  `Restarts pods by deleting them. Uses cluster name as the primary scope or falls back to namespace, with optional label filtering.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))

@@ -29,7 +29,7 @@ func (c *command) initNodeFunderCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   nodeFunderCmd,
-		Short: "funds bee nodes with ETH and BZZ",
+		Short: "Funds bee nodes with ETH and BZZ",
 		Long:  `Fund makes BZZ tokens and ETH deposits to given Ethereum addresses. beekeeper node-funder`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {

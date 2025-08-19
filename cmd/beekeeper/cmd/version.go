@@ -9,7 +9,7 @@ import (
 func (c *command) initVersionCmd() {
 	c.root.AddCommand(&cobra.Command{
 		Use:   "version",
-		Short: "prints version number",
+		Short: "Prints version number",
 		Long:  `Prints version number.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Println(beekeeper.Version)

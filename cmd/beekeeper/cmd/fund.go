@@ -29,7 +29,7 @@ func (c *command) initFundCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "fund",
-		Short: "funds Ethereum addresses",
+		Short: "Funds Ethereum addresses",
 		Long: `Fund makes BZZ tokens and ETH deposits to given Ethereum addresses.
 beekeeper fund --addresses=0xf176839c150e52fe30e5c2b5c648465c6fdfa532,0xebe269e07161c68a942a3a7fce6b4ed66867d6f0 --bzz-deposit 100.0 --eth-deposit 0.1
 beekeeper fund --address-create --address-count 2 --bzz-deposit 100.0 --eth-deposit 0.1`,

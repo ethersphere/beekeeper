@@ -26,7 +26,7 @@ func (c *command) initCheckCmd() error {
 
 	cmd := &cobra.Command{
 		Use:   "check",
-		Short: "runs integration tests on a Bee cluster",
+		Short: "Runs integration tests on a Bee cluster",
 		Long:  `runs integration tests on a Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {

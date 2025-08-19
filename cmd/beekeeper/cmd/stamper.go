@@ -21,7 +21,7 @@ const (
 func (c *command) initStamperCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "stamper",
-		Short: "Manage postage batches for nodes",
+		Short: "manage postage batches for nodes",
 		Long:  `Use the stamper command to manage postage batches for nodes. Topup, dilution and creation of postage batches are supported.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()

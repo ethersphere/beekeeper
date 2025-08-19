@@ -15,7 +15,7 @@ func (c *command) initPrintCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "print",
-		Short: "prints information about a Bee cluster",
+		Short: "Prints information about a Bee cluster",
 		Long: `Prints information about a Bee cluster: addresses, depths, nodes, overlays, peers, topologies
 Requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies`,
 		Args: func(cmd *cobra.Command, args []string) error {

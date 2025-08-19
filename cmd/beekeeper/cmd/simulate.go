@@ -26,7 +26,7 @@ func (c *command) initSimulateCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "simulate",
-		Short: "runs simulations on a Bee cluster",
+		Short: "Runs simulations on a Bee cluster",
 		Long:  `Runs simulations on a Bee cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
