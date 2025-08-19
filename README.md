@@ -48,12 +48,22 @@ Beekeeper simplifies the management and testing of Bee nodes, whether deployed i
 
 ### Local Development
 
+This setup is used both in our CI environment and for local development. It provides a consistent development environment that mirrors our production testing infrastructure.
+
+**CI Usage:**
+Our CI pipeline uses this local development setup to run automated tests against Bee clusters, ensuring code quality and integration testing before deployment.
+
+**Local Development:**
+Developers can use this same setup locally to test changes, debug issues, and validate functionality before pushing code. This ensures that what works locally will work in CI and production.
+
 **Prerequisites:**
 
 - Docker
 - kubectl
 - make
 - go
+
+**Note:** The setup uses [K3s](https://k3s.io/) (lightweight Kubernetes) and [k3d](https://k3d.io/) (K3s in Docker) for local cluster management. These tools provide a fast, lightweight Kubernetes environment perfect for development and testing.
 
 **Quick setup:**
 
@@ -69,6 +79,8 @@ cd bee
 
 # Install K3s cluster and Geth node
 make beelocal ACTION=prepare SETUP_CONTRACT_IMAGE_TAG=0.9.2 OPTS='skip-vet'
+
+> **Important:** The `SETUP_CONTRACT_IMAGE_TAG=0.9.2` parameter is required and must match exactly. This ensures compatibility with our CI pipeline and production environment. See our [CI workflow](https://github.com/ethersphere/bee/blob/3a5de30aba477560bfc503632479f4793d68dcef/.github/workflows/beekeeper.yml#L15) for reference.
 
 # Deploy Bee nodes locally
 cd ../beekeeper
@@ -140,7 +152,7 @@ Config file is used to set Beekeeper internals:
 
 - **`config-dir`**: config directory location
 - **`enable-k8s`**: Kubernetes client
-- **`geth-url`**: Swap client
+- **`geth-url`**: Swap client - RPC endpoint, URL of the Ethereum-compatible blockchain RPC endpoint
 
 Default location for config file is: **`$HOME/.beekeeper.yaml`**
 
@@ -228,7 +240,7 @@ checks:
   pushsync-chunks:
     options:
       chunks-per-node: 1
-      metrics-enabled: true
+      metrics-enabled: false
       mode: chunks
       postage-amount: 1000
       postage-depth: 16
@@ -241,7 +253,7 @@ checks:
   pushsync-light-chunks:
     options:
       chunks-per-node: 1
-      metrics-enabled: true
+      metrics-enabled: false
       mode: light-chunks
       postage-amount: 1000
       postage-depth: 16
