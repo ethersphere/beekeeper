@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
-	mock "github.com/ethersphere/beekeeper/pkg/k8s/mocks"
+	 "github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -53,14 +53,14 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:       "create_error",
-			configName: mock.CreateBad,
-			clientset:  mock.NewClientset(),
+			configName: mocks.CreateBad,
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("creating configmap create_bad in namespace test: mock error: cannot create config map"),
 		},
 		{
 			name:       "update_error",
-			configName: mock.UpdateBad,
-			clientset:  mock.NewClientset(),
+			configName: mocks.UpdateBad,
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("updating configmap update_bad in namespace test: mock error: cannot update config map"),
 		},
 	}
@@ -136,8 +136,8 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:       "delete_error",
-			configName: mock.DeleteBad,
-			clientset:  mock.NewClientset(),
+			configName: mocks.DeleteBad,
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("deleting configmap delete_bad in namespace test: mock error: cannot delete config map"),
 		},
 	}

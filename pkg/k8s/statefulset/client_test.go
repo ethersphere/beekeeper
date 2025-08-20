@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	mock "github.com/ethersphere/beekeeper/pkg/k8s/mocks"
+	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	appsv1 "k8s.io/api/apps/v1"
@@ -67,14 +67,14 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:            "create_error",
-			statefulsetName: mock.CreateBad,
-			clientset:       mock.NewClientset(),
+			statefulsetName: mocks.CreateBad,
+			clientset:       mocks.NewClientset(),
 			errorMsg:        fmt.Errorf("creating statefulset create_bad in namespace test: mock error: cannot create statefulset"),
 		},
 		{
 			name:            "update_error",
-			statefulsetName: mock.UpdateBad,
-			clientset:       mock.NewClientset(),
+			statefulsetName: mocks.UpdateBad,
+			clientset:       mocks.NewClientset(),
 			errorMsg:        fmt.Errorf("updating statefulset update_bad in namespace test: mock error: cannot update statefulset"),
 		},
 	}
@@ -160,8 +160,8 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:            "delete_error",
-			statefulsetName: mock.DeleteBad,
-			clientset:       mock.NewClientset(),
+			statefulsetName: mocks.DeleteBad,
+			clientset:       mocks.NewClientset(),
 			errorMsg:        fmt.Errorf("deleting statefulset delete_bad in namespace test: mock error: cannot delete statefulset"),
 		},
 	}
@@ -215,7 +215,7 @@ func TestReadyReplicas(t *testing.T) {
 		{
 			name:            "replicas_error",
 			statefulsetName: "statefulset_bad",
-			clientset:       mock.NewClientset(),
+			clientset:       mocks.NewClientset(),
 			errorMsg:        fmt.Errorf("getting ReadyReplicas from statefulset statefulset_bad in namespace test: mock error: bad request"),
 		},
 	}
@@ -263,21 +263,21 @@ func TestReadyReplicasWatch(t *testing.T) {
 		{
 			name:            "replicas_found",
 			statefulsetName: "statefulset_bad",
-			clientset:       mock.NewClientset(),
+			clientset:       mocks.NewClientset(),
 			ctx:             context.Background(),
 			errorMsg:        fmt.Errorf("getting ready from statefulset statefulset_bad in namespace test: mock error: bad request"),
 		},
 		{
 			name:            "test_statefulset",
 			statefulsetName: "test_statefulset",
-			clientset:       mock.NewClientset(),
+			clientset:       mocks.NewClientset(),
 			ctx:             context.Background(),
 			expected:        1,
 		},
 		{
 			name:            "not_ready_watcher_stop",
 			statefulsetName: "test_statefulset_watcher_stop",
-			clientset:       mock.NewClientset(),
+			clientset:       mocks.NewClientset(),
 			ctx:             context.Background(),
 			errorMsg:        fmt.Errorf("watch channel closed"),
 			expected:        0,
@@ -285,7 +285,7 @@ func TestReadyReplicasWatch(t *testing.T) {
 		{
 			name:            "context_cancelled",
 			statefulsetName: "test_statefulset_context_cancel",
-			clientset:       mock.NewClientset(),
+			clientset:       mocks.NewClientset(),
 			ctx:             ctxCancel,
 			errorMsg:        fmt.Errorf("context canceled"),
 			expected:        0,
@@ -355,12 +355,12 @@ func TestRunningStatefulSets(t *testing.T) {
 		{
 			name:      "not_found_in_namespace",
 			namespace: "test",
-			clientset: mock.NewClientset(),
+			clientset: mocks.NewClientset(),
 		},
 		{
 			name:      "wrong_namespace",
 			namespace: "bad_test",
-			clientset: mock.NewClientset(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("list statefulsets in namespace bad_test: mock error"),
 		},
 	}
@@ -517,12 +517,12 @@ func TestStoppedStatefulSets(t *testing.T) {
 		{
 			name:      "not_found_in_namespace",
 			namespace: "test",
-			clientset: mock.NewClientset(),
+			clientset: mocks.NewClientset(),
 		},
 		{
 			name:      "wrong_namespace",
 			namespace: "bad_test",
-			clientset: mock.NewClientset(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("list statefulsets in namespace bad_test: mock error"),
 		},
 	}

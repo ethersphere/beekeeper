@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	mock "github.com/ethersphere/beekeeper/pkg/k8s/mocks"
+	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,20 +65,20 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:        "create_error",
-			serviceName: mock.CreateBad,
-			clientset:   mock.NewClientset(),
+			serviceName: mocks.CreateBad,
+			clientset:   mocks.NewClientset(),
 			errorMsg:    fmt.Errorf("creating service create_bad in namespace test: mock error: cannot create service"),
 		},
 		{
 			name:        "update_error",
-			serviceName: mock.UpdateBad,
-			clientset:   mock.NewClientset(),
+			serviceName: mocks.UpdateBad,
+			clientset:   mocks.NewClientset(),
 			errorMsg:    fmt.Errorf("updating service update_bad in namespace test: mock error: cannot update service"),
 		},
 		{
 			name:        "get_error",
 			serviceName: "get_bad",
-			clientset:   mock.NewClientset(),
+			clientset:   mocks.NewClientset(),
 			errorMsg:    fmt.Errorf("getting service get_bad in namespace test: mock error: unknown"),
 		},
 	}
@@ -152,8 +152,8 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:        "delete_error",
-			serviceName: mock.DeleteBad,
-			clientset:   mock.NewClientset(),
+			serviceName: mocks.DeleteBad,
+			clientset:   mocks.NewClientset(),
 			errorMsg:    fmt.Errorf("deleting service delete_bad in namespace test: mock error: cannot delete service"),
 		},
 	}
