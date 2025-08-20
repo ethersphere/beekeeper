@@ -20,7 +20,7 @@
   - [fund](#fund)
   - [nuke](#nuke)
   - [print](#print)
-  - [simulate](#simulate)
+  - [simulate](#simulate) *(deprecated)*
   - [version](#version)
   - [node-funder](#node-funder)
   - [node-operator](#node-operator)
@@ -204,7 +204,7 @@ This setting means that pushsync check can be executed choosing *pushsync-chunks
 | help | Help about any command |
 | nuke | Nuke Bee nodes in the cluster |
 | print | Print information about a Bee cluster |
-| simulate | Run simulations on a Bee cluster |
+| simulate | [DEPRECATED] Run simulations on a Bee cluster |
 | version | Print version number |
 | node-funder | Fund (top up) Bee nodes |
 | node-operator | Auto-funds (top up) Bee nodes on deployment. |
@@ -369,9 +369,9 @@ example:
 beekeeper print overlays
 ```
 
-### simulate
+### simulate *(deprecated)*
 
-Command **simulate** runs simulations on a Bee cluster.
+Command **simulate** runs simulations on a Bee cluster. **This command is deprecated and will be removed in a future version.**
 
 It has following flags:
 

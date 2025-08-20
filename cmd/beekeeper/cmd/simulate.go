@@ -26,8 +26,8 @@ func (c *command) initSimulateCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "simulate",
-		Short: "Runs simulations on a Bee cluster",
-		Long: `Runs simulations on a Bee cluster to test network behavior under various conditions.
+		Short: "[DEPRECATED] Runs simulations on a Bee cluster",
+		Long: `[DEPRECATED] Runs simulations on a Bee cluster to test network behavior under various conditions.
 
 The simulate command executes predefined simulation scenarios that test:
 • upload: Simulates file uploads and distribution across the network
