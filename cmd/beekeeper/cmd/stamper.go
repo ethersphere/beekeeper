@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/node"
 	"github.com/ethersphere/beekeeper/pkg/stamper"
 	"github.com/spf13/cobra"
 )
@@ -211,37 +208,10 @@ func (c *command) initStamperSet() *cobra.Command {
 }
 
 func (c *command) createStamperClient(ctx context.Context) (*stamper.Client, error) {
-	namespace := c.globalConfig.GetString(optionNameNamespace)
-	clusterName := c.globalConfig.GetString(optionNameClusterName)
-
-	if clusterName == "" && namespace == "" {
-		return nil, errors.New("either cluster name or namespace must be provided")
+	nodeClient, err := c.createNodeClient(ctx, false)
+	if err != nil {
+		return nil, fmt.Errorf("creating node client: %w", err)
 	}
-
-	var beeClients map[string]*bee.Client
-
-	if clusterName != "" {
-		cluster, err := c.setupCluster(ctx, clusterName, false)
-		if err != nil {
-			return nil, fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-		}
-
-		beeClients, err = cluster.NodesClients(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve node clients: %w", err)
-		}
-	}
-
-	nodeClient := node.New(&node.ClientConfig{
-		Log:           c.log,
-		Namespace:     namespace,
-		K8sClient:     c.k8sClient,
-		BeeClients:    beeClients,
-		HTTPClient:    c.httpClient,
-		LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
-		InCluster:     c.globalConfig.GetBool(optionNameInCluster),
-		UseNamespace:  c.globalConfig.IsSet(optionNameNamespace),
-	})
 
 	return stamper.New(&stamper.ClientConfig{
 		Log:        c.log,

@@ -22,6 +22,7 @@ const (
 
 type NodeProvider interface {
 	GetNodes(ctx context.Context) (NodeList, error)
+	Namespace() string
 }
 
 type ClientConfig struct {
@@ -72,6 +73,10 @@ func New(cfg *ClientConfig) *Client {
 		inCluster:      cfg.InCluster,
 		useNamespace:   cfg.UseNamespace,
 	}
+}
+
+func (sc *Client) Namespace() string {
+	return sc.namespace
 }
 
 func (sc *Client) GetNodes(ctx context.Context) (nodes NodeList, err error) {

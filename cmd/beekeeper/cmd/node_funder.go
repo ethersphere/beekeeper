@@ -60,39 +60,33 @@ func (c *command) initNodeFunderCmd() (err error) {
 					})
 				}
 
-				namespace := c.globalConfig.GetString(optionNameNamespace)
-				if namespace != "" {
-					label := c.globalConfig.GetString(optionNameLabelSelector)
-					funderClient := nodefunder.NewClient(c.k8sClient, c.globalConfig.GetBool(optionNameInCluster), label, c.log)
+				nodeClient, err := c.createNodeClient(ctx, true)
+				if err != nil {
+					return fmt.Errorf("creating node client: %w", err)
+				}
 
-					cfg.Namespace = namespace
+				funderClient := nodefunder.NewClient(nodeClient, c.log)
+
+				if c.globalConfig.IsSet(optionNameNamespace) {
+					cfg.Namespace = nodeClient.Namespace()
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
 						return funder.Fund(ctx, cfg, funderClient, nil, logOpt)
 					})
 				}
 
-				clusterName := c.globalConfig.GetString(optionNameClusterName)
-				if clusterName != "" {
-					cluster, err := c.setupCluster(ctx, clusterName, false)
+				if c.globalConfig.IsSet(optionNameClusterName) {
+					nodes, err := nodeClient.GetNodes(ctx)
 					if err != nil {
-						return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+						return fmt.Errorf("failed to retrieve nodes: %w", err)
 					}
 
-					clients, err := cluster.NodesClients(ctx)
-					if err != nil {
-						return fmt.Errorf("failed to retrieve node clients: %w", err)
-					}
-
-					for _, node := range clients {
-						c.log.Debugf("adding node address %s", node.Name())
-						addr, err := node.Addresses(ctx)
+					for _, node := range nodes {
+						addr, err := node.Client().Node.Addresses(ctx)
 						if err != nil {
 							return fmt.Errorf("error fetching addresses for node %s: %w", node.Name(), err)
 						}
 						cfg.Addresses = append(cfg.Addresses, addr.Ethereum)
 					}
-
-					c.log.Infof("funding %d nodes in cluster %s", len(cfg.Addresses), clusterName)
 
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
 						return funder.Fund(ctx, cfg, nil, nil, logOpt)

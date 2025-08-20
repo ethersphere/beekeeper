@@ -12,10 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/httpx"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"github.com/ethersphere/beekeeper/pkg/node"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
 	"github.com/ethersphere/beekeeper/pkg/swap"
 	"github.com/go-git/go-billy/v5/memfs"
@@ -431,6 +433,49 @@ func (c *command) executePeriodically(ctx context.Context, action func(ctx conte
 	<-ctx.Done()
 
 	return ctx.Err()
+}
+
+func (c *command) createNodeClient(ctx context.Context, useDeploymentType bool) (*node.Client, error) {
+	namespace := c.globalConfig.GetString(optionNameNamespace)
+	clusterName := c.globalConfig.GetString(optionNameClusterName)
+
+	if clusterName == "" && namespace == "" {
+		return nil, errors.New("either cluster name or namespace must be provided")
+	}
+
+	if namespace == "" && useDeploymentType && !isValidDeploymentType(c.globalConfig.GetString(optionNameDeploymentType)) {
+		return nil, errors.New("unsupported deployment type: must be 'beekeeper' or 'helm'")
+	}
+
+	var beeClients map[string]*bee.Client
+
+	if clusterName != "" {
+		cluster, err := c.setupCluster(ctx, clusterName, false)
+		if err != nil {
+			return nil, fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+		}
+
+		beeClients, err = cluster.NodesClients(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve node clients: %w", err)
+		}
+
+		namespace = cluster.Namespace()
+	}
+
+	nodeClient := node.New(&node.ClientConfig{
+		Log:            c.log,
+		HTTPClient:     c.httpClient,
+		K8sClient:      c.k8sClient,
+		BeeClients:     beeClients,
+		Namespace:      namespace,
+		LabelSelector:  c.globalConfig.GetString(optionNameLabelSelector),
+		DeploymentType: node.DeploymentType(c.globalConfig.GetString(optionNameDeploymentType)),
+		InCluster:      c.globalConfig.GetBool(optionNameInCluster),
+		UseNamespace:   c.globalConfig.IsSet(optionNameNamespace),
+	})
+
+	return nodeClient, nil
 }
 
 func (c *command) setSwapClient() (err error) {
