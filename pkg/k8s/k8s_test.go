@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	mock "github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"k8s.io/client-go/util/flowcontrol"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s"

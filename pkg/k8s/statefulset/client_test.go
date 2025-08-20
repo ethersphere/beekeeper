@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	mock "github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	appsv1 "k8s.io/api/apps/v1"

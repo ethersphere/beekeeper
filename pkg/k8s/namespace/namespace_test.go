@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethersphere/beekeeper"
-	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	mock "github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
