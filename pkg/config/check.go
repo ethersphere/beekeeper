@@ -384,6 +384,7 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ContentSize   *int64         `yaml:"content-size"`
+				FileSizes     *[]int64       `yaml:"file-sizes"`
 				RndSeed       *int64         `yaml:"rnd-seed"`
 				PostageTTL    *time.Duration `yaml:"postage-ttl"`
 				PostageDepth  *uint64        `yaml:"postage-depth"`
@@ -393,6 +394,10 @@ var Checks = map[string]CheckType{
 				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
 				Duration      *time.Duration `yaml:"duration"`
 			})
+
+			if checkOpts.FileSizes == nil && checkOpts.ContentSize != nil {
+				checkOpts.FileSizes = &[]int64{*checkOpts.ContentSize}
+			}
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
