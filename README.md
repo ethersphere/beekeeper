@@ -20,7 +20,7 @@
   - [fund](#fund)
   - [nuke](#nuke)
   - [print](#print)
-  - [simulate](#simulate) *(deprecated)*
+  - [simulate](#simulate)
   - [version](#version)
   - [node-funder](#node-funder)
   - [node-operator](#node-operator)
@@ -369,7 +369,7 @@ example:
 beekeeper print overlays
 ```
 
-### simulate *(deprecated)*
+### simulate
 
 Command **simulate** runs simulations on a Bee cluster. **This command is deprecated and will be removed in a future version.**
 
