@@ -23,7 +23,7 @@ func newClientConfig() *ClientConfig {
 	}
 }
 
-// ClientConfig holds functions for configration of the Kubernetes client.
+// ClientConfig holds functions for configuration of the Kubernetes client.
 // Functions are extracted to be able to mock them in tests.
 type ClientConfig struct {
 	NewForConfig                   func(c *rest.Config) (*kubernetes.Clientset, error)                 // kubernetes.NewForConfig

@@ -464,7 +464,7 @@ func TestToK8S(t *testing.T) {
 								Mode: nil,
 							}},
 							Optional: func() *bool {
-								var optional bool = true
+								optional := true
 								return &optional
 							}(),
 						},
@@ -508,7 +508,7 @@ func TestToK8S(t *testing.T) {
 								Mode: nil,
 							}},
 							Optional: func() *bool {
-								var optional bool = true
+								optional := true
 								return &optional
 							}(),
 						},

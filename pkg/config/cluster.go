@@ -25,7 +25,7 @@ type Cluster struct {
 
 func (b Cluster) GetParentName() string {
 	if b.Inherit != nil {
-		return b.Inherit.ParentName
+		return b.ParentName
 	}
 	return ""
 }

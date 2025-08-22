@@ -30,7 +30,7 @@ func (*ConfigMap) Apply(ctx context.Context, configMap *cofnigcorev1.ConfigMapAp
 
 // Create implements v1.ConfigMapInterface
 func (c *ConfigMap) Create(ctx context.Context, configMap *v1.ConfigMap, opts metav1.CreateOptions) (*v1.ConfigMap, error) {
-	if configMap.ObjectMeta.Name == CreateBad {
+	if configMap.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create config map")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -68,10 +68,10 @@ func (*ConfigMap) Patch(ctx context.Context, name string, pt types.PatchType, da
 
 // Update implements v1.ConfigMapInterface
 func (c *ConfigMap) Update(ctx context.Context, configMap *v1.ConfigMap, opts metav1.UpdateOptions) (*v1.ConfigMap, error) {
-	if configMap.ObjectMeta.Name == UpdateBad {
+	if configMap.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update config map")
 	} else {
-		return nil, errors.NewNotFound(schema.GroupResource{}, configMap.ObjectMeta.Name)
+		return nil, errors.NewNotFound(schema.GroupResource{}, configMap.Name)
 	}
 }
 

@@ -30,7 +30,7 @@ func (*Secret) Apply(ctx context.Context, secret *configcorev1.SecretApplyConfig
 
 // Create implements v1.SecretInterface
 func (*Secret) Create(ctx context.Context, secret *v1.Secret, opts metav1.CreateOptions) (*v1.Secret, error) {
-	if secret.ObjectMeta.Name == CreateBad {
+	if secret.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create secret")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -68,10 +68,10 @@ func (*Secret) Patch(ctx context.Context, name string, pt types.PatchType, data 
 
 // Update implements v1.SecretInterface
 func (*Secret) Update(ctx context.Context, secret *v1.Secret, opts metav1.UpdateOptions) (*v1.Secret, error) {
-	if secret.ObjectMeta.Name == UpdateBad {
+	if secret.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update secret")
 	} else {
-		return nil, errors.NewNotFound(schema.GroupResource{}, secret.ObjectMeta.Name)
+		return nil, errors.NewNotFound(schema.GroupResource{}, secret.Name)
 	}
 }
 
