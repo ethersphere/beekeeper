@@ -21,8 +21,25 @@ const (
 func (c *command) initStamperCmd() (err error) {
 	cmd := &cobra.Command{
 		Use:   "stamper",
-		Short: "Manage postage batches for nodes",
-		Long:  `Use the stamper command to manage postage batches for nodes. Topup, dilution and creation of postage batches are supported.`,
+		Short: "manage postage batches for nodes",
+		Long: `Manages postage batches for Bee nodes in your cluster or namespace.
+
+The stamper command provides comprehensive postage batch management with subcommands:
+• create: Generate new postage batches with specified depth and duration
+• topup: Extend the TTL of existing postage batches before they expire
+• dilute: Increase batch depth when usage approaches capacity limits
+• set: Configure all postage batch parameters in one operation
+
+Postage batches are essential for:
+• Data uploads to the Swarm network
+• Managing storage costs and capacity
+• Ensuring data persistence and availability
+
+Use --cluster-name or --namespace to target specific nodes.
+Use --label-selector to filter nodes within a namespace.
+Use --batch-ids or --postage-labels to target specific batches.
+
+Each subcommand supports periodic execution for automated batch management.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return cmd.Help()
 		},
@@ -57,7 +74,16 @@ func (c *command) initStamperTopup() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "topup",
 		Short: "Top up the TTL of postage batches",
-		Long:  `Top up the TTL of postage batches.`,
+		Long: `Extends the Time-To-Live (TTL) of postage batches before they expire.
+
+The topup command monitors postage batches and automatically extends their TTL when it
+drops below the --ttl-threshold. This ensures continuous data availability and prevents
+data loss due to expired postage.
+
+Use --topup-to to specify how long to extend the TTL (default: 30 days).
+Use --ttl-threshold to set when topup should occur (default: 5 days remaining).
+Use --batch-ids or --postage-labels to target specific batches.
+Use --periodic-check for continuous monitoring and automatic topup.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				stamperClient, err := c.createStamperClient(ctx)
@@ -98,7 +124,18 @@ func (c *command) initStamperDilute() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dilute",
 		Short: "Dilute postage batches",
-		Long:  `Dilute postage batches.`,
+		Long: `Increases the depth of postage batches when usage approaches capacity limits.
+
+The dilute command monitors postage batch usage and automatically increases their depth
+when utilization exceeds the --usage-threshold. This prevents batch exhaustion and
+ensures continuous data upload capability.
+
+Use --usage-threshold to set when dilution should occur (default: 90% usage).
+Use --dilution-depth to specify how many levels to increase depth by (default: 1).
+Use --batch-ids or --postage-labels to target specific batches.
+Use --periodic-check for continuous monitoring and automatic dilution.
+
+Dilution increases the number of chunks that can be signed with the batch.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				stamperClient, err := c.createStamperClient(ctx)
@@ -138,7 +175,21 @@ func (c *command) initStamperCreate() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a postage batch for selected nodes",
-		Long:  `Create a postage batch for selected nodes. Nodes are selected by namespace (use label-selector for filtering) or cluster name.`,
+		Long: `Creates new postage batches for Bee nodes in your cluster or namespace.
+
+The create command generates postage batches with specified parameters:
+• --depth: Sets the batch depth (logarithmic scale for chunk capacity)
+• --duration: Sets the Time-To-Live (TTL) for the batch
+• --postage-label: Assigns a label for easy identification
+
+Batch depth determines how many chunks can be signed:
+• Depth 16: 65,536 chunks (default bucket depth)
+• Depth 17: 131,072 chunks (recommended minimum)
+• Higher depths provide more capacity but cost more
+
+Use --cluster-name to target all nodes in a Beekeeper cluster.
+Use --namespace with --label-selector to target specific nodes.
+Postage batches are essential for data uploads to the Swarm network.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				stamperClient, err := c.createStamperClient(ctx)
@@ -176,7 +227,22 @@ func (c *command) initStamperSet() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set",
 		Short: "Set stamper configuration",
-		Long:  `Set stamper configuration.`,
+		Long: `Configures comprehensive postage batch management settings for selected nodes.
+
+The set command combines topup, dilution, and monitoring in one operation:
+• Automatically tops up TTL when it drops below --ttl-threshold
+• Automatically dilutes batches when usage exceeds --usage-threshold
+• Runs continuously with --periodic-check for automated management
+
+Configuration options:
+• --ttl-threshold: When to trigger TTL topup (default: 5 days remaining)
+• --topup-to: How long to extend TTL (default: 30 days)
+• --usage-threshold: When to trigger dilution (default: 90% usage)
+• --dilution-depth: How many levels to increase depth by (default: 1)
+
+Use --cluster-name or --namespace to target nodes.
+Use --batch-ids or --postage-labels to target specific batches.
+This command provides a complete solution for automated postage batch management.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				stamperClient, err := c.createStamperClient(ctx)
