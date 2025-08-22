@@ -463,7 +463,7 @@ beekeeper node-operator --geth-url="http://geth-swap.default.testnet.internal" -
 
 ### restart
 
-Command **restart** restarts bee node in Kubernetes , with optional targeting by namespace, label selectors, and node groups.
+Command **restart** restarts bee nodes in Kubernetes using a unified node management interface, with optional targeting by cluster name, namespace, label selectors, and node groups.
 
 It has following flags:
 
@@ -474,6 +474,7 @@ It has following flags:
 --image string            Container image to use when restarting pods (defaults to current image if not set).
 --node-groups strings     Comma-separated list of node groups to target for restarts (applies to all groups if not set).
 --timeout duration        Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
+--deployment-type string  Indicates how the cluster was deployed: 'beekeeper' or 'helm'. (default "beekeeper")
 ```
 
 example:
