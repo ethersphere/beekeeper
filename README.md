@@ -5,6 +5,7 @@
 ## Table of Contents
 
 - [Introduction](#introduction)
+- [Quick Start](#quick-start)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Run unit tests](#run-unit-tests)
@@ -41,7 +42,55 @@
 - **Node Funding**: Automate funding Bee nodes with ETH and BZZ tokens (Kubernetes optional).
 - **Dynamic Configuration**: Use flexible YAML-based configs for customizable actions.
 
-Beekeeper simplifies managing and testing Bee nodes, whether deployed in Kubernetes or standalone environments.
+Beekeeper simplifies the management and testing of Bee nodes, whether deployed in Kubernetes or standalone environments.
+
+## Quick Start
+
+### Local Development
+
+This setup is used both in our CI environment and for local development. It provides a consistent development environment that mirrors our production testing infrastructure.
+
+**CI Usage:**
+Our CI pipeline uses this local development setup to run automated tests against Bee clusters, ensuring code quality and integration testing before deployment.
+
+**Local Development:**
+Developers can use this same setup locally to test changes, debug issues, and validate functionality before pushing code. This ensures that what works locally will work in CI and production.
+
+**Prerequisites:**
+
+- Docker
+- kubectl
+- make
+- go
+
+**Note:** The setup uses [K3s](https://k3s.io/) (lightweight Kubernetes) and [k3d](https://k3d.io/) (K3s in Docker) for local cluster management. These tools provide a fast, lightweight Kubernetes environment perfect for development and testing.
+
+**Quick setup:**
+
+```bash
+# Clone and build Beekeeper
+git clone https://github.com/ethersphere/beekeeper
+cd beekeeper
+make binary
+
+# Clone Bee repository for local setup
+git clone https://github.com/ethersphere/bee
+cd bee
+
+# Install K3s cluster and Geth node
+make beelocal ACTION=prepare SETUP_CONTRACT_IMAGE_TAG=0.9.2 OPTS='skip-vet'
+
+> **Important:** The `SETUP_CONTRACT_IMAGE_TAG=0.9.2` parameter is required and must match exactly. This ensures compatibility with our CI pipeline and production environment. See our [CI workflow](https://github.com/ethersphere/bee/blob/3a5de30aba477560bfc503632479f4793d68dcef/.github/workflows/beekeeper.yml#L15) for reference.
+
+# Deploy Bee nodes locally
+cd ../beekeeper
+./dist/beekeeper create bee-cluster --cluster-name=local-dns
+
+# Verify deployment
+./dist/beekeeper check --cluster-name=local-dns --checks=ci-pingpong
+```
+
+**Need help?** See the [Bee Deployment Guide](https://github.com/ethersphere/bee-staging) for detailed step-by-step instructions.
 
 ## Requirements
 
@@ -50,10 +99,37 @@ Beekeeper simplifies managing and testing Bee nodes, whether deployed in Kuberne
 
 ## Installation
 
+### Build from source
+
 ```bash
 make binary
+```
+
+### Install the binary
+
+#### macOS/Linux
+
+```bash
 cp dist/beekeeper /usr/local/bin/beekeeper
 ```
+
+#### Windows
+
+```bash
+copy dist\beekeeper.exe C:\Windows\System32\beekeeper.exe
+```
+
+#### Alternative: Add to PATH
+
+You can also add the `dist/` directory to your system PATH instead of copying the binary:
+
+- **macOS/Linux**: Add `export PATH="$PATH:$(pwd)/dist"` to your shell profile
+- **Windows**: Add the full path to `dist\` in your system Environment Variables
+
+> **Note:**
+>
+> - If you installed Beekeeper system-wide (e.g., copied to `/usr/local/bin` or `C:\Windows\System32`), use `beekeeper` in your commands.
+> - If you are running directly from the build output without installing, use `./dist/beekeeper` (macOS/Linux) or `.\dist\beekeeper.exe` (Windows) instead of `beekeeper` in all command examples.
 
 ## Run unit tests
 
@@ -74,13 +150,13 @@ Beekeeper is configured with:
 
 Config file is used to set Beekeeper internals:
 
-- config directory location
-- Kubernetes client
-- Swap client
+- **`config-dir`**: config directory location
+- **`enable-k8s`**: Kubernetes client
+- **`geth-url`**: Swap client - RPC endpoint, URL of the Ethereum-compatible blockchain RPC endpoint
 
-Default location for config file is: **$HOME/.beekeeper.yaml**
+Default location for config file is: **`$HOME/.beekeeper.yaml`**
 
-Location can also be set with **--config** flag.
+Location can also be set with the **`--config`** flag.
 
 example:
 
@@ -100,15 +176,15 @@ log-verbosity: "info"
 loki-endpoint: http://loki.testnet.internal/loki/api/v1/push
 ```
 
-Beekeeper reads *config-dir* from a local machine by default, but it also supports reading *config-dir* from a Git repo. If field *config-git-repo* is set, it will override *config-dir* and configuration will be read from a Git repo.
+Beekeeper reads *config-dir* from the local machine by default, but it also supports reading *config-dir* from a Git repo. If the field *config-git-repo* is set, it will override *config-dir* and the configuration will be read from the Git repo.
 
-If *config-dir* is kept in a Git repo, field *config-git-repo* should point to it, along with *config-git-branch* specifying proper branch. Fields *config-git-username* and *config-git-password* can be set when repo is private.
+If *config-dir* is kept in a Git repo, the field *config-git-repo* should point to it, along with *config-git-branch* specifying the proper branch. Fields *config-git-username* and *config-git-password* can be set when the repo is private.
 
 Official GitHub repository with Beekeeper's configuration is **<https://github.com/ethersphere/beekeeper-config>**
 
 General Notes:
 
-- command flags can be also set through the config file
+- command flags can also be set through the config file
 - k8s client can be disabled with *enable-k8s* flag (default is true)
 
 ## Config directory
@@ -119,20 +195,20 @@ Config directory is used to group configuration (.yaml) files describing:
 - checks (integration tests), and
 - simulations
 
-Default location for config dir is: **$HOME/.beekeeper/**
+Default location for the config dir is: **`$HOME/.beekeeper/`**
 
-Location can also be set with **--config-dir** flag.
+Location can also be set with the **`--config-dir`** flag.
 
 Examples of .yaml files can be found in the [Beekeeper repo](https://github.com/ethersphere/beekeeper/tree/master/config).
 
 Config dir's .yaml files have several main blocks:
 
-- **clusters** - defines clusters Beekeeper works with
-- **node-groups** - defines Bee node groups that are part of the cluster. Node group is a collection of Bee nodes sharing same configuration parameters.
-- **bee-configs** - defines Bee configuration that can be assigned to node-groups
-- **checks** - defines checks Beekeeper can execute against the cluster
-- **simulations** - defines simulations Beekeeper can execute against the cluster
-- **stages** - defines stages for dynamic execution of checks and simulations
+- **`clusters`**: defines clusters Beekeeper works with
+- **`node-groups`**: defines Bee node groups that are part of the cluster. Node group is a collection of Bee nodes sharing the same configuration parameters.
+- **`bee-configs`**: defines Bee configuration that can be assigned to node-groups
+- **`checks`**: defines checks Beekeeper can execute against the cluster
+- **`simulations`**: defines simulations Beekeeper can execute against the cluster
+- **`stages`**: defines stages for dynamic execution of checks and simulations
 
 ### Inheritance
 
@@ -149,13 +225,13 @@ bee-configs:
     full-node: false
 ```
 
-This setting means that *light-node* bee-config will inherit all parameters from the *default* bee-config, overriding only *full-node* parameter.
+This setting means that the *light-node* bee-config will inherit all parameters from the *default* bee-config, overriding only the *full-node* parameter.
 
 ### Action types
 
 Action types can be set in every check or simulation definition.
 
-Action types allow defining same check or simulation with different parameters.
+Action types allow defining the same check or simulation with different parameters.
 
 example:
 
@@ -164,7 +240,7 @@ checks:
   pushsync-chunks:
     options:
       chunks-per-node: 1
-      metrics-enabled:
+      metrics-enabled: false
       mode: chunks
       postage-amount: 1000
       postage-depth: 16
@@ -177,7 +253,7 @@ checks:
   pushsync-light-chunks:
     options:
       chunks-per-node: 1
-      metrics-enabled:
+      metrics-enabled: false
       mode: light-chunks
       postage-amount: 1000
       postage-depth: 16
@@ -189,22 +265,22 @@ checks:
     type: pushsync
 ```
 
-This setting means that pushsync check can be executed choosing *pushsync-chunks* or *pushsync-light-chunks* variation.
+This setting means that the pushsync check can be executed by choosing the *pushsync-chunks* or *pushsync-light-chunks* variation.
 
 ## Usage
 
-**beekeeper** has following commands:
+**beekeeper** has the following commands:
 
 |command|description|
 |-------|-----------|
 | check | runs integration tests on a Bee cluster |
 | create | creates Bee infrastructure |
-| delete | Delete Bee infrastructure |
+| delete | Deletes Bee infrastructure |
 | fund | Fund Ethereum addresses |
 | help | Help about any command |
 | nuke | Nuke Bee nodes in the cluster |
 | print | Print information about a Bee cluster |
-| simulate | Run simulations on a Bee cluster |
+| simulate | [DEPRECATED] Run simulations on a Bee cluster |
 | version | Print version number |
 | node-funder | Fund (top up) Bee nodes |
 | node-operator | Auto-funds (top up) Bee nodes on deployment. |
@@ -213,7 +289,7 @@ This setting means that pushsync check can be executed choosing *pushsync-chunks
 
 ### check
 
-Command **check** runs ingegration tests on a Bee cluster.
+Command **check** runs integration tests on a Bee cluster.
 
 It has following flags:
 
@@ -249,7 +325,7 @@ It has following flags:
 --wallet-key string     Hex-encoded private key for the Bee node wallet. Required.
 ```
 
-It is required to specify *geth-url* and *wallet-key* flags for funding Bee nodes with usage of flags or config file.
+It is required to specify the *geth-url* and *wallet-key* flags for funding Bee nodes, either by using flags or the config file.
 
 example:
 
@@ -323,7 +399,7 @@ beekeeper fund --address-create --address-count 2 --bzz-deposit 100 --eth-deposi
 
 ### nuke
 
-Command **nuke** executes a database nuke operation across Bee nodes in a Kubernetes cluster, forcing each node to resynchronize all data on next startup.
+Command **nuke** executes a database nuke operation across Bee nodes in a Kubernetes cluster, forcing each node to resynchronize all data on the next startup.
 
 This command provides StatefulSet update and rollback procedures to maintain cluster stability during the nuke process, ensuring safe and coordinated resets of node state.
 
@@ -371,7 +447,7 @@ beekeeper print overlays
 
 ### simulate
 
-Command **simulate** runs simulations on a Bee cluster.
+Command **simulate** runs simulations on a Bee cluster. **This command is deprecated and will be removed in a future version.**
 
 It has following flags:
 
@@ -394,7 +470,7 @@ beekeeper simulate --simulations=upload
 
 ### version
 
-Command **version** prints version number.
+Command **version** prints the version number.
 
 example:
 
@@ -404,7 +480,7 @@ beekeeper version
 
 ### node-funder
 
-Command **node-funder** uses <https://github.com/ethersphere/node-funder> tool to fund (top up) bee nodes up to the specified amount. It can fund all nodes in k8s namespace or it can fund only specified addresses.
+Command **node-funder** uses the <https://github.com/ethersphere/node-funder> tool to fund (top up) bee nodes up to the specified amount. It can fund all nodes in a k8s namespace or only specified addresses.
 
 It has following flags:
 
@@ -441,7 +517,7 @@ beekeeper node-funder --geth-url="http://geth-swap.default.testnet.internal" --w
 
 ### node-operator
 
-Command **node-operator** uses <https://github.com/ethersphere/node-funder> tool to fund (top up) bee nodes up to the specified amount. It is running in the Kubernetes namespace and it is watching for Bee node deployments. When new deployment is created, it will fund it with the specified amount. It uses filter "app.kubernetes.io/name=bee" on label to determine which deployments to watch.
+Command **node-operator** uses the <https://github.com/ethersphere/node-funder> tool to fund (top up) bee nodes up to the specified amount. It runs in the Kubernetes namespace and watches for Bee node deployments. When a new deployment is created, it will fund it with the specified amount. It uses the filter "app.kubernetes.io/name=bee" on the label to determine which deployments to watch.
 
 It has following flags:
 
@@ -463,7 +539,7 @@ beekeeper node-operator --geth-url="http://geth-swap.default.testnet.internal" -
 
 ### restart
 
-Command **restart** restarts bee node in Kubernetes , with optional targeting by namespace, label selectors, and node groups.
+Command **restart** restarts bee nodes in Kubernetes, with optional targeting by namespace, label selectors, and node groups.
 
 It has following flags:
 
@@ -485,22 +561,22 @@ beekeeper restart --cluster-name=default --image="bee:latest" --node-groups="gro
 or
 
 ```bash
-beekeeper restart -namespace=default --label-selector="app=bee" --timeout=10m
+beekeeper restart --namespace=default --label-selector="app=bee" --timeout=10m
 ```
 
 ### stamper
 
-Command **stamper** manage postage batches for nodes.
+Command **stamper** manages postage batches for nodes.
 
 General Notes:
 
 - `namespace` or `cluster-name` must be specified to locate the bee nodes.
 - If both are provided, `namespace` takes precedence.
 - When `namespace` is set, you can use a `label-selector` to filter specific nodes.
-- Use `batch-ids` to target specific postage batches, but this is applied after finding/filtering nodes. If `batch-ids` is not provided, all batches in the filtered nodes are targeted.
-- If `timeout` is set to 0 and `periodic-check` is bigger than 0, the operation will run indefinitely with periodic checks.
+- Use `batch-ids` to target specific postage batches; this is applied after finding/filtering nodes. If `batch-ids` is not provided, all batches in the filtered nodes are targeted.
+- If `timeout` is set to 0 and `periodic-check` is greater than 0, the operation will run indefinitely with periodic checks.
 
-It has following subcommands:
+It has the following subcommands:
 
 - **create** - creates a postage batch for selected nodes
 
@@ -529,7 +605,7 @@ It has following subcommands:
   beekeeper stamper create --namespace=default --label-selector="app=bee" --amount=1000 --depth=16 --timeout=5m
   ```
 
-- **topup** - tops up postage batch for selected nodes
+- **topup** - tops up postage batches for selected nodes
 
   It has following flags:
 

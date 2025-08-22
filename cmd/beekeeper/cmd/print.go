@@ -15,9 +15,20 @@ func (c *command) initPrintCmd() (err error) {
 
 	cmd := &cobra.Command{
 		Use:   "print",
-		Short: "prints information about a Bee cluster",
-		Long: `Prints information about a Bee cluster: addresses, depths, nodes, overlays, peers, topologies
-Requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies`,
+		Short: "Prints information about a Bee cluster",
+		Long: `Prints detailed information about a Bee cluster and its components.
+
+The print command provides insights into various aspects of your cluster:
+• addresses: Display Ethereum addresses, public keys, overlays, and underlays for all nodes
+• depths: Show the Kademlia depth for each node in the overlay network
+• nodes: List all node names in the cluster
+• overlays: Display the overlay addresses for each node
+• peers: Show peer connections and network topology
+• topologies: Display the complete network topology structure
+• config: Print the current cluster configuration in YAML format
+
+This command is useful for debugging, monitoring, and understanding your cluster's state.
+Requires exactly one argument from the list above.`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return fmt.Errorf("requires exactly one argument from the following list: addresses, depths, nodes, overlays, peers, topologies, config")

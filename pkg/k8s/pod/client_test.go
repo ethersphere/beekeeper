@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	v1 "k8s.io/api/core/v1"
@@ -50,14 +50,14 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:      "create_error",
-			podName:   mock.CreateBad,
-			clientset: mock.NewClientset(),
+			podName:   mocks.CreateBad,
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("creating pod create_bad in namespace test: mock error: cannot create pod"),
 		},
 		{
 			name:      "update_error",
-			podName:   mock.UpdateBad,
-			clientset: mock.NewClientset(),
+			podName:   mocks.UpdateBad,
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("updating pod update_bad in namespace test: mock error: cannot update pod"),
 		},
 	}
@@ -132,8 +132,8 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:      "delete_error",
-			podName:   mock.DeleteBad,
-			clientset: mock.NewClientset(),
+			podName:   mocks.DeleteBad,
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("deleting pod delete_bad in namespace test: mock error: cannot delete pod"),
 		},
 	}
