@@ -12,11 +12,12 @@ import (
 
 func (c *command) initRestartCmd() (err error) {
 	const (
-		optionNameLabelSelector = "label-selector"
-		optionNameNamespace     = "namespace"
-		optionNameImage         = "image"
-		optionNameNodeGroups    = "node-groups"
-		optionNameTimeout       = "timeout"
+		optionNameLabelSelector  = "label-selector"
+		optionNameNamespace      = "namespace"
+		optionNameImage          = "image"
+		optionNameNodeGroups     = "node-groups"
+		optionNameTimeout        = "timeout"
+		optionNameDeploymentType = "deployment-type"
 	)
 
 	cmd := &cobra.Command{
@@ -80,6 +81,7 @@ func (c *command) initRestartCmd() (err error) {
 	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
 	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for restarts (applies to all groups if not set).")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
+	cmd.Flags().String(optionNameDeploymentType, "beekeeper", "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
 
 	c.root.AddCommand(cmd)
 
