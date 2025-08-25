@@ -7,31 +7,43 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"github.com/ethersphere/beekeeper/pkg/logging"
+	"github.com/ethersphere/beekeeper/pkg/node"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 type Client struct {
-	k8sClient *k8s.Client
-	logger    logging.Logger
+	nodeProvider node.NodeProvider
+	k8sClient    *k8s.Client
+	logger       logging.Logger
 }
 
 // NewClient creates a new restart client
-func NewClient(k8sClient *k8s.Client, l logging.Logger) *Client {
+func NewClient(nodeProvider node.NodeProvider, k8sClient *k8s.Client, l logging.Logger) *Client {
 	return &Client{
-		k8sClient: k8sClient,
-		logger:    l,
+		nodeProvider: nodeProvider,
+		k8sClient:    k8sClient,
+		logger:       l,
 	}
 }
 
-func (c *Client) RestartPods(ctx context.Context, ns, labelSelector string) error {
-	c.logger.Debugf("starting pod restart in namespace %s", ns)
-	count, err := c.k8sClient.Pods.DeletePods(ctx, ns, labelSelector)
+func (c *Client) RestartPods(ctx context.Context) error {
+	nodes, err := c.nodeProvider.GetNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("restarting pods in namespace %s: %w", ns, err)
+		return fmt.Errorf("getting nodes: %w", err)
 	}
 
-	c.logger.Infof("restarted %d pods in namespace %s", count, ns)
+	c.logger.Debugf("starting pod restart for %d nodes", len(nodes))
+	count := 0
 
+	for _, node := range nodes {
+		if err := c.deletePod(ctx, node.Name(), c.nodeProvider.Namespace()); err != nil {
+			c.logger.Warningf("failed to restart node %s: %v", node.Name(), err)
+			continue
+		}
+		count++
+	}
+
+	c.logger.Infof("restarted %d pods", count)
 	return nil
 }
 
