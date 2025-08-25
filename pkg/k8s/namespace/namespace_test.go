@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethersphere/beekeeper"
-	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -199,9 +199,9 @@ func TestDelete(t *testing.T) {
 			errorMsg: fmt.Errorf("namespace test is not managed by beekeeper, try kubectl"),
 		},
 		{
-			name:      mock.DeleteBad,
+			name:      mocks.DeleteBad,
 			nsName:    "test",
-			clientset: mock.NewClientset(),
+			clientset: mocks.NewClientset(),
 			errorMsg:  fmt.Errorf("deleting namespace test: mock error: namespace \"test\" can not be deleted"),
 		},
 	}

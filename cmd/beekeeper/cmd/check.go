@@ -26,8 +26,20 @@ func (c *command) initCheckCmd() error {
 
 	cmd := &cobra.Command{
 		Use:   "check",
-		Short: "runs integration tests on a Bee cluster",
-		Long:  `runs integration tests on a Bee cluster.`,
+		Short: "Runs integration tests on a Bee cluster",
+		Long: `Runs integration tests on a Bee cluster to validate network behavior and functionality.
+
+The check command executes various tests against your Bee cluster including:
+• pingpong: Tests basic node connectivity and communication
+• pushsync: Validates data synchronization between nodes
+• retrieval: Tests data retrieval capabilities
+• settlements: Verifies payment settlements between nodes
+• kademlia: Tests the overlay network topology
+• and many more...
+
+Use --checks flag to specify which tests to run, or run all tests sequentially.
+Use --create-cluster to automatically create a cluster before testing.
+Use --metrics-enabled to collect and push metrics to Prometheus.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				checks := c.globalConfig.GetStringSlice(optionNameChecks)
