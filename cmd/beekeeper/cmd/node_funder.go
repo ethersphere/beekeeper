@@ -73,7 +73,7 @@ Requires --wallet-key for the funding account and --geth-url for blockchain acce
 					})
 				}
 
-				nodeClient, err := c.createNodeClient(ctx, true)
+				nodeClient, err := c.createNodeClient(ctx, false)
 				if err != nil {
 					return fmt.Errorf("creating node client: %w", err)
 				}
