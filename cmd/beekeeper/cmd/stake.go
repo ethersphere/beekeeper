@@ -113,9 +113,13 @@ func (c *command) initStakeDeposit() *cobra.Command {
 	}
 
 	cmd.Flags().String(optionNameAmount, "", "Stake amount in WEI (required)")
-	cmd.MarkFlagRequired(optionNameAmount)
+	if err := cmd.MarkFlagRequired(optionNameAmount); err != nil {
+		return nil
+	}
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name (required)")
-	cmd.MarkFlagRequired(optionNameClusterName)
+	if err := cmd.MarkFlagRequired(optionNameClusterName); err != nil {
+		return nil
+	}
 
 	return cmd
 }
