@@ -15,6 +15,7 @@ import (
 const (
 	optionNameAmount   = "amount"
 	optionNameParallel = "parallel"
+	maxParallel        = 10
 )
 
 var (
@@ -101,6 +102,12 @@ func (c *command) initStakeDeposit() *cobra.Command {
 			if parallel > len(clients) {
 				fmt.Printf("Info: Parallel value (%d) is greater than number of nodes (%d), using %d\n", parallel, len(clients), len(clients))
 				parallel = len(clients)
+			}
+
+			// Cap parallel operations to prevent network overload
+			if parallel > maxParallel {
+				fmt.Printf("Info: Parallel value (%d) is too high, capping at %d to prevent network overload\n", parallel, maxParallel)
+				parallel = maxParallel
 			}
 
 			fmt.Printf("Starting stake deposit of %s WEI on %d nodes with %d parallel operations...\n", amount, len(clients), parallel)
