@@ -5,12 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
+	"sync"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/spf13/cobra"
 )
 
 const (
-	optionNameAmount = "amount"
+	optionNameAmount   = "amount"
+	optionNameParallel = "parallel"
 )
 
 var (
@@ -67,10 +71,6 @@ func (c *command) initStakeDeposit() *cobra.Command {
 				return fmt.Errorf("error reading cluster-name flag: %w", err)
 			}
 
-			if clusterName == "" {
-				return fmt.Errorf("cluster-name is required")
-			}
-
 			fmt.Printf("Targeting cluster: %s\n", clusterName)
 
 			// Setup cluster and get node clients
@@ -87,21 +87,52 @@ func (c *command) initStakeDeposit() *cobra.Command {
 
 			fmt.Printf("Found %d nodes in cluster\n", len(clients))
 
-			fmt.Printf("Starting stake deposit of %s WEI on %d nodes...\n", amount, len(clients))
+			parallel, err := cmd.Flags().GetInt(optionNameParallel)
+			if err != nil {
+				fmt.Printf("Warning: Could not read parallel flag, using default value of 5\n")
+				parallel = 5
+			}
+
+			if parallel <= 0 {
+				fmt.Printf("Warning: Invalid parallel value (%d), using default value of 5\n", parallel)
+				parallel = 5
+			}
+
+			if parallel > len(clients) {
+				fmt.Printf("Info: Parallel value (%d) is greater than number of nodes (%d), using %d\n", parallel, len(clients), len(clients))
+				parallel = len(clients)
+			}
+
+			fmt.Printf("Starting stake deposit of %s WEI on %d nodes with %d parallel operations...\n", amount, len(clients), parallel)
 
 			var errorCount int
+			var mu sync.Mutex
+			semaphore := make(chan struct{}, parallel)
+			var wg sync.WaitGroup
+
 			for nodeName, client := range clients {
-				fmt.Printf("Depositing stake on node %s...\n", nodeName)
+				wg.Add(1)
+				go func(name string, cl *bee.Client) {
+					defer wg.Done()
+					semaphore <- struct{}{}
+					defer func() { <-semaphore }()
 
-				txHash, err := client.DepositStake(ctx, stakeAmount)
-				if err != nil {
-					errorCount++
-					fmt.Printf("%s\n", fmt.Sprintf("node %s: %v", nodeName, err))
-					continue
-				}
+					fmt.Printf("Depositing stake on node %s...\n", name)
 
-				fmt.Printf("Successfully deposited stake on node %s, transaction: %s\n", nodeName, txHash)
+					txHash, err := cl.DepositStake(ctx, stakeAmount)
+					if err != nil {
+						mu.Lock()
+						errorCount++
+						mu.Unlock()
+						fmt.Printf("%s\n", c.formatStakeError(name, err))
+						return
+					}
+
+					fmt.Printf("Successfully deposited stake on node %s, transaction: %s\n", name, txHash)
+				}(nodeName, client)
 			}
+
+			wg.Wait()
 
 			if errorCount > 0 {
 				return fmt.Errorf("stake deposit completed with %d errors", errorCount)
@@ -120,6 +151,22 @@ func (c *command) initStakeDeposit() *cobra.Command {
 	if err := cmd.MarkFlagRequired(optionNameClusterName); err != nil {
 		return nil
 	}
+	cmd.Flags().Int(optionNameParallel, 5, "Number of parallel operations (default: 5, max: number of nodes)")
 
 	return cmd
+}
+
+// formatStakeError formats stake-related errors with user-friendly messages
+func (c *command) formatStakeError(nodeName string, err error) string {
+	errorStr := err.Error()
+
+	if strings.Contains(errorStr, "out of funds") {
+		return fmt.Sprintf("node %s: insufficient BZZ balance (fund the node wallet first)", nodeName)
+	} else if strings.Contains(errorStr, "insufficient stake amount") {
+		return fmt.Sprintf("node %s: stake amount too low (increase the amount)", nodeName)
+	} else if strings.Contains(errorStr, "503") {
+		return fmt.Sprintf("node %s: service temporarily unavailable (node might be starting up)", nodeName)
+	} else {
+		return fmt.Sprintf("node %s: %v", nodeName, err)
+	}
 }
