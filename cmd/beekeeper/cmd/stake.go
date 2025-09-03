@@ -36,6 +36,7 @@ func (c *command) initStakeCmd() (err error) {
 	}
 
 	cmd.AddCommand(c.initStakeDeposit())
+	cmd.AddCommand(c.initStakeGet())
 
 	c.root.AddCommand(cmd)
 
@@ -238,4 +239,166 @@ func (c *command) formatStakeError(nodeName string, err error) string {
 	} else {
 		return fmt.Sprintf("node %s: %v", nodeName, err)
 	}
+}
+
+func (c *command) initStakeGet() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get",
+		Short: "get current stake amounts from Bee nodes",
+		Long:  "Retrieves the current stake amounts from targeted Bee nodes.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			namespace, err := cmd.Flags().GetString(optionNameNamespace)
+			if err != nil {
+				return fmt.Errorf("error reading namespace flag: %w", err)
+			}
+
+			clusterName, err := cmd.Flags().GetString(optionNameClusterName)
+			if err != nil {
+				return fmt.Errorf("error reading cluster-name flag: %w", err)
+			}
+
+			if clusterName == "" && namespace == "" {
+				return fmt.Errorf("either cluster-name or namespace must be provided")
+			}
+
+			ctx := context.Background()
+			var clients map[string]*bee.Client
+			var nodes node.NodeList
+
+			if namespace != "" {
+				fmt.Printf("Targeting namespace: %s\n", namespace)
+
+				labelSelector, err := cmd.Flags().GetString(optionNameLabelSelector)
+				if err != nil {
+					return fmt.Errorf("error reading label-selector flag: %w", err)
+				}
+
+				nodeClient := node.New(&node.ClientConfig{
+					Log:            c.log,
+					HTTPClient:     c.httpClient,
+					K8sClient:      c.k8sClient,
+					BeeClients:     nil,
+					Namespace:      namespace,
+					LabelSelector:  labelSelector,
+					DeploymentType: node.DeploymentTypeBeekeeper,
+					InCluster:      c.globalConfig.GetBool(optionNameInCluster),
+					UseNamespace:   true,
+				})
+
+				nodes, err = nodeClient.GetNodes(ctx)
+				if err != nil {
+					return fmt.Errorf("getting nodes: %w", err)
+				}
+
+				clients = make(map[string]*bee.Client)
+			} else {
+				fmt.Printf("Targeting cluster: %s\n", clusterName)
+				cluster, err := c.setupCluster(ctx, clusterName, false)
+				if err != nil {
+					return fmt.Errorf("failed to setup cluster %s: %w", clusterName, err)
+				}
+
+				clients, err = cluster.NodesClients(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to get node clients: %w", err)
+				}
+			}
+
+			nodeCount := len(clients)
+			if namespace != "" {
+				nodeCount = len(nodes)
+			}
+			fmt.Printf("Found %d nodes\n", nodeCount)
+
+			parallel, err := cmd.Flags().GetInt(optionNameParallel)
+			if err != nil {
+				fmt.Printf("Warning: Could not read parallel flag, using default value of 5\n")
+				parallel = 5
+			}
+
+			if parallel <= 0 {
+				fmt.Printf("Warning: Invalid parallel value (%d), using default value of 5\n", parallel)
+				parallel = 5
+			}
+
+			if parallel > nodeCount {
+				fmt.Printf("Info: Parallel value (%d) is greater than number of nodes (%d), using %d\n", parallel, nodeCount, nodeCount)
+				parallel = nodeCount
+			}
+
+			if parallel > maxParallel {
+				fmt.Printf("Info: Parallel value (%d) is too high, capping at %d to prevent network overload\n", parallel, maxParallel)
+				parallel = maxParallel
+			}
+
+			fmt.Printf("Getting stake amounts from %d nodes with %d parallel operations...\n", nodeCount, parallel)
+
+			var errorCount int
+			var mu sync.Mutex
+			semaphore := make(chan struct{}, parallel)
+			var wg sync.WaitGroup
+
+			if namespace != "" {
+				for _, n := range nodes {
+					wg.Add(1)
+					go func(node node.Node) {
+						defer wg.Done()
+						semaphore <- struct{}{}
+						defer func() { <-semaphore }()
+
+						fmt.Printf("Getting stake from node %s...\n", node.Name())
+
+						stakeAmount, err := node.Client().Stake.GetStakedAmount(ctx)
+						if err != nil {
+							mu.Lock()
+							errorCount++
+							mu.Unlock()
+							fmt.Printf("Error getting stake from node %s: %v\n", node.Name(), err)
+							return
+						}
+
+						fmt.Printf("Node %s: %s WEI staked\n", node.Name(), stakeAmount.String())
+					}(n)
+				}
+			} else {
+				for nodeName, client := range clients {
+					wg.Add(1)
+					go func(name string, cl *bee.Client) {
+						defer wg.Done()
+						semaphore <- struct{}{}
+						defer func() { <-semaphore }()
+
+						fmt.Printf("Getting stake from node %s...\n", name)
+
+						stakeAmount, err := cl.GetStake(ctx)
+						if err != nil {
+							mu.Lock()
+							errorCount++
+							mu.Unlock()
+							fmt.Printf("Error getting stake from node %s: %v\n", name, err)
+							return
+						}
+
+						fmt.Printf("Node %s: %s WEI staked\n", name, stakeAmount.String())
+					}(nodeName, client)
+				}
+			}
+
+			wg.Wait()
+
+			if errorCount > 0 {
+				return fmt.Errorf("stake retrieval completed with %d errors", errorCount)
+			}
+
+			fmt.Printf("Stake retrieval completed successfully from all %d nodes!\n", nodeCount)
+			return nil
+		},
+	}
+
+	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name")
+	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name)")
+	cmd.Flags().String(optionNameLabelSelector, "app.kubernetes.io/name=bee", "Kubernetes label selector for filtering resources")
+	cmd.Flags().Int(optionNameParallel, 5, "Number of parallel operations (default: 5, max: number of nodes)")
+
+	return cmd
 }
