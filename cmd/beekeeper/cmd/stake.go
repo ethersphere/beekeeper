@@ -127,22 +127,6 @@ func (c *command) initStakeDeposit() *cobra.Command {
 	return cmd
 }
 
-// TODO
-// formatStakeError formats stake-related errors with user-friendly messages
-func (c *command) formatStakeError(nodeName string, err error) string {
-	errorStr := err.Error()
-
-	if strings.Contains(errorStr, "out of funds") {
-		return fmt.Sprintf("node %s: insufficient BZZ balance (fund the node wallet first)", nodeName)
-	} else if strings.Contains(errorStr, "insufficient stake amount") {
-		return fmt.Sprintf("node %s: stake amount too low (increase the amount)", nodeName)
-	} else if strings.Contains(errorStr, "503") {
-		return fmt.Sprintf("node %s: service temporarily unavailable (node might be starting up)", nodeName)
-	} else {
-		return fmt.Sprintf("node %s: %v", nodeName, err)
-	}
-}
-
 func (c *command) initStakeGet() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
@@ -449,4 +433,19 @@ func (c *command) filterClientsByNodeGroups(cluster orchestration.Cluster, allCl
 	}
 
 	return filteredClients
+}
+
+// formatStakeError formats stake-related errors with user-friendly messages
+func (c *command) formatStakeError(nodeName string, err error) string {
+	errorStr := err.Error()
+	fmt.Printf("errorStr: %s\n", errorStr)
+	if strings.Contains(errorStr, "out of funds") {
+		return fmt.Sprintf("node %s: insufficient BZZ balance (fund the node wallet first)", nodeName)
+	} else if strings.Contains(errorStr, "insufficient stake amount") {
+		return fmt.Sprintf("node %s: stake amount too low (increase the amount)", nodeName)
+	} else if strings.Contains(errorStr, "503") {
+		return fmt.Sprintf("node %s: service temporarily unavailable (node might be starting up)", nodeName)
+	} else {
+		return fmt.Sprintf("node %s: %v", nodeName, err)
+	}
 }
