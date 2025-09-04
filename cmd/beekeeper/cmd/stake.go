@@ -10,13 +10,15 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/node"
+	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/spf13/cobra"
 )
 
 const (
-	optionNameAmount   = "amount"
-	optionNameParallel = "parallel"
-	maxParallel        = 10
+	optionNameAmount     = "amount"
+	optionNameParallel   = "parallel"
+	optionNameNodeGroups = "node-groups"
+	maxParallel          = 10
 )
 
 var (
@@ -119,9 +121,22 @@ func (c *command) initStakeDeposit() *cobra.Command {
 					return fmt.Errorf("failed to setup cluster %s: %w", clusterName, err)
 				}
 
-				clients, err = cluster.NodesClients(ctx)
+				allClients, err := cluster.NodesClients(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to get node clients: %w", err)
+				}
+
+				nodeGroups, err := cmd.Flags().GetStringSlice(optionNameNodeGroups)
+				if err != nil {
+					return fmt.Errorf("error reading node-groups flag: %w", err)
+				}
+
+				if len(nodeGroups) > 0 {
+					fmt.Printf("Filtering by node groups: %v\n", nodeGroups)
+					clients = c.filterClientsByNodeGroups(cluster, allClients, nodeGroups)
+				} else {
+					fmt.Printf("No node groups specified, defaulting to 'bee' nodes for staking\n")
+					clients = c.filterClientsByNodeGroups(cluster, allClients, []string{"bee"})
 				}
 			}
 
@@ -222,6 +237,7 @@ func (c *command) initStakeDeposit() *cobra.Command {
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name)")
 	cmd.Flags().String(optionNameLabelSelector, "app.kubernetes.io/name=bee", "Kubernetes label selector for filtering resources")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target (applies to all groups if not set)")
 	cmd.Flags().Int(optionNameParallel, 5, "Number of parallel operations (default: 5, max: number of nodes)")
 
 	return cmd
@@ -299,9 +315,22 @@ func (c *command) initStakeGet() *cobra.Command {
 					return fmt.Errorf("failed to setup cluster %s: %w", clusterName, err)
 				}
 
-				clients, err = cluster.NodesClients(ctx)
+				allClients, err := cluster.NodesClients(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to get node clients: %w", err)
+				}
+
+				nodeGroups, err := cmd.Flags().GetStringSlice(optionNameNodeGroups)
+				if err != nil {
+					return fmt.Errorf("error reading node-groups flag: %w", err)
+				}
+
+				if len(nodeGroups) > 0 {
+					fmt.Printf("Filtering by node groups: %v\n", nodeGroups)
+					clients = c.filterClientsByNodeGroups(cluster, allClients, nodeGroups)
+				} else {
+					fmt.Printf("No node groups specified, defaulting to 'bee' nodes for staking\n")
+					clients = c.filterClientsByNodeGroups(cluster, allClients, []string{"bee"})
 				}
 			}
 
@@ -399,6 +428,7 @@ func (c *command) initStakeGet() *cobra.Command {
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name)")
 	cmd.Flags().String(optionNameLabelSelector, "app.kubernetes.io/name=bee", "Kubernetes label selector for filtering resources")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target (applies to all groups if not set)")
 	cmd.Flags().Int(optionNameParallel, 5, "Number of parallel operations (default: 5, max: number of nodes)")
 
 	return cmd
@@ -461,9 +491,22 @@ func (c *command) initStakeWithdraw() *cobra.Command {
 					return fmt.Errorf("failed to setup cluster %s: %w", clusterName, err)
 				}
 
-				clients, err = cluster.NodesClients(ctx)
+				allClients, err := cluster.NodesClients(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to get node clients: %w", err)
+				}
+
+				nodeGroups, err := cmd.Flags().GetStringSlice(optionNameNodeGroups)
+				if err != nil {
+					return fmt.Errorf("error reading node-groups flag: %w", err)
+				}
+
+				if len(nodeGroups) > 0 {
+					fmt.Printf("Filtering by node groups: %v\n", nodeGroups)
+					clients = c.filterClientsByNodeGroups(cluster, allClients, nodeGroups)
+				} else {
+					fmt.Printf("No node groups specified, defaulting to 'bee' nodes for staking\n")
+					clients = c.filterClientsByNodeGroups(cluster, allClients, []string{"bee"})
 				}
 			}
 
@@ -561,7 +604,32 @@ func (c *command) initStakeWithdraw() *cobra.Command {
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name)")
 	cmd.Flags().String(optionNameLabelSelector, "app.kubernetes.io/name=bee", "Kubernetes label selector for filtering resources")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target (applies to all groups if not set)")
 	cmd.Flags().Int(optionNameParallel, 5, "Number of parallel operations (default: 5, max: number of nodes)")
 
 	return cmd
+}
+
+func (c *command) filterClientsByNodeGroups(cluster orchestration.Cluster, allClients map[string]*bee.Client, nodeGroups []string) map[string]*bee.Client {
+	nodeGroupsMap := cluster.NodeGroups()
+	var targetNodes []string
+
+	for _, nodeGroup := range nodeGroups {
+		group, ok := nodeGroupsMap[nodeGroup]
+		if !ok {
+			c.log.Debugf("node group %s not found in cluster", nodeGroup)
+			continue
+		}
+		targetNodes = append(targetNodes, group.NodesSorted()...)
+	}
+
+	// Filter clients to only include nodes from specified groups
+	filteredClients := make(map[string]*bee.Client)
+	for _, nodeName := range targetNodes {
+		if client, exists := allClients[nodeName]; exists {
+			filteredClients[nodeName] = client
+		}
+	}
+
+	return filteredClients
 }
