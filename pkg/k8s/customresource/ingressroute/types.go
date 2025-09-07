@@ -38,10 +38,10 @@ type Route struct {
 }
 
 type Service struct {
-	Kind      string `json:"kind"`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Port      string `json:"port"`
+	Kind      string      `json:"kind"`
+	Name      string      `json:"name"`
+	Namespace string      `json:"namespace"`
+	Port      interface{} `json:"port"` // TODO: Should be handled more safely ? because we found both string and number in the Cluster
 }
 
 // DeepCopyObject implements runtime.Object
