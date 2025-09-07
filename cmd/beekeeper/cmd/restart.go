@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -26,12 +25,6 @@ func (c *command) initRestartCmd() (err error) {
 		Long:  `Restarts pods by deleting them. Uses cluster name as the primary scope or falls back to namespace, with optional label filtering.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
-				clusterName := c.globalConfig.GetString(optionNameClusterName)
-				namespace := c.globalConfig.GetString(optionNameNamespace)
-
-				if clusterName == "" && namespace == "" {
-					return errors.New("either cluster name or namespace must be provided")
-				}
 
 				nodeClient, err := c.createNodeClient(ctx, true)
 				if err != nil {
@@ -40,31 +33,7 @@ func (c *command) initRestartCmd() (err error) {
 
 				restartClient := restart.NewClient(nodeClient, c.k8sClient, c.log)
 
-				if clusterName != "" {
-					clusterConfig, ok := c.config.Clusters[clusterName]
-					if !ok {
-						return fmt.Errorf("cluster config %s not defined", clusterName)
-					}
-
-					cluster, err := c.setupCluster(ctx, clusterName, false)
-					if err != nil {
-						return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-					}
-
-					c.log.Infof("restarting cluster %s", clusterName)
-
-					if err := restartClient.RestartCluster(ctx,
-						cluster,
-						clusterConfig.GetNamespace(),
-						c.globalConfig.GetString(optionNameImage),
-						c.globalConfig.GetStringSlice(optionNameNodeGroups),
-					); err != nil {
-						return fmt.Errorf("restarting cluster %s: %w", clusterName, err)
-					}
-
-					return nil
-				}
-
+				// TODO: Add cluster restart (should be handled by the node client)
 				if err := restartClient.RestartPods(ctx); err != nil {
 					return fmt.Errorf("restarting pods: %w", err)
 				}
