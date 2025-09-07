@@ -165,7 +165,18 @@ func (sc *Client) getIngressNodes(ctx context.Context) ([]Node, error) {
 			return nil, fmt.Errorf("create api client: %w", err)
 		}
 
-		nodes[i] = *NewNode(apiClient, sc.nodeName(node.Name))
+		// For IngressRoute nodes, the names are already in the correct format for pod names
+		// so we don't need to apply the nodeName transformation
+		var nodeName string
+		if i < len(ingressNodes) {
+			// Ingress node, apply nodeName transformation
+			nodeName = sc.nodeName(node.Name)
+		} else {
+			// IngressRoute node, use the name as-is
+			nodeName = node.Name
+		}
+
+		nodes[i] = *NewNode(apiClient, nodeName)
 	}
 
 	return nodes, nil
