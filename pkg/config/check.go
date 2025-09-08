@@ -395,16 +395,16 @@ var Checks = map[string]CheckType{
 				Duration      *time.Duration `yaml:"duration"`
 			})
 
-			if checkOpts.FileSizes == nil && checkOpts.ContentSize != nil {
-				checkOpts.FileSizes = &[]int64{*checkOpts.ContentSize}
-			}
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := smoke.NewDefaultOptions()
-
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			if checkOpts.FileSizes == nil && checkOpts.ContentSize != nil {
+				checkOpts.FileSizes = &[]int64{*checkOpts.ContentSize}
 			}
 
 			return opts, nil

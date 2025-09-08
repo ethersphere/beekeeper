@@ -369,7 +369,7 @@ checks:
     type: withdraw
   load:
     options:
-      file-sizes: [31457280, 104857600, 314572800] # [30MB, 100MB, 300MB]  
+      content-size: 500000
       gas-price: 10000000000
       postage-ttl: 72h
       postage-depth: 21
