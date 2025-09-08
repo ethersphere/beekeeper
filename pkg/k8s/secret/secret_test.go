@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	mock "github.com/ethersphere/beekeeper/mocks/k8s"
+	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,14 +58,14 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:       "create_error",
-			secretName: mock.CreateBad,
-			clientset:  mock.NewClientset(),
+			secretName: mocks.CreateBad,
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("creating secret create_bad in namespace test: mock error: cannot create secret"),
 		},
 		{
 			name:       "update_error",
-			secretName: mock.UpdateBad,
-			clientset:  mock.NewClientset(),
+			secretName: mocks.UpdateBad,
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("updating secret update_bad in namespace test: mock error: cannot update secret"),
 		},
 	}
@@ -142,8 +142,8 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:       "delete_error",
-			secretName: mock.DeleteBad,
-			clientset:  mock.NewClientset(),
+			secretName: mocks.DeleteBad,
+			clientset:  mocks.NewClientset(),
 			errorMsg:   fmt.Errorf("deleting secret delete_bad in namespace test: mock error: cannot delete secret"),
 		},
 	}

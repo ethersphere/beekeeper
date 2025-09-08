@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
@@ -80,16 +81,37 @@ func (sc *Client) Namespace() string {
 }
 
 func (sc *Client) GetNodes(ctx context.Context) (nodes NodeList, err error) {
+	defer func() {
+		if err != nil || nodes == nil {
+			return
+		}
+		for i := range nodes {
+			sc.log.Debugf("adding node %s with endpoint %s", nodes[i].Name(), nodes[i].Client().Host())
+		}
+		sc.log.Infof("found %d nodes", len(nodes))
+	}()
+
 	if sc.useNamespace && sc.namespace != "" {
-		return sc.getNamespaceNodes(ctx)
+		nodes, err = sc.getNamespaceNodes(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("get namespace nodes: %w", err)
+		}
+		return
 	}
 
-	if sc.beeClients == nil {
+	if len(sc.beeClients) == 0 {
 		return nil, fmt.Errorf("bee clients not provided")
 	}
 
-	nodes = make(NodeList, 0, len(sc.beeClients))
-	for nodeName, beeClient := range sc.beeClients {
+	names := make([]string, 0, len(sc.beeClients))
+	for n := range sc.beeClients {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+
+	nodes = make(NodeList, 0, len(names))
+	for _, nodeName := range names {
+		beeClient := sc.beeClients[nodeName]
 		nodes = append(nodes, *NewNode(beeClient.API(), sc.nodeName(nodeName)))
 	}
 
