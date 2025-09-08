@@ -42,7 +42,6 @@ This command is useful for:
 Requires either --cluster-name or --namespace to be specified.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
-
 				nodeClient, err := c.createNodeClient(ctx, true)
 				if err != nil {
 					return fmt.Errorf("creating node client: %w", err)
