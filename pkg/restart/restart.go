@@ -26,7 +26,7 @@ func NewClient(nodeProvider node.NodeProvider, k8sClient *k8s.Client, l logging.
 	}
 }
 
-func (c *Client) RestartPods(ctx context.Context) error {
+func (c *Client) Restart(ctx context.Context) error {
 	nodes, err := c.nodeProvider.GetNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("getting nodes: %w", err)
@@ -34,7 +34,6 @@ func (c *Client) RestartPods(ctx context.Context) error {
 
 	c.logger.Debugf("starting pod restart for %d nodes", len(nodes))
 	count := 0
-
 	for _, node := range nodes {
 		if err := c.deletePod(ctx, node.Name(), c.nodeProvider.Namespace()); err != nil {
 			c.logger.Warningf("failed to restart node %s: %v", node.Name(), err)
@@ -43,18 +42,10 @@ func (c *Client) RestartPods(ctx context.Context) error {
 		count++
 	}
 
-	c.logger.Infof("restarted %d pods", count)
-	return nil
-}
+	// TODO: use image name to update the image of the stateful set
+	// and then delete the pod if the update strategy is OnDelete
 
-func (c *Client) RestartCluster(ctx context.Context, cluster orchestration.Cluster, ns, image string, nodeGroups []string) (err error) {
-	nodes := c.getNodeList(cluster, nodeGroups)
-	for _, node := range nodes {
-		if err := c.updateOrDeleteNode(ctx, node, ns, image); err != nil {
-			return fmt.Errorf("error handling node %s in namespace %s: %w", node, ns, err)
-		}
-		c.logger.Debugf("node %s in namespace %s restarted", node, ns)
-	}
+	c.logger.Infof("restarted %d pods", count)
 	return nil
 }
 
@@ -99,8 +90,7 @@ func (c *Client) updateOrDeleteNode(ctx context.Context, node, ns, image string)
 	return nil
 }
 
-func (c *Client) deletePod(ctx context.Context, node, ns string) error {
-	podName := fmt.Sprintf("%s-0", node) // Suffix "-0" added as StatefulSet names pods based on replica count.
+func (c *Client) deletePod(ctx context.Context, podName, ns string) error {
 	ok, err := c.k8sClient.Pods.Delete(ctx, podName, ns)
 	if err != nil {
 		return fmt.Errorf("deleting pod %s: %w", podName, err)

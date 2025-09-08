@@ -49,8 +49,7 @@ Requires either --cluster-name or --namespace to be specified.`,
 
 				restartClient := restart.NewClient(nodeClient, c.k8sClient, c.log)
 
-				// TODO: Add cluster restart (should be handled by the node client)
-				if err := restartClient.RestartPods(ctx); err != nil {
+				if err := restartClient.Restart(ctx); err != nil {
 					return fmt.Errorf("restarting pods: %w", err)
 				}
 
@@ -62,7 +61,7 @@ Requires either --cluster-name or --namespace to be specified.`,
 
 	cmd.Flags().String(optionNameClusterName, "", "Kubernetes cluster to operate on (overrides namespace and label selector).")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Namespace to delete pods from (only used if cluster name is not set).")
-	cmd.Flags().String(optionNameLabelSelector, "", "Label selector for resources in the namespace (only used with namespace).")
+	cmd.Flags().String(optionNameLabelSelector, beeLabelSelector, "Label selector for resources in the namespace (only used with namespace).")
 	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
 	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for restarts (applies to all groups if not set).")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")

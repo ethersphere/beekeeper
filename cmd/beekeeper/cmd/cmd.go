@@ -443,8 +443,16 @@ func (c *command) createNodeClient(ctx context.Context, useDeploymentType bool) 
 		return nil, errors.New("either cluster name or namespace must be provided")
 	}
 
+	if c.globalConfig.IsSet(optionNameNamespace) && namespace == "" {
+		return nil, errors.New("namespace cannot be empty if set")
+	}
+
 	if namespace == "" && useDeploymentType && !isValidDeploymentType(c.globalConfig.GetString(optionNameDeploymentType)) {
 		return nil, errors.New("unsupported deployment type: must be 'beekeeper' or 'helm'")
+	}
+
+	if useDeploymentType {
+		c.log.Infof("using deployment type %s", c.globalConfig.GetString(optionNameDeploymentType))
 	}
 
 	var beeClients map[string]*bee.Client

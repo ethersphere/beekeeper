@@ -35,7 +35,8 @@ type ClientConfig struct {
 	LabelSelector  string
 	DeploymentType DeploymentType
 	InCluster      bool
-	UseNamespace   bool // Overrides the usage of the bee clients
+	UseNamespace   bool     // Overrides the usage of the bee clients
+	NodeGroups     []string // TODO: use node groups for filtering nodes (this is only in case of beekeeper deployment)
 }
 
 type Client struct {
@@ -187,18 +188,7 @@ func (sc *Client) getIngressNodes(ctx context.Context) ([]Node, error) {
 			return nil, fmt.Errorf("create api client: %w", err)
 		}
 
-		// For IngressRoute nodes, the names are already in the correct format for pod names
-		// so we don't need to apply the nodeName transformation
-		var nodeName string
-		if i < len(ingressNodes) {
-			// Ingress node, apply nodeName transformation
-			nodeName = sc.nodeName(node.Name)
-		} else {
-			// IngressRoute node, use the name as-is
-			nodeName = node.Name
-		}
-
-		nodes[i] = *NewNode(apiClient, nodeName)
+		nodes[i] = *NewNode(apiClient, sc.nodeName(node.Name))
 	}
 
 	return nodes, nil
