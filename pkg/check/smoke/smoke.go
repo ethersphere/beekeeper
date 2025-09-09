@@ -20,6 +20,7 @@ import (
 
 // Options represents smoke test options
 type Options struct {
+	ContentSize     int64
 	FileSizes       []int64
 	RndSeed         int64
 	PostageTTL      time.Duration
@@ -44,6 +45,7 @@ type Options struct {
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
+		ContentSize:             5000000,
 		FileSizes:               []int64{5000000},
 		RndSeed:                 time.Now().UnixNano(),
 		PostageTTL:              24 * time.Hour,
