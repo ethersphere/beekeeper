@@ -157,7 +157,7 @@ checks:
     type: redundancy
   pt-testnet-load:
     options:
-      file-sizes: [3072, 30720, 307200, 31457280, 104857600, 314572800] # [3KB, 30KB, 300KB, 30MB, 100MB, 300MB]
+      content-size: 50000000
       postage-ttl: 408h # 17 days
       postage-depth: 22
       postage-label: test-label
