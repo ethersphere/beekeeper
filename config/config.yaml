@@ -335,7 +335,7 @@ checks:
     type: settlements
   smoke:
     options:
-      content-size: 5000
+      file-sizes: [31457280, 104857600, 314572800] # [30MB, 100MB, 300MB]  
       postage-ttl: 72h
       postage-depth: 21
       postage-label: test-label
@@ -369,7 +369,7 @@ checks:
     type: withdraw
   load:
     options:
-      content-size: 500000 #5000000
+      content-size: 500000
       gas-price: 10000000000
       postage-ttl: 72h
       postage-depth: 21

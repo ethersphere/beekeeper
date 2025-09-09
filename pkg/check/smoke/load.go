@@ -60,8 +60,10 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 		return errors.New("max committed depth is not set")
 	}
 
+	contentSize := o.ContentSize
+
 	c.logger.Infof("random seed: %v", o.RndSeed)
-	c.logger.Infof("content size: %v", o.ContentSize)
+	c.logger.Infof("content size: %v", contentSize)
 	c.logger.Infof("max committed depth: %v", o.MaxCommittedDepth)
 	c.logger.Infof("committed depth check wait time: %v", o.CommittedDepthCheckWait)
 	c.logger.Infof("total duration: %s", o.Duration.String())
@@ -82,8 +84,10 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 			c.logger.Info("we are done")
 			return nil
 		default:
-			c.logger.Infof("starting iteration: #%d", i)
+			c.logger.Infof("starting iteration: #%d bytes (%.2f KB)", contentSize, float64(contentSize)/1024)
 		}
+
+		sizeLabel := fmt.Sprintf("%d", contentSize)
 
 		var (
 			txDuration time.Duration
@@ -91,9 +95,9 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 			address    swarm.Address
 		)
 
-		txData = make([]byte, o.ContentSize)
+		txData = make([]byte, contentSize)
 		if _, err := crand.Read(txData); err != nil {
-			c.logger.Infof("unable to create random content: %v", err)
+			c.logger.Infof("unable to create random content for size %d: %v", contentSize, err)
 			continue
 		}
 
@@ -125,7 +129,7 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 						return
 					}
 
-					c.metrics.UploadAttempts.Inc()
+					c.metrics.UploadAttempts.WithLabelValues(sizeLabel).Inc()
 					var duration time.Duration
 					c.logger.Infof("uploading to: %s", txName)
 
@@ -139,7 +143,7 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 
 					address, duration, err = test.upload(ctx, txName, txData, batchID)
 					if err != nil {
-						c.metrics.UploadErrors.Inc()
+						c.metrics.UploadErrors.WithLabelValues(sizeLabel).Inc()
 						c.logger.Infof("upload failed: %v", err)
 						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 						time.Sleep(o.TxOnErrWait)
@@ -183,11 +187,11 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 					default:
 					}
 
-					c.metrics.DownloadAttempts.Inc()
+					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel).Inc()
 
 					rxData, rxDuration, err = test.download(ctx, rxName, address)
 					if err != nil {
-						c.metrics.DownloadErrors.Inc()
+						c.metrics.DownloadErrors.WithLabelValues(sizeLabel).Inc()
 						c.logger.Infof("download failed: %v", err)
 						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 						time.Sleep(o.RxOnErrWait)
@@ -202,7 +206,7 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 				if !bytes.Equal(rxData, txData) {
 					c.logger.Info("uploaded data does not match downloaded data")
 
-					c.metrics.DownloadMismatch.Inc()
+					c.metrics.DownloadMismatch.WithLabelValues(sizeLabel).Inc()
 
 					rxLen, txLen := len(rxData), len(txData)
 					if rxLen != txLen {
@@ -225,8 +229,16 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 
 				// We want to update the metrics when no error has been
 				// encountered in order to avoid counter mismatch.
-				c.metrics.UploadDuration.Observe(txDuration.Seconds())
-				c.metrics.DownloadDuration.Observe(rxDuration.Seconds())
+				c.metrics.UploadDuration.WithLabelValues(sizeLabel).Observe(txDuration.Seconds())
+				c.metrics.DownloadDuration.WithLabelValues(sizeLabel).Observe(rxDuration.Seconds())
+				if txDuration.Seconds() > 0 {
+					uploadThroughput := float64(contentSize) / txDuration.Seconds()
+					c.metrics.UploadThroughput.WithLabelValues(sizeLabel).Set(uploadThroughput)
+				}
+				if rxDuration.Seconds() > 0 {
+					downloadThroughput := float64(contentSize) / rxDuration.Seconds()
+					c.metrics.DownloadThroughput.WithLabelValues(sizeLabel).Set(downloadThroughput)
+				}
 			}()
 		}
 
