@@ -54,7 +54,7 @@ clusters:
 node-groups:
   default:
     _inherit: ""
-    image: ethersphere/bee:2.3.0
+    image: ethersphere/bee:latest
     image-pull-policy: Always
     ingress-annotations:
       nginx.ingress.kubernetes.io/affinity: "cookie"

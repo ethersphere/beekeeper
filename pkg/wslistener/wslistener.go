@@ -55,7 +55,7 @@ func ListenWebSocket(ctx context.Context, client *bee.Client, endpoint string, l
 		for {
 			select {
 			case data := <-readCh:
-				logger.WithField("node", client.Name()).Infof("websocket received message: %s", string(data))
+				logger.WithField("node", client.Name()).Infof("websocket received message: `%s`", string(data))
 				select {
 				case ch <- string(data):
 				case <-done:

@@ -1,0 +1,67 @@
+clusters:
+  bee-playground:
+    _inherit: ""
+    name: bee
+    namespace: bee-playground
+    disable-namespace: true
+    api-domain: bee-playground.testnet.internal
+    api-domain-internal: bee-playground.svc.swarm1.local:1633
+    api-insecure-tls: true
+    api-scheme: http
+    funding:
+      eth: 0.1
+      bzz: 10.0
+    node-groups:
+      bee:
+        mode: node
+        bee-config: sepolia-playground
+        config: ng-bee-playground
+        count: 5
+
+# node-groups defines node groups that can be registered in the cluster
+# node-groups may inherit it's configuration from already defined node-group and override specific fields from it
+node-groups:
+  ng-bee-playground:
+    _inherit: default
+    persistence-enabled: true
+    image: ethersphere/bee:latest
+
+# bee-configs defines Bee configuration that can be assigned to node-groups
+# bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
+bee-configs:
+  sepolia-playground:
+    _inherit: ""
+    api-addr: :1633
+    blockchain-rpc-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
+    bootnodes: /dnsaddr/testnet.ethswarm.org
+    full-node: true
+    mainnet: false
+    network-id: 10
+    p2p-addr: :1634
+    password: "beekeeper"
+    storage-incentives-enable: true
+    swap-enable: true
+    swap-initial-deposit: 0
+    tracing-enabled: true
+    tracing-endpoint: "10.10.11.199:6831"
+    tracing-service-name: "bee-playground"
+    verbosity: 5
+    welcome-message: Welcome to the bee-playground Testnet!
+    warmup-time: 0s
+    payment-early-percent: 50
+    payment-threshold: 13500000
+    payment-tolerance-percent: 25
+    allow-private-cidrs: false
+    block-time: 12
+    bootnode-mode: false
+    cache-capacity: 1000000
+    chequebook-enable: true
+    cors-allowed-origins: ""
+    data-dir: "/home/bee/.bee"
+    db-block-cache-capacity: 33554432
+    db-disable-seeks-compaction: true
+    db-open-files-limit: 200
+    db-write-buffer-size: 33554432
+    nat-addr: ""
+    p2p-ws-enable: true
+    postage-stamp-start-block: 0
