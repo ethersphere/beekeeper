@@ -126,7 +126,3 @@ func newMetrics(subsystem string) metrics {
 func (c *Check) Report() []prometheus.Collector {
 	return m.PrometheusCollectorsFromFields(c.metrics)
 }
-
-func (c *LoadCheck) Report() []prometheus.Collector {
-	return m.PrometheusCollectorsFromFields(c.metrics)
-}

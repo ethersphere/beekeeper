@@ -19,6 +19,43 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
 )
 
+type Options struct {
+	ContentSize             int64
+	RndSeed                 int64
+	PostageTTL              time.Duration
+	PostageDepth            uint64
+	PostageLabel            string
+	TxOnErrWait             time.Duration
+	RxOnErrWait             time.Duration
+	NodesSyncWait           time.Duration
+	Duration                time.Duration
+	UploaderCount           int
+	UploadGroups            []string
+	DownloaderCount         int
+	DownloadGroups          []string
+	MaxCommittedDepth       uint8
+	CommittedDepthCheckWait time.Duration
+	IterationWait           time.Duration
+}
+
+func NewDefaultOptions() Options {
+	return Options{
+		ContentSize:             5000000,
+		RndSeed:                 time.Now().UnixNano(),
+		PostageTTL:              24 * time.Hour,
+		PostageDepth:            24,
+		PostageLabel:            "test-label",
+		TxOnErrWait:             10 * time.Second,
+		RxOnErrWait:             10 * time.Second,
+		NodesSyncWait:           time.Minute,
+		Duration:                12 * time.Hour,
+		MaxCommittedDepth:       2,
+		CommittedDepthCheckWait: 5 * time.Minute,
+		IterationWait:           5 * time.Minute,
+	}
+}
+
+
 func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
@@ -108,7 +145,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		)
 
 		upload.Add(1)
-	
+
 		for _, txName := range txNames {
 			go func() {
 				defer once.Do(func() {
@@ -294,4 +331,45 @@ func (t *test) download(ctx context.Context, cName string, addr swarm.Address) (
 	t.logger.Infof("node %s: download done in %s", cName, rxDuration)
 
 	return data, rxDuration, nil
+}
+
+func pickRandom(count int, peers []string) (names []string) {
+	seq := randomIntSeq(count, len(peers))
+	for _, i := range seq {
+		names = append(names, peers[i])
+	}
+
+	return
+}
+
+func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
+	for _, name := range names {
+		ng, err := c.NodeGroup(name)
+		if err != nil {
+			panic(err)
+		}
+		selected = append(selected, ng.NodesSorted()...)
+	}
+
+	rand.Shuffle(len(selected), func(i, j int) {
+		tmp := selected[i]
+		selected[i] = selected[j]
+		selected[j] = tmp
+	})
+
+	return
+}
+
+func randomIntSeq(size, ceiling int) (out []int) {
+	r := make(map[int]struct{}, size)
+
+	for len(r) < size {
+		r[rand.Intn(ceiling)] = struct{}{}
+	}
+
+	for k := range r {
+		out = append(out, k)
+	}
+
+	return
 }
