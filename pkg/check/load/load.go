@@ -114,7 +114,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 	for i := 0; true; i++ {
 		select {
 		case <-ctx.Done():
-			c.logger.Info("we are done")
+			c.logger.Info("context done in iteration")
 			return nil
 		default:
 			c.logger.Infof("starting iteration: #%d bytes (%.2f KB)", contentSize, float64(contentSize)/1024)
@@ -149,11 +149,11 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 			go func() {
 				defer once.Do(func() {
 					upload.Done()
-				})
+				}) // don't wait for all uploads
 				for retries := 10; txDuration == 0 && retries > 0; retries-- {
 					select {
 					case <-ctx.Done():
-						c.logger.Info("we are done")
+						c.logger.Info("context done in retry")
 						return
 					default:
 					}
@@ -182,7 +182,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 						time.Sleep(o.TxOnErrWait)
 						return
 					}
-					txDuration += duration
+					txDuration += duration // dirty
 				}
 			}()
 		}
