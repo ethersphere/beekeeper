@@ -55,7 +55,6 @@ func NewDefaultOptions() Options {
 	}
 }
 
-
 func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
