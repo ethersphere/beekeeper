@@ -6,11 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/check/act"
-	"github.com/ethersphere/beekeeper/pkg/check/networkavailability"
-	"github.com/ethersphere/beekeeper/pkg/check/stake"
-
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/check/act"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
@@ -22,6 +19,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/kademlia"
 	"github.com/ethersphere/beekeeper/pkg/check/longavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/manifest"
+	"github.com/ethersphere/beekeeper/pkg/check/networkavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/peercount"
 	"github.com/ethersphere/beekeeper/pkg/check/pingpong"
 	"github.com/ethersphere/beekeeper/pkg/check/postage"
@@ -33,6 +31,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
+	"github.com/ethersphere/beekeeper/pkg/check/stake"
 	"github.com/ethersphere/beekeeper/pkg/check/withdraw"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -384,6 +383,7 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ContentSize   *int64         `yaml:"content-size"`
+				FileSizes     *[]int64       `yaml:"file-sizes"`
 				RndSeed       *int64         `yaml:"rnd-seed"`
 				PostageTTL    *time.Duration `yaml:"postage-ttl"`
 				PostageDepth  *uint64        `yaml:"postage-depth"`
@@ -393,9 +393,15 @@ var Checks = map[string]CheckType{
 				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
 				Duration      *time.Duration `yaml:"duration"`
 			})
+
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
+
+			if checkOpts.FileSizes == nil && checkOpts.ContentSize != nil {
+				checkOpts.FileSizes = &[]int64{*checkOpts.ContentSize}
+			}
+
 			opts := smoke.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
@@ -429,6 +435,7 @@ var Checks = map[string]CheckType{
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
+
 			opts := smoke.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
