@@ -13,7 +13,7 @@ func (ts Tolerations) toK8S() (l []v1.Toleration) {
 			l = append(l, p.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // Toleration represents Kubernetes Toleration

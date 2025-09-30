@@ -13,7 +13,7 @@ func (ecs EphemeralContainers) ToK8S() (l []v1.EphemeralContainer) {
 			l = append(l, e.ToK8S())
 		}
 	}
-	return
+	return l
 }
 
 // EphemeralContainer represents Kubernetes EphemeralContainer

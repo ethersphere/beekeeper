@@ -143,7 +143,7 @@ func (c *Check) defaultCheck(ctx context.Context, cluster orchestration.Cluster,
 		}
 	}
 
-	return
+	return err
 }
 
 // fullCheck uploads files on cluster and downloads them from the all nodes in the cluster
@@ -216,5 +216,5 @@ func (c *Check) fullCheck(ctx context.Context, cluster orchestration.Cluster, o 
 		}
 	}
 
-	return
+	return err
 }

@@ -107,7 +107,7 @@ func (f *File) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err er
 		}
 	}
 
-	return
+	return closest, err
 }
 
 func (f *File) SetAddress(a swarm.Address) {

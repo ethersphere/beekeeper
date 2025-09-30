@@ -711,5 +711,5 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err er
 		}
 	}
 
-	return
+	return err
 }

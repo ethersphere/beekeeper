@@ -67,7 +67,7 @@ func (scs Sysctls) toK8S() (l []v1.Sysctl) {
 			l = append(l, s.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // Sysctl represents Kubernetes Sysctl

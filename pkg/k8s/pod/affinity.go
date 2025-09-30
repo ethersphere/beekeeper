@@ -50,7 +50,7 @@ func (psts PreferredSchedulingTerms) toK8S() (l []v1.PreferredSchedulingTerm) {
 			l = append(l, p.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // PreferredSchedulingTerm represents Kubernetes PreferredSchedulingTerm
@@ -90,7 +90,7 @@ func (nsts NodeSelectorTerms) toK8S() (l []v1.NodeSelectorTerm) {
 			l = append(l, n.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // NodeSelectorTerm represents Kubernetes NodeSelectorTerm
@@ -118,7 +118,7 @@ func (nsrs NodeSelectorRequirements) toK8S() (l []v1.NodeSelectorRequirement) {
 			l = append(l, n.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // NodeSelectorRequirement represents Kubernetes NodeSelectorRequirement
@@ -162,7 +162,7 @@ func (pats PodAffinityTerms) toK8S() (l []v1.PodAffinityTerm) {
 			l = append(l, p.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // PodAffinityTerm represents Kubernetes PodAffinityTerm
@@ -192,7 +192,7 @@ func (wpats WeightedPodAffinityTerms) toK8S() (l []v1.WeightedPodAffinityTerm) {
 			l = append(l, w.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // WeightedPodAffinityTerm represents Kubernetes WeightedPodAffinityTerm

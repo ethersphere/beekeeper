@@ -73,7 +73,7 @@ func (hhs HTTPHeaders) toK8S() (l []v1.HTTPHeader) {
 			l = append(l, h.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // HTTPHeader represents Kubernetes HTTPHeader

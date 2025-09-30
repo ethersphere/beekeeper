@@ -56,7 +56,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 			if err != nil {
 				return nil, fmt.Errorf("creating ingress route %s in namespace %s: %w", name, namespace, err)
 			}
-			return
+			return ing, err
 		} else {
 			return nil, fmt.Errorf("getting ingress route %s in namespace %s: %w", name, namespace, err)
 		}
@@ -68,7 +68,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 	if err != nil {
 		return nil, fmt.Errorf("updating ingress route %s in namespace %s: %w", name, namespace, err)
 	}
-	return
+	return ing, err
 }
 
 // Delete deletes IngressRoute
@@ -81,7 +81,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		return fmt.Errorf("deleting ingress route %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return err
 }
 
 // GetNodes list Ingress Routes hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.

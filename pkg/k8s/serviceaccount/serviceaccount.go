@@ -45,13 +45,13 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (sa
 			for _, s := range o.ImagePullSecrets {
 				l = append(l, v1.LocalObjectReference{Name: s})
 			}
-			return
+			return l
 		}(),
 		Secrets: func() (l []v1.ObjectReference) {
 			for _, s := range o.Secrets {
 				l = append(l, v1.ObjectReference{Name: s})
 			}
-			return
+			return l
 		}(),
 	}
 
@@ -67,7 +67,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (sa
 		}
 	}
 
-	return
+	return sa, err
 }
 
 // Delete deletes ServiceAccount
@@ -80,5 +80,5 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		return fmt.Errorf("deleting service account %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return err
 }

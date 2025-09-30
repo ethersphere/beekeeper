@@ -119,7 +119,7 @@ func (c ClusterOptions) ApiURL(name string, inCluster bool) (u *url.URL, err err
 	if err != nil {
 		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)
 	}
-	return
+	return u, err
 }
 
 // IngressHost generates host for node's API ingress

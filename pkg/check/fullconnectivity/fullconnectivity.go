@@ -51,7 +51,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return fmt.Errorf("check light nodes: %w", err)
 	}
 
-	return
+	return err
 }
 
 func (c *Check) checkFullNodesConnectivity(ctx context.Context, cluster orchestration.Cluster, skipNodes, bootNodes []string) (err error) {
@@ -97,7 +97,7 @@ func (c *Check) checkFullNodesConnectivity(ctx context.Context, cluster orchestr
 		}
 	}
 
-	return
+	return err
 }
 
 func isBootNode(group string, bootnodes []string) bool {
@@ -140,7 +140,7 @@ func (c *Check) checkLightNodesConnectivity(ctx context.Context, cluster orchest
 		}
 	}
 
-	return
+	return err
 }
 
 // contains checks if a given set of swarm.Address contains given swarm.Address

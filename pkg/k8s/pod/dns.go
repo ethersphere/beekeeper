@@ -29,7 +29,7 @@ func (pdcos PodDNSConfigOptions) toK8S() (l []v1.PodDNSConfigOption) {
 			l = append(l, p.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // PodDNSConfigOption represents Kubernetes PodDNSConfigOption

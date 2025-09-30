@@ -40,5 +40,5 @@ func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, 
 	header.Set(postageStampBatchHeader, o.BatchID)
 
 	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz?"+url.QueryEscape("name="+name), header, data, &resp)
-	return
+	return resp, err
 }

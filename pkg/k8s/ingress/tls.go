@@ -14,7 +14,7 @@ func (ts TLSs) toK8S() (l []v1.IngressTLS) {
 			l = append(l, t.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // TLS represents service's IngressTLS
