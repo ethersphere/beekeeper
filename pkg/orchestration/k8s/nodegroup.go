@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -487,9 +488,7 @@ func (g *NodeGroup) HasChunkStream(ctx context.Context, a swarm.Address) (<-chan
 // Nodes returns map of nodes in the node group
 func (g *NodeGroup) Nodes() map[string]orchestration.Node {
 	nodes := make(map[string]orchestration.Node)
-	for k, v := range g.getNodes() {
-		nodes[k] = v
-	}
+	maps.Copy(nodes, g.getNodes())
 	return nodes
 }
 
@@ -700,6 +699,7 @@ func (g *NodeGroup) pregenerateSwarmKey(ctx context.Context, name string) (err e
 		time.Sleep(10 * time.Second)
 		g.log.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s", key.Address, name, txHash)
 	}
+
 	return
 }
 
