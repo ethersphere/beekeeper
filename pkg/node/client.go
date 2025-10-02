@@ -208,48 +208,21 @@ func (sc *Client) getIngressNodes(ctx context.Context) ([]Node, error) {
 }
 
 // filterClientsByNodeGroups filters bee clients by node groups
-// Node names in beekeeper deployments follow the pattern: {nodeGroup}-{index}
-// This function extracts the node group from the node name and filters accordingly
+// Only applies filtering for beekeeper deployments where NodeGroupName is set
 func (sc *Client) filterClientsByNodeGroups(clients map[string]*bee.Client) map[string]*bee.Client {
-	if len(sc.nodeGroups) == 0 {
-		return clients
-	}
-
-	// Create a map for faster lookup
-	nodeGroupSet := make(map[string]bool)
-	for _, ng := range sc.nodeGroups {
-		nodeGroupSet[ng] = true
-	}
-
-	filtered := make(map[string]*bee.Client)
-	for nodeName, client := range clients {
-		// Extract node group from node name
-		// For beekeeper deployments: "nodegroup-0" -> "nodegroup"
-		// For other deployments: "nodegroup" -> "nodegroup"
-		nodeGroup := sc.extractNodeGroupFromName(nodeName)
-
-		if nodeGroupSet[nodeGroup] {
-			filtered[nodeName] = client
-		}
-	}
-
-	return filtered
-}
-
-// extractNodeGroupFromName extracts the node group name from a node name
-func (sc *Client) extractNodeGroupFromName(nodeName string) string {
-	if sc.deploymentType == DeploymentTypeBeekeeper {
-		// For beekeeper: "nodegroup-0" -> "nodegroup"
-		if lastDash := len(nodeName) - 1; lastDash > 0 {
-			for i := lastDash; i >= 0; i-- {
-				if nodeName[i] == '-' {
-					return nodeName[:i]
+	filteredClients := make(map[string]*bee.Client)
+	if len(sc.nodeGroups) > 0 && sc.deploymentType == DeploymentTypeBeekeeper {
+		for _, ng := range sc.nodeGroups {
+			for name, client := range clients {
+				if client.NodeGroup() == ng {
+					filteredClients[name] = client
 				}
 			}
 		}
+	} else {
+		filteredClients = clients
 	}
-	// For other deployments, the node name is the node group name
-	return nodeName
+	return filteredClients
 }
 
 // nodeName returns the name of the node, and adds suffix based on deployment type.
