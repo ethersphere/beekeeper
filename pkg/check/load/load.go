@@ -14,9 +14,11 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Options struct {
@@ -62,13 +64,13 @@ func init() {
 var _ beekeeper.Action = (*Check)(nil)
 
 type Check struct {
-	metrics metrics
+	metrics smoke.Metrics
 	logger  logging.Logger
 }
 
 func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: newMetrics("check_load"),
+		metrics: smoke.NewMetrics("check_load"),
 		logger:  log,
 	}
 }
@@ -371,4 +373,8 @@ func randomIntSeq(size, ceiling int) (out []int) {
 	}
 
 	return
+}
+
+func (c *Check) Report() []prometheus.Collector {
+	return c.metrics.Report()
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Options represents smoke test options
@@ -59,14 +60,14 @@ var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
 type Check struct {
-	metrics metrics
+	metrics Metrics
 	logger  logging.Logger
 }
 
 // NewCheck returns new check
 func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: newMetrics("check_smoke"),
+		metrics: NewMetrics("check_smoke"),
 		logger:  log,
 	}
 }
@@ -307,4 +308,8 @@ func (t *test) download(ctx context.Context, cName string, addr swarm.Address) (
 	t.logger.Infof("node %s: download done in %s", cName, rxDuration)
 
 	return data, rxDuration, nil
+}
+
+func (c *Check) Report() []prometheus.Collector {
+	return c.metrics.Report()
 }

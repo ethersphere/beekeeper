@@ -5,7 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type metrics struct {
+type Metrics struct {
 	BatchCreateErrors   prometheus.Counter
 	BatchCreateAttempts prometheus.Counter
 	UploadErrors        *prometheus.CounterVec
@@ -21,8 +21,8 @@ type metrics struct {
 
 const labelSizeBytes = "size_bytes"
 
-func newMetrics(subsystem string) metrics {
-	return metrics{
+func NewMetrics(subsystem string) Metrics {
+	return Metrics{
 		BatchCreateAttempts: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
@@ -123,6 +123,6 @@ func newMetrics(subsystem string) metrics {
 	}
 }
 
-func (c *Check) Report() []prometheus.Collector {
-	return m.PrometheusCollectorsFromFields(c.metrics)
+func (metrics *Metrics) Report() []prometheus.Collector {
+	return m.PrometheusCollectorsFromFields(*metrics)
 }
