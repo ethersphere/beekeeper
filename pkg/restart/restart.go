@@ -26,7 +26,7 @@ func NewClient(nodeProvider node.NodeProvider, k8sClient *k8s.Client, l logging.
 	}
 }
 
-func (c *Client) Restart(ctx context.Context) error {
+func (c *Client) Restart(ctx context.Context, image string) error {
 	nodes, err := c.nodeProvider.GetNodes(ctx)
 	if err != nil {
 		return fmt.Errorf("getting nodes: %w", err)
@@ -35,15 +35,12 @@ func (c *Client) Restart(ctx context.Context) error {
 	c.logger.Debugf("starting pod restart for %d nodes", len(nodes))
 	count := 0
 	for _, node := range nodes {
-		if err := c.deletePod(ctx, node.Name(), c.nodeProvider.Namespace()); err != nil {
+		if err := c.updateOrDeleteNode(ctx, node.Name(), c.nodeProvider.Namespace(), image); err != nil {
 			c.logger.Warningf("failed to restart node %s: %v", node.Name(), err)
 			continue
 		}
 		count++
 	}
-
-	// TODO: use image name to update the image of the stateful set
-	// and then delete the pod if the update strategy is OnDelete
 
 	c.logger.Infof("restarted %d pods", count)
 	return nil

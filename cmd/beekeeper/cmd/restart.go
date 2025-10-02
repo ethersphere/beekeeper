@@ -49,7 +49,7 @@ Requires either --cluster-name or --namespace to be specified.`,
 
 				restartClient := restart.NewClient(nodeClient, c.k8sClient, c.log)
 
-				if err := restartClient.Restart(ctx); err != nil {
+				if err := restartClient.Restart(ctx, c.globalConfig.GetString(optionNameImage)); err != nil {
 					return fmt.Errorf("restarting pods: %w", err)
 				}
 
