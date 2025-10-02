@@ -481,6 +481,7 @@ func (c *command) createNodeClient(ctx context.Context, useDeploymentType bool) 
 		DeploymentType: node.DeploymentType(c.globalConfig.GetString(optionNameDeploymentType)),
 		InCluster:      c.globalConfig.GetBool(optionNameInCluster),
 		UseNamespace:   c.globalConfig.IsSet(optionNameNamespace),
+		NodeGroups:     c.globalConfig.GetStringSlice(optionNameNodeGroups),
 	})
 
 	return nodeClient, nil

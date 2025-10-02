@@ -8,7 +8,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/node"
-	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
 type Client struct {
@@ -44,26 +43,6 @@ func (c *Client) Restart(ctx context.Context, image string) error {
 
 	c.logger.Infof("restarted %d pods", count)
 	return nil
-}
-
-func (c *Client) getNodeList(cluster orchestration.Cluster, nodeGroups []string) []string {
-	if len(nodeGroups) == 0 {
-		return cluster.NodeNames()
-	}
-
-	nodeGroupsMap := cluster.NodeGroups()
-	var nodes []string
-
-	for _, nodeGroup := range nodeGroups {
-		group, ok := nodeGroupsMap[nodeGroup]
-		if !ok {
-			c.logger.Debugf("node group %s not found in cluster %s", nodeGroup, cluster.Name())
-			continue
-		}
-		nodes = append(nodes, group.NodesSorted()...)
-	}
-
-	return nodes
 }
 
 func (c *Client) updateOrDeleteNode(ctx context.Context, node, ns, image string) error {

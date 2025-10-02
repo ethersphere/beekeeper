@@ -36,7 +36,7 @@ type ClientConfig struct {
 	DeploymentType DeploymentType
 	InCluster      bool
 	UseNamespace   bool     // Overrides the usage of the bee clients
-	NodeGroups     []string // TODO: use node groups for filtering nodes (this is only in case of beekeeper deployment)
+	NodeGroups     []string // Node groups for filtering nodes (only used with beekeeper deployment)
 }
 
 type Client struct {
@@ -49,6 +49,7 @@ type Client struct {
 	deploymentType DeploymentType
 	inCluster      bool
 	useNamespace   bool
+	nodeGroups     []string
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -74,6 +75,7 @@ func New(cfg *ClientConfig) *Client {
 		deploymentType: cfg.DeploymentType,
 		inCluster:      cfg.InCluster,
 		useNamespace:   cfg.UseNamespace,
+		nodeGroups:     cfg.NodeGroups,
 	}
 }
 
@@ -104,15 +106,26 @@ func (sc *Client) GetNodes(ctx context.Context) (nodes NodeList, err error) {
 		return nil, fmt.Errorf("bee clients not provided")
 	}
 
-	names := make([]string, 0, len(sc.beeClients))
-	for n := range sc.beeClients {
+	// Filter bee clients by node groups if specified
+	filteredClients := sc.beeClients
+	if len(sc.nodeGroups) > 0 {
+		filteredClients = sc.filterClientsByNodeGroups(sc.beeClients)
+		if len(filteredClients) == 0 {
+			sc.log.Warningf("no nodes found in specified node groups: %v", sc.nodeGroups)
+			return NodeList{}, nil
+		}
+		sc.log.Debugf("filtered to %d nodes from node groups: %v", len(filteredClients), sc.nodeGroups)
+	}
+
+	names := make([]string, 0, len(filteredClients))
+	for n := range filteredClients {
 		names = append(names, n)
 	}
 	sort.Strings(names)
 
 	nodes = make(NodeList, 0, len(names))
 	for _, nodeName := range names {
-		beeClient := sc.beeClients[nodeName]
+		beeClient := filteredClients[nodeName]
 		nodes = append(nodes, *NewNode(beeClient.API(), sc.nodeName(nodeName)))
 	}
 
@@ -192,6 +205,51 @@ func (sc *Client) getIngressNodes(ctx context.Context) ([]Node, error) {
 	}
 
 	return nodes, nil
+}
+
+// filterClientsByNodeGroups filters bee clients by node groups
+// Node names in beekeeper deployments follow the pattern: {nodeGroup}-{index}
+// This function extracts the node group from the node name and filters accordingly
+func (sc *Client) filterClientsByNodeGroups(clients map[string]*bee.Client) map[string]*bee.Client {
+	if len(sc.nodeGroups) == 0 {
+		return clients
+	}
+
+	// Create a map for faster lookup
+	nodeGroupSet := make(map[string]bool)
+	for _, ng := range sc.nodeGroups {
+		nodeGroupSet[ng] = true
+	}
+
+	filtered := make(map[string]*bee.Client)
+	for nodeName, client := range clients {
+		// Extract node group from node name
+		// For beekeeper deployments: "nodegroup-0" -> "nodegroup"
+		// For other deployments: "nodegroup" -> "nodegroup"
+		nodeGroup := sc.extractNodeGroupFromName(nodeName)
+
+		if nodeGroupSet[nodeGroup] {
+			filtered[nodeName] = client
+		}
+	}
+
+	return filtered
+}
+
+// extractNodeGroupFromName extracts the node group name from a node name
+func (sc *Client) extractNodeGroupFromName(nodeName string) string {
+	if sc.deploymentType == DeploymentTypeBeekeeper {
+		// For beekeeper: "nodegroup-0" -> "nodegroup"
+		if lastDash := len(nodeName) - 1; lastDash > 0 {
+			for i := lastDash; i >= 0; i-- {
+				if nodeName[i] == '-' {
+					return nodeName[:i]
+				}
+			}
+		}
+	}
+	// For other deployments, the node name is the node group name
+	return nodeName
 }
 
 // nodeName returns the name of the node, and adds suffix based on deployment type.
