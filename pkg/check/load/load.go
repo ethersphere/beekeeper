@@ -61,6 +61,7 @@ func NewDefaultOptions() Options {
 		IterationWait:           5 * time.Minute,
 	}
 }
+
 func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
