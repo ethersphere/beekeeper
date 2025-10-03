@@ -78,11 +78,10 @@ Requires --wallet-key for the funding account and --geth-url for blockchain acce
 					return fmt.Errorf("creating node client: %w", err)
 				}
 
-				funderClient := nodefunder.NewClient(nodeClient, c.log)
-
 				if c.globalConfig.IsSet(optionNameNamespace) {
 					cfg.Namespace = nodeClient.Namespace()
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
+						funderClient := nodefunder.NewClient(nodeClient, c.log)
 						return funder.Fund(ctx, cfg, funderClient, nil, logOpt)
 					})
 				}
