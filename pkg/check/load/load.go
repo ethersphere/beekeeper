@@ -17,6 +17,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -103,15 +104,29 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 	c.logger.Infof("committed depth check wait time: %v", o.CommittedDepthCheckWait)
 	c.logger.Infof("total duration: %s", o.Duration.String())
 
-	clients, err := cluster.NodesClients(ctx)
+	rnd := random.PseudoGenerator(o.RndSeed)
+	fullNodeClients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
 	if err != nil {
-		return fmt.Errorf("get clients: %w", err)
+		return fmt.Errorf("get shuffled full node clients: %w", err)
+	}
+
+	if len(fullNodeClients) == 0 {
+		return fmt.Errorf("load check requires at least 1 full node, got 0")
+	}
+
+	clients := make(map[string]*bee.Client)
+	for _, client := range fullNodeClients {
+		clients[client.Name()] = client
 	}
 
 	test := &test{clients: clients, logger: c.logger}
 
-	uploaders := selectNames(cluster, o.UploadGroups...)
-	downloaders := selectNames(cluster, o.DownloadGroups...)
+	uploaders := selectFullNodeNames(fullNodeClients, cluster, o.UploadGroups...)
+
+	var downloaders []string
+	if o.DownloaderCount > 0 && len(o.DownloadGroups) > 0 {
+		downloaders = selectFullNodeNames(fullNodeClients, cluster, o.DownloadGroups...)
+	}
 
 	for i := 0; true; i++ {
 		select {
@@ -343,13 +358,30 @@ func pickRandom(count int, peers []string) (names []string) {
 	return
 }
 
-func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
+// selectFullNodeNames filters full node clients based on specified node groups
+func selectFullNodeNames(fullNodeClients []*bee.Client, c orchestration.Cluster, names ...string) (selected []string) {
+	if len(names) == 0 {
+		for _, client := range fullNodeClients {
+			selected = append(selected, client.Name())
+		}
+		return
+	}
+
+	groupNodes := make(map[string]bool)
 	for _, name := range names {
 		ng, err := c.NodeGroup(name)
 		if err != nil {
 			panic(err)
 		}
-		selected = append(selected, ng.NodesSorted()...)
+		for _, nodeName := range ng.NodesSorted() {
+			groupNodes[nodeName] = true
+		}
+	}
+
+	for _, client := range fullNodeClients {
+		if groupNodes[client.Name()] {
+			selected = append(selected, client.Name())
+		}
 	}
 
 	rand.Shuffle(len(selected), func(i, j int) {
