@@ -94,9 +94,20 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 
-	clients, err := cluster.NodesClients(ctx)
+	// Get shuffled full node clients for better load distribution and testing
+	fullNodeClients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
 	if err != nil {
-		return err
+		return fmt.Errorf("get shuffled full node clients: %w", err)
+	}
+
+	if len(fullNodeClients) < 2 {
+		return fmt.Errorf("smoke check requires at least 2 full nodes, got %d", len(fullNodeClients))
+	}
+
+	// Create a map for easy client lookup by name
+	clients := make(map[string]*bee.Client)
+	for _, client := range fullNodeClients {
+		clients[client.Name()] = client
 	}
 
 	test := &test{clients: clients, logger: c.logger}
@@ -109,18 +120,19 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 			c.logger.Infof("starting iteration: #%d", i)
 		}
 
-		perm := rnd.Perm(cluster.Size())
-		txIdx := perm[0]
-		rxIdx := perm[1]
+		// Select two different full nodes from the shuffled list
+		txClient := fullNodeClients[0]
+		rxClient := fullNodeClients[1]
 
-		// if the upload and download nodes are the same, try again for a different peer
-		if txIdx == rxIdx {
-			continue
+		// If we have more than 2 nodes, randomly select different ones
+		if len(fullNodeClients) > 2 {
+			perm := rnd.Perm(len(fullNodeClients))
+			txClient = fullNodeClients[perm[0]]
+			rxClient = fullNodeClients[perm[1]]
 		}
 
-		nn := cluster.NodeNames()
-		txName := nn[txIdx]
-		rxName := nn[rxIdx]
+		txName := txClient.Name()
+		rxName := rxClient.Name()
 
 		c.logger.Infof("uploader: %s", txName)
 		c.logger.Infof("downloader: %s", rxName)
