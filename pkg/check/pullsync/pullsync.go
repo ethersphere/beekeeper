@@ -199,7 +199,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	totalReplicationFactor = totalReplicationFactor / float64(o.UploadNodeCount*o.ChunksPerNode)
 	c.logger.Infof("Done with average replication factor: %f", totalReplicationFactor)
 
-	return
+	return err
 }
 
 // findName returns node name of a given swarm.Address in a given set of swarm.Addresses, or "" if not found

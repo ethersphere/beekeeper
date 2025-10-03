@@ -13,7 +13,7 @@ func (prgs PodReadinessGates) toK8S() (l []v1.PodReadinessGate) {
 			l = append(l, g.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // PodReadinessGate represents Kubernetes PodReadinessGate

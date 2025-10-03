@@ -15,7 +15,7 @@ func (cs Containers) ToK8S() (l []v1.Container) {
 			l = append(l, c.ToK8S())
 		}
 	}
-	return
+	return l
 }
 
 // Container represents Kubernetes Container

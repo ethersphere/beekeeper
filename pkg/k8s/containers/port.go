@@ -13,7 +13,7 @@ func (ps Ports) toK8S() (l []v1.ContainerPort) {
 			l = append(l, p.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // Port represents Kubernetes ContainerPort

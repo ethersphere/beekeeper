@@ -29,7 +29,7 @@ func (lsrs LabelSelectorRequirements) toK8S() (l []metav1.LabelSelectorRequireme
 			l = append(l, lsr.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // LabelSelectorRequirement represents Kubernetes LabelSelectorRequirement

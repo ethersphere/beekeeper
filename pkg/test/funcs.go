@@ -1,4 +1,4 @@
-package bee
+package test
 
 type Bees []BeeV2
 

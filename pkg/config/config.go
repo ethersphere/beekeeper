@@ -35,7 +35,7 @@ func (c *Config) PrintYaml(w io.Writer) (err error) {
 	if err := yaml.NewEncoder(w).Encode(c); err != nil {
 		return fmt.Errorf("config can not be encoded: %s", err.Error())
 	}
-	return
+	return err
 }
 
 // merge combines Config objects using inheritance
@@ -55,7 +55,7 @@ func (c *Config) merge() (err error) {
 		return fmt.Errorf("merging clusters: %w", err)
 	}
 
-	return
+	return err
 }
 
 func mergeConfigs[T any](configs map[string]T) (map[string]T, error) {

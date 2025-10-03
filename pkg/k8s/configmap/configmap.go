@@ -57,7 +57,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (cm
 		}
 	}
 
-	return
+	return cm, err
 }
 
 // Delete deletes ConfigMap
@@ -70,5 +70,5 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		return fmt.Errorf("deleting configmap %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return err
 }

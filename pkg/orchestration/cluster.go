@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"slices"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -34,7 +35,7 @@ type Cluster interface {
 	Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error)
 	RandomNode(ctx context.Context, r *rand.Rand) (node Node, err error)
 	Settlements(ctx context.Context) (settlements ClusterSettlements, err error)
-	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
+	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) (ClientList, error)
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
 	ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*bee.Client, error)
@@ -72,6 +73,11 @@ type ClusterSettlements map[string]NodeGroupSettlements
 
 // ClusterTopologies represents Kademlia topology of all nodes in the cluster
 type ClusterTopologies map[string]NodeGroupTopologies
+
+type (
+	ClientList []*bee.Client
+	ClientMap  map[string]*bee.Client
+)
 
 // RandomOverlay returns a random overlay from a random NodeGroup
 func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string, overlay swarm.Address) {
@@ -119,7 +125,7 @@ func (c ClusterOptions) ApiURL(name string, inCluster bool) (u *url.URL, err err
 	if err != nil {
 		return nil, fmt.Errorf("bad API url for node %s: %w", name, err)
 	}
-	return
+	return u, err
 }
 
 // IngressHost generates host for node's API ingress
@@ -128,4 +134,42 @@ func (c ClusterOptions) IngressHost(name string) string {
 		return fmt.Sprintf("%s.%s", name, c.APIDomain)
 	}
 	return fmt.Sprintf("%s.%s.%s", name, c.Namespace, c.APIDomain)
+}
+
+func (c ClientList) FilterByNodeGroups(nodeGroups []string) ClientList {
+	var filtered ClientList
+	for _, ng := range nodeGroups {
+		for _, client := range c {
+			if client.NodeGroup() == ng {
+				filtered = append(filtered, client)
+			}
+		}
+	}
+	return filtered
+}
+
+func (c ClientList) Next(current *bee.Client) *bee.Client {
+	if len(c) == 0 {
+		return nil
+	}
+	if current == nil {
+		return c[0]
+	}
+	i := slices.IndexFunc(c, func(cl *bee.Client) bool { return cl.Name() == current.Name() })
+	if i == -1 || i+1 >= len(c) {
+		return c[0]
+	}
+	return c[i+1]
+}
+
+func (c ClientMap) FilterByNodeGroups(nodeGroups []string) ClientList {
+	var filtered ClientList
+	for _, ng := range nodeGroups {
+		for _, client := range c {
+			if client.NodeGroup() == ng {
+				filtered = append(filtered, client)
+			}
+		}
+	}
+	return filtered
 }

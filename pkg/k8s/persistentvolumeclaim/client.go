@@ -53,7 +53,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (pv
 		}
 	}
 
-	return
+	return pvc, err
 }
 
 // Delete deletes PersistentVolumeClaim
@@ -66,5 +66,5 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		return fmt.Errorf("deleting pvc %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return err
 }

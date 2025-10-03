@@ -45,7 +45,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		return fmt.Errorf("deleting statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return err
 }
 
 // ReadyReplicas returns number of Pods created by the StatefulSet controller that have a Ready Condition
@@ -59,7 +59,7 @@ func (c *Client) ReadyReplicas(ctx context.Context, name, namespace string) (rea
 	}
 	ready = s.Status.ReadyReplicas
 
-	return
+	return ready, err
 }
 
 // ReadyReplicasWatch returns number of Pods created by the StatefulSet controller that have a Ready Condition by watching events
@@ -90,7 +90,7 @@ func (c *Client) ReadyReplicasWatch(ctx context.Context, name, namespace string)
 			statefulSet, ok := event.Object.(*appsv1.StatefulSet)
 			if ok && statefulSet.Status.Replicas == statefulSet.Status.ReadyReplicas {
 				ready = statefulSet.Status.ReadyReplicas
-				return
+				return ready, err
 			}
 		}
 	}
@@ -112,7 +112,7 @@ func (c *Client) RunningStatefulSets(ctx context.Context, namespace string) (run
 		}
 	}
 
-	return
+	return running, err
 }
 
 // StatefulSets returns names of running StatefulSets
@@ -161,7 +161,7 @@ func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int
 		return nil, fmt.Errorf("scaling statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return sc, err
 }
 
 // Set updates StatefulSet or creates it if it does not exist
@@ -188,7 +188,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (st
 		}
 	}
 
-	return
+	return statefulSet, err
 }
 
 // StoppedStatefulSets returns names of stopped StatefulSets
@@ -207,7 +207,7 @@ func (c *Client) StoppedStatefulSets(ctx context.Context, namespace string) (sto
 		}
 	}
 
-	return
+	return stopped, err
 }
 
 // UpdateImage updates StatefulSet image

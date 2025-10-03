@@ -75,5 +75,5 @@ func (c *Client) Delete(ctx context.Context, name string) (err error) {
 		return fmt.Errorf("deleting namespace %s: %w", name, err)
 	}
 
-	return
+	return err
 }

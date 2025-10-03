@@ -84,7 +84,7 @@ func (p *PodSpec) toK8S() v1.PodSpec {
 					l = append(l, v1.LocalObjectReference{Name: i})
 				}
 			}
-			return
+			return l
 		}(),
 		InitContainers: p.InitContainers.ToK8S(),
 		NodeName:       p.NodeName,

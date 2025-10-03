@@ -27,5 +27,5 @@ type StatusResponse struct {
 // Ping pings given node
 func (s *StatusService) Status(ctx context.Context) (resp *StatusResponse, err error) {
 	err = s.client.requestJSON(ctx, http.MethodGet, "/status", nil, &resp)
-	return
+	return resp, err
 }

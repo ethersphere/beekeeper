@@ -54,7 +54,7 @@ func (ps Ports) toK8S() (l []v1.ServicePort) {
 		l = append(l, p.toK8S())
 	}
 
-	return
+	return l
 }
 
 // Port represents service's port
