@@ -52,12 +52,15 @@ func NewDefaultOptions() Options {
 		RxOnErrWait:             10 * time.Second,
 		NodesSyncWait:           time.Minute,
 		Duration:                12 * time.Hour,
+		UploaderCount:           1,
+		UploadGroups:            []string{"bee"},
+		DownloaderCount:         0,
+		DownloadGroups:          []string{},
 		MaxCommittedDepth:       2,
 		CommittedDepthCheckWait: 5 * time.Minute,
 		IterationWait:           5 * time.Minute,
 	}
 }
-
 func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
