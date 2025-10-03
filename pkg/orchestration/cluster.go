@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
-	"slices"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -146,20 +145,6 @@ func (c ClientList) FilterByNodeGroups(nodeGroups []string) ClientList {
 		}
 	}
 	return filtered
-}
-
-func (c ClientList) Next(current *bee.Client) *bee.Client {
-	if len(c) == 0 {
-		return nil
-	}
-	if current == nil {
-		return c[0]
-	}
-	i := slices.IndexFunc(c, func(cl *bee.Client) bool { return cl.Name() == current.Name() })
-	if i == -1 || i+1 >= len(c) {
-		return c[0]
-	}
-	return c[i+1]
 }
 
 func (c ClientMap) FilterByNodeGroups(nodeGroups []string) ClientList {
