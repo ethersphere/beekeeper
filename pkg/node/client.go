@@ -21,6 +21,8 @@ const (
 	DeploymentTypeHelm      DeploymentType = "helm"
 )
 
+var ErrNodesNotFound = fmt.Errorf("nodes not found")
+
 type NodeProvider interface {
 	GetNodes(ctx context.Context) (NodeList, error)
 	Namespace() string
@@ -95,26 +97,16 @@ func (sc *Client) GetNodes(ctx context.Context) (nodes NodeList, err error) {
 	}()
 
 	if sc.useNamespace && sc.namespace != "" {
-		nodes, err = sc.getNamespaceNodes(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("get namespace nodes: %w", err)
-		}
-		return
+		return sc.getNamespaceNodes(ctx)
 	}
 
 	if len(sc.beeClients) == 0 {
 		return nil, fmt.Errorf("bee clients not provided")
 	}
 
-	// Filter bee clients by node groups if specified
-	filteredClients := sc.beeClients
-	if len(sc.nodeGroups) > 0 {
-		filteredClients = sc.filterClientsByNodeGroups(sc.beeClients)
-		if len(filteredClients) == 0 {
-			sc.log.Warningf("no nodes found in specified node groups: %v", sc.nodeGroups)
-			return NodeList{}, nil
-		}
-		sc.log.Debugf("filtered to %d nodes from node groups: %v", len(filteredClients), sc.nodeGroups)
+	filteredClients, err := sc.filterClientsByNodeGroups()
+	if err != nil {
+		return nil, fmt.Errorf("filter clients by node groups: %w", err)
 	}
 
 	names := make([]string, 0, len(filteredClients))
@@ -209,20 +201,30 @@ func (sc *Client) getIngressNodes(ctx context.Context) ([]Node, error) {
 
 // filterClientsByNodeGroups filters bee clients by node groups
 // Only applies filtering for beekeeper deployments where NodeGroupName is set
-func (sc *Client) filterClientsByNodeGroups(clients map[string]*bee.Client) map[string]*bee.Client {
-	filteredClients := make(map[string]*bee.Client)
-	if len(sc.nodeGroups) > 0 && sc.deploymentType == DeploymentTypeBeekeeper {
-		for _, ng := range sc.nodeGroups {
-			for name, client := range clients {
-				if client.NodeGroup() == ng {
-					filteredClients[name] = client
-				}
-			}
-		}
-	} else {
-		filteredClients = clients
+func (sc *Client) filterClientsByNodeGroups() (map[string]*bee.Client, error) {
+	if len(sc.nodeGroups) == 0 || sc.deploymentType != DeploymentTypeBeekeeper {
+		return sc.beeClients, nil
 	}
-	return filteredClients
+
+	nodeGroupSet := make(map[string]struct{}, len(sc.nodeGroups))
+	for _, ng := range sc.nodeGroups {
+		nodeGroupSet[ng] = struct{}{}
+	}
+
+	filtered := make(map[string]*bee.Client)
+	for name, client := range sc.beeClients {
+		if _, ok := nodeGroupSet[client.NodeGroup()]; ok {
+			filtered[name] = client
+		}
+	}
+
+	if len(filtered) == 0 {
+		return nil, ErrNodesNotFound
+	}
+
+	sc.log.Infof("filtered nodes by node groups %v, %d nodes remaining", sc.nodeGroups, len(filtered))
+
+	return filtered, nil
 }
 
 // nodeName returns the name of the node, and adds suffix based on deployment type.
