@@ -87,6 +87,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, no
 
 	beeClientOpts := bee.ClientOptions{
 		Name:       name,
+		NodeGroup:  g.name,
 		APIURL:     apiURL,
 		Retry:      5,
 		SwapClient: g.swapClient,

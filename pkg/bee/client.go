@@ -56,6 +56,7 @@ func NewClient(opts ClientOptions) (c *Client, err error) {
 		log:        opts.Logger,
 		swapClient: opts.SwapClient,
 		name:       opts.Name,
+		nodeGroup:  opts.NodeGroup,
 		apiURL:     opts.APIURL,
 	}
 
