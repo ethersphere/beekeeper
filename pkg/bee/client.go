@@ -25,22 +25,24 @@ import (
 
 // Client manages communication with the Bee node
 type Client struct {
-	api        *api.Client
-	swapClient swap.BlockTimeFetcher
-	log        logging.Logger
-	name       string
-	apiURL     *url.URL
-	retryCount int
+	api           *api.Client
+	swapClient    swap.BlockTimeFetcher
+	log           logging.Logger
+	name          string
+	nodeGroupName string
+	apiURL        *url.URL
+	retryCount    int
 }
 
 // ClientOptions holds optional parameters for the Client.
 type ClientOptions struct {
-	APIURL     *url.URL
-	Name       string
-	Retry      int
-	SwapClient swap.BlockTimeFetcher
-	HTTPClient *http.Client
-	Logger     logging.Logger
+	APIURL        *url.URL
+	Name          string
+	NodeGroupName string
+	Retry         int
+	SwapClient    swap.BlockTimeFetcher
+	HTTPClient    *http.Client
+	Logger        logging.Logger
 }
 
 // NewClient returns Bee client
@@ -50,11 +52,12 @@ func NewClient(opts ClientOptions) (c *Client, err error) {
 	}
 
 	c = &Client{
-		retryCount: 5,
-		log:        opts.Logger,
-		swapClient: opts.SwapClient,
-		name:       opts.Name,
-		apiURL:     opts.APIURL,
+		retryCount:    5,
+		log:           opts.Logger,
+		swapClient:    opts.SwapClient,
+		name:          opts.Name,
+		nodeGroupName: opts.NodeGroupName,
+		apiURL:        opts.APIURL,
 	}
 
 	c.api, err = api.NewClient(opts.APIURL, opts.HTTPClient)
@@ -80,6 +83,10 @@ type Addresses struct {
 
 func (c *Client) Name() string {
 	return c.name
+}
+
+func (c *Client) NodeGroup() string {
+	return c.nodeGroupName
 }
 
 func (c *Client) Host() string {

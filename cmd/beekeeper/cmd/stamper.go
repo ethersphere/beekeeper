@@ -13,6 +13,7 @@ const (
 	optionNamePeriodicCheck string = "periodic-check"
 	optionNameNamespace     string = "namespace"
 	optionNameLabelSelector string = "label-selector"
+	optionNameNodeGroups    string = "node-groups" // We are using optionNameNodeGroups and optionNameLabelSelector in /cmd/beekeeper/cmd/cmd.go, i think we should move them to some common place ?
 )
 
 func (c *command) initStamperCmd() (err error) {

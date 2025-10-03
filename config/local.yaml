@@ -282,7 +282,8 @@ checks:
     type: settlements
   ci-smoke:
     options:
-      content-size: 50000
+      content-size: 3072
+      file-sizes: [3072, 30720, 307200, 3145728] # [3KB, 30KB, 300KB, 3MB]
       postage-ttl: 24h
       postage-depth: 21
       postage-label: test-label
@@ -295,7 +296,7 @@ checks:
     type: smoke
   ci-load:
     options:
-      content-size: 50000
+      content-size: 3072
       postage-ttl: 24h
       postage-depth: 21
       postage-label: test-label

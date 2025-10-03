@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -12,11 +11,12 @@ import (
 
 func (c *command) initRestartCmd() (err error) {
 	const (
-		optionNameLabelSelector = "label-selector"
-		optionNameNamespace     = "namespace"
-		optionNameImage         = "image"
-		optionNameNodeGroups    = "node-groups"
-		optionNameTimeout       = "timeout"
+		optionNameLabelSelector  = "label-selector"
+		optionNameNamespace      = "namespace"
+		optionNameImage          = "image"
+		optionNameNodeGroups     = "node-groups"
+		optionNameTimeout        = "timeout"
+		optionNameDeploymentType = "deployment-type"
 	)
 
 	cmd := &cobra.Command{
@@ -41,58 +41,31 @@ This command is useful for:
 
 Requires either --cluster-name or --namespace to be specified.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
-			defer cancel()
-
-			clusterName := c.globalConfig.GetString(optionNameClusterName)
-			namespace := c.globalConfig.GetString(optionNameNamespace)
-
-			if clusterName == "" && namespace == "" {
-				return errors.New("either cluster name or namespace must be provided")
-			}
-
-			restartClient := restart.NewClient(c.k8sClient, c.log)
-
-			if clusterName != "" {
-				clusterConfig, ok := c.config.Clusters[clusterName]
-				if !ok {
-					return fmt.Errorf("cluster config %s not defined", clusterName)
-				}
-
-				cluster, err := c.setupCluster(ctx, clusterName, false)
+			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
+				nodeClient, err := c.createNodeClient(ctx, true)
 				if err != nil {
-					return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+					return fmt.Errorf("creating node client: %w", err)
 				}
 
-				c.log.Infof("restarting cluster %s", clusterName)
+				restartClient := restart.NewClient(nodeClient, c.k8sClient, c.log)
 
-				if err := restartClient.RestartCluster(ctx,
-					cluster,
-					clusterConfig.GetNamespace(),
-					c.globalConfig.GetString(optionNameImage),
-					c.globalConfig.GetStringSlice(optionNameNodeGroups),
-				); err != nil {
-					return fmt.Errorf("restarting cluster %s: %w", clusterName, err)
+				if err := restartClient.Restart(ctx, c.globalConfig.GetString(optionNameImage)); err != nil {
+					return fmt.Errorf("restarting pods: %w", err)
 				}
 
 				return nil
-			}
-
-			if err := restartClient.RestartPods(ctx, namespace, c.globalConfig.GetString(optionNameLabelSelector)); err != nil {
-				return fmt.Errorf("restarting pods in namespace %s: %w", namespace, err)
-			}
-
-			return nil
+			})
 		},
 		PreRunE: c.preRunE,
 	}
 
 	cmd.Flags().String(optionNameClusterName, "", "Kubernetes cluster to operate on (overrides namespace and label selector).")
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Namespace to delete pods from (only used if cluster name is not set).")
-	cmd.Flags().String(optionNameLabelSelector, "", "Label selector for resources in the namespace (only used with namespace).")
+	cmd.Flags().String(optionNameLabelSelector, beeLabelSelector, "Label selector for resources in the namespace (only used with namespace).")
 	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
 	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for restarts (applies to all groups if not set).")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
+	cmd.Flags().String(optionNameDeploymentType, "beekeeper", "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
 
 	c.root.AddCommand(cmd)
 
