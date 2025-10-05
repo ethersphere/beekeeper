@@ -1,4 +1,4 @@
-package smoke
+package load
 
 import (
 	m "github.com/ethersphere/beekeeper/pkg/metrics"
@@ -21,7 +21,6 @@ type metrics struct {
 
 const (
 	labelSizeBytes = "size_bytes"
-	labelNodeName  = "node_name"
 )
 
 func newMetrics(subsystem string) metrics {
@@ -49,7 +48,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "upload_attempts",
 				Help:      "Number of upload attempts.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 		DownloadAttempts: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -58,7 +57,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "download_attempts",
 				Help:      "Number of download attempts.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 		UploadErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -67,7 +66,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "upload_errors_count",
 				Help:      "The total number of errors encountered before successful upload.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 		DownloadErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -76,7 +75,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "download_errors_count",
 				Help:      "The total number of errors encountered before successful download.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 		DownloadMismatch: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -85,7 +84,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "download_mismatch",
 				Help:      "The total number of times uploaded data is different from downloaded data.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 		UploadDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -94,7 +93,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "data_upload_duration",
 				Help:      "Data upload duration through the /bytes endpoint.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 		DownloadDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -103,7 +102,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "data_download_duration",
 				Help:      "Data download duration through the /bytes endpoint.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 		UploadThroughput: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -112,7 +111,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "upload_throughput_bytes_per_second",
 				Help:      "Upload throughput in bytes per second.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 		DownloadThroughput: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -121,7 +120,7 @@ func newMetrics(subsystem string) metrics {
 				Name:      "download_throughput_bytes_per_second",
 				Help:      "Download throughput in bytes per second.",
 			},
-			[]string{labelSizeBytes, labelNodeName},
+			[]string{labelSizeBytes},
 		),
 	}
 }

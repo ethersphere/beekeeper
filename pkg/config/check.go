@@ -17,6 +17,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/gc"
 	"github.com/ethersphere/beekeeper/pkg/check/gsoc"
 	"github.com/ethersphere/beekeeper/pkg/check/kademlia"
+	"github.com/ethersphere/beekeeper/pkg/check/load"
 	"github.com/ethersphere/beekeeper/pkg/check/longavailability"
 	"github.com/ethersphere/beekeeper/pkg/check/manifest"
 	"github.com/ethersphere/beekeeper/pkg/check/networkavailability"
@@ -412,7 +413,7 @@ var Checks = map[string]CheckType{
 		},
 	},
 	"load": {
-		NewAction: smoke.NewLoadCheck,
+		NewAction: load.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
 				ContentSize             *int64         `yaml:"content-size"`
@@ -436,7 +437,7 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 
-			opts := smoke.NewDefaultOptions()
+			opts := load.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

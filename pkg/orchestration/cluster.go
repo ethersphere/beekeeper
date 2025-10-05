@@ -34,7 +34,7 @@ type Cluster interface {
 	Peers(ctx context.Context, exclude ...string) (peers ClusterPeers, err error)
 	RandomNode(ctx context.Context, r *rand.Rand) (node Node, err error)
 	Settlements(ctx context.Context) (settlements ClusterSettlements, err error)
-	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) ([]*bee.Client, error)
+	ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) (ClientList, error)
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
 	ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*bee.Client, error)
@@ -72,6 +72,11 @@ type ClusterSettlements map[string]NodeGroupSettlements
 
 // ClusterTopologies represents Kademlia topology of all nodes in the cluster
 type ClusterTopologies map[string]NodeGroupTopologies
+
+type (
+	ClientList []*bee.Client
+	ClientMap  map[string]*bee.Client
+)
 
 // RandomOverlay returns a random overlay from a random NodeGroup
 func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string, overlay swarm.Address) {
@@ -128,4 +133,28 @@ func (c ClusterOptions) IngressHost(name string) string {
 		return fmt.Sprintf("%s.%s", name, c.APIDomain)
 	}
 	return fmt.Sprintf("%s.%s.%s", name, c.Namespace, c.APIDomain)
+}
+
+func (c ClientList) FilterByNodeGroups(nodeGroups []string) ClientList {
+	var filtered ClientList
+	for _, ng := range nodeGroups {
+		for _, client := range c {
+			if client.NodeGroup() == ng {
+				filtered = append(filtered, client)
+			}
+		}
+	}
+	return filtered
+}
+
+func (c ClientMap) FilterByNodeGroups(nodeGroups []string) ClientList {
+	var filtered ClientList
+	for _, ng := range nodeGroups {
+		for _, client := range c {
+			if client.NodeGroup() == ng {
+				filtered = append(filtered, client)
+			}
+		}
+	}
+	return filtered
 }

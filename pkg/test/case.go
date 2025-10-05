@@ -1,4 +1,4 @@
-package bee
+package test
 
 import (
 	"context"

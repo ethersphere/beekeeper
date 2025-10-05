@@ -29,6 +29,7 @@ type Client struct {
 	swapClient swap.BlockTimeFetcher
 	log        logging.Logger
 	name       string
+	nodeGroup  string
 	apiURL     *url.URL
 	retryCount int
 }
@@ -37,6 +38,7 @@ type Client struct {
 type ClientOptions struct {
 	APIURL     *url.URL
 	Name       string
+	NodeGroup  string
 	Retry      int
 	SwapClient swap.BlockTimeFetcher
 	HTTPClient *http.Client
@@ -54,6 +56,7 @@ func NewClient(opts ClientOptions) (c *Client, err error) {
 		log:        opts.Logger,
 		swapClient: opts.SwapClient,
 		name:       opts.Name,
+		nodeGroup:  opts.NodeGroup,
 		apiURL:     opts.APIURL,
 	}
 
@@ -88,6 +91,10 @@ func (c *Client) Host() string {
 
 func (c *Client) API() *api.Client {
 	return c.api
+}
+
+func (c *Client) NodeGroup() string {
+	return c.nodeGroup
 }
 
 // Addresses returns node's addresses

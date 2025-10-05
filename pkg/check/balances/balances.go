@@ -8,7 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	test "github.com/ethersphere/beekeeper/pkg/test"
+	"github.com/ethersphere/beekeeper/pkg/test"
 )
 
 // Options represents check options
