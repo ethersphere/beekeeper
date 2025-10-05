@@ -62,7 +62,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (in
 		}
 	}
 
-	return
+	return ing, err
 }
 
 // Delete deletes Ingress
@@ -75,7 +75,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		return fmt.Errorf("deleting ingress %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return err
 }
 
 // GetNodes list Ingresses hosts using label as selector, for the given namespace. If label is empty, all Ingresses are listed.

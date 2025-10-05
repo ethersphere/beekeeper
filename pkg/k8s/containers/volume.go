@@ -13,7 +13,7 @@ func (vds VolumeDevices) toK8S() (l []v1.VolumeDevice) {
 			l = append(l, vd.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // VolumeDevice represents Kubernetes VolumeDevice
@@ -41,7 +41,7 @@ func (vms VolumeMounts) toK8S() (l []v1.VolumeMount) {
 			l = append(l, vm.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // VolumeMount represents Kubernetes VolumeMount

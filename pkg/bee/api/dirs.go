@@ -39,5 +39,5 @@ func (s *DirsService) Upload(ctx context.Context, data io.Reader, size int64, o 
 
 	err = s.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz", header, data, &resp)
 
-	return
+	return resp, err
 }

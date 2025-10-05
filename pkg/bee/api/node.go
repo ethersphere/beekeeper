@@ -27,7 +27,7 @@ type Addresses struct {
 // Addresses returns node's addresses
 func (n *NodeService) Addresses(ctx context.Context) (resp Addresses, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/addresses", nil, &resp)
-	return
+	return resp, err
 }
 
 // Account represents node's account with a given peer
@@ -52,7 +52,7 @@ type Accounting struct {
 // Accounting returns node's accounts with all peers
 func (n *NodeService) Accounting(ctx context.Context) (resp Accounting, err error) {
 	err = n.client.request(ctx, http.MethodGet, "/accounting", nil, &resp)
-	return
+	return resp, err
 }
 
 // Balance represents node's balance with a peer
@@ -64,7 +64,7 @@ type Balance struct {
 // Balance returns node's balance with a given peer
 func (n *NodeService) Balance(ctx context.Context, a swarm.Address) (resp Balance, err error) {
 	err = n.client.request(ctx, http.MethodGet, "/balances/"+a.String(), nil, &resp)
-	return
+	return resp, err
 }
 
 // Balances represents node's balances with all peers
@@ -75,7 +75,7 @@ type Balances struct {
 // Balances returns node's balances with all peers
 func (n *NodeService) Balances(ctx context.Context) (resp Balances, err error) {
 	err = n.client.request(ctx, http.MethodGet, "/balances", nil, &resp)
-	return
+	return resp, err
 }
 
 // HasChunk returns true/false if node has a chunk
@@ -103,7 +103,7 @@ type Health struct {
 // Health returns node's health
 func (n *NodeService) Health(ctx context.Context) (resp Health, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/health", nil, &resp)
-	return
+	return resp, err
 }
 
 // Peers represents node's peers
@@ -119,7 +119,7 @@ type Peer struct {
 // Peers returns node's peers
 func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/peers", nil, &resp)
-	return
+	return resp, err
 }
 
 // Readiness represents node's readiness
@@ -130,7 +130,7 @@ type Readiness struct {
 // Readiness returns node's readiness
 func (n *NodeService) Readiness(ctx context.Context) (resp Readiness, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/readiness", nil, &resp)
-	return
+	return resp, err
 }
 
 // Settlement represents node's settlement with a peer
@@ -143,7 +143,7 @@ type Settlement struct {
 // Settlement returns node's settlement with a given peer
 func (n *NodeService) Settlement(ctx context.Context, a swarm.Address) (resp Settlement, err error) {
 	err = n.client.request(ctx, http.MethodGet, "/settlements/"+a.String(), nil, &resp)
-	return
+	return resp, err
 }
 
 // Settlements represents node's settlements with all peers
@@ -156,7 +156,7 @@ type Settlements struct {
 // Settlements returns node's settlements with all peers
 func (n *NodeService) Settlements(ctx context.Context) (resp Settlements, err error) {
 	err = n.client.request(ctx, http.MethodGet, "/settlements", nil, &resp)
-	return
+	return resp, err
 }
 
 type Cheque struct {
@@ -181,7 +181,7 @@ type CashoutStatusResponse struct {
 
 func (n *NodeService) CashoutStatus(ctx context.Context, a swarm.Address) (resp CashoutStatusResponse, err error) {
 	err = n.client.request(ctx, http.MethodGet, "/chequebook/cashout/"+a.String(), nil, &resp)
-	return
+	return resp, err
 }
 
 type TransactionHashResponse struct {
@@ -190,7 +190,7 @@ type TransactionHashResponse struct {
 
 func (n *NodeService) Cashout(ctx context.Context, a swarm.Address) (resp TransactionHashResponse, err error) {
 	err = n.client.request(ctx, http.MethodPost, "/chequebook/cashout/"+a.String(), nil, &resp)
-	return
+	return resp, err
 }
 
 type ChequebookBalanceResponse struct {
@@ -200,7 +200,7 @@ type ChequebookBalanceResponse struct {
 
 func (n *NodeService) ChequebookBalance(ctx context.Context) (resp ChequebookBalanceResponse, err error) {
 	err = n.client.request(ctx, http.MethodGet, "/chequebook/balance", nil, &resp)
-	return
+	return resp, err
 }
 
 // Topology represents Kademlia topology
@@ -249,7 +249,7 @@ func (n *NodeService) Topology(ctx context.Context) (resp Topology, err error) {
 		return Topology{}, err
 	}
 
-	return
+	return resp, err
 }
 
 type Wallet struct {
@@ -260,7 +260,7 @@ type Wallet struct {
 // Wallet returns the wallet state
 func (n *NodeService) Wallet(ctx context.Context) (resp Wallet, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/wallet", nil, &resp)
-	return
+	return resp, err
 }
 
 // Withdraw calls wallet withdraw endpoint
@@ -272,7 +272,7 @@ func (n *NodeService) Withdraw(ctx context.Context, token, addr string, amount i
 	}{}
 
 	if err = n.client.requestJSON(ctx, http.MethodPost, endpoint, nil, &r); err != nil {
-		return
+		return tx, err
 	}
 
 	return r.TransactionHash, nil

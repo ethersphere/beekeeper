@@ -46,7 +46,7 @@ func (*StatefulSet) ApplyStatus(ctx context.Context, statefulSet *configappsv1.S
 
 // Create implements v1.StatefulSetInterface
 func (*StatefulSet) Create(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.CreateOptions) (*v1.StatefulSet, error) {
-	if statefulSet.ObjectMeta.Name == CreateBad {
+	if statefulSet.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create statefulset")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -96,10 +96,10 @@ func (*StatefulSet) Patch(ctx context.Context, name string, pt types.PatchType, 
 
 // Update implements v1.StatefulSetInterface
 func (*StatefulSet) Update(ctx context.Context, statefulSet *v1.StatefulSet, opts metav1.UpdateOptions) (*v1.StatefulSet, error) {
-	if statefulSet.ObjectMeta.Name == UpdateBad {
+	if statefulSet.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update statefulset")
 	} else {
-		return nil, errors.NewNotFound(schema.GroupResource{}, statefulSet.ObjectMeta.Name)
+		return nil, errors.NewNotFound(schema.GroupResource{}, statefulSet.Name)
 	}
 }
 
@@ -115,10 +115,10 @@ func (*StatefulSet) UpdateStatus(ctx context.Context, statefulSet *v1.StatefulSe
 
 // Watch implements v1.StatefulSetInterface
 func (*StatefulSet) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	switch {
-	case opts.FieldSelector == "metadata.name=statefulset_bad":
+	switch opts.FieldSelector {
+	case "metadata.name=statefulset_bad":
 		return nil, fmt.Errorf("mock error: bad request")
-	case opts.FieldSelector == "metadata.name=test_statefulset":
+	case "metadata.name=test_statefulset":
 		watcher := watch.NewFake()
 		go func() {
 			defer watcher.Stop()
@@ -130,11 +130,11 @@ func (*StatefulSet) Watch(ctx context.Context, opts metav1.ListOptions) (watch.I
 			})
 		}()
 		return watcher, nil
-	case opts.FieldSelector == "metadata.name=test_statefulset_watcher_stop":
+	case "metadata.name=test_statefulset_watcher_stop":
 		watcher := watch.NewFake()
 		watcher.Stop()
 		return watcher, nil
-	case opts.FieldSelector == "metadata.name=test_statefulset_context_cancel":
+	case "metadata.name=test_statefulset_context_cancel":
 		watcher := watch.NewFake()
 		return watcher, nil
 	default:

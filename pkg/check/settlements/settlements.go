@@ -223,7 +223,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 	}
 
-	return
+	return err
 }
 
 // dryRun executes settlements validation check without files uploading/downloading
@@ -243,7 +243,7 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, logger logging.L
 	}
 	logger.Info("Settlements are valid")
 
-	return
+	return err
 }
 
 // validateSettlements checks if settlements are valid
@@ -297,7 +297,7 @@ func validateSettlements(accounting orchestration.NodeGroupAccounting, settlemen
 		logger.Info("invalid settlements: no symmetry")
 	}
 
-	return
+	return err
 }
 
 func pickAtRandom(r *rand.Rand, names []string, skip string) string {

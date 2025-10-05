@@ -17,7 +17,7 @@ func (evs EnvVars) toK8S() (l []v1.EnvVar) {
 		}
 	}
 
-	return
+	return l
 }
 
 // EnvVar represents Kubernetes EnvVar
@@ -121,7 +121,7 @@ func (efs EnvFroms) toK8S() (l []v1.EnvFromSource) {
 			l = append(l, ef.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // EnvFrom represents Kubernetes EnvFromSource

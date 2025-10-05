@@ -12,13 +12,12 @@ import (
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
+	"github.com/ethersphere/beekeeper/pkg/test"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -52,6 +51,10 @@ func NewDefaultOptions() Options {
 		RxOnErrWait:             10 * time.Second,
 		NodesSyncWait:           time.Minute,
 		Duration:                12 * time.Hour,
+		UploaderCount:           1,
+		UploadGroups:            []string{"bee"},
+		DownloaderCount:         0,
+		DownloadGroups:          []string{},
 		MaxCommittedDepth:       2,
 		CommittedDepthCheckWait: 5 * time.Minute,
 		IterationWait:           5 * time.Minute,
@@ -65,13 +68,13 @@ func init() {
 var _ beekeeper.Action = (*Check)(nil)
 
 type Check struct {
-	metrics smoke.Metrics
+	metrics metrics
 	logger  logging.Logger
 }
 
 func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: smoke.NewMetrics("check_load"),
+		metrics: newMetrics("check_load"),
 		logger:  log,
 	}
 }
@@ -110,22 +113,22 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		return fmt.Errorf("get shuffled full node clients: %w", err)
 	}
 
-	if len(fullNodeClients) == 0 {
-		return fmt.Errorf("load check requires at least 1 full node, got 0")
+	minNodes := min(o.UploaderCount, o.DownloaderCount)
+	if len(fullNodeClients) == 0 || len(fullNodeClients) < minNodes {
+		return fmt.Errorf("load check requires at least %d full nodes, got %d", minNodes, len(fullNodeClients))
 	}
 
-	clients := make(map[string]*bee.Client)
-	for _, client := range fullNodeClients {
-		clients[client.Name()] = client
-	}
+	test := test.NewTest(c.logger)
 
-	test := &test{clients: clients, logger: c.logger}
-
-	uploaders := selectFullNodeNames(fullNodeClients, cluster, o.UploadGroups...)
-
-	var downloaders []string
+	var downloaders []*bee.Client
 	if o.DownloaderCount > 0 && len(o.DownloadGroups) > 0 {
-		downloaders = selectFullNodeNames(fullNodeClients, cluster, o.DownloadGroups...)
+		downloaders = fullNodeClients.FilterByNodeGroups(o.DownloadGroups)
+		if len(downloaders) == 0 {
+			return fmt.Errorf("no downloaders found in the specified node groups: %v", o.DownloadGroups)
+		}
+		if len(downloaders) < o.DownloaderCount {
+			return fmt.Errorf("not enough downloaders found in the specified node groups: %v, requested %d, got %d", o.DownloadGroups, o.DownloaderCount, len(downloaders))
+		}
 	}
 
 	for i := 0; true; i++ {
@@ -151,9 +154,16 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 			continue
 		}
 
-		txNames := pickRandom(o.UploaderCount, uploaders)
-
-		c.logger.Infof("uploader: %s", txNames)
+		uploaders := fullNodeClients
+		if o.UploaderCount > 0 && len(o.UploadGroups) > 0 {
+			uploaders = fullNodeClients.FilterByNodeGroups(o.UploadGroups)
+			if len(uploaders) == 0 {
+				return fmt.Errorf("no uploaders found in the specified node groups: %v", o.UploadGroups)
+			}
+			if len(uploaders) < o.UploaderCount {
+				return fmt.Errorf("not enough uploaders found in the specified node groups: %v, requested %d, got %d", o.UploadGroups, o.UploaderCount, len(uploaders))
+			}
+		}
 
 		var (
 			upload sync.WaitGroup
@@ -162,7 +172,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 		upload.Add(1)
 
-		for _, txName := range txNames {
+		for _, uploader := range uploaders[:o.UploaderCount] {
 			go func() {
 				defer once.Do(func() {
 					upload.Done()
@@ -175,15 +185,15 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					default:
 					}
 
-					if !c.checkCommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
+					if !c.checkCommittedDepth(ctx, uploader, o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
 						return
 					}
 
 					c.metrics.UploadAttempts.WithLabelValues(sizeLabel).Inc()
 					var duration time.Duration
-					c.logger.Infof("uploading to: %s", txName)
+					c.logger.Infof("uploading to: %s", uploader)
 
-					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
+					batchID, err := uploader.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 					if err != nil {
 						c.logger.Errorf("create new batch: %v", err)
 						return
@@ -191,7 +201,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 					c.logger.WithField("batch_id", batchID).Info("using batch")
 
-					address, duration, err = test.upload(ctx, txName, txData, batchID)
+					address, duration, err = test.Upload(ctx, uploader, txData, batchID)
 					if err != nil {
 						c.metrics.UploadErrors.WithLabelValues(sizeLabel).Inc()
 						c.logger.Infof("upload failed: %v", err)
@@ -213,16 +223,10 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		c.logger.Infof("sleeping for: %v seconds", o.NodesSyncWait.Seconds())
 		time.Sleep(o.NodesSyncWait)
 
-		rxNames := pickRandom(o.DownloaderCount, downloaders)
-		c.logger.Infof("downloaders: %s", rxNames)
-
 		var wg sync.WaitGroup
 
-		for _, rxName := range rxNames {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
+		for _, downloader := range downloaders {
+			wg.Go(func() {
 				var (
 					rxDuration time.Duration
 					rxData     []byte
@@ -238,7 +242,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel).Inc()
 
-					rxData, rxDuration, err = test.download(ctx, rxName, address)
+					rxData, rxDuration, err = test.Download(ctx, downloader, address)
 					if err != nil {
 						c.metrics.DownloadErrors.WithLabelValues(sizeLabel).Inc()
 						c.logger.Infof("download failed: %v", err)
@@ -285,7 +289,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					downloadThroughput := float64(contentSize) / rxDuration.Seconds()
 					c.metrics.DownloadThroughput.WithLabelValues(sizeLabel).Set(downloadThroughput)
 				}
-			}()
+			})
 		}
 
 		wg.Wait()
@@ -314,97 +318,6 @@ func (c *Check) checkCommittedDepth(ctx context.Context, client *bee.Client, max
 		case <-time.After(wait):
 		}
 	}
-}
-
-type test struct {
-	clients map[string]*bee.Client
-	logger  logging.Logger
-}
-
-func (t *test) upload(ctx context.Context, cName string, data []byte, batchID string) (swarm.Address, time.Duration, error) {
-	client := t.clients[cName]
-	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
-	start := time.Now()
-	addr, err := client.UploadBytes(ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
-	if err != nil {
-		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
-	}
-	txDuration := time.Since(start)
-	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
-
-	return addr, txDuration, nil
-}
-
-func (t *test) download(ctx context.Context, cName string, addr swarm.Address) ([]byte, time.Duration, error) {
-	client := t.clients[cName]
-	t.logger.Infof("node %s: downloading address %s", cName, addr)
-	start := time.Now()
-	data, err := client.DownloadBytes(ctx, addr, nil)
-	if err != nil {
-		return nil, 0, fmt.Errorf("download from node %s: %w", cName, err)
-	}
-	rxDuration := time.Since(start)
-	t.logger.Infof("node %s: download done in %s", cName, rxDuration)
-
-	return data, rxDuration, nil
-}
-
-func pickRandom(count int, peers []string) (names []string) {
-	seq := randomIntSeq(count, len(peers))
-	for _, i := range seq {
-		names = append(names, peers[i])
-	}
-
-	return
-}
-
-// selectFullNodeNames filters full node clients based on specified node groups
-func selectFullNodeNames(fullNodeClients []*bee.Client, c orchestration.Cluster, names ...string) (selected []string) {
-	if len(names) == 0 {
-		for _, client := range fullNodeClients {
-			selected = append(selected, client.Name())
-		}
-		return
-	}
-
-	groupNodes := make(map[string]bool)
-	for _, name := range names {
-		ng, err := c.NodeGroup(name)
-		if err != nil {
-			panic(err)
-		}
-		for _, nodeName := range ng.NodesSorted() {
-			groupNodes[nodeName] = true
-		}
-	}
-
-	for _, client := range fullNodeClients {
-		if groupNodes[client.Name()] {
-			selected = append(selected, client.Name())
-		}
-	}
-
-	rand.Shuffle(len(selected), func(i, j int) {
-		tmp := selected[i]
-		selected[i] = selected[j]
-		selected[j] = tmp
-	})
-
-	return
-}
-
-func randomIntSeq(size, ceiling int) (out []int) {
-	r := make(map[int]struct{}, size)
-
-	for len(r) < size {
-		r[rand.Intn(ceiling)] = struct{}{}
-	}
-
-	for k := range r {
-		out = append(out, k)
-	}
-
-	return
 }
 
 func (c *Check) Report() []prometheus.Collector {

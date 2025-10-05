@@ -29,6 +29,7 @@ type Client struct {
 	swapClient swap.BlockTimeFetcher
 	log        logging.Logger
 	name       string
+	nodeGroup  string
 	apiURL     *url.URL
 	retryCount int
 }
@@ -37,6 +38,7 @@ type Client struct {
 type ClientOptions struct {
 	APIURL     *url.URL
 	Name       string
+	NodeGroup  string
 	Retry      int
 	SwapClient swap.BlockTimeFetcher
 	HTTPClient *http.Client
@@ -54,6 +56,7 @@ func NewClient(opts ClientOptions) (c *Client, err error) {
 		log:        opts.Logger,
 		swapClient: opts.SwapClient,
 		name:       opts.Name,
+		nodeGroup:  opts.NodeGroup,
 		apiURL:     opts.APIURL,
 	}
 
@@ -88,6 +91,10 @@ func (c *Client) Host() string {
 
 func (c *Client) API() *api.Client {
 	return c.api
+}
+
+func (c *Client) NodeGroup() string {
+	return c.nodeGroup
 }
 
 // Addresses returns node's addresses
@@ -149,7 +156,7 @@ func (c *Client) Accounting(ctx context.Context) (resp Accounting, err error) {
 		})
 	}
 
-	return
+	return resp, err
 }
 
 // Balance represents node's balance with peer
@@ -190,7 +197,7 @@ func (c *Client) Balances(ctx context.Context) (resp Balances, err error) {
 		})
 	}
 
-	return
+	return resp, err
 }
 
 // DownloadBytes downloads chunk from the node
@@ -308,7 +315,7 @@ func (c *Client) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 		peers = append(peers, p.Address)
 	}
 
-	return
+	return peers, err
 }
 
 // PinRootHash pins root hash of given reference.
@@ -428,8 +435,8 @@ func (c *Client) Settlement(ctx context.Context, a swarm.Address) (resp Settleme
 
 	return Settlement{
 		Peer:     b.Peer,
-		Received: b.Received.Int.Int64(),
-		Sent:     b.Sent.Int.Int64(),
+		Received: b.Received.Int64(),
+		Sent:     b.Sent.Int64(),
 	}, nil
 }
 
@@ -641,7 +648,7 @@ func (c *Client) Settlements(ctx context.Context) (resp Settlements, err error) 
 	resp.TotalReceived = r.TotalReceived.Int64()
 	resp.TotalSent = r.TotalSent.Int64()
 
-	return
+	return resp, err
 }
 
 type Cheque struct {
@@ -786,7 +793,7 @@ func (c *Client) Topology(ctx context.Context) (topology Topology, err error) {
 		Population:        t.LightNodes.Population,
 	}
 
-	return
+	return topology, err
 }
 
 // Underlay returns node's underlay addresses
@@ -840,7 +847,7 @@ func (c *Client) UploadFile(ctx context.Context, f *File, o api.UploadOptions) (
 	f.SetAddress(r.Reference)
 	f.SetHash(h.Sum(nil))
 
-	return
+	return err
 }
 
 func (c *Client) UploadActFile(ctx context.Context, f *File, o api.UploadOptions) (err error) {
@@ -903,7 +910,7 @@ func (c *Client) UploadCollection(ctx context.Context, f *File, o api.UploadOpti
 	f.SetAddress(r.Reference)
 	f.SetHash(h.Sum(nil))
 
-	return
+	return err
 }
 
 // DownloadManifestFile downloads manifest file from the node and returns it's size and hash
@@ -930,7 +937,7 @@ func (c *Client) CreateTag(ctx context.Context) (resp api.TagResponse, err error
 		return resp, fmt.Errorf("create tag: %w", err)
 	}
 
-	return
+	return resp, err
 }
 
 // GetTag retrieves tag from node
@@ -940,7 +947,7 @@ func (c *Client) GetTag(ctx context.Context, tagUID uint64) (resp api.TagRespons
 		return resp, fmt.Errorf("get tag: %w", err)
 	}
 
-	return
+	return resp, err
 }
 
 // IsRetrievable checks whether the content on the given address is retrievable.

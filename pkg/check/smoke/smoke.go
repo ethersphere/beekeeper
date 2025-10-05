@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
-	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
+	"github.com/ethersphere/beekeeper/pkg/test"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -60,14 +59,14 @@ var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
 type Check struct {
-	metrics Metrics
+	metrics metrics
 	logger  logging.Logger
 }
 
 // NewCheck returns new check
 func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: NewMetrics("check_smoke"),
+		metrics: newMetrics("check_smoke"),
 		logger:  log,
 	}
 }
@@ -104,13 +103,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		return fmt.Errorf("smoke check requires at least 2 full nodes, got %d", len(fullNodeClients))
 	}
 
-	// Create a map for easy client lookup by name
-	clients := make(map[string]*bee.Client)
-	for _, client := range fullNodeClients {
-		clients[client.Name()] = client
-	}
-
-	test := &test{clients: clients, logger: c.logger}
+	test := test.NewTest(c.logger)
 
 	for i := 0; true; i++ {
 		select {
@@ -121,25 +114,15 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		}
 
 		// Select two different full nodes from the shuffled list
-		txClient := fullNodeClients[0]
-		rxClient := fullNodeClients[1]
+		uploader := fullNodeClients[0]
+		downloader := fullNodeClients[1]
 
-		// If we have more than 2 nodes, randomly select different ones
-		if len(fullNodeClients) > 2 {
-			perm := rnd.Perm(len(fullNodeClients))
-			txClient = fullNodeClients[perm[0]]
-			rxClient = fullNodeClients[perm[1]]
-		}
-
-		txName := txClient.Name()
-		rxName := rxClient.Name()
-
-		c.logger.Infof("uploader: %s", txName)
-		c.logger.Infof("downloader: %s", rxName)
+		c.logger.Infof("uploader: %s", uploader.Name())
+		c.logger.Infof("downloader: %s", downloader.Name())
 
 		c.metrics.BatchCreateAttempts.Inc()
 
-		batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
+		batchID, err := uploader.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		if err != nil {
 			c.logger.Errorf("create new batch: %v", err)
 			c.metrics.BatchCreateErrors.Inc()
@@ -193,10 +176,10 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 				c.logger.WithField("batch_id", batchID).Infof("using batch for size %d", contentSize)
 
-				c.metrics.UploadAttempts.WithLabelValues(sizeLabel).Inc()
-				address, txDuration, err = test.upload(txCtx, txName, txData, batchID)
+				c.metrics.UploadAttempts.WithLabelValues(sizeLabel, uploader.Name()).Inc()
+				address, txDuration, err = test.Upload(txCtx, uploader, txData, batchID)
 				if err != nil {
-					c.metrics.UploadErrors.WithLabelValues(sizeLabel).Inc()
+					c.metrics.UploadErrors.WithLabelValues(sizeLabel, uploader.Name()).Inc()
 					c.logger.Infof("upload failed for size %d: %v", contentSize, err)
 					c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 				} else {
@@ -210,12 +193,12 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 				continue
 			}
 
-			c.metrics.UploadDuration.WithLabelValues(sizeLabel).Observe(txDuration.Seconds())
+			c.metrics.UploadDuration.WithLabelValues(sizeLabel, uploader.Name()).Observe(txDuration.Seconds())
 
 			// Calculate and record upload throughput in bytes per second
 			if txDuration.Seconds() > 0 {
 				uploadThroughput := float64(contentSize) / txDuration.Seconds()
-				c.metrics.UploadThroughput.WithLabelValues(sizeLabel).Set(uploadThroughput)
+				c.metrics.UploadThroughput.WithLabelValues(sizeLabel, uploader.Name()).Set(uploadThroughput)
 			}
 			c.logger.Infof("upload completed for size %d in %s", contentSize, txDuration)
 
@@ -235,12 +218,12 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 				case <-time.After(o.RxOnErrWait):
 				}
 
-				c.metrics.DownloadAttempts.WithLabelValues(sizeLabel).Inc()
+				c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, downloader.Name()).Inc()
 
 				rxCtx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
-				rxData, rxDuration, err = test.download(rxCtx, rxName, address)
+				rxData, rxDuration, err = test.Download(rxCtx, downloader, address)
 				if err != nil {
-					c.metrics.DownloadErrors.WithLabelValues(sizeLabel).Inc()
+					c.metrics.DownloadErrors.WithLabelValues(sizeLabel, downloader.Name()).Inc()
 					c.logger.Infof("download failed for size %d: %v", contentSize, err)
 					c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 					continue
@@ -248,11 +231,11 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 				// good download
 				if bytes.Equal(rxData, txData) {
-					c.metrics.DownloadDuration.WithLabelValues(sizeLabel).Observe(rxDuration.Seconds())
+					c.metrics.DownloadDuration.WithLabelValues(sizeLabel, downloader.Name()).Observe(rxDuration.Seconds())
 
 					if rxDuration.Seconds() > 0 {
 						downloadThroughput := float64(contentSize) / rxDuration.Seconds()
-						c.metrics.DownloadThroughput.WithLabelValues(sizeLabel).Set(downloadThroughput)
+						c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name()).Set(downloadThroughput)
 					}
 					c.logger.Infof("download completed for size %d in %s", contentSize, rxDuration)
 					break
@@ -260,7 +243,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 				// bad download
 				c.logger.Infof("uploaded data does not match downloaded data for size %d", contentSize)
-				c.metrics.DownloadMismatch.WithLabelValues(sizeLabel).Inc()
+				c.metrics.DownloadMismatch.WithLabelValues(sizeLabel, downloader.Name()).Inc()
 
 				rxLen, txLen := len(rxData), len(txData)
 				if rxLen != txLen {
@@ -287,39 +270,6 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 	}
 
 	return nil
-}
-
-type test struct {
-	clients map[string]*bee.Client
-	logger  logging.Logger
-}
-
-func (t *test) upload(ctx context.Context, cName string, data []byte, batchID string) (swarm.Address, time.Duration, error) {
-	client := t.clients[cName]
-	t.logger.Infof("node %s: uploading data, batch id %s", cName, batchID)
-	start := time.Now()
-	addr, err := client.UploadBytes(ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
-	if err != nil {
-		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", cName, err)
-	}
-	txDuration := time.Since(start)
-	t.logger.Infof("node %s: upload done in %s", cName, txDuration)
-
-	return addr, txDuration, nil
-}
-
-func (t *test) download(ctx context.Context, cName string, addr swarm.Address) ([]byte, time.Duration, error) {
-	client := t.clients[cName]
-	t.logger.Infof("node %s: downloading address %s", cName, addr)
-	start := time.Now()
-	data, err := client.DownloadBytes(ctx, addr, nil)
-	if err != nil {
-		return nil, 0, fmt.Errorf("download from node %s: %w", cName, err)
-	}
-	rxDuration := time.Since(start)
-	t.logger.Infof("node %s: download done in %s", cName, rxDuration)
-
-	return data, rxDuration, nil
 }
 
 func (c *Check) Report() []prometheus.Collector {

@@ -14,7 +14,7 @@ func (rs Rules) toK8S() (l []v1.IngressRule) {
 			l = append(l, r.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // Rule represents Kubernetes IngressRule
@@ -47,7 +47,7 @@ func (ps Paths) toK8S() (l []v1.HTTPIngressPath) {
 			l = append(l, p.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // Path represents service's HTTPIngressPath

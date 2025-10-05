@@ -16,7 +16,7 @@ func (tscs TopologySpreadConstraints) toK8S() (l []v1.TopologySpreadConstraint) 
 			l = append(l, t.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // TopologySpreadConstraint represents Kubernetes TopologySpreadConstraint
