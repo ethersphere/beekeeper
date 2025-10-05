@@ -68,7 +68,7 @@ func (l *logger) GetLevel() string {
 func WithLokiOption(lokiEndpoint string, httpClient *http.Client) LoggerOption {
 	return func(l *logger) {
 		if lokiEndpoint != "" {
-			l.Logger.AddHook(newLoki(lokiEndpoint, httpClient))
+			l.AddHook(newLoki(lokiEndpoint, httpClient))
 		}
 	}
 }
@@ -76,6 +76,6 @@ func WithLokiOption(lokiEndpoint string, httpClient *http.Client) LoggerOption {
 // WithMetricsOption sets the hook for metrics logging.
 func WithMetricsOption() LoggerOption {
 	return func(l *logger) {
-		l.Logger.AddHook(newMetrics())
+		l.AddHook(newMetrics())
 	}
 }

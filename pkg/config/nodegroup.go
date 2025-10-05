@@ -33,7 +33,7 @@ type NodeGroup struct {
 
 func (b NodeGroup) GetParentName() string {
 	if b.Inherit != nil {
-		return b.Inherit.ParentName
+		return b.ParentName
 	}
 	return ""
 }

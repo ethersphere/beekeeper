@@ -15,7 +15,7 @@ func (bb Bees) Filter(f FilterFunc) (out Bees) {
 		}
 	}
 
-	return
+	return out
 }
 
 type ConsumeFunc func(b *BeeV2) error
