@@ -92,8 +92,8 @@ github.com/ethersphere/ethproxy v0.0.5 h1:j5Mkm45jqmkET6NwGaJtaxOSFbhoAfOKzHiwHl
 github.com/ethersphere/ethproxy v0.0.5/go.mod h1:7mkVRK3+Mte00jLxFAbUQ/cBepAzwTYpkE64ItCLZYw=
 github.com/ethersphere/go-sw3-abi v0.6.9 h1:TnWLnYkWE5UvC17mQBdUmdkzhPhO8GcqvWy4wvd1QJQ=
 github.com/ethersphere/go-sw3-abi v0.6.9/go.mod h1:BmpsvJ8idQZdYEtWnvxA8POYQ8Rl/NhyCdF0zLMOOJU=
-github.com/ethersphere/node-funder v0.2.4 h1:61bhlTek4OvA+v9iRn5xBSUZjDK/Dp/laZOcoQLBSDI=
-github.com/ethersphere/node-funder v0.2.4/go.mod h1:5WYGNLzJ4o9bFhY878KrbhNEGWN2xaZqZV6w3/eVobA=
+github.com/ethersphere/node-funder v0.3.0 h1:rZamN4hs53Rt8MdSYSb2HLNTNX6XGzntwcVyJkUySGU=
+github.com/ethersphere/node-funder v0.3.0/go.mod h1:1n5y5yzYFWUAad5ocKmfbXvmTvnNN6r7V4awt36TD9Y=
 github.com/ferranbt/fastssz v0.1.2 h1:Dky6dXlngF6Qjc+EfDipAkE83N5I5DE68bY6O0VLNPk=
 github.com/ferranbt/fastssz v0.1.2/go.mod h1:X5UPrE2u1UJjxHA8X54u04SBwdAQjG2sFtWs39YxyWs=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
