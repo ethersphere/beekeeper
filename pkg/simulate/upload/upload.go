@@ -203,7 +203,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 	}
 
 	s.logger.Info("upload stress completed successfully")
-	return
+	return err
 }
 
 // randomPick randomly picks n elements from the list, and returns lists of picked elements
@@ -213,5 +213,5 @@ func randomPick(rnd *rand.Rand, list []string, n int) (picked []string) {
 		picked = append(picked, list[index])
 		list = append(list[:index], list[index+1:]...)
 	}
-	return
+	return picked
 }

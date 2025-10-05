@@ -75,7 +75,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interf
 			}
 		}
 	}
-	return
+	return err
 }
 
 type nodeStreamMsg struct {

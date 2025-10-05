@@ -13,7 +13,7 @@ func (ams AccessModes) toK8S() (l []v1.PersistentVolumeAccessMode) {
 			l = append(l, am.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // AccessMode represents Kubernetes AccessMode

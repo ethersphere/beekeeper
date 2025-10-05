@@ -105,7 +105,7 @@ func (c *Chunk) ClosestNode(nodes []swarm.Address) (closest swarm.Address, err e
 		}
 	}
 
-	return
+	return closest, err
 }
 
 // ClosestNodeFromMap returns chunk's closest node of a given map of nodes
@@ -148,7 +148,7 @@ next:
 		return "", swarm.Address{}, topology.ErrNotFound
 	}
 
-	return
+	return closestName, closestAddress, err
 }
 
 func chunkHahser() hash.Hash {

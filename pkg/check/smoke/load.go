@@ -276,7 +276,7 @@ func pickRandom(count int, peers []string) (names []string) {
 		names = append(names, peers[i])
 	}
 
-	return
+	return names
 }
 
 func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
@@ -294,7 +294,7 @@ func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
 		selected[j] = tmp
 	})
 
-	return
+	return selected
 }
 
 func randomIntSeq(size, ceiling int) (out []int) {
@@ -308,5 +308,5 @@ func randomIntSeq(size, ceiling int) (out []int) {
 		out = append(out, k)
 	}
 
-	return
+	return out
 }

@@ -19,7 +19,7 @@ func (ps PersistentVolumeClaims) ToK8S() (l []v1.PersistentVolumeClaim) {
 			l = append(l, p.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // PersistentVolumeClaim represents Kubernetes PersistentVolumeClaim

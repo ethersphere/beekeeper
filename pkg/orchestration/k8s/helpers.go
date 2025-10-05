@@ -72,7 +72,7 @@ echo 'bee initialization done';`},
 		},
 	})
 
-	return
+	return inits
 }
 
 type setContainersOptions struct {
@@ -145,7 +145,7 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 		}),
 	})
 
-	return
+	return c
 }
 
 type setBeeVolumeMountsOptions struct {
@@ -181,7 +181,7 @@ func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts containers.Vo
 		})
 	}
 
-	return
+	return volumeMounts
 }
 
 type setVolumesOptions struct {
@@ -231,7 +231,7 @@ func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
 		})
 	}
 
-	return
+	return volumes
 }
 
 type setPersistentVolumeClaimsOptions struct {
@@ -254,7 +254,7 @@ func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.Per
 		})
 	}
 
-	return
+	return pvcs
 }
 
 type setBeeNodePortOptions struct {

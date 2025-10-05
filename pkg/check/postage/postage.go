@@ -147,5 +147,5 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 
 	c.logger.Infof("node %s: diluted batch id %s", node, batchID)
 
-	return
+	return err
 }

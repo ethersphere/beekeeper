@@ -159,5 +159,5 @@ func applySimulationConfig(global SimulationGlobalConfig, local, opts interface{
 		}
 	}
 
-	return
+	return err
 }

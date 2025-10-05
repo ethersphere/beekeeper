@@ -91,13 +91,13 @@ func TestSet(t *testing.T) {
 						for _, s := range test.options.ImagePullSecrets {
 							l = append(l, v1.LocalObjectReference{Name: s})
 						}
-						return
+						return l
 					}(),
 					Secrets: func() (l []v1.ObjectReference) {
 						for _, s := range test.options.Secrets {
 							l = append(l, v1.ObjectReference{Name: s})
 						}
-						return
+						return l
 					}(),
 				}
 

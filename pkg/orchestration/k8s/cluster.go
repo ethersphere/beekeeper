@@ -85,7 +85,7 @@ func (c *Cluster) Addresses(ctx context.Context) (addrs map[string]orchestration
 		addrs[k] = a
 	}
 
-	return
+	return addrs, err
 }
 
 // Accounting returns ClusterAccounting
@@ -101,7 +101,7 @@ func (c *Cluster) Accounting(ctx context.Context) (accounting orchestration.Clus
 		accounting[k] = a
 	}
 
-	return
+	return accounting, err
 }
 
 // FlattenAccounting returns aggregated NodeGroupAccounting
@@ -122,7 +122,7 @@ func (c *Cluster) FlattenAccounting(ctx context.Context) (accounting orchestrati
 		}
 	}
 
-	return
+	return accounting, err
 }
 
 // Balances returns ClusterBalances
@@ -138,7 +138,7 @@ func (c *Cluster) Balances(ctx context.Context) (balances orchestration.ClusterB
 		balances[k] = b
 	}
 
-	return
+	return balances, err
 }
 
 // FlattenBalances returns aggregated NodeGroupBalances
@@ -159,7 +159,7 @@ func (c *Cluster) FlattenBalances(ctx context.Context) (balances orchestration.N
 		}
 	}
 
-	return
+	return balances, err
 }
 
 // GlobalReplicationFactor returns the total number of nodes in the cluster that contain given chunk
@@ -173,7 +173,7 @@ func (c *Cluster) GlobalReplicationFactor(ctx context.Context, a swarm.Address) 
 		grf += ngrf
 	}
 
-	return
+	return grf, err
 }
 
 // Name returns name of the cluster
@@ -201,7 +201,7 @@ func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error)
 	if !ok {
 		return nil, fmt.Errorf("node group %s not found", name)
 	}
-	return
+	return ng, err
 }
 
 // Nodes returns map of nodes in the cluster
@@ -223,7 +223,7 @@ func (c *Cluster) NodeNames() (names []string) {
 		}
 	}
 
-	return
+	return names
 }
 
 // LightNodeNames returns a list of light node names
@@ -233,7 +233,7 @@ func (c *Cluster) LightNodeNames() (names []string) {
 			names = append(names, name)
 		}
 	}
-	return
+	return names
 }
 
 // FullNodeNames returns a list of full node names
@@ -244,7 +244,7 @@ func (c *Cluster) FullNodeNames() (names []string) {
 			names = append(names, name)
 		}
 	}
-	return
+	return names
 }
 
 // ShuffledFullNodeClients returns a shuffled list of full node clients
@@ -293,7 +293,7 @@ func (c *Cluster) Overlays(ctx context.Context, exclude ...string) (overlays orc
 		overlays[k] = o
 	}
 
-	return
+	return overlays, err
 }
 
 // FlattenOverlays returns aggregated ClusterOverlays excluding the provided node group names
@@ -340,7 +340,7 @@ func (c *Cluster) Peers(ctx context.Context, exclude ...string) (peers orchestra
 		peers[k] = p
 	}
 
-	return
+	return peers, err
 }
 
 // RandomNode returns random running node from a cluster
@@ -376,7 +376,7 @@ func (c *Cluster) Settlements(ctx context.Context) (settlements orchestration.Cl
 		settlements[k] = s
 	}
 
-	return
+	return settlements, err
 }
 
 // FlattenSettlements returns aggregated NodeGroupSettlements
@@ -397,7 +397,7 @@ func (c *Cluster) FlattenSettlements(ctx context.Context) (settlements orchestra
 		}
 	}
 
-	return
+	return settlements, err
 }
 
 // Size returns size of the cluster
@@ -405,7 +405,7 @@ func (c *Cluster) Size() (size int) {
 	for _, ng := range c.nodeGroups {
 		size += ng.Size()
 	}
-	return
+	return size
 }
 
 // Topologies returns ClusterTopologies
@@ -421,7 +421,7 @@ func (c *Cluster) Topologies(ctx context.Context) (topologies orchestration.Clus
 		topologies[k] = t
 	}
 
-	return
+	return topologies, err
 }
 
 // FlattenTopologies returns an aggregate of Topologies
@@ -442,7 +442,7 @@ func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]
 		}
 	}
 
-	return
+	return topologies, err
 }
 
 // ClosestFullNodeClient returns the closest full node client to the supplied client.
