@@ -191,15 +191,15 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 					c.metrics.UploadAttempts.WithLabelValues(sizeLabel).Inc()
 					var duration time.Duration
-					c.logger.Infof("uploading to: %s", uploader)
+					c.logger.Infof("uploading to: %s", uploader.Name())
 
 					batchID, err := uploader.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 					if err != nil {
-						c.logger.Errorf("create new batch: %v", err)
+						c.logger.Errorf("create new batch failed: %v", err)
 						return
 					}
 
-					c.logger.WithField("batch_id", batchID).Info("using batch")
+					c.logger.WithField("batch_id", batchID).Infof("node %s: using batch", uploader.Name())
 
 					address, duration, err = test.Upload(ctx, uploader, txData, batchID)
 					if err != nil {
@@ -245,7 +245,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					rxData, rxDuration, err = test.Download(ctx, downloader, address)
 					if err != nil {
 						c.metrics.DownloadErrors.WithLabelValues(sizeLabel).Inc()
-						c.logger.Errorf("download failed: %v", err)
+						c.logger.Errorf("download failed for size %d: %v", contentSize, err)
 						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 						time.Sleep(o.RxOnErrWait)
 					}
@@ -262,10 +262,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 					rxLen, txLen := len(rxData), len(txData)
 					if rxLen != txLen {
-						c.logger.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
-						if txLen < rxLen {
-							c.logger.Info("length mismatch: rx length is bigger than tx length")
-						}
+						c.logger.Errorf("length mismatch for size %d: downloaded %d bytes, uploaded %d bytes", contentSize, rxLen, txLen)
 						return
 					}
 
