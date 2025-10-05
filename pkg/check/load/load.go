@@ -13,7 +13,6 @@ import (
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -69,13 +68,13 @@ func init() {
 var _ beekeeper.Action = (*Check)(nil)
 
 type Check struct {
-	metrics smoke.Metrics
+	metrics metrics
 	logger  logging.Logger
 }
 
 func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: smoke.NewMetrics("check_load"),
+		metrics: newMetrics("check_load"),
 		logger:  log,
 	}
 }
@@ -227,10 +226,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		var wg sync.WaitGroup
 
 		for _, downloader := range downloaders {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				var (
 					rxDuration time.Duration
 					rxData     []byte
@@ -293,7 +289,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					downloadThroughput := float64(contentSize) / rxDuration.Seconds()
 					c.metrics.DownloadThroughput.WithLabelValues(sizeLabel).Set(downloadThroughput)
 				}
-			}()
+			})
 		}
 
 		wg.Wait()

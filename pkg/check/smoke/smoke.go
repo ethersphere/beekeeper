@@ -59,14 +59,14 @@ var _ beekeeper.Action = (*Check)(nil)
 
 // Check instance
 type Check struct {
-	metrics Metrics
+	metrics metrics
 	logger  logging.Logger
 }
 
 // NewCheck returns new check
 func NewCheck(log logging.Logger) beekeeper.Action {
 	return &Check{
-		metrics: NewMetrics("check_smoke"),
+		metrics: newMetrics("check_smoke"),
 		logger:  log,
 	}
 }
