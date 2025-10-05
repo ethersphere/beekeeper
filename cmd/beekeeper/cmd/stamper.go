@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/bee"
-	"github.com/ethersphere/beekeeper/pkg/node"
 	"github.com/ethersphere/beekeeper/pkg/stamper"
 	"github.com/spf13/cobra"
 )
@@ -16,6 +13,7 @@ const (
 	optionNamePeriodicCheck string = "periodic-check"
 	optionNameNamespace     string = "namespace"
 	optionNameLabelSelector string = "label-selector"
+	optionNameNodeGroups    string = "node-groups"
 )
 
 func (c *command) initStamperCmd() (err error) {
@@ -37,6 +35,7 @@ Postage batches are essential for:
 
 Use --cluster-name or --namespace to target specific nodes.
 Use --label-selector to filter nodes within a namespace.
+Use --node-groups to target specific node groups within a cluster.
 Use --batch-ids or --postage-labels to target specific batches.
 
 Each subcommand supports periodic execution for automated batch management.`,
@@ -58,7 +57,8 @@ Each subcommand supports periodic execution for automated batch management.`,
 func initStamperDefaultFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name).")
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name.")
-	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources (use empty string for all).")
+	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources (use empty string for all). Only used with --namespace.")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for stamper (applies to all groups if not set). Only used with --cluster-name.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 	return cmd
 }
@@ -277,37 +277,10 @@ This command provides a complete solution for automated postage batch management
 }
 
 func (c *command) createStamperClient(ctx context.Context) (*stamper.Client, error) {
-	namespace := c.globalConfig.GetString(optionNameNamespace)
-	clusterName := c.globalConfig.GetString(optionNameClusterName)
-
-	if clusterName == "" && namespace == "" {
-		return nil, errors.New("either cluster name or namespace must be provided")
+	nodeClient, err := c.createNodeClient(ctx, false)
+	if err != nil {
+		return nil, fmt.Errorf("creating node client: %w", err)
 	}
-
-	var beeClients map[string]*bee.Client
-
-	if clusterName != "" {
-		cluster, err := c.setupCluster(ctx, clusterName, false)
-		if err != nil {
-			return nil, fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-		}
-
-		beeClients, err = cluster.NodesClients(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve node clients: %w", err)
-		}
-	}
-
-	nodeClient := node.New(&node.ClientConfig{
-		Log:           c.log,
-		Namespace:     namespace,
-		K8sClient:     c.k8sClient,
-		BeeClients:    beeClients,
-		HTTPClient:    c.httpClient,
-		LabelSelector: c.globalConfig.GetString(optionNameLabelSelector),
-		InCluster:     c.globalConfig.GetBool(optionNameInCluster),
-		UseNamespace:  c.globalConfig.IsSet(optionNameNamespace),
-	})
 
 	return stamper.New(&stamper.ClientConfig{
 		Log:        c.log,

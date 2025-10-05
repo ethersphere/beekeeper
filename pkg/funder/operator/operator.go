@@ -81,7 +81,7 @@ func (c *Client) Run(ctx context.Context) error {
 				var addresses bee.Addresses
 
 				maxRetries := 5
-				for i := 0; i < maxRetries; i++ {
+				for i := range maxRetries {
 					addresses, err = c.getAddresses(ctx, nodeInfo.Endpoint)
 					if err != nil {
 						c.Log.Errorf("get addresses (attempt %d/%d): %v", i+1, maxRetries, err)

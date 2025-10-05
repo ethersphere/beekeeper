@@ -16,16 +16,16 @@ import (
 
 type ClientConfig struct {
 	Log                   logging.Logger
+	NodeProvider          node.NodeProvider
 	K8sClient             *k8s.Client
-	Nodes                 node.NodeList
 	UseRandomNeighborhood bool
 }
 
 type Client struct {
-	log                     logging.Logger
-	k8sClient               *k8s.Client
-	neighborhoodArgProvider NeighborhoodArgProvider
-	nodes                   node.NodeList
+	log                   logging.Logger
+	nodeProvider          node.NodeProvider
+	k8sClient             *k8s.Client
+	useRandomNeighborhood bool
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -37,20 +37,18 @@ func New(cfg *ClientConfig) *Client {
 		cfg.Log = logging.New(io.Discard, 0)
 	}
 
-	neighborhoodProvider := NewNeighborhoodProvider(cfg.Log, cfg.Nodes, cfg.UseRandomNeighborhood)
-
 	return &Client{
-		log:                     cfg.Log,
-		k8sClient:               cfg.K8sClient,
-		neighborhoodArgProvider: neighborhoodProvider,
-		nodes:                   cfg.Nodes,
+		log:          cfg.Log,
+		k8sClient:    cfg.K8sClient,
+		nodeProvider: cfg.NodeProvider,
 	}
 }
 
 // Run sends a update command to the Bee clients in the Kubernetes cluster
-func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string) (err error) {
+func (c *Client) Run(ctx context.Context, restartArgs []string) (err error) {
 	c.log.Info("starting Bee cluster update")
 
+	namespace := c.nodeProvider.Namespace()
 	if namespace == "" {
 		return errors.New("namespace cannot be empty")
 	}
@@ -59,8 +57,15 @@ func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string
 		return errors.New("args cannot be empty")
 	}
 
+	nodes, err := c.nodeProvider.GetNodes(ctx)
+	if err != nil {
+		return fmt.Errorf("node provider failed to get nodes: %w", err)
+	}
+
+	neighborhoodArgProvider := newNeighborhoodProvider(c.log, nodes, c.useRandomNeighborhood)
+
 	// 1. Find all unique StatefulSets to update.
-	statefulSetsMap, err := c.findStatefulSets(ctx, namespace)
+	statefulSetsMap, err := c.findStatefulSets(ctx, nodes, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to find stateful sets: %w", err)
 	}
@@ -79,13 +84,13 @@ func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string
 			continue
 		}
 
-		if c.neighborhoodArgProvider.UsesRandomNeighborhood() && *ss.Spec.Replicas != 1 {
+		if neighborhoodArgProvider.UsesRandomNeighborhood() && *ss.Spec.Replicas != 1 {
 			return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
 		}
 
 		podNames := getPodNames(ss)
 
-		args, err := c.neighborhoodArgProvider.GetArgs(ctx, podNames[0], restartArgs)
+		args, err := neighborhoodArgProvider.GetArgs(ctx, podNames[0], restartArgs)
 		if err != nil {
 			return fmt.Errorf("failed to get neighborhood args for stateful set %s: %w", name, err)
 		}
@@ -100,10 +105,10 @@ func (c *Client) Run(ctx context.Context, namespace string, restartArgs []string
 	return nil
 }
 
-func (c *Client) findStatefulSets(ctx context.Context, namespace string) (map[string]*v1.StatefulSet, error) {
+func (c *Client) findStatefulSets(ctx context.Context, nodes node.NodeList, namespace string) (map[string]*v1.StatefulSet, error) {
 	statefulSetsMap := make(map[string]*v1.StatefulSet)
 
-	for _, node := range c.nodes {
+	for _, node := range nodes {
 		statefulSet, err := c.k8sClient.Pods.GetControllingStatefulSet(ctx, node.Name(), namespace)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get controlling stateful set for node %s: %w", node.Name(), err)

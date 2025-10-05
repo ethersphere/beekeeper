@@ -84,7 +84,7 @@ func (s *Client) Create(ctx context.Context, duration time.Duration, depth uint1
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("get nodes: %w", err)
+		return fmt.Errorf("stamper create get nodes: %w", err)
 	}
 
 	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
@@ -110,7 +110,7 @@ func (s *Client) Dilute(ctx context.Context, usageThreshold float64, dilutionDep
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("get nodes: %w", err)
+		return fmt.Errorf("stamper dilute get nodes: %w", err)
 	}
 
 	count := 0
@@ -139,7 +139,7 @@ func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo ti
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("get nodes: %w", err)
+		return fmt.Errorf("stamper set get nodes: %w", err)
 	}
 
 	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
@@ -179,7 +179,7 @@ func (s *Client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo 
 
 	nodes, err := s.getNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("get nodes: %w", err)
+		return fmt.Errorf("stamper topup get nodes: %w", err)
 	}
 
 	blockTime, err := s.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))

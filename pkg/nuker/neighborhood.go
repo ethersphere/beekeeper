@@ -11,12 +11,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// NeighborhoodArgProvider defines how to get extra restart args for a StatefulSet.
-type NeighborhoodArgProvider interface {
-	GetArgs(ctx context.Context, nodeName string, restartArgs []string) ([]string, error)
-	UsesRandomNeighborhood() bool
-}
-
 type neighborhoodProvider struct {
 	log       logging.Logger
 	nodes     node.NodeList
@@ -24,7 +18,7 @@ type neighborhoodProvider struct {
 	useRandom bool
 }
 
-func NewNeighborhoodProvider(log logging.Logger, nodes node.NodeList, useRandom bool) NeighborhoodArgProvider {
+func newNeighborhoodProvider(log logging.Logger, nodes node.NodeList, useRandom bool) *neighborhoodProvider {
 	if log == nil {
 		log = logging.New(io.Discard, 0)
 	}

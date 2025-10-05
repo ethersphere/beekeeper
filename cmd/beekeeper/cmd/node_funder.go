@@ -73,39 +73,32 @@ Requires --wallet-key for the funding account and --geth-url for blockchain acce
 					})
 				}
 
-				namespace := c.globalConfig.GetString(optionNameNamespace)
-				if namespace != "" {
-					label := c.globalConfig.GetString(optionNameLabelSelector)
-					funderClient := nodefunder.NewClient(c.k8sClient, c.globalConfig.GetBool(optionNameInCluster), label, c.log)
+				nodeClient, err := c.createNodeClient(ctx, false)
+				if err != nil {
+					return fmt.Errorf("creating node client: %w", err)
+				}
 
-					cfg.Namespace = namespace
+				if c.globalConfig.IsSet(optionNameNamespace) {
+					cfg.Namespace = nodeClient.Namespace()
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
+						funderClient := nodefunder.NewClient(nodeClient, c.log)
 						return funder.Fund(ctx, cfg, funderClient, nil, logOpt)
 					})
 				}
 
-				clusterName := c.globalConfig.GetString(optionNameClusterName)
-				if clusterName != "" {
-					cluster, err := c.setupCluster(ctx, clusterName, false)
+				if c.globalConfig.IsSet(optionNameClusterName) {
+					nodes, err := nodeClient.GetNodes(ctx)
 					if err != nil {
-						return fmt.Errorf("setting up cluster %s: %w", clusterName, err)
+						return fmt.Errorf("failed to retrieve nodes: %w", err)
 					}
 
-					clients, err := cluster.NodesClients(ctx)
-					if err != nil {
-						return fmt.Errorf("failed to retrieve node clients: %w", err)
-					}
-
-					for _, node := range clients {
-						c.log.Debugf("adding node address %s", node.Name())
-						addr, err := node.Addresses(ctx)
+					for _, node := range nodes {
+						addr, err := node.Client().Node.Addresses(ctx)
 						if err != nil {
 							return fmt.Errorf("error fetching addresses for node %s: %w", node.Name(), err)
 						}
 						cfg.Addresses = append(cfg.Addresses, addr.Ethereum)
 					}
-
-					c.log.Infof("funding %d nodes in cluster %s", len(cfg.Addresses), clusterName)
 
 					return c.executePeriodically(ctx, func(ctx context.Context) error {
 						return funder.Fund(ctx, cfg, nil, nil, logOpt)
@@ -130,6 +123,7 @@ Requires --wallet-key for the funding account and --geth-url for blockchain acce
 	cmd.Flags().Float64(optionNameMinNative, 0, "Minimum amount of chain native coins (xDAI) nodes should have.")
 	cmd.Flags().Float64(optionNameMinSwarm, 0, "Minimum amount of swarm tokens (xBZZ) nodes should have.")
 	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources within the specified namespace. Use an empty string to select all resources.")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for node-funder (applies to all groups if not set). Only used with --cluster-name.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0*time.Minute, "Periodic execution check interval.")
 

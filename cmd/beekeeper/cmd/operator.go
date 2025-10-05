@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/funder/operator"
@@ -39,6 +40,10 @@ but this can be customized with --label-selector. Runs indefinitely until manual
 Requires --namespace, --wallet-key, and --geth-url for operation.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
+				if !c.globalConfig.GetBool(optionNameEnableK8S) {
+					return fmt.Errorf("kubernetes support must be enabled for nuke command")
+				}
+
 				namespace := c.globalConfig.GetString(optionNameNamespace)
 				if namespace == "" {
 					return errors.New("namespace not provided")

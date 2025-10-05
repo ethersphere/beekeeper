@@ -17,3 +17,7 @@ type NotSet struct{}
 func (n *NotSet) GetNodes(ctx context.Context) (NodeList, error) {
 	return nil, ErrNotSet
 }
+
+func (n *NotSet) Namespace() string {
+	return ""
+}
