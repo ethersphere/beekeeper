@@ -1,31 +1,26 @@
+version: 2
+
 project_name: beekeeper
 
 builds:
   - main: ./cmd/beekeeper/main.go
-
     binary: beekeeper
-
     flags:
       - -v
       - -trimpath
-
     ldflags:
       - -s -w -X github.com/ethersphere/beekeeper.version={{.Version}} -X github.com/ethersphere/beekeeper.commit={{.ShortCommit}}
-
     env:
       - CGO_ENABLED=0
-
     goos:
       - darwin
       - linux
       - windows
-
     goarch:
       - amd64
       - "386"
       - arm64
       - arm
-
     ignore:
       - goos: darwin
         goarch: "386"
@@ -41,23 +36,16 @@ snapshot:
 
 archives:
   - name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
-
     format: binary
 
 nfpms:
   - file_name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
-
     vendor: Ethereum Swarm
     homepage: https://swarm.ethereum.org/
-
     maintainer: Svetomir Smiljkovic <svetomir@ethswarm.org>
-
     description: Ethereum Swarm Beekeeper
-
     license: BSD-3-Clause
-
     formats:
       - deb
       - rpm
-
     bindir: /usr/bin
