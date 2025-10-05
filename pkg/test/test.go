@@ -22,21 +22,21 @@ type test struct {
 }
 
 func (t *test) Upload(ctx context.Context, bee *bee.Client, data []byte, batchID string) (swarm.Address, time.Duration, error) {
-	t.logger.Infof("node %s: uploading data, batch id %s", bee.Name(), batchID)
+	t.logger.Infof("node %s: uploading %d bytes, batch id %s", bee.Name(), len(data), batchID)
 	start := time.Now()
 	addr, err := bee.UploadBytes(ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
 	if err != nil {
-		return swarm.ZeroAddress, 0, fmt.Errorf("upload to the node %s: %w", bee.Name(), err)
+		return swarm.ZeroAddress, 0, fmt.Errorf("upload to node %s: %w", bee.Name(), err)
 	}
 
 	txDuration := time.Since(start)
-	t.logger.Infof("node %s: upload done in %s", bee.Name(), txDuration)
+	t.logger.Infof("node %s: upload completed for %d bytes in %s", bee.Name(), len(data), txDuration)
 
 	return addr, txDuration, nil
 }
 
 func (t *test) Download(ctx context.Context, bee *bee.Client, addr swarm.Address) ([]byte, time.Duration, error) {
-	t.logger.Infof("node %s: downloading address %s", bee, addr)
+	t.logger.Infof("node %s: downloading address %s", bee.Name(), addr)
 
 	start := time.Now()
 	data, err := bee.DownloadBytes(ctx, addr, nil)
@@ -45,7 +45,7 @@ func (t *test) Download(ctx context.Context, bee *bee.Client, addr swarm.Address
 	}
 
 	rxDuration := time.Since(start)
-	t.logger.Infof("node %s: download done in %s", bee.Name(), rxDuration)
+	t.logger.Infof("node %s: download completed for %d bytes in %s", bee.Name(), len(data), rxDuration)
 
 	return data, rxDuration, nil
 }

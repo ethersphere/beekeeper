@@ -204,7 +204,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					address, duration, err = test.Upload(ctx, uploader, txData, batchID)
 					if err != nil {
 						c.metrics.UploadErrors.WithLabelValues(sizeLabel).Inc()
-						c.logger.Infof("upload failed: %v", err)
+						c.logger.Errorf("upload failed: %v", err)
 						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 						time.Sleep(o.TxOnErrWait)
 						return
@@ -245,7 +245,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					rxData, rxDuration, err = test.Download(ctx, downloader, address)
 					if err != nil {
 						c.metrics.DownloadErrors.WithLabelValues(sizeLabel).Inc()
-						c.logger.Infof("download failed: %v", err)
+						c.logger.Errorf("download failed: %v", err)
 						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 						time.Sleep(o.RxOnErrWait)
 					}
@@ -302,7 +302,7 @@ func (c *Check) checkCommittedDepth(ctx context.Context, client *bee.Client, max
 	for {
 		statusResp, err := client.Status(ctx)
 		if err != nil {
-			c.logger.Infof("error getting state: %v", err)
+			c.logger.Errorf("error getting state: %v", err)
 			return false
 		}
 
