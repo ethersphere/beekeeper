@@ -48,7 +48,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (sv
 			if err != nil {
 				return nil, fmt.Errorf("creating service %s in namespace %s: %w", name, namespace, err)
 			}
-			return
+			return svc, err
 		}
 		return nil, fmt.Errorf("getting service %s in namespace %s: %w", name, namespace, err)
 	}
@@ -60,7 +60,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (sv
 		return nil, fmt.Errorf("updating service %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return svc, err
 }
 
 // Delete deletes Service
@@ -73,7 +73,7 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		return fmt.Errorf("deleting service %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return err
 }
 
 type NodeInfo struct {
@@ -101,7 +101,7 @@ func (c *Client) GetNodes(ctx context.Context, namespace, labelSelector string) 
 		}
 	}
 
-	return
+	return nodes, err
 }
 
 func (c *Client) FindNode(ctx context.Context, namespace string, pod *v1.Pod) (*NodeInfo, *v1.Service, error) {

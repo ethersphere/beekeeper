@@ -8,7 +8,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	test "github.com/ethersphere/beekeeper/pkg/test"
+	"github.com/ethersphere/beekeeper/pkg/test"
 )
 
 // Options represents check options
@@ -147,7 +147,7 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, log logging.Logg
 
 	log.Info("Balances are valid")
 
-	return
+	return err
 }
 
 func expectBalancesHaveChanged(balances, newBalances orchestration.NodeGroupBalances, log logging.Logger) error {
@@ -192,7 +192,7 @@ func validateBalances(balances map[string]map[string]int64, log logging.Logger) 
 		return fmt.Errorf("invalid balances: no symmetry")
 	}
 
-	return
+	return err
 }
 
 // balancesHaveChanged checks if balances have changed

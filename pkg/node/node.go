@@ -1,6 +1,8 @@
 package node
 
 import (
+	"sort"
+
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 )
 
@@ -33,4 +35,11 @@ func (ns NodeList) Get(name string) *Node {
 		}
 	}
 	return nil
+}
+
+func (ns NodeList) Sort() NodeList {
+	sort.SliceStable(ns, func(i, j int) bool {
+		return ns[i].Name() < ns[j].Name()
+	})
+	return ns
 }

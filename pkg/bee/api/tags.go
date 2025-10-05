@@ -26,7 +26,7 @@ type TagResponse struct {
 // CreateTag creates new tag
 func (p *TagsService) CreateTag(ctx context.Context) (resp TagResponse, err error) {
 	err = p.client.requestJSON(ctx, http.MethodPost, "/tags", nil, &resp)
-	return
+	return resp, err
 }
 
 // GetTag gets a new tag
@@ -69,7 +69,7 @@ func (p *TagsService) WaitSync(ctx context.Context, tagUID uint64) (err error) {
 
 	select {
 	case <-c:
-		return
+		return err
 	case err := <-e:
 		return err
 	case <-ctx.Done():

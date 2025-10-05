@@ -46,7 +46,7 @@ Requires exactly one argument from the list above.`,
 				if err := c.config.PrintYaml(os.Stdout); err != nil {
 					return fmt.Errorf("config can not be printed: %s", err.Error())
 				}
-				return
+				return err
 			}
 
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
@@ -67,7 +67,7 @@ Requires exactly one argument from the list above.`,
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
 			// skip setup in case of print config
 			if args[0] == "config" {
-				return
+				return err
 			}
 			return c.preRunE(cmd, args)
 		},
@@ -100,7 +100,7 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 			}
 		}
 
-		return
+		return err
 	},
 	"depths": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 		topologies, err := cluster.Topologies(ctx)
@@ -115,7 +115,7 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 			}
 		}
 
-		return
+		return err
 	},
 	"nodes": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 		nodes := cluster.NodeNames()
@@ -124,7 +124,7 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 			fmt.Printf("%s\n", n)
 		}
 
-		return
+		return err
 	},
 	"overlays": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 		overlays, err := cluster.Overlays(ctx)
@@ -139,7 +139,7 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 			}
 		}
 
-		return
+		return err
 	},
 	"peers": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 		peers, err := cluster.Peers(ctx)
@@ -155,7 +155,7 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 				}
 			}
 		}
-		return
+		return err
 	},
 	"topologies": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
 		topologies, err := cluster.Topologies(ctx)
@@ -177,11 +177,11 @@ var printFuncs = map[string]func(ctx context.Context, cluster orchestration.Clus
 			}
 		}
 
-		return
+		return err
 	},
 	// print config prints configuration used to setup cluster
 	// add it to print funcs and do nothing (required to check if argument exists)
 	"config": func(ctx context.Context, cluster orchestration.Cluster) (err error) {
-		return
+		return err
 	},
 }

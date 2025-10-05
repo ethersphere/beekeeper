@@ -137,5 +137,5 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		}
 	}
 
-	return
+	return err
 }

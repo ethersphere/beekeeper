@@ -503,7 +503,7 @@ func (c *command) setSwapClient() (err error) {
 		c.swapClient = &swap.NotSet{}
 	}
 
-	return
+	return err
 }
 
 func newLogger(cmd *cobra.Command, verbosity, lokiEndpoint string, httpClient *http.Client) (logging.Logger, error) {

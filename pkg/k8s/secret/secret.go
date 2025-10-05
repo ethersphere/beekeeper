@@ -59,7 +59,7 @@ func (c *Client) Set(ctx context.Context, name, namespace string, o Options) (sc
 		}
 	}
 
-	return
+	return sc, err
 }
 
 // Delete deletes Secret
@@ -72,5 +72,5 @@ func (c *Client) Delete(ctx context.Context, name, namespace string) (err error)
 		return fmt.Errorf("deleting secret %s in namespace %s: %w", name, namespace, err)
 	}
 
-	return
+	return err
 }

@@ -103,7 +103,7 @@ func (*Pod) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface
 
 // Create implements v1.PodInterface
 func (*Pod) Create(ctx context.Context, pod *v1.Pod, opts metav1.CreateOptions) (*v1.Pod, error) {
-	if pod.ObjectMeta.Name == CreateBad {
+	if pod.Name == CreateBad {
 		return nil, fmt.Errorf("mock error: cannot create pod")
 	} else {
 		return nil, fmt.Errorf("mock error: unknown")
@@ -121,9 +121,9 @@ func (*Pod) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) 
 
 // Update implements v1.PodInterface
 func (*Pod) Update(ctx context.Context, pod *v1.Pod, opts metav1.UpdateOptions) (*v1.Pod, error) {
-	if pod.ObjectMeta.Name == UpdateBad {
+	if pod.Name == UpdateBad {
 		return nil, errors.NewBadRequest("mock error: cannot update pod")
 	} else {
-		return nil, errors.NewNotFound(schema.GroupResource{}, pod.ObjectMeta.Name)
+		return nil, errors.NewNotFound(schema.GroupResource{}, pod.Name)
 	}
 }

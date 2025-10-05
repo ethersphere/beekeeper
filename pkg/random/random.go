@@ -84,7 +84,7 @@ func PseudoGenerators(seed int64, n int) (g []*rand.Rand) {
 	for range n {
 		g = append(g, rand.New(rand.NewSource(rnd.Int63())))
 	}
-	return
+	return g
 }
 
 // Int64 returns random int64

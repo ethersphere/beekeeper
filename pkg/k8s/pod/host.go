@@ -13,7 +13,7 @@ func (has HostAliases) toK8S() (l []v1.HostAlias) {
 			l = append(l, h.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // HostAlias represents Kubernetes HostAliase

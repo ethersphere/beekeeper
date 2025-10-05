@@ -1,4 +1,4 @@
-package smoke
+package load
 
 import (
 	"bytes"
@@ -15,32 +15,71 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
+	"github.com/ethersphere/beekeeper/pkg/test"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+type Options struct {
+	ContentSize             int64
+	RndSeed                 int64
+	PostageTTL              time.Duration
+	PostageDepth            uint64
+	PostageLabel            string
+	TxOnErrWait             time.Duration
+	RxOnErrWait             time.Duration
+	NodesSyncWait           time.Duration
+	Duration                time.Duration
+	UploaderCount           int
+	UploadGroups            []string
+	DownloaderCount         int
+	DownloadGroups          []string
+	MaxCommittedDepth       uint8
+	CommittedDepthCheckWait time.Duration
+	IterationWait           time.Duration
+}
+
+func NewDefaultOptions() Options {
+	return Options{
+		ContentSize:             5000000,
+		RndSeed:                 time.Now().UnixNano(),
+		PostageTTL:              24 * time.Hour,
+		PostageDepth:            24,
+		PostageLabel:            "test-label",
+		TxOnErrWait:             10 * time.Second,
+		RxOnErrWait:             10 * time.Second,
+		NodesSyncWait:           time.Minute,
+		Duration:                12 * time.Hour,
+		UploaderCount:           1,
+		UploadGroups:            []string{"bee"},
+		DownloaderCount:         0,
+		DownloadGroups:          []string{},
+		MaxCommittedDepth:       2,
+		CommittedDepthCheckWait: 5 * time.Minute,
+		IterationWait:           5 * time.Minute,
+	}
+}
 
 func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-// compile check whether Check implements interface
-var _ beekeeper.Action = (*LoadCheck)(nil)
+var _ beekeeper.Action = (*Check)(nil)
 
-// Check instance
-type LoadCheck struct {
+type Check struct {
 	metrics metrics
 	logger  logging.Logger
 }
 
-// NewCheck returns new check
-func NewLoadCheck(log logging.Logger) beekeeper.Action {
-	return &LoadCheck{
+func NewCheck(log logging.Logger) beekeeper.Action {
+	return &Check{
 		metrics: newMetrics("check_load"),
 		logger:  log,
 	}
 }
 
-// Run creates file of specified size that is uploaded and downloaded.
-func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
 	o, ok := opts.(Options)
 	if !ok {
 		return errors.New("invalid options type")
@@ -51,9 +90,9 @@ func (c *LoadCheck) Run(ctx context.Context, cluster orchestration.Cluster, opts
 	})
 }
 
-func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	if o.UploaderCount == 0 || len(o.UploadGroups) == 0 {
-		return errors.New("no uploaders requested, quiting")
+		return errors.New("no uploaders requested, quitting")
 	}
 
 	if o.MaxCommittedDepth == 0 {
@@ -68,20 +107,34 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 	c.logger.Infof("committed depth check wait time: %v", o.CommittedDepthCheckWait)
 	c.logger.Infof("total duration: %s", o.Duration.String())
 
-	clients, err := cluster.NodesClients(ctx)
+	rnd := random.PseudoGenerator(o.RndSeed)
+	fullNodeClients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
 	if err != nil {
-		return fmt.Errorf("get clients: %w", err)
+		return fmt.Errorf("get shuffled full node clients: %w", err)
 	}
 
-	test := &test{clients: clients, logger: c.logger}
+	minNodes := min(o.UploaderCount, o.DownloaderCount)
+	if len(fullNodeClients) == 0 || len(fullNodeClients) < minNodes {
+		return fmt.Errorf("load check requires at least %d full nodes, got %d", minNodes, len(fullNodeClients))
+	}
 
-	uploaders := selectNames(cluster, o.UploadGroups...)
-	downloaders := selectNames(cluster, o.DownloadGroups...)
+	test := test.NewTest(c.logger)
+
+	var downloaders []*bee.Client
+	if o.DownloaderCount > 0 && len(o.DownloadGroups) > 0 {
+		downloaders = fullNodeClients.FilterByNodeGroups(o.DownloadGroups)
+		if len(downloaders) == 0 {
+			return fmt.Errorf("no downloaders found in the specified node groups: %v", o.DownloadGroups)
+		}
+		if len(downloaders) < o.DownloaderCount {
+			return fmt.Errorf("not enough downloaders found in the specified node groups: %v, requested %d, got %d", o.DownloadGroups, o.DownloaderCount, len(downloaders))
+		}
+	}
 
 	for i := 0; true; i++ {
 		select {
 		case <-ctx.Done():
-			c.logger.Info("we are done")
+			c.logger.Info("context done in iteration")
 			return nil
 		default:
 			c.logger.Infof("starting iteration: #%d bytes (%.2f KB)", contentSize, float64(contentSize)/1024)
@@ -101,9 +154,16 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 			continue
 		}
 
-		txNames := pickRandom(o.UploaderCount, uploaders)
-
-		c.logger.Infof("uploader: %s", txNames)
+		uploaders := fullNodeClients
+		if o.UploaderCount > 0 && len(o.UploadGroups) > 0 {
+			uploaders = fullNodeClients.FilterByNodeGroups(o.UploadGroups)
+			if len(uploaders) == 0 {
+				return fmt.Errorf("no uploaders found in the specified node groups: %v", o.UploadGroups)
+			}
+			if len(uploaders) < o.UploaderCount {
+				return fmt.Errorf("not enough uploaders found in the specified node groups: %v, requested %d, got %d", o.UploadGroups, o.UploaderCount, len(uploaders))
+			}
+		}
 
 		var (
 			upload sync.WaitGroup
@@ -112,7 +172,7 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 
 		upload.Add(1)
 
-		for _, txName := range txNames {
+		for _, uploader := range uploaders[:o.UploaderCount] {
 			go func() {
 				defer once.Do(func() {
 					upload.Done()
@@ -120,31 +180,31 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 				for retries := 10; txDuration == 0 && retries > 0; retries-- {
 					select {
 					case <-ctx.Done():
-						c.logger.Info("we are done")
+						c.logger.Info("context done in retry")
 						return
 					default:
 					}
 
-					if !c.checkCommittedDepth(ctx, test.clients[txName], o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
+					if !c.checkCommittedDepth(ctx, uploader, o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
 						return
 					}
 
 					c.metrics.UploadAttempts.WithLabelValues(sizeLabel).Inc()
 					var duration time.Duration
-					c.logger.Infof("uploading to: %s", txName)
+					c.logger.Infof("uploading to: %s", uploader.Name())
 
-					batchID, err := clients[txName].GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
+					batchID, err := uploader.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 					if err != nil {
-						c.logger.Errorf("create new batch: %v", err)
+						c.logger.Errorf("create new batch failed: %v", err)
 						return
 					}
 
-					c.logger.WithField("batch_id", batchID).Info("using batch")
+					c.logger.WithField("batch_id", batchID).Infof("node %s: using batch", uploader.Name())
 
-					address, duration, err = test.upload(ctx, txName, txData, batchID)
+					address, duration, err = test.Upload(ctx, uploader, txData, batchID)
 					if err != nil {
 						c.metrics.UploadErrors.WithLabelValues(sizeLabel).Inc()
-						c.logger.Infof("upload failed: %v", err)
+						c.logger.Errorf("upload failed: %v", err)
 						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 						time.Sleep(o.TxOnErrWait)
 						return
@@ -161,19 +221,12 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 		}
 
 		c.logger.Infof("sleeping for: %v seconds", o.NodesSyncWait.Seconds())
-		time.Sleep(o.NodesSyncWait) // Wait for nodes to sync.
-
-		// pick a batch of downloaders
-		rxNames := pickRandom(o.DownloaderCount, downloaders)
-		c.logger.Infof("downloaders: %s", rxNames)
+		time.Sleep(o.NodesSyncWait)
 
 		var wg sync.WaitGroup
 
-		for _, rxName := range rxNames {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
+		for _, downloader := range downloaders {
+			wg.Go(func() {
 				var (
 					rxDuration time.Duration
 					rxData     []byte
@@ -189,16 +242,15 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 
 					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel).Inc()
 
-					rxData, rxDuration, err = test.download(ctx, rxName, address)
+					rxData, rxDuration, err = test.Download(ctx, downloader, address)
 					if err != nil {
 						c.metrics.DownloadErrors.WithLabelValues(sizeLabel).Inc()
-						c.logger.Infof("download failed: %v", err)
+						c.logger.Errorf("download failed for size %d: %v", contentSize, err)
 						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 						time.Sleep(o.RxOnErrWait)
 					}
 				}
 
-				// download error, skip comprarison below
 				if rxDuration == 0 {
 					return
 				}
@@ -210,10 +262,7 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 
 					rxLen, txLen := len(rxData), len(txData)
 					if rxLen != txLen {
-						c.logger.Infof("length mismatch: download length %d; upload length %d", rxLen, txLen)
-						if txLen < rxLen {
-							c.logger.Info("length mismatch: rx length is bigger then tx length")
-						}
+						c.logger.Errorf("length mismatch for size %d: downloaded %d bytes, uploaded %d bytes", contentSize, rxLen, txLen)
 						return
 					}
 
@@ -227,8 +276,6 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 					return
 				}
 
-				// We want to update the metrics when no error has been
-				// encountered in order to avoid counter mismatch.
 				c.metrics.UploadDuration.WithLabelValues(sizeLabel).Observe(txDuration.Seconds())
 				c.metrics.DownloadDuration.WithLabelValues(sizeLabel).Observe(rxDuration.Seconds())
 				if txDuration.Seconds() > 0 {
@@ -239,7 +286,7 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 					downloadThroughput := float64(contentSize) / rxDuration.Seconds()
 					c.metrics.DownloadThroughput.WithLabelValues(sizeLabel).Set(downloadThroughput)
 				}
-			}()
+			})
 		}
 
 		wg.Wait()
@@ -248,11 +295,11 @@ func (c *LoadCheck) run(ctx context.Context, cluster orchestration.Cluster, o Op
 	return nil
 }
 
-func (c *LoadCheck) checkCommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
+func (c *Check) checkCommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
 	for {
 		statusResp, err := client.Status(ctx)
 		if err != nil {
-			c.logger.Infof("error getting state: %v", err)
+			c.logger.Errorf("error getting state: %v", err)
 			return false
 		}
 
@@ -270,43 +317,6 @@ func (c *LoadCheck) checkCommittedDepth(ctx context.Context, client *bee.Client,
 	}
 }
 
-func pickRandom(count int, peers []string) (names []string) {
-	seq := randomIntSeq(count, len(peers))
-	for _, i := range seq {
-		names = append(names, peers[i])
-	}
-
-	return
-}
-
-func selectNames(c orchestration.Cluster, names ...string) (selected []string) {
-	for _, name := range names {
-		ng, err := c.NodeGroup(name)
-		if err != nil {
-			panic(err)
-		}
-		selected = append(selected, ng.NodesSorted()...)
-	}
-
-	rand.Shuffle(len(selected), func(i, j int) {
-		tmp := selected[i]
-		selected[i] = selected[j]
-		selected[j] = tmp
-	})
-
-	return
-}
-
-func randomIntSeq(size, ceiling int) (out []int) {
-	r := make(map[int]struct{}, size)
-
-	for len(r) < size {
-		r[rand.Intn(ceiling)] = struct{}{}
-	}
-
-	for k := range r {
-		out = append(out, k)
-	}
-
-	return
+func (c *Check) Report() []prometheus.Collector {
+	return c.metrics.Report()
 }

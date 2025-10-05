@@ -16,7 +16,7 @@ func (vs Volumes) toK8S() (l []v1.Volume) {
 			l = append(l, v.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // Volume represents Kubernetes Volume
@@ -124,7 +124,7 @@ func (is Items) toK8S() (l []v1.KeyToPath) {
 			l = append(l, i.toK8S())
 		}
 	}
-	return
+	return l
 }
 
 // Item represents Kubernetes Volume Item

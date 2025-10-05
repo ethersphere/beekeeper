@@ -114,7 +114,7 @@ func (g *NodeGroup) AddNode(ctx context.Context, name string, inCluster bool, no
 
 	g.addNode(n)
 
-	return
+	return err
 }
 
 // Addresses returns NodeGroupAddresses
@@ -137,7 +137,7 @@ func (g *NodeGroup) Addresses(ctx context.Context) (addrs orchestration.NodeGrou
 		addrs[m.Name] = m.Addresses
 	}
 
-	return
+	return addrs, err
 }
 
 // AddressesStreamMsg represents message sent over the AddressStream channel
@@ -212,7 +212,7 @@ func (g *NodeGroup) Accounting(ctx context.Context) (accounting orchestration.No
 		accounting[overlays[m.Name].String()] = tmp
 	}
 
-	return
+	return accounting, err
 }
 
 // AccountingStreamMsg represents message sent over the BalancesStream channel
@@ -287,7 +287,7 @@ func (g *NodeGroup) Balances(ctx context.Context) (balances orchestration.NodeGr
 		balances[overlays[m.Name].String()] = tmp
 	}
 
-	return
+	return balances, err
 }
 
 // BalancesStreamMsg represents message sent over the BalancesStream channel
@@ -375,7 +375,7 @@ func (g *NodeGroup) createNode(ctx context.Context, name string) (err error) {
 		return err
 	}
 
-	return
+	return err
 }
 
 // DeleteNode deletes node from the k8s cluster and removes it from the node group
@@ -386,7 +386,7 @@ func (g *NodeGroup) DeleteNode(ctx context.Context, name string) (err error) {
 
 	g.deleteNode(name)
 
-	return
+	return err
 }
 
 // getEthAddress returns ethereum address of the node
@@ -441,7 +441,7 @@ func (g *NodeGroup) GroupReplicationFactor(ctx context.Context, a swarm.Address)
 		}
 	}
 
-	return
+	return grf, err
 }
 
 // HasChunkStreamMsg represents message sent over the HasChunkStream channel
@@ -546,7 +546,7 @@ func (g *NodeGroup) Overlays(ctx context.Context) (overlays orchestration.NodeGr
 		overlays[m.Name] = m.Address
 	}
 
-	return
+	return overlays, err
 }
 
 // OverlaysStreamMsg represents message sent over the OverlaysStream channel
@@ -612,7 +612,7 @@ func (g *NodeGroup) Peers(ctx context.Context) (peers orchestration.NodeGroupPee
 		peers[m.Name] = m.Peers
 	}
 
-	return
+	return peers, err
 }
 
 // PeersStreamMsg represents message sent over the PeersStream channel
@@ -701,7 +701,7 @@ func (g *NodeGroup) pregenerateSwarmKey(ctx context.Context, name string) (err e
 		g.log.Infof("overlay Ethereum address %s for node %s attested successfully: transaction: %s", key.Address, name, txHash)
 	}
 
-	return
+	return err
 }
 
 // RunningNodes returns list of running nodes
@@ -782,7 +782,7 @@ func (g *NodeGroup) Settlements(ctx context.Context) (settlements orchestration.
 		settlements[overlays[m.Name].String()] = tmp
 	}
 
-	return
+	return settlements, err
 }
 
 // SettlementsStreamMsg represents message sent over the SettlementsStream channel
@@ -895,7 +895,7 @@ func (g *NodeGroup) Topologies(ctx context.Context) (topologies orchestration.No
 		topologies[m.Name] = m.Topology
 	}
 
-	return
+	return topologies, err
 }
 
 // TopologyStreamMsg represents message sent over the TopologyStream channel
@@ -977,7 +977,7 @@ func (g *NodeGroup) getNode(name string) (n orchestration.Node, err error) {
 	if !ok {
 		return Node{}, fmt.Errorf("node %s not found", name)
 	}
-	return
+	return n, err
 }
 
 func (g *NodeGroup) getNodes() map[string]orchestration.Node {
@@ -998,7 +998,7 @@ func (g *NodeGroup) setNode(name string, n orchestration.Node) (err error) {
 
 	g.nodes[name] = n
 
-	return
+	return err
 }
 
 func contains(list []string, find string) bool {

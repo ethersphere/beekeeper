@@ -18,7 +18,7 @@ type CustomResourceClient struct {
 
 func NewForConfig(c *rest.Config) (*CustomResourceClient, error) {
 	config := *c
-	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: GroupName, Version: GroupVersion}
+	config.GroupVersion = &schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 	config.APIPath = "/apis"
 	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 	config.UserAgent = rest.DefaultKubernetesUserAgent()

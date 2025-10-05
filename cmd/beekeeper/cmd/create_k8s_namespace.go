@@ -28,7 +28,7 @@ func (c *command) initCreateK8sNamespace() *cobra.Command {
 			}
 
 			c.log.Infof("namespace %s created", name)
-			return
+			return err
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := c.setK8sClient(); err != nil {
