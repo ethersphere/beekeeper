@@ -78,6 +78,10 @@ func (c *Client) Host() string {
 	return c.apiURL.Host
 }
 
+func (c *Client) BaseURL() *url.URL {
+	return c.apiURL
+}
+
 // newClient constructs a new *Client with the provided http Client, which
 // should handle authentication implicitly, and sets all API services.
 func newClient(apiURL *url.URL, httpClient *http.Client) (c *Client) {

@@ -13,7 +13,7 @@ const (
 	optionNamePeriodicCheck string = "periodic-check"
 	optionNameNamespace     string = "namespace"
 	optionNameLabelSelector string = "label-selector"
-	optionNameNodeGroups    string = "node-groups" // We are using optionNameNodeGroups and optionNameLabelSelector in /cmd/beekeeper/cmd/cmd.go, i think we should move them to some common place ?
+	optionNameNodeGroups    string = "node-groups"
 )
 
 func (c *command) initStamperCmd() (err error) {
@@ -35,6 +35,7 @@ Postage batches are essential for:
 
 Use --cluster-name or --namespace to target specific nodes.
 Use --label-selector to filter nodes within a namespace.
+Use --node-groups to target specific node groups within a cluster.
 Use --batch-ids or --postage-labels to target specific batches.
 
 Each subcommand supports periodic execution for automated batch management.`,
@@ -56,7 +57,8 @@ Each subcommand supports periodic execution for automated batch management.`,
 func initStamperDefaultFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Kubernetes namespace (overrides cluster name).")
 	cmd.Flags().String(optionNameClusterName, "", "Target Beekeeper cluster name.")
-	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources (use empty string for all).")
+	cmd.Flags().String(optionNameLabelSelector, nodeFunderLabelSelector, "Kubernetes label selector for filtering resources (use empty string for all). Only used with --namespace.")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for stamper (applies to all groups if not set). Only used with --cluster-name.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 	return cmd
 }

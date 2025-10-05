@@ -33,7 +33,7 @@ func (c *Client) List(ctx context.Context, _ string) ([]funder.NodeInfo, error) 
 	for i, node := range nodes {
 		nodeInfos[i] = funder.NodeInfo{
 			Name:    node.Name(),
-			Address: node.Client().Host(),
+			Address: node.Client().BaseURL().String(),
 		}
 	}
 

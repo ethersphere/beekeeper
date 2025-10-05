@@ -42,6 +42,10 @@ This command is useful for:
 Requires either --cluster-name or --namespace to be specified.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
+				if !c.globalConfig.GetBool(optionNameEnableK8S) {
+					return fmt.Errorf("kubernetes support must be enabled for nuke command")
+				}
+
 				nodeClient, err := c.createNodeClient(ctx, true)
 				if err != nil {
 					return fmt.Errorf("creating node client: %w", err)
@@ -63,7 +67,7 @@ Requires either --cluster-name or --namespace to be specified.`,
 	cmd.Flags().StringP(optionNameNamespace, "n", "", "Namespace to delete pods from (only used if cluster name is not set).")
 	cmd.Flags().String(optionNameLabelSelector, beeLabelSelector, "Label selector for resources in the namespace (only used with namespace).")
 	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
-	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for restarts (applies to all groups if not set).")
+	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for restarts (applies to all groups if not set). Only used with --cluster-name.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 	cmd.Flags().String(optionNameDeploymentType, "beekeeper", "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
 

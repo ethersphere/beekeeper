@@ -136,6 +136,10 @@ func (c ClusterOptions) IngressHost(name string) string {
 }
 
 func (c ClientList) FilterByNodeGroups(nodeGroups []string) ClientList {
+	if len(nodeGroups) == 0 {
+		return c
+	}
+
 	var filtered ClientList
 	for _, ng := range nodeGroups {
 		for _, client := range c {
@@ -148,6 +152,14 @@ func (c ClientList) FilterByNodeGroups(nodeGroups []string) ClientList {
 }
 
 func (c ClientMap) FilterByNodeGroups(nodeGroups []string) ClientList {
+	if len(nodeGroups) == 0 {
+		all := make(ClientList, 0, len(c))
+		for _, client := range c {
+			all = append(all, client)
+		}
+		return all
+	}
+
 	var filtered ClientList
 	for _, ng := range nodeGroups {
 		for _, client := range c {

@@ -49,7 +49,6 @@ func (c *Client) Run(ctx context.Context, restartArgs []string) (err error) {
 	c.log.Info("starting Bee cluster update")
 
 	namespace := c.nodeProvider.Namespace()
-
 	if namespace == "" {
 		return errors.New("namespace cannot be empty")
 	}
@@ -60,7 +59,7 @@ func (c *Client) Run(ctx context.Context, restartArgs []string) (err error) {
 
 	nodes, err := c.nodeProvider.GetNodes(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get nodes: %w", err)
+		return fmt.Errorf("node provider failed to get nodes: %w", err)
 	}
 
 	neighborhoodArgProvider := newNeighborhoodProvider(c.log, nodes, c.useRandomNeighborhood)
