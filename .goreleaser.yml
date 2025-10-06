@@ -32,11 +32,11 @@ builds:
         goarch: arm
 
 snapshot:
-  name_template: "{{.Tag}}-snapshot"
+  version_template: "{{.Tag}}-snapshot"
 
 archives:
   - name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
-    format: binary
+    formats: ['binary']
 
 nfpms:
   - file_name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
