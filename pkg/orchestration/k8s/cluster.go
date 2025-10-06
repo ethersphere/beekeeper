@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"maps"
 	"math/rand"
 	"net/http"
 	"slices"
@@ -189,9 +190,7 @@ func (c *Cluster) Namespace() string {
 // NodeGroups returns map of node groups in the cluster
 func (c *Cluster) NodeGroups() (l map[string]orchestration.NodeGroup) {
 	nodeGroups := make(map[string]orchestration.NodeGroup)
-	for k, v := range c.nodeGroups {
-		nodeGroups[k] = v
-	}
+	maps.Copy(nodeGroups, c.nodeGroups)
 	return nodeGroups
 }
 
@@ -208,9 +207,7 @@ func (c *Cluster) NodeGroup(name string) (ng orchestration.NodeGroup, err error)
 func (c *Cluster) Nodes() map[string]orchestration.Node {
 	n := make(map[string]orchestration.Node)
 	for _, ng := range c.NodeGroups() {
-		for k, v := range ng.Nodes() {
-			n[k] = v
-		}
+		maps.Copy(n, ng.Nodes())
 	}
 	return n
 }
@@ -270,9 +267,7 @@ func (c *Cluster) NodesClients(ctx context.Context) (map[string]*bee.Client, err
 		if err != nil {
 			return nil, fmt.Errorf("nodes clients: %w", err)
 		}
-		for n, client := range ngc {
-			clients[n] = client
-		}
+		maps.Copy(clients, ngc)
 	}
 	return clients, nil
 }

@@ -67,7 +67,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 	}
 }
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -136,7 +136,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		settlementsValid := false
 		// validate settlements after uploading a file
 		previousSettlements = settlements
-		for t := 0; t < 7; t++ {
+		for t := range 7 {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
 			accounting, err = cluster.FlattenAccounting(ctx)
@@ -185,7 +185,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		settlementsValid = false
 		// validate settlements after downloading a file
 		previousSettlements = settlements
-		for t := 0; t < 7; t++ {
+		for t := range 7 {
 			time.Sleep(2 * time.Duration(t) * time.Second)
 
 			accounting, err = cluster.FlattenAccounting(ctx)

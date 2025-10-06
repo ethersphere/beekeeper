@@ -26,7 +26,7 @@ func NewActionMiddleware(tracer opentracing.Tracer, action Action, actionName st
 }
 
 // Run implements beekeeper.Action
-func (am *actionMiddleware) Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) (err error) {
+func (am *actionMiddleware) Run(ctx context.Context, cluster orchestration.Cluster, o any) (err error) {
 	span := createSpan(ctx, am.tracer, am.actionName)
 	defer span.Finish()
 	ctx = opentracing.ContextWithSpan(ctx, span)

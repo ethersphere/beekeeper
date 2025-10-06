@@ -48,7 +48,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 
 // Run runs the check
 // It downloads a file that contains a list of chunks and then attempts to download each chunk in the file.
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) error {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o any) error {
 	opts, ok := o.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -140,7 +140,7 @@ func fetchFile(ctx context.Context, logger logging.Logger, ref swarm.Address, cl
 		nodes = append(nodes, node)
 	}
 
-	for i := 0; i < maxAttempts; i++ {
+	for i := range maxAttempts {
 		node := nodes[i%len(nodes)]
 		d, err := node.Client().DownloadFileBytes(ctx, ref, nil)
 		if err != nil {

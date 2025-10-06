@@ -636,17 +636,14 @@ func (g *NodeGroup) PeersStream(ctx context.Context) (<-chan PeersStreamMsg, err
 			continue
 		}
 
-		wg.Add(1)
-		go func(n string, c *bee.Client) {
-			defer wg.Done()
-
-			a, err := c.Peers(ctx)
+		wg.Go(func() {
+			a, err := v.Client().Peers(ctx)
 			peersStream <- PeersStreamMsg{
-				Name:  n,
+				Name:  k,
 				Peers: a,
 				Error: err,
 			}
-		}(k, v.Client())
+		})
 	}
 
 	go func() {

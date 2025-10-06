@@ -96,7 +96,7 @@ func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
 
 	// run checks
 	for _, check := range validatedChecks {
-		c.logger.WithFields(map[string]interface{}{
+		c.logger.WithFields(map[string]any{
 			"type":    check.typeName,
 			"options": fmt.Sprintf("%+v", check.options),
 		}).Infof("running check: %s", check.name)
@@ -104,7 +104,7 @@ func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
 		err := check.Run(ctx, c.cluster)
 		if err != nil {
 			hasFailures = true
-			c.logger.WithFields(map[string]interface{}{
+			c.logger.WithFields(map[string]any{
 				"type":  check.typeName,
 				"error": err,
 			}).Errorf("'%s' check failed", check.name)
@@ -132,7 +132,7 @@ type checkRun struct {
 	name     string
 	typeName string
 	action   beekeeper.Action
-	options  interface{}
+	options  any
 	timeout  *time.Duration
 }
 

@@ -72,7 +72,7 @@ func NewCheck(log logging.Logger) beekeeper.Action {
 }
 
 // Run creates file of specified size that is uploaded and downloaded.
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) error {
 	o, ok := opts.(Options)
 	if !ok {
 		return errors.New("invalid options type")

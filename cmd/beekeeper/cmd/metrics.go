@@ -17,11 +17,8 @@ func newMetricsPusher(pusherAddress, job string, logger logging.Logger) (*push.P
 	killC := make(chan struct{})
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-
 	// start period flusher
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case <-killC:
@@ -32,7 +29,7 @@ func newMetricsPusher(pusherAddress, job string, logger logging.Logger) (*push.P
 				}
 			}
 		}
-	}()
+	})
 	cleanupFn := func() {
 		close(killC)
 		wg.Wait()

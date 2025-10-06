@@ -58,7 +58,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 	}
 }
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o any) (err error) {
 	opts, ok := o.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

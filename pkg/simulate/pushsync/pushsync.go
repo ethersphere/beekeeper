@@ -75,7 +75,7 @@ func NewSimulation(logger logging.Logger) beekeeper.Action {
 }
 
 // Run executes upload stress
-func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

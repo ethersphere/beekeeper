@@ -460,7 +460,7 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	exists := false
 	usable := false
 	// wait for the stamp to become usable
-	for i := 0; i < 900; i++ {
+	for range 900 {
 		time.Sleep(1 * time.Second)
 		state, err := c.api.Postage.PostageStamp(ctx, id)
 		if err != nil {
@@ -558,7 +558,7 @@ func (c *Client) TopUpPostageBatch(ctx context.Context, batchID string, amount i
 		return err
 	}
 
-	for i := 0; i < 60; i++ {
+	for range 60 {
 		time.Sleep(time.Second)
 
 		b, err := c.PostageStamp(ctx, batchID)
@@ -587,7 +587,7 @@ func (c *Client) DilutePostageBatch(ctx context.Context, batchID string, depth u
 		return err
 	}
 
-	for i := 0; i < 60; i++ {
+	for range 60 {
 		time.Sleep(time.Second)
 
 		b, err := c.api.Postage.PostageStamp(ctx, batchID)

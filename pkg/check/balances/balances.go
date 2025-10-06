@@ -3,6 +3,7 @@ package balances
 import (
 	"context"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -56,7 +57,7 @@ func NewCheck(log logging.Logger) beekeeper.Action {
 	}
 }
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -151,7 +152,7 @@ func dryRun(ctx context.Context, cluster orchestration.Cluster, log logging.Logg
 }
 
 func expectBalancesHaveChanged(balances, newBalances orchestration.NodeGroupBalances, log logging.Logger) error {
-	for t := 0; t < 5; t++ {
+	for t := range 5 {
 		sleepTime := 2 * time.Duration(t) * time.Second
 		log.Infof("Waiting %s before checking balances", sleepTime)
 		time.Sleep(sleepTime)
@@ -212,9 +213,7 @@ func balancesHaveChanged(current, previous orchestration.NodeGroupBalances, log 
 func flattenBalances(b orchestration.ClusterBalances) map[string]map[string]int64 {
 	res := make(map[string]map[string]int64)
 	for _, ngb := range b {
-		for n, balances := range ngb {
-			res[n] = balances
-		}
+		maps.Copy(res, ngb)
 	}
 	return res
 }

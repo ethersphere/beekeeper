@@ -60,7 +60,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 	}
 }
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -178,7 +178,7 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 
 	receivedMtx.Lock()
 	defer receivedMtx.Unlock()
-	for i := 0; i < numChunks; i++ {
+	for i := range numChunks {
 		want := fmt.Sprintf("data %d", i)
 		if !received[want] {
 			return fmt.Errorf("message '%s' not received", want)
