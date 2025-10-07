@@ -99,7 +99,7 @@ func TestSet(t *testing.T) {
 				} else {
 					spec.UpdateStrategy.Type = appsv1.RollingUpdateStatefulSetStrategyType
 					spec.UpdateStrategy.RollingUpdate = &appsv1.RollingUpdateStatefulSetStrategy{
-						Partition: &test.options.Spec.UpdateStrategy.RollingUpdatePartition,
+						Partition: test.options.Spec.UpdateStrategy.RollingUpdatePartition,
 					}
 				}
 

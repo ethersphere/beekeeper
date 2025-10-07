@@ -41,7 +41,7 @@ func (s *StatefulSetSpec) ToK8S() appsv1.StatefulSetSpec {
 // UpdateStrategy represents Kubernetes StatefulSetUpdateStrategy
 type UpdateStrategy struct {
 	Type                   string
-	RollingUpdatePartition int32
+	RollingUpdatePartition *int32
 }
 
 func newUpdateStrategy(us appsv1.StatefulSetUpdateStrategy) UpdateStrategy {
@@ -51,10 +51,15 @@ func newUpdateStrategy(us appsv1.StatefulSetUpdateStrategy) UpdateStrategy {
 		}
 	}
 
-	return UpdateStrategy{
-		Type:                   UpdateStrategyRolling,
-		RollingUpdatePartition: *us.RollingUpdate.Partition,
+	strategy := UpdateStrategy{
+		Type: UpdateStrategyRolling,
 	}
+
+	if us.RollingUpdate != nil && us.RollingUpdate.Partition != nil {
+		strategy.RollingUpdatePartition = us.RollingUpdate.Partition
+	}
+
+	return strategy
 }
 
 // toK8S converts UpdateStrategy to Kubernetes client object
@@ -68,7 +73,7 @@ func (u *UpdateStrategy) toK8S() appsv1.StatefulSetUpdateStrategy {
 	return appsv1.StatefulSetUpdateStrategy{
 		Type: appsv1.RollingUpdateStatefulSetStrategyType,
 		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
-			Partition: &u.RollingUpdatePartition,
+			Partition: u.RollingUpdatePartition,
 		},
 	}
 }
