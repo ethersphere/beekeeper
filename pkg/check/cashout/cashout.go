@@ -51,7 +51,7 @@ type CashoutAction struct {
 }
 
 // Check executes settlements check
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -111,7 +111,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 
 LOOP:
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		time.Sleep(5 * time.Second)
 
 		for _, action := range actions {

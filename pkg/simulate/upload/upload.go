@@ -71,7 +71,7 @@ func NewSimulation(logger logging.Logger) beekeeper.Action {
 }
 
 // Run executes upload stress
-func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	s.logger.Info("running upload simulation")
 	o, ok := opts.(Options)
 	if !ok {
@@ -208,7 +208,7 @@ func (s *Simulation) Run(ctx context.Context, cluster orchestration.Cluster, opt
 
 // randomPick randomly picks n elements from the list, and returns lists of picked elements
 func randomPick(rnd *rand.Rand, list []string, n int) (picked []string) {
-	for i := 0; i < n; i++ {
+	for range n {
 		index := rnd.Intn(len(list))
 		picked = append(picked, list[index])
 		list = append(list[:index], list[index+1:]...)

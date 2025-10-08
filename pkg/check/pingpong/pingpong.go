@@ -39,7 +39,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 }
 
 // Run executes ping check
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ any) (err error) {
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
 		nodesClients, err := ng.NodesClients(ctx)
@@ -48,7 +48,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ interf
 		}
 
 		for n := range nodeStream(ctx, nodesClients) { // TODO: confirm use case for nodeStream(ctx, ng.NodesClientsAll(ctx))
-			for t := 0; t < 5; t++ {
+			for t := range 5 {
 				time.Sleep(2 * time.Duration(t) * time.Second)
 
 				if n.Error != nil {

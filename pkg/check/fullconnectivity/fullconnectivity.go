@@ -40,7 +40,7 @@ func NewDefaultOptions() Options {
 
 var errFullConnectivity = errors.New("full connectivity")
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	lightNodes := opts.(Options).LightNodeNames
 	bootNodes := opts.(Options).BootNodeNames
 	if err := c.checkFullNodesConnectivity(ctx, cluster, lightNodes, bootNodes); err != nil {

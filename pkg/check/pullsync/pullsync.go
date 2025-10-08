@@ -57,7 +57,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 
 var errPullSync = errors.New("pull sync")
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

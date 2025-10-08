@@ -10,5 +10,5 @@ import (
 // needs to expose metrics should implement the metrics.Reporter
 // interface.
 type Action interface {
-	Run(ctx context.Context, cluster orchestration.Cluster, o interface{}) (err error)
+	Run(ctx context.Context, cluster orchestration.Cluster, o any) (err error)
 }

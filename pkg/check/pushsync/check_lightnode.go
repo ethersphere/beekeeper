@@ -32,7 +32,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 	lightNodes := cluster.LightNodeNames()
 
 	// prepare postage batches
-	for i := 0; i < len(lightNodes); i++ {
+	for i := range lightNodes {
 		nodeName := lightNodes[i]
 		batchID, err := clients[nodeName].GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		if err != nil {
@@ -61,7 +61,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 
 			var ref swarm.Address
 
-			for i := 0; i < 3; i++ {
+			for range 3 {
 				ref, err = uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 				if err == nil {
 					break
@@ -83,7 +83,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 			l.Infof("closest node %s overlay %s", closestName, closestAddress)
 
 			var synced bool
-			for i := 0; i < 3; i++ {
+			for range 3 {
 				synced, _ = clients[closestName].HasChunk(ctx, ref)
 				if synced {
 					break

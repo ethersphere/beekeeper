@@ -399,9 +399,9 @@ func TestGetRandom_Concurrent(t *testing.T) {
 	results := make(chan int, numGoroutines*valuesPerGoroutine)
 	errors := make(chan error, numGoroutines*valuesPerGoroutine)
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
-			for j := 0; j < valuesPerGoroutine; j++ {
+			for range valuesPerGoroutine {
 				result, err := g.GetRandom(1, 100)
 				if err != nil {
 					errors <- err
@@ -439,7 +439,7 @@ func TestGetRandom_ZeroRange(t *testing.T) {
 		g := random.NewGenerator(false) // non-unique
 
 		// Generate multiple values when both min and max are 0
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			result, err := g.GetRandom(0, 0)
 			if err != nil {
 				t.Fatalf("GetRandom(0, 0) failed: %v", err)

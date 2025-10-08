@@ -24,7 +24,7 @@ type Simulation struct {
 // SimulationType is used for linking beekeeper actions with simulation and it's proper options
 type SimulationType struct {
 	NewAction  func(logging.Logger) beekeeper.Action
-	NewOptions func(SimulationGlobalConfig, Simulation) (interface{}, error)
+	NewOptions func(SimulationGlobalConfig, Simulation) (any, error)
 }
 
 // SimulationGlobalConfig represents global configs for all simulations
@@ -36,7 +36,7 @@ type SimulationGlobalConfig struct {
 var Simulations = map[string]SimulationType{
 	"upload": {
 		NewAction: upload.NewSimulation,
-		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
+		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (any, error) {
 			simulationOpts := new(struct {
 				FileCount            *int64         `yaml:"file-count"`
 				GasPrice             *string        `yaml:"gas-price"`
@@ -67,7 +67,7 @@ var Simulations = map[string]SimulationType{
 	},
 	"retrieval": {
 		NewAction: retrieval.NewSimulation,
-		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
+		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (any, error) {
 			simulationOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
 				GasPrice        *string        `yaml:"gas-price"`
@@ -92,7 +92,7 @@ var Simulations = map[string]SimulationType{
 	},
 	"pushsync": {
 		NewAction: pushsync.NewSimulation,
-		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (interface{}, error) {
+		NewOptions: func(simulationGlobalConfig SimulationGlobalConfig, simulation Simulation) (any, error) {
 			simulationOpts := new(struct {
 				GasPrice         *string  `yaml:"gas-price"`
 				PostageAmount    *int64   `yaml:"postage-amount"`
@@ -119,7 +119,7 @@ var Simulations = map[string]SimulationType{
 }
 
 // applySimulationConfig merges given, global and default simulation options
-func applySimulationConfig(global SimulationGlobalConfig, local, opts interface{}) (err error) {
+func applySimulationConfig(global SimulationGlobalConfig, local, opts any) (err error) {
 	lv := reflect.ValueOf(local).Elem()
 	lt := reflect.TypeOf(local).Elem()
 	ov := reflect.Indirect(reflect.ValueOf(opts).Elem())

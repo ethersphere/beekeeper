@@ -49,7 +49,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 
 var zero = big.NewInt(0)
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return err

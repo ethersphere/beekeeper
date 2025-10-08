@@ -48,8 +48,8 @@ type Check struct {
 
 // CheckType is used for linking beekeeper actions with check and it's proper options
 type CheckType struct {
-	NewAction  func(logging.Logger) beekeeper.Action               // links check with beekeeper action
-	NewOptions func(CheckGlobalConfig, Check) (interface{}, error) // check options
+	NewAction  func(logging.Logger) beekeeper.Action       // links check with beekeeper action
+	NewOptions func(CheckGlobalConfig, Check) (any, error) // check options
 }
 
 // CheckGlobalConfig represents global configs for all checks
@@ -62,7 +62,7 @@ type CheckGlobalConfig struct {
 var Checks = map[string]CheckType{
 	"act": {
 		NewAction: act.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				FileName     *string        `yaml:"file-name"`
 				FileSize     *int64         `yaml:"file-size"`
@@ -84,7 +84,7 @@ var Checks = map[string]CheckType{
 	},
 	"balances": {
 		NewAction: balances.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				DryRun             *bool          `yaml:"dry-run"`
 				FileName           *string        `yaml:"file-name"`
@@ -111,7 +111,7 @@ var Checks = map[string]CheckType{
 	},
 	"cashout": {
 		NewAction: cashout.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				NodeGroup *string `yaml:"node-group"`
 			})
@@ -129,7 +129,7 @@ var Checks = map[string]CheckType{
 	},
 	"file-retrieval": {
 		NewAction: fileretrieval.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				FileName        *string        `yaml:"file-name"`
 				FileSize        *int64         `yaml:"file-size"`
@@ -155,7 +155,7 @@ var Checks = map[string]CheckType{
 	},
 	"full-connectivity": {
 		NewAction: fullconnectivity.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				LightNodeNames *[]string `yaml:"group-1"`
 				FullNodeNames  *[]string `yaml:"group-2"`
@@ -175,7 +175,7 @@ var Checks = map[string]CheckType{
 	},
 	"gc": {
 		NewAction: gc.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				CacheSize    *int    `yaml:"cache-size"`
 				GasPrice     *string `yaml:"gas-price"`
@@ -197,7 +197,7 @@ var Checks = map[string]CheckType{
 	},
 	"kademlia": {
 		NewAction: kademlia.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				Dynamic *bool `yaml:"dynamic"`
 			})
@@ -215,7 +215,7 @@ var Checks = map[string]CheckType{
 	},
 	"manifest": {
 		NewAction: manifest.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				FilesInCollection *int           `yaml:"files-in-collection"`
 				GasPrice          *string        `yaml:"gas-price"`
@@ -239,20 +239,20 @@ var Checks = map[string]CheckType{
 	},
 	"peer-count": {
 		NewAction: peercount.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			return nil, nil
 		},
 	},
 	"pingpong": {
 		NewAction: pingpong.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			opts := pingpong.NewDefaultOptions()
 			return opts, nil
 		},
 	},
 	"pss": {
 		NewAction: pss.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				Count          *int64         `yaml:"count"`
 				AddressPrefix  *int           `yaml:"address-prefix"`
@@ -277,7 +277,7 @@ var Checks = map[string]CheckType{
 	},
 	"pullsync": {
 		NewAction: pullsync.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				ChunksPerNode              *int           `yaml:"chunks-per-node"`
 				GasPrice                   *string        `yaml:"gas-price"`
@@ -301,7 +301,7 @@ var Checks = map[string]CheckType{
 	},
 	"pushsync": {
 		NewAction: pushsync.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				ChunksPerNode     *int           `yaml:"chunks-per-node"`
 				GasPrice          *string        `yaml:"gas-price"`
@@ -329,7 +329,7 @@ var Checks = map[string]CheckType{
 	},
 	"retrieval": {
 		NewAction: retrieval.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				ChunksPerNode   *int           `yaml:"chunks-per-node"`
 				PostageTTL      *time.Duration `yaml:"postage-ttl"`
@@ -352,7 +352,7 @@ var Checks = map[string]CheckType{
 	},
 	"settlements": {
 		NewAction: settlements.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				DryRun             *bool          `yaml:"dry-run"`
 				ExpectSettlements  *bool          `yaml:"expect-settlements"`
@@ -381,7 +381,7 @@ var Checks = map[string]CheckType{
 	},
 	"smoke": {
 		NewAction: smoke.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				ContentSize   *int64         `yaml:"content-size"`
 				FileSizes     *[]int64       `yaml:"file-sizes"`
@@ -414,7 +414,7 @@ var Checks = map[string]CheckType{
 	},
 	"load": {
 		NewAction: load.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				ContentSize             *int64         `yaml:"content-size"`
 				RndSeed                 *int64         `yaml:"rnd-seed"`
@@ -448,7 +448,7 @@ var Checks = map[string]CheckType{
 	},
 	"soc": {
 		NewAction: soc.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				GasPrice       *string        `yaml:"gas-price"`
 				PostageTTL     *time.Duration `yaml:"postage-ttl"`
@@ -470,7 +470,7 @@ var Checks = map[string]CheckType{
 	},
 	"postage": {
 		NewAction: postage.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				GasPrice           *string `yaml:"gas-price"`
 				PostageAmount      *int64  `yaml:"postage-amount"`
@@ -491,7 +491,7 @@ var Checks = map[string]CheckType{
 	},
 	"stake": {
 		NewAction: stake.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				Amount             *big.Int `yaml:"amount"`
 				InsufficientAmount *big.Int `yaml:"insufficient-amount"`
@@ -511,7 +511,7 @@ var Checks = map[string]CheckType{
 	},
 	"longavailability": {
 		NewAction: longavailability.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				RndSeed      *int64         `yaml:"rnd-seed"`
 				RetryCount   *int64         `yaml:"retry-count"`
@@ -533,7 +533,7 @@ var Checks = map[string]CheckType{
 	},
 	"networkavailability": {
 		NewAction: networkavailability.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				RndSeed       *int64         `yaml:"rnd-seed"`
 				PostageTTL    *time.Duration `yaml:"postage-ttl"`
@@ -555,7 +555,7 @@ var Checks = map[string]CheckType{
 	},
 	"datadurability": {
 		NewAction: datadurability.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				Ref         *string `yaml:"ref"`
 				Concurrency *int    `yaml:"concurrency"`
@@ -575,7 +575,7 @@ var Checks = map[string]CheckType{
 	},
 	"redundancy": {
 		NewAction: redundancy.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				DataSize     *int           `yaml:"data-size"`
 				PostageDepth *int           `yaml:"postage-depth"`
@@ -597,7 +597,7 @@ var Checks = map[string]CheckType{
 	},
 	"withdraw": {
 		NewAction: withdraw.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				TargetAddr *string `yaml:"target-address"`
 			})
@@ -615,7 +615,7 @@ var Checks = map[string]CheckType{
 	},
 	"gsoc": {
 		NewAction: gsoc.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				PostageTTL   *time.Duration `yaml:"postage-ttl"`
 				PostageDepth *uint64        `yaml:"postage-depth"`
@@ -635,7 +635,7 @@ var Checks = map[string]CheckType{
 	},
 	"feed": {
 		NewAction: feed.NewCheck,
-		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				PostageTTL   *time.Duration `yaml:"postage-ttl"`
 				PostageDepth *uint64        `yaml:"postage-depth"`
@@ -658,7 +658,7 @@ var Checks = map[string]CheckType{
 }
 
 // applyCheckConfig merges global and local options into default options
-func applyCheckConfig(global CheckGlobalConfig, local, opts interface{}) (err error) {
+func applyCheckConfig(global CheckGlobalConfig, local, opts any) (err error) {
 	lv := reflect.ValueOf(local).Elem()
 	lt := reflect.TypeOf(local).Elem()
 	ov := reflect.Indirect(reflect.ValueOf(opts).Elem())

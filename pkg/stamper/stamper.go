@@ -77,7 +77,7 @@ func (s *Client) Create(ctx context.Context, duration time.Duration, depth uint1
 		return fmt.Errorf("depth must be greater than %d", postage.BucketDepth)
 	}
 
-	s.log.WithFields(map[string]interface{}{
+	s.log.WithFields(map[string]any{
 		"duration": duration,
 		"depth":    depth,
 	}).Info("creating postage batch on nodes")
@@ -103,7 +103,7 @@ func (s *Client) Create(ctx context.Context, duration time.Duration, depth uint1
 
 // Dilute dilutes a postage batch.
 func (s *Client) Dilute(ctx context.Context, usageThreshold float64, dilutionDepth uint16, opts ...Option) error {
-	s.log.WithFields(map[string]interface{}{
+	s.log.WithFields(map[string]any{
 		"usageThreshold": usageThreshold,
 		"dilutionDepth":  dilutionDepth,
 	}).Info("diluting postage batch on nodes")
@@ -130,7 +130,7 @@ func (s *Client) Dilute(ctx context.Context, usageThreshold float64, dilutionDep
 
 // Set sets the topup and dilution parameters.
 func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, usageThreshold float64, dilutionDepth uint16, opts ...Option) error {
-	s.log.WithFields(map[string]interface{}{
+	s.log.WithFields(map[string]any{
 		"ttlThreshold":   ttlThreshold,
 		"topupTo":        topupTo,
 		"usageThreshold": usageThreshold,
@@ -172,7 +172,7 @@ func (s *Client) Set(ctx context.Context, ttlThreshold time.Duration, topupTo ti
 
 // Topup tops up a postage batch.
 func (s *Client) Topup(ctx context.Context, ttlThreshold time.Duration, topupTo time.Duration, opts ...Option) (err error) {
-	s.log.WithFields(map[string]interface{}{
+	s.log.WithFields(map[string]any{
 		"ttlThreshold": ttlThreshold,
 		"topupTo":      topupTo,
 	}).Info("topup postage batch on nodes")

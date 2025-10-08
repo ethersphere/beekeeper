@@ -100,10 +100,10 @@ func (g *GethClient) FetchBlockTime(ctx context.Context, opts ...Option) (int64,
 }
 
 type rpcRequest struct {
-	ID      string        `json:"id"`
-	JsonRPC string        `json:"jsonrpc"`
-	Method  string        `json:"method"`
-	Params  []interface{} `json:"params"`
+	ID      string `json:"id"`
+	JsonRPC string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  []any  `json:"params"`
 }
 
 func (g *GethClient) fetchLatestBlockNumber(ctx context.Context) (int64, error) {
@@ -144,7 +144,7 @@ func (g *GethClient) fetchBlockTimestamp(ctx context.Context, blockNumber int64)
 		ID:      "1",
 		JsonRPC: "2.0",
 		Method:  "eth_getBlockByNumber",
-		Params:  []interface{}{fmt.Sprintf("0x%x", blockNumber), false},
+		Params:  []any{fmt.Sprintf("0x%x", blockNumber), false},
 	}
 
 	resp := new(struct {

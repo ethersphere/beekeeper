@@ -18,7 +18,7 @@ const contentType = "application/json; charset=utf-8"
 // body, creates an HTTP request with provided method on a path with required
 // headers and decodes request body if the v argument is not nil and content type is
 // application/json.
-func (c *GethClient) requestJSON(ctx context.Context, httpClient *http.Client, method, path string, body, v interface{}) (err error) {
+func (c *GethClient) requestJSON(ctx context.Context, httpClient *http.Client, method, path string, body, v any) (err error) {
 	var bodyBuffer io.ReadWriter
 	if body != nil {
 		bodyBuffer = new(bytes.Buffer)
@@ -39,7 +39,7 @@ func (c *GethClient) getFullURL(path string) (string, error) {
 }
 
 // request handles the HTTP request response cycle.
-func (c *GethClient) request(ctx context.Context, httpClient *http.Client, method, path string, body io.Reader, v interface{}) (err error) {
+func (c *GethClient) request(ctx context.Context, httpClient *http.Client, method, path string, body io.Reader, v any) (err error) {
 	fullURL, err := c.getFullURL(path)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (c *GethClient) request(ctx context.Context, httpClient *http.Client, metho
 
 // encodeJSON writes a JSON-encoded v object to the provided writer with
 // SetEscapeHTML set to false.
-func encodeJSON(w io.Writer, v interface{}) (err error) {
+func encodeJSON(w io.Writer, v any) (err error) {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
 	return enc.Encode(v)

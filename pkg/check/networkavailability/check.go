@@ -56,7 +56,7 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 }
 
 // Run creates file of specified size that is uploaded and downloaded.
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) error {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) error {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -162,7 +162,7 @@ func neighborhoods(bits int) []swarm.Address {
 
 	ret := make([]swarm.Address, 0, max)
 
-	for i := 0; i < max; i++ {
+	for i := range max {
 		buf := make([]byte, 4)
 		binary.LittleEndian.PutUint32(buf, uint32(i))
 
