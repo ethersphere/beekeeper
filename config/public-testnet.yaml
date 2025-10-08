@@ -180,6 +180,6 @@ checks:
       postage-ttl: 360h # 15 days
       postage-depth: 22
       postage-label: test-label
-      duration: 360h
-    timeout: 361h
+      duration: 12h
+    timeout: 13h
     type: smoke
