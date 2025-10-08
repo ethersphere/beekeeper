@@ -32,35 +32,43 @@ func (c *Client) Restart(ctx context.Context, image string) error {
 	}
 
 	c.logger.Debugf("starting pod restart for %d nodes", len(nodes))
-	count := 0
+
+	statefulSetMap := make(map[string][]string)
 	for _, node := range nodes {
-		if err := c.updateOrDeleteNode(ctx, node.Name(), c.nodeProvider.Namespace(), image); err != nil {
-			c.logger.Warningf("failed to restart node %s: %v", node.Name(), err)
-			continue
+		if image == "" {
+			return c.deletePod(ctx, node.Name(), c.nodeProvider.Namespace())
 		}
-		count++
+
+		pod, err := c.k8sClient.Pods.Get(ctx, node.Name(), c.nodeProvider.Namespace())
+		if err != nil {
+			return fmt.Errorf("getting pod %s: %w", node.Name(), err)
+		}
+
+		for _, owner := range pod.GetOwnerReferences() {
+			if owner.Kind == "StatefulSet" {
+				statefulSetMap[owner.Name] = append(statefulSetMap[owner.Name], node.Name())
+				break
+			}
+		}
 	}
 
-	c.logger.Infof("restarted %d pods", count)
-	return nil
-}
+	for ssName := range statefulSetMap {
+		strategy, err := c.k8sClient.StatefulSet.GetUpdateStrategy(ctx, ssName, c.nodeProvider.Namespace())
+		if err != nil {
+			return fmt.Errorf("getting update strategy for statefulset %s: %w", ssName, err)
+		}
 
-func (c *Client) updateOrDeleteNode(ctx context.Context, node, ns, image string) error {
-	if image == "" {
-		return c.deletePod(ctx, node, ns)
-	}
+		if err = c.k8sClient.StatefulSet.UpdateImage(ctx, ssName, c.nodeProvider.Namespace(), image); err != nil {
+			return fmt.Errorf("updating image for statefulset %s: %w", ssName, err)
+		}
 
-	strategy, err := c.k8sClient.StatefulSet.GetUpdateStrategy(ctx, node, ns)
-	if err != nil {
-		return fmt.Errorf("getting update strategy for node %s: %w", node, err)
-	}
-
-	if err = c.k8sClient.StatefulSet.UpdateImage(ctx, node, ns, image); err != nil {
-		return fmt.Errorf("updating image for node %s: %w", node, err)
-	}
-
-	if strategy.Type == statefulset.UpdateStrategyOnDelete {
-		return c.deletePod(ctx, node, ns)
+		if strategy.Type == statefulset.UpdateStrategyOnDelete {
+			for _, podName := range statefulSetMap[ssName] {
+				if err = c.deletePod(ctx, podName, c.nodeProvider.Namespace()); err != nil {
+					return fmt.Errorf("deleting pod %s: %w", podName, err)
+				}
+			}
+		}
 	}
 
 	return nil
