@@ -36,7 +36,10 @@ func (c *Client) Restart(ctx context.Context, image string) error {
 	statefulSetMap := make(map[string][]string)
 	for _, node := range nodes {
 		if image == "" {
-			return c.deletePod(ctx, node.Name(), c.nodeProvider.Namespace())
+			if err := c.deletePod(ctx, node.Name(), c.nodeProvider.Namespace()); err != nil {
+				return fmt.Errorf("deleting pod %s: %w", node.Name(), err)
+			}
+			continue
 		}
 
 		pod, err := c.k8sClient.Pods.Get(ctx, node.Name(), c.nodeProvider.Namespace())
