@@ -44,7 +44,9 @@ func (c *Client) Restart(ctx context.Context, image string) error {
 func (c *Client) restartByDeletingPods(ctx context.Context, nodes []node.Node) error {
 	c.logger.Debug("performing simple pod deletion restart")
 	podsDeleted := 0
-	defer c.logger.Debugf("finished simple pod deletion restart: %d pods deleted", podsDeleted)
+	defer func() {
+		c.logger.Debugf("finished simple pod deletion restart: %d pods deleted", podsDeleted)
+	}()
 
 	for _, node := range nodes {
 		if err := c.deletePod(ctx, node.Name()); err != nil {
@@ -53,7 +55,7 @@ func (c *Client) restartByDeletingPods(ctx context.Context, nodes []node.Node) e
 		podsDeleted++
 	}
 
-	c.logger.Debugf("successfully deleted %d pods", podsDeleted)
+	c.logger.Infof("successfully deleted %d pods", podsDeleted)
 
 	return nil
 }
@@ -61,7 +63,9 @@ func (c *Client) restartByDeletingPods(ctx context.Context, nodes []node.Node) e
 func (c *Client) restartWithImageUpdate(ctx context.Context, nodes node.NodeList, image string) error {
 	c.logger.Debug("performing image update with pod restart")
 	podsDeleted, ssUpdated := 0, 0
-	defer c.logger.Debugf("finished image update with pod restart: %d pods deleted, %d statefulsets updated", podsDeleted, ssUpdated)
+	defer func() {
+		c.logger.Debugf("finished image update with pod restart: %d pods deleted, %d statefulsets updated", podsDeleted, ssUpdated)
+	}()
 
 	statefulSetMap := make(map[string][]string)
 	for _, node := range nodes {
@@ -99,7 +103,7 @@ func (c *Client) restartWithImageUpdate(ctx context.Context, nodes node.NodeList
 		}
 	}
 
-	c.logger.Debugf("successfully updated image for %d statefulsets", ssUpdated)
+	c.logger.Infof("successfully updated image for %d statefulsets", ssUpdated)
 
 	return nil
 }

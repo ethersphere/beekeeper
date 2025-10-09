@@ -46,6 +46,8 @@ Requires either --cluster-name or --namespace to be specified.`,
 					return fmt.Errorf("kubernetes support must be enabled for nuke command")
 				}
 
+				defer c.log.Infof("restart done")
+
 				nodeClient, err := c.createNodeClient(ctx, true)
 				if err != nil {
 					return fmt.Errorf("creating node client: %w", err)
