@@ -311,6 +311,7 @@ func responseErrorHandler(r *http.Response) (err error) {
 	}
 
 	err = NewHTTPStatusError(r.StatusCode)
+
 	// add message to the error if it is not already the same as the status text
 	if e.Message != "" && e.Message != http.StatusText(r.StatusCode) {
 		return fmt.Errorf("response message %q: status: %w", e.Message, err)
