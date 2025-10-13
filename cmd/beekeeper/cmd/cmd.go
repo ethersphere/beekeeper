@@ -89,7 +89,7 @@ func newCommand(opts ...option) (c *command, err error) {
 			Transport: &httpx.HeaderRoundTripper{
 				Next: http.DefaultTransport,
 			},
-			Timeout: 30 * time.Second,
+			Timeout: 3 * time.Minute,
 		},
 	}
 

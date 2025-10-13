@@ -838,16 +838,23 @@ func (c *Client) UploadChunk(ctx context.Context, data []byte, o api.UploadOptio
 
 // UploadFile uploads file to the node
 func (c *Client) UploadFile(ctx context.Context, f *File, o api.UploadOptions) (err error) {
+	c.log.Debugf("uploading file %s of size %d to %s", f.Name(), f.Size(), c.apiURL.Host)
+
 	h := fileHasher()
+	start := time.Now()
 	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), o)
+	duration := time.Since(start)
 	if err != nil {
+		c.log.Errorf("uploading file failed after %v: %v", duration, err)
 		return fmt.Errorf("upload file: %w", err)
 	}
 
 	f.SetAddress(r.Reference)
 	f.SetHash(h.Sum(nil))
 
-	return err
+	c.log.Debugf("successfully uploaded file %s in %v", f.Name(), duration)
+
+	return nil
 }
 
 func (c *Client) UploadActFile(ctx context.Context, f *File, o api.UploadOptions) (err error) {
@@ -934,20 +941,20 @@ func (c *Client) DownloadManifestFile(ctx context.Context, a swarm.Address, path
 func (c *Client) CreateTag(ctx context.Context) (resp api.TagResponse, err error) {
 	resp, err = c.api.Tags.CreateTag(ctx)
 	if err != nil {
-		return resp, fmt.Errorf("create tag: %w", err)
+		return api.TagResponse{}, fmt.Errorf("create tag: %w", err)
 	}
 
-	return resp, err
+	return resp, nil
 }
 
 // GetTag retrieves tag from node
 func (c *Client) GetTag(ctx context.Context, tagUID uint64) (resp api.TagResponse, err error) {
 	resp, err = c.api.Tags.GetTag(ctx, tagUID)
 	if err != nil {
-		return resp, fmt.Errorf("get tag: %w", err)
+		return api.TagResponse{}, fmt.Errorf("get tag: %w", err)
 	}
 
-	return resp, err
+	return resp, nil
 }
 
 // IsRetrievable checks whether the content on the given address is retrievable.

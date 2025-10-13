@@ -154,10 +154,7 @@ func (c *checkRun) Run(ctx context.Context, cluster orchestration.Cluster) error
 		}
 		return checkCtx.Err()
 	case err := <-ch:
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	}
 }
 
