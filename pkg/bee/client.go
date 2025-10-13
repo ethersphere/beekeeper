@@ -843,10 +843,11 @@ func (c *Client) UploadFile(ctx context.Context, f *File, o api.UploadOptions) (
 	h := fileHasher()
 	start := time.Now()
 	r, err := c.api.Files.Upload(ctx, f.Name(), io.TeeReader(f.DataReader(), h), f.Size(), o)
+	duration := time.Since(start)
 	if err != nil {
+		c.log.Errorf("uploading file failed after %v: %v", duration, err)
 		return fmt.Errorf("upload file: %w", err)
 	}
-	duration := time.Since(start)
 
 	f.SetAddress(r.Reference)
 	f.SetHash(h.Sum(nil))
