@@ -27,17 +27,17 @@ type FilesUploadResponse struct {
 func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, size int64, o UploadOptions) (resp FilesUploadResponse, err error) {
 	header := make(http.Header)
 	header.Set("Content-Type", "application/octet-stream")
-	header.Set("Content-Length", strconv.FormatInt(size, 10))
+	header.Add("Content-Length", strconv.FormatInt(size, 10))
 	if o.Pin {
-		header.Set(swarmPinHeader, "true")
+		header.Add(swarmPinHeader, "true")
 	}
 	if o.Tag != 0 {
-		header.Set(swarmTagHeader, strconv.FormatUint(o.Tag, 10))
+		header.Add(swarmTagHeader, strconv.FormatUint(o.Tag, 10))
 	}
 	if o.Direct {
-		header.Set(deferredUploadHeader, strconv.FormatBool(false))
+		header.Add(deferredUploadHeader, strconv.FormatBool(false))
 	}
-	header.Set(postageStampBatchHeader, o.BatchID)
+	header.Add(postageStampBatchHeader, o.BatchID)
 
 	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz?"+url.QueryEscape("name="+name), header, data, &resp)
 	return resp, err
