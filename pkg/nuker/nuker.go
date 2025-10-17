@@ -75,7 +75,7 @@ func (c *Client) Run(ctx context.Context, restartArgs []string) (err error) {
 	}
 
 	// 2. Iterate through each StatefulSet and apply the update and rollback procedure concurrently using errgroup.
-	c.log.Debugf("found %d stateful sets to update", len(statefulSetsMap))
+	c.log.Infof("found %d stateful sets to update", len(statefulSetsMap))
 
 	for name, ss := range statefulSetsMap {
 		// Skip StatefulSets with 0 replicas
@@ -97,6 +97,42 @@ func (c *Client) Run(ctx context.Context, restartArgs []string) (err error) {
 
 		c.log.Infof("updating stateful set %s, with args: %v", name, args)
 		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, args); err != nil {
+			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
+		}
+		c.log.Infof("successfully updated stateful set %s", name)
+	}
+
+	return nil
+}
+
+// NukeByStatefulSets sends a nuke command to the specified StatefulSets by name
+func (c *Client) NukeByStatefulSets(ctx context.Context, namespace string, statefulSetNames []string, restartArgs []string) error {
+	c.log.Info("starting Bee cluster nuke by StatefulSet names")
+
+	if len(statefulSetNames) == 0 {
+		return errors.New("stateful set names cannot be empty")
+	}
+
+	statefulSetsMap := make(map[string]*v1.StatefulSet)
+
+	for _, name := range statefulSetNames {
+		statefulSet, err := c.k8sClient.StatefulSet.Get(ctx, name, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to get stateful set %s: %w", name, err)
+		}
+		statefulSetsMap[name] = statefulSet
+	}
+
+	c.log.Infof("found %d stateful sets to update", len(statefulSetsMap))
+
+	for name, ss := range statefulSetsMap {
+		if ss.Spec.Replicas == nil || *ss.Spec.Replicas == 0 {
+			c.log.Infof("skipping stateful set %s: no replicas", name)
+			continue
+		}
+
+		c.log.Debugf("updating stateful set %s, with args: %v", name, restartArgs)
+		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, restartArgs); err != nil {
 			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
 		}
 		c.log.Infof("successfully updated stateful set %s", name)
@@ -133,7 +169,7 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 
 	// Ensure rollback happens regardless of success or failure
 	defer func() {
-		c.log.Infof("rolling back stateful set %s to its original configuration", ss.Name)
+		c.log.Debugf("rolling back stateful set %s to its original configuration", ss.Name)
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			// Fetch the latest version of the StatefulSet before updating.
 			latestSS, err := c.k8sClient.StatefulSet.Get(ctx, ss.Name, namespace)
@@ -154,12 +190,12 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 		}
 
 		// Sequentially delete each pod again to trigger the rollback.
-		c.log.Infof("deleting pods in stateful set %s to trigger rollback", ss.Name)
+		c.log.Debugf("deleting pods in stateful set %s to trigger rollback", ss.Name)
 		if err := c.recreatePodsAndWait(ctx, namespace, ss, c.k8sClient.Pods.WaitForRunning); err != nil {
 			c.log.Errorf("failed during pod rollback for %s: %v", ss.Name, err)
 			return
 		}
-		c.log.Infof("all pods for %s have been rolled back and are ready", ss.Name)
+		c.log.Debugf("all pods for %s have been rolled back and are ready", ss.Name)
 	}()
 
 	// 2. Modify the StatefulSet for the update task using a retry loop.
@@ -184,11 +220,11 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 	}
 
 	// 3. Sequentially delete each pod and wait for it to be recreated and complete the task.
-	c.log.Infof("deleting pods in stateful set %s to trigger update task", ss.Name)
+	c.log.Debugf("deleting pods in stateful set %s to trigger update task", ss.Name)
 	if err := c.recreatePodsAndWait(ctx, namespace, ss, c.k8sClient.Pods.WaitForPodRecreationAndCompletion); err != nil {
 		return fmt.Errorf("failed during pod update task for %s: %w", ss.Name, err)
 	}
-	c.log.Infof("all pods for %s completed the update task", ss.Name)
+	c.log.Debugf("all pods for %s completed the update task", ss.Name)
 
 	return nil
 }
@@ -217,7 +253,7 @@ func (c *Client) recreatePodsAndWait(ctx context.Context, namespace string, ss *
 			if err := waitFunc(ctx, namespace, podName); err != nil {
 				return fmt.Errorf("failed to wait for pod %s: %w", podName, err)
 			}
-			c.log.Infof("pod %s is ready", podName)
+			c.log.Debugf("pod %s is ready", podName)
 			return nil
 		})
 	}
