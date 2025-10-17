@@ -70,7 +70,7 @@ func (b BeeConfig) GetParentName() string {
 // Export exports BeeConfig to orchestration.Config
 func (b *BeeConfig) Export() (config orchestration.Config) {
 	localVal := reflect.ValueOf(b).Elem()
-	localType := reflect.TypeOf(b).Elem()
+	localType := reflect.TypeFor[BeeConfig]()
 	remoteVal := reflect.ValueOf(&config).Elem()
 
 	for i := range localVal.NumField() {

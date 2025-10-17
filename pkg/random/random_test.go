@@ -110,7 +110,7 @@ func TestPseudoGenerators(t *testing.T) {
 
 func TestInt64_Type(t *testing.T) {
 	v := random.Int64()
-	vt := reflect.TypeOf(v).Kind()
+	vt := reflect.TypeFor[int64]().Kind()
 
 	if vt != reflect.Int64 {
 		t.Errorf("unexpected type, expected: %v, got: %v", reflect.Int64, vt)
@@ -124,7 +124,7 @@ func TestInt64_Type(t *testing.T) {
 func TestCryptoSource_Uint64(t *testing.T) {
 	cs := random.CryptoSource{}
 	v := cs.Uint64()
-	vt := reflect.TypeOf(v).Kind()
+	vt := reflect.TypeFor[uint64]().Kind()
 
 	if vt != reflect.Uint64 {
 		t.Errorf("unexpected type, expected: %v, got: %v", reflect.Uint64, vt)
@@ -138,7 +138,7 @@ func TestCryptoSource_Uint64(t *testing.T) {
 func TestCryptoSource_Int63(t *testing.T) {
 	cs := random.CryptoSource{}
 	v := cs.Int63()
-	vt := reflect.TypeOf(v).Kind()
+	vt := reflect.TypeFor[int64]().Kind()
 
 	if vt != reflect.Int64 {
 		t.Errorf("unexpected type, expected: %v, got: %v", reflect.Int64, vt)
