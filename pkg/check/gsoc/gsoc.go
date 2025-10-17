@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -227,16 +228,16 @@ func runInParallel(ctx context.Context, client *bee.Client, numChunks int, batch
 }
 
 func getTargetNeighborhood(address swarm.Address, depth int) (string, error) {
-	var targetNeighborhood string
+	var targetNeighborhood strings.Builder
 	for i := range depth {
 		hexChar := address.String()[i : i+1]
 		value, err := strconv.ParseUint(hexChar, 16, 4)
 		if err != nil {
 			return "", err
 		}
-		targetNeighborhood += fmt.Sprintf("%04b", value)
+		targetNeighborhood.WriteString(fmt.Sprintf("%04b", value))
 	}
-	return targetNeighborhood, nil
+	return targetNeighborhood.String(), nil
 }
 
 func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.PrivateKey, depth int) ([]byte, swarm.Address, error) {
