@@ -16,7 +16,7 @@ type Funding struct {
 // Export exports Funding to orchestration.FundingOptions
 func (f *Funding) Export() (o orchestration.FundingOptions) {
 	localVal := reflect.ValueOf(f).Elem()
-	localType := reflect.TypeOf(f).Elem()
+	localType := reflect.TypeFor[Funding]()
 	remoteVal := reflect.ValueOf(&o).Elem()
 
 	for i := 0; i < localVal.NumField(); i++ {

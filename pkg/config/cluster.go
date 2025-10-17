@@ -57,7 +57,7 @@ type NodeEndpoint struct {
 // Export exports Cluster to orchestration.ClusterOptions, skipping all other extra fields
 func (c *Cluster) Export() (o orchestration.ClusterOptions) {
 	localVal := reflect.ValueOf(c).Elem()
-	localType := reflect.TypeOf(c).Elem()
+	localType := reflect.TypeFor[Cluster]()
 	remoteVal := reflect.ValueOf(&o).Elem()
 
 	for i := 0; i < localVal.NumField(); i++ {
