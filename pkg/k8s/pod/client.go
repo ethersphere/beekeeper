@@ -208,7 +208,7 @@ func (s PodRecreationState) String() string {
 // WaitForPodRecreationAndCompletion waits for a pod to go through the complete lifecycle:
 // DELETED -> ADDED -> RUNNING -> COMPLETED
 func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespace, podName string) error {
-	c.log.Infof("waiting for pod %s to complete recreation and execution lifecycle", podName)
+	c.log.Debugf("waiting for pod %s to complete recreation and execution lifecycle", podName)
 	defer c.log.Debugf("watch for pod %s in namespace %s done", podName, namespace)
 
 	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
@@ -224,7 +224,7 @@ func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespac
 
 	// Initialize state machine
 	currentState := WaitingForDeletion
-	c.log.Infof("starting pod recreation lifecycle watch for %s, initial state: %s", podName, currentState)
+	c.log.Debugf("starting pod recreation lifecycle watch for %s, initial state: %s", podName, currentState)
 
 	for {
 		select {
@@ -235,12 +235,12 @@ func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespac
 			}
 
 			if newState != currentState {
-				c.log.Infof("pod %s transitioning from %s to %s", podName, currentState, newState)
+				c.log.Debugf("pod %s transitioning from %s to %s", podName, currentState, newState)
 				currentState = newState
 			}
 
 			if currentState == Completed {
-				c.log.Infof("pod %s container completed successfully", podName)
+				c.log.Debugf("pod %s container completed successfully", podName)
 				return nil
 			}
 
@@ -311,7 +311,7 @@ func (c *Client) WaitForRunning(ctx context.Context, namespace, podName string) 
 		}
 
 		if pod.Status.Phase == v1.PodRunning {
-			c.log.Infof("pod %s has started and is in phase Running.", podName)
+			c.log.Debugf("pod %s has started and is in phase Running.", podName)
 			return true, nil
 		}
 
