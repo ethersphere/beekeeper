@@ -136,9 +136,6 @@ func (c *Client) StatefulSets(ctx context.Context, namespace, labelSelector stri
 func (c *Client) Get(ctx context.Context, name, namespace string) (*appsv1.StatefulSet, error) {
 	statefulSet, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
 		return nil, fmt.Errorf("getting statefulset %s in namespace %s: %w", name, namespace, err)
 	}
 	return statefulSet, nil
