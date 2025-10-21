@@ -56,13 +56,13 @@ The command supports two modes:
 					if err := nukerClient.NukeByStatefulSets(ctx, namespace, statefulSetNames, restartArgs); err != nil {
 						return fmt.Errorf("running nuke command with StatefulSet names: %w", err)
 					}
-					c.log.Infof("successfully nuked StatefulSets: %v", statefulSetNames)
 				} else {
 					if err := nukerClient.Run(ctx, restartArgs); err != nil {
 						return fmt.Errorf("running nuke command: %w", err)
 					}
-					c.log.Info("successfully nuked Bee nodes in the cluster")
 				}
+
+				c.log.Infof("nuke command completed")
 
 				return nil
 			})

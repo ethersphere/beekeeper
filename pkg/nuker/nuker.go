@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/node"
 	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/api/apps/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/util/retry"
 )
 
@@ -77,6 +78,8 @@ func (c *Client) Run(ctx context.Context, restartArgs []string) (err error) {
 	// 2. Iterate through each StatefulSet and apply the update and rollback procedure concurrently using errgroup.
 	c.log.Infof("found %d stateful sets to update", len(statefulSetsMap))
 
+	count := 0
+
 	for name, ss := range statefulSetsMap {
 		// Skip StatefulSets with 0 replicas
 		if ss.Spec.Replicas == nil || *ss.Spec.Replicas == 0 {
@@ -99,8 +102,11 @@ func (c *Client) Run(ctx context.Context, restartArgs []string) (err error) {
 		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, args); err != nil {
 			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
 		}
+		count++
 		c.log.Infof("successfully updated stateful set %s", name)
 	}
+
+	c.log.Infof("nuked %d stateful sets", count)
 
 	return nil
 }
@@ -118,12 +124,18 @@ func (c *Client) NukeByStatefulSets(ctx context.Context, namespace string, state
 	for _, name := range statefulSetNames {
 		statefulSet, err := c.k8sClient.StatefulSet.Get(ctx, name, namespace)
 		if err != nil {
+			if k8serrors.IsNotFound(err) {
+				c.log.Warningf("stateful set %s not found, skipping", name)
+				continue
+			}
 			return fmt.Errorf("failed to get stateful set %s: %w", name, err)
 		}
 		statefulSetsMap[name] = statefulSet
 	}
 
 	c.log.Infof("found %d stateful sets to update", len(statefulSetsMap))
+
+	count := 0
 
 	for name, ss := range statefulSetsMap {
 		if ss.Spec.Replicas == nil || *ss.Spec.Replicas == 0 {
@@ -135,8 +147,11 @@ func (c *Client) NukeByStatefulSets(ctx context.Context, namespace string, state
 		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, restartArgs); err != nil {
 			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
 		}
+		count++
 		c.log.Infof("successfully updated stateful set %s", name)
 	}
+
+	c.log.Infof("nuked %d stateful sets", count)
 
 	return nil
 }
