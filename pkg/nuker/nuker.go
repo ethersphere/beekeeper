@@ -85,7 +85,7 @@ func (c *Client) Run(ctx context.Context, restartArgs []string) (err error) {
 		}
 
 		if neighborhoodArgProvider.UsesRandomNeighborhood() && *ss.Spec.Replicas != 1 {
-			return errors.New("random neighborhood provider requires exactly one pod (replica) in the StatefulSet")
+			c.log.Warningf("stateful set %s has %d replicas, but random neighborhood is enabled; all pods will receive the same neighborhood value", name, *ss.Spec.Replicas)
 		}
 
 		podNames := getPodNames(ss)
