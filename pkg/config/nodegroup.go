@@ -41,7 +41,7 @@ func (b NodeGroup) GetParentName() string {
 // Export exports NodeGroup to orchestration.NodeGroupOptions
 func (n *NodeGroup) Export() (o orchestration.NodeGroupOptions) {
 	localVal := reflect.ValueOf(n).Elem()
-	localType := reflect.TypeOf(n).Elem()
+	localType := reflect.TypeFor[NodeGroup]()
 	remoteVal := reflect.ValueOf(&o).Elem()
 
 	for i := 0; i < localVal.NumField(); i++ {
