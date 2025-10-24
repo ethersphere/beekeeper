@@ -15,6 +15,7 @@ const (
 	optionNameUseRandomNeighboorhood = "use-random-neighborhood"
 	optionNameDeploymentType         = "deployment-type"
 	optionNameStatefulSets           = "stateful-sets"
+	optionNameImage                  = "image"
 	beeLabelSelector                 = "app.kubernetes.io/name=bee"
 )
 
@@ -47,6 +48,7 @@ The command supports two modes:
 					K8sClient:             c.k8sClient,
 					NodeProvider:          nodeClient,
 					UseRandomNeighborhood: c.globalConfig.GetBool(optionNameUseRandomNeighboorhood),
+					Image:                 c.globalConfig.GetString(optionNameImage),
 				})
 
 				statefulSetNames := c.globalConfig.GetStringSlice(optionNameStatefulSets)
@@ -79,6 +81,7 @@ The command supports two modes:
 	cmd.Flags().Bool(optionNameUseRandomNeighboorhood, false, "Use random neighborhood for Bee nodes (default: false)")
 	cmd.Flags().String(optionNameDeploymentType, string(node.DeploymentTypeBeekeeper), "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
 	cmd.Flags().StringSlice(optionNameStatefulSets, nil, "List of StatefulSet names to target for nuke (e.g., 'bootnode-0,bootnode-1'). When provided, uses direct StatefulSet targeting instead of NodeProvider.")
+	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
 
 	c.root.AddCommand(cmd)
 

@@ -20,6 +20,7 @@ type ClientConfig struct {
 	NodeProvider          node.NodeProvider
 	K8sClient             *k8s.Client
 	UseRandomNeighborhood bool
+	Image                 string
 }
 
 type Client struct {
@@ -27,6 +28,7 @@ type Client struct {
 	nodeProvider          node.NodeProvider
 	k8sClient             *k8s.Client
 	useRandomNeighborhood bool
+	image                 string
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -42,6 +44,7 @@ func New(cfg *ClientConfig) *Client {
 		log:          cfg.Log,
 		k8sClient:    cfg.K8sClient,
 		nodeProvider: cfg.NodeProvider,
+		image:        cfg.Image,
 	}
 }
 
@@ -197,6 +200,9 @@ func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace str
 			latestSS.Spec.Replicas = originalSS.Spec.Replicas
 			latestSS.Spec.Template.Spec.Containers[0].Command = restartArgs
 			latestSS.Spec.Template.Spec.Containers[0].ReadinessProbe = originalSS.Spec.Template.Spec.Containers[0].ReadinessProbe
+			if c.image != "" {
+				latestSS.Spec.Template.Spec.Containers[0].Image = c.image
+			}
 
 			return c.k8sClient.StatefulSet.Update(ctx, namespace, latestSS)
 		}); err != nil {
