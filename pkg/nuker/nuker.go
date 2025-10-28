@@ -123,8 +123,13 @@ func (c *Client) NukeByStatefulSets(ctx context.Context, namespace string, state
 	}
 
 	statefulSetsMap := make(map[string]*v1.StatefulSet)
+	var orderedNames []string
 
 	for _, name := range statefulSetNames {
+		if _, exists := statefulSetsMap[name]; exists {
+			continue
+		}
+
 		statefulSet, err := c.k8sClient.StatefulSet.Get(ctx, name, namespace)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
@@ -133,14 +138,24 @@ func (c *Client) NukeByStatefulSets(ctx context.Context, namespace string, state
 			}
 			return fmt.Errorf("failed to get stateful set %s: %w", name, err)
 		}
+
 		statefulSetsMap[name] = statefulSet
+		orderedNames = append(orderedNames, name)
 	}
 
-	c.log.Infof("found %d stateful sets to update", len(statefulSetsMap))
+	if len(orderedNames) == 0 {
+		c.log.Warning("no valid stateful sets found to update")
+		return nil
+	}
+
+	c.log.Infof("found %d stateful sets to update", len(orderedNames))
 
 	count := 0
 
-	for name, ss := range statefulSetsMap {
+	// iterate in the same order as the input statefulSetNames
+	for _, name := range orderedNames {
+		ss := statefulSetsMap[name]
+
 		if ss.Spec.Replicas == nil || *ss.Spec.Replicas == 0 {
 			c.log.Infof("skipping stateful set %s: no replicas", name)
 			continue
