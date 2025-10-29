@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -121,7 +120,7 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	if err != nil {
 		return err
 	}
-	prefixMatchDepth := 6
+	prefixMatchDepth := 8
 	logger.Infof("gsoc: mining resource id for overlay=%s, prefixMatchDepth=%d", addresses.Overlay, prefixMatchDepth)
 	resourceId, socAddress, err := mineResourceId(ctx, addresses.Overlay, privKey, prefixMatchDepth)
 	if err != nil {
@@ -226,31 +225,8 @@ func runInParallel(ctx context.Context, client *bee.Client, numChunks int, batch
 	return errG.Wait()
 }
 
-func getTargetNeighborhood(address swarm.Address, depth int) (string, error) {
-	var targetNeighborhood string
-	for i := range depth {
-		hexChar := address.String()[i : i+1]
-		value, err := strconv.ParseUint(hexChar, 16, 4)
-		if err != nil {
-			return "", err
-		}
-		targetNeighborhood += fmt.Sprintf("%04b", value)
-	}
-	return targetNeighborhood, nil
-}
-
 func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.PrivateKey, depth int) ([]byte, swarm.Address, error) {
-	targetNeighborhood, err := getTargetNeighborhood(overlay, depth)
-	if err != nil {
-		return nil, swarm.ZeroAddress, err
-	}
-
-	neighborhood, err := swarm.ParseBitStrAddress(targetNeighborhood)
-	if err != nil {
-		return nil, swarm.ZeroAddress, err
-	}
 	nonce := make([]byte, 32)
-	prox := len(targetNeighborhood)
 	owner, err := crypto.NewEthereumAddress(privKey.PublicKey)
 	if err != nil {
 		return nil, swarm.ZeroAddress, err
@@ -270,7 +246,7 @@ func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.P
 			return nil, swarm.ZeroAddress, err
 		}
 
-		if swarm.Proximity(address.Bytes(), neighborhood.Bytes()) >= uint8(prox) {
+		if swarm.Proximity(address.Bytes(), overlay.Bytes()) >= uint8(depth) {
 			return nonce, address, nil
 		}
 		i++
