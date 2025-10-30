@@ -10,8 +10,17 @@ clusters:
     api-scheme: http
     funding:
       eth: 0.1
-      bzz: 10.0
+      bzz: 3.0
     node-groups:
+      bootnode:
+        mode: bootnode
+        bee-config: sepolia-playground-bootnode
+        config: ng-bee-playground
+        nodes:
+          - name: bootnode-0
+            bootnodes: /dns4/bootnode-0-headless.%s.svc.swarm1.local/tcp/1634/p2p/QmaHzvd3iZduu275CMkMVZKwbsjXSyH3GJRj4UvFJApKcb
+            libp2p-key: '{"address":"28678fe31f09f722d53e77ca2395569f19959fa5","crypto":{"cipher":"aes-128-ctr","ciphertext":"0ff319684c4f8decf9c998047febe3417cfc45832b8bb62fd818183d54cf5d0183bfa021ed95addce3b33e83ce7ee73e926f00eea8241d96b349266a4d299829d3d22db0d536315b52b34db4a6778bfd3ce7631ad7256ea0bb9c50abea9de35d740b6fdc50caf929b1d19494690d9ed649105d02c14f5ec49d","cipherparams":{"iv":"4e9a50fb5852b5e61964f696be78066b"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"4d513e81647e4150bb648ed8d2dda28d460802336bf24d620119eac66ae0c0c4"},"mac":"9ae71db96e5ddc1c214538d42082212bbbe53aeac09fcc3e3a8eff815648331e"},"version":3,"id":"ae3bc991-d89f-405a-9e6a-60e27347e22d"}'
+            swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
       bee:
         mode: node
         bee-config: sepolia-playground
@@ -24,36 +33,19 @@ node-groups:
   ng-bee-playground:
     _inherit: default
     persistence-enabled: true
-    image: ethersphere/bee:latest
+    image: ljubisagacevic/bee:v37
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 # bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
 bee-configs:
   sepolia-playground:
     _inherit: ""
+    allow-private-cidrs: true
     api-addr: :1633
-    blockchain-rpc-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
-    bootnodes: /dnsaddr/testnet.ethswarm.org
-    full-node: true
-    mainnet: false
-    network-id: 10
-    p2p-addr: :1634
-    password: "beekeeper"
-    storage-incentives-enable: true
-    swap-enable: true
-    swap-initial-deposit: 0
-    tracing-enabled: true
-    tracing-endpoint: "10.10.11.199:6831"
-    tracing-service-name: "bee-playground"
-    verbosity: 5
-    welcome-message: Welcome to the bee-playground Testnet!
-    warmup-time: 0s
-    payment-early-percent: 50
-    payment-threshold: 13500000
-    payment-tolerance-percent: 25
-    allow-private-cidrs: false
     block-time: 12
+    blockchain-rpc-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
     bootnode-mode: false
+    bootnodes: # /dnsaddr/testnet.ethswarm.org
     cache-capacity: 1000000
     chequebook-enable: true
     cors-allowed-origins: ""
@@ -62,6 +54,161 @@ bee-configs:
     db-disable-seeks-compaction: true
     db-open-files-limit: 200
     db-write-buffer-size: 33554432
+    full-node: true
+    mainnet: false
     nat-addr: ""
+    network-id: 5
+    p2p-addr: :1634
     p2p-ws-enable: true
+    password: "beekeeper"
+    payment-early-percent: 50
+    payment-threshold: 13500000
+    payment-tolerance-percent: 25
     postage-stamp-start-block: 0
+    storage-incentives-enable: true
+    swap-enable: true
+    swap-initial-deposit: 0
+    tracing-enabled: false
+    tracing-endpoint: "10.10.11.199:6831"
+    tracing-service-name: "bee-playground"
+    verbosity: 5
+    warmup-time: 5m0s
+    welcome-message: Welcome to the bee-playground!
+  sepolia-playground-bootnode:
+    _inherit: "sepolia-playground"
+    bootnode-mode: true
+
+checks:
+  pg-pingpong:
+    options:
+    timeout: 30m
+    type: pingpong
+  pg-retrieval:
+    options:
+      chunks-per-node: 3
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+      upload-node-count: 3
+    timeout: 15m
+    type: retrieval
+  pg-settlements:
+    options:
+      dry-run: false
+      expect-settlements: true
+      file-name: settlements
+      file-size: 14680064 # 14mb = 14*1024*1024
+      postage-ttl: 120h
+      postage-depth: 22
+      postage-label: test-label
+      threshold: 100000000
+      upload-node-count: 3
+      wait-before-download: 15s
+    timeout: 15m
+    type: settlements
+  pg-manifest:
+    options:
+      files-in-collection: 10
+      max-pathname-length: 64
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+    timeout: 30m
+    type: manifest
+  pg-pss:
+    options:
+      count: 3
+      address-prefix: 2
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+      request-timeout: 10m
+    timeout: 30m
+    type: pss
+  pg-soc:
+    options:
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+      request-timeout: 5m
+    timeout: 15m
+    type: soc
+  pg-pushsync-chunks:
+    options:
+      chunks-per-node: 3
+      mode: chunks
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+      retries: 5
+      retry-delay: 15s
+      upload-node-count: 3
+      exclude-node-group:
+        - light
+        - bootnode
+    timeout: 30m
+    type: pushsync
+  pg-postage:
+    type: postage
+    timeout: 30m
+    options:
+      postage-label: postage-check
+      postage-amount: 140000000
+      postage-depth: 17
+      postage-topup-amount: 100
+      postage-new-depth: 18
+  pg-gsoc:
+    options:
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+    timeout: 10m
+    type: gsoc
+  pg-feed:
+    options:
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+    timeout: 30m
+    type: feed
+  pg-feed-availability:
+    options:
+      root-ref: "6c8ee8e33d1eb652cd595dc34ab212ca1970762ad02364c7b45e8c3ba7742666"
+    type: feed
+  pg-redundancy:
+    options:
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+      seed:
+      data-size: 307200
+    timeout: 30m
+    type: redundancy
+  pg-testnet-load:
+    options:
+      content-size: 50000000
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+      duration: 12h
+      uploader-count: 2
+      downloader-count: 0
+      max-committed-depth: 2
+      committed-depth-check-wait: 5m
+      upload-groups:
+        - bee-1
+        - bee-2
+      download-groups:
+        - bee-3
+        - bee-4
+    timeout: 13h
+    type: load
+  pg-smoke:
+    options:
+      file-sizes: [3072, 30720, 307200, 31457280, 104857600, 314572800] # [3KB, 30KB, 300KB, 30MB, 100MB, 300MB]
+      postage-ttl: 120h # 5 days
+      postage-depth: 22
+      postage-label: test-label
+      duration: 12h
+    timeout: 13h
+    type: smoke
