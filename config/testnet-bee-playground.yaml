@@ -33,7 +33,7 @@ node-groups:
   ng-bee-playground:
     _inherit: default
     persistence-enabled: true
-    image: ljubisagacevic/bee:v37
+    image: ethersphere/bee:latest
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 # bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
