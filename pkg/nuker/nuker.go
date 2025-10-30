@@ -157,11 +157,11 @@ func (c *Client) NukeByStatefulSets(ctx context.Context, namespace string, state
 		ss := statefulSetsMap[name]
 
 		if ss.Spec.Replicas == nil || *ss.Spec.Replicas == 0 {
-			c.log.Infof("skipping stateful set %s: no replicas", name)
+			c.log.Warningf("skipping stateful set %s: no replicas", name)
 			continue
 		}
 
-		c.log.Debugf("updating stateful set %s, with args: %v", name, restartArgs)
+		c.log.Infof("updating stateful set %s, with args: %v", name, restartArgs)
 		if err := c.updateAndRollbackStatefulSet(ctx, namespace, ss, restartArgs); err != nil {
 			return fmt.Errorf("failed to update stateful set %s: %w", name, err)
 		}
