@@ -267,7 +267,7 @@ func validateReplicaErrors(errors []error, expectedCount int) error {
 
 	for i, err := range errors {
 		if !isExpectedReplicaError(err) {
-			return fmt.Errorf("replica error %d is not expected type: %v", i+1, err)
+			return fmt.Errorf("replica error %d is not expected type: %w", i+1, err)
 		}
 	}
 	return nil
