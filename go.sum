@@ -82,6 +82,8 @@ github.com/ethereum/go-ethereum v1.15.11 h1:JK73WKeu0WC0O1eyX+mdQAVHUV+UR1a9VB/d
 github.com/ethereum/go-ethereum v1.15.11/go.mod h1:mf8YiHIb0GR4x4TipcvBUPxJLw1mFdmxzoDi11sDRoI=
 github.com/ethereum/go-verkle v0.2.2 h1:I2W0WjnrFUIzzVPwm8ykY+7pL2d4VhlsePn4j7cnFk8=
 github.com/ethereum/go-verkle v0.2.2/go.mod h1:M3b90YRnzqKyyzBEWJGqj8Qff4IDeXnzFw0P9bFw3uk=
+github.com/ethersphere/bee/v2 v2.6.1-0.20251112182101-77fa1e3cdd23 h1:XeHmrtva6pWTvr97pdd4Zo9XfMoGK1MHyJRrzh2CnnE=
+github.com/ethersphere/bee/v2 v2.6.1-0.20251112182101-77fa1e3cdd23/go.mod h1:0bCIUIsZWp5MNh9hTTYPbmhvKFNddaxzkwUwGo8RS4s=
 github.com/ethersphere/bmt v0.1.4 h1:+rkWYNtMgDx6bkNqGdWu+U9DgGI1rRZplpSW3YhBr1Q=
 github.com/ethersphere/bmt v0.1.4/go.mod h1:Yd8ft1U69WDuHevZc/rwPxUv1rzPSMpMnS6xbU53aY8=
 github.com/ethersphere/ethproxy v0.0.5 h1:j5Mkm45jqmkET6NwGaJtaxOSFbhoAfOKzHiwHl6DBT0=

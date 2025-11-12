@@ -6,7 +6,7 @@ toolchain go1.25.2
 
 replace github.com/codahale/hdrhistogram => github.com/HdrHistogram/hdrhistogram-go v1.1.2
 
-replace github.com/ethersphere/bee/v2 => ../bee
+replace github.com/ethersphere/bee/v2 => github.com/ethersphere/bee/v2 v2.6.1-0.20251112182101-77fa1e3cdd23
 
 require (
 	github.com/ethereum/go-ethereum v1.15.11
