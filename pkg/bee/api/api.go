@@ -25,6 +25,7 @@ const (
 	swarmPinHeader              = "Swarm-Pin"
 	swarmTagHeader              = "Swarm-Tag"
 	swarmCacheDownloadHeader    = "Swarm-Cache"
+	SwarmRedundancyLevelHeader  = "Swarm-Redundancy-Level"
 	swarmRedundancyFallbackMode = "Swarm-Redundancy-Fallback-Mode"
 	swarmOnlyRootChunk          = "Swarm-Only-Root-Chunk"
 	swarmSocSignatureHeader     = "Swarm-Soc-Signature"

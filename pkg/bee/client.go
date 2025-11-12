@@ -615,8 +615,8 @@ func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, 
 }
 
 // UploadSOC uploads a single owner chunk to a node with a E
-func (c *Client) UploadSOC(ctx context.Context, owner, ID, signature string, data []byte, batchID string) (swarm.Address, error) {
-	resp, err := c.api.SOC.UploadSOC(ctx, owner, ID, signature, bytes.NewReader(data), batchID)
+func (c *Client) UploadSOC(ctx context.Context, owner, ID, signature string, data []byte, batchID string, opt *api.SOCOptions) (swarm.Address, error) {
+	resp, err := c.api.SOC.UploadSOC(ctx, owner, ID, signature, bytes.NewReader(data), batchID, opt)
 	if err != nil {
 		return swarm.ZeroAddress, err
 	}
@@ -1024,7 +1024,7 @@ func (c *Client) CreateRootFeedManifest(ctx context.Context, signer crypto.Signe
 }
 
 // UpdateFeedWithRootChunk updates a feed with a root chunk
-func (c *Client) UpdateFeedWithRootChunk(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, ch swarm.Chunk, o api.UploadOptions) (*api.SocResponse, error) {
+func (c *Client) UpdateFeedWithRootChunk(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, ch swarm.Chunk, o api.UploadOptions) (*api.SOCResponse, error) {
 	return c.api.Feed.UpdateWithRootChunk(ctx, signer, topic, i, ch, o)
 }
 
