@@ -102,6 +102,9 @@ checks:
       postage-depth: 22
       postage-label: test-label
       request-timeout: 5m
+      upload-r-level: 2
+      download-r-level: 3
+      cache : true
     timeout: 15m
     type: soc
   pt-pushsync-chunks:

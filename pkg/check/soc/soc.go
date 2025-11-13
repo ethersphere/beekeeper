@@ -33,6 +33,7 @@ type Options struct {
 	RequestTimeout time.Duration
 	UploadRLevel   redundancy.Level
 	DownloadRLevel redundancy.Level
+	Cache          bool // // if true fetches from bee local storage, if false fetches from network (peers)
 }
 
 // NewDefaultOptions returns new default options
@@ -45,6 +46,7 @@ func NewDefaultOptions() Options {
 		RequestTimeout: 5 * time.Minute,
 		UploadRLevel:   redundancy.PARANOID,
 		DownloadRLevel: redundancy.PARANOID,
+		Cache:          true,
 	}
 }
 
@@ -113,25 +115,30 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("shuffled full node clients: %w", err)
 	}
 
-	if len(nodes) < 1 {
-		return fmt.Errorf("soc test requires at least 1 full node")
+	minNodesRequired := 1
+	if !o.Cache {
+		minNodesRequired = 2 // Need at least 2 nodes when cache is disabled
 	}
 
-	node := nodes[0]
-	nodeName := node.Name()
-	c.logger.Infof("using node %s for soc test", nodeName)
+	if len(nodes) < minNodesRequired {
+		return fmt.Errorf("soc test requires at least %d full node(s) (cache=%t)", minNodesRequired, o.Cache)
+	}
+
+	uploadNode := nodes[0]
+	uploadNodeName := uploadNode.Name()
+	c.logger.Infof("using node %s for soc upload", uploadNodeName)
 
 	owner := hex.EncodeToString(ownerBytes)
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
 
-	batchID, err := node.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
+	batchID, err := uploadNode.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
-		return fmt.Errorf("node %s: batch id %w", nodeName, err)
+		return fmt.Errorf("node %s: batch id %w", uploadNodeName, err)
 	}
 
-	c.logger.Infof("node %s: batch id %s", nodeName, batchID)
-	c.logger.Infof("soc: submitting soc chunk %s to node %s", sch.Address().String(), nodeName)
+	c.logger.Infof("node %s: batch id %s", uploadNodeName, batchID)
+	c.logger.Infof("soc: submitting soc chunk %s to node %s", sch.Address().String(), uploadNodeName)
 	c.logger.Infof("soc: owner %s", owner)
 	c.logger.Infof("soc: id %s", id)
 	c.logger.Infof("soc: sig %s", sig)
@@ -140,33 +147,77 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		RLevel: &o.UploadRLevel,
 	}
 
-	ref, err := node.UploadSOC(ctx, owner, id, sig, ch.Data(), batchID, socOptions)
+	ref, err := uploadNode.UploadSOC(ctx, owner, id, sig, ch.Data(), batchID, socOptions)
 	if err != nil {
-		return fmt.Errorf("node %s: upload soc chunk %w", nodeName, err)
+		return fmt.Errorf("node %s: upload soc chunk %w", uploadNodeName, err)
 	}
 
-	c.logger.Infof("soc: chunk uploaded to node %s, reference %s", nodeName, ref.String())
+	c.logger.Infof("soc: chunk uploaded to node %s, reference %s", uploadNodeName, ref.String())
 
-	retrieved, err := node.DownloadChunk(ctx, ref, "", nil)
+	retrieved, err := uploadNode.DownloadChunk(ctx, ref, "", nil)
 	if err != nil {
-		return fmt.Errorf("node %s: download soc chunk %w", nodeName, err)
+		return fmt.Errorf("node %s: download soc chunk %w", uploadNodeName, err)
 	}
 
-	c.logger.Infof("soc: original chunk retrieved from node %s", nodeName)
+	c.logger.Infof("soc: original chunk retrieved from node %s", uploadNodeName)
 
 	if !bytes.Equal(retrieved, chunkData) {
 		return errors.New("soc: retrieved chunk data does NOT match soc chunk")
 	}
 
-	replicaErrs := c.testReplicaRetrieval(ctx, node, nodeName, ref, chunkData, o)
+	// Select node for replica downloads
+	downloadNode := uploadNode
+	downloadNodeName := uploadNodeName
+	if !o.Cache && len(nodes) > 1 {
+		downloadNode = nodes[1] // Use different node for replica downloads when cache is disabled
+		downloadNodeName = downloadNode.Name()
+		c.logger.Infof("using node %s for replica downloads (different from upload node)", downloadNodeName)
+	}
+
+	replicaErrs := c.testReplicaRetrieval(ctx, downloadNode, downloadNodeName, ref, chunkData, o)
 
 	return replicaErrs
+}
+
+// downloadReplicaWithRetry downloads a replica chunk with retry logic when cache is disabled
+func (c *Check) downloadReplicaWithRetry(ctx context.Context, node *bee.Client, nodeName string, addr swarm.Address, chunkNumber int, opts Options) ([]byte, error) {
+	// If Cache is false, retry downloading replicas to allow time for chunks to be pushed to peers
+	maxRetries := 1
+	retryDelay := 0 * time.Second
+	if !opts.Cache {
+		maxRetries = 5
+		retryDelay = 1 * time.Second
+	}
+
+	var retrievedReplica []byte
+	var err error
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			c.logger.Infof("node %s: retrying download of replica chunk %d (attempt %d/%d) after %v",
+				nodeName, chunkNumber, attempt+1, maxRetries, retryDelay)
+			time.Sleep(retryDelay)
+		}
+
+		retrievedReplica, err = node.DownloadChunk(ctx, addr, "", &api.DownloadOptions{
+			Cache: &opts.Cache,
+		})
+		if err == nil {
+			break // Success, exit retry loop
+		}
+
+		if attempt < maxRetries-1 && !opts.Cache {
+			c.logger.Infof("node %s: download soc replica chunk %d failed (attempt %d/%d): %v (address: %s)",
+				nodeName, chunkNumber, attempt+1, maxRetries, err, addr.String())
+		}
+	}
+
+	return retrievedReplica, err
 }
 
 // testReplicaRetrieval tests replica retrieval with configurable redundancy levels and automatic error handling
 func (c *Check) testReplicaRetrieval(ctx context.Context, node *bee.Client, nodeName string, ref swarm.Address, originalChunkData []byte, opts Options) error {
 	countTotal, countGood, countBad := 0, 0, 0
-	getFromCache := true
 
 	replicaIter := combinator.IterateReplicaAddresses(ref, int(opts.DownloadRLevel))
 	var replicaErrors []error
@@ -177,9 +228,13 @@ func (c *Check) testReplicaRetrieval(ctx context.Context, node *bee.Client, node
 	expectedSuccesses := min(uploadExpected, downloadExpected)
 	expectedFailures := downloadExpected - expectedSuccesses
 
-	c.logger.Infof("soc: testing replica retrieval with upload level %s (%d replicas) and download level %s (%d replicas to check)",
+	cacheMode := "from cache"
+	if !opts.Cache {
+		cacheMode = "from network"
+	}
+	c.logger.Infof("soc: testing replica retrieval with upload level %s (%d replicas) and download level %s (%d replicas to check) %s",
 		redundancyLevelName(opts.UploadRLevel), uploadExpected,
-		redundancyLevelName(opts.DownloadRLevel), downloadExpected)
+		redundancyLevelName(opts.DownloadRLevel), downloadExpected, cacheMode)
 	c.logger.Infof("soc: expecting %d successful retrievals and %d failures", expectedSuccesses, expectedFailures)
 
 	for addr := range replicaIter {
@@ -189,13 +244,16 @@ func (c *Check) testReplicaRetrieval(ctx context.Context, node *bee.Client, node
 			continue
 		}
 
-		retrievedReplica, err := node.DownloadChunk(ctx, addr, "", &api.DownloadOptions{
-			Cache: &getFromCache,
-		})
+		retrievedReplica, err := c.downloadReplicaWithRetry(ctx, node, nodeName, addr, countTotal, opts)
+
 		if err != nil {
 			countBad++
-			c.logger.Infof("node %s: download soc replica chunk %d failed: %v (address: %s)",
-				nodeName, countTotal, err, addr.String())
+			retries := 1
+			if !opts.Cache {
+				retries = 5
+			}
+			c.logger.Infof("node %s: download soc replica chunk %d failed after %d attempts: %v (address: %s)",
+				nodeName, countTotal, retries, err, addr.String())
 			replicaErrors = append(replicaErrors, err)
 		} else {
 			countGood++
