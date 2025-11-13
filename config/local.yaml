@@ -317,8 +317,9 @@ checks:
       postage-depth: 21
       postage-label: test-label
       request-timeout: 5m
-      upload-r-level: 3
-      download-r-level: 4
+      upload-r-level: 2
+      download-r-level: 2
+      cache : false
     timeout: 5m
     type: soc
   ci-content-availability:
