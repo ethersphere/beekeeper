@@ -194,7 +194,7 @@ func uploadSoc(ctx context.Context, client *bee.Client, payload string, resource
 		return fmt.Errorf("make soc: %w", err)
 	}
 
-	_, err = client.UploadSOC(ctx, d.Owner, hex.EncodeToString(resourceId), d.Sig, d.Data, batchID)
+	_, err = client.UploadSOC(ctx, d.Owner, hex.EncodeToString(resourceId), d.Sig, d.Data, batchID, nil)
 	if err != nil {
 		return fmt.Errorf("upload soc: %w", err)
 	}

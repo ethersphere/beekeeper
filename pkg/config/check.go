@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"time"
 
+	fredundancy "github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/check/act"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
@@ -450,11 +451,14 @@ var Checks = map[string]CheckType{
 		NewAction: soc.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
-				GasPrice       *string        `yaml:"gas-price"`
-				PostageTTL     *time.Duration `yaml:"postage-ttl"`
-				PostageDepth   *uint64        `yaml:"postage-depth"`
-				PostageLabel   *string        `yaml:"postage-label"`
-				RequestTimeout *time.Duration `yaml:"request-timeout"`
+				GasPrice       *string            `yaml:"gas-price"`
+				PostageTTL     *time.Duration     `yaml:"postage-ttl"`
+				PostageDepth   *uint64            `yaml:"postage-depth"`
+				PostageLabel   *string            `yaml:"postage-label"`
+				RequestTimeout *time.Duration     `yaml:"request-timeout"`
+				UploadRLevel   *fredundancy.Level `yaml:"upload-r-level"`
+				DownloadRLevel *fredundancy.Level `yaml:"download-r-level"`
+				Cache          *bool              `yaml:"cache"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

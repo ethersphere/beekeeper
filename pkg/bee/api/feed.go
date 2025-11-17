@@ -69,7 +69,7 @@ func (f *FeedService) CreateRootManifest(ctx context.Context, signer crypto.Sign
 }
 
 // UpdateWithRootChunk updates a feed with a root chunk
-func (f *FeedService) UpdateWithRootChunk(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, ch swarm.Chunk, o UploadOptions) (*SocResponse, error) {
+func (f *FeedService) UpdateWithRootChunk(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, ch swarm.Chunk, o UploadOptions) (*SOCResponse, error) {
 	ownerHex, err := ownerFromSigner(signer)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (f *FeedService) UpdateWithRootChunk(ctx context.Context, signer crypto.Sig
 	signatureBytes := chunkData[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize]
 	id := hex.EncodeToString(idBytes)
 	sig := hex.EncodeToString(signatureBytes)
-	res, err := f.client.SOC.UploadSOC(ctx, ownerHex, id, sig, bytes.NewReader(ch.Data()), o.BatchID)
+	res, err := f.client.SOC.UploadSOC(ctx, ownerHex, id, sig, bytes.NewReader(ch.Data()), o.BatchID, nil)
 	if err != nil {
 		return nil, err
 	}
