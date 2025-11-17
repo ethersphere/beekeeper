@@ -458,6 +458,7 @@ var Checks = map[string]CheckType{
 				RequestTimeout *time.Duration     `yaml:"request-timeout"`
 				UploadRLevel   *fredundancy.Level `yaml:"upload-r-level"`
 				DownloadRLevel *fredundancy.Level `yaml:"download-r-level"`
+				Cache          *bool              `yaml:"cache"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
