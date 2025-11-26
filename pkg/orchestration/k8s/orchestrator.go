@@ -196,6 +196,14 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 		}
 	}
 
+	// var nodePortP2PWSS int32
+	// if len(o.Config.NATWSSAddr) > 0 {
+	// 	nodePortP2PWSS, err = parsePort(o.Config.NATWSSAddr)
+	// 	if err != nil {
+	// 		return fmt.Errorf("parsing NAT WSS address from config: %w", err)
+	// 	}
+	// }
+
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
 	if _, err := n.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
