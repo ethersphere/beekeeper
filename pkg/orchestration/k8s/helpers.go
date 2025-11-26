@@ -87,6 +87,7 @@ type setContainersOptions struct {
 	ImagePullPolicy        string
 	PortAPI                int32
 	PortP2P                int32
+	PortP2PWSS             int32
 	PersistenceEnabled     bool
 	ResourcesLimitCPU      string
 	ResourcesLimitMemory   string
@@ -102,18 +103,29 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 		Image:           o.Image,
 		ImagePullPolicy: o.ImagePullPolicy,
 		Command:         []string{"bee", "start", "--config=.bee.yaml"},
-		Ports: containers.Ports{
-			{
-				Name:          "api",
-				ContainerPort: o.PortAPI,
-				Protocol:      "TCP",
-			},
-			{
-				Name:          "p2p",
-				ContainerPort: o.PortP2P,
-				Protocol:      "TCP",
-			},
-		},
+		Ports: func() containers.Ports {
+			ports := containers.Ports{
+				{
+					Name:          "api",
+					ContainerPort: o.PortAPI,
+					Protocol:      "TCP",
+				},
+				{
+					Name:          "p2p",
+					ContainerPort: o.PortP2P,
+					Protocol:      "TCP",
+				},
+			}
+			// Add p2p-wss port if configured
+			if o.PortP2PWSS > 0 {
+				ports = append(ports, containers.Port{
+					Name:          "p2p-wss",
+					ContainerPort: o.PortP2PWSS,
+					Protocol:      "TCP",
+				})
+			}
+			return ports
+		}(),
 		LivenessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
 			InitialDelaySeconds: 5,
 			Handler: containers.HTTPGetHandler{
@@ -263,33 +275,23 @@ func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.Per
 	return pvcs
 }
 
-type setBeeNodePortOptions struct {
-	AppProtocol string
-	Name        string
-	Protocol    string
-	TargetPort  string
-	Port        int32
-	NodePort    int32
-}
-
-func setBeeNodePort(o setBeeNodePortOptions) (ports service.Ports) {
-	if o.NodePort > 0 {
-		return service.Ports{{
-			AppProtocol: "TCP",
-			Name:        "p2p",
-			Protocol:    "TCP",
-			Port:        o.Port,
-			TargetPort:  "p2p",
-			Nodeport:    o.NodePort,
-		}}
+// createServicePort creates a service port with optional NodePort.
+// If targetPort is empty, it defaults to name.
+func createServicePort(name string, port int32, targetPort string, nodePort int32) service.Port {
+	if targetPort == "" {
+		targetPort = name
 	}
-	return service.Ports{{
+	p := service.Port{
 		AppProtocol: "TCP",
-		Name:        "p2p",
+		Name:        name,
 		Protocol:    "TCP",
-		Port:        o.Port,
-		TargetPort:  "p2p",
-	}}
+		Port:        port,
+		TargetPort:  targetPort,
+	}
+	if nodePort > 0 {
+		p.Nodeport = nodePort
+	}
+	return p
 }
 
 func parsePort(port string) (int32, error) {
