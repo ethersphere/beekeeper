@@ -15,6 +15,9 @@ const (
 	configTemplate = `
 allow-private-cidrs: {{ .AllowPrivateCIDRs }}
 api-addr: {{.APIAddr}}
+autotls-ca-endpoint: {{.AutoTLSCAEndpoint}}
+autotls-domain: {{.AutoTLSDomain}}
+autotls-registration-endpoint: {{.AutoTLSRegistrationEndpoint}}
 block-time: {{ .BlockTime }}
 blockchain-rpc-endpoint: {{.BlockchainRPCEndpoint}}
 bootnode-mode: {{.BootnodeMode}}
@@ -30,9 +33,12 @@ db-write-buffer-size: {{.DbWriteBufferSize}}
 full-node: {{.FullNode}}
 mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
+nat-wss-addr: {{.NATWSSAddr}}
 network-id: {{.NetworkID}}
 p2p-addr: {{.P2PAddr}}
 p2p-ws-enable: {{.P2PWSEnable}}
+p2p-wss-addr: {{.P2PWSSAddr}}
+p2p-wss-enable: {{.P2PWSSEnable}}
 password: {{.Password}}
 payment-early-percent: {{.PaymentEarly}}
 payment-threshold: {{.PaymentThreshold}}
