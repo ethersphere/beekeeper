@@ -111,9 +111,9 @@ bee-configs:
     _inherit: ""
     allow-private-cidrs: true
     api-addr: ":1633"
-    autotls-ca-endpoint: "https://pebble.local:14000/dir"
-    autotls-domain: "localhost"
-    autotls-registration-endpoint: "http://p2p-forge.local:8080/v1/_acme-challenge"
+    autotls-ca-endpoint: "https://pebble:14000/dir"
+    autotls-domain: "local.test"
+    autotls-registration-endpoint: "http://p2p-forge:8080/v1/_acme-challenge"
     block-time: 1
     blockchain-rpc-endpoint: "ws://geth-swap:8546"
     bootnode-mode: false
@@ -134,7 +134,7 @@ bee-configs:
     p2p-addr: ":1634"
     p2p-wss-addr: ":1635"
     p2p-ws-enable: false
-    p2p-wss-enable: false
+    p2p-wss-enable: true
     password: "beekeeper"
     payment-early-percent: 50
     payment-threshold: 13500000

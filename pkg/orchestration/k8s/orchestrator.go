@@ -196,30 +196,42 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 		}
 	}
 
-	// var nodePortP2PWSS int32
-	// if len(o.Config.NATWSSAddr) > 0 {
-	// 	nodePortP2PWSS, err = parsePort(o.Config.NATWSSAddr)
-	// 	if err != nil {
-	// 		return fmt.Errorf("parsing NAT WSS address from config: %w", err)
-	// 	}
-	// }
+	var portP2PWSS int32
+	if len(o.Config.P2PWSSAddr) > 0 {
+		portP2PWSS, err = parsePort(o.Config.P2PWSSAddr)
+		if err != nil {
+			return fmt.Errorf("parsing P2P WSS port from config: %w", err)
+		}
+	}
+
+	var nodePortP2PWSS int32
+	if len(o.Config.NATWSSAddr) > 0 {
+		nodePortP2PWSS, err = parsePort(o.Config.NATWSSAddr)
+		if err != nil {
+			return fmt.Errorf("parsing NAT WSS address from config: %w", err)
+		}
+	}
 
 	p2pSvc := fmt.Sprintf("%s-p2p", o.Name)
+
+	// Build ports for p2p service
+	p2pPorts := service.Ports{
+		createServicePort("p2p", portP2P, "", nodePortP2P),
+	}
+
+	// Add p2p-wss port if P2PWSSAddr is configured
+	if portP2PWSS > 0 {
+		p2pPorts = append(p2pPorts, createServicePort("p2p-wss", portP2PWSS, "", nodePortP2PWSS))
+	}
+
 	if _, err := n.k8s.Service.Set(ctx, p2pSvc, o.Namespace, service.Options{
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		ServiceSpec: service.Spec{
 			ExternalTrafficPolicy: "Local",
-			Ports: setBeeNodePort(setBeeNodePortOptions{
-				AppProtocol: "TCP",
-				Name:        "p2p",
-				Protocol:    "TCP",
-				TargetPort:  "p2p",
-				Port:        portP2P,
-				NodePort:    nodePortP2P,
-			}),
-			Selector: o.Selector,
-			Type:     "NodePort",
+			Ports:                 p2pPorts,
+			Selector:              o.Selector,
+			Type:                  "NodePort",
 		},
 	}); err != nil {
 		return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
@@ -282,6 +294,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 						ImagePullPolicy:        o.ImagePullPolicy,
 						PortAPI:                portAPI,
 						PortP2P:                portP2P,
+						PortP2PWSS:             portP2PWSS,
 						PersistenceEnabled:     o.PersistenceEnabled,
 						ResourcesLimitCPU:      o.ResourcesLimitCPU,
 						ResourcesLimitMemory:   o.ResourcesLimitMemory,
