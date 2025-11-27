@@ -111,9 +111,9 @@ bee-configs:
     _inherit: ""
     allow-private-cidrs: true
     api-addr: ":1633"
-    autotls-ca-endpoint: "https://pebble:14000/dir"
+    autotls-ca-endpoint: "https://pebble:14000/dir" # https://pebble.local.svc.cluster.local:14000/dir
     autotls-domain: "local.test"
-    autotls-registration-endpoint: "http://p2p-forge:8080/v1/_acme-challenge"
+    autotls-registration-endpoint: "http://p2p-forge:8080/v1/_acme-challenge" # http://p2p-forge.local.svc.cluster.local:8080/v1/_acme-challenge
     block-time: 1
     blockchain-rpc-endpoint: "ws://geth-swap:8546"
     bootnode-mode: false
