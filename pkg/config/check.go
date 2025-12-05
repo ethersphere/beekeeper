@@ -237,6 +237,31 @@ var Checks = map[string]CheckType{
 			return opts, nil
 		},
 	},
+	"manifest-v1": {
+		NewAction: manifest.NewCheckV1,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				FilesInCollection *int           `yaml:"files-in-collection"`
+				GasPrice          *string        `yaml:"gas-price"`
+				MaxPathnameLength *int32         `yaml:"max-pathname-length"`
+				PostageTTL        *time.Duration `yaml:"postage-ttl"`
+				PostageDepth      *uint64        `yaml:"postage-depth"`
+				PostageLabel      *string        `yaml:"postage-label"`
+				Seed              *int64         `yaml:"seed"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := manifest.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+
 	"peer-count": {
 		NewAction: peercount.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
@@ -633,8 +658,30 @@ var Checks = map[string]CheckType{
 			return opts, nil
 		},
 	},
+	"feed-v1": {
+		NewAction: feed.NewCheckV1,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				PostageTTL   *time.Duration `yaml:"postage-ttl"`
+				PostageDepth *uint64        `yaml:"postage-depth"`
+				PostageLabel *string        `yaml:"postage-label"`
+				NUpdates     *int           `yaml:"n-updates"`
+				RootRef      *string        `yaml:"root-ref"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := feed.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
 	"feed": {
-		NewAction: feed.NewCheck,
+		NewAction: feed.NewCheckV2,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				PostageTTL   *time.Duration `yaml:"postage-ttl"`

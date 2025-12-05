@@ -1028,6 +1028,11 @@ func (c *Client) UpdateFeedWithRootChunk(ctx context.Context, signer crypto.Sign
 	return c.api.Feed.UpdateWithRootChunk(ctx, signer, topic, i, ch, o)
 }
 
+// UpdateFeedWithReference updates a feed with a reference
+func (c *Client) UpdateFeedWithReference(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, addr swarm.Address, o api.UploadOptions) (*api.SocResponse, error) {
+	return c.api.Feed.UpdateWithReference(ctx, signer, topic, i, addr, o)
+}
+
 // FindFeedUpdate finds the latest update for a feed
 func (c *Client) FindFeedUpdate(ctx context.Context, signer crypto.Signer, topic []byte, o *api.DownloadOptions) (*api.FindFeedUpdateResponse, error) {
 	return c.api.Feed.FindUpdate(ctx, signer, topic, o)
