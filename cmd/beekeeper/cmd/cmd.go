@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/config"
@@ -89,7 +88,6 @@ func newCommand(opts ...option) (c *command, err error) {
 			Transport: &httpx.HeaderRoundTripper{
 				Next: http.DefaultTransport,
 			},
-			Timeout: 3 * time.Minute,
 		},
 	}
 

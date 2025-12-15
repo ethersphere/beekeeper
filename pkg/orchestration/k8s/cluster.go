@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"slices"
-	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -56,7 +55,6 @@ func NewCluster(name string, o orchestration.ClusterOptions, k8s *k8s.Client, sw
 		nodeGroups:       make(map[string]orchestration.NodeGroup),
 		log:              log,
 		httpClient: &http.Client{
-			Timeout: 5 * time.Minute,
 			Transport: &httpx.HeaderRoundTripper{
 				Next: &http.Transport{
 					TLSClientConfig: &tls.Config{
