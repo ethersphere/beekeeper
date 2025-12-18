@@ -199,6 +199,15 @@ checks:
       postage-label: gc-check
     timeout: 5m
     type: gc
+  ci-manifest-v1:
+    options:
+      files-in-collection: 10
+      max-pathname-length: 64
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
+    timeout: 30m
+    type: manifest
   ci-manifest:
     options:
       files-in-collection: 10
@@ -371,6 +380,12 @@ checks:
       postage-label: test-label
     timeout: 10m
     type: gsoc
+  ci-feed-v1:
+    options:
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
+    type: feed-v1
   ci-feed:
     options:
       postage-ttl: 24h
