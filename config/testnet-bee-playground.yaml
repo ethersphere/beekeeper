@@ -26,6 +26,11 @@ clusters:
         bee-config: sepolia-playground
         config: ng-bee-playground
         count: 5
+      bee-1:
+        mode: node
+        bee-config: sepolia-playground
+        config: ng-bee-playground
+        count: 2
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
@@ -196,11 +201,9 @@ checks:
       max-committed-depth: 2
       committed-depth-check-wait: 5m
       upload-groups:
-        - bee-1
-        - bee-2
+        - bee
       download-groups:
-        - bee-3
-        - bee-4
+        - bee-1
     timeout: 13h
     type: load
   pg-smoke:
