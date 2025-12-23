@@ -512,6 +512,8 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 		c.log.Warningf("invalid chain price: %v", price)
 	}
 
+	c.log.Debugf("calculated mutable batch: amount '%d', label '%s', price '%d', block time '%d', ttl '%s'", amount, label, price, blockTime, postageTTL)
+
 	batches, err := c.PostageBatches(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get postage batches: %w", err)

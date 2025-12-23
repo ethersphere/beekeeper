@@ -418,7 +418,7 @@ var Checks = map[string]CheckType{
 			checkOpts := new(struct {
 				ContentSize             *int64         `yaml:"content-size"`
 				RndSeed                 *int64         `yaml:"rnd-seed"`
-				PostageAmount           *int64         `yaml:"postage-amount"`
+				PostageTTL              *time.Duration `yaml:"postage-ttl"`
 				PostageDepth            *uint64        `yaml:"postage-depth"`
 				PostageLabel            *string        `yaml:"postage-label"`
 				GasPrice                *string        `yaml:"gas-price"`
