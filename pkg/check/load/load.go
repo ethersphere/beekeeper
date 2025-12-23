@@ -131,6 +131,8 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		}
 	}
 
+	txData := make([]byte, contentSize)
+
 	for i := 0; true; i++ {
 		select {
 		case <-ctx.Done():
@@ -144,11 +146,9 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 		var (
 			txDuration time.Duration
-			txData     []byte
 			address    swarm.Address
 		)
 
-		txData = make([]byte, contentSize)
 		if _, err := crand.Read(txData); err != nil {
 			c.logger.Infof("unable to create random content for size %d: %v", contentSize, err)
 			continue
@@ -196,7 +196,9 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					batchID, err := uploader.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 					if err != nil {
 						c.logger.Errorf("create new batch failed: %v", err)
-						return
+						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
+						time.Sleep(o.TxOnErrWait)
+						continue
 					}
 
 					c.logger.WithField("batch_id", batchID).Infof("node %s: using batch", uploader.Name())
@@ -217,6 +219,8 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		upload.Wait()
 
 		if txDuration == 0 {
+			c.logger.Info("no successful uploads in this iteration, waiting before retrying")
+			time.Sleep(o.NodesSyncWait)
 			continue
 		}
 
