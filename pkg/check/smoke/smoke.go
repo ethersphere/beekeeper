@@ -126,6 +126,8 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		if err != nil {
 			c.logger.Errorf("create new batch failed: %v", err)
 			c.metrics.BatchCreateErrors.Inc()
+			c.logger.Infof("retrying in: %v", o.TxOnErrWait)
+			time.Sleep(o.TxOnErrWait)
 			continue
 		}
 
