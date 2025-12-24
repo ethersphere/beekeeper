@@ -38,7 +38,11 @@ node-groups:
   ng-bee-playground:
     _inherit: default
     persistence-enabled: true
-    image: ethersphere/bee:latest
+    persistence-storage-request: 1Gi
+    image: ljubisagacevic/bee:master
+    resources-limit-cpu: 1500m
+    resources-limit-memory: 4Gi
+    resources-request-memory: 2Gi
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 # bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
