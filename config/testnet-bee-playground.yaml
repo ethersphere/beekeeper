@@ -9,7 +9,7 @@ clusters:
     api-insecure-tls: true
     api-scheme: http
     funding:
-      eth: 0.1
+      eth: 0.05
       bzz: 3.0
     node-groups:
       bootnode:
