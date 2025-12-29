@@ -67,12 +67,12 @@ func (c *CheckV1) Run(ctx context.Context, cluster orchestration.Cluster, opts i
 func (c *CheckV1) checkWithoutSubDirs(ctx context.Context, rnd *rand.Rand, o Options, upClient *bee.Client, downClient *bee.Client) error {
 	files, err := generateFiles(rnd, o.FilesInCollection, o.MaxPathnameLength)
 	if err != nil {
-		return err
+		return fmt.Errorf("generate files: %w", err)
 	}
 
 	tarReader, err := tarFiles(files)
 	if err != nil {
-		return err
+		return fmt.Errorf("tar files: %w", err)
 	}
 
 	tarFile := bee.NewBufferFile("", tarReader)
@@ -88,7 +88,7 @@ func (c *CheckV1) checkWithoutSubDirs(ctx context.Context, rnd *rand.Rand, o Opt
 
 	for _, file := range files {
 		if err := c.downloadAndVerify(ctx, downClient, tarFile.Address(), &file, bee.File{}); err != nil {
-			return err
+			return fmt.Errorf("download and verify: %w", err)
 		}
 	}
 	return nil
@@ -97,13 +97,13 @@ func (c *CheckV1) checkWithoutSubDirs(ctx context.Context, rnd *rand.Rand, o Opt
 func (c *CheckV1) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options, upClient *bee.Client, downClient *bee.Client) error {
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
-		return err
+		return fmt.Errorf("gen secp: %w", err)
 	}
 
 	signer := crypto.NewDefaultSigner(privKey)
 	topic, err := crypto.LegacyKeccak256([]byte("my-website-v1"))
 	if err != nil {
-		return err
+		return fmt.Errorf("keccak: %w", err)
 	}
 
 	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
@@ -114,7 +114,7 @@ func (c *CheckV1) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Option
 
 	rootFeedRef, err := upClient.CreateRootFeedManifest(ctx, signer, topic, api.UploadOptions{BatchID: batchID})
 	if err != nil {
-		return err
+		return fmt.Errorf("create root manifest: %w", err)
 	}
 	c.logger.Infof("root feed reference: %s", rootFeedRef.Reference)
 	time.Sleep(3 * time.Second)
@@ -122,16 +122,16 @@ func (c *CheckV1) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Option
 	paths := []string{"index.html", "assets/styles/styles.css", "assets/styles/images/image.png", "error.html"}
 	files, err := generateFilesWithPaths(rnd, paths, int(o.MaxPathnameLength))
 	if err != nil {
-		return err
+		return fmt.Errorf("generate files: %w", err)
 	}
 
 	tarReader, err := tarFiles(files)
 	if err != nil {
-		return err
+		return fmt.Errorf("tar files: %w", err)
 	}
 	tarFile := bee.NewBufferFile("", tarReader)
 	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID, IndexDocument: "index.html"}); err != nil {
-		return err
+		return fmt.Errorf("upload collection: %w", err)
 	}
 	c.logger.Infof("collection uploaded: %s", tarFile.Address())
 	time.Sleep(3 * time.Second)
@@ -139,29 +139,29 @@ func (c *CheckV1) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Option
 	// push first version of website to the feed
 	ref, err := upClient.UpdateFeedWithReference(ctx, signer, topic, 0, tarFile.Address(), api.UploadOptions{BatchID: batchID})
 	if err != nil {
-		return err
+		return fmt.Errorf("update feed: %w", err)
 	}
 	c.logger.Infof("feed updated: %s", ref.Reference)
 
 	// download root (index.html) from the feed
 	err = c.downloadAndVerify(ctx, downClient, rootFeedRef.Reference, nil, files[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("download and verify: %w", err)
 	}
 
 	// update  website files
 	files, err = generateFilesWithPaths(rnd, paths, int(o.MaxPathnameLength))
 	if err != nil {
-		return err
+		return fmt.Errorf("generate files: %w", err)
 	}
 
 	tarReader, err = tarFiles(files)
 	if err != nil {
-		return err
+		return fmt.Errorf("tar files: %w", err)
 	}
 	tarFile = bee.NewBufferFile("", tarReader)
 	if err := upClient.UploadCollection(ctx, &tarFile, api.UploadOptions{BatchID: batchID, IndexDocument: "index.html"}); err != nil {
-		return err
+		return fmt.Errorf("upload collection: %w", err)
 	}
 	c.logger.Infof("collection uploaded: %s", tarFile.Address())
 	time.Sleep(3 * time.Second)
@@ -169,21 +169,21 @@ func (c *CheckV1) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Option
 	// push 2nd version of website to the feed
 	ref, err = upClient.UpdateFeedWithReference(ctx, signer, topic, 1, tarFile.Address(), api.UploadOptions{BatchID: batchID})
 	if err != nil {
-		return err
+		return fmt.Errorf("update feed: %w", err)
 	}
 	c.logger.Infof("feed updated: %s", ref.Reference)
 
 	// download updated index.html from the feed
 	err = c.downloadAndVerify(ctx, downClient, rootFeedRef.Reference, nil, files[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("download and verify: %w", err)
 	}
 
 	// download other paths and compare
 	for i := 0; i < len(files); i++ {
 		err = c.downloadAndVerify(ctx, downClient, tarFile.Address(), &files[i], files[0])
 		if err != nil {
-			return err
+			return fmt.Errorf("download and verify: %w", err)
 		}
 	}
 	return nil

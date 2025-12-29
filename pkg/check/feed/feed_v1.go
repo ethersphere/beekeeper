@@ -73,13 +73,13 @@ func (c *CheckV1) checkAvailability(ctx context.Context, cluster orchestration.C
 	nodeName := nodeNames[0]
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("nodes clients: %w", err)
 	}
 
 	client := clients[nodeName]
 	_, _, err = client.DownloadFile(ctx, ref, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("download file: %w", err)
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 
 	clients, err := cluster.NodesClients(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("nodes clients: %w", err)
 	}
 	upClient := clients[names[perm[0]]]
 	downClient := clients[names[perm[1]]]
@@ -106,24 +106,24 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 
 	batchID, err := upClient.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 	if err != nil {
-		return err
+		return fmt.Errorf("get or create batch: %w", err)
 	}
 
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
-		return err
+		return fmt.Errorf("secp: %w", err)
 	}
 
 	signer := crypto.NewDefaultSigner(privKey)
 	topic, err := crypto.LegacyKeccak256([]byte("my-topic-v1"))
 	if err != nil {
-		return err
+		return fmt.Errorf("keccak: %w", err)
 	}
 
 	// create root
 	createManifestRes, err := upClient.CreateRootFeedManifest(ctx, signer, topic, api.UploadOptions{BatchID: batchID})
 	if err != nil {
-		return err
+		return fmt.Errorf("create root feed manifest: %w", err)
 	}
 	c.logger.Infof("node %s: manifest created", upClient.Name())
 	c.logger.Infof("reference: %s", createManifestRes.Reference)
@@ -141,12 +141,12 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 			Direct:  true,
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("upload: %w", err)
 		}
 		ref := file.Address()
 		socRes, err := upClient.UpdateFeedWithReference(ctx, signer, topic, uint64(i), ref, api.UploadOptions{BatchID: batchID})
 		if err != nil {
-			return err
+			return fmt.Errorf("update feed: %w", err)
 		}
 		c.logger.Infof("node %s: feed updated", upClient.Name())
 		c.logger.Infof("soc reference: %s", socRes.Reference)
@@ -159,7 +159,7 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 	c.logger.Infof("download client: %s", downClient.Name())
 	update, err := downClient.FindFeedUpdate(ctx, signer, topic, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("find update: %w", err)
 	}
 
 	c.logger.Infof("node %s: feed update found", downClient.Name())
