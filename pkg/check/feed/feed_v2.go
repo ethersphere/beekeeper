@@ -17,41 +17,22 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// Options represents check options
-type Options struct {
-	PostageTTL   time.Duration
-	PostageDepth uint64
-	PostageLabel string
-	NUpdates     int
-	RootRef      string
-}
-
-// NewDefaultOptions returns new default options
-func NewDefaultOptions() Options {
-	return Options{
-		PostageTTL:   24 * time.Hour,
-		PostageDepth: 17,
-		PostageLabel: "test-label",
-		NUpdates:     2,
-	}
-}
-
 // compile check whether Check implements interface
-var _ beekeeper.Action = (*Check)(nil)
+var _ beekeeper.Action = (*CheckV2)(nil)
 
 // Check instance.
-type Check struct {
+type CheckV2 struct {
 	logger logging.Logger
 }
 
 // NewCheck returns a new check instance.
-func NewCheck(logger logging.Logger) beekeeper.Action {
-	return &Check{
+func NewCheckV2(logger logging.Logger) beekeeper.Action {
+	return &CheckV2{
 		logger: logger,
 	}
 }
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
+func (c *CheckV2) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -73,7 +54,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return nil
 }
 
-func (c *Check) checkAvailability(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+func (c *CheckV2) checkAvailability(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	ref, err := swarm.ParseHexAddress(o.RootRef)
 	if err != nil {
 		return fmt.Errorf("invalid root ref: %w", err)
@@ -98,7 +79,7 @@ func (c *Check) checkAvailability(ctx context.Context, cluster orchestration.Clu
 
 // feedCheck creates a root feed manifest, makes a series of updates to the feed
 // and verifies that the updates are retrievable via another node.
-func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+func (c *CheckV2) feedCheck(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	clients, err := cluster.ShuffledFullNodeClients(ctx, random.PseudoGenerator(time.Now().UnixNano()))
 	if err != nil {
 		return fmt.Errorf("node clients: %w", err)
@@ -124,7 +105,7 @@ func (c *Check) feedCheck(ctx context.Context, cluster orchestration.Cluster, o 
 	}
 
 	signer := crypto.NewDefaultSigner(privKey)
-	topic, err := crypto.LegacyKeccak256([]byte("my-topic"))
+	topic, err := crypto.LegacyKeccak256([]byte("my-topic-v2"))
 	if err != nil {
 		return fmt.Errorf("topic hash: %w", err)
 	}

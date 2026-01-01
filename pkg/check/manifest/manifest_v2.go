@@ -46,21 +46,21 @@ func NewDefaultOptions() Options {
 }
 
 // compile check whether Check implements interface
-var _ beekeeper.Action = (*Check)(nil)
+var _ beekeeper.Action = (*CheckV2)(nil)
 
 // Check instance.
-type Check struct {
+type CheckV2 struct {
 	logger logging.Logger
 }
 
 // NewCheck returns a new check instance.
 func NewCheck(logger logging.Logger) beekeeper.Action {
-	return &Check{
+	return &CheckV2{
 		logger: logger,
 	}
 }
 
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
+func (c *CheckV2) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -91,7 +91,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return nil
 }
 
-func (c *Check) checkWithoutSubDirs(ctx context.Context, rnd *rand.Rand, o Options, upClient *bee.Client, downClient *bee.Client) error {
+func (c *CheckV2) checkWithoutSubDirs(ctx context.Context, rnd *rand.Rand, o Options, upClient *bee.Client, downClient *bee.Client) error {
 	files, err := generateFiles(rnd, o.FilesInCollection, o.MaxPathnameLength)
 	if err != nil {
 		return fmt.Errorf("generate files: %w", err)
@@ -121,14 +121,14 @@ func (c *Check) checkWithoutSubDirs(ctx context.Context, rnd *rand.Rand, o Optio
 	return nil
 }
 
-func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options, upClient *bee.Client, downClient *bee.Client) error {
+func (c *CheckV2) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options, upClient *bee.Client, downClient *bee.Client) error {
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
 		return fmt.Errorf("generate private key: %w", err)
 	}
 
 	signer := crypto.NewDefaultSigner(privKey)
-	topic, err := crypto.LegacyKeccak256([]byte("my-website"))
+	topic, err := crypto.LegacyKeccak256([]byte("my-website-v2"))
 	if err != nil {
 		return fmt.Errorf("topic: %w", err)
 	}
@@ -249,7 +249,7 @@ func (c *Check) checkWithSubDirs(ctx context.Context, rnd *rand.Rand, o Options,
 // downloadAndVerify retrieves a file from the given address using the specified client.
 // If the file parameter is nil, it downloads the index file in the collection.
 // Then it verifies the hash of the downloaded file against the expected hash.
-func (c *Check) downloadAndVerify(ctx context.Context, client *bee.Client, address swarm.Address, file *bee.File, indexFile bee.File) error {
+func (c *CheckV2) downloadAndVerify(ctx context.Context, client *bee.Client, address swarm.Address, file *bee.File, indexFile bee.File) error {
 	expectedHash := indexFile.Hash()
 	fName := ""
 	if file != nil {

@@ -512,6 +512,8 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 		c.log.Warningf("invalid chain price: %v", price)
 	}
 
+	c.log.Debugf("calculated mutable batch: amount '%d', label '%s', price '%d', block time '%d', ttl '%s'", amount, label, price, blockTime, postageTTL)
+
 	batches, err := c.PostageBatches(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get postage batches: %w", err)
@@ -1026,6 +1028,11 @@ func (c *Client) CreateRootFeedManifest(ctx context.Context, signer crypto.Signe
 // UpdateFeedWithRootChunk updates a feed with a root chunk
 func (c *Client) UpdateFeedWithRootChunk(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, ch swarm.Chunk, o api.UploadOptions) (*api.SocResponse, error) {
 	return c.api.Feed.UpdateWithRootChunk(ctx, signer, topic, i, ch, o)
+}
+
+// UpdateFeedWithReference updates a feed with a reference
+func (c *Client) UpdateFeedWithReference(ctx context.Context, signer crypto.Signer, topic []byte, i uint64, addr swarm.Address, o api.UploadOptions) (*api.SocResponse, error) {
+	return c.api.Feed.UpdateWithReference(ctx, signer, topic, i, addr, o)
 }
 
 // FindFeedUpdate finds the latest update for a feed
