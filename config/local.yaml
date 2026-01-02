@@ -301,6 +301,7 @@ checks:
       download-timeout: 1m
       iteration-wait: 5m
       duration: 10m
+      r-level: 2
     timeout: 11m
     type: smoke
   ci-load:

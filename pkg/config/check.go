@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"time"
 
+	beeRedundancy "github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/check/act"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
@@ -418,6 +419,7 @@ var Checks = map[string]CheckType{
 				RxOnErrWait   *time.Duration `yaml:"rx-on-err-wait"`
 				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
 				Duration      *time.Duration `yaml:"duration"`
+				RLevel        *uint8         `yaml:"r-level"`
 			})
 
 			if err := check.Options.Decode(checkOpts); err != nil {
@@ -743,6 +745,19 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts any) (err error) {
 				ft, ok := ot.FieldByName(fieldName)
 				if ok && fieldType.Elem().AssignableTo(ft.Type) {
 					ov.FieldByName(fieldName).Set(fieldValue)
+				}
+			}
+		case "RLevel":
+			if !lv.Field(i).IsNil() { // set locally
+				fieldValue := lv.FieldByName(fieldName).Elem()
+				level := uint8(fieldValue.Uint())
+				rLevel := beeRedundancy.Level(level)
+				ft, ok := ot.FieldByName(fieldName)
+				if ok {
+					v := reflect.ValueOf(rLevel)
+					if v.Type().AssignableTo(ft.Type) {
+						ov.FieldByName(fieldName).Set(v)
+					}
 				}
 			}
 		default:

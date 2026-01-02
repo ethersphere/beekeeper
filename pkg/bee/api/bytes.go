@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
 
@@ -34,6 +35,10 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 	}
 	h.Add(deferredUploadHeader, strconv.FormatBool(!o.Direct))
 	h.Add(postageStampBatchHeader, o.BatchID)
+	if o.RLevel != redundancy.NONE {
+		h.Add(redundancyLevelHeader, strconv.Itoa(int(o.RLevel)))
+	}
+
 	err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
 	return resp, err
 }

@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
+
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -33,6 +35,7 @@ type Options struct {
 	UploadTimeout   time.Duration
 	DownloadTimeout time.Duration
 	IterationWait   time.Duration
+	RLevel          redundancy.Level
 }
 
 // NewDefaultOptions returns new default options
@@ -51,6 +54,7 @@ func NewDefaultOptions() Options {
 		UploadTimeout:   60 * time.Minute,
 		DownloadTimeout: 60 * time.Minute,
 		IterationWait:   5 * time.Minute,
+		RLevel:          redundancy.NONE,
 	}
 }
 
@@ -90,6 +94,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 	c.logger.Infof("upload timeout: %s", o.UploadTimeout.String())
 	c.logger.Infof("download timeout: %s", o.DownloadTimeout.String())
 	c.logger.Infof("total duration: %s", o.Duration.String())
+	c.logger.Infof("redundancy level: %d", o.RLevel)
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 
@@ -177,7 +182,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 				txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
 
 				c.metrics.UploadAttempts.WithLabelValues(sizeLabel, uploader.Name()).Inc()
-				address, txDuration, err = test.Upload(txCtx, uploader, txData, batchID)
+				address, txDuration, err = test.Upload(txCtx, uploader, txData, batchID, o.RLevel)
 				if err != nil {
 					c.metrics.UploadErrors.WithLabelValues(sizeLabel, uploader.Name()).Inc()
 					c.logger.Errorf("upload failed for size %d: %v", contentSize, err)
@@ -220,7 +225,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 				c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, downloader.Name()).Inc()
 
 				rxCtx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
-				rxData, rxDuration, err = test.Download(rxCtx, downloader, address)
+				rxData, rxDuration, err = test.Download(rxCtx, downloader, address, o.RLevel)
 				if err != nil {
 					c.metrics.DownloadErrors.WithLabelValues(sizeLabel, downloader.Name()).Inc()
 					c.logger.Errorf("download failed for size %d: %v", contentSize, err)
