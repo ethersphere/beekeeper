@@ -45,6 +45,7 @@ func (t *test) Download(ctx context.Context, bee *bee.Client, addr swarm.Address
 	if rLevel != redundancy.NONE {
 		fallbackMode := true
 		downloadOpts = &api.DownloadOptions{
+			RLevel:                 rLevel,
 			RedundancyFallbackMode: &fallbackMode,
 		}
 	}
