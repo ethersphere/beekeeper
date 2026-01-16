@@ -272,6 +272,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	sSet := o.Name
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := o.SwarmKey != nil
+	autoTLSEnabled := o.Config.P2PWSSAddr != ""
 
 	if _, err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
@@ -287,7 +288,9 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 				Annotations: o.Annotations,
 				Labels:      o.Labels,
 				Spec: pod.PodSpec{
-					InitContainers: setInitContainers(),
+					InitContainers: setInitContainers(setInitContainersOptions{
+						AutoTLSEnabled: autoTLSEnabled,
+					}),
 					Containers: setContainers(setContainersOptions{
 						Name:                   sSet,
 						Image:                  o.Image,
@@ -302,6 +305,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 						ResourcesRequestMemory: o.ResourcesRequestMemory,
 						LibP2PEnabled:          libP2PEnabled,
 						SwarmEnabled:           swarmEnabled,
+						AutoTLSEnabled:         autoTLSEnabled,
 					}),
 					NodeSelector: o.NodeSelector,
 					PodSecurityContext: pod.PodSecurityContext{
@@ -316,6 +320,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 						PersistenceEnabled: o.PersistenceEnabled,
 						LibP2PEnabled:      libP2PEnabled,
 						SwarmEnabled:       swarmEnabled,
+						AutoTLSEnabled:     autoTLSEnabled,
 					}),
 				},
 			},
