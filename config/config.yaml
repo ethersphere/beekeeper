@@ -130,11 +130,6 @@ bee-configs:
     warmup-time: 0s
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
     withdrawal-addresses-whitelist: "0xec44cb15b1b033e74d55ac5d0e24d861bde54532"
-    p2p-wss-enable: true
-    p2p-wss-addr: ":1635"
-    autotls-ca-endpoint: "https://pebble:14000/dir"
-    autotls-domain: "testnet.internal"
-    autotls-registration-endpoint: http://p2p-forge.default.svc.swarm1.local
   bootnode:
     _inherit: "default"
     bootnode-mode: true
