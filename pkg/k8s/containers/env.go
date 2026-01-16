@@ -29,16 +29,19 @@ type EnvVar struct {
 
 // toK8S converts EnvVar to Kubernetes client object
 func (ev *EnvVar) toK8S() v1.EnvVar {
-	return v1.EnvVar{
+	envVar := v1.EnvVar{
 		Name:  ev.Name,
 		Value: ev.Value,
-		ValueFrom: &v1.EnvVarSource{
+	}
+	if ev.ValueFrom.hasValues() {
+		envVar.ValueFrom = &v1.EnvVarSource{
 			FieldRef:         ev.ValueFrom.Field.toK8S(),
 			ResourceFieldRef: ev.ValueFrom.ResourceField.toK8S(),
 			ConfigMapKeyRef:  ev.ValueFrom.ConfigMap.toK8S(),
 			SecretKeyRef:     ev.ValueFrom.Secret.toK8S(),
-		},
+		}
 	}
+	return envVar
 }
 
 // ValueFrom represents Kubernetes ValueFrom
@@ -47,6 +50,14 @@ type ValueFrom struct {
 	ResourceField ResourceField
 	ConfigMap     ConfigMapKey
 	Secret        SecretKey
+}
+
+// hasValues returns true if any ValueFrom field is configured
+func (vf *ValueFrom) hasValues() bool {
+	return vf.Field.Path != "" ||
+		vf.ResourceField.Resource != "" ||
+		vf.ConfigMap.ConfigMapName != "" ||
+		vf.Secret.SecretName != ""
 }
 
 // Field represents Kubernetes ObjectFieldSelector
