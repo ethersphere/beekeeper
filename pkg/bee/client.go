@@ -318,6 +318,30 @@ func (c *Client) Peers(ctx context.Context) (peers []swarm.Address, err error) {
 	return peers, err
 }
 
+// Connect connects to a peer using the provided multiaddress.
+// Returns the overlay address of the connected peer.
+func (c *Client) Connect(ctx context.Context, multiaddr string) (swarm.Address, error) {
+	resp, err := c.api.Node.Connect(ctx, multiaddr)
+	if err != nil {
+		return swarm.ZeroAddress, fmt.Errorf("connect to %s: %w", multiaddr, err)
+	}
+
+	addr, err := swarm.ParseHexAddress(resp.Address)
+	if err != nil {
+		return swarm.ZeroAddress, fmt.Errorf("parse overlay address %s: %w", resp.Address, err)
+	}
+
+	return addr, nil
+}
+
+// Disconnect disconnects from a peer with the given overlay address.
+func (c *Client) Disconnect(ctx context.Context, overlay swarm.Address) error {
+	if err := c.api.Node.Disconnect(ctx, overlay); err != nil {
+		return fmt.Errorf("disconnect from %s: %w", overlay, err)
+	}
+	return nil
+}
+
 // PinRootHash pins root hash of given reference.
 func (c *Client) PinRootHash(ctx context.Context, ref swarm.Address) error {
 	return c.api.Pinning.PinRootHash(ctx, ref)

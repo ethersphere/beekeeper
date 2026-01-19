@@ -398,3 +398,12 @@ checks:
       postage-depth: 21
       postage-label: test-label
     type: feed
+  ci-autotls:
+    options:
+      expected-domain: "local.test"
+      target-node-groups:
+        - bootnode
+        - bee
+      connect-timeout: 30s
+    timeout: 5m
+    type: autotls
