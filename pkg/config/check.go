@@ -645,6 +645,7 @@ var Checks = map[string]CheckType{
 				PostageTTL   *time.Duration `yaml:"postage-ttl"`
 				PostageDepth *uint64        `yaml:"postage-depth"`
 				PostageLabel *string        `yaml:"postage-label"`
+				Chunks       *int           `yaml:"chunks"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
