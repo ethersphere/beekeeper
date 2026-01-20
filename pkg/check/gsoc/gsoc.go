@@ -115,7 +115,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client, batches []string, logger logging.Logger, parallel bool, numChunks int) error {
 	if numChunks <= 0 {
-		numChunks = 3
+		return fmt.Errorf("chunks must be greater than 0")
 	}
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
@@ -210,6 +210,12 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 
 			// Retry missing chunks sequentially to avoid flooding
 			for _, i := range missing {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				default:
+				}
+
 				payload := fmt.Sprintf("data %d", i)
 				logger.Infof("gsoc: retrying soc to node=%s, payload=%s", uploadClient.Name(), payload)
 				if err := uploadSoc(ctx, uploadClient, payload, resourceId, batches[i%2], privKey); err != nil {
