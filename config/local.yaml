@@ -25,6 +25,11 @@ clusters:
         config: local
         count: 2
         mode: node
+      wss:
+        bee-config: bee-local-wss
+        config: local
+        count: 2
+        mode: node
   local-dns:
     _inherit: "local"
     node-groups:
@@ -134,7 +139,7 @@ bee-configs:
     p2p-addr: ":1634"
     p2p-wss-addr: ":1635"
     p2p-ws-enable: false
-    p2p-wss-enable: true
+    p2p-wss-enable: false
     password: "beekeeper"
     payment-early-percent: 50
     payment-threshold: 13500000
@@ -157,6 +162,9 @@ bee-configs:
   bootnode-local:
     _inherit: "bee-local"
     bootnode-mode: true
+  bee-local-wss:
+    _inherit: "bee-local"
+    p2p-wss-enable: true
   bee-local-dns:
     _inherit: "bee-local"
     bootnode: /dnsaddr/localhost
@@ -399,11 +407,5 @@ checks:
       postage-label: test-label
     type: feed
   ci-autotls:
-    options:
-      expected-domain: "local.test"
-      target-node-groups:
-        - bootnode
-        - bee
-      connect-timeout: 30s
     timeout: 5m
     type: autotls

@@ -131,11 +131,7 @@ type ConnectResponse struct {
 // The multiaddr should be in the format: /ip4/x.x.x.x/tcp/port/...
 // Returns the overlay address of the connected peer.
 func (n *NodeService) Connect(ctx context.Context, multiaddr string) (resp ConnectResponse, err error) {
-	// The bee API expects the multiaddr as a path parameter without the leading slash
-	// since the handler adds it back: mux.Vars(r)["multi-address"] = "/" + mux.Vars(r)["multi-address"]
-	path := multiaddr[1:]
-
-	err = n.client.requestJSON(ctx, http.MethodPost, "/connect/"+path, nil, &resp)
+	err = n.client.requestJSON(ctx, http.MethodPost, "/connect"+multiaddr, nil, &resp)
 	return resp, err
 }
 

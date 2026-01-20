@@ -86,20 +86,7 @@ var Checks = map[string]CheckType{
 	"autotls": {
 		NewAction: autotls.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
-			checkOpts := new(struct {
-				ExpectedDomain   *string        `yaml:"expected-domain"`
-				TargetNodeGroups *[]string      `yaml:"target-node-groups"`
-				ConnectTimeout   *time.Duration `yaml:"connect-timeout"`
-			})
-			if err := check.Options.Decode(checkOpts); err != nil {
-				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
-			}
-			opts := autotls.NewDefaultOptions()
-
-			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
-				return nil, fmt.Errorf("applying options: %w", err)
-			}
-			return opts, nil
+			return autotls.NewDefaultOptions(), nil
 		},
 	},
 	"balances": {
