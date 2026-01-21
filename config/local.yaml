@@ -47,6 +47,11 @@ clusters:
         config: local-dns
         count: 3
         mode: node
+      wss:
+        bee-config: bee-local-wss
+        config: local-dns
+        count: 2
+        mode: node
       light:
         bee-config: bee-local-light
         config: local-light
