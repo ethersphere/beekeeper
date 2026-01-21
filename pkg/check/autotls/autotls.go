@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -133,7 +132,7 @@ func (c *Check) testWSSConnectivity(ctx context.Context, clients map[string]*bee
 
 	if nonWSSSource != nil {
 		c.logger.Infof("testing cross-protocol: %s (non-WSS) to WSS nodes", nonWSSName)
-		if err := c.testConnectivity(ctx, nonWSSSource, nonWSSName, wssNodes, timeout); err != nil {
+		if err := c.testConnectivity(ctx, nonWSSSource, nonWSSName, clients, wssNodes, timeout); err != nil {
 			return fmt.Errorf("cross-protocol test: %w", err)
 		}
 	} else {
@@ -142,7 +141,7 @@ func (c *Check) testWSSConnectivity(ctx context.Context, clients map[string]*bee
 
 	if wssSource != nil {
 		c.logger.Infof("testing WSS-to-WSS: %s to WSS nodes", wssSourceName)
-		if err := c.testConnectivity(ctx, wssSource, wssSourceName, wssNodes, timeout); err != nil {
+		if err := c.testConnectivity(ctx, wssSource, wssSourceName, clients, wssNodes, timeout); err != nil {
 			return fmt.Errorf("WSS-to-WSS test: %w", err)
 		}
 	} else {
@@ -152,7 +151,7 @@ func (c *Check) testWSSConnectivity(ctx context.Context, clients map[string]*bee
 	return nil
 }
 
-func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, sourceName string, wssNodes map[string][]string, timeout time.Duration) error {
+func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, sourceName string, clients map[string]*bee.Client, wssNodes map[string][]string, timeout time.Duration) error {
 	for targetName, underlays := range wssNodes {
 		if targetName == sourceName {
 			continue
@@ -164,15 +163,32 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 		default:
 		}
 
+		targetClient := clients[targetName]
+		targetAddresses, err := targetClient.Addresses(ctx)
+		if err != nil {
+			return fmt.Errorf("get target %s addresses: %w", targetName, err)
+		}
+		targetOverlay := targetAddresses.Overlay
+
+		// Disconnect first to ensure we test actual WSS connection.
+		// Bee returns 200 OK for both new connections and existing ones,
+		// so we must disconnect first to guarantee WSS transport is used.
+		c.logger.Infof("disconnecting from %s before WSS test", targetName)
+		if err := sourceClient.Disconnect(ctx, targetOverlay); err != nil {
+			c.logger.Warningf("failed to disconnect from %s: %v", targetName, err)
+		}
+
+		time.Sleep(500 * time.Millisecond)
+
 		for _, underlay := range underlays {
 			c.logger.Infof("testing WSS connection from %s to %s via %s", sourceName, targetName, underlay)
 
 			connectCtx, cancel := context.WithTimeout(ctx, timeout)
-			defer cancel()
 			start := time.Now()
 
 			overlay, err := sourceClient.Connect(connectCtx, underlay)
 			duration := time.Since(start)
+			cancel()
 
 			if err != nil {
 				return fmt.Errorf("WSS connection failed from %s to %s via %s: %w", sourceName, targetName, underlay, err)
@@ -181,13 +197,16 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 			c.logger.Infof("WSS connection successful: %s to %s (overlay: %s, duration: %v)",
 				sourceName, targetName, overlay, duration)
 
-			if overlay.Equal(swarm.ZeroAddress) {
-				return fmt.Errorf("received zero overlay address after connecting to %s", targetName)
+			if !overlay.Equal(targetOverlay) {
+				return fmt.Errorf("overlay mismatch: expected %s, got %s", targetOverlay, overlay)
 			}
 
 			if err := sourceClient.Disconnect(ctx, overlay); err != nil {
-				return fmt.Errorf("failed to disconnect from %s: %w", targetName, err)
+				c.logger.Warningf("failed to disconnect from %s: %v", targetName, err)
 			}
+
+			// Wait to avoid auto reconnect interference
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 
