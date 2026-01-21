@@ -168,11 +168,11 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 			c.logger.Infof("testing WSS connection from %s to %s via %s", sourceName, targetName, underlay)
 
 			connectCtx, cancel := context.WithTimeout(ctx, timeout)
+			defer cancel()
 			start := time.Now()
 
 			overlay, err := sourceClient.Connect(connectCtx, underlay)
 			duration := time.Since(start)
-			cancel()
 
 			if err != nil {
 				return fmt.Errorf("WSS connection failed from %s to %s via %s: %w", sourceName, targetName, underlay, err)
