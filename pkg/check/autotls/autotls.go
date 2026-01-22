@@ -2,7 +2,6 @@ package autotls
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -14,11 +13,13 @@ import (
 )
 
 type Options struct {
+	WSSGroup       string
 	ConnectTimeout time.Duration
 }
 
 func NewDefaultOptions() Options {
 	return Options{
+		WSSGroup:       "wss",
 		ConnectTimeout: 30 * time.Second,
 	}
 }
@@ -48,21 +49,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("get node clients: %w", err)
 	}
 
-	wssNodes, err := c.discoverWSSNodes(ctx, clients)
+	wssClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.WSSGroup})
+	if len(wssClients) == 0 {
+		return fmt.Errorf("no nodes found in WSS group %q", o.WSSGroup)
+	}
+
+	c.logger.Infof("found %d nodes in WSS group %q", len(wssClients), o.WSSGroup)
+
+	wssNodes, err := c.verifyWSSUnderlays(ctx, wssClients)
 	if err != nil {
-		return fmt.Errorf("discover WSS nodes: %w", err)
-	}
-
-	if len(wssNodes) == 0 {
-		return errors.New("no nodes with WSS underlay addresses found")
-	}
-
-	c.logger.Infof("found %d nodes with WSS underlays", len(wssNodes))
-
-	for nodeName, underlays := range wssNodes {
-		for _, underlay := range underlays {
-			c.logger.Infof("node %s: WSS address: %s", nodeName, underlay)
-		}
+		return fmt.Errorf("verify WSS underlays: %w", err)
 	}
 
 	if err := c.testWSSConnectivity(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
@@ -73,20 +69,23 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return nil
 }
 
-func (c *Check) discoverWSSNodes(ctx context.Context, clients map[string]*bee.Client) (map[string][]string, error) {
+func (c *Check) verifyWSSUnderlays(ctx context.Context, wssClients orchestration.ClientList) (map[string][]string, error) {
 	wssNodes := make(map[string][]string)
 
-	for nodeName, client := range clients {
+	for _, client := range wssClients {
+		nodeName := client.Name()
 		addresses, err := client.Addresses(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: get addresses: %w", nodeName, err)
 		}
 
 		wssUnderlays := filterWSSUnderlays(addresses.Underlay)
-		if len(wssUnderlays) > 0 {
-			wssNodes[nodeName] = wssUnderlays
-			c.logger.Debugf("node %s has %d WSS underlay(s)", nodeName, len(wssUnderlays))
+		if len(wssUnderlays) == 0 {
+			return nil, fmt.Errorf("node %s in WSS group has no WSS underlay addresses", nodeName)
 		}
+
+		wssNodes[nodeName] = wssUnderlays
+		c.logger.Debugf("node %s has %d WSS underlay(s)", nodeName, len(wssUnderlays))
 	}
 
 	return wssNodes, nil
