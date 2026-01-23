@@ -87,8 +87,10 @@ var Checks = map[string]CheckType{
 		NewAction: autotls.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
-				WSSGroup       *string        `yaml:"wss-group"`
-				ConnectTimeout *time.Duration `yaml:"connect-timeout"`
+				WSSGroup        *string        `yaml:"wss-group"`
+				ConnectTimeout  *time.Duration `yaml:"connect-timeout"`
+				TestRenewal     *bool          `yaml:"test-renewal"`
+				RenewalWaitTime *time.Duration `yaml:"renewal-wait-time"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
