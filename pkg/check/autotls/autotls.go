@@ -13,18 +13,14 @@ import (
 )
 
 type Options struct {
-	WSSGroup        string
-	ConnectTimeout  time.Duration
-	TestRenewal     bool
-	RenewalWaitTime time.Duration
+	WSSGroup       string
+	ConnectTimeout time.Duration
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		WSSGroup:        "wss",
-		ConnectTimeout:  30 * time.Second,
-		TestRenewal:     true,
-		RenewalWaitTime: 5 * time.Minute, // Make sure this time is aligned with config in beelocal repo: https://github.com/ethersphere/beelocal
+		WSSGroup:       "wss",
+		ConnectTimeout: 30 * time.Second,
 	}
 }
 
@@ -69,10 +65,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("WSS connectivity test: %w", err)
 	}
 
-	if o.TestRenewal {
-		if err := c.testCertificateRenewal(ctx, clients, wssNodes, o); err != nil {
-			return fmt.Errorf("certificate renewal test: %w", err)
-		}
+	if err := c.testCertificateRenewal(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
+		return fmt.Errorf("certificate renewal test: %w", err)
 	}
 
 	c.logger.Info("AutoTLS check completed successfully")
@@ -221,18 +215,20 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 	return nil
 }
 
-func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, o Options) error {
-	c.logger.Infof("testing certificate renewal: waiting %v then re-testing connectivity", o.RenewalWaitTime)
+func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, connectTimeout time.Duration) error {
+	const renewalWaitTime = 350 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
+
+	c.logger.Infof("testing certificate renewal: waiting %v then re-testing connectivity", renewalWaitTime)
 
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-time.After(o.RenewalWaitTime):
+	case <-time.After(renewalWaitTime):
 	}
 
 	c.logger.Info("wait complete, re-testing WSS connectivity to verify certificates were renewed")
 
-	if err := c.testWSSConnectivity(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
+	if err := c.testWSSConnectivity(ctx, clients, wssNodes, connectTimeout); err != nil {
 		return fmt.Errorf("post-renewal connectivity test failed (certificates may not have been renewed): %w", err)
 	}
 
