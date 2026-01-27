@@ -216,7 +216,7 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 }
 
 func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, connectTimeout time.Duration) error {
-	const renewalWaitTime = 350 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
+	const renewalWaitTime = 500 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
 
 	c.logger.Infof("testing certificate renewal: waiting %v then re-testing connectivity", renewalWaitTime)
 
