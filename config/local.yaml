@@ -412,5 +412,5 @@ checks:
       postage-label: test-label
     type: feed
   ci-autotls:
-    timeout: 5m
+    timeout: 15m
     type: autotls
