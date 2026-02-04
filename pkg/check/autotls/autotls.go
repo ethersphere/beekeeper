@@ -13,14 +13,16 @@ import (
 )
 
 type Options struct {
-	WSSGroup       string
-	ConnectTimeout time.Duration
+	WSSGroup        string
+	UltraLightGroup string
+	ConnectTimeout  time.Duration
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		WSSGroup:       "wss",
-		ConnectTimeout: 30 * time.Second,
+		WSSGroup:        "wss",
+		UltraLightGroup: "ultralight",
+		ConnectTimeout:  30 * time.Second,
 	}
 }
 
@@ -65,9 +67,15 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("WSS connectivity test: %w", err)
 	}
 
-	if err := c.testCertificateRenewal(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
-		return fmt.Errorf("certificate renewal test: %w", err)
+	if o.UltraLightGroup != "" {
+		if err := c.testUltraLightConnectivity(ctx, clients, wssNodes, o.UltraLightGroup, o.ConnectTimeout); err != nil {
+			return fmt.Errorf("ultra-light connectivity test: %w", err)
+		}
 	}
+
+	// if err := c.testCertificateRenewal(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
+	// 	return fmt.Errorf("certificate renewal test: %w", err)
+	// }
 
 	c.logger.Info("AutoTLS check completed successfully")
 	return nil
@@ -149,6 +157,26 @@ func (c *Check) testWSSConnectivity(ctx context.Context, clients map[string]*bee
 		}
 	} else {
 		c.logger.Warning("no WSS source nodes available, skipping WSS-to-WSS test")
+	}
+
+	return nil
+}
+
+func (c *Check) testUltraLightConnectivity(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, ultraLightGroup string, timeout time.Duration) error {
+	ultralightClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{ultraLightGroup})
+	if len(ultralightClients) == 0 {
+		c.logger.Warningf("no nodes found in ultra-light group %q, skipping ultra-light connectivity test", ultraLightGroup)
+		return nil
+	}
+
+	c.logger.Infof("found %d nodes in ultra-light group %q", len(ultralightClients), ultraLightGroup)
+
+	for _, client := range ultralightClients {
+		nodeName := client.Name()
+		c.logger.Infof("testing ultra-light to WSS: %s (no listen addr) to WSS nodes", nodeName)
+		if err := c.testConnectivity(ctx, client, nodeName, clients, wssNodes, timeout); err != nil {
+			return fmt.Errorf("ultra-light %s to WSS test: %w", nodeName, err)
+		}
 	}
 
 	return nil

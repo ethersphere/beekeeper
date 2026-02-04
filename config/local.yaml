@@ -30,6 +30,11 @@ clusters:
         config: local
         count: 2
         mode: node
+      ultralight:
+        bee-config: bee-local-ultralight
+        config: local
+        count: 1
+        mode: node
   local-dns:
     _inherit: "local"
     node-groups:
@@ -56,6 +61,11 @@ clusters:
         bee-config: bee-local-light
         config: local-light
         count: 2
+        mode: node
+      ultralight:
+        bee-config: bee-local-ultralight
+        config: local
+        count: 1
         mode: node
   local-gc:
     _inherit: "local"
@@ -184,6 +194,12 @@ bee-configs:
   bee-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10
+  bee-local-ultralight:
+    _inherit: "bee-local"
+    blockchain-rpc-endpoint: ""
+    full-node: false
+    p2p-addr: ""
+    swap-enable: false
   bootnode-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10
@@ -414,3 +430,5 @@ checks:
   ci-autotls:
     timeout: 15m
     type: autotls
+    options:
+      ultralight-group: ultralight
