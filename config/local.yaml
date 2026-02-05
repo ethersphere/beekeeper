@@ -167,12 +167,12 @@ bee-configs:
   bee-local-dns-autotls:
     _inherit: "bee-local"
     bootnode: /dnsaddr/bootnode-0-headless.local.svc.cluster.local
-    p2p-ws-enable: true
+    p2p-wss-enable: true
   bee-local-light-autotls:
     _inherit: "bee-local"
     bootnode: /dnsaddr/bootnode-0-headless.local.svc.cluster.local
     full-node: false
-    p2p-ws-enable: true
+    p2p-wss-enable: true
   bee-local:
     _inherit: ""
     allow-private-cidrs: true
