@@ -47,6 +47,16 @@ clusters:
         config: local-light-autotls
         count: 2
         mode: node
+      wss:
+        bee-config: bee-local-wss
+        config: local
+        count: 2
+        mode: node
+      ultralight:
+        bee-config: bee-local-ultralight
+        config: local-ultralight
+        count: 1
+        mode: node
   local-dns:
     _inherit: "local"
     node-groups:
@@ -64,9 +74,19 @@ clusters:
         config: local-dns
         count: 3
         mode: node
+      wss:
+        bee-config: bee-local-wss
+        config: local-dns
+        count: 2
+        mode: node
       light:
         bee-config: bee-local-light
         config: local-light
+        count: 2
+        mode: node
+      ultralight:
+        bee-config: bee-local-ultralight
+        config: local-ultralight
         count: 2
         mode: node
   local-gc:
@@ -130,6 +150,14 @@ node-groups:
     _inherit: "local"
   local-light:
     _inherit: "local"
+  local-ultralight:
+    _inherit: "local"
+    labels:
+      app.kubernetes.io/component: "node"
+      app.kubernetes.io/name: "bee"
+      app.kubernetes.io/part-of: "bee"
+      app.kubernetes.io/version: "latest"
+      beekeeper.ethswarm.org/node-funder: "false"
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 bee-configs:
@@ -149,6 +177,9 @@ bee-configs:
     _inherit: ""
     allow-private-cidrs: true
     api-addr: ":1633"
+    autotls-ca-endpoint: "https://pebble:14000/dir" # https://pebble.local.svc.cluster.local:14000/dir
+    autotls-domain: "local.test"
+    autotls-registration-endpoint: http://p2p-forge.local.svc.cluster.local:8080 # "http://p2p-forge:8080" # http://p2p-forge.local.svc.cluster.local:8080/v1/_acme-challenge #http://p2p-forge:8080/v1/_acme-challenge
     block-time: 1
     blockchain-rpc-endpoint: "ws://geth-swap:8546"
     bootnode-mode: false
@@ -164,9 +195,12 @@ bee-configs:
     full-node: true
     mainnet: false
     nat-addr: ""
+    nat-wss-addr: ""
     network-id: 0
     p2p-addr: ":1634"
+    p2p-wss-addr: ":1635"
     p2p-ws-enable: false
+    p2p-wss-enable: false
     password: "beekeeper"
     payment-early-percent: 50
     payment-threshold: 13500000
@@ -189,6 +223,9 @@ bee-configs:
   bootnode-local:
     _inherit: "bee-local"
     bootnode-mode: true
+  bee-local-wss:
+    _inherit: "bee-local"
+    p2p-wss-enable: true
   bee-local-dns:
     _inherit: "bee-local"
     bootnode: /dnsaddr/localhost
@@ -203,6 +240,11 @@ bee-configs:
   bee-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10
+  bee-local-ultralight:
+    _inherit: "bee-local"
+    blockchain-rpc-endpoint: ""
+    full-node: false
+    swap-enable: false
   bootnode-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10
@@ -430,3 +472,9 @@ checks:
       postage-depth: 21
       postage-label: test-label
     type: feed
+  ci-autotls:
+    timeout: 15m
+    type: autotls
+    options:
+      ultralight-group: ultralight
+      wss-group: wss

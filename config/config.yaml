@@ -399,7 +399,9 @@ checks:
       postage-depth: 21
       postage-label: test-label
     type: feed
-
+  autotls:
+    timeout: 5m
+    type: autotls
 # simulations defines simulations Beekeeper can execute against the cluster
 # type filed allows defining same simulation with different names and options
 simulations:
