@@ -73,9 +73,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		}
 	}
 
-	// if err := c.testCertificateRenewal(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
-	// 	return fmt.Errorf("certificate renewal test: %w", err)
-	// }
+	if err := c.testCertificateRenewal(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
+		return fmt.Errorf("certificate renewal test: %w", err)
+	}
 
 	c.logger.Info("AutoTLS check completed successfully")
 	return nil
