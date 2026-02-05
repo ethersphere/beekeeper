@@ -25,6 +25,28 @@ clusters:
         config: local
         count: 2
         mode: node
+  local-dns-autotls:
+    _inherit: "local"
+    node-groups:
+      bootnode:
+        mode: bootnode
+        bee-config: bootnode-local-dns-autotls
+        config: local-dns-autotls
+        nodes:
+          - name: bootnode-0
+            bootnodes: /dns4/bootnode-0-headless.%s.svc.cluster.local/tcp/1634/p2p/QmaHzvd3iZduu275CMkMVZKwbsjXSyH3GJRj4UvFJApKcb
+            libp2p-key: '{"address":"28678fe31f09f722d53e77ca2395569f19959fa5","crypto":{"cipher":"aes-128-ctr","ciphertext":"0ff319684c4f8decf9c998047febe3417cfc45832b8bb62fd818183d54cf5d0183bfa021ed95addce3b33e83ce7ee73e926f00eea8241d96b349266a4d299829d3d22db0d536315b52b34db4a6778bfd3ce7631ad7256ea0bb9c50abea9de35d740b6fdc50caf929b1d19494690d9ed649105d02c14f5ec49d","cipherparams":{"iv":"4e9a50fb5852b5e61964f696be78066b"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"4d513e81647e4150bb648ed8d2dda28d460802336bf24d620119eac66ae0c0c4"},"mac":"9ae71db96e5ddc1c214538d42082212bbbe53aeac09fcc3e3a8eff815648331e"},"version":3,"id":"ae3bc991-d89f-405a-9e6a-60e27347e22d"}'
+            swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
+      bee:
+        bee-config: bee-local-dns-autotls
+        config: local-dns-autotls
+        count: 3
+        mode: node
+      light:
+        bee-config: bee-local-light-autotls
+        config: local-light-autotls
+        count: 2
+        mode: node
   local-dns:
     _inherit: "local"
     node-groups:
@@ -100,6 +122,10 @@ node-groups:
     update-strategy: "RollingUpdate"
   local-dns:
     _inherit: "local"
+  local-dns-autotls:
+    _inherit: "local"
+  local-light-autotls:
+    _inherit: "local-light"
   local-gc:
     _inherit: "local"
   local-light:
@@ -107,6 +133,18 @@ node-groups:
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 bee-configs:
+  bootnode-local-dns-autotls:
+    _inherit: "bee-local-dns-autotls"
+    bootnode-mode: true
+  bee-local-dns-autotls:
+    _inherit: "bee-local"
+    bootnode: /dnsaddr/bootnode-0-headless.local.svc.cluster.local
+    p2p-ws-enable: true
+  bee-local-light-autotls:
+    _inherit: "bee-local"
+    bootnode: /dnsaddr/bootnode-0-headless.local.svc.cluster.local
+    full-node: false
+    p2p-ws-enable: true
   bee-local:
     _inherit: ""
     allow-private-cidrs: true
