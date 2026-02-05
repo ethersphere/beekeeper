@@ -84,11 +84,11 @@ clusters:
         config: local-light
         count: 2
         mode: node
-      ultralight:
-        bee-config: bee-local-ultralight
-        config: local-ultralight
-        count: 2
-        mode: node
+      # ultralight:
+      #   bee-config: bee-local-ultralight
+      #   config: local-ultralight
+      #   count: 2
+      #   mode: node
   local-gc:
     _inherit: "local"
     node-groups:
