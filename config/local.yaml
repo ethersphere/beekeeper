@@ -32,7 +32,7 @@ clusters:
         mode: node
       ultralight:
         bee-config: bee-local-ultralight
-        config: local
+        config: local-ultralight
         count: 1
         mode: node
   local-dns:
@@ -64,8 +64,8 @@ clusters:
         mode: node
       ultralight:
         bee-config: bee-local-ultralight
-        config: local
-        count: 1
+        config: local-ultralight
+        count: 2
         mode: node
   local-gc:
     _inherit: "local"
@@ -124,6 +124,14 @@ node-groups:
     _inherit: "local"
   local-light:
     _inherit: "local"
+  local-ultralight:
+    _inherit: "local"
+    labels:
+      app.kubernetes.io/component: "node"
+      app.kubernetes.io/name: "bee"
+      app.kubernetes.io/part-of: "bee"
+      app.kubernetes.io/version: "latest"
+      beekeeper.ethswarm.org/node-funder: "false"
 
 # bee-configs defines Bee configuration that can be assigned to node-groups
 bee-configs:
@@ -198,7 +206,6 @@ bee-configs:
     _inherit: "bee-local"
     blockchain-rpc-endpoint: ""
     full-node: false
-    p2p-addr: ""
     swap-enable: false
   bootnode-local-gc:
     _inherit: "bee-local"
@@ -432,3 +439,4 @@ checks:
     type: autotls
     options:
       ultralight-group: ultralight
+      wss-group: wss

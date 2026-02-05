@@ -50,7 +50,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	if err != nil {
 		return fmt.Errorf("get node clients: %w", err)
 	}
-
+	time.Sleep(5 * time.Second)
 	wssClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.WSSGroup})
 	if len(wssClients) == 0 {
 		return fmt.Errorf("no nodes found in WSS group %q", o.WSSGroup)
@@ -58,7 +58,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	c.logger.Infof("found %d nodes in WSS group %q", len(wssClients), o.WSSGroup)
 
-	wssNodes, err := c.verifyWSSUnderlays(ctx, wssClients)
+	wssNodes, err := c.verifyWSSUnderlays(ctx, wssClients, o.UltraLightGroup)
 	if err != nil {
 		return fmt.Errorf("verify WSS underlays: %w", err)
 	}
@@ -81,16 +81,21 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return nil
 }
 
-func (c *Check) verifyWSSUnderlays(ctx context.Context, wssClients orchestration.ClientList) (map[string][]string, error) {
+func (c *Check) verifyWSSUnderlays(ctx context.Context, wssClients orchestration.ClientList, excludeNodeGroup string) (map[string][]string, error) {
 	wssNodes := make(map[string][]string)
 
 	for _, client := range wssClients {
+		if excludeNodeGroup != "" && client.NodeGroup() == excludeNodeGroup {
+			c.logger.Debugf("skipping %s (node group %s has no WSS underlays)", client.Name(), excludeNodeGroup)
+			continue
+		}
+
 		nodeName := client.Name()
 		addresses, err := client.Addresses(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("%s: get addresses: %w", nodeName, err)
 		}
-
+		time.Sleep(2 * time.Second)
 		wssUnderlays := filterWSSUnderlays(addresses.Underlay)
 		if len(wssUnderlays) == 0 {
 			return nil, fmt.Errorf("node %s in WSS group has no WSS underlay addresses", nodeName)
