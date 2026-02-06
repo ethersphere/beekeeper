@@ -420,6 +420,7 @@ var Checks = map[string]CheckType{
 				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
 				Duration      *time.Duration `yaml:"duration"`
 				RLevel        *uint8         `yaml:"r-level"`
+				RLevels       *[]uint8       `yaml:"r-levels"`
 			})
 
 			if err := check.Options.Decode(checkOpts); err != nil {
@@ -428,6 +429,9 @@ var Checks = map[string]CheckType{
 
 			if checkOpts.FileSizes == nil && checkOpts.ContentSize != nil {
 				checkOpts.FileSizes = &[]int64{*checkOpts.ContentSize}
+			}
+			if checkOpts.RLevels == nil && checkOpts.RLevel != nil {
+				checkOpts.RLevels = &[]uint8{*checkOpts.RLevel}
 			}
 
 			opts := smoke.NewDefaultOptions()
@@ -747,14 +751,17 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts any) (err error) {
 					ov.FieldByName(fieldName).Set(fieldValue)
 				}
 			}
-		case "RLevel":
-			if !lv.Field(i).IsNil() { // set locally
+		case "RLevels":
+			if !lv.Field(i).IsNil() {
 				fieldValue := lv.FieldByName(fieldName).Elem()
-				level := uint8(fieldValue.Uint())
-				rLevel := beeRedundancy.Level(level)
+				n := fieldValue.Len()
+				levels := make([]beeRedundancy.Level, n)
+				for j := 0; j < n; j++ {
+					levels[j] = beeRedundancy.Level(uint8(fieldValue.Index(j).Uint()))
+				}
 				ft, ok := ot.FieldByName(fieldName)
 				if ok {
-					v := reflect.ValueOf(rLevel)
+					v := reflect.ValueOf(levels)
 					if v.Type().AssignableTo(ft.Type) {
 						ov.FieldByName(fieldName).Set(v)
 					}
