@@ -87,8 +87,8 @@ var Checks = map[string]CheckType{
 		NewAction: autotls.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
-				WSSGroup        *string        `yaml:"wss-group"`
-				UltraLightGroup *string        `yaml:"ultralight-group"`
+				AutoTLSGroup    *string        `yaml:"autotls-group"`
+				UltraLightGroup *string        `yaml:"ultra-light-group"`
 				ConnectTimeout  *time.Duration `yaml:"connect-timeout"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {

@@ -13,15 +13,15 @@ import (
 )
 
 type Options struct {
-	WSSGroup        string
+	AutoTLSGroup    string
 	UltraLightGroup string
 	ConnectTimeout  time.Duration
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		WSSGroup:        "wss",
-		UltraLightGroup: "ultralight",
+		AutoTLSGroup:    "bee-autotls",
+		UltraLightGroup: "ultra-light",
 		ConnectTimeout:  30 * time.Second,
 	}
 }
@@ -50,15 +50,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	if err != nil {
 		return fmt.Errorf("get node clients: %w", err)
 	}
+
 	time.Sleep(5 * time.Second)
-	wssClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.WSSGroup})
-	if len(wssClients) == 0 {
-		return fmt.Errorf("no nodes found in WSS group %q", o.WSSGroup)
+	autoTLSClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.AutoTLSGroup})
+	if len(autoTLSClients) == 0 {
+		return fmt.Errorf("no nodes found in AutoTLS group %q", o.AutoTLSGroup)
 	}
 
-	c.logger.Infof("found %d nodes in WSS group %q", len(wssClients), o.WSSGroup)
+	c.logger.Infof("found %d nodes in AutoTLS group %q", len(autoTLSClients), o.AutoTLSGroup)
 
-	wssNodes, err := c.verifyWSSUnderlays(ctx, wssClients, o.UltraLightGroup)
+	wssNodes, err := c.verifyWSSUnderlays(ctx, autoTLSClients, o.UltraLightGroup)
 	if err != nil {
 		return fmt.Errorf("verify WSS underlays: %w", err)
 	}
@@ -81,10 +82,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return nil
 }
 
-func (c *Check) verifyWSSUnderlays(ctx context.Context, wssClients orchestration.ClientList, excludeNodeGroup string) (map[string][]string, error) {
-	wssNodes := make(map[string][]string)
+func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestration.ClientList, excludeNodeGroup string) (map[string][]string, error) {
+	autoTLS := make(map[string][]string)
 
-	for _, client := range wssClients {
+	for _, client := range autoTLSClients {
 		if excludeNodeGroup != "" && client.NodeGroup() == excludeNodeGroup {
 			c.logger.Debugf("skipping %s (node group %s has no WSS underlays)", client.Name(), excludeNodeGroup)
 			continue
@@ -101,11 +102,11 @@ func (c *Check) verifyWSSUnderlays(ctx context.Context, wssClients orchestration
 			return nil, fmt.Errorf("node %s in WSS group has no WSS underlay addresses", nodeName)
 		}
 
-		wssNodes[nodeName] = wssUnderlays
+		autoTLS[nodeName] = wssUnderlays
 		c.logger.Debugf("node %s has %d WSS underlay(s)", nodeName, len(wssUnderlays))
 	}
 
-	return wssNodes, nil
+	return autoTLS, nil
 }
 
 func filterWSSUnderlays(underlays []string) []string {
