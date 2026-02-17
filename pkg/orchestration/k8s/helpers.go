@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"fmt"
 	"maps"
 	"strconv"
 	"strings"
@@ -63,6 +64,28 @@ withdrawal-addresses-whitelist: {{.WithdrawAddress}}
 `
 )
 
+// https://raw.githubusercontent.com/letsencrypt/pebble/main/test/certs/pebble.minica.pem
+const pebbleCertificate = `-----BEGIN CERTIFICATE-----
+MIIDPzCCAiegAwIBAgIIU0Xm9UFdQxUwDQYJKoZIhvcNAQELBQAwIDEeMBwGA1UE
+AxMVbWluaWNhIHJvb3QgY2EgNTM0NWU2MCAXDTI1MDkwMzIzNDAwNVoYDzIxMjUw
+OTAzMjM0MDA1WjAgMR4wHAYDVQQDExVtaW5pY2Egcm9vdCBjYSA1MzQ1ZTYwggEi
+MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5WgZNoVJandj43kkLyU50vzCZ
+alozvdRo3OFiKoDtmqKPNWRNO2hC9AUNxTDJco51Yc42u/WV3fPbbhSznTiOOVtn
+Ajm6iq4I5nZYltGGZetGDOQWr78y2gWY+SG078MuOO2hyDIiKtVc3xiXYA+8Hluu
+9F8KbqSS1h55yxZ9b87eKR+B0zu2ahzBCIHKmKWgc6N13l7aDxxY3D6uq8gtJRU0
+toumyLbdzGcupVvjbjDP11nl07RESDWBLG1/g3ktJvqIa4BWgU2HMh4rND6y8OD3
+Hy3H8MY6CElL+MOCbFJjWqhtOxeFyZZV9q3kYnk9CAuQJKMEGuN4GU6tzhW1AgMB
+AAGjezB5MA4GA1UdDwEB/wQEAwIChDATBgNVHSUEDDAKBggrBgEFBQcDATASBgNV
+HRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBSu8RGpErgYUoYnQuwCq+/ggTiEjDAf
+BgNVHSMEGDAWgBSu8RGpErgYUoYnQuwCq+/ggTiEjDANBgkqhkiG9w0BAQsFAAOC
+AQEAXDVYov1+f6EL7S41LhYQkEX/GyNNzsEvqxE9U0+3Iri5JfkcNOiA9O9L6Z+Y
+bqcsXV93s3vi4r4WSWuc//wHyJYrVe5+tK4nlFpbJOvfBUtnoBDyKNxXzZCxFJVh
+f9uc8UejRfQMFbDbhWY/x83y9BDufJHHq32OjCIN7gp2UR8rnfYvlz7Zg4qkJBsn
+DG4dwd+pRTCFWJOVIG0JoNhK3ZmE7oJ1N4H38XkZ31NPcMksKxpsLLIS9+mosZtg
+4olL7tMPJklx5ZaeMFaKRDq4Gdxkbw4+O4vRgNm3Z8AXWKknOdfgdpqLUPPhRcP4
+v1lhy71EhBuXXwRQJry0lTdF+w==
+-----END CERTIFICATE-----`
+
 type setInitContainersOptions struct {
 	AutoTLSEnabled bool
 }
@@ -82,31 +105,22 @@ echo 'bee initialization done';`},
 		},
 	})
 
+	// TODO: this init container is only needed for testing with Pebble
+	// should not be used in other contexts.
 	if o.AutoTLSEnabled {
 		// Install Pebble CA certificates as an init container.
-		// Pebble is a testing ACME server (like Let's Encrypt for development).
-		// The bee container needs to trust Pebble's CA certificates to validate
-		// TLS certificates issued by Pebble during AutoTLS testing. This init
-		// container downloads and installs the CA certificates, which are then
-		// shared with the bee container via the pebble-ca-certs volume mount.
 		inits = append(inits, containers.Container{
 			Name:  "install-pebble-ca",
 			Image: "alpine:latest",
-			Command: []string{"sh", "-c", `set -ex
-apk add --no-cache ca-certificates wget
+			Command: []string{"sh", "-c", fmt.Sprintf(`set -ex
+apk add --no-cache ca-certificates
 mkdir -p /certs
-
-wget -q --no-check-certificate -O /certs/pebble-root.crt https://pebble:15000/roots/0
-wget -q --no-check-certificate -O /certs/pebble-intermediate.crt https://pebble:15000/intermediates/0 || true
-wget -q --no-check-certificate -O /certs/pebble-minica.crt https://raw.githubusercontent.com/letsencrypt/pebble/main/test/certs/pebble.minica.pem || true
-
-cat /certs/*.crt > /certs/pebble-bundle.crt
-cp /certs/*.crt /usr/local/share/ca-certificates/ 2>/dev/null || true
+cat > /certs/pebble-minica.crt << 'CERT'
+%s
+CERT
+cp /certs/pebble-minica.crt /usr/local/share/ca-certificates/
 update-ca-certificates
-cp /etc/ssl/certs/ca-certificates.crt /certs/ca-certificates.crt
-
-echo "Pebble CA certificates installed successfully"
-ls -la /certs/`},
+cp /etc/ssl/certs/ca-certificates.crt /certs/ca-certificates.crt`, pebbleCertificate)},
 			VolumeMounts: containers.VolumeMounts{
 				{
 					Name:      "pebble-ca-certs",
