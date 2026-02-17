@@ -13,20 +13,21 @@ import (
 )
 
 type Options struct {
-	AutoTLSGroup         string
-	UltraLightGroup      string
-	ConnectTimeout       time.Duration
-	UnderlayPollInterval time.Duration
+	AutoTLSGroup    string
+	UltraLightGroup string
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		AutoTLSGroup:         "bee-autotls",
-		UltraLightGroup:      "ultra-light",
-		ConnectTimeout:       30 * time.Second,
-		UnderlayPollInterval: 2 * time.Second,
+		AutoTLSGroup:    "bee-autotls",
+		UltraLightGroup: "ultra-light",
 	}
 }
+
+const (
+	underlayPollInterval = 2 * time.Second
+	connectTimeout       = 30 * time.Second
+)
 
 var _ beekeeper.Action = (*Check)(nil)
 
@@ -60,22 +61,22 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	c.logger.Infof("found %d nodes in AutoTLS group %q", len(autoTLSClients), o.AutoTLSGroup)
 
-	wssNodes, err := c.verifyWSSUnderlays(ctx, autoTLSClients, o.UltraLightGroup, o.UnderlayPollInterval)
+	wssNodes, err := c.verifyWSSUnderlays(ctx, autoTLSClients, o.UltraLightGroup)
 	if err != nil {
 		return fmt.Errorf("verify WSS underlays: %w", err)
 	}
 
-	if err := c.testWSSConnectivity(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
+	if err := c.testWSSConnectivity(ctx, clients, wssNodes, connectTimeout); err != nil {
 		return fmt.Errorf("WSS connectivity test: %w", err)
 	}
 
 	if o.UltraLightGroup != "" {
-		if err := c.testUltraLightConnectivity(ctx, clients, wssNodes, o.UltraLightGroup, o.ConnectTimeout); err != nil {
+		if err := c.testUltraLightConnectivity(ctx, clients, wssNodes, o.UltraLightGroup, connectTimeout); err != nil {
 			return fmt.Errorf("ultra-light connectivity test: %w", err)
 		}
 	}
 
-	if err := c.testCertificateRenewal(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
+	if err := c.testCertificateRenewal(ctx, clients, wssNodes, connectTimeout); err != nil {
 		return fmt.Errorf("certificate renewal test: %w", err)
 	}
 
@@ -83,10 +84,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return nil
 }
 
-func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestration.ClientList, excludeNodeGroup string, pollInterval time.Duration) (map[string][]string, error) {
-	if pollInterval <= 0 {
-		pollInterval = 2 * time.Second
-	}
+func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestration.ClientList, excludeNodeGroup string) (map[string][]string, error) {
 	autoTLS := make(map[string][]string)
 
 	for _, client := range autoTLSClients {
@@ -106,11 +104,11 @@ func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestra
 			if len(wssUnderlays) > 0 {
 				break
 			}
-			c.logger.Debugf("node %s has no WSS underlays yet, retrying in %v", nodeName, pollInterval)
+			c.logger.Debugf("node %s has no WSS underlays yet, retrying in %v", nodeName, underlayPollInterval)
 			select {
 			case <-ctx.Done():
 				return nil, ctx.Err()
-			case <-time.After(pollInterval):
+			case <-time.After(underlayPollInterval):
 			}
 		}
 
@@ -258,7 +256,7 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 }
 
 func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, connectTimeout time.Duration) error {
-	const renewalWaitTime = 500 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
+	const renewalWaitTime = 350 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
 
 	c.logger.Infof("testing certificate renewal: waiting %v then re-testing connectivity", renewalWaitTime)
 
