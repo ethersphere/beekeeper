@@ -419,7 +419,6 @@ var Checks = map[string]CheckType{
 				RxOnErrWait   *time.Duration `yaml:"rx-on-err-wait"`
 				NodesSyncWait *time.Duration `yaml:"nodes-sync-wait"`
 				Duration      *time.Duration `yaml:"duration"`
-				RLevel        *uint8         `yaml:"r-level"`
 				RLevels       *[]uint8       `yaml:"r-levels"`
 			})
 
@@ -429,9 +428,6 @@ var Checks = map[string]CheckType{
 
 			if checkOpts.FileSizes == nil && checkOpts.ContentSize != nil {
 				checkOpts.FileSizes = &[]int64{*checkOpts.ContentSize}
-			}
-			if checkOpts.RLevels == nil && checkOpts.RLevel != nil {
-				checkOpts.RLevels = &[]uint8{*checkOpts.RLevel}
 			}
 
 			opts := smoke.NewDefaultOptions()
