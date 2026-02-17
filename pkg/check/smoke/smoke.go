@@ -156,6 +156,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					rxData     []byte
 					address    swarm.Address
 					uploaded   bool
+					downloaded bool
 				)
 
 				txData = make([]byte, contentSize)
@@ -240,6 +241,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 							downloadThroughput := float64(contentSize) / rxDuration.Seconds()
 							c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name()).Set(downloadThroughput)
 						}
+						downloaded = true
 						break
 					}
 
@@ -261,6 +263,18 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					c.logger.Infof("data mismatch for size %d: found %d different bytes, ~%.2f%%", contentSize, diff, float64(diff)/float64(txLen)*100)
 				}
 				rxCancel()
+
+				if !downloaded {
+					c.logger.Errorf("all download attempts failed for size %d, fetching downloader topology", contentSize)
+					top, topErr := downloader.Topology(ctx)
+					if topErr != nil {
+						c.logger.Errorf("failed to get downloader topology: %v", topErr)
+					} else {
+						c.logger.Infof("downloader %s topology: depth=%d, connected=%d, population=%d, reachability=%s, bins=%s",
+							downloader.Name(), top.Depth, top.Connected, top.Population, top.Reachability, top.Bins.String())
+					}
+				}
+
 				c.logger.Infof("completed testing file size: %d bytes", contentSize)
 			}
 		}

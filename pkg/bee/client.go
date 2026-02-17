@@ -734,7 +734,7 @@ type Topology struct {
 	Population          int
 	NnLowWatermark      int
 	Depth               int
-	Bins                map[string]Bin
+	Bins                BinMap
 	LightNodes          Bin
 	Reachability        string `json:"reachability"`        // current reachability status
 	NetworkAvailability string `json:"networkAvailability"` // network availability
@@ -746,6 +746,28 @@ type Bin struct {
 	Connected         int            `json:"connected"`
 	DisconnectedPeers []api.PeerInfo `json:"disconnectedPeers"`
 	ConnectedPeers    []api.PeerInfo `json:"connectedPeers"`
+}
+
+type BinMap map[string]Bin
+
+// String returns a JSON summary of connected and disconnected peer counts per bin.
+func (b BinMap) String() string {
+	type binSummary struct {
+		Connected    int `json:"connected"`
+		Disconnected int `json:"disconnected"`
+	}
+	summary := make(map[string]binSummary, len(b))
+	for k, bin := range b {
+		summary[k] = binSummary{
+			Connected:    bin.Connected,
+			Disconnected: len(bin.DisconnectedPeers),
+		}
+	}
+	data, err := json.Marshal(summary)
+	if err != nil {
+		return fmt.Sprintf("error: %v", err)
+	}
+	return string(data)
 }
 
 // Topology returns Kademlia topology
