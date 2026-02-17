@@ -15,16 +15,19 @@ import (
 type Options struct {
 	AutoTLSGroup    string
 	UltraLightGroup string
-	ConnectTimeout  time.Duration
 }
 
 func NewDefaultOptions() Options {
 	return Options{
 		AutoTLSGroup:    "bee-autotls",
 		UltraLightGroup: "ultra-light",
-		ConnectTimeout:  30 * time.Second,
 	}
 }
+
+const (
+	underlayPollInterval = 2 * time.Second
+	connectTimeout       = 30 * time.Second
+)
 
 var _ beekeeper.Action = (*Check)(nil)
 
@@ -51,7 +54,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("get node clients: %w", err)
 	}
 
-	time.Sleep(5 * time.Second)
 	autoTLSClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.AutoTLSGroup})
 	if len(autoTLSClients) == 0 {
 		return fmt.Errorf("no nodes found in AutoTLS group %q", o.AutoTLSGroup)
@@ -64,17 +66,17 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("verify WSS underlays: %w", err)
 	}
 
-	if err := c.testWSSConnectivity(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
+	if err := c.testWSSConnectivity(ctx, clients, wssNodes, connectTimeout); err != nil {
 		return fmt.Errorf("WSS connectivity test: %w", err)
 	}
 
 	if o.UltraLightGroup != "" {
-		if err := c.testUltraLightConnectivity(ctx, clients, wssNodes, o.UltraLightGroup, o.ConnectTimeout); err != nil {
+		if err := c.testUltraLightConnectivity(ctx, clients, wssNodes, o.UltraLightGroup, connectTimeout); err != nil {
 			return fmt.Errorf("ultra-light connectivity test: %w", err)
 		}
 	}
 
-	if err := c.testCertificateRenewal(ctx, clients, wssNodes, o.ConnectTimeout); err != nil {
+	if err := c.testCertificateRenewal(ctx, clients, wssNodes, connectTimeout); err != nil {
 		return fmt.Errorf("certificate renewal test: %w", err)
 	}
 
@@ -92,14 +94,22 @@ func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestra
 		}
 
 		nodeName := client.Name()
-		addresses, err := client.Addresses(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("%s: get addresses: %w", nodeName, err)
-		}
-		time.Sleep(2 * time.Second)
-		wssUnderlays := filterWSSUnderlays(addresses.Underlay)
-		if len(wssUnderlays) == 0 {
-			return nil, fmt.Errorf("node %s in WSS group has no WSS underlay addresses", nodeName)
+		var wssUnderlays []string
+		for {
+			addresses, err := client.Addresses(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("%s: get addresses: %w", nodeName, err)
+			}
+			wssUnderlays = filterWSSUnderlays(addresses.Underlay)
+			if len(wssUnderlays) > 0 {
+				break
+			}
+			c.logger.Debugf("node %s has no WSS underlays yet, retrying in %v", nodeName, underlayPollInterval)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(underlayPollInterval):
+			}
 		}
 
 		autoTLS[nodeName] = wssUnderlays
@@ -215,8 +225,6 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 			c.logger.Warningf("failed to disconnect from %s: %v", targetName, err)
 		}
 
-		time.Sleep(500 * time.Millisecond)
-
 		for _, underlay := range underlays {
 			c.logger.Infof("testing WSS connection from %s to %s via %s", sourceName, targetName, underlay)
 
@@ -241,8 +249,6 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 			if err := sourceClient.Disconnect(ctx, overlay); err != nil {
 				c.logger.Warningf("failed to disconnect from %s: %v", targetName, err)
 			}
-
-			time.Sleep(500 * time.Millisecond)
 		}
 	}
 
@@ -250,7 +256,7 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 }
 
 func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, connectTimeout time.Duration) error {
-	const renewalWaitTime = 500 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
+	const renewalWaitTime = 350 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
 
 	c.logger.Infof("testing certificate renewal: waiting %v then re-testing connectivity", renewalWaitTime)
 
