@@ -13,16 +13,18 @@ import (
 )
 
 type Options struct {
-	AutoTLSGroup    string
-	UltraLightGroup string
-	ConnectTimeout  time.Duration
+	AutoTLSGroup         string
+	UltraLightGroup      string
+	ConnectTimeout       time.Duration
+	UnderlayPollInterval time.Duration
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		AutoTLSGroup:    "bee-autotls",
-		UltraLightGroup: "ultra-light",
-		ConnectTimeout:  30 * time.Second,
+		AutoTLSGroup:         "bee-autotls",
+		UltraLightGroup:      "ultra-light",
+		ConnectTimeout:       30 * time.Second,
+		UnderlayPollInterval: 2 * time.Second,
 	}
 }
 
@@ -51,11 +53,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("get node clients: %w", err)
 	}
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(5 * time.Second):
-	}
 	autoTLSClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.AutoTLSGroup})
 	if len(autoTLSClients) == 0 {
 		return fmt.Errorf("no nodes found in AutoTLS group %q", o.AutoTLSGroup)
@@ -63,7 +60,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	c.logger.Infof("found %d nodes in AutoTLS group %q", len(autoTLSClients), o.AutoTLSGroup)
 
-	wssNodes, err := c.verifyWSSUnderlays(ctx, autoTLSClients, o.UltraLightGroup)
+	wssNodes, err := c.verifyWSSUnderlays(ctx, autoTLSClients, o.UltraLightGroup, o.UnderlayPollInterval)
 	if err != nil {
 		return fmt.Errorf("verify WSS underlays: %w", err)
 	}
@@ -86,7 +83,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return nil
 }
 
-func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestration.ClientList, excludeNodeGroup string) (map[string][]string, error) {
+func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestration.ClientList, excludeNodeGroup string, pollInterval time.Duration) (map[string][]string, error) {
+	if pollInterval <= 0 {
+		pollInterval = 2 * time.Second
+	}
 	autoTLS := make(map[string][]string)
 
 	for _, client := range autoTLSClients {
@@ -96,18 +96,22 @@ func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestra
 		}
 
 		nodeName := client.Name()
-		addresses, err := client.Addresses(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("%s: get addresses: %w", nodeName, err)
-		}
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(2 * time.Second):
-		}
-		wssUnderlays := filterWSSUnderlays(addresses.Underlay)
-		if len(wssUnderlays) == 0 {
-			return nil, fmt.Errorf("node %s in WSS group has no WSS underlay addresses", nodeName)
+		var wssUnderlays []string
+		for {
+			addresses, err := client.Addresses(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("%s: get addresses: %w", nodeName, err)
+			}
+			wssUnderlays = filterWSSUnderlays(addresses.Underlay)
+			if len(wssUnderlays) > 0 {
+				break
+			}
+			c.logger.Debugf("node %s has no WSS underlays yet, retrying in %v", nodeName, pollInterval)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(pollInterval):
+			}
 		}
 
 		autoTLS[nodeName] = wssUnderlays
@@ -223,12 +227,6 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 			c.logger.Warningf("failed to disconnect from %s: %v", targetName, err)
 		}
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(500 * time.Millisecond):
-		}
-
 		for _, underlay := range underlays {
 			c.logger.Infof("testing WSS connection from %s to %s via %s", sourceName, targetName, underlay)
 
@@ -252,12 +250,6 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 
 			if err := sourceClient.Disconnect(ctx, overlay); err != nil {
 				c.logger.Warningf("failed to disconnect from %s: %v", targetName, err)
-			}
-
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(500 * time.Millisecond):
 			}
 		}
 	}
