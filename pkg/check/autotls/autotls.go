@@ -51,7 +51,11 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("get node clients: %w", err)
 	}
 
-	time.Sleep(5 * time.Second)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(5 * time.Second):
+	}
 	autoTLSClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.AutoTLSGroup})
 	if len(autoTLSClients) == 0 {
 		return fmt.Errorf("no nodes found in AutoTLS group %q", o.AutoTLSGroup)
@@ -96,7 +100,11 @@ func (c *Check) verifyWSSUnderlays(ctx context.Context, autoTLSClients orchestra
 		if err != nil {
 			return nil, fmt.Errorf("%s: get addresses: %w", nodeName, err)
 		}
-		time.Sleep(2 * time.Second)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
 		wssUnderlays := filterWSSUnderlays(addresses.Underlay)
 		if len(wssUnderlays) == 0 {
 			return nil, fmt.Errorf("node %s in WSS group has no WSS underlay addresses", nodeName)
@@ -215,7 +223,11 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 			c.logger.Warningf("failed to disconnect from %s: %v", targetName, err)
 		}
 
-		time.Sleep(500 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
 
 		for _, underlay := range underlays {
 			c.logger.Infof("testing WSS connection from %s to %s via %s", sourceName, targetName, underlay)
@@ -242,7 +254,11 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 				c.logger.Warningf("failed to disconnect from %s: %v", targetName, err)
 			}
 
-			time.Sleep(500 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(500 * time.Millisecond):
+			}
 		}
 	}
 
