@@ -88,9 +88,9 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				AutoTLSGroup         *string        `yaml:"autotls-group"`
-				UltraLightGroup       *string        `yaml:"ultra-light-group"`
-				ConnectTimeout        *time.Duration `yaml:"connect-timeout"`
-				UnderlayPollInterval  *time.Duration `yaml:"underlay-poll-interval"`
+				UltraLightGroup      *string        `yaml:"ultra-light-group"`
+				ConnectTimeout       *time.Duration `yaml:"connect-timeout"`
+				UnderlayPollInterval *time.Duration `yaml:"underlay-poll-interval"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
