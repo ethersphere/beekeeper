@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -203,7 +204,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 					c.logger.WithField("batch_id", batchID).Infof("node %s: using batch", uploader.Name())
 
-					address, duration, err = test.Upload(ctx, uploader, txData, batchID)
+					address, duration, err = test.Upload(ctx, uploader, txData, batchID, redundancy.NONE)
 					if err != nil {
 						c.metrics.UploadErrors.WithLabelValues(sizeLabel).Inc()
 						c.logger.Errorf("upload failed: %v", err)
@@ -246,7 +247,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel).Inc()
 
-					rxData, rxDuration, err = test.Download(ctx, downloader, address)
+					rxData, rxDuration, err = test.Download(ctx, downloader, address, redundancy.NONE)
 					if err != nil {
 						c.metrics.DownloadErrors.WithLabelValues(sizeLabel).Inc()
 						c.logger.Errorf("download failed for size %d: %v", contentSize, err)

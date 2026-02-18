@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
 )
 
 const (
@@ -32,6 +34,7 @@ const (
 	swarmFeedIndexNextHeader    = "Swarm-Feed-Index-Next"
 	swarmIndexDocumentHeader    = "Swarm-Index-Document"
 	swarmErrorDocumentHeader    = "Swarm-Error-Document"
+	redundancyLevelHeader       = "Swarm-Redundancy-Level"
 )
 
 // Client manages communication with the Bee API.
@@ -222,6 +225,9 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 
 	if opts != nil && opts.Cache != nil {
 		req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
+	}
+	if opts != nil && opts.RLevel != redundancy.NONE {
+		req.Header.Set(redundancyLevelHeader, strconv.Itoa(int(opts.RLevel)))
 	}
 	if opts != nil && opts.RedundancyFallbackMode != nil {
 		req.Header.Set(swarmRedundancyFallbackMode, strconv.FormatBool(*opts.RedundancyFallbackMode))

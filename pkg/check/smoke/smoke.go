@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
+
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -33,6 +35,7 @@ type Options struct {
 	UploadTimeout   time.Duration
 	DownloadTimeout time.Duration
 	IterationWait   time.Duration
+	RLevels         []redundancy.Level
 }
 
 // NewDefaultOptions returns new default options
@@ -51,6 +54,7 @@ func NewDefaultOptions() Options {
 		UploadTimeout:   60 * time.Minute,
 		DownloadTimeout: 60 * time.Minute,
 		IterationWait:   5 * time.Minute,
+		RLevels:         []redundancy.Level{redundancy.PARANOID},
 	}
 }
 
@@ -90,6 +94,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 	c.logger.Infof("upload timeout: %s", o.UploadTimeout.String())
 	c.logger.Infof("download timeout: %s", o.DownloadTimeout.String())
 	c.logger.Infof("total duration: %s", o.Duration.String())
+	c.logger.Infof("redundancy levels: %v", o.RLevels)
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 
@@ -133,146 +138,145 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 		c.logger.WithField("batch_id", batchID).Infof("node %s: using batch", uploader.Name())
 
-		for _, contentSize := range fileSizes {
-			select {
-			case <-ctx.Done():
-				return nil
-			default:
-				c.logger.Infof("testing file size: %d bytes (%.2f KB)", contentSize, float64(contentSize)/1024)
-			}
-
-			sizeLabel := fmt.Sprintf("%d", contentSize)
-
-			var (
-				txDuration time.Duration
-				rxDuration time.Duration
-				txData     []byte
-				rxData     []byte
-				address    swarm.Address
-				uploaded   bool
-			)
-
-			txData = make([]byte, contentSize)
-			if _, err := rand.Read(txData); err != nil {
-				c.logger.Errorf("unable to create random content for size %d: %v", contentSize, err)
-				continue
-			}
-
-			var (
-				txCtx    context.Context
-				txCancel context.CancelFunc = func() {}
-			)
-
-			for range 3 {
-				txCancel()
-
-				uploaded = false
-
+		for _, rLevel := range o.RLevels {
+			for _, contentSize := range fileSizes {
 				select {
 				case <-ctx.Done():
 					return nil
-				case <-time.After(o.TxOnErrWait):
+				default:
+					c.logger.Infof("testing file size: %d bytes (%.2f KB), redundancy level: %d", contentSize, float64(contentSize)/1024, rLevel)
 				}
 
-				txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
+				sizeLabel := fmt.Sprintf("%d", contentSize)
 
-				c.metrics.UploadAttempts.WithLabelValues(sizeLabel, uploader.Name()).Inc()
-				address, txDuration, err = test.Upload(txCtx, uploader, txData, batchID)
-				if err != nil {
-					c.metrics.UploadErrors.WithLabelValues(sizeLabel, uploader.Name()).Inc()
-					c.logger.Errorf("upload failed for size %d: %v", contentSize, err)
-					c.logger.Infof("retrying in: %v", o.TxOnErrWait)
-				} else {
-					uploaded = true
-					break
+				var (
+					txDuration time.Duration
+					rxDuration time.Duration
+					txData     []byte
+					rxData     []byte
+					address    swarm.Address
+					uploaded   bool
+					downloaded bool
+				)
+
+				txData = make([]byte, contentSize)
+				if _, err := rand.Read(txData); err != nil {
+					c.logger.Errorf("unable to create random content for size %d: %v", contentSize, err)
+					continue
 				}
-			}
-			txCancel()
-			if !uploaded {
-				c.logger.Infof("skipping download for size %d due to upload failure", contentSize)
-				continue
-			}
 
-			c.metrics.UploadDuration.WithLabelValues(sizeLabel, uploader.Name()).Observe(txDuration.Seconds())
+				var (
+					txCtx    context.Context
+					txCancel context.CancelFunc = func() {}
+				)
 
-			// Calculate and record upload throughput in bytes per second
-			if txDuration.Seconds() > 0 {
-				uploadThroughput := float64(contentSize) / txDuration.Seconds()
-				c.metrics.UploadThroughput.WithLabelValues(sizeLabel, uploader.Name()).Set(uploadThroughput)
-			}
+				for range 3 {
+					txCancel()
 
-			time.Sleep(o.NodesSyncWait)
+					uploaded = false
 
-			var (
-				rxCtx      context.Context
-				rxCancel   context.CancelFunc = func() {}
-				downloaded bool
-			)
+					select {
+					case <-ctx.Done():
+						return nil
+					case <-time.After(o.TxOnErrWait):
+					}
 
-			for range 3 {
+					txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
+
+					c.metrics.UploadAttempts.WithLabelValues(sizeLabel, uploader.Name()).Inc()
+					address, txDuration, err = test.Upload(txCtx, uploader, txData, batchID, rLevel)
+					if err != nil {
+						c.metrics.UploadErrors.WithLabelValues(sizeLabel, uploader.Name()).Inc()
+						c.logger.Errorf("upload failed for size %d: %v", contentSize, err)
+						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
+					} else {
+						uploaded = true
+						break
+					}
+				}
+				txCancel()
+				if !uploaded {
+					c.logger.Infof("skipping download for size %d due to upload failure", contentSize)
+					continue
+				}
+
+				c.metrics.UploadDuration.WithLabelValues(sizeLabel, uploader.Name()).Observe(txDuration.Seconds())
+
+				if txDuration.Seconds() > 0 {
+					uploadThroughput := float64(contentSize) / txDuration.Seconds()
+					c.metrics.UploadThroughput.WithLabelValues(sizeLabel, uploader.Name()).Set(uploadThroughput)
+				}
+
+				time.Sleep(o.NodesSyncWait)
+
+				var (
+					rxCtx    context.Context
+					rxCancel context.CancelFunc = func() {}
+				)
+
+				for range 3 {
+					rxCancel()
+
+					select {
+					case <-ctx.Done():
+						return nil
+					case <-time.After(o.RxOnErrWait):
+					}
+
+					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, downloader.Name()).Inc()
+
+					rxCtx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
+					rxData, rxDuration, err = test.Download(rxCtx, downloader, address, rLevel)
+					if err != nil {
+						c.metrics.DownloadErrors.WithLabelValues(sizeLabel, downloader.Name()).Inc()
+						c.logger.Errorf("download failed for size %d: %v", contentSize, err)
+						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
+						continue
+					}
+
+					if bytes.Equal(rxData, txData) {
+						c.metrics.DownloadDuration.WithLabelValues(sizeLabel, downloader.Name()).Observe(rxDuration.Seconds())
+
+						if rxDuration.Seconds() > 0 {
+							downloadThroughput := float64(contentSize) / rxDuration.Seconds()
+							c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name()).Set(downloadThroughput)
+						}
+						downloaded = true
+						break
+					}
+
+					c.logger.Infof("data mismatch for size %d: uploaded and downloaded data differ", contentSize)
+					c.metrics.DownloadMismatch.WithLabelValues(sizeLabel, downloader.Name()).Inc()
+
+					rxLen, txLen := len(rxData), len(txData)
+					if rxLen != txLen {
+						c.logger.Errorf("length mismatch for size %d: downloaded %d bytes, uploaded %d bytes", contentSize, rxLen, txLen)
+						continue
+					}
+
+					var diff int
+					for i := range txData {
+						if txData[i] != rxData[i] {
+							diff++
+						}
+					}
+					c.logger.Infof("data mismatch for size %d: found %d different bytes, ~%.2f%%", contentSize, diff, float64(diff)/float64(txLen)*100)
+				}
 				rxCancel()
 
-				select {
-				case <-ctx.Done():
-					return nil
-				case <-time.After(o.RxOnErrWait):
-				}
-
-				c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, downloader.Name()).Inc()
-
-				rxCtx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
-				rxData, rxDuration, err = test.Download(rxCtx, downloader, address)
-				if err != nil {
-					c.metrics.DownloadErrors.WithLabelValues(sizeLabel, downloader.Name()).Inc()
-					c.logger.Errorf("download failed for size %d: %v", contentSize, err)
-					c.logger.Infof("retrying in: %v", o.RxOnErrWait)
-					continue
-				}
-
-				// good download
-				if bytes.Equal(rxData, txData) {
-					c.metrics.DownloadDuration.WithLabelValues(sizeLabel, downloader.Name()).Observe(rxDuration.Seconds())
-
-					if rxDuration.Seconds() > 0 {
-						downloadThroughput := float64(contentSize) / rxDuration.Seconds()
-						c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name()).Set(downloadThroughput)
-					}
-					downloaded = true
-					break
-				}
-
-				// bad download
-				c.logger.Infof("data mismatch for size %d: uploaded and downloaded data differ", contentSize)
-				c.metrics.DownloadMismatch.WithLabelValues(sizeLabel, downloader.Name()).Inc()
-
-				rxLen, txLen := len(rxData), len(txData)
-				if rxLen != txLen {
-					c.logger.Errorf("length mismatch for size %d: downloaded %d bytes, uploaded %d bytes", contentSize, rxLen, txLen)
-					continue
-				}
-
-				var diff int
-				for i := range txData {
-					if txData[i] != rxData[i] {
-						diff++
+				if !downloaded {
+					c.logger.Errorf("all download attempts failed for size %d, fetching downloader topology", contentSize)
+					top, topErr := downloader.Topology(ctx)
+					if topErr != nil {
+						c.logger.Errorf("failed to get downloader topology: %v", topErr)
+					} else {
+						c.logger.Infof("downloader %s topology: depth=%d, connected=%d, population=%d, reachability=%s, bins=%s",
+							downloader.Name(), top.Depth, top.Connected, top.Population, top.Reachability, top.Bins.String())
 					}
 				}
-				c.logger.Infof("data mismatch for size %d: found %d different bytes, ~%.2f%%", contentSize, diff, float64(diff)/float64(txLen)*100)
-			}
-			rxCancel()
 
-			if !downloaded {
-				c.logger.Errorf("all download attempts failed for size %d, fetching downloader topology", contentSize)
-				top, topErr := downloader.Topology(ctx)
-				if topErr != nil {
-					c.logger.Errorf("failed to get downloader topology: %v", topErr)
-				} else {
-					c.logger.Infof("downloader %s topology: depth=%d, connected=%d, population=%d, reachability=%s, bins=%s",
-						downloader.Name(), top.Depth, top.Connected, top.Population, top.Reachability, top.Bins.String())
-				}
+				c.logger.Infof("completed testing file size: %d bytes", contentSize)
 			}
-
-			c.logger.Infof("completed testing file size: %d bytes", contentSize)
 		}
 
 		time.Sleep(o.IterationWait)

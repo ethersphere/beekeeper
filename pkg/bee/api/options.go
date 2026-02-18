@@ -1,6 +1,9 @@
 package api
 
-import "github.com/ethersphere/bee/v2/pkg/swarm"
+import (
+	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
+	"github.com/ethersphere/bee/v2/pkg/swarm"
+)
 
 type UploadOptions struct {
 	Act               bool
@@ -9,6 +12,7 @@ type UploadOptions struct {
 	BatchID           string
 	Direct            bool
 	ActHistoryAddress swarm.Address
+	RLevel            redundancy.Level
 
 	// Dirs
 	IndexDocument string
@@ -21,6 +25,7 @@ type DownloadOptions struct {
 	ActPublicKey           *swarm.Address
 	ActTimestamp           *uint64
 	Cache                  *bool
+	RLevel                 redundancy.Level
 	RedundancyFallbackMode *bool
 	OnlyRootChunk          *bool
 }

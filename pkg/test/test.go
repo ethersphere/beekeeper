@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
@@ -21,10 +22,10 @@ type test struct {
 	logger logging.Logger
 }
 
-func (t *test) Upload(ctx context.Context, bee *bee.Client, data []byte, batchID string) (swarm.Address, time.Duration, error) {
+func (t *test) Upload(ctx context.Context, bee *bee.Client, data []byte, batchID string, rLevel redundancy.Level) (swarm.Address, time.Duration, error) {
 	t.logger.Infof("node %s: uploading %d bytes, batch id %s", bee.Name(), len(data), batchID)
 	start := time.Now()
-	addr, err := bee.UploadBytes(ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true})
+	addr, err := bee.UploadBytes(ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true, RLevel: rLevel})
 	if err != nil {
 		return swarm.ZeroAddress, 0, fmt.Errorf("upload to node %s: %w", bee.Name(), err)
 	}
@@ -35,11 +36,21 @@ func (t *test) Upload(ctx context.Context, bee *bee.Client, data []byte, batchID
 	return addr, txDuration, nil
 }
 
-func (t *test) Download(ctx context.Context, bee *bee.Client, addr swarm.Address) ([]byte, time.Duration, error) {
+func (t *test) Download(ctx context.Context, bee *bee.Client, addr swarm.Address, rLevel redundancy.Level) ([]byte, time.Duration, error) {
 	t.logger.Infof("node %s: downloading address %s", bee.Name(), addr)
 
 	start := time.Now()
-	data, err := bee.DownloadBytes(ctx, addr, nil)
+
+	var downloadOpts *api.DownloadOptions
+	if rLevel != redundancy.NONE {
+		fallbackMode := true
+		downloadOpts = &api.DownloadOptions{
+			RLevel:                 rLevel,
+			RedundancyFallbackMode: &fallbackMode,
+		}
+	}
+
+	data, err := bee.DownloadBytes(ctx, addr, downloadOpts)
 	if err != nil {
 		return nil, 0, fmt.Errorf("download from node %s: %w", bee.Name(), err)
 	}
