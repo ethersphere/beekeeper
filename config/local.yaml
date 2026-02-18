@@ -69,6 +69,11 @@ clusters:
         config: local
         count: 2
         mode: node
+      light:
+        bee-config: bee-local-light-autotls
+        config: local
+        count: 2
+        mode: node
       ultra-light:
         bee-config: bee-local-ultralight-autotls
         config: local
@@ -187,6 +192,9 @@ bee-configs:
   bee-local-autotls:
     _inherit: "bee-local-dns"
     bootnode: /dnsaddr/bootnode-0-headless.local.svc.cluster.local
+    p2p-wss-enable: true
+  bee-local-light-autotls:
+    _inherit: "bee-local-light"
     p2p-wss-enable: true
   bee-local-ultralight-autotls:
     _inherit: "bee-local-dns"
