@@ -378,6 +378,7 @@ checks:
       postage-ttl: 24h
       postage-depth: 21
       postage-label: test-label
+      chunks: 3
     timeout: 10m
     type: gsoc
   ci-feed-v1:
