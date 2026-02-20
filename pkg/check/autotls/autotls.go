@@ -3,9 +3,8 @@ package autotls
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"strings"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
