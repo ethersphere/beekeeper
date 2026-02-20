@@ -133,7 +133,7 @@ func checkKademliaD(topologies orchestration.ClusterTopologies, logger logging.L
 		var errmsg strings.Builder
 		for node, c := range culprits {
 			var msg strings.Builder
-			msg.WriteString(fmt.Sprintf("node %s expected connection to:\n", node))
+			fmt.Fprintf(&msg, "node %s expected connection to:\n", node)
 			for _, addr := range c {
 				msg.WriteString(addr.String() + "\n")
 			}

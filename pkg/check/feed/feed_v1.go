@@ -57,7 +57,7 @@ func (c *CheckV1) Report() []prometheus.Collector {
 	return c.metrics.Report()
 }
 
-func (c *CheckV1) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *CheckV1) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")

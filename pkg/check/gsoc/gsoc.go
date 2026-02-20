@@ -235,7 +235,7 @@ func getTargetNeighborhood(address swarm.Address, depth int) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		targetNeighborhood.WriteString(fmt.Sprintf("%04b", value))
+		fmt.Fprintf(&targetNeighborhood, "%04b", value)
 	}
 	return targetNeighborhood.String(), nil
 }

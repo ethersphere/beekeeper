@@ -75,9 +75,9 @@ func TestToK8s(t *testing.T) {
 							Requests: map[v1.ResourceName]resource.Quantity{v1.ResourceStorage: resource.MustParse("1Gi")},
 						},
 						VolumeName:       "volume_1",
-						StorageClassName: getAddress("StorageClass"),
+						StorageClassName: new("StorageClass"),
 						DataSource: &v1.TypedLocalObjectReference{
-							APIGroup: getAddress("APIGroup"),
+							APIGroup: new("APIGroup"),
 							Kind:     "Kind",
 							Name:     "Name",
 						},
@@ -107,9 +107,9 @@ func TestToK8s(t *testing.T) {
 							m := v1.PersistentVolumeBlock
 							return &m
 						}(),
-						StorageClassName: getAddress(""),
+						StorageClassName: new(""),
 						DataSource: &v1.TypedLocalObjectReference{
-							APIGroup: getAddress(""),
+							APIGroup: new(""),
 						},
 					},
 				},
@@ -125,8 +125,4 @@ func TestToK8s(t *testing.T) {
 			}
 		})
 	}
-}
-
-func getAddress(value string) *string {
-	return &value
 }

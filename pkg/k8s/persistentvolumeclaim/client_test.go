@@ -37,9 +37,9 @@ func TestSet(t *testing.T) {
 					m := v1.PersistentVolumeFilesystem
 					return &m
 				}(),
-				StorageClassName: getAddress(""),
+				StorageClassName: new(""),
 				DataSource: &v1.TypedLocalObjectReference{
-					APIGroup: getAddress(""),
+					APIGroup: new(""),
 				},
 			},
 		},
@@ -63,9 +63,9 @@ func TestSet(t *testing.T) {
 					m := v1.PersistentVolumeFilesystem
 					return &m
 				}(),
-				StorageClassName: getAddress(""),
+				StorageClassName: new(""),
 				DataSource: &v1.TypedLocalObjectReference{
-					APIGroup: getAddress(""),
+					APIGroup: new(""),
 				},
 			},
 		},

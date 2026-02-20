@@ -33,7 +33,7 @@ func NewCheckV1(logger logging.Logger) beekeeper.Action {
 	}
 }
 
-func (c *CheckV1) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
+func (c *CheckV1) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
 	o, ok := opts.(Options)
 	if !ok {
 		return fmt.Errorf("invalid options type")
@@ -201,7 +201,7 @@ func (c *CheckV1) downloadAndVerify(ctx context.Context, client *bee.Client, add
 	}
 	c.logger.Infof("downloading file: %s/%s", address, fName)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		select {
 		case <-time.After(5 * time.Second):
 			_, hash, err := client.DownloadManifestFile(ctx, address, fName)
