@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"fmt"
 	"maps"
 	"strconv"
 	"strings"
@@ -15,6 +16,9 @@ const (
 	configTemplate = `
 allow-private-cidrs: {{ .AllowPrivateCIDRs }}
 api-addr: {{.APIAddr}}
+autotls-ca-endpoint: {{.AutoTLSCAEndpoint}}
+autotls-domain: {{.AutoTLSDomain}}
+autotls-registration-endpoint: {{.AutoTLSRegistrationEndpoint}}
 block-time: {{ .BlockTime }}
 blockchain-rpc-endpoint: {{.BlockchainRPCEndpoint}}
 bootnode-mode: {{.BootnodeMode}}
@@ -30,9 +34,12 @@ db-write-buffer-size: {{.DbWriteBufferSize}}
 full-node: {{.FullNode}}
 mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
+nat-wss-addr: {{.NATWSSAddr}}
 network-id: {{.NetworkID}}
 p2p-addr: {{.P2PAddr}}
 p2p-ws-enable: {{.P2PWSEnable}}
+p2p-wss-addr: {{.P2PWSSAddr}}
+p2p-wss-enable: {{.P2PWSSEnable}}
 password: {{.Password}}
 payment-early-percent: {{.PaymentEarly}}
 payment-threshold: {{.PaymentThreshold}}
@@ -57,7 +64,33 @@ withdrawal-addresses-whitelist: {{.WithdrawAddress}}
 `
 )
 
-func setInitContainers() (inits containers.Containers) {
+// https://raw.githubusercontent.com/letsencrypt/pebble/main/test/certs/pebble.minica.pem
+const pebbleCertificate = `-----BEGIN CERTIFICATE-----
+MIIDPzCCAiegAwIBAgIIU0Xm9UFdQxUwDQYJKoZIhvcNAQELBQAwIDEeMBwGA1UE
+AxMVbWluaWNhIHJvb3QgY2EgNTM0NWU2MCAXDTI1MDkwMzIzNDAwNVoYDzIxMjUw
+OTAzMjM0MDA1WjAgMR4wHAYDVQQDExVtaW5pY2Egcm9vdCBjYSA1MzQ1ZTYwggEi
+MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5WgZNoVJandj43kkLyU50vzCZ
+alozvdRo3OFiKoDtmqKPNWRNO2hC9AUNxTDJco51Yc42u/WV3fPbbhSznTiOOVtn
+Ajm6iq4I5nZYltGGZetGDOQWr78y2gWY+SG078MuOO2hyDIiKtVc3xiXYA+8Hluu
+9F8KbqSS1h55yxZ9b87eKR+B0zu2ahzBCIHKmKWgc6N13l7aDxxY3D6uq8gtJRU0
+toumyLbdzGcupVvjbjDP11nl07RESDWBLG1/g3ktJvqIa4BWgU2HMh4rND6y8OD3
+Hy3H8MY6CElL+MOCbFJjWqhtOxeFyZZV9q3kYnk9CAuQJKMEGuN4GU6tzhW1AgMB
+AAGjezB5MA4GA1UdDwEB/wQEAwIChDATBgNVHSUEDDAKBggrBgEFBQcDATASBgNV
+HRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBSu8RGpErgYUoYnQuwCq+/ggTiEjDAf
+BgNVHSMEGDAWgBSu8RGpErgYUoYnQuwCq+/ggTiEjDANBgkqhkiG9w0BAQsFAAOC
+AQEAXDVYov1+f6EL7S41LhYQkEX/GyNNzsEvqxE9U0+3Iri5JfkcNOiA9O9L6Z+Y
+bqcsXV93s3vi4r4WSWuc//wHyJYrVe5+tK4nlFpbJOvfBUtnoBDyKNxXzZCxFJVh
+f9uc8UejRfQMFbDbhWY/x83y9BDufJHHq32OjCIN7gp2UR8rnfYvlz7Zg4qkJBsn
+DG4dwd+pRTCFWJOVIG0JoNhK3ZmE7oJ1N4H38XkZ31NPcMksKxpsLLIS9+mosZtg
+4olL7tMPJklx5ZaeMFaKRDq4Gdxkbw4+O4vRgNm3Z8AXWKknOdfgdpqLUPPhRcP4
+v1lhy71EhBuXXwRQJry0lTdF+w==
+-----END CERTIFICATE-----`
+
+type setInitContainersOptions struct {
+	AutoTLSEnabled bool
+}
+
+func setInitContainers(o setInitContainersOptions) (inits containers.Containers) {
 	inits = append(inits, containers.Container{
 		Name:  "init-bee",
 		Image: "ethersphere/busybox:1.33",
@@ -72,6 +105,31 @@ echo 'bee initialization done';`},
 		},
 	})
 
+	// TODO: this init container is only needed for testing with Pebble
+	// should not be used in other contexts.
+	if o.AutoTLSEnabled {
+		// Install Pebble CA certificates as an init container.
+		inits = append(inits, containers.Container{
+			Name:  "install-pebble-ca",
+			Image: "alpine:latest",
+			Command: []string{"sh", "-c", fmt.Sprintf(`set -ex
+apk add --no-cache ca-certificates
+mkdir -p /certs
+cat > /certs/pebble-minica.crt << 'CERT'
+%s
+CERT
+cp /certs/pebble-minica.crt /usr/local/share/ca-certificates/
+update-ca-certificates
+cp /etc/ssl/certs/ca-certificates.crt /certs/ca-certificates.crt`, pebbleCertificate)},
+			VolumeMounts: containers.VolumeMounts{
+				{
+					Name:      "pebble-ca-certs",
+					MountPath: "/certs",
+				},
+			},
+		})
+	}
+
 	return inits
 }
 
@@ -81,6 +139,7 @@ type setContainersOptions struct {
 	ImagePullPolicy        string
 	PortAPI                int32
 	PortP2P                int32
+	PortP2PWSS             int32
 	PersistenceEnabled     bool
 	ResourcesLimitCPU      string
 	ResourcesLimitMemory   string
@@ -88,6 +147,7 @@ type setContainersOptions struct {
 	ResourcesRequestMemory string
 	LibP2PEnabled          bool
 	SwarmEnabled           bool
+	AutoTLSEnabled         bool
 }
 
 func setContainers(o setContainersOptions) (c containers.Containers) {
@@ -96,18 +156,40 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 		Image:           o.Image,
 		ImagePullPolicy: o.ImagePullPolicy,
 		Command:         []string{"bee", "start", "--config=.bee.yaml"},
-		Ports: containers.Ports{
-			{
-				Name:          "api",
-				ContainerPort: o.PortAPI,
-				Protocol:      "TCP",
-			},
-			{
-				Name:          "p2p",
-				ContainerPort: o.PortP2P,
-				Protocol:      "TCP",
-			},
-		},
+		Env: func() containers.EnvVars {
+			if o.AutoTLSEnabled {
+				return containers.EnvVars{
+					{
+						Name:  "SSL_CERT_FILE",
+						Value: "/etc/ssl/certs/pebble-ca-certificates.crt",
+					},
+				}
+			}
+			return nil
+		}(),
+		Ports: func() containers.Ports {
+			ports := containers.Ports{
+				{
+					Name:          "api",
+					ContainerPort: o.PortAPI,
+					Protocol:      "TCP",
+				},
+				{
+					Name:          "p2p",
+					ContainerPort: o.PortP2P,
+					Protocol:      "TCP",
+				},
+			}
+			// Add p2p-wss port if configured
+			if o.PortP2PWSS > 0 {
+				ports = append(ports, containers.Port{
+					Name:          "p2p-wss",
+					ContainerPort: o.PortP2PWSS,
+					Protocol:      "TCP",
+				})
+			}
+			return ports
+		}(),
 		LivenessProbe: containers.Probe{HTTPGet: &containers.HTTPGetProbe{
 			InitialDelaySeconds: 5,
 			Handler: containers.HTTPGetHandler{
@@ -140,8 +222,9 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 			RunAsUser:                999,
 		},
 		VolumeMounts: setBeeVolumeMounts(setBeeVolumeMountsOptions{
-			LibP2PEnabled: o.LibP2PEnabled,
-			SwarmEnabled:  o.SwarmEnabled,
+			LibP2PEnabled:  o.LibP2PEnabled,
+			SwarmEnabled:   o.SwarmEnabled,
+			AutoTLSEnabled: o.AutoTLSEnabled,
 		}),
 	})
 
@@ -149,8 +232,9 @@ func setContainers(o setContainersOptions) (c containers.Containers) {
 }
 
 type setBeeVolumeMountsOptions struct {
-	LibP2PEnabled bool
-	SwarmEnabled  bool
+	LibP2PEnabled  bool
+	SwarmEnabled   bool
+	AutoTLSEnabled bool
 }
 
 func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts containers.VolumeMounts) {
@@ -180,6 +264,14 @@ func setBeeVolumeMounts(o setBeeVolumeMountsOptions) (volumeMounts containers.Vo
 			ReadOnly:  true,
 		})
 	}
+	if o.AutoTLSEnabled {
+		volumeMounts = append(volumeMounts, containers.VolumeMount{
+			Name:      "pebble-ca-certs",
+			MountPath: "/etc/ssl/certs/pebble-ca-certificates.crt",
+			SubPath:   "ca-certificates.crt",
+			ReadOnly:  true,
+		})
+	}
 
 	return volumeMounts
 }
@@ -190,6 +282,7 @@ type setVolumesOptions struct {
 	PersistenceEnabled bool
 	LibP2PEnabled      bool
 	SwarmEnabled       bool
+	AutoTLSEnabled     bool
 }
 
 func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
@@ -230,6 +323,13 @@ func setVolumes(o setVolumesOptions) (volumes pod.Volumes) {
 			},
 		})
 	}
+	if o.AutoTLSEnabled {
+		volumes = append(volumes, pod.Volume{
+			EmptyDir: &pod.EmptyDirVolume{
+				Name: "pebble-ca-certs",
+			},
+		})
+	}
 
 	return volumes
 }
@@ -257,33 +357,23 @@ func setPersistentVolumeClaims(o setPersistentVolumeClaimsOptions) (pvcs pvc.Per
 	return pvcs
 }
 
-type setBeeNodePortOptions struct {
-	AppProtocol string
-	Name        string
-	Protocol    string
-	TargetPort  string
-	Port        int32
-	NodePort    int32
-}
-
-func setBeeNodePort(o setBeeNodePortOptions) (ports service.Ports) {
-	if o.NodePort > 0 {
-		return service.Ports{{
-			AppProtocol: "TCP",
-			Name:        "p2p",
-			Protocol:    "TCP",
-			Port:        o.Port,
-			TargetPort:  "p2p",
-			Nodeport:    o.NodePort,
-		}}
+// createServicePort creates a service port with optional NodePort.
+// If targetPort is empty, it defaults to name.
+func createServicePort(name string, port int32, targetPort string, nodePort int32) service.Port {
+	if targetPort == "" {
+		targetPort = name
 	}
-	return service.Ports{{
+	p := service.Port{
 		AppProtocol: "TCP",
-		Name:        "p2p",
+		Name:        name,
 		Protocol:    "TCP",
-		Port:        o.Port,
-		TargetPort:  "p2p",
-	}}
+		Port:        port,
+		TargetPort:  targetPort,
+	}
+	if nodePort > 0 {
+		p.Nodeport = nodePort
+	}
+	return p
 }
 
 func parsePort(port string) (int32, error) {

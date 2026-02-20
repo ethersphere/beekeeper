@@ -122,6 +122,24 @@ func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
 	return resp, err
 }
 
+// ConnectResponse represents the response from the connect endpoint
+type ConnectResponse struct {
+	Address string `json:"address"`
+}
+
+// Connect connects to a peer using the provided multiaddress.
+// The multiaddr should be in the format: /ip4/x.x.x.x/tcp/port/...
+// Returns the overlay address of the connected peer.
+func (n *NodeService) Connect(ctx context.Context, multiaddr string) (resp ConnectResponse, err error) {
+	err = n.client.requestJSON(ctx, http.MethodPost, "/connect"+multiaddr, nil, &resp)
+	return resp, err
+}
+
+// Disconnect disconnects from a peer with the given overlay address.
+func (n *NodeService) Disconnect(ctx context.Context, overlay swarm.Address) error {
+	return n.client.requestJSON(ctx, http.MethodDelete, "/peers/"+overlay.String(), nil, nil)
+}
+
 // Readiness represents node's readiness
 type Readiness struct {
 	Status string `json:"status"`
