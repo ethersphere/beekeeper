@@ -77,7 +77,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o any) e
 			labelValue := addr.String()
 			node, err := findRandomNode(ctx, addr, cluster, opts.RndSeed)
 			if err != nil {
-				c.logger.Errorf("find node %s. Skipping. %w", addr.String(), err)
+				c.logger.Errorf("find node %s. Skipping: %s", addr.String(), err.Error())
 				continue
 			}
 
