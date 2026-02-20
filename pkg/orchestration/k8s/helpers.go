@@ -65,7 +65,7 @@ withdrawal-addresses-whitelist: {{.WithdrawAddress}}
 )
 
 // https://raw.githubusercontent.com/letsencrypt/pebble/main/test/certs/pebble.minica.pem
-const pebbleCertificate = `-----BEGIN CERTIFICATE-----
+const PebbleCertificate = `-----BEGIN CERTIFICATE-----
 MIIDPzCCAiegAwIBAgIIU0Xm9UFdQxUwDQYJKoZIhvcNAQELBQAwIDEeMBwGA1UE
 AxMVbWluaWNhIHJvb3QgY2EgNTM0NWU2MCAXDTI1MDkwMzIzNDAwNVoYDzIxMjUw
 OTAzMjM0MDA1WjAgMR4wHAYDVQQDExVtaW5pY2Egcm9vdCBjYSA1MzQ1ZTYwggEi
@@ -120,7 +120,7 @@ cat > /certs/pebble-minica.crt << 'CERT'
 CERT
 cp /certs/pebble-minica.crt /usr/local/share/ca-certificates/
 update-ca-certificates
-cp /etc/ssl/certs/ca-certificates.crt /certs/ca-certificates.crt`, pebbleCertificate)},
+cp /etc/ssl/certs/ca-certificates.crt /certs/ca-certificates.crt`, PebbleCertificate)},
 			VolumeMounts: containers.VolumeMounts{
 				{
 					Name:      "pebble-ca-certs",
