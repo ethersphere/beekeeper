@@ -493,12 +493,22 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 }
 
 func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Duration, depth uint64, label string) (string, error) {
-	csr, err := c.api.Postage.GetChainState(ctx)
+	var csr api.ChainStateResponse
+	err := c.retryDo(ctx, "get chain state", func() error {
+		var e error
+		csr, e = c.api.Postage.GetChainState(ctx)
+		return e
+	})
 	if err != nil {
 		return "", fmt.Errorf("get chain state: %w", err)
 	}
 
-	blockTime, err := c.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
+	var blockTime int64
+	err = c.retryDo(ctx, "fetch block time", func() error {
+		var e error
+		blockTime, e = c.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
+		return e
+	})
 	if err != nil {
 		return "", fmt.Errorf("fetching block time: %w", err)
 	}
@@ -514,7 +524,12 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 
 	c.log.Debugf("calculated mutable batch: amount '%d', label '%s', price '%d', block time '%d', ttl '%s'", amount, label, price, blockTime, postageTTL)
 
-	batches, err := c.PostageBatches(ctx)
+	var batches []api.PostageStampResponse
+	err = c.retryDo(ctx, "get postage batches", func() error {
+		var e error
+		batches, e = c.PostageBatches(ctx)
+		return e
+	})
 	if err != nil {
 		return "", fmt.Errorf("get postage batches: %w", err)
 	}
@@ -536,6 +551,32 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 	}
 
 	return c.CreatePostageBatch(ctx, amount, depth, label, false)
+}
+
+const maxRetryBackoff = 30 * time.Second
+
+func (c *Client) retryDo(ctx context.Context, op string, fn func() error) error {
+	var err error
+	for i := 0; i < c.retryCount; i++ {
+		if i > 0 {
+			backoff := time.Duration(1<<uint(i-1)) * time.Second
+			if backoff > maxRetryBackoff {
+				backoff = maxRetryBackoff
+			}
+			c.log.Warningf("%s: attempt %d/%d failed, retrying in %v: %v", op, i, c.retryCount, backoff, err)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoff):
+			}
+		}
+
+		err = fn()
+		if err == nil {
+			return nil
+		}
+	}
+	return err
 }
 
 // PostageBatches returns the list of batches of node
