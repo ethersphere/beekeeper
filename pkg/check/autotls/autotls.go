@@ -8,15 +8,16 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/cert"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
 type Options struct {
 	AutoTLSGroup    string
 	UltraLightGroup string
+	ForgeDNSAddr    string // host:port of p2p-forge DNS server (e.g. "127.0.0.1:30533"); empty uses system resolver
 }
 
 func NewDefaultOptions() Options {
@@ -79,7 +80,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("forge address validation: %w", err)
 	}
 
-	if err := c.verifyDNSResolution(ctx, forgeNodes); err != nil {
+	if err := c.verifyDNSResolution(ctx, forgeNodes, o.ForgeDNSAddr); err != nil {
 		return fmt.Errorf("DNS resolution verification: %w", err)
 	}
 
@@ -344,7 +345,7 @@ func (c *Check) forgeConfig(cluster orchestration.Cluster, autoTLSClients orches
 		cfg := node.Config()
 		forgeDomain = cfg.AutoTLSDomain
 		if strings.Contains(cfg.AutoTLSCAEndpoint, "pebble") {
-			caCertPEM = k8s.PebbleCertificate
+			caCertPEM = cert.PebbleCertificate
 		}
 		return forgeDomain, caCertPEM
 	}

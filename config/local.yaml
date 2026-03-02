@@ -451,3 +451,4 @@ checks:
     options:
       ultra-light-group: ultra-light
       autotls-group: bee-autotls
+      forge-dns-addr: "127.0.0.1:30533"
