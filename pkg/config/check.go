@@ -89,6 +89,7 @@ var Checks = map[string]CheckType{
 			checkOpts := new(struct {
 				AutoTLSGroup    *string `yaml:"autotls-group"`
 				UltraLightGroup *string `yaml:"ultra-light-group"`
+				ForgeDNSAddr    *string `yaml:"forge-dns-addr"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

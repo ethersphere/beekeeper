@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethersphere/beekeeper/pkg/cert"
 	"github.com/ethersphere/beekeeper/pkg/k8s/containers"
 	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaim"
 	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
@@ -64,28 +65,6 @@ withdrawal-addresses-whitelist: {{.WithdrawAddress}}
 `
 )
 
-// https://raw.githubusercontent.com/letsencrypt/pebble/main/test/certs/pebble.minica.pem
-const PebbleCertificate = `-----BEGIN CERTIFICATE-----
-MIIDPzCCAiegAwIBAgIIU0Xm9UFdQxUwDQYJKoZIhvcNAQELBQAwIDEeMBwGA1UE
-AxMVbWluaWNhIHJvb3QgY2EgNTM0NWU2MCAXDTI1MDkwMzIzNDAwNVoYDzIxMjUw
-OTAzMjM0MDA1WjAgMR4wHAYDVQQDExVtaW5pY2Egcm9vdCBjYSA1MzQ1ZTYwggEi
-MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5WgZNoVJandj43kkLyU50vzCZ
-alozvdRo3OFiKoDtmqKPNWRNO2hC9AUNxTDJco51Yc42u/WV3fPbbhSznTiOOVtn
-Ajm6iq4I5nZYltGGZetGDOQWr78y2gWY+SG078MuOO2hyDIiKtVc3xiXYA+8Hluu
-9F8KbqSS1h55yxZ9b87eKR+B0zu2ahzBCIHKmKWgc6N13l7aDxxY3D6uq8gtJRU0
-toumyLbdzGcupVvjbjDP11nl07RESDWBLG1/g3ktJvqIa4BWgU2HMh4rND6y8OD3
-Hy3H8MY6CElL+MOCbFJjWqhtOxeFyZZV9q3kYnk9CAuQJKMEGuN4GU6tzhW1AgMB
-AAGjezB5MA4GA1UdDwEB/wQEAwIChDATBgNVHSUEDDAKBggrBgEFBQcDATASBgNV
-HRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBSu8RGpErgYUoYnQuwCq+/ggTiEjDAf
-BgNVHSMEGDAWgBSu8RGpErgYUoYnQuwCq+/ggTiEjDANBgkqhkiG9w0BAQsFAAOC
-AQEAXDVYov1+f6EL7S41LhYQkEX/GyNNzsEvqxE9U0+3Iri5JfkcNOiA9O9L6Z+Y
-bqcsXV93s3vi4r4WSWuc//wHyJYrVe5+tK4nlFpbJOvfBUtnoBDyKNxXzZCxFJVh
-f9uc8UejRfQMFbDbhWY/x83y9BDufJHHq32OjCIN7gp2UR8rnfYvlz7Zg4qkJBsn
-DG4dwd+pRTCFWJOVIG0JoNhK3ZmE7oJ1N4H38XkZ31NPcMksKxpsLLIS9+mosZtg
-4olL7tMPJklx5ZaeMFaKRDq4Gdxkbw4+O4vRgNm3Z8AXWKknOdfgdpqLUPPhRcP4
-v1lhy71EhBuXXwRQJry0lTdF+w==
------END CERTIFICATE-----`
-
 type setInitContainersOptions struct {
 	AutoTLSEnabled bool
 }
@@ -120,7 +99,7 @@ cat > /certs/pebble-minica.crt << 'CERT'
 CERT
 cp /certs/pebble-minica.crt /usr/local/share/ca-certificates/
 update-ca-certificates
-cp /etc/ssl/certs/ca-certificates.crt /certs/ca-certificates.crt`, PebbleCertificate)},
+cp /etc/ssl/certs/ca-certificates.crt /certs/ca-certificates.crt`, cert.PebbleCertificate)},
 			VolumeMounts: containers.VolumeMounts{
 				{
 					Name:      "pebble-ca-certs",
