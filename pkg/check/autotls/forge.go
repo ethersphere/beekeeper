@@ -9,12 +9,15 @@ import (
 	"net"
 	"slices"
 	"strings"
+	"time"
 
 	forgeclient "github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p/core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multibase"
 )
+
+const tlsDialTimeout = 15 * time.Second
 
 // forgeUnderlayInfo holds parsed forge address information for a single WSS underlay.
 type forgeUnderlayInfo struct {
@@ -216,12 +219,22 @@ func (c *Check) verifyForgeAddressFormat(wssNodes map[string][]string, forgeDoma
 }
 
 // verifyDNSResolution resolves each forge hostname and verifies it points to the expected IP.
-// Unreachable hostnames (e.g., cluster-internal domains when running outside k8s) are
-// skipped with a warning. At least one underlay per node must resolve successfully.
-func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo) error {
+// When forgeDNSAddr is set (e.g. "127.0.0.1:30533"), a custom resolver querying the
+// p2p-forge DNS server is used instead of the system resolver.
+func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, forgeDNSAddr string) error {
 	c.logger.Infof("verifying DNS resolution for %d nodes", len(forgeNodes))
 
 	resolver := &net.Resolver{}
+	if forgeDNSAddr != "" {
+		c.logger.Infof("using custom forge DNS resolver at %s", forgeDNSAddr)
+		resolver = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{Timeout: tlsDialTimeout}
+				return d.DialContext(ctx, "udp", forgeDNSAddr)
+			},
+		}
+	}
 	for nodeName, infos := range forgeNodes {
 		var verified int
 		for _, info := range infos {
@@ -291,21 +304,35 @@ func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string]
 }
 
 func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config, nodeName string, info *forgeUnderlayInfo) error {
-	addr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
-
 	cfg := baseTLSConfig.Clone()
 	cfg.ServerName = info.ForgeHostname
 
-	conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", addr)
+	// Try hostname first (works when traffic is routed through an IngressRoute),
+	// then fall back to raw pod IP (works when running inside the cluster).
+	hostnameAddr := net.JoinHostPort(info.ForgeHostname, info.ForgeAddr.TCPPort)
+	ipAddr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+
+	var conn net.Conn
+	var err error
+	for _, addr := range []string{hostnameAddr, ipAddr} {
+		dialCtx, cancel := context.WithTimeout(ctx, tlsDialTimeout)
+		conn, err = (&tls.Dialer{Config: cfg}).DialContext(dialCtx, "tcp", addr)
+		cancel()
+		if err == nil {
+			break
+		}
+		c.logger.Debugf("node %s: TLS dial to %s failed: %v", nodeName, addr, err)
+	}
 	if err != nil {
 		return fmt.Errorf("TLS dial to %s (ServerName: %s) failed: %w",
-			addr, info.ForgeHostname, err)
+			ipAddr, info.ForgeHostname, err)
 	}
 	defer conn.Close()
 
+	connAddr := conn.RemoteAddr().String()
 	certs := conn.(*tls.Conn).ConnectionState().PeerCertificates
 	if len(certs) == 0 {
-		return fmt.Errorf("no TLS certificates from %s", addr)
+		return fmt.Errorf("no TLS certificates from %s", connAddr)
 	}
 
 	if !slices.Contains(certs[0].DNSNames, info.ExpectedSAN) {
@@ -313,7 +340,7 @@ func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config
 			certs[0].DNSNames, info.ExpectedSAN)
 	}
 
-	c.logger.Debugf("node %s: TLS certificate verified: %s (SAN: %s)", nodeName, addr, info.ExpectedSAN)
+	c.logger.Debugf("node %s: TLS certificate verified: %s (SAN: %s)", nodeName, connAddr, info.ExpectedSAN)
 	return nil
 }
 
@@ -324,7 +351,9 @@ func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*for
 	baseTLSConfig := &tls.Config{}
 	if caCertPEM != "" {
 		pool := x509.NewCertPool()
-		if pool.AppendCertsFromPEM([]byte(caCertPEM)) {
+		if !pool.AppendCertsFromPEM([]byte(caCertPEM)) {
+			c.logger.Warning("failed to parse CA certificate PEM for serial snapshot, using system roots")
+		} else {
 			baseTLSConfig.RootCAs = pool
 		}
 	}
@@ -332,12 +361,22 @@ func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*for
 	serials := make(map[string]string)
 	for nodeName, infos := range forgeNodes {
 		for _, info := range infos {
-			addr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
-
 			cfg := baseTLSConfig.Clone()
 			cfg.ServerName = info.ForgeHostname
 
-			conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", addr)
+			hostnameAddr := net.JoinHostPort(info.ForgeHostname, info.ForgeAddr.TCPPort)
+			ipAddr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+
+			var conn net.Conn
+			var err error
+			for _, addr := range []string{hostnameAddr, ipAddr} {
+				dialCtx, cancel := context.WithTimeout(ctx, tlsDialTimeout)
+				conn, err = (&tls.Dialer{Config: cfg}).DialContext(dialCtx, "tcp", addr)
+				cancel()
+				if err == nil {
+					break
+				}
+			}
 			if err != nil {
 				continue
 			}
