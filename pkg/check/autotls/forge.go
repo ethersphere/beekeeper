@@ -6,13 +6,16 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
 
 	forgeclient "github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/miekg/dns"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multibase"
 )
@@ -218,27 +221,55 @@ func (c *Check) verifyForgeAddressFormat(wssNodes map[string][]string, forgeDoma
 	return result, nil
 }
 
-// verifyDNSResolution resolves each forge hostname and verifies it points to the expected IP.
-// When forgeDNSAddr is set (e.g. "127.0.0.1:30533"), a custom resolver querying the
-// p2p-forge DNS server is used instead of the system resolver.
-func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, forgeDNSAddr string) error {
-	c.logger.Infof("verifying DNS resolution for %d nodes", len(forgeNodes))
+// lookupHostDirect sends A and AAAA queries directly to serverAddr over UDP,
+// bypassing the system resolver entirely (works regardless of VPN, systemd-resolved, etc.).
+func lookupHostDirect(ctx context.Context, hostname, serverAddr string) ([]string, error) {
+	client := &dns.Client{Timeout: tlsDialTimeout}
+	qname := dns.Fqdn(hostname)
 
-	resolver := &net.Resolver{}
-	if forgeDNSAddr != "" {
-		c.logger.Infof("using custom forge DNS resolver at %s", forgeDNSAddr)
-		resolver = &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				d := net.Dialer{Timeout: tlsDialTimeout}
-				return d.DialContext(ctx, "udp", forgeDNSAddr)
-			},
+	var ips []string
+	for _, qtype := range []uint16{dns.TypeA, dns.TypeAAAA} {
+		m := new(dns.Msg)
+		m.SetQuestion(qname, qtype)
+
+		in, _, err := client.ExchangeContext(ctx, m, serverAddr)
+		if err != nil {
+			return nil, fmt.Errorf("DNS query (%s) to %s: %w", dns.TypeToString[qtype], serverAddr, err)
+		}
+		if in == nil || in.Rcode != dns.RcodeSuccess {
+			continue
+		}
+		for _, a := range in.Answer {
+			switch r := a.(type) {
+			case *dns.A:
+				ips = append(ips, r.A.String())
+			case *dns.AAAA:
+				ips = append(ips, r.AAAA.String())
+			}
 		}
 	}
+	return ips, nil
+}
+
+// verifyDNSResolution resolves each forge hostname and verifies it points to the expected IP.
+// When forgeDNSAddr is set (e.g. "127.0.0.1:30533"), direct UDP DNS queries are sent to
+// that address, completely bypassing the system resolver.
+func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, forgeDNSAddr string) error {
+	c.logger.Infof("verifying DNS resolution for %d nodes", len(forgeNodes))
+	if forgeDNSAddr != "" {
+		c.logger.Infof("using direct DNS queries to forge server at %s", forgeDNSAddr)
+	}
+
 	for nodeName, infos := range forgeNodes {
 		var verified int
 		for _, info := range infos {
-			ips, err := resolver.LookupHost(ctx, info.ForgeHostname)
+			var ips []string
+			var err error
+			if forgeDNSAddr != "" {
+				ips, err = lookupHostDirect(ctx, info.ForgeHostname, forgeDNSAddr)
+			} else {
+				ips, err = net.DefaultResolver.LookupHost(ctx, info.ForgeHostname)
+			}
 			if err != nil {
 				c.logger.Warningf("node %s: DNS lookup for %s failed (may be unreachable from host): %v",
 					nodeName, info.ForgeHostname, err)
@@ -260,6 +291,34 @@ func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][
 
 	c.logger.Info("DNS resolution verification passed")
 	return nil
+}
+
+// fetchPebbleCACert fetches the Pebble root CA certificate PEM from the given URL.
+// Pebble's management API uses a self-signed cert, so TLS verification is skipped.
+func fetchPebbleCACert(ctx context.Context, url string) (string, error) {
+	client := &http.Client{
+		Timeout: tlsDialTimeout,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("fetch CA cert from %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("fetch CA cert from %s: status %d", url, resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read CA cert response: %w", err)
+	}
+	return string(body), nil
 }
 
 // verifyTLSCertificate connects to each forge endpoint and verifies the TLS certificate SAN.

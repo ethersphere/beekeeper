@@ -1,10 +1,16 @@
 package autotls
 
 import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	forgeclient "github.com/ipshipyard/p2p-forge/client"
+	"github.com/miekg/dns"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -289,5 +295,100 @@ func TestIpFromForgeAddr(t *testing.T) {
 				t.Errorf("got %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLookupHostDirect(t *testing.T) {
+	const answerIP = "192.0.2.1"
+	handler := func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		if len(r.Question) > 0 && r.Question[0].Qtype == dns.TypeA {
+			m.Answer = append(m.Answer, &dns.A{
+				Hdr: dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
+				A:   net.ParseIP(answerIP).To4(),
+			})
+		}
+		_ = w.WriteMsg(m)
+	}
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer pc.Close()
+	addr := pc.LocalAddr().String()
+
+	srv := &dns.Server{PacketConn: pc, Handler: dns.HandlerFunc(handler)}
+	go func() { _ = srv.ActivateAndServe() }()
+	time.Sleep(50 * time.Millisecond)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	ips, err := lookupHostDirect(ctx, "test.local.test", addr)
+	if err != nil {
+		t.Fatalf("lookupHostDirect: %v", err)
+	}
+	if len(ips) != 1 || ips[0] != answerIP {
+		t.Errorf("got IPs %v, want [%s]", ips, answerIP)
+	}
+}
+
+func TestLookupHostDirect_Unreachable(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := lookupHostDirect(ctx, "test.local.test", "127.0.0.1:17999")
+	if err == nil {
+		t.Error("expected error when querying unreachable DNS server")
+	}
+}
+
+func TestFetchPebbleCACert(t *testing.T) {
+	const fakePEM = "-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n"
+	srv := http.Server{
+		Addr: "127.0.0.1:0",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, fakePEM)
+		}),
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	go func() { _ = srv.Serve(ln) }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	got, err := fetchPebbleCACert(ctx, fmt.Sprintf("http://%s/roots/0", ln.Addr()))
+	if err != nil {
+		t.Fatalf("fetchPebbleCACert: %v", err)
+	}
+	if got != fakePEM {
+		t.Errorf("got %q, want %q", got, fakePEM)
+	}
+}
+
+func TestFetchPebbleCACert_NotFound(t *testing.T) {
+	srv := http.Server{
+		Addr: "127.0.0.1:0",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		}),
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	go func() { _ = srv.Serve(ln) }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err = fetchPebbleCACert(ctx, fmt.Sprintf("http://%s/roots/0", ln.Addr()))
+	if err == nil {
+		t.Error("expected error for 404 response")
 	}
 }

@@ -18,6 +18,7 @@ type Options struct {
 	AutoTLSGroup    string
 	UltraLightGroup string
 	ForgeDNSAddr    string // host:port of p2p-forge DNS server (e.g. "127.0.0.1:30533"); empty uses system resolver
+	PebbleCAURL     string // URL to fetch Pebble root CA cert (e.g. "https://pebble-mgmt.localhost/roots/0"); empty uses embedded cert
 }
 
 func NewDefaultOptions() Options {
@@ -73,6 +74,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	forgeDomain, caCertPEM := c.forgeConfig(cluster, autoTLSClients)
 	if forgeDomain == "" {
 		return fmt.Errorf("could not determine forge domain from node config")
+	}
+
+	if o.PebbleCAURL != "" {
+		c.logger.Infof("fetching Pebble CA certificate from %s", o.PebbleCAURL)
+		fetched, err := fetchPebbleCACert(ctx, o.PebbleCAURL)
+		if err != nil {
+			return fmt.Errorf("fetch pebble CA cert: %w", err)
+		}
+		caCertPEM = fetched
+		c.logger.Info("using Pebble CA certificate fetched from management API")
 	}
 
 	forgeNodes, err := c.verifyForgeAddressFormat(wssNodes, forgeDomain)
