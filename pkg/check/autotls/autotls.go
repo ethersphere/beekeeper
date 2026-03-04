@@ -8,9 +8,9 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/cert"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -345,7 +345,7 @@ func (c *Check) forgeConfig(cluster orchestration.Cluster, autoTLSClients orches
 		cfg := node.Config()
 		forgeDomain = cfg.AutoTLSDomain
 		if strings.Contains(cfg.AutoTLSCAEndpoint, "pebble") {
-			caCertPEM = k8s.PebbleCertificate
+			caCertPEM = cert.PebbleCertificate
 		}
 		return forgeDomain, caCertPEM
 	}
