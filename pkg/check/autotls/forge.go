@@ -6,21 +6,16 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io"
 	"net"
-	"net/http"
 	"slices"
 	"strings"
-	"time"
 
 	forgeclient "github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/miekg/dns"
+	mdns "github.com/miekg/dns"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multibase"
 )
-
-const tlsDialTimeout = 15 * time.Second
 
 // forgeUnderlayInfo holds parsed forge address information for a single WSS underlay.
 type forgeUnderlayInfo struct {
@@ -221,59 +216,37 @@ func (c *Check) verifyForgeAddressFormat(wssNodes map[string][]string, forgeDoma
 	return result, nil
 }
 
-// lookupHostDirect sends A and AAAA queries directly to serverAddr over UDP,
-// bypassing the system resolver entirely (works regardless of VPN, systemd-resolved, etc.).
-func lookupHostDirect(ctx context.Context, hostname, serverAddr string) ([]string, error) {
-	client := &dns.Client{Timeout: tlsDialTimeout}
-	qname := dns.Fqdn(hostname)
-
-	var ips []string
-	for _, qtype := range []uint16{dns.TypeA, dns.TypeAAAA} {
-		m := new(dns.Msg)
-		m.SetQuestion(qname, qtype)
-
-		in, _, err := client.ExchangeContext(ctx, m, serverAddr)
-		if err != nil {
-			return nil, fmt.Errorf("DNS query (%s) to %s: %w", dns.TypeToString[qtype], serverAddr, err)
-		}
-		if in == nil || in.Rcode != dns.RcodeSuccess {
-			continue
-		}
-		for _, a := range in.Answer {
-			switch r := a.(type) {
-			case *dns.A:
-				ips = append(ips, r.A.String())
-			case *dns.AAAA:
-				ips = append(ips, r.AAAA.String())
-			}
-		}
-	}
-	return ips, nil
-}
-
 // verifyDNSResolution resolves each forge hostname and verifies it points to the expected IP.
-// When forgeDNSAddr is set (e.g. "127.0.0.1:30533"), direct UDP DNS queries are sent to
-// that address, completely bypassing the system resolver.
-func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, forgeDNSAddr string) error {
+// When forgeDNSAddress is set, queries are sent directly to that DNS server (bypassing the
+// system resolver) and lookup failures are treated as hard errors. Otherwise the system
+// resolver is used and unreachable hostnames are skipped with a warning.
+func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, forgeDNSAddress string) error {
 	c.logger.Infof("verifying DNS resolution for %d nodes", len(forgeNodes))
-	if forgeDNSAddr != "" {
-		c.logger.Infof("using direct DNS queries to forge server at %s", forgeDNSAddr)
+
+	if forgeDNSAddress != "" {
+		c.logger.Infof("using custom forge DNS server: %s", forgeDNSAddress)
 	}
 
 	for nodeName, infos := range forgeNodes {
 		var verified int
 		for _, info := range infos {
-			var ips []string
-			var err error
-			if forgeDNSAddr != "" {
-				ips, err = lookupHostDirect(ctx, info.ForgeHostname, forgeDNSAddr)
+			var (
+				ips []string
+				err error
+			)
+			if forgeDNSAddress != "" {
+				ips, err = lookupViaDNS(ctx, info.ForgeHostname, forgeDNSAddress, info.ForgeAddr.IPVersion)
+				if err != nil {
+					return fmt.Errorf("node %s: DNS lookup for %s via %s failed: %w",
+						nodeName, info.ForgeHostname, forgeDNSAddress, err)
+				}
 			} else {
 				ips, err = net.DefaultResolver.LookupHost(ctx, info.ForgeHostname)
-			}
-			if err != nil {
-				c.logger.Warningf("node %s: DNS lookup for %s failed (may be unreachable from host): %v",
-					nodeName, info.ForgeHostname, err)
-				continue
+				if err != nil {
+					c.logger.Warningf("node %s: DNS lookup for %s failed (may be unreachable from host): %v",
+						nodeName, info.ForgeHostname, err)
+					continue
+				}
 			}
 
 			expectedIP := ipFromForgeAddr(info.ForgeAddr)
@@ -284,7 +257,7 @@ func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][
 			verified++
 			c.logger.Debugf("node %s: DNS resolution verified: %s -> %s", nodeName, info.ForgeHostname, expectedIP)
 		}
-		if verified == 0 {
+		if verified == 0 && forgeDNSAddress == "" {
 			c.logger.Warningf("node %s: no forge hostnames were resolvable from this host, skipping DNS check", nodeName)
 		}
 	}
@@ -293,32 +266,39 @@ func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][
 	return nil
 }
 
-// fetchPebbleCACert fetches the Pebble root CA certificate PEM from the given URL.
-// Pebble's management API uses a self-signed cert, so TLS verification is skipped.
-func fetchPebbleCACert(ctx context.Context, url string) (string, error) {
-	client := &http.Client{
-		Timeout: tlsDialTimeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
+// lookupViaDNS queries the given DNS server directly, bypassing the system resolver.
+// This is needed because macOS ignores net.Resolver.Dial and always uses the cgo resolver.
+func lookupViaDNS(ctx context.Context, hostname, dnsServer, ipVersion string) ([]string, error) {
+	qtype := mdns.TypeA
+	if ipVersion == "6" {
+		qtype = mdns.TypeAAAA
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+
+	m := new(mdns.Msg)
+	m.SetQuestion(mdns.Fqdn(hostname), qtype)
+	m.RecursionDesired = true
+
+	r, _, err := (&mdns.Client{Net: "udp"}).ExchangeContext(ctx, m, dnsServer)
 	if err != nil {
-		return "", fmt.Errorf("create request: %w", err)
+		return nil, err
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("fetch CA cert from %s: %w", url, err)
+	if r.Rcode != mdns.RcodeSuccess {
+		return nil, fmt.Errorf("DNS server returned %s", mdns.RcodeToString[r.Rcode])
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("fetch CA cert from %s: status %d", url, resp.StatusCode)
+
+	var ips []string
+	for _, ans := range r.Answer {
+		switch rr := ans.(type) {
+		case *mdns.A:
+			ips = append(ips, rr.A.String())
+		case *mdns.AAAA:
+			ips = append(ips, rr.AAAA.String())
+		}
 	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("read CA cert response: %w", err)
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("no records found for %s", hostname)
 	}
-	return string(body), nil
+	return ips, nil
 }
 
 // verifyTLSCertificate connects to each forge endpoint and verifies the TLS certificate SAN.
@@ -363,35 +343,21 @@ func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string]
 }
 
 func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config, nodeName string, info *forgeUnderlayInfo) error {
+	addr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+
 	cfg := baseTLSConfig.Clone()
 	cfg.ServerName = info.ForgeHostname
 
-	// Try hostname first (works when traffic is routed through an IngressRoute),
-	// then fall back to raw pod IP (works when running inside the cluster).
-	hostnameAddr := net.JoinHostPort(info.ForgeHostname, info.ForgeAddr.TCPPort)
-	ipAddr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
-
-	var conn net.Conn
-	var err error
-	for _, addr := range []string{hostnameAddr, ipAddr} {
-		dialCtx, cancel := context.WithTimeout(ctx, tlsDialTimeout)
-		conn, err = (&tls.Dialer{Config: cfg}).DialContext(dialCtx, "tcp", addr)
-		cancel()
-		if err == nil {
-			break
-		}
-		c.logger.Debugf("node %s: TLS dial to %s failed: %v", nodeName, addr, err)
-	}
+	conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return fmt.Errorf("TLS dial to %s (ServerName: %s) failed: %w",
-			ipAddr, info.ForgeHostname, err)
+			addr, info.ForgeHostname, err)
 	}
 	defer conn.Close()
 
-	connAddr := conn.RemoteAddr().String()
 	certs := conn.(*tls.Conn).ConnectionState().PeerCertificates
 	if len(certs) == 0 {
-		return fmt.Errorf("no TLS certificates from %s", connAddr)
+		return fmt.Errorf("no TLS certificates from %s", addr)
 	}
 
 	if !slices.Contains(certs[0].DNSNames, info.ExpectedSAN) {
@@ -399,7 +365,7 @@ func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config
 			certs[0].DNSNames, info.ExpectedSAN)
 	}
 
-	c.logger.Debugf("node %s: TLS certificate verified: %s (SAN: %s)", nodeName, connAddr, info.ExpectedSAN)
+	c.logger.Debugf("node %s: TLS certificate verified: %s (SAN: %s)", nodeName, addr, info.ExpectedSAN)
 	return nil
 }
 
@@ -410,9 +376,7 @@ func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*for
 	baseTLSConfig := &tls.Config{}
 	if caCertPEM != "" {
 		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM([]byte(caCertPEM)) {
-			c.logger.Warning("failed to parse CA certificate PEM for serial snapshot, using system roots")
-		} else {
+		if pool.AppendCertsFromPEM([]byte(caCertPEM)) {
 			baseTLSConfig.RootCAs = pool
 		}
 	}
@@ -420,22 +384,12 @@ func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*for
 	serials := make(map[string]string)
 	for nodeName, infos := range forgeNodes {
 		for _, info := range infos {
+			addr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+
 			cfg := baseTLSConfig.Clone()
 			cfg.ServerName = info.ForgeHostname
 
-			hostnameAddr := net.JoinHostPort(info.ForgeHostname, info.ForgeAddr.TCPPort)
-			ipAddr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
-
-			var conn net.Conn
-			var err error
-			for _, addr := range []string{hostnameAddr, ipAddr} {
-				dialCtx, cancel := context.WithTimeout(ctx, tlsDialTimeout)
-				conn, err = (&tls.Dialer{Config: cfg}).DialContext(dialCtx, "tcp", addr)
-				cancel()
-				if err == nil {
-					break
-				}
-			}
+			conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", addr)
 			if err != nil {
 				continue
 			}
