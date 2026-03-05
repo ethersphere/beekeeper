@@ -282,53 +282,56 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 }
 
 func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string, connectTimeout time.Duration) error {
-	const renewalWaitTime = 700 * time.Second // certmagic checks renewal every ~10min; 700s covers expiry (300s) + check interval
+	const renewalBuffer = 30 * time.Second
 
-	// Snapshot certificate serial numbers before waiting.
-	preSerials := c.getCertSerials(ctx, forgeNodes, caCertPEM)
-	if len(preSerials) > 0 {
-		c.logger.Infof("captured %d certificate serial(s) before renewal wait", len(preSerials))
+	before := c.getCertSnapshots(ctx, forgeNodes, caCertPEM)
+	if len(before) == 0 {
+		c.logger.Warning("no TLS endpoints reachable, skipping serial comparison")
 	} else {
-		c.logger.Warning("no TLS endpoints reachable, will fall back to connectivity-only renewal check")
-	}
+		var earliest time.Time
+		for key, snap := range before {
+			c.logger.Infof("%s: serial=%s expires=%s", key, snap.Serial, snap.NotAfter)
+			if earliest.IsZero() || snap.NotAfter.Before(earliest) {
+				earliest = snap.NotAfter
+			}
+		}
 
-	c.logger.Infof("testing certificate renewal: waiting %v for certificates to expire and renew", renewalWaitTime)
+		waitDuration := time.Until(earliest) + renewalBuffer
+		if waitDuration < 0 {
+			waitDuration = renewalBuffer
+		}
+		c.logger.Infof("earliest cert expires at %s, waiting %v", earliest, waitDuration)
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(renewalWaitTime):
-	}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(waitDuration):
+		}
 
-	c.logger.Info("wait complete, verifying certificates were renewed")
-
-	// Verify serial numbers changed (proves new certs were issued).
-	if len(preSerials) > 0 {
-		postSerials := c.getCertSerials(ctx, forgeNodes, caCertPEM)
+		after := c.getCertSnapshots(ctx, forgeNodes, caCertPEM)
 		var renewed, unchanged int
-		for key, preSN := range preSerials {
-			postSN, ok := postSerials[key]
+		for key, pre := range before {
+			post, ok := after[key]
 			if !ok {
-				c.logger.Warningf("%s: endpoint became unreachable after wait", key)
+				c.logger.Warningf("%s: endpoint became unreachable after expiry", key)
 				continue
 			}
-			if preSN == postSN {
+			if pre.Serial == post.Serial {
 				unchanged++
-				c.logger.Warningf("%s: certificate serial unchanged (%s), renewal may not have occurred", key, preSN)
+				c.logger.Warningf("%s: serial unchanged (%s), renewal may not have occurred", key, pre.Serial)
 			} else {
 				renewed++
-				c.logger.Infof("%s: certificate renewed (serial %s -> %s)", key, preSN, postSN)
+				c.logger.Infof("%s: renewed (serial %s -> %s)", key, pre.Serial, post.Serial)
 			}
 		}
 		if unchanged > 0 && renewed == 0 {
-			return fmt.Errorf("no certificates were renewed: %d/%d serials unchanged", unchanged, len(preSerials))
+			return fmt.Errorf("no certificates renewed: %d/%d serials unchanged after expiry", unchanged, len(before))
 		}
 		c.logger.Infof("certificate renewal verified: %d renewed, %d unchanged", renewed, unchanged)
 	}
 
-	// Also verify WSS connectivity still works with the new certificates.
 	if err := c.testWSSConnectivity(ctx, clients, wssNodes, connectTimeout); err != nil {
-		return fmt.Errorf("post-renewal connectivity test failed (certificates may not have been renewed): %w", err)
+		return fmt.Errorf("post-renewal connectivity test failed: %w", err)
 	}
 
 	c.logger.Info("certificate renewal test passed")

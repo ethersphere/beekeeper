@@ -10,6 +10,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	forgeclient "github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -394,7 +395,12 @@ func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config
 // getCertSerials TLS-dials each reachable forge endpoint and returns a map of
 // "nodeName/hostname" -> certificate serial number (hex string).
 // Unreachable endpoints are silently skipped.
-func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string) map[string]string {
+type certSnapshot struct {
+	Serial   string
+	NotAfter time.Time
+}
+
+func (c *Check) getCertSnapshots(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string) map[string]certSnapshot {
 	baseTLSConfig := &tls.Config{}
 	if caCertPEM != "" {
 		pool := x509.NewCertPool()
@@ -403,7 +409,7 @@ func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*for
 		}
 	}
 
-	serials := make(map[string]string)
+	snapshots := make(map[string]certSnapshot)
 	for nodeName, infos := range forgeNodes {
 		for _, info := range infos {
 			addr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
@@ -421,10 +427,13 @@ func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*for
 
 			if len(certs) > 0 {
 				key := fmt.Sprintf("%s/%s", nodeName, info.ForgeHostname)
-				serials[key] = certs[0].SerialNumber.Text(16)
-				c.logger.Debugf("%s: certificate serial=%s notAfter=%s", key, serials[key], certs[0].NotAfter)
+				snapshots[key] = certSnapshot{
+					Serial:   certs[0].SerialNumber.Text(16),
+					NotAfter: certs[0].NotAfter,
+				}
+				c.logger.Debugf("%s: serial=%s notAfter=%s", key, snapshots[key].Serial, snapshots[key].NotAfter)
 			}
 		}
 	}
-	return serials
+	return snapshots
 }
