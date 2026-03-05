@@ -2,7 +2,10 @@ package autotls
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -15,9 +18,11 @@ import (
 )
 
 type Options struct {
-	AutoTLSGroup    string
-	UltraLightGroup string
-	ForgeDNSAddress string
+	AutoTLSGroup        string
+	UltraLightGroup     string
+	ForgeDNSAddress     string
+	ForgeTLSHostAddress string
+	PebbleMgmtURL       string
 }
 
 func NewDefaultOptions() Options {
@@ -69,8 +74,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("verify WSS underlays: %w", err)
 	}
 
-	// Extract forge config from the first autotls node's bee config.
-	forgeDomain, caCertPEM := c.forgeConfig(cluster, autoTLSClients)
+	forgeDomain, caCertPEM := c.forgeConfig(ctx, cluster, autoTLSClients, o.PebbleMgmtURL)
 	if forgeDomain == "" {
 		return fmt.Errorf("could not determine forge domain from node config")
 	}
@@ -84,7 +88,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("DNS resolution verification: %w", err)
 	}
 
-	if err := c.verifyTLSCertificate(ctx, forgeNodes, caCertPEM); err != nil {
+	if err := c.verifyTLSCertificate(ctx, forgeNodes, caCertPEM, o.ForgeTLSHostAddress); err != nil {
 		return fmt.Errorf("TLS certificate verification: %w", err)
 	}
 
@@ -331,11 +335,11 @@ func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*
 	return nil
 }
 
-// forgeConfig extracts the forge domain and appropriate CA certificate from the
-// first autotls node's bee configuration. If the CA endpoint indicates pebble
-// (test environment), the embedded pebble CA cert is returned. Otherwise, an
-// empty string is returned so the system root pool is used.
-func (c *Check) forgeConfig(cluster orchestration.Cluster, autoTLSClients orchestration.ClientList) (forgeDomain, caCertPEM string) {
+// forgeConfig extracts the forge domain and CA certificate from the first autotls
+// node's bee configuration. When Pebble is detected, the live root CA is fetched
+// from Pebble's management API (since Pebble generates a fresh CA on each start).
+// Falls back to the static embedded cert if the fetch fails.
+func (c *Check) forgeConfig(ctx context.Context, cluster orchestration.Cluster, autoTLSClients orchestration.ClientList, pebbleMgmtURLOverride string) (forgeDomain, caCertPEM string) {
 	nodes := cluster.Nodes()
 	for _, client := range autoTLSClients {
 		node, ok := nodes[client.Name()]
@@ -345,9 +349,60 @@ func (c *Check) forgeConfig(cluster orchestration.Cluster, autoTLSClients orches
 		cfg := node.Config()
 		forgeDomain = cfg.AutoTLSDomain
 		if strings.Contains(cfg.AutoTLSCAEndpoint, "pebble") {
-			caCertPEM = cert.PebbleCertificate
+			mgmtURL := pebbleMgmtURL(cfg.AutoTLSCAEndpoint)
+			if pebbleMgmtURLOverride != "" {
+				mgmtURL = pebbleMgmtURLOverride
+			}
+			liveCert, err := fetchPebbleCACert(ctx, mgmtURL)
+			if err != nil {
+				c.logger.Warningf("failed to fetch live Pebble CA from %s, falling back to static cert: %v", mgmtURL, err)
+				caCertPEM = cert.PebbleCertificate
+			} else {
+				c.logger.Infof("fetched live Pebble CA from %s", mgmtURL)
+				caCertPEM = liveCert
+			}
 		}
 		return forgeDomain, caCertPEM
 	}
 	return "", ""
+}
+
+// pebbleMgmtURL derives the Pebble management API URL from the ACME directory endpoint.
+// E.g. "https://pebble:14000/dir" -> "https://pebble:15000/roots/0"
+func pebbleMgmtURL(acmeEndpoint string) string {
+	base := acmeEndpoint
+	if i := strings.LastIndex(base, "/"); i > 0 {
+		base = base[:i]
+	}
+	base = strings.Replace(base, ":14000", ":15000", 1)
+	return base + "/roots/0"
+}
+
+// fetchPebbleCACert fetches the root CA PEM from Pebble's management API.
+// Pebble's management endpoint uses a self-signed TLS cert, so we skip verification.
+func fetchPebbleCACert(ctx context.Context, url string) (string, error) {
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("GET %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GET %s returned %s", url, resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response: %w", err)
+	}
+	return string(body), nil
 }

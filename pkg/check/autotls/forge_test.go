@@ -298,7 +298,7 @@ func TestIpFromForgeAddr(t *testing.T) {
 	}
 }
 
-func TestLookupHostDirect(t *testing.T) {
+func TestLookupViaDNS(t *testing.T) {
 	const answerIP = "192.0.2.1"
 	handler := func(w dns.ResponseWriter, r *dns.Msg) {
 		m := new(dns.Msg)
@@ -325,19 +325,19 @@ func TestLookupHostDirect(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	ips, err := lookupHostDirect(ctx, "test.local.test", addr)
+	ips, err := lookupViaDNS(ctx, "test.local.test", addr, "4")
 	if err != nil {
-		t.Fatalf("lookupHostDirect: %v", err)
+		t.Fatalf("lookupViaDNS: %v", err)
 	}
 	if len(ips) != 1 || ips[0] != answerIP {
 		t.Errorf("got IPs %v, want [%s]", ips, answerIP)
 	}
 }
 
-func TestLookupHostDirect_Unreachable(t *testing.T) {
+func TestLookupViaDNS_Unreachable(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	_, err := lookupHostDirect(ctx, "test.local.test", "127.0.0.1:17999")
+	_, err := lookupViaDNS(ctx, "test.local.test", "127.0.0.1:17999", "4")
 	if err == nil {
 		t.Error("expected error when querying unreachable DNS server")
 	}

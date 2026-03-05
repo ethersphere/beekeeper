@@ -452,3 +452,5 @@ checks:
       ultra-light-group: ultra-light
       autotls-group: bee-autotls
       forge-dns-address: "127.0.0.1:30053"
+      forge-tls-host-address: "127.0.0.1:31635"
+      pebble-mgmt-url: "https://127.0.0.1:31500/roots/0"

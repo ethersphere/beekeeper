@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"slices"
+	"sort"
 	"strings"
 
 	forgeclient "github.com/ipshipyard/p2p-forge/client"
@@ -303,8 +304,9 @@ func lookupViaDNS(ctx context.Context, hostname, dnsServer, ipVersion string) ([
 
 // verifyTLSCertificate connects to each forge endpoint and verifies the TLS certificate SAN.
 // Unreachable endpoints (e.g., cluster-internal IPs when running outside k8s) are
-// skipped with a warning. A wrong SAN on a reachable endpoint is a hard failure.
-func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string) error {
+// skipped with a warning. When forgeTLSHostAddress is set, the first node (by name order)
+// is dialed via that host:port so TLS can be verified from outside the cluster.
+func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM, forgeTLSHostAddress string) error {
 	c.logger.Infof("verifying TLS certificates for %d nodes", len(forgeNodes))
 
 	baseTLSConfig := &tls.Config{}
@@ -316,16 +318,34 @@ func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string]
 		baseTLSConfig.RootCAs = pool
 	}
 
-	for nodeName, infos := range forgeNodes {
+	nodeNames := make([]string, 0, len(forgeNodes))
+	for name := range forgeNodes {
+		nodeNames = append(nodeNames, name)
+	}
+	sort.Strings(nodeNames)
+
+	var firstNodeForOverride string
+	if forgeTLSHostAddress != "" && len(nodeNames) > 0 {
+		firstNodeForOverride = nodeNames[0]
+		c.logger.Infof("using host address %s for TLS check of node %s", forgeTLSHostAddress, firstNodeForOverride)
+	}
+
+	for _, nodeName := range nodeNames {
+		infos := forgeNodes[nodeName]
 		var verified int
+		var dialAddr string
 		for _, info := range infos {
-			err := c.verifyNodeTLSCert(ctx, baseTLSConfig, nodeName, info)
+			if nodeName == firstNodeForOverride && forgeTLSHostAddress != "" {
+				dialAddr = forgeTLSHostAddress
+			} else {
+				dialAddr = net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+			}
+			err := c.verifyNodeTLSCert(ctx, baseTLSConfig, nodeName, info, dialAddr)
 			if err == nil {
 				verified++
 				continue
 			}
 
-			// Distinguish connection failures (unreachable) from cert mismatches.
 			var netErr *net.OpError
 			if errors.As(err, &netErr) {
 				c.logger.Warningf("node %s: %v", nodeName, err)
@@ -342,22 +362,24 @@ func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string]
 	return nil
 }
 
-func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config, nodeName string, info *forgeUnderlayInfo) error {
-	addr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config, nodeName string, info *forgeUnderlayInfo, dialAddr string) error {
+	if dialAddr == "" {
+		dialAddr = net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+	}
 
 	cfg := baseTLSConfig.Clone()
 	cfg.ServerName = info.ForgeHostname
 
-	conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", addr)
+	conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", dialAddr)
 	if err != nil {
 		return fmt.Errorf("TLS dial to %s (ServerName: %s) failed: %w",
-			addr, info.ForgeHostname, err)
+			dialAddr, info.ForgeHostname, err)
 	}
 	defer conn.Close()
 
 	certs := conn.(*tls.Conn).ConnectionState().PeerCertificates
 	if len(certs) == 0 {
-		return fmt.Errorf("no TLS certificates from %s", addr)
+		return fmt.Errorf("no TLS certificates from %s", dialAddr)
 	}
 
 	if !slices.Contains(certs[0].DNSNames, info.ExpectedSAN) {
@@ -365,7 +387,7 @@ func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config
 			certs[0].DNSNames, info.ExpectedSAN)
 	}
 
-	c.logger.Debugf("node %s: TLS certificate verified: %s (SAN: %s)", nodeName, addr, info.ExpectedSAN)
+	c.logger.Debugf("node %s: TLS certificate verified: %s (SAN: %s)", nodeName, dialAddr, info.ExpectedSAN)
 	return nil
 }
 
