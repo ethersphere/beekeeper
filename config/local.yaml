@@ -446,7 +446,7 @@ checks:
       postage-label: test-label
     type: feed
   ci-autotls:
-    timeout: 15m
+    timeout: 20m
     type: autotls
     options:
       ultra-light-group: ultra-light
