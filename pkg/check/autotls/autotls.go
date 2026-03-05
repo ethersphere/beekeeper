@@ -282,7 +282,7 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 }
 
 func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string, connectTimeout time.Duration) error {
-	const renewalWaitTime = 350 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
+	const renewalWaitTime = 700 * time.Second // certmagic checks renewal every ~10min; 700s covers expiry (300s) + check interval
 
 	// Snapshot certificate serial numbers before waiting.
 	preSerials := c.getCertSerials(ctx, forgeNodes, caCertPEM)
