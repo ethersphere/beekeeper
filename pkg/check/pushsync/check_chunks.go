@@ -16,7 +16,7 @@ import (
 )
 
 // checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logging.Logger) error {
+func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logging.Logger, m metrics) error {
 	l.Info("running pushsync (chunks mode)")
 	rnds := random.PseudoGenerators(o.Seed, o.UploadNodeCount)
 	l.Infof("seed: %d", o.Seed)
@@ -55,12 +55,17 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logg
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 
+			t0 := time.Now()
 			ref, err := uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
-
+			d0 := time.Since(t0)
 			l.Infof("uploaded chunk %s to node %s", ref.String(), nodeName)
+
+			m.UploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+			m.UploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
+			m.UploadTimeHistogram.Observe(d0.Seconds())
 
 			closestName, closestAddress, err := chunk.ClosestNodeFromMap(overlays)
 			if err != nil {
@@ -74,9 +79,11 @@ func checkChunks(ctx context.Context, c orchestration.Cluster, o Options, l logg
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
 			if !synced {
+				m.NotSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				return fmt.Errorf("node %s chunk %s not found in the closest node %s", nodeName, ref.String(), closestAddress)
 			}
 
+			m.SyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			l.Infof("node %s chunk %s found in the closest node %s", nodeName, ref.String(), closestAddress)
 
 			uploaderAddr, err := uploader.Overlay(ctx)
