@@ -102,7 +102,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		}
 	}
 
-	if err := c.testCertificateRenewal(ctx, clients, wssNodes, forgeNodes, caCertPEM, connectTimeout); err != nil {
+	if err := c.testCertificateRenewal(ctx, clients, wssNodes, forgeNodes, caCertPEM, o.ForgeTLSHostAddress, connectTimeout); err != nil {
 		return fmt.Errorf("certificate renewal test: %w", err)
 	}
 
@@ -281,10 +281,14 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 	return nil
 }
 
-func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string, connectTimeout time.Duration) error {
-	const renewalBuffer = 30 * time.Second
+func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM, forgeTLSHostAddress string, connectTimeout time.Duration) error {
+	const (
+		renewalBuffer       = 2 * time.Minute
+		expiredRenewalWait  = 10 * time.Minute // wait for next maintenance tick when cert already expired
+		handshakeBlockLimit = 95 * time.Second // certmagic blocks up to 90s on handshake renewal
+	)
 
-	before := c.getCertSnapshots(ctx, forgeNodes, caCertPEM)
+	before := c.getCertSnapshots(ctx, forgeNodes, caCertPEM, forgeTLSHostAddress)
 	if len(before) == 0 {
 		c.logger.Warning("no TLS endpoints reachable, skipping serial comparison")
 	} else {
@@ -296,9 +300,14 @@ func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*
 			}
 		}
 
-		waitDuration := time.Until(earliest) + renewalBuffer
-		if waitDuration < 0 {
-			waitDuration = renewalBuffer
+		untilExpiry := time.Until(earliest)
+		var waitDuration time.Duration
+		if untilExpiry <= 0 {
+			c.logger.Info("cert already expired, triggering renewal via TLS connections")
+			c.triggerRenewalConnections(ctx, forgeNodes, forgeTLSHostAddress, handshakeBlockLimit)
+			waitDuration = expiredRenewalWait
+		} else {
+			waitDuration = untilExpiry + renewalBuffer
 		}
 		c.logger.Infof("earliest cert expires at %s, waiting %v", earliest, waitDuration)
 
@@ -308,7 +317,7 @@ func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*
 		case <-time.After(waitDuration):
 		}
 
-		after := c.getCertSnapshots(ctx, forgeNodes, caCertPEM)
+		after := c.getCertSnapshots(ctx, forgeNodes, caCertPEM, forgeTLSHostAddress)
 		var renewed, unchanged int
 		for key, pre := range before {
 			post, ok := after[key]
@@ -324,10 +333,35 @@ func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*
 				c.logger.Infof("%s: renewed (serial %s -> %s)", key, pre.Serial, post.Serial)
 			}
 		}
-		if unchanged > 0 && renewed == 0 {
+		c.logger.Infof("certificate renewal verified: %d renewed, %d unchanged", renewed, unchanged)
+		if renewed == 0 && unchanged > 0 {
+			c.logger.Infof("no renewals yet, waiting 1 more minute for certmagic to complete")
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(time.Minute):
+			}
+			after = c.getCertSnapshots(ctx, forgeNodes, caCertPEM, forgeTLSHostAddress)
+			renewed, unchanged = 0, 0
+			for key, pre := range before {
+				post, ok := after[key]
+				if !ok {
+					continue
+				}
+				if pre.Serial == post.Serial {
+					unchanged++
+				} else {
+					renewed++
+				}
+			}
+			c.logger.Infof("after retry: %d renewed, %d unchanged", renewed, unchanged)
+		}
+		if renewed == 0 && unchanged > 0 {
 			return fmt.Errorf("no certificates renewed: %d/%d serials unchanged after expiry", unchanged, len(before))
 		}
-		c.logger.Infof("certificate renewal verified: %d renewed, %d unchanged", renewed, unchanged)
+		if renewed == 0 && unchanged == 0 && len(before) > 0 {
+			return fmt.Errorf("could not verify renewal: all %d endpoints unreachable after expiry", len(before))
+		}
 	}
 
 	if err := c.testWSSConnectivity(ctx, clients, wssNodes, connectTimeout); err != nil {
