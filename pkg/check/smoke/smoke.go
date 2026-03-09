@@ -94,7 +94,6 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 	c.logger.Infof("upload timeout: %s", o.UploadTimeout.String())
 	c.logger.Infof("download timeout: %s", o.DownloadTimeout.String())
 	c.logger.Infof("total duration: %s", o.Duration.String())
-	c.logger.Infof("redundancy levels: %v", o.RLevels)
 
 	rnd := random.PseudoGenerator(o.RndSeed)
 
