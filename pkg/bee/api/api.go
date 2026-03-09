@@ -34,7 +34,7 @@ const (
 	swarmFeedIndexNextHeader    = "Swarm-Feed-Index-Next"
 	swarmIndexDocumentHeader    = "Swarm-Index-Document"
 	swarmErrorDocumentHeader    = "Swarm-Error-Document"
-	swarmRedundancyLevelHeader       = "Swarm-Redundancy-Level"
+	swarmRedundancyLevelHeader  = "Swarm-Redundancy-Level"
 )
 
 // Client manages communication with the Bee API.
@@ -226,8 +226,8 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 	if opts != nil && opts.Cache != nil {
 		req.Header.Set(swarmCacheDownloadHeader, strconv.FormatBool(*opts.Cache))
 	}
-	if opts != nil && opts.RLevel != redundancy.NONE {
-		req.Header.Set(swarmRedundancyLevelHeader, strconv.Itoa(int(opts.RLevel)))
+	if opts != nil && opts.RLevel != nil && *opts.RLevel != redundancy.NONE {
+		req.Header.Set(swarmRedundancyLevelHeader, strconv.Itoa(int(*opts.RLevel)))
 	}
 	if opts != nil && opts.RedundancyFallbackMode != nil {
 		req.Header.Set(swarmRedundancyFallbackMode, strconv.FormatBool(*opts.RedundancyFallbackMode))

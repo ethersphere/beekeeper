@@ -22,7 +22,7 @@ type test struct {
 	logger logging.Logger
 }
 
-func (t *test) Upload(ctx context.Context, bee *bee.Client, data []byte, batchID string, rLevel redundancy.Level) (swarm.Address, time.Duration, error) {
+func (t *test) Upload(ctx context.Context, bee *bee.Client, data []byte, batchID string, rLevel *redundancy.Level) (swarm.Address, time.Duration, error) {
 	t.logger.Infof("node %s: uploading %d bytes, batch id %s", bee.Name(), len(data), batchID)
 	start := time.Now()
 	addr, err := bee.UploadBytes(ctx, data, api.UploadOptions{Pin: false, BatchID: batchID, Direct: true, RLevel: rLevel})
@@ -36,13 +36,13 @@ func (t *test) Upload(ctx context.Context, bee *bee.Client, data []byte, batchID
 	return addr, txDuration, nil
 }
 
-func (t *test) Download(ctx context.Context, bee *bee.Client, addr swarm.Address, rLevel redundancy.Level) ([]byte, time.Duration, error) {
+func (t *test) Download(ctx context.Context, bee *bee.Client, addr swarm.Address, rLevel *redundancy.Level) ([]byte, time.Duration, error) {
 	t.logger.Infof("node %s: downloading address %s", bee.Name(), addr)
 
 	start := time.Now()
 
 	var downloadOpts *api.DownloadOptions
-	if rLevel != redundancy.NONE {
+	if rLevel != nil && *rLevel != redundancy.NONE {
 		fallbackMode := true
 		downloadOpts = &api.DownloadOptions{
 			RLevel:                 rLevel,

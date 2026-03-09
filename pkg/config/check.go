@@ -751,9 +751,10 @@ func applyCheckConfig(global CheckGlobalConfig, local, opts any) (err error) {
 			if !lv.Field(i).IsNil() {
 				fieldValue := lv.FieldByName(fieldName).Elem()
 				n := fieldValue.Len()
-				levels := make([]beeRedundancy.Level, n)
+				levels := make([]*beeRedundancy.Level, n)
 				for j := 0; j < n; j++ {
-					levels[j] = beeRedundancy.Level(uint8(fieldValue.Index(j).Uint()))
+					l := beeRedundancy.Level(uint8(fieldValue.Index(j).Uint()))
+					levels[j] = &l
 				}
 				ft, ok := ot.FieldByName(fieldName)
 				if ok {

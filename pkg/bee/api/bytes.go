@@ -35,8 +35,8 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 	}
 	h.Add(deferredUploadHeader, strconv.FormatBool(!o.Direct))
 	h.Add(postageStampBatchHeader, o.BatchID)
-	if o.RLevel != redundancy.NONE {
-		h.Add(redundancyLevelHeader, strconv.Itoa(int(o.RLevel)))
+	if o.RLevel != nil && *o.RLevel != redundancy.NONE {
+		h.Add(swarmRedundancyLevelHeader, strconv.Itoa(int(*o.RLevel)))
 	}
 
 	err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)

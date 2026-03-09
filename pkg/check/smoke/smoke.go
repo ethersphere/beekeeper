@@ -35,7 +35,7 @@ type Options struct {
 	UploadTimeout   time.Duration
 	DownloadTimeout time.Duration
 	IterationWait   time.Duration
-	RLevels         []redundancy.Level
+	RLevels         []*redundancy.Level
 }
 
 // NewDefaultOptions returns new default options
@@ -54,7 +54,7 @@ func NewDefaultOptions() Options {
 		UploadTimeout:   60 * time.Minute,
 		DownloadTimeout: 60 * time.Minute,
 		IterationWait:   5 * time.Minute,
-		RLevels:         []redundancy.Level{redundancy.PARANOID},
+		RLevels:         []*redundancy.Level{},
 	}
 }
 
@@ -138,13 +138,23 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 		c.logger.WithField("batch_id", batchID).Infof("node %s: using batch", uploader.Name())
 
-		for _, rLevel := range o.RLevels {
+		rLevels := o.RLevels
+		if len(rLevels) == 0 {
+			rLevels = []*redundancy.Level{nil}
+		}
+		rLevelIdx := 0
+		for {
+			rLevel := rLevels[rLevelIdx]
 			for _, contentSize := range fileSizes {
 				select {
 				case <-ctx.Done():
 					return nil
 				default:
-					c.logger.Infof("testing file size: %d bytes (%.2f KB), redundancy level: %d", contentSize, float64(contentSize)/1024, rLevel)
+					if rLevel != nil {
+						c.logger.Infof("testing file size: %d bytes (%.2f KB), redundancy level: %d", contentSize, float64(contentSize)/1024, *rLevel)
+					} else {
+						c.logger.Infof("testing file size: %d bytes (%.2f KB), redundancy level: (not set)", contentSize, float64(contentSize)/1024)
+					}
 				}
 
 				sizeLabel := fmt.Sprintf("%d", contentSize)
@@ -276,6 +286,10 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 				}
 
 				c.logger.Infof("completed testing file size: %d bytes", contentSize)
+			}
+			rLevelIdx++
+			if rLevelIdx >= len(rLevels) {
+				break
 			}
 		}
 
