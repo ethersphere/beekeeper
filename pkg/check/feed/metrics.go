@@ -1,0 +1,33 @@
+package feed
+
+import (
+	m "github.com/ethersphere/beekeeper/pkg/metrics"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+type metrics struct {
+	FeedUpdateDurationSeconds    prometheus.Histogram
+	FeedRetrievalDurationSeconds prometheus.Histogram
+}
+
+func newMetrics(subsystem string) metrics {
+	return metrics{
+		FeedUpdateDurationSeconds: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "feed_update_duration_seconds",
+				Help:      "Duration of each feed update (upload + UpdateFeed).",
+			},
+		),
+		FeedRetrievalDurationSeconds: prometheus.NewHistogram(
+			prometheus.HistogramOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "feed_retrieval_duration_seconds",
+				Help:      "Duration from FindFeedUpdate to DownloadFileBytes completion.",
+			},
+		),
+	}
+}
+
