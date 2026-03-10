@@ -12,7 +12,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
-	metricsPkg "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/prometheus/client_golang/prometheus"
@@ -39,7 +38,6 @@ func NewDefaultOptions() Options {
 
 // compile check whether Check implements interface
 var _ beekeeper.Action = (*CheckV1)(nil)
-var _ metricsPkg.Reporter = (*CheckV1)(nil)
 
 // Check instance.
 type CheckV1 struct {
