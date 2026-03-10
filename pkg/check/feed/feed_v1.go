@@ -185,10 +185,10 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 	if err != nil {
 		return fmt.Errorf("download root feed: %w", err)
 	}
-	c.metrics.FeedRetrievalDurationSeconds.Observe(time.Since(retrievalStart).Seconds())
 	lastUpdateData := fmt.Sprintf("update-%d", o.NUpdates-1)
 	if string(d) != lastUpdateData {
 		return fmt.Errorf("expected file content to be %s, got %s", lastUpdateData, string(d))
 	}
+	c.metrics.FeedRetrievalDurationSeconds.Observe(time.Since(retrievalStart).Seconds())
 	return nil
 }
