@@ -32,7 +32,7 @@ type CheckV2 struct {
 // NewCheck returns a new check instance.
 func NewCheckV2(logger logging.Logger) beekeeper.Action {
 	return &CheckV2{
-		metrics: newMetrics("check_feed"),
+		metrics: newMetrics("check_feed_v2"),
 		logger:  logger,
 	}
 }
