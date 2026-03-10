@@ -38,7 +38,7 @@ func NewCheckV2(logger logging.Logger) beekeeper.Action {
 }
 
 func (c *CheckV2) Report() []prometheus.Collector {
-	return metricsPkg.PrometheusCollectorsFromFields(c.metrics)
+	return c.metrics.Report()
 }
 
 func (c *CheckV2) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {

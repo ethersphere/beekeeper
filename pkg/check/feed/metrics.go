@@ -1,7 +1,7 @@
 package feed
 
 import (
-	m "github.com/ethersphere/beekeeper/pkg/metrics"
+	beekeeperMetrics "github.com/ethersphere/beekeeper/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -14,7 +14,7 @@ func newMetrics(subsystem string) metrics {
 	return metrics{
 		FeedUpdateDurationSeconds: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: m.Namespace,
+				Namespace: beekeeperMetrics.Namespace,
 				Subsystem: subsystem,
 				Name:      "feed_update_duration_seconds",
 				Help:      "Duration of each feed update (upload + UpdateFeed).",
@@ -22,7 +22,7 @@ func newMetrics(subsystem string) metrics {
 		),
 		FeedRetrievalDurationSeconds: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Namespace: m.Namespace,
+				Namespace: beekeeperMetrics.Namespace,
 				Subsystem: subsystem,
 				Name:      "feed_retrieval_duration_seconds",
 				Help:      "Duration from FindFeedUpdate to DownloadFileBytes completion.",
@@ -31,3 +31,6 @@ func newMetrics(subsystem string) metrics {
 	}
 }
 
+func (m *metrics) Report() []prometheus.Collector {
+	return beekeeperMetrics.PrometheusCollectorsFromFields(*m)
+}
