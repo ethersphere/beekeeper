@@ -76,11 +76,12 @@ func (c *CheckV2) checkAvailability(ctx context.Context, cluster orchestration.C
 		return fmt.Errorf("availability check requires at least 1 full node")
 	}
 
+	start := time.Now()
 	_, _, err = clients[0].DownloadFile(ctx, ref, nil)
 	if err != nil {
 		return fmt.Errorf("download root feed: %w", err)
 	}
-
+	c.metrics.FeedAvailabilityDurationSeconds.Observe(time.Since(start).Seconds())
 	return nil
 }
 

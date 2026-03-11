@@ -84,10 +84,12 @@ func (c *CheckV1) checkAvailability(ctx context.Context, cluster orchestration.C
 	}
 
 	client := clients[nodeName]
+	start := time.Now()
 	_, _, err = client.DownloadFile(ctx, ref, nil)
 	if err != nil {
 		return fmt.Errorf("download file: %w", err)
 	}
+	c.metrics.FeedAvailabilityDurationSeconds.Observe(time.Since(start).Seconds())
 	return nil
 }
 
