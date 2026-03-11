@@ -18,7 +18,7 @@ func newMetrics(subsystem string) metrics {
 				Namespace: beekeeperMetrics.Namespace,
 				Subsystem: subsystem,
 				Name:      "feed_update_duration_seconds",
-				Help:      "Duration of each feed update (upload + UpdateFeed).",
+				Help:      "Duration of each feed update from upload until feed is updated (v2 also fetches root chunk).",
 				Buckets:   []float64{0.1, 0.25, 0.5, 1, 2, 2.5, 3, 5, 10},
 			},
 		),
