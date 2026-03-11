@@ -157,6 +157,7 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 			return fmt.Errorf("update feed: %w", err)
 		}
 		c.metrics.FeedUpdateDurationSeconds.Observe(time.Since(updateStart).Seconds())
+		c.logger.Infof("feed update duration: %.3fs", time.Since(updateStart).Seconds())
 		c.logger.Infof("node %s: feed updated", upClient.Name())
 		c.logger.Infof("soc reference: %s", socRes.Reference)
 		c.logger.Infof("wrapped reference: %s", file.Address())
@@ -190,5 +191,6 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 		return fmt.Errorf("expected file content to be %s, got %s", lastUpdateData, string(d))
 	}
 	c.metrics.FeedRetrievalDurationSeconds.Observe(time.Since(retrievalStart).Seconds())
+	c.logger.Infof("feed retrieval duration: %.3fs", time.Since(retrievalStart).Seconds())
 	return nil
 }
