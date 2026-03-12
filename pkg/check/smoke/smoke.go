@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
@@ -157,6 +158,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 				}
 
 				sizeLabel := fmt.Sprintf("%d", contentSize)
+				rLevelLabel := redundancyLevelLabel(rLevel)
 
 				var (
 					txDuration time.Duration
@@ -192,10 +194,10 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 					txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
 
-					c.metrics.UploadAttempts.WithLabelValues(sizeLabel, uploader.Name()).Inc()
+					c.metrics.UploadAttempts.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Inc()
 					address, txDuration, err = test.Upload(txCtx, uploader, txData, batchID, rLevel)
 					if err != nil {
-						c.metrics.UploadErrors.WithLabelValues(sizeLabel, uploader.Name()).Inc()
+						c.metrics.UploadErrors.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Inc()
 						c.logger.Errorf("upload failed for size %d: %v", contentSize, err)
 						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
 					} else {
@@ -209,11 +211,13 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					continue
 				}
 
-				c.metrics.UploadDuration.WithLabelValues(sizeLabel, uploader.Name()).Observe(txDuration.Seconds())
+				c.metrics.UploadDuration.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Observe(txDuration.Seconds())
+				c.metrics.UploadSuccess.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Inc()
+				c.metrics.UploadedBytes.WithLabelValues(uploader.Name(), rLevelLabel).Add(float64(contentSize))
 
 				if txDuration.Seconds() > 0 {
 					uploadThroughput := float64(contentSize) / txDuration.Seconds()
-					c.metrics.UploadThroughput.WithLabelValues(sizeLabel, uploader.Name()).Set(uploadThroughput)
+					c.metrics.UploadThroughput.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Observe(uploadThroughput)
 				}
 
 				time.Sleep(o.NodesSyncWait)
@@ -232,30 +236,32 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					case <-time.After(o.RxOnErrWait):
 					}
 
-					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, downloader.Name()).Inc()
+					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
 
 					rxCtx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
 					rxData, rxDuration, err = test.Download(rxCtx, downloader, address, rLevel)
 					if err != nil {
-						c.metrics.DownloadErrors.WithLabelValues(sizeLabel, downloader.Name()).Inc()
+						c.metrics.DownloadErrors.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
 						c.logger.Errorf("download failed for size %d: %v", contentSize, err)
 						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 						continue
 					}
 
 					if bytes.Equal(rxData, txData) {
-						c.metrics.DownloadDuration.WithLabelValues(sizeLabel, downloader.Name()).Observe(rxDuration.Seconds())
+						c.metrics.DownloadDuration.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Observe(rxDuration.Seconds())
+						c.metrics.DownloadSuccess.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
+						c.metrics.DownloadedBytes.WithLabelValues(downloader.Name(), rLevelLabel).Add(float64(contentSize))
 
 						if rxDuration.Seconds() > 0 {
 							downloadThroughput := float64(contentSize) / rxDuration.Seconds()
-							c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name()).Set(downloadThroughput)
+							c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Observe(downloadThroughput)
 						}
 						downloaded = true
 						break
 					}
 
 					c.logger.Infof("data mismatch for size %d: uploaded and downloaded data differ", contentSize)
-					c.metrics.DownloadMismatch.WithLabelValues(sizeLabel, downloader.Name()).Inc()
+					c.metrics.DownloadMismatch.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
 
 					rxLen, txLen := len(rxData), len(txData)
 					if rxLen != txLen {
@@ -300,4 +306,11 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 func (c *Check) Report() []prometheus.Collector {
 	return c.metrics.Report()
+}
+
+func redundancyLevelLabel(rLevel *redundancy.Level) string {
+	if rLevel == nil {
+		return "not_set"
+	}
+	return strconv.Itoa(int(*rLevel))
 }
