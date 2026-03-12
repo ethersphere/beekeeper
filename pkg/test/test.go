@@ -42,7 +42,7 @@ func (t *test) Download(ctx context.Context, bee *bee.Client, addr swarm.Address
 	start := time.Now()
 
 	var downloadOpts *api.DownloadOptions
-	if rLevel != nil && *rLevel != redundancy.NONE {
+	if rLevel != nil {
 		fallbackMode := true
 		downloadOpts = &api.DownloadOptions{
 			RLevel:                 rLevel,
