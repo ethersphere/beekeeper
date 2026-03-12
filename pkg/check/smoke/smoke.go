@@ -217,7 +217,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 				if txDuration.Seconds() > 0 {
 					uploadThroughput := float64(contentSize) / txDuration.Seconds()
-					c.metrics.UploadThroughput.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Observe(uploadThroughput)
+					c.metrics.UploadThroughput.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Set(uploadThroughput)
 				}
 
 				time.Sleep(o.NodesSyncWait)
@@ -254,7 +254,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 						if rxDuration.Seconds() > 0 {
 							downloadThroughput := float64(contentSize) / rxDuration.Seconds()
-							c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Observe(downloadThroughput)
+							c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Set(downloadThroughput)
 						}
 						downloaded = true
 						break

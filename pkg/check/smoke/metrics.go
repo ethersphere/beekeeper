@@ -17,8 +17,8 @@ type metrics struct {
 	DownloadSuccess     *prometheus.CounterVec
 	UploadDuration      *prometheus.HistogramVec
 	DownloadDuration    *prometheus.HistogramVec
-	UploadThroughput    *prometheus.HistogramVec
-	DownloadThroughput  *prometheus.HistogramVec
+	UploadThroughput    *prometheus.GaugeVec
+	DownloadThroughput  *prometheus.GaugeVec
 	UploadedBytes       *prometheus.CounterVec
 	DownloadedBytes     *prometheus.CounterVec
 }
@@ -112,23 +112,21 @@ func newMetrics(subsystem string) metrics {
 			},
 			[]string{labelSizeBytes, labelNodeName, labelRedundancyLevel},
 		),
-		UploadThroughput: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{
+		UploadThroughput: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "upload_throughput_bytes_per_second",
 				Help:      "Upload throughput in bytes per second.",
-				Buckets:   []float64{1_000, 5_000, 10_000, 50_000, 100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 50_000_000, 100_000_000, 500_000_000},
 			},
 			[]string{labelSizeBytes, labelNodeName, labelRedundancyLevel},
 		),
-		DownloadThroughput: prometheus.NewHistogramVec(
-			prometheus.HistogramOpts{
+		DownloadThroughput: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
 				Namespace: m.Namespace,
 				Subsystem: subsystem,
 				Name:      "download_throughput_bytes_per_second",
 				Help:      "Download throughput in bytes per second.",
-				Buckets:   []float64{1_000, 5_000, 10_000, 50_000, 100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 50_000_000, 100_000_000, 500_000_000},
 			},
 			[]string{labelSizeBytes, labelNodeName, labelRedundancyLevel},
 		),
