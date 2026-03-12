@@ -6,6 +6,8 @@ VERSION ?= "$(shell git describe --tags --abbrev=0 | cut -c2-)"
 LDFLAGS ?= -s -w \
 -X github.com/ethersphere/beekeeper.commit="$(COMMIT)" \
 -X github.com/ethersphere/beekeeper.version="$(VERSION)"
+IMAGE ?= ethersphere/beekeeper:latest
+PLATFORM ?= linux/amd64
 
 .PHONY: all
 all: build lint vet test-race binary
@@ -52,5 +54,10 @@ build:
 clean:
 	$(GO) clean
 	rm -rf dist/
+
+.PHONY: docker-build
+docker-build:
+	docker build -f Dockerfile --platform $(PLATFORM) -t $(IMAGE) .
+	@echo "Docker image: $(IMAGE)"
 
 FORCE:
