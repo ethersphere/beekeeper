@@ -39,6 +39,12 @@ const (
 
 var _ beekeeper.Action = (*Check)(nil)
 
+var insecureHTTPClient = &http.Client{
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	},
+}
+
 type Check struct {
 	logger logging.Logger
 }
@@ -418,16 +424,11 @@ func pebbleMgmtURL(acmeEndpoint string) string {
 // fetchPebbleCACert fetches the root CA PEM from Pebble's management API.
 // Pebble's management endpoint uses a self-signed TLS cert, so we skip verification.
 func fetchPebbleCACert(ctx context.Context, url string) (string, error) {
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
-	resp, err := client.Do(req)
+	resp, err := insecureHTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("GET %s: %w", url, err)
 	}
