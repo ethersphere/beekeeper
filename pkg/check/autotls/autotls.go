@@ -18,7 +18,7 @@ import (
 )
 
 type Options struct {
-	AutoTLSGroup        string
+	AutoTLSGroups       []string
 	UltraLightGroup     string
 	ForgeDNSAddress     string
 	ForgeTLSHostAddress string
@@ -27,7 +27,7 @@ type Options struct {
 
 func NewDefaultOptions() Options {
 	return Options{
-		AutoTLSGroup:    "bee-autotls",
+		AutoTLSGroups:   []string{"bee-autotls"},
 		UltraLightGroup: "ultra-light",
 	}
 }
@@ -62,12 +62,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("get node clients: %w", err)
 	}
 
-	autoTLSClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.AutoTLSGroup})
+	autoTLSClients := orchestration.ClientMap(clients).FilterByNodeGroups(o.AutoTLSGroups)
 	if len(autoTLSClients) == 0 {
-		return fmt.Errorf("no nodes found in AutoTLS group %q", o.AutoTLSGroup)
+		return fmt.Errorf("no nodes found in AutoTLS groups %v", o.AutoTLSGroups)
 	}
 
-	c.logger.Infof("found %d nodes in AutoTLS group %q", len(autoTLSClients), o.AutoTLSGroup)
+	c.logger.Infof("found %d nodes in AutoTLS groups %v", len(autoTLSClients), o.AutoTLSGroups)
 
 	wssNodes, err := c.verifyWSSUnderlays(ctx, autoTLSClients, o.UltraLightGroup)
 	if err != nil {

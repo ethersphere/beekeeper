@@ -66,8 +66,13 @@ clusters:
         mode: node
       bee-autotls:
         bee-config: bee-local-autotls
+        config: local-autotls
+        count: 1
+        mode: node
+      bee-autotls-extra:
+        bee-config: bee-local-autotls
         config: local
-        count: 2
+        count: 1
         mode: node
       light:
         bee-config: bee-local-light-autotls
@@ -132,6 +137,9 @@ node-groups:
     update-strategy: "RollingUpdate"
   local-dns:
     _inherit: "local"
+  local-autotls:
+    _inherit: "local"
+    p2p-wss-node-port: 31635
   local-gc:
     _inherit: "local"
   local-light:
@@ -450,7 +458,9 @@ checks:
     type: autotls
     options:
       ultra-light-group: ultra-light
-      autotls-group: bee-autotls
+      autotls-groups:
+        - bee-autotls
+        - bee-autotls-extra
       forge-dns-address: "127.0.0.1:30053"
       forge-tls-host-address: "127.0.0.1:31635"
       pebble-mgmt-url: "https://127.0.0.1:31500/roots/0"

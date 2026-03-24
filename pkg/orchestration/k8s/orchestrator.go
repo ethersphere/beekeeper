@@ -238,6 +238,31 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	}
 	n.log.Infof("service %s is set in namespace %s", p2pSvc, o.Namespace)
 
+	if o.P2PWSSNodePort > 0 && portP2PWSS > 0 {
+		wssSvc := fmt.Sprintf("%s-wss", o.Name)
+		if _, err := n.k8s.Service.Set(ctx, wssSvc, o.Namespace, service.Options{
+			Annotations: o.Annotations,
+			Labels:      o.Labels,
+			ServiceSpec: service.Spec{
+				Ports: service.Ports{
+					{
+						AppProtocol: "TCP",
+						Name:        "wss",
+						Protocol:    "TCP",
+						Port:        portP2PWSS,
+						TargetPort:  "p2p-wss",
+						Nodeport:    o.P2PWSSNodePort,
+					},
+				},
+				Selector: o.Selector,
+				Type:     "NodePort",
+			},
+		}); err != nil {
+			return fmt.Errorf("set service in namespace %s: %w", o.Namespace, err)
+		}
+		n.log.Infof("service %s is set in namespace %s", wssSvc, o.Namespace)
+	}
+
 	// headless service
 	headlessSvc := fmt.Sprintf("%s-headless", o.Name)
 	if _, err := n.k8s.Service.Set(ctx, headlessSvc, o.Namespace, service.Options{
@@ -361,6 +386,12 @@ func (n *nodeOrchestrator) Delete(ctx context.Context, name string, namespace st
 		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
 	}
 	n.log.Infof("service %s is deleted in namespace %s", p2pSvc, namespace)
+
+	// wss service (best-effort, may not exist)
+	wssSvc := fmt.Sprintf("%s-wss", name)
+	if err := n.k8s.Service.Delete(ctx, wssSvc, namespace); err != nil {
+		return fmt.Errorf("deleting service in namespace %s: %w", namespace, err)
+	}
 
 	// api service's ingress
 	if err := n.k8s.Ingress.Delete(ctx, name, namespace); err != nil {

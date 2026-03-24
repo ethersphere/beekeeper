@@ -86,13 +86,13 @@ var Checks = map[string]CheckType{
 	"autotls": {
 		NewAction: autotls.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
-			checkOpts := new(struct {
-				AutoTLSGroup        *string `yaml:"autotls-group"`
-				UltraLightGroup     *string `yaml:"ultra-light-group"`
-				ForgeDNSAddress     *string `yaml:"forge-dns-address"`
-				ForgeTLSHostAddress *string `yaml:"forge-tls-host-address"`
-				PebbleMgmtURL       *string `yaml:"pebble-mgmt-url"`
-			})
+		checkOpts := new(struct {
+			AutoTLSGroups       *[]string `yaml:"autotls-groups"`
+			UltraLightGroup     *string   `yaml:"ultra-light-group"`
+			ForgeDNSAddress     *string   `yaml:"forge-dns-address"`
+			ForgeTLSHostAddress *string   `yaml:"forge-tls-host-address"`
+			PebbleMgmtURL       *string   `yaml:"pebble-mgmt-url"`
+		})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}

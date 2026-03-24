@@ -19,6 +19,7 @@ type NodeGroup struct {
 	IngressClass              *string            `yaml:"ingress-class"`
 	Labels                    *map[string]string `yaml:"labels"`
 	NodeSelector              *map[string]string `yaml:"node-selector"`
+	P2PWSSNodePort            *int32             `yaml:"p2p-wss-node-port"`
 	PersistenceEnabled        *bool              `yaml:"persistence-enabled"`
 	PersistenceStorageClass   *string            `yaml:"persistence-storage-class"`
 	PersistenceStorageRequest *string            `yaml:"persistence-storage-request"`
