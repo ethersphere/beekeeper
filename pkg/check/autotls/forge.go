@@ -510,6 +510,7 @@ func (c *Check) getCertSnapshots(ctx context.Context, forgeNodes map[string][]*f
 
 			conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", addr)
 			if err != nil {
+				c.logger.Debugf("get cert snapshots dial %s: %v", addr, err)
 				continue
 			}
 
