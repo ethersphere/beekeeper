@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/cert"
+	"github.com/ethersphere/beekeeper/pkg/check/autotls/internal"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	ma "github.com/multiformats/go-multiaddr"
@@ -39,7 +39,7 @@ const (
 
 var _ beekeeper.Action = (*Check)(nil)
 
-var insecureHTTPClient = &http.Client{
+var insecurePebbleHTTPClient = &http.Client{
 	Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	},
@@ -384,6 +384,8 @@ func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*
 // Falls back to the static embedded cert if the fetch fails.
 func (c *Check) forgeConfig(ctx context.Context, cluster orchestration.Cluster, autoTLSClients orchestration.ClientList, pebbleMgmtURLOverride string) (forgeDomain, caCertPEM string) {
 	nodes := cluster.Nodes()
+	pebbleSvc := internal.NewPebble(insecurePebbleHTTPClient)
+
 	for _, client := range autoTLSClients {
 		node, ok := nodes[client.Name()]
 		if !ok || node.Config() == nil {
@@ -396,7 +398,7 @@ func (c *Check) forgeConfig(ctx context.Context, cluster orchestration.Cluster, 
 			if pebbleMgmtURLOverride != "" {
 				mgmtURL = pebbleMgmtURLOverride
 			}
-			liveCert, err := fetchPebbleCACert(ctx, mgmtURL)
+			liveCert, err := pebbleSvc.FetchRootCA(ctx, mgmtURL)
 			if err != nil {
 				c.logger.Warningf("failed to fetch live Pebble CA from %s, falling back to static cert: %v", mgmtURL, err)
 				caCertPEM = cert.PebbleCertificate
@@ -419,28 +421,4 @@ func pebbleMgmtURL(acmeEndpoint string) string {
 	}
 	base = strings.Replace(base, ":14000", ":15000", 1)
 	return base + "/roots/0"
-}
-
-// fetchPebbleCACert fetches the root CA PEM from Pebble's management API.
-// Pebble's management endpoint uses a self-signed TLS cert, so we skip verification.
-func fetchPebbleCACert(ctx context.Context, url string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return "", fmt.Errorf("create request: %w", err)
-	}
-	resp, err := insecureHTTPClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("GET %s: %w", url, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GET %s returned %s", url, resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("read response: %w", err)
-	}
-	return string(body), nil
 }
