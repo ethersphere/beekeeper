@@ -46,3 +46,7 @@ The HTTP client uses **TLS insecure skip verify** only for that management HTTPS
 | `internal/service.go` | Small HTTP client wrapper for Pebble management `GET` (root CA PEM). |
 
 Renewal **orchestration** lives in `renewal.go`; TLS dialing and address selection for snapshots and renewal triggers stay in `forge.go` next to other forge TLS code.
+
+## Sequence diagram
+
+![AutoTLS check sequence diagram](autotls-sequence-diagram.png)
