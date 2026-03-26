@@ -461,7 +461,7 @@ checks:
       autotls-groups:
         - bee-autotls
         - bee-autotls-extra
-      forge-dns-address: "p2p-forge.local.svc.cluster.local:53"
-      forge-tls-host-address: ""
-      pebble-mgmt-url: "https://pebble.local.svc.cluster.local:15000/roots/0"
+      forge-dns-address: "p2p-forge.local.svc.cluster.local:53" # When running locally, use 127.0.0.1:30053
+      forge-tls-host-address: "" # When running locally, use 127.0.0.1:31635
+      pebble-mgmt-url: "https://pebble.local.svc.cluster.local:15000/roots/0" # When running locally, use https://127.0.0.1:31500/roots/0
 
