@@ -40,6 +40,7 @@ const (
 var _ beekeeper.Action = (*Check)(nil)
 
 var insecurePebbleHTTPClient = &http.Client{
+	Timeout: connectTimeout,
 	Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	},
