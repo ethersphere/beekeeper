@@ -14,6 +14,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Options represents check options
@@ -40,14 +41,20 @@ var _ beekeeper.Action = (*CheckV1)(nil)
 
 // Check instance.
 type CheckV1 struct {
-	logger logging.Logger
+	metrics metrics
+	logger  logging.Logger
 }
 
 // NewCheck returns a new check instance.
 func NewCheckV1(logger logging.Logger) beekeeper.Action {
 	return &CheckV1{
-		logger: logger,
+		metrics: newMetrics("check_feed_v1"),
+		logger:  logger,
 	}
+}
+
+func (c *CheckV1) Report() []prometheus.Collector {
+	return c.metrics.Report()
 }
 
 func (c *CheckV1) Run(ctx context.Context, cluster orchestration.Cluster, opts interface{}) (err error) {
@@ -77,10 +84,12 @@ func (c *CheckV1) checkAvailability(ctx context.Context, cluster orchestration.C
 	}
 
 	client := clients[nodeName]
+	start := time.Now()
 	_, _, err = client.DownloadFile(ctx, ref, nil)
 	if err != nil {
 		return fmt.Errorf("download file: %w", err)
 	}
+	c.metrics.FeedAvailabilityDurationSeconds.Observe(time.Since(start).Seconds())
 	return nil
 }
 
@@ -133,6 +142,7 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 	// make updates
 	for i := 0; i < o.NUpdates; i++ {
 		time.Sleep(3 * time.Second)
+		updateStart := time.Now()
 		data := fmt.Sprintf("update-%d", i)
 		fName := fmt.Sprintf("file-%d", i)
 		file := bee.NewBufferFile(fName, bytes.NewBuffer([]byte(data)))
@@ -148,6 +158,8 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 		if err != nil {
 			return fmt.Errorf("update feed: %w", err)
 		}
+		c.metrics.FeedUpdateDurationSeconds.Observe(time.Since(updateStart).Seconds())
+		c.logger.Infof("feed update duration: %.3fs", time.Since(updateStart).Seconds())
 		c.logger.Infof("node %s: feed updated", upClient.Name())
 		c.logger.Infof("soc reference: %s", socRes.Reference)
 		c.logger.Infof("wrapped reference: %s", file.Address())
@@ -157,6 +169,7 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 	// fetch update
 	c.logger.Infof("fetching feed update")
 	c.logger.Infof("download client: %s", downClient.Name())
+	retrievalStart := time.Now()
 	update, err := downClient.FindFeedUpdate(ctx, signer, topic, nil)
 	if err != nil {
 		return fmt.Errorf("find update: %w", err)
@@ -179,5 +192,7 @@ func (c *CheckV1) feedCheck(ctx context.Context, cluster orchestration.Cluster, 
 	if string(d) != lastUpdateData {
 		return fmt.Errorf("expected file content to be %s, got %s", lastUpdateData, string(d))
 	}
+	c.metrics.FeedRetrievalDurationSeconds.Observe(time.Since(retrievalStart).Seconds())
+	c.logger.Infof("feed retrieval duration: %.3fs", time.Since(retrievalStart).Seconds())
 	return nil
 }
