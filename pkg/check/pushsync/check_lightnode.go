@@ -13,8 +13,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/random"
 )
 
-// checkChunks uploads given chunks on cluster and checks pushsync ability of the cluster
-func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options, l logging.Logger) error {
+// checkLightChunks uploads given chunks on cluster and checks pushsync ability of the cluster
+func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Options, l logging.Logger, m metrics) error {
 	l.Info("running pushsync (light-chunks mode)")
 	rnd := random.PseudoGenerator(o.Seed)
 	l.Infof("seed: %d", o.Seed)
@@ -61,6 +61,7 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 
 			var ref swarm.Address
 
+			t0 := time.Now()
 			for range 3 {
 				ref, err = uploader.UploadChunk(ctx, chunk.Data(), api.UploadOptions{BatchID: batchID})
 				if err == nil {
@@ -71,8 +72,13 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 			if err != nil {
 				return fmt.Errorf("node %s: %w", nodeName, err)
 			}
+			d0 := time.Since(t0)
 
 			l.Infof("uploaded chunk %s to node %s", ref.String(), nodeName)
+
+			m.UploadedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
+			m.UploadTimeGauge.WithLabelValues(overlays[nodeName].String(), ref.String()).Set(d0.Seconds())
+			m.UploadTimeHistogram.Observe(d0.Seconds())
 
 			time.Sleep(o.RetryDelay)
 
@@ -91,9 +97,11 @@ func checkLightChunks(ctx context.Context, cluster orchestration.Cluster, o Opti
 				time.Sleep(o.RetryDelay)
 			}
 			if !synced {
+				m.NotSyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 				return fmt.Errorf("node %s chunk %s not found in the closest node %s", nodeName, ref.String(), closestAddress)
 			}
 
+			m.SyncedCounter.WithLabelValues(overlays[nodeName].String()).Inc()
 			l.Infof("node %s chunk %s found in the closest node %s", nodeName, ref.String(), closestAddress)
 
 			skipPeers := []swarm.Address{closestAddress}

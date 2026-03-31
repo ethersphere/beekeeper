@@ -70,9 +70,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	switch o.Mode {
 	case "chunks":
-		return checkChunks(ctx, cluster, o, c.logger)
+		return checkChunks(ctx, cluster, o, c.logger, c.metrics)
 	case "light-chunks":
-		return checkLightChunks(ctx, cluster, o, c.logger)
+		return checkLightChunks(ctx, cluster, o, c.logger, c.metrics)
 	default:
 		return c.defaultCheck(ctx, cluster, o)
 	}
