@@ -8,10 +8,14 @@ import (
 	"fmt"
 	"net"
 	"slices"
+	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	forgeclient "github.com/ipshipyard/p2p-forge/client"
 	"github.com/libp2p/go-libp2p/core/peer"
+	mdns "github.com/miekg/dns"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multibase"
 )
@@ -216,20 +220,36 @@ func (c *Check) verifyForgeAddressFormat(wssNodes map[string][]string, forgeDoma
 }
 
 // verifyDNSResolution resolves each forge hostname and verifies it points to the expected IP.
-// Unreachable hostnames (e.g., cluster-internal domains when running outside k8s) are
-// skipped with a warning. At least one underlay per node must resolve successfully.
-func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo) error {
+// When forgeDNSAddress is set, queries are sent directly to that DNS server (bypassing the
+// system resolver) and lookup failures are treated as hard errors. Otherwise the system
+// resolver is used and unreachable hostnames are skipped with a warning.
+func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, forgeDNSAddress string) error {
 	c.logger.Infof("verifying DNS resolution for %d nodes", len(forgeNodes))
 
-	resolver := &net.Resolver{}
+	if forgeDNSAddress != "" {
+		c.logger.Infof("using custom forge DNS server: %s", forgeDNSAddress)
+	}
+
 	for nodeName, infos := range forgeNodes {
 		var verified int
 		for _, info := range infos {
-			ips, err := resolver.LookupHost(ctx, info.ForgeHostname)
-			if err != nil {
-				c.logger.Warningf("node %s: DNS lookup for %s failed (may be unreachable from host): %v",
-					nodeName, info.ForgeHostname, err)
-				continue
+			var (
+				ips []string
+				err error
+			)
+			if forgeDNSAddress != "" {
+				ips, err = lookupViaDNS(ctx, info.ForgeHostname, forgeDNSAddress, info.ForgeAddr.IPVersion)
+				if err != nil {
+					return fmt.Errorf("node %s: DNS lookup for %s via %s failed: %w",
+						nodeName, info.ForgeHostname, forgeDNSAddress, err)
+				}
+			} else {
+				ips, err = net.DefaultResolver.LookupHost(ctx, info.ForgeHostname)
+				if err != nil {
+					c.logger.Warningf("node %s: DNS lookup for %s failed (may be unreachable from host): %v",
+						nodeName, info.ForgeHostname, err)
+					continue
+				}
 			}
 
 			expectedIP := ipFromForgeAddr(info.ForgeAddr)
@@ -240,7 +260,7 @@ func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][
 			verified++
 			c.logger.Debugf("node %s: DNS resolution verified: %s -> %s", nodeName, info.ForgeHostname, expectedIP)
 		}
-		if verified == 0 {
+		if verified == 0 && forgeDNSAddress == "" {
 			c.logger.Warningf("node %s: no forge hostnames were resolvable from this host, skipping DNS check", nodeName)
 		}
 	}
@@ -249,10 +269,46 @@ func (c *Check) verifyDNSResolution(ctx context.Context, forgeNodes map[string][
 	return nil
 }
 
+// lookupViaDNS queries the given DNS server directly, bypassing the system resolver.
+// This is needed because macOS ignores net.Resolver.Dial and always uses the cgo resolver.
+func lookupViaDNS(ctx context.Context, hostname, dnsServer, ipVersion string) ([]string, error) {
+	qtype := mdns.TypeA
+	if ipVersion == "6" {
+		qtype = mdns.TypeAAAA
+	}
+
+	m := new(mdns.Msg)
+	m.SetQuestion(mdns.Fqdn(hostname), qtype)
+	m.RecursionDesired = true
+
+	r, _, err := (&mdns.Client{Net: "udp"}).ExchangeContext(ctx, m, dnsServer)
+	if err != nil {
+		return nil, err
+	}
+	if r.Rcode != mdns.RcodeSuccess {
+		return nil, fmt.Errorf("DNS server returned %s", mdns.RcodeToString[r.Rcode])
+	}
+
+	var ips []string
+	for _, ans := range r.Answer {
+		switch rr := ans.(type) {
+		case *mdns.A:
+			ips = append(ips, rr.A.String())
+		case *mdns.AAAA:
+			ips = append(ips, rr.AAAA.String())
+		}
+	}
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("no records found for %s", hostname)
+	}
+	return ips, nil
+}
+
 // verifyTLSCertificate connects to each forge endpoint and verifies the TLS certificate SAN.
 // Unreachable endpoints (e.g., cluster-internal IPs when running outside k8s) are
-// skipped with a warning. A wrong SAN on a reachable endpoint is a hard failure.
-func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string) error {
+// skipped with a warning. When forgeTLSHostAddress is set, the first node (by name order)
+// is dialed via that host:port so TLS can be verified from outside the cluster.
+func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM, forgeTLSHostAddress string) error {
 	c.logger.Infof("verifying TLS certificates for %d nodes", len(forgeNodes))
 
 	baseTLSConfig := &tls.Config{}
@@ -264,16 +320,60 @@ func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string]
 		baseTLSConfig.RootCAs = pool
 	}
 
-	for nodeName, infos := range forgeNodes {
+	nodeNames := make([]string, 0, len(forgeNodes))
+	for name := range forgeNodes {
+		nodeNames = append(nodeNames, name)
+	}
+	sort.Strings(nodeNames)
+
+	var firstNodeForOverride string
+	if forgeTLSHostAddress != "" && len(nodeNames) > 0 {
+		firstNodeForOverride = nodeNames[0]
+		c.logger.Infof("using host address %s for TLS check of node %s", forgeTLSHostAddress, firstNodeForOverride)
+	}
+
+	// certmagic maintenance runs every 10 min; handshake renewal can block up to 90s
+	const (
+		expiredCertRetryCount = 6
+		expiredCertRetryWait  = 90 * time.Second
+	)
+
+	for _, nodeName := range nodeNames {
+		infos := forgeNodes[nodeName]
 		var verified int
+		var dialAddr string
 		for _, info := range infos {
-			err := c.verifyNodeTLSCert(ctx, baseTLSConfig, nodeName, info)
+			if nodeName == firstNodeForOverride && forgeTLSHostAddress != "" {
+				dialAddr = forgeTLSHostAddress
+			} else {
+				dialAddr = net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+			}
+			var err error
+			for attempt := 0; attempt < expiredCertRetryCount; attempt++ {
+				err = c.verifyNodeTLSCert(ctx, baseTLSConfig, nodeName, info, dialAddr)
+				if err == nil {
+					verified++
+					break
+				}
+				var certErr x509.CertificateInvalidError
+				if errors.As(err, &certErr) && certErr.Reason == x509.Expired {
+					if attempt < expiredCertRetryCount-1 {
+						c.logger.Infof("node %s: certificate expired, waiting %v for renewal (attempt %d/%d)",
+							nodeName, expiredCertRetryWait, attempt+1, expiredCertRetryCount)
+						select {
+						case <-ctx.Done():
+							return ctx.Err()
+						case <-time.After(expiredCertRetryWait):
+						}
+						continue
+					}
+				}
+				break
+			}
 			if err == nil {
-				verified++
 				continue
 			}
 
-			// Distinguish connection failures (unreachable) from cert mismatches.
 			var netErr *net.OpError
 			if errors.As(err, &netErr) {
 				c.logger.Warningf("node %s: %v", nodeName, err)
@@ -290,22 +390,24 @@ func (c *Check) verifyTLSCertificate(ctx context.Context, forgeNodes map[string]
 	return nil
 }
 
-func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config, nodeName string, info *forgeUnderlayInfo) error {
-	addr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config, nodeName string, info *forgeUnderlayInfo, dialAddr string) error {
+	if dialAddr == "" {
+		dialAddr = net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+	}
 
 	cfg := baseTLSConfig.Clone()
 	cfg.ServerName = info.ForgeHostname
 
-	conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", addr)
+	conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", dialAddr)
 	if err != nil {
 		return fmt.Errorf("TLS dial to %s (ServerName: %s) failed: %w",
-			addr, info.ForgeHostname, err)
+			dialAddr, info.ForgeHostname, err)
 	}
 	defer conn.Close()
 
 	certs := conn.(*tls.Conn).ConnectionState().PeerCertificates
 	if len(certs) == 0 {
-		return fmt.Errorf("no TLS certificates from %s", addr)
+		return fmt.Errorf("no TLS certificates from %s", dialAddr)
 	}
 
 	if !slices.Contains(certs[0].DNSNames, info.ExpectedSAN) {
@@ -313,15 +415,67 @@ func (c *Check) verifyNodeTLSCert(ctx context.Context, baseTLSConfig *tls.Config
 			certs[0].DNSNames, info.ExpectedSAN)
 	}
 
-	c.logger.Debugf("node %s: TLS certificate verified: %s (SAN: %s)", nodeName, addr, info.ExpectedSAN)
+	c.logger.Debugf("node %s: TLS certificate verified: %s (SAN: %s)", nodeName, dialAddr, info.ExpectedSAN)
 	return nil
 }
 
-// getCertSerials TLS-dials each reachable forge endpoint and returns a map of
-// "nodeName/hostname" -> certificate serial number (hex string).
-// Unreachable endpoints are silently skipped.
-func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string) map[string]string {
-	baseTLSConfig := &tls.Config{}
+type certSnapshot struct {
+	Serial   string
+	NotAfter time.Time
+}
+
+// triggerRenewalConnections makes TLS connections to each forge endpoint. When the cert is expired,
+// certmagic may block up to 90s on handshake to attempt renewal; we use a dial timeout that allows for that.
+func (c *Check) triggerRenewalConnections(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, forgeTLSHostAddress string, dialTimeout time.Duration) {
+	baseTLSConfig := &tls.Config{InsecureSkipVerify: true}
+
+	nodeNames := make([]string, 0, len(forgeNodes))
+	for name := range forgeNodes {
+		nodeNames = append(nodeNames, name)
+	}
+	sort.Strings(nodeNames)
+
+	var firstNode string
+	if forgeTLSHostAddress != "" && len(nodeNames) > 0 {
+		firstNode = nodeNames[0]
+	}
+
+	var wg sync.WaitGroup
+	for _, nodeName := range nodeNames {
+		infos := forgeNodes[nodeName]
+		for _, info := range infos {
+			var addr string
+			if nodeName == firstNode && forgeTLSHostAddress != "" {
+				addr = forgeTLSHostAddress
+			} else {
+				addr = net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+			}
+
+			cfg := baseTLSConfig.Clone()
+			cfg.ServerName = info.ForgeHostname
+
+			wg.Add(1)
+			go func(addr string, cfg *tls.Config) {
+				defer wg.Done()
+				dialCtx, cancel := context.WithTimeout(ctx, dialTimeout)
+				defer cancel()
+				conn, err := (&tls.Dialer{Config: cfg}).DialContext(dialCtx, "tcp", addr)
+				if err != nil {
+					c.logger.Debugf("trigger renewal dial %s: %v", addr, err)
+					return
+				}
+				conn.Close()
+			}(addr, cfg)
+		}
+	}
+	wg.Wait()
+}
+
+// getCertSnapshots TLS-dials each reachable forge endpoint and returns cert metadata (serial, NotAfter).
+// Uses InsecureSkipVerify so we can read cert metadata even when expired, which is needed for the
+// renewal test's "after" snapshot.
+func (c *Check) getCertSnapshots(ctx context.Context, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM, forgeTLSHostAddress string) map[string]certSnapshot {
+	baseTLSConfig := &tls.Config{InsecureSkipVerify: true}
 	if caCertPEM != "" {
 		pool := x509.NewCertPool()
 		if pool.AppendCertsFromPEM([]byte(caCertPEM)) {
@@ -329,16 +483,34 @@ func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*for
 		}
 	}
 
-	serials := make(map[string]string)
-	for nodeName, infos := range forgeNodes {
+	nodeNames := make([]string, 0, len(forgeNodes))
+	for name := range forgeNodes {
+		nodeNames = append(nodeNames, name)
+	}
+	sort.Strings(nodeNames)
+
+	var firstNode string
+	if forgeTLSHostAddress != "" && len(nodeNames) > 0 {
+		firstNode = nodeNames[0]
+	}
+
+	snapshots := make(map[string]certSnapshot)
+	for _, nodeName := range nodeNames {
+		infos := forgeNodes[nodeName]
 		for _, info := range infos {
-			addr := net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+			var addr string
+			if nodeName == firstNode && forgeTLSHostAddress != "" {
+				addr = forgeTLSHostAddress
+			} else {
+				addr = net.JoinHostPort(ipFromForgeAddr(info.ForgeAddr), info.ForgeAddr.TCPPort)
+			}
 
 			cfg := baseTLSConfig.Clone()
 			cfg.ServerName = info.ForgeHostname
 
 			conn, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", addr)
 			if err != nil {
+				c.logger.Debugf("get cert snapshots dial %s: %v", addr, err)
 				continue
 			}
 
@@ -347,10 +519,13 @@ func (c *Check) getCertSerials(ctx context.Context, forgeNodes map[string][]*for
 
 			if len(certs) > 0 {
 				key := fmt.Sprintf("%s/%s", nodeName, info.ForgeHostname)
-				serials[key] = certs[0].SerialNumber.Text(16)
-				c.logger.Debugf("%s: certificate serial=%s notAfter=%s", key, serials[key], certs[0].NotAfter)
+				snapshots[key] = certSnapshot{
+					Serial:   certs[0].SerialNumber.Text(16),
+					NotAfter: certs[0].NotAfter,
+				}
+				c.logger.Debugf("%s: serial=%s notAfter=%s", key, snapshots[key].Serial, snapshots[key].NotAfter)
 			}
 		}
 	}
-	return serials
+	return snapshots
 }

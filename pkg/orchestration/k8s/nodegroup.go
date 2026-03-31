@@ -359,6 +359,7 @@ func (g *NodeGroup) createNode(ctx context.Context, name string) (err error) {
 		Labels:                    labels,
 		LibP2PKey:                 n.LibP2PKey(),
 		NodeSelector:              g.opts.NodeSelector,
+		P2PWSSNodePort:            g.opts.P2PWSSNodePort,
 		PersistenceEnabled:        g.opts.PersistenceEnabled,
 		PersistenceStorageClass:   g.opts.PersistenceStorageClass,
 		PersistenceStorageRequest: g.opts.PersistenceStorageRequest,

@@ -41,6 +41,7 @@ type NodeGroupOptions struct {
 	IngressClass              string
 	Labels                    map[string]string
 	NodeSelector              map[string]string
+	P2PWSSNodePort            int32
 	PersistenceEnabled        bool
 	PersistenceStorageClass   string
 	PersistenceStorageRequest string

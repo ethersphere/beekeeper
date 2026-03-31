@@ -2,26 +2,32 @@ package autotls
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/cert"
+	"github.com/ethersphere/beekeeper/pkg/check/autotls/internal"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
-	"github.com/ethersphere/beekeeper/pkg/orchestration/k8s"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
 type Options struct {
-	AutoTLSGroup    string
-	UltraLightGroup string
+	AutoTLSGroups       []string
+	UltraLightGroup     string
+	ForgeDNSAddress     string
+	ForgeTLSHostAddress string
+	PebbleMgmtURL       string
 }
 
 func NewDefaultOptions() Options {
 	return Options{
-		AutoTLSGroup:    "bee-autotls",
+		AutoTLSGroups:   []string{"bee-autotls"},
 		UltraLightGroup: "ultra-light",
 	}
 }
@@ -32,6 +38,13 @@ const (
 )
 
 var _ beekeeper.Action = (*Check)(nil)
+
+var insecurePebbleHTTPClient = &http.Client{
+	Timeout: connectTimeout,
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	},
+}
 
 type Check struct {
 	logger logging.Logger
@@ -56,20 +69,19 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("get node clients: %w", err)
 	}
 
-	autoTLSClients := orchestration.ClientMap(clients).FilterByNodeGroups([]string{o.AutoTLSGroup})
+	autoTLSClients := orchestration.ClientMap(clients).FilterByNodeGroups(o.AutoTLSGroups)
 	if len(autoTLSClients) == 0 {
-		return fmt.Errorf("no nodes found in AutoTLS group %q", o.AutoTLSGroup)
+		return fmt.Errorf("no nodes found in AutoTLS groups %v", o.AutoTLSGroups)
 	}
 
-	c.logger.Infof("found %d nodes in AutoTLS group %q", len(autoTLSClients), o.AutoTLSGroup)
+	c.logger.Infof("found %d nodes in AutoTLS groups %v", len(autoTLSClients), o.AutoTLSGroups)
 
 	wssNodes, err := c.verifyWSSUnderlays(ctx, autoTLSClients, o.UltraLightGroup)
 	if err != nil {
 		return fmt.Errorf("verify WSS underlays: %w", err)
 	}
 
-	// Extract forge config from the first autotls node's bee config.
-	forgeDomain, caCertPEM := c.forgeConfig(cluster, autoTLSClients)
+	forgeDomain, caCertPEM := c.forgeConfig(ctx, cluster, autoTLSClients, o.PebbleMgmtURL)
 	if forgeDomain == "" {
 		return fmt.Errorf("could not determine forge domain from node config")
 	}
@@ -79,11 +91,11 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("forge address validation: %w", err)
 	}
 
-	if err := c.verifyDNSResolution(ctx, forgeNodes); err != nil {
+	if err := c.verifyDNSResolution(ctx, forgeNodes, o.ForgeDNSAddress); err != nil {
 		return fmt.Errorf("DNS resolution verification: %w", err)
 	}
 
-	if err := c.verifyTLSCertificate(ctx, forgeNodes, caCertPEM); err != nil {
+	if err := c.verifyTLSCertificate(ctx, forgeNodes, caCertPEM, o.ForgeTLSHostAddress); err != nil {
 		return fmt.Errorf("TLS certificate verification: %w", err)
 	}
 
@@ -97,7 +109,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		}
 	}
 
-	if err := c.testCertificateRenewal(ctx, clients, wssNodes, forgeNodes, caCertPEM, connectTimeout); err != nil {
+	if err := c.testCertificateRenewal(ctx, clients, wssNodes, forgeNodes, caCertPEM, o.ForgeTLSHostAddress, connectTimeout); err != nil {
 		return fmt.Errorf("certificate renewal test: %w", err)
 	}
 
@@ -276,66 +288,14 @@ func (c *Check) testConnectivity(ctx context.Context, sourceClient *bee.Client, 
 	return nil
 }
 
-func (c *Check) testCertificateRenewal(ctx context.Context, clients map[string]*bee.Client, wssNodes map[string][]string, forgeNodes map[string][]*forgeUnderlayInfo, caCertPEM string, connectTimeout time.Duration) error {
-	const renewalWaitTime = 350 * time.Second // This is configured in beelocal setup (we set certificate to expire in 300 seconds)
-
-	// Snapshot certificate serial numbers before waiting.
-	preSerials := c.getCertSerials(ctx, forgeNodes, caCertPEM)
-	if len(preSerials) > 0 {
-		c.logger.Infof("captured %d certificate serial(s) before renewal wait", len(preSerials))
-	} else {
-		c.logger.Warning("no TLS endpoints reachable, will fall back to connectivity-only renewal check")
-	}
-
-	c.logger.Infof("testing certificate renewal: waiting %v for certificates to expire and renew", renewalWaitTime)
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(renewalWaitTime):
-	}
-
-	c.logger.Info("wait complete, verifying certificates were renewed")
-
-	// Verify serial numbers changed (proves new certs were issued).
-	if len(preSerials) > 0 {
-		postSerials := c.getCertSerials(ctx, forgeNodes, caCertPEM)
-		var renewed, unchanged int
-		for key, preSN := range preSerials {
-			postSN, ok := postSerials[key]
-			if !ok {
-				c.logger.Warningf("%s: endpoint became unreachable after wait", key)
-				continue
-			}
-			if preSN == postSN {
-				unchanged++
-				c.logger.Warningf("%s: certificate serial unchanged (%s), renewal may not have occurred", key, preSN)
-			} else {
-				renewed++
-				c.logger.Infof("%s: certificate renewed (serial %s -> %s)", key, preSN, postSN)
-			}
-		}
-		if unchanged > 0 && renewed == 0 {
-			return fmt.Errorf("no certificates were renewed: %d/%d serials unchanged", unchanged, len(preSerials))
-		}
-		c.logger.Infof("certificate renewal verified: %d renewed, %d unchanged", renewed, unchanged)
-	}
-
-	// Also verify WSS connectivity still works with the new certificates.
-	if err := c.testWSSConnectivity(ctx, clients, wssNodes, connectTimeout); err != nil {
-		return fmt.Errorf("post-renewal connectivity test failed (certificates may not have been renewed): %w", err)
-	}
-
-	c.logger.Info("certificate renewal test passed")
-	return nil
-}
-
-// forgeConfig extracts the forge domain and appropriate CA certificate from the
-// first autotls node's bee configuration. If the CA endpoint indicates pebble
-// (test environment), the embedded pebble CA cert is returned. Otherwise, an
-// empty string is returned so the system root pool is used.
-func (c *Check) forgeConfig(cluster orchestration.Cluster, autoTLSClients orchestration.ClientList) (forgeDomain, caCertPEM string) {
+// forgeConfig extracts the forge domain and CA certificate from the first autotls
+// node's bee configuration. When Pebble is detected, the live root CA is fetched
+// from Pebble's management API (since Pebble generates a fresh CA on each start).
+// Falls back to the static embedded cert if the fetch fails.
+func (c *Check) forgeConfig(ctx context.Context, cluster orchestration.Cluster, autoTLSClients orchestration.ClientList, pebbleMgmtURLOverride string) (forgeDomain, caCertPEM string) {
 	nodes := cluster.Nodes()
+	pebbleSvc := internal.NewPebble(insecurePebbleHTTPClient)
+
 	for _, client := range autoTLSClients {
 		node, ok := nodes[client.Name()]
 		if !ok || node.Config() == nil {
@@ -344,9 +304,31 @@ func (c *Check) forgeConfig(cluster orchestration.Cluster, autoTLSClients orches
 		cfg := node.Config()
 		forgeDomain = cfg.AutoTLSDomain
 		if strings.Contains(cfg.AutoTLSCAEndpoint, "pebble") {
-			caCertPEM = k8s.PebbleCertificate
+			mgmtURL := pebbleMgmtURL(cfg.AutoTLSCAEndpoint)
+			if pebbleMgmtURLOverride != "" {
+				mgmtURL = pebbleMgmtURLOverride
+			}
+			liveCert, err := pebbleSvc.FetchRootCA(ctx, mgmtURL)
+			if err != nil {
+				c.logger.Warningf("failed to fetch live Pebble CA from %s, falling back to static cert: %v", mgmtURL, err)
+				caCertPEM = cert.PebbleCertificate
+			} else {
+				c.logger.Infof("fetched live Pebble CA from %s", mgmtURL)
+				caCertPEM = liveCert
+			}
 		}
 		return forgeDomain, caCertPEM
 	}
 	return "", ""
+}
+
+// pebbleMgmtURL derives the Pebble management API URL from the ACME directory endpoint.
+// E.g. "https://pebble:14000/dir" -> "https://pebble:15000/roots/0"
+func pebbleMgmtURL(acmeEndpoint string) string {
+	base := acmeEndpoint
+	if i := strings.LastIndex(base, "/"); i > 0 {
+		base = base[:i]
+	}
+	base = strings.Replace(base, ":14000", ":15000", 1)
+	return base + "/roots/0"
 }

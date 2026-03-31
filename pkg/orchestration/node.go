@@ -58,6 +58,7 @@ type CreateOptions struct {
 	IngressHost               string
 	LibP2PKey                 string
 	NodeSelector              map[string]string
+	P2PWSSNodePort            int32
 	PersistenceEnabled        bool
 	PersistenceStorageClass   string
 	PersistenceStorageRequest string
