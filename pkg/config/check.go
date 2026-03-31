@@ -9,6 +9,7 @@ import (
 	beeRedundancy "github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/check/act"
+	"github.com/ethersphere/beekeeper/pkg/check/autotls"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
@@ -76,6 +77,24 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := act.NewOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+			return opts, nil
+		},
+	},
+	"autotls": {
+		NewAction: autotls.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				AutoTLSGroup    *string `yaml:"autotls-group"`
+				UltraLightGroup *string `yaml:"ultra-light-group"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := autotls.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

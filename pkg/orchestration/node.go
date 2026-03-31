@@ -74,45 +74,51 @@ type CreateOptions struct {
 
 // Config represents Bee configuration
 type Config struct {
-	AllowPrivateCIDRs         bool          // allow to advertise private CIDRs to the public network
-	APIAddr                   string        // HTTP API listen address
-	BlockTime                 uint64        // chain block time
-	Bootnodes                 string        // initial nodes to connect to
-	BootnodeMode              bool          // cause the node to always accept incoming connections
-	CacheCapacity             uint64        // cache capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
-	CORSAllowedOrigins        string        // origins with CORS headers enabled
-	DataDir                   string        // data directory
-	DbOpenFilesLimit          int           // number of open files allowed by database
-	DbBlockCacheCapacity      int           // size of block cache of the database in bytes
-	DbWriteBufferSize         int           // size of the database write buffer in bytes
-	DbDisableSeeksCompaction  bool          // disables DB compactions triggered by seeks
-	FullNode                  bool          // cause the node to start in full mode
-	Mainnet                   bool          // enable mainnet
-	NATAddr                   string        // NAT exposed address
-	NetworkID                 uint64        // ID of the Swarm network
-	P2PAddr                   string        // P2P listen address
-	P2PWSEnable               bool          // enable P2P WebSocket transport
-	Password                  string        // password for decrypting keys
-	PaymentEarly              uint64        // amount in BZZ below the peers payment threshold when we initiate settlement
-	PaymentThreshold          uint64        // threshold in BZZ where you expect to get paid from your peers
-	PaymentTolerance          uint64        // excess debt above payment threshold in BZZ where you disconnect from your peer
-	PostageStampAddress       string        // postage stamp address
-	PostageContractStartBlock uint64        // postage stamp address
-	PriceOracleAddress        string        // price Oracle address
-	ResolverOptions           string        // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
-	ChequebookEnable          bool          // enable chequebook
-	SwapEnable                bool          // enable swap
-	BlockchainRPCEndpoint     string        // blockchain RPC endpoint
-	SwapFactoryAddress        string        // swap factory address
-	RedistributionAddress     string        // redistribution address
-	StakingAddress            string        // staking address
-	StorageIncentivesEnable   string        // storage incentives enable flag
-	SwapInitialDeposit        uint64        // initial deposit if deploying a new chequebook
-	TracingEnabled            bool          // enable tracing
-	TracingEndpoint           string        // endpoint to send tracing data
-	TracingServiceName        string        // service name identifier for tracing
-	Verbosity                 uint64        // log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace
-	WelcomeMessage            string        // send a welcome message string during handshakes
-	WarmupTime                time.Duration // warmup time pull/pushsync protocols
-	WithdrawAddress           string        // allowed addresses for wallet withdrawal
+	AllowPrivateCIDRs           bool          // allow to advertise private CIDRs to the public network
+	APIAddr                     string        // HTTP API listen address
+	AutoTLSCAEndpoint           string        // ACME CA endpoint
+	AutoTLSDomain               string        // domain for ACME
+	AutoTLSRegistrationEndpoint string        // ACME registration endpoint
+	BlockchainRPCEndpoint       string        // blockchain RPC endpoint
+	BlockTime                   uint64        // chain block time
+	BootnodeMode                bool          // cause the node to always accept incoming connections
+	Bootnodes                   string        // initial nodes to connect to
+	CacheCapacity               uint64        // cache capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
+	ChequebookEnable            bool          // enable chequebook
+	CORSAllowedOrigins          string        // origins with CORS headers enabled
+	DataDir                     string        // data directory
+	DbBlockCacheCapacity        int           // size of block cache of the database in bytes
+	DbDisableSeeksCompaction    bool          // disables DB compactions triggered by seeks
+	DbOpenFilesLimit            int           // number of open files allowed by database
+	DbWriteBufferSize           int           // size of the database write buffer in bytes
+	FullNode                    bool          // cause the node to start in full mode
+	Mainnet                     bool          // enable mainnet
+	NATAddr                     string        // NAT exposed address
+	NATWSSAddr                  string        // NAT exposed secure WebSocket address
+	NetworkID                   uint64        // ID of the Swarm network
+	P2PAddr                     string        // P2P listen address
+	P2PWSEnable                 bool          // enable P2P WebSocket transport
+	P2PWSSAddr                  string        // P2P Secure WebSocket listen address
+	P2PWSSEnable                bool          // enable P2P Secure WebSocket transport
+	Password                    string        // password for decrypting keys
+	PaymentEarly                uint64        // amount in BZZ below the peers payment threshold when we initiate settlement
+	PaymentThreshold            uint64        // threshold in BZZ where you expect to get paid from your peers
+	PaymentTolerance            uint64        // excess debt above payment threshold in BZZ where you disconnect from your peer
+	PostageContractStartBlock   uint64        // postage stamp address
+	PostageStampAddress         string        // postage stamp address
+	PriceOracleAddress          string        // price Oracle address
+	RedistributionAddress       string        // redistribution address
+	ResolverOptions             string        // ENS compatible API endpoint for a TLD and with contract address, can be repeated, format [tld:][contract-addr@]url
+	StakingAddress              string        // staking address
+	StorageIncentivesEnable     string        // storage incentives enable flag
+	SwapEnable                  bool          // enable swap
+	SwapFactoryAddress          string        // swap factory address
+	SwapInitialDeposit          uint64        // initial deposit if deploying a new chequebook
+	TracingEnabled              bool          // enable tracing
+	TracingEndpoint             string        // endpoint to send tracing data
+	TracingServiceName          string        // service name identifier for tracing
+	Verbosity                   uint64        // log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace
+	WarmupTime                  time.Duration // warmup time pull/pushsync protocols
+	WelcomeMessage              string        // send a welcome message string during handshakes
+	WithdrawAddress             string        // allowed addresses for wallet withdrawal
 }
