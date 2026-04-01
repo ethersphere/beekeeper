@@ -34,7 +34,6 @@ The check command executes various tests against your Bee cluster including:
 • pushsync: Validates data synchronization between nodes
 • retrieval: Tests data retrieval capabilities
 • settlements: Verifies payment settlements between nodes
-• kademlia: Tests the overlay network topology
 • and many more...
 
 Use --checks flag to specify which tests to run, or run all tests sequentially.
