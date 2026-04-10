@@ -1,8 +1,43 @@
 name: Go
 
-on: [pull_request]
+on:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+    branches:
+      - '**'
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          cache: false
+          go-version-file: go.mod
+      - name: Commit linting
+        uses: wagoid/commitlint-github-action@v5
+        with:
+          configFile: commitlint.config.js
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.10.1
+          args: --timeout 10m
+          skip-cache: false
+      - name: Vet
+        run: make vet
+      - name: Whitespace check
+        run: make check-whitespace
+      - name: go mod tidy check
+        uses: katexochen/go-tidy-check@v2
+
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -30,16 +65,6 @@ jobs:
         # make sure that line endings are not converted on windows
         # as gofmt linter will report that they need to be changed
         run: git config --global core.autocrlf false
-      - name: Lint
-        if: matrix.os == 'ubuntu-latest'
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.10.1
-          args: --timeout 10m
-          skip-cache: false
-      - name: Vet
-        if: matrix.os == 'ubuntu-latest'
-        run: make vet
       - name: Build
         run: make build
       - name: Test

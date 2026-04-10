@@ -37,6 +37,12 @@ linter:
 vet:
 	$(GO) vet ./...
 
+.PHONY: check-whitespace
+check-whitespace:
+	TREE=$$(git hash-object -t tree /dev/null); \
+	TW=$$(git diff-index --cached --check --diff-filter=d "$${TREE}"); \
+	[ "$${TW}" != "" ] && echo "Trailing whitespaces found:\n $${TW}" && exit 1; exit 0
+
 .PHONY: test-race
 test-race:
 	$(GO) test -race -v ./...
