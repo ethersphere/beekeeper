@@ -170,7 +170,7 @@ enable-k8s: true
 in-cluster: false
 kubeconfig: "~/.kube/config"
 geth-url: http://geth-swap.geth-swap.dai.internal
-bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7 
+bzz-token-address: 0x6aab14fe9cccd64a502d23842d916eb5321c26e7
 eth-account: 0x62cab2b3b55f341f10348720ca18063cdb779ad5
 log-verbosity: "info"
 loki-endpoint: http://loki.testnet.internal/loki/api/v1/push
@@ -595,7 +595,7 @@ It has the following subcommands:
   ```
 
   example:
-  
+
   ```bash
   beekeeper stamper create --cluster-name=default --amount=1000 --depth=16 --timeout=5m
   ```
@@ -624,7 +624,7 @@ It has the following subcommands:
   ```
 
   example:
-  
+
   ```bash
   beekeeper stamper topup --cluster-name=default --topup-to=720h --ttl-threshold=120h --periodic-check=1h --timeout=24h
   ```
@@ -653,7 +653,7 @@ It has the following subcommands:
   ```
 
   example:
-  
+
   ```bash
   beekeeper stamper dilute --cluster-name=default --dilution-depth=1 --usage-threshold=90 --periodic-check=1h --timeout=24h
   ```
@@ -684,7 +684,7 @@ It has the following subcommands:
   ```
 
   example:
-  
+
   ```bash
   beekeeper stamper set --cluster-name=default --dilution-depth=1 --usage-threshold=90 --ttl-threshold=120h --topup-to=720h --periodic-check=1h --timeout=24h
   ```

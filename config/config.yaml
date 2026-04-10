@@ -335,7 +335,7 @@ checks:
     type: settlements
   smoke:
     options:
-      file-sizes: [31457280, 104857600, 314572800] # [30MB, 100MB, 300MB]  
+      file-sizes: [31457280, 104857600, 314572800] # [30MB, 100MB, 300MB]
       postage-ttl: 72h
       postage-depth: 21
       postage-label: test-label
