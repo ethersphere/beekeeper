@@ -67,7 +67,7 @@ clusters:
       bee-autotls:
         bee-config: bee-local-autotls
         config: local-autotls
-        count: 2
+        count: 1
         mode: node
       light:
         bee-config: bee-local-light-autotls
