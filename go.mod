@@ -11,7 +11,7 @@ require (
 	github.com/ethersphere/ethproxy v0.0.5
 	github.com/ethersphere/node-funder v0.3.0
 	github.com/go-git/go-billy/v5 v5.8.0
-	github.com/go-git/go-git/v5 v5.17.1
+	github.com/go-git/go-git/v5 v5.18.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/ipshipyard/p2p-forge v0.7.0
