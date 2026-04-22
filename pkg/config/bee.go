@@ -33,7 +33,8 @@ type BeeConfig struct {
 	DbDisableSeeksCompaction    *bool          `yaml:"db-disable-seeks-compaction"`
 	DbOpenFilesLimit            *int           `yaml:"db-open-files-limit"`
 	DbWriteBufferSize           *int           `yaml:"db-write-buffer-size"`
-	FullNode                    *bool          `yaml:"full-node"`
+	FullNode                    *bool          `yaml:"full-node"` // Deprecated: use NodeMode
+	NodeMode                    *string        `yaml:"node-mode"`
 	Mainnet                     *bool          `yaml:"mainnet"`
 	NATAddr                     *string        `yaml:"nat-addr"`
 	NATWSSAddr                  *string        `yaml:"nat-wss-addr"`

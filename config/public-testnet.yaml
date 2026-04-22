@@ -47,7 +47,7 @@ bee-configs:
   sepolia:
     _inherit: ""
     bootnodes: "/dnsaddr/testnet.ethswarm.org"
-    full-node: true
+    node-mode: full
 
 checks:
   pt-pingpong:
