@@ -18,14 +18,17 @@ type SecurityContext struct {
 
 // toK8S converts SecurityContext to Kubernetes client object
 func (sc *SecurityContext) toK8S() *v1.SecurityContext {
+	var procMount *v1.ProcMountType
+	if sc.ProcMount != "" {
+		p := v1.ProcMountType(sc.ProcMount)
+		procMount = &p
+	}
+
 	return &v1.SecurityContext{
 		AllowPrivilegeEscalation: &sc.AllowPrivilegeEscalation,
 		Capabilities:             sc.Capabilities.toK8S(),
 		Privileged:               &sc.Privileged,
-		ProcMount: func() *v1.ProcMountType {
-			p := v1.ProcMountType(sc.ProcMount)
-			return &p
-		}(),
+		ProcMount:                procMount,
 		ReadOnlyRootFilesystem: &sc.ReadOnlyRootFilesystem,
 		RunAsGroup:             &sc.RunAsGroup,
 		RunAsNonRoot:           &sc.RunAsNonRoot,
