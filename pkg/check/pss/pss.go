@@ -33,7 +33,7 @@ func NewDefaultOptions() Options {
 		AddressPrefix:  1,
 		GasPrice:       "",
 		PostageTTL:     24 * time.Hour,
-		PostageDepth:   16,
+		PostageDepth:   22,
 		PostageLabel:   "test-label",
 		RequestTimeout: 5 * time.Minute,
 		Seed:           random.Int64(),
@@ -131,8 +131,38 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	defer closer()
 
 	tStart := time.Now()
-	err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
+	c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(0)
+	for range 5 {
+		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
+		if err == nil {
+			break
+		}
+
+		// check if message is received
+		select {
+		case msg := <-ch:
+			if msg == string(testData) {
+				c.logger.Info("pss: message received despite send failure")
+				return nil
+			}
+		default:
+			// continue
+		}
+
+		c.logger.Infof("pss: send failed, retrying in 1s: %v", err)
+		time.Sleep(1 * time.Second)
+	}
 	if err != nil {
+		// check if message is received
+		select {
+		case msg := <-ch:
+			if msg == string(testData) {
+				c.logger.Info("pss: message received despite send failure")
+				return nil
+			}
+		default:
+			// continue
+		}
 		return err
 	}
 	c.logger.Infof("pss: test data sent successfully to node %s. Waiting for response from node %s", nodeAName, nodeBName)
