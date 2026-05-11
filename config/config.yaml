@@ -124,7 +124,7 @@ bee-configs:
     swap-factory-address: "0xdD661f2500bA5831e3d1FEbAc379Ea1bF80773Ac"
     swap-initial-deposit: 500000000000000000
     tracing-enabled: true
-    tracing-endpoint: "10.10.11.199:6831"
+    tracing-otlp-endpoint: "10.10.11.199:4318"
     tracing-service-name: "bee"
     verbosity: 5 # 1=error, 2=warn, 3=info, 4=debug, 5=trace
     warmup-time: 0s

@@ -116,7 +116,9 @@ type Config struct {
 	SwapFactoryAddress          string        // swap factory address
 	SwapInitialDeposit          uint64        // initial deposit if deploying a new chequebook
 	TracingEnabled              bool          // enable tracing
-	TracingEndpoint             string        // endpoint to send tracing data
+	TracingOTLPEndpoint         string        // OTLP/HTTP endpoint for tracing data (host:port)
+	TracingOTLPInsecure         bool          // disable TLS for the OTLP exporter
+	TracingSamplingRatio        float64       // head-based sampling ratio in [0,1]; 1 samples everything
 	TracingServiceName          string        // service name identifier for tracing
 	Verbosity                   uint64        // log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace
 	WarmupTime                  time.Duration // warmup time pull/pushsync protocols
