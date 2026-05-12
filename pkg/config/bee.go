@@ -100,5 +100,13 @@ func (b *BeeConfig) Export() (config orchestration.Config) {
 		config.BlockchainRPCEndpoint = *b.SwapEndpoint
 	}
 
+	// Bee's tracing-sampling-ratio semantics: 0 disables sampling, 1 samples
+	// everything. Default to 1 when unset so existing beekeeper configs (which
+	// never specified the key) keep the prior "sample everything" behavior
+	// rather than silently turning tracing off.
+	if b.TracingSamplingRatio == nil {
+		config.TracingSamplingRatio = 1.0
+	}
+
 	return config
 }
