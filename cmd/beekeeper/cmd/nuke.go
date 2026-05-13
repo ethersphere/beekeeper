@@ -16,6 +16,8 @@ const (
 	optionNameDeploymentType         = "deployment-type"
 	optionNameStatefulSets           = "stateful-sets"
 	optionNameImage                  = "image"
+	optionNameForgetOverlay          = "forget-overlay"
+	optionNameForgetStamps           = "forget-stamps"
 	beeLabelSelector                 = "app.kubernetes.io/name=bee"
 )
 
@@ -49,6 +51,8 @@ The command supports two modes:
 					NodeProvider:          nodeClient,
 					UseRandomNeighborhood: c.globalConfig.GetBool(optionNameUseRandomNeighboorhood),
 					Image:                 c.globalConfig.GetString(optionNameImage),
+					ForgetOverlay:         c.globalConfig.GetBool(optionNameForgetOverlay),
+					ForgetStamps:          c.globalConfig.GetBool(optionNameForgetStamps),
 				})
 
 				statefulSetNames := c.globalConfig.GetStringSlice(optionNameStatefulSets)
@@ -82,6 +86,8 @@ The command supports two modes:
 	cmd.Flags().String(optionNameDeploymentType, string(node.DeploymentTypeBeekeeper), "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
 	cmd.Flags().StringSlice(optionNameStatefulSets, nil, "List of StatefulSet names to target for nuke (e.g., 'bootnode-0,bootnode-1'). When provided, uses direct StatefulSet targeting instead of NodeProvider.")
 	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
+	cmd.Flags().Bool(optionNameForgetOverlay, false, "Forget the overlay and deploy a new chequebook on next boot-up.")
+	cmd.Flags().Bool(optionNameForgetStamps, false, "Forget the existing stamps belonging to the node (they will reappear after a chain resync).")
 
 	c.root.AddCommand(cmd)
 
