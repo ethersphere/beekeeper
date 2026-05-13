@@ -21,6 +21,8 @@ type ClientConfig struct {
 	K8sClient             *k8s.Client
 	UseRandomNeighborhood bool
 	Image                 string
+	ForgetOverlay         bool
+	ForgetStamps          bool
 }
 
 type Client struct {
@@ -29,6 +31,8 @@ type Client struct {
 	k8sClient             *k8s.Client
 	useRandomNeighborhood bool
 	image                 string
+	forgetOverlay         bool
+	forgetStamps          bool
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -41,10 +45,12 @@ func New(cfg *ClientConfig) *Client {
 	}
 
 	return &Client{
-		log:          cfg.Log,
-		k8sClient:    cfg.K8sClient,
-		nodeProvider: cfg.NodeProvider,
-		image:        cfg.Image,
+		log:           cfg.Log,
+		k8sClient:     cfg.K8sClient,
+		nodeProvider:  cfg.NodeProvider,
+		image:         cfg.Image,
+		forgetOverlay: cfg.ForgetOverlay,
+		forgetStamps:  cfg.ForgetStamps,
 	}
 }
 
@@ -190,7 +196,11 @@ func (c *Client) findStatefulSets(ctx context.Context, nodes node.NodeList, name
 
 // updateAndRollbackStatefulSet orchestrates the full update cycle for a single StatefulSet.
 func (c *Client) updateAndRollbackStatefulSet(ctx context.Context, namespace string, ss *v1.StatefulSet, restartArgs []string) error {
-	updateArgs := []string{"bee", "db", "nuke", "--config=.bee.yaml", "--data-dir=/home/bee/.bee"}
+	updateArgs := []string{
+		"bee", "db", "nuke", "--config=.bee.yaml", "--data-dir=/home/bee/.bee",
+		fmt.Sprintf("--forget-overlay=%t", c.forgetOverlay),
+		fmt.Sprintf("--forget-stamps=%t", c.forgetStamps),
+	}
 
 	// 1. Save the original state by creating a deep copy before any modifications.
 	if len(ss.Spec.Template.Spec.Containers) == 0 {
