@@ -297,7 +297,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	sSet := o.Name
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := o.SwarmKey != nil
-	autoTLSEnabled := o.Config.P2PWSSAddr != ""
+	autoTLSEnabled := o.Config.P2PWSSEnable
 
 	if _, err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
