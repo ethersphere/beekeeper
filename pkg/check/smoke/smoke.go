@@ -35,6 +35,11 @@ const (
 	// chunkWalkMaxReported truncates per-category result lists so a large file
 	// with many missing chunks does not flood the log.
 	chunkWalkMaxReported = 50
+	// chunkWalkMaxBytes caps the file size for which the local split + chunk
+	// walk runs. Larger files skip the walk: at ~200 MB the walk takes tens
+	// of seconds on a healthy cluster and minutes on a slow one; beyond that
+	// it stops being a useful per-failure diagnostic.
+	chunkWalkMaxBytes int64 = 200 * 1024 * 1024
 )
 
 // Options represents smoke test options
@@ -201,13 +206,20 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 				// Pre-compute the chunk address tree locally so we can pin-point a
 				// missing chunk if download later fails. Deterministic for the same
-				// (data, rLevel) input — matches what bee would produce.
-				splitRoot, allChunks, splitErr := topohealth.SplitChunkAddresses(ctx, txData, rLevel)
-				if splitErr != nil {
-					c.logger.Errorf("local chunk split failed for size %d: %v", contentSize, splitErr)
-					allChunks = nil // fall back to root-only diagnostics
+				// (data, rLevel) input — matches what bee would produce. Skipped
+				// for files above chunkWalkMaxBytes since the walk grows linearly
+				// with chunk count and stops being a useful per-failure tool.
+				var allChunks []topohealth.ChunkInfo
+				if contentSize <= chunkWalkMaxBytes {
+					splitRoot, chunks, splitErr := topohealth.SplitChunkAddresses(ctx, txData, rLevel)
+					if splitErr != nil {
+						c.logger.Errorf("local chunk split failed for size %d: %v", contentSize, splitErr)
+					} else {
+						allChunks = chunks
+						c.logger.Infof("local split produced %d chunks (root=%s)", len(allChunks), splitRoot)
+					}
 				} else {
-					c.logger.Infof("local split produced %d chunks (root=%s)", len(allChunks), splitRoot)
+					c.logger.Infof("file size %d > %d (chunkWalkMaxBytes); skipping local split and on-failure chunk walk", contentSize, chunkWalkMaxBytes)
 				}
 
 				if c.probe(ctx, topohealth.PhasePreUpload, uploader, thresholds) == topohealth.StatusUnhealthy {
@@ -400,7 +412,8 @@ func (c *Check) onFailureDump(ctx context.Context, cluster orchestration.Cluster
 	go func() {
 		defer wg.Done()
 		if len(allChunks) == 0 {
-			c.logger.Warningf("on_failure: no pre-computed chunk list (split failed earlier); skipping chunk walk")
+			// allChunks is empty either because the file size exceeded
+			// chunkWalkMaxBytes or because the local split errored
 			return
 		}
 		c.walkChunksOnFailure(ctx, cluster, root, allChunks)
