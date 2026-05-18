@@ -78,7 +78,11 @@ func (n *NodeService) Balances(ctx context.Context) (resp Balances, err error) {
 	return resp, err
 }
 
-// HasChunk returns true/false if node has a chunk
+// HasChunk returns true/false if node has a chunk.
+//
+// NOTE: This uses GET /chunks/{addr}, which on bee falls back to network
+// retrieval if the chunk is not present locally. It is therefore NOT a clean
+// local-only check. Use LocalHasChunk for that.
 func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	resp := struct {
 		Message string `json:"message,omitempty"`
@@ -92,6 +96,20 @@ func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, erro
 		return false, err
 	}
 
+	return true, nil
+}
+
+// LocalHasChunk reports whether the chunk is stored locally on the node
+// without triggering a network retrieval. Uses HEAD /chunks/{addr} which
+// maps to storer.ChunkStore().Has on the bee side.
+func (n *NodeService) LocalHasChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	err := n.client.request(ctx, http.MethodHead, "/chunks/"+a.String(), nil, nil)
+	if IsHTTPStatusErrorCode(err, http.StatusNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 

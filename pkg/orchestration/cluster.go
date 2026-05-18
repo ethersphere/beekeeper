@@ -38,6 +38,7 @@ type Cluster interface {
 	Size() (size int)
 	Topologies(ctx context.Context) (topologies ClusterTopologies, err error)
 	ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*bee.Client, error)
+	FullNodeClientsByDistance(ctx context.Context, chunkAddr swarm.Address) (ClientList, error)
 }
 
 // ClusterOptions represents Bee cluster options

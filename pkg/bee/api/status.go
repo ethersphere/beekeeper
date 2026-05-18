@@ -7,6 +7,15 @@ import (
 
 type StatusService service
 
+// Canonical values for the BeeMode field of StatusResponse, mirroring the
+// strings emitted by bee/v2/pkg/api.BeeNodeMode.String().
+const (
+	BeeModeFull       = "full"
+	BeeModeLight      = "light"
+	BeeModeUltraLight = "ultra-light"
+	BeeModeUnknown    = "unknown"
+)
+
 type StatusResponse struct {
 	Overlay                 string  `json:"overlay"`
 	Proximity               uint    `json:"proximity"`
@@ -22,6 +31,7 @@ type StatusResponse struct {
 	IsReachable             bool    `json:"isReachable"`
 	LastSyncedBlock         uint64  `json:"lastSyncedBlock"`
 	CommittedDepth          uint8   `json:"committedDepth"`
+	IsWarmingUp             bool    `json:"isWarmingUp"`
 }
 
 // Ping pings given node
