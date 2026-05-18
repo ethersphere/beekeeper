@@ -39,6 +39,25 @@ func LogVerdict(logger logging.Logger, phase Phase, v Verdict) {
 	}).Info("topohealth.verdict")
 }
 
+// LogChunkCheck emits one structured line per missing or out-of-AOR chunk
+// from a WalkChunks result.
+func LogChunkCheck(logger logging.Logger, kind, chunkAddr string, c ChunkCheck) {
+	logger.WithFields(logrus.Fields{
+		"event":          "topohealth.chunk_check",
+		"kind":           kind,
+		"upload_root":    chunkAddr,
+		"chunk_address":  c.Address.String(),
+		"position":       string(c.Position),
+		"storer":         c.StorerName,
+		"storer_overlay": c.StorerOverlay.String(),
+		"proximity":      c.Proximity,
+		"storage_radius": c.StorageRadius,
+		"out_of_aor":     c.OutOfAOR,
+		"present":        c.Present,
+		"head_error":     c.Error,
+	}).Info("topohealth.chunk_check")
+}
+
 // LogStorerResult emits one structured line per intended-storer probe,
 // including the HEAD /chunks/{addr} ground-truth.
 func LogStorerResult(logger logging.Logger, chunkAddr, phase string, idx int, r StorerResult) {

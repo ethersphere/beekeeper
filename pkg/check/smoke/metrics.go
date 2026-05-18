@@ -25,11 +25,15 @@ type metrics struct {
 	NodeHealthVerdict      *prometheus.GaugeVec
 	ClusterFullNodeCount   prometheus.Gauge
 	ClusterLightNodeCount  prometheus.Gauge
-	ChunkReplicaCount      prometheus.Histogram
-	ChunkPresentOnStorer   *prometheus.CounterVec
-	ChunkAbsentFromStorer  *prometheus.CounterVec
 	UnhealthyAbortsPreUp   prometheus.Counter
 	UnhealthyAbortsPreDown prometheus.Counter
+	// Chunk walk: per-chunk presence check across the full upload tree.
+	ChunksChecked         prometheus.Counter
+	ChunksMissingTotal    *prometheus.CounterVec // {position}
+	ChunksMissingOutOfAOR *prometheus.CounterVec // {position} — bug 1 fingerprint (out-of-depth storing)
+	ChunksMissingInAOR    *prometheus.CounterVec // {position} — bug 2/3 fingerprint (in-depth but not stored)
+	ChunksPresentOutOfAOR *prometheus.CounterVec // {position} — bug 1 confirmed (chunk exists outside its AOR)
+	FilesWithLoss         prometheus.Counter
 }
 
 const (
@@ -37,6 +41,7 @@ const (
 	labelNodeName        = "node_name"
 	labelRedundancyLevel = "redundancy_level"
 	labelPhase           = "phase"
+	labelPosition        = "position"
 )
 
 func newMetrics(subsystem string) metrics {
@@ -210,33 +215,6 @@ func newMetrics(subsystem string) metrics {
 				Help:      "Number of light nodes in the cluster.",
 			},
 		),
-		ChunkReplicaCount: prometheus.NewHistogram(
-			prometheus.HistogramOpts{
-				Namespace: m.Namespace,
-				Subsystem: subsystem,
-				Name:      "chunk_replica_count",
-				Help:      "On download failure, number of intended-storer full nodes that locally hold the chunk address (HEAD /chunks/{addr}).",
-				Buckets:   []float64{0, 1, 2, 3, 4, 5},
-			},
-		),
-		ChunkPresentOnStorer: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Namespace: m.Namespace,
-				Subsystem: subsystem,
-				Name:      "chunk_present_on_storer",
-				Help:      "Count of HEAD /chunks/{addr} positive responses on an intended storer at on_failure phase.",
-			},
-			[]string{labelNodeName},
-		),
-		ChunkAbsentFromStorer: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Namespace: m.Namespace,
-				Subsystem: subsystem,
-				Name:      "chunk_absent_from_storer",
-				Help:      "Count of HEAD /chunks/{addr} negative responses on an intended storer at on_failure phase.",
-			},
-			[]string{labelNodeName},
-		),
 		UnhealthyAbortsPreUp: prometheus.NewCounter(
 			prometheus.CounterOpts{
 				Namespace: m.Namespace,
@@ -251,6 +229,58 @@ func newMetrics(subsystem string) metrics {
 				Subsystem: subsystem,
 				Name:      "unhealthy_aborts_pre_download",
 				Help:      "Iterations skipped because the downloader was UNHEALTHY before download.",
+			},
+		),
+		ChunksChecked: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "chunks_checked_total",
+				Help:      "Total chunks inspected by the on-failure chunk walk (denominator for chunks_missing_* rates).",
+			},
+		),
+		ChunksMissingTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "chunks_missing_total",
+				Help:      "Chunks not found on their closest full node (HEAD /chunks/{addr} returned 404). Labelled by tree position.",
+			},
+			[]string{labelPosition},
+		),
+		ChunksMissingOutOfAOR: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "chunks_missing_out_of_aor_total",
+				Help:      "Missing chunks whose closest storer in the cluster still has PO(chunk, storer) < storageRadius. Indicates a cluster-coverage gap — the address falls outside every node's AOR. Common in small testnets.",
+			},
+			[]string{labelPosition},
+		),
+		ChunksMissingInAOR: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "chunks_missing_in_aor_total",
+				Help:      "Missing chunks whose closest storer covers the address (PO >= storageRadius) but does not have the chunk. Bee#5400 bug-2/3 fingerprint: shallow receipt short-circuit or false ChunkSynced.",
+			},
+			[]string{labelPosition},
+		),
+		ChunksPresentOutOfAOR: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "chunks_present_out_of_aor_total",
+				Help:      "Chunks held by a node whose AOR does not cover them (PO < storageRadius). Direct bee#5400 bug-1 confirmation: out-of-depth storing.",
+			},
+			[]string{labelPosition},
+		),
+		FilesWithLoss: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "files_with_chunk_loss_total",
+				Help:      "Files where the on-failure chunk walk found at least one missing chunk.",
 			},
 		),
 	}
