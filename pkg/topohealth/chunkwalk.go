@@ -43,7 +43,7 @@ func SplitChunkAddresses(ctx context.Context, data []byte, rLevel *redundancy.Le
 	// addressOnlyCollector classifies each chunk as it is produced and discards
 	// the chunk data immediately, so the splitter does not retain a copy of the
 	// payload in memory for the lifetime of the walk.
-	col := &addressOnlyCollector{rootPlaceholder: swarm.ZeroAddress}
+	col := &addressOnlyCollector{}
 	pipe := builder.NewPipelineBuilder(ctx, col, false, level)
 	root, err := builder.FeedPipeline(ctx, pipe, bytes.NewReader(data))
 	if err != nil {
@@ -62,8 +62,7 @@ func SplitChunkAddresses(ctx context.Context, data []byte, rLevel *redundancy.Le
 // the address + position, and does not keep the chunk data. The pipeline is
 // single-writer so no synchronisation is needed.
 type addressOnlyCollector struct {
-	chunks          []ChunkInfo
-	rootPlaceholder swarm.Address
+	chunks []ChunkInfo
 }
 
 func (c *addressOnlyCollector) Put(_ context.Context, ch swarm.Chunk) error {
@@ -101,33 +100,29 @@ type StorerInfo struct {
 // GatherStorers collects overlay + storage radius for every full node in the
 // cluster in parallel. Bootnodes and light nodes are excluded.
 func GatherStorers(ctx context.Context, cluster orchestration.Cluster) ([]StorerInfo, error) {
-	type job struct {
-		client *bee.Client
-		name   string
-	}
-	var jobs []job
+	var clients []*bee.Client
 	for _, n := range cluster.Nodes() {
 		cfg := n.Config()
 		if !cfg.FullNode || cfg.BootnodeMode {
 			continue
 		}
-		jobs = append(jobs, job{client: n.Client(), name: n.Name()})
+		clients = append(clients, n.Client())
 	}
-	out := make([]StorerInfo, len(jobs))
+	out := make([]StorerInfo, len(clients))
 	g, gctx := errgroup.WithContext(ctx)
-	for i, j := range jobs {
+	for i, cl := range clients {
 		g.Go(func() error {
-			addrs, err := j.client.Addresses(gctx)
+			addrs, err := cl.Addresses(gctx)
 			if err != nil {
-				return fmt.Errorf("addresses for %s: %w", j.name, err)
+				return fmt.Errorf("addresses for %s: %w", cl.Name(), err)
 			}
-			st, err := j.client.Status(gctx)
+			st, err := cl.Status(gctx)
 			if err != nil {
-				return fmt.Errorf("status for %s: %w", j.name, err)
+				return fmt.Errorf("status for %s: %w", cl.Name(), err)
 			}
 			out[i] = StorerInfo{
-				Client:        j.client,
-				Name:          j.name,
+				Client:        cl,
+				Name:          cl.Name(),
 				Overlay:       addrs.Overlay,
 				overlayBytes:  addrs.Overlay.Bytes(),
 				StorageRadius: st.StorageRadius,
@@ -176,21 +171,17 @@ type ChunkCheck struct {
 // PerPositionCounts is per-tree-position aggregation of a walk.
 type PerPositionCounts map[ChunkPosition]int
 
-func (c PerPositionCounts) add(p ChunkPosition) {
-	c[p]++
-}
-
 // WalkResult summarises a chunk walk. Counters are exact; slices are
 // truncated for logging.
 type WalkResult struct {
-	Checked            int               `json:"checked"`
-	Missing            []ChunkCheck      `json:"missing,omitempty"`
-	OutOfAORHits       []ChunkCheck      `json:"outOfAORHits,omitempty"`
-	MissingTotal       PerPositionCounts `json:"missingTotal"`
-	MissingOutOfAOR    PerPositionCounts `json:"missingOutOfAOR"`
-	MissingInAOR       PerPositionCounts `json:"missingInAOR"`
-	PresentOutOfAOR    PerPositionCounts `json:"presentOutOfAOR"`
-	ProbeErrors        int               `json:"probeErrors"`
+	Checked         int               `json:"checked"`
+	Missing         []ChunkCheck      `json:"missing,omitempty"`
+	OutOfAORHits    []ChunkCheck      `json:"outOfAORHits,omitempty"`
+	MissingTotal    PerPositionCounts `json:"missingTotal"`
+	MissingOutOfAOR PerPositionCounts `json:"missingOutOfAOR"`
+	MissingInAOR    PerPositionCounts `json:"missingInAOR"`
+	PresentOutOfAOR PerPositionCounts `json:"presentOutOfAOR"`
+	ProbeErrors     int               `json:"probeErrors"`
 }
 
 // WalkChunks HEADs each chunk address on its closest full node and produces
@@ -260,18 +251,18 @@ dispatch:
 		}
 		res.Checked++
 		if !c.Present {
-			res.MissingTotal.add(c.Position)
+			res.MissingTotal[c.Position]++
 			if c.OutOfAOR {
-				res.MissingOutOfAOR.add(c.Position)
+				res.MissingOutOfAOR[c.Position]++
 			} else {
-				res.MissingInAOR.add(c.Position)
+				res.MissingInAOR[c.Position]++
 			}
 			if len(res.Missing) < maxReported {
 				res.Missing = append(res.Missing, c)
 			}
 		}
 		if c.Present && c.OutOfAOR {
-			res.PresentOutOfAOR.add(c.Position)
+			res.PresentOutOfAOR[c.Position]++
 			if len(res.OutOfAORHits) < maxReported {
 				res.OutOfAORHits = append(res.OutOfAORHits, c)
 			}

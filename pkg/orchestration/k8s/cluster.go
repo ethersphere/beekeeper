@@ -454,32 +454,28 @@ func (c *Cluster) FullNodeClientsByDistance(ctx context.Context, chunkAddr swarm
 		dist []byte
 	}
 
-	type job struct {
-		client *bee.Client
-		idx    int
-	}
-	var jobs []job
+	var clients []*bee.Client
 	for _, n := range c.Nodes() {
 		cfg := n.Config()
 		if !cfg.FullNode || cfg.BootnodeMode {
 			continue
 		}
-		jobs = append(jobs, job{client: n.Client()})
+		clients = append(clients, n.Client())
 	}
 
-	entries := make([]entry, len(jobs))
+	entries := make([]entry, len(clients))
 	g, gctx := errgroup.WithContext(ctx)
-	for i, j := range jobs {
+	for i, cl := range clients {
 		g.Go(func() error {
-			addrs, err := j.client.Addresses(gctx)
+			addrs, err := cl.Addresses(gctx)
 			if err != nil {
-				return fmt.Errorf("get overlay for %s: %w", j.client.Name(), err)
+				return fmt.Errorf("get overlay for %s: %w", cl.Name(), err)
 			}
 			dist, err := swarm.DistanceRaw(chunkAddr, addrs.Overlay)
 			if err != nil {
-				return fmt.Errorf("distance for %s: %w", j.client.Name(), err)
+				return fmt.Errorf("distance for %s: %w", cl.Name(), err)
 			}
-			entries[i] = entry{client: j.client, dist: dist}
+			entries[i] = entry{client: cl, dist: dist}
 			return nil
 		})
 	}

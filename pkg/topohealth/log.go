@@ -10,7 +10,6 @@ type Phase string
 
 const (
 	PhasePreUpload   Phase = "pre_upload"
-	PhasePostUpload  Phase = "post_upload"
 	PhasePreDownload Phase = "pre_download"
 	PhaseOnFailure   Phase = "on_failure"
 )

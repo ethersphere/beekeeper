@@ -120,11 +120,11 @@ type Verdict struct {
 // Probe runs the single-node probe: /status and /topology in parallel.
 func Probe(ctx context.Context, c *bee.Client, t Thresholds) (Verdict, error) {
 	var (
-		wg       sync.WaitGroup
-		st       *api.StatusResponse
-		top      bee.Topology
-		stErr    error
-		topErr   error
+		wg     sync.WaitGroup
+		st     *api.StatusResponse
+		top    bee.Topology
+		stErr  error
+		topErr error
 	)
 	wg.Add(2)
 	go func() {

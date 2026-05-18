@@ -81,13 +81,3 @@ func probeStorer(ctx context.Context, cl *bee.Client, chunkAddr swarm.Address, t
 	}
 	return r
 }
-
-func ReplicaCount(rs []StorerResult) int {
-	n := 0
-	for _, r := range rs {
-		if r.HasChunk {
-			n++
-		}
-	}
-	return n
-}
