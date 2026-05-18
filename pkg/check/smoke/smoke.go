@@ -170,9 +170,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		if len(rLevels) == 0 {
 			rLevels = []*redundancy.Level{nil}
 		}
-		rLevelIdx := 0
-		for {
-			rLevel := rLevels[rLevelIdx]
+		for _, rLevel := range rLevels {
 			for _, contentSize := range fileSizes {
 				select {
 				case <-ctx.Done():
@@ -233,15 +231,17 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					txCancel context.CancelFunc = func() {}
 				)
 
-				for range 3 {
+				for attempt := range 3 {
 					txCancel()
 
 					uploaded = false
 
-					select {
-					case <-ctx.Done():
-						return nil
-					case <-time.After(o.TxOnErrWait):
+					if attempt > 0 {
+						select {
+						case <-ctx.Done():
+							return nil
+						case <-time.After(o.TxOnErrWait):
+						}
 					}
 
 					txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
@@ -284,13 +284,15 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					rxCancel context.CancelFunc = func() {}
 				)
 
-				for range 3 {
+				for attempt := range 3 {
 					rxCancel()
 
-					select {
-					case <-ctx.Done():
-						return nil
-					case <-time.After(o.RxOnErrWait):
+					if attempt > 0 {
+						select {
+						case <-ctx.Done():
+							return nil
+						case <-time.After(o.RxOnErrWait):
+						}
 					}
 
 					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
@@ -345,10 +347,6 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 				}
 
 				c.logger.Infof("completed testing file size: %d bytes", contentSize)
-			}
-			rLevelIdx++
-			if rLevelIdx >= len(rLevels) {
-				break
 			}
 		}
 
