@@ -265,9 +265,17 @@ func (c *Client) DownloadActFile(ctx context.Context, a swarm.Address, opts *api
 	return size, h.Sum(nil), nil
 }
 
-// HasChunk returns true/false if node has a chunk
+// HasChunk returns true/false if node has a chunk.
+//
+// NOTE: Backed by GET /chunks/{addr}, which falls back to network retrieval on
+// a local miss. Use LocalHasChunk for a strict local-only check.
 func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return c.api.Node.HasChunk(ctx, a)
+}
+
+// LocalHasChunk is a strict local-only check; see api.NodeService.LocalHasChunk.
+func (c *Client) LocalHasChunk(ctx context.Context, a swarm.Address) (bool, error) {
+	return c.api.Node.LocalHasChunk(ctx, a)
 }
 
 func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, count int, err error) {

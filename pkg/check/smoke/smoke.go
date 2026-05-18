@@ -6,20 +6,28 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 
+	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"github.com/ethersphere/beekeeper/pkg/scheduler"
 	"github.com/ethersphere/beekeeper/pkg/test"
+	"github.com/ethersphere/beekeeper/pkg/topohealth"
 	"github.com/prometheus/client_golang/prometheus"
 )
+
+// onFailureStorerProbeCount is the number of intended storers to probe on a
+// download failure (closest by XOR distance to chunk address).
+const onFailureStorerProbeCount = 3
 
 // Options represents smoke test options
 type Options struct {
@@ -108,6 +116,13 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		return fmt.Errorf("smoke check requires at least 2 full nodes, got %d", len(fullNodeClients))
 	}
 
+	shape := topohealth.ClusterShape(cluster)
+	c.metrics.ClusterFullNodeCount.Set(float64(shape.FullNodes))
+	c.metrics.ClusterLightNodeCount.Set(float64(shape.LightNodes))
+	c.logger.Infof("cluster shape: full=%d light=%d bootnodes=%d", shape.FullNodes, shape.LightNodes, shape.Bootnodes)
+
+	thresholds := topohealth.DefaultThresholds()
+
 	test := test.NewTest(c.logger)
 
 	for i := 0; true; i++ {
@@ -176,6 +191,12 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					continue
 				}
 
+				if c.probe(ctx, topohealth.PhasePreUpload, uploader, thresholds) == topohealth.StatusUnhealthy {
+					c.metrics.UnhealthyAbortsPreUp.Inc()
+					c.logger.Errorf("aborting iteration: uploader %s is UNHEALTHY pre-upload", uploader.Name())
+					continue
+				}
+
 				var (
 					txCtx    context.Context
 					txCancel context.CancelFunc = func() {}
@@ -222,6 +243,11 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 
 				time.Sleep(o.NodesSyncWait)
 
+				if c.probe(ctx, topohealth.PhasePreDownload, downloader, thresholds) == topohealth.StatusUnhealthy {
+					c.metrics.UnhealthyAbortsPreDown.Inc()
+					c.logger.Warningf("downloader %s is UNHEALTHY pre-download; attempting anyway", downloader.Name())
+				}
+
 				var (
 					rxCtx    context.Context
 					rxCancel context.CancelFunc = func() {}
@@ -242,6 +268,9 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					rxData, rxDuration, err = test.Download(rxCtx, downloader, address, rLevel)
 					if err != nil {
 						c.metrics.DownloadErrors.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
+						if errors.Is(err, io.ErrUnexpectedEOF) {
+							c.metrics.DownloadEOFErrors.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
+						}
 						c.logger.Errorf("download failed for size %d: %v", contentSize, err)
 						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
 						continue
@@ -280,14 +309,8 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 				rxCancel()
 
 				if !downloaded {
-					c.logger.Errorf("all download attempts failed for size %d, fetching downloader topology", contentSize)
-					top, topErr := downloader.Topology(ctx)
-					if topErr != nil {
-						c.logger.Errorf("failed to get downloader topology: %v", topErr)
-					} else {
-						c.logger.Infof("downloader %s topology: depth=%d, connected=%d, population=%d, reachability=%s, bins=%s",
-							downloader.Name(), top.Depth, top.Connected, top.Population, top.Reachability, top.Bins.String())
-					}
+					c.logger.Errorf("all download attempts failed for size %d, dumping topology health for uploader, downloader, and intended storers", contentSize)
+					c.onFailureDump(ctx, cluster, uploader, downloader, address, thresholds)
 				}
 
 				c.logger.Infof("completed testing file size: %d bytes", contentSize)
@@ -313,4 +336,61 @@ func redundancyLevelLabel(rLevel *redundancy.Level) string {
 		return "not_set"
 	}
 	return strconv.Itoa(int(*rLevel))
+}
+
+// probe runs the per-node topology health probe, emits structured log + metric,
+// and returns the resulting Status. A probe error yields StatusUnknown so
+// callers can distinguish a transient API failure from a genuinely unhealthy
+// node when deciding whether to abort.
+func (c *Check) probe(ctx context.Context, phase topohealth.Phase, client *bee.Client, thresholds topohealth.Thresholds) topohealth.Status {
+	v, err := topohealth.Probe(ctx, client, thresholds)
+	if err != nil {
+		c.logger.Errorf("probe %s on %s failed: %v", phase, client.Name(), err)
+		c.metrics.NodeHealthVerdict.WithLabelValues(client.Name(), string(phase)).Set(float64(topohealth.StatusUnknown))
+		return topohealth.StatusUnknown
+	}
+	c.metrics.NodeHealthVerdict.WithLabelValues(client.Name(), string(phase)).Set(float64(v.Status))
+	topohealth.LogVerdict(c.logger, phase, v)
+	return v.Status
+}
+
+// onFailureDump fans out probes for uploader, downloader, and the N closest
+// intended storers concurrently, logs a per-node snapshot, and records replica
+// count + per-node has/absent counters.
+func (c *Check) onFailureDump(ctx context.Context, cluster orchestration.Cluster, uploader, downloader *bee.Client, chunkAddr swarm.Address, thresholds topohealth.Thresholds) {
+	var (
+		wg      sync.WaitGroup
+		storers []topohealth.StorerResult
+		storErr error
+	)
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		c.probe(ctx, topohealth.PhaseOnFailure, uploader, thresholds)
+	}()
+	go func() {
+		defer wg.Done()
+		c.probe(ctx, topohealth.PhaseOnFailure, downloader, thresholds)
+	}()
+	go func() {
+		defer wg.Done()
+		storers, storErr = topohealth.IntendedStorers(ctx, cluster, chunkAddr, onFailureStorerProbeCount, thresholds)
+	}()
+	wg.Wait()
+
+	if storErr != nil {
+		c.logger.Errorf("on_failure intended storers probe failed: %v", storErr)
+		return
+	}
+	for i, r := range storers {
+		topohealth.LogStorerResult(c.logger, chunkAddr.String(), string(topohealth.PhaseOnFailure), i, r)
+		if r.HasChunk {
+			c.metrics.ChunkPresentOnStorer.WithLabelValues(r.Verdict.Node).Inc()
+		} else {
+			c.metrics.ChunkAbsentFromStorer.WithLabelValues(r.Verdict.Node).Inc()
+		}
+	}
+	replicas := topohealth.ReplicaCount(storers)
+	c.metrics.ChunkReplicaCount.Observe(float64(replicas))
+	c.logger.Infof("on_failure chunk %s: %d/%d intended storers locally hold the chunk", chunkAddr, replicas, len(storers))
 }

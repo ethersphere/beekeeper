@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/orchestration/notset"
 	"github.com/ethersphere/beekeeper/pkg/swap"
+	"golang.org/x/sync/errgroup"
 )
 
 // compile check whether client implements interface
@@ -438,6 +440,61 @@ func (c *Cluster) FlattenTopologies(ctx context.Context) (topologies map[string]
 	}
 
 	return topologies, err
+}
+
+// FullNodeClientsByDistance returns full node clients sorted by ascending XOR
+// distance from the given chunk address. Bootnodes and light nodes are excluded.
+// This is the basis for identifying the intended storers of a chunk.
+func (c *Cluster) FullNodeClientsByDistance(ctx context.Context, chunkAddr swarm.Address) (orchestration.ClientList, error) {
+	type entry struct {
+		client *bee.Client
+		// dist is the precomputed XOR distance to chunkAddr in big-endian
+		// bytes. Storing it once lets the sort comparator be pure (no API
+		// calls, no error side-channel) and avoids O(n log n) length checks.
+		dist []byte
+	}
+
+	type job struct {
+		client *bee.Client
+		idx    int
+	}
+	var jobs []job
+	for _, n := range c.Nodes() {
+		cfg := n.Config()
+		if !cfg.FullNode || cfg.BootnodeMode {
+			continue
+		}
+		jobs = append(jobs, job{client: n.Client()})
+	}
+
+	entries := make([]entry, len(jobs))
+	g, gctx := errgroup.WithContext(ctx)
+	for i, j := range jobs {
+		g.Go(func() error {
+			addrs, err := j.client.Addresses(gctx)
+			if err != nil {
+				return fmt.Errorf("get overlay for %s: %w", j.client.Name(), err)
+			}
+			dist, err := swarm.DistanceRaw(chunkAddr, addrs.Overlay)
+			if err != nil {
+				return fmt.Errorf("distance for %s: %w", j.client.Name(), err)
+			}
+			entries[i] = entry{client: j.client, dist: dist}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	slices.SortFunc(entries, func(a, b entry) int {
+		return bytes.Compare(a.dist, b.dist)
+	})
+	out := make(orchestration.ClientList, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, e.client)
+	}
+	return out, nil
 }
 
 // ClosestFullNodeClient returns the closest full node client to the supplied client.
