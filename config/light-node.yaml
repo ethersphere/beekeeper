@@ -2,7 +2,7 @@
 bee-configs:
   light-node:
     _inherit: default
-    full-node: false
+    node-mode: light
 
 # node groups for light nodes
 node-groups:

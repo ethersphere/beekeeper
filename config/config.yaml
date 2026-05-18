@@ -103,7 +103,7 @@ bee-configs:
     db-disable-seeks-compaction: false
     db-open-files-limit: 200
     db-write-buffer-size: 33554432
-    full-node: true
+    node-mode: full
     mainnet: false
     nat-addr: ""
     network-id: 12345
