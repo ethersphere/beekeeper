@@ -373,17 +373,18 @@ func (c *Check) probe(ctx context.Context, phase topohealth.Phase, client *bee.C
 	return v.Status
 }
 
-// onFailureDump fans out probes for uploader, downloader, and intended storers
-// concurrently, then walks every chunk of the uploaded file to identify exactly
-// which chunks are missing and classify each missing chunk as out-of-AOR
-// (bee#5400 bug 1) vs in-AOR-not-stored (bee#5400 bug 2/3).
+// onFailureDump fans out four independent diagnostics concurrently: uploader
+// probe, downloader probe, the 3 intended-storer probes (with HEAD on the
+// root), and the full chunk walk that classifies every missing chunk as
+// out-of-AOR (bee#5400 bug 1), in-AOR-not-stored (bug 2/3), or
+// cluster-coverage-gap.
 func (c *Check) onFailureDump(ctx context.Context, cluster orchestration.Cluster, uploader, downloader *bee.Client, root swarm.Address, allChunks []topohealth.ChunkInfo, thresholds topohealth.Thresholds) {
 	var (
 		wg      sync.WaitGroup
 		storers []topohealth.StorerResult
 		storErr error
 	)
-	wg.Add(3)
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		c.probe(ctx, topohealth.PhaseOnFailure, uploader, thresholds)
@@ -396,21 +397,23 @@ func (c *Check) onFailureDump(ctx context.Context, cluster orchestration.Cluster
 		defer wg.Done()
 		storers, storErr = topohealth.IntendedStorers(ctx, cluster, root, onFailureStorerProbeCount, thresholds)
 	}()
+	go func() {
+		defer wg.Done()
+		if len(allChunks) == 0 {
+			c.logger.Warningf("on_failure: no pre-computed chunk list (split failed earlier); skipping chunk walk")
+			return
+		}
+		c.walkChunksOnFailure(ctx, cluster, root, allChunks)
+	}()
 	wg.Wait()
 
 	if storErr != nil {
 		c.logger.Errorf("on_failure intended storers probe failed: %v", storErr)
-	} else {
-		for i, r := range storers {
-			topohealth.LogStorerResult(c.logger, root.String(), string(topohealth.PhaseOnFailure), i, r)
-		}
-	}
-
-	if len(allChunks) == 0 {
-		c.logger.Warningf("on_failure: no pre-computed chunk list (split failed earlier); skipping chunk walk")
 		return
 	}
-	c.walkChunksOnFailure(ctx, cluster, root, allChunks)
+	for i, r := range storers {
+		topohealth.LogStorerResult(c.logger, root.String(), string(topohealth.PhaseOnFailure), i, r)
+	}
 }
 
 // walkChunksOnFailure does a HEAD /chunks/{addr} per chunk against its
