@@ -29,6 +29,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/pss"
 	"github.com/ethersphere/beekeeper/pkg/check/pullsync"
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
+	"github.com/ethersphere/beekeeper/pkg/check/radiusdecrease"
 	"github.com/ethersphere/beekeeper/pkg/check/redundancy"
 	"github.com/ethersphere/beekeeper/pkg/check/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
@@ -636,6 +637,31 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := redundancy.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"radius-decrease": {
+		NewAction: radiusdecrease.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				UploadSizeMB    *int           `yaml:"upload-size-mb"`
+				OverflowTimeout *time.Duration `yaml:"overflow-timeout"`
+				CascadeTimeout  *time.Duration `yaml:"cascade-timeout"`
+				RecoveryTimeout *time.Duration `yaml:"recovery-timeout"`
+				PostageLabel    *string        `yaml:"postage-label"`
+				PostageAmount   *int64         `yaml:"postage-amount"`
+				PostageDepth    *uint64        `yaml:"postage-depth"`
+				Seed            *int64         `yaml:"seed"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := radiusdecrease.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

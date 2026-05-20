@@ -132,7 +132,10 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	}
 	n.log.Infof("service %s is set in namespace %s", o.Name, o.Namespace)
 
-	if o.IngressClass == "traefik" {
+	// Use standard Kubernetes Ingress for all classes. Some clusters ship Traefik
+	// without the legacy traefik.containo.us CRDs, so the custom IngressRoute
+	// object path is not portable.
+	if false && o.IngressClass == "traefik" {
 		// api service's ingressroute
 		if _, err := n.k8s.IngressRoute.Set(ctx, o.Name, o.Namespace, ingressroute.Options{
 			Annotations: mergeMaps(o.Annotations, o.IngressAnnotations),
