@@ -25,6 +25,25 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// testRunner is the subset of pkg/test used by the smoke iteration. Declared
+// locally so we don't have to name the unexported return type of test.NewTest.
+type testRunner interface {
+	Upload(ctx context.Context, c *bee.Client, data []byte, batchID string, rLevel *redundancy.Level) (swarm.Address, time.Duration, error)
+	Download(ctx context.Context, c *bee.Client, a swarm.Address, rLevel *redundancy.Level) ([]byte, time.Duration, error)
+}
+
+// iterCtx groups the inputs that stay constant across all (contentSize, rLevel)
+// pairs within a single outer iteration. Reduces runIteration's parameter count.
+type iterCtx struct {
+	cluster    orchestration.Cluster
+	uploader   *bee.Client
+	downloader *bee.Client
+	batchID    string
+	runner     testRunner
+	opts       Options
+	thresholds topohealth.Thresholds
+}
+
 const (
 	// onFailureStorerProbeCount is the number of intended storers to probe on a
 	// download failure (closest by XOR distance to root chunk address).
@@ -170,183 +189,23 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		if len(rLevels) == 0 {
 			rLevels = []*redundancy.Level{nil}
 		}
+		iter := iterCtx{
+			cluster:    cluster,
+			uploader:   uploader,
+			downloader: downloader,
+			batchID:    batchID,
+			runner:     test,
+			opts:       o,
+			thresholds: thresholds,
+		}
 		for _, rLevel := range rLevels {
 			for _, contentSize := range fileSizes {
 				select {
 				case <-ctx.Done():
 					return nil
 				default:
-					if rLevel != nil {
-						c.logger.Infof("testing file size: %d bytes (%.2f KB), redundancy level: %d", contentSize, float64(contentSize)/1024, *rLevel)
-					} else {
-						c.logger.Infof("testing file size: %d bytes (%.2f KB), redundancy level: (not set)", contentSize, float64(contentSize)/1024)
-					}
 				}
-
-				sizeLabel := fmt.Sprintf("%d", contentSize)
-				rLevelLabel := redundancyLevelLabel(rLevel)
-
-				var (
-					txDuration time.Duration
-					rxDuration time.Duration
-					txData     []byte
-					rxData     []byte
-					address    swarm.Address
-					uploaded   bool
-					downloaded bool
-				)
-
-				txData = make([]byte, contentSize)
-				if _, err := rand.Read(txData); err != nil {
-					c.logger.Errorf("unable to create random content for size %d: %v", contentSize, err)
-					continue
-				}
-
-				// Pre-compute the chunk address tree locally so we can pin-point a
-				// missing chunk if download later fails. Deterministic for the same
-				// (data, rLevel) input — matches what bee would produce. Skipped
-				// for files above chunkWalkMaxBytes since the walk grows linearly
-				// with chunk count and stops being a useful per-failure tool.
-				var allChunks []topohealth.ChunkInfo
-				if contentSize <= chunkWalkMaxBytes {
-					splitRoot, chunks, splitErr := topohealth.SplitChunkAddresses(ctx, txData, rLevel)
-					if splitErr != nil {
-						c.logger.Errorf("local chunk split failed for size %d: %v", contentSize, splitErr)
-					} else {
-						allChunks = chunks
-						c.logger.Infof("local split produced %d chunks (root=%s)", len(allChunks), splitRoot)
-					}
-				} else {
-					c.logger.Infof("file size %d > %d (chunkWalkMaxBytes); skipping local split and on-failure chunk walk", contentSize, chunkWalkMaxBytes)
-				}
-
-				if c.probe(ctx, topohealth.PhasePreUpload, uploader, thresholds) == topohealth.StatusUnhealthy {
-					c.metrics.UnhealthyAbortsPreUp.Inc()
-					c.logger.Errorf("aborting iteration: uploader %s is UNHEALTHY pre-upload", uploader.Name())
-					continue
-				}
-
-				var (
-					txCtx    context.Context
-					txCancel context.CancelFunc = func() {}
-				)
-
-				for attempt := range 3 {
-					txCancel()
-
-					uploaded = false
-
-					if attempt > 0 {
-						select {
-						case <-ctx.Done():
-							return nil
-						case <-time.After(o.TxOnErrWait):
-						}
-					}
-
-					txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
-
-					c.metrics.UploadAttempts.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Inc()
-					address, txDuration, err = test.Upload(txCtx, uploader, txData, batchID, rLevel)
-					if err != nil {
-						c.metrics.UploadErrors.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Inc()
-						c.logger.Errorf("upload failed for size %d: %v", contentSize, err)
-						c.logger.Infof("retrying in: %v", o.TxOnErrWait)
-					} else {
-						uploaded = true
-						break
-					}
-				}
-				txCancel()
-				if !uploaded {
-					c.logger.Infof("skipping download for size %d due to upload failure", contentSize)
-					continue
-				}
-
-				c.metrics.UploadDuration.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Observe(txDuration.Seconds())
-				c.metrics.UploadSuccess.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Inc()
-				c.metrics.UploadedBytes.WithLabelValues(uploader.Name(), rLevelLabel).Add(float64(contentSize))
-
-				if txDuration.Seconds() > 0 {
-					uploadThroughput := float64(contentSize) / txDuration.Seconds()
-					c.metrics.UploadThroughput.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel).Set(uploadThroughput)
-				}
-
-				time.Sleep(o.NodesSyncWait)
-
-				if c.probe(ctx, topohealth.PhasePreDownload, downloader, thresholds) == topohealth.StatusUnhealthy {
-					c.metrics.UnhealthyAbortsPreDown.Inc()
-					c.logger.Warningf("downloader %s is UNHEALTHY pre-download; attempting anyway", downloader.Name())
-				}
-
-				var (
-					rxCtx    context.Context
-					rxCancel context.CancelFunc = func() {}
-				)
-
-				for attempt := range 3 {
-					rxCancel()
-
-					if attempt > 0 {
-						select {
-						case <-ctx.Done():
-							return nil
-						case <-time.After(o.RxOnErrWait):
-						}
-					}
-
-					c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
-
-					rxCtx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
-					rxData, rxDuration, err = test.Download(rxCtx, downloader, address, rLevel)
-					if err != nil {
-						c.metrics.DownloadErrors.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
-						if errors.Is(err, io.ErrUnexpectedEOF) {
-							c.metrics.DownloadEOFErrors.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
-						}
-						c.logger.Errorf("download failed for size %d: %v", contentSize, err)
-						c.logger.Infof("retrying in: %v", o.RxOnErrWait)
-						continue
-					}
-
-					if bytes.Equal(rxData, txData) {
-						c.metrics.DownloadDuration.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Observe(rxDuration.Seconds())
-						c.metrics.DownloadSuccess.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
-						c.metrics.DownloadedBytes.WithLabelValues(downloader.Name(), rLevelLabel).Add(float64(contentSize))
-
-						if rxDuration.Seconds() > 0 {
-							downloadThroughput := float64(contentSize) / rxDuration.Seconds()
-							c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Set(downloadThroughput)
-						}
-						downloaded = true
-						break
-					}
-
-					c.logger.Infof("data mismatch for size %d: uploaded and downloaded data differ", contentSize)
-					c.metrics.DownloadMismatch.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel).Inc()
-
-					rxLen, txLen := len(rxData), len(txData)
-					if rxLen != txLen {
-						c.logger.Errorf("length mismatch for size %d: downloaded %d bytes, uploaded %d bytes", contentSize, rxLen, txLen)
-						continue
-					}
-
-					var diff int
-					for i := range txData {
-						if txData[i] != rxData[i] {
-							diff++
-						}
-					}
-					c.logger.Infof("data mismatch for size %d: found %d different bytes, ~%.2f%%", contentSize, diff, float64(diff)/float64(txLen)*100)
-				}
-				rxCancel()
-
-				if !downloaded {
-					c.logger.Errorf("all download attempts failed for size %d, dumping topology health and walking chunk tree", contentSize)
-					c.onFailureDump(ctx, cluster, uploader, downloader, address, allChunks, thresholds)
-				}
-
-				c.logger.Infof("completed testing file size: %d bytes", contentSize)
+				c.runIteration(ctx, iter, contentSize, rLevel)
 			}
 		}
 
@@ -354,6 +213,168 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 	}
 
 	return nil
+}
+
+// runIteration runs a single upload→sync→download cycle for one (contentSize,
+// rLevel) pair. On download failure it triggers the full on-failure dump,
+// which includes the chunk walk if a local split was available.
+func (c *Check) runIteration(ctx context.Context, iter iterCtx, contentSize int64, rLevel *redundancy.Level) {
+	if rLevel != nil {
+		c.logger.Infof("testing file size: %d bytes (%.2f KB), redundancy level: %d", contentSize, float64(contentSize)/1024, *rLevel)
+	} else {
+		c.logger.Infof("testing file size: %d bytes (%.2f KB), redundancy level: (not set)", contentSize, float64(contentSize)/1024)
+	}
+
+	sizeLabel := fmt.Sprintf("%d", contentSize)
+	rLevelLabel := redundancyLevelLabel(rLevel)
+
+	txData := make([]byte, contentSize)
+	if _, err := rand.Read(txData); err != nil {
+		c.logger.Errorf("unable to create random content for size %d: %v", contentSize, err)
+		return
+	}
+
+	// Pre-compute the chunk address tree locally so we can pin-point a missing
+	// chunk if download later fails. Deterministic for the same (data, rLevel)
+	// input — matches what bee would produce. Skipped for files above
+	// chunkWalkMaxBytes since the walk grows linearly with chunk count and
+	// stops being a useful per-failure tool.
+	var allChunks []topohealth.ChunkInfo
+	if contentSize <= chunkWalkMaxBytes {
+		splitRoot, chunks, splitErr := topohealth.SplitChunkAddresses(ctx, txData, rLevel)
+		if splitErr != nil {
+			c.logger.Errorf("local chunk split failed for size %d: %v", contentSize, splitErr)
+		} else {
+			allChunks = chunks
+			c.logger.Infof("local split produced %d chunks (root=%s)", len(allChunks), splitRoot)
+		}
+	} else {
+		c.logger.Infof("file size %d > %d (chunkWalkMaxBytes); skipping local split and on-failure chunk walk", contentSize, chunkWalkMaxBytes)
+	}
+
+	if c.probe(ctx, topohealth.PhasePreUpload, iter.uploader, iter.thresholds) == topohealth.StatusUnhealthy {
+		c.metrics.UnhealthyAbortsPreUp.Inc()
+		c.logger.Errorf("aborting iteration: uploader %s is UNHEALTHY pre-upload", iter.uploader.Name())
+		return
+	}
+
+	address, txDuration, ok := c.uploadWithRetry(ctx, iter, sizeLabel, rLevelLabel, txData, rLevel)
+	if !ok {
+		c.logger.Infof("skipping download for size %d due to upload failure", contentSize)
+		return
+	}
+
+	c.metrics.UploadDuration.WithLabelValues(sizeLabel, iter.uploader.Name(), rLevelLabel).Observe(txDuration.Seconds())
+	c.metrics.UploadSuccess.WithLabelValues(sizeLabel, iter.uploader.Name(), rLevelLabel).Inc()
+	c.metrics.UploadedBytes.WithLabelValues(iter.uploader.Name(), rLevelLabel).Add(float64(contentSize))
+	if txDuration.Seconds() > 0 {
+		c.metrics.UploadThroughput.WithLabelValues(sizeLabel, iter.uploader.Name(), rLevelLabel).Set(float64(contentSize) / txDuration.Seconds())
+	}
+
+	time.Sleep(iter.opts.NodesSyncWait)
+
+	if c.probe(ctx, topohealth.PhasePreDownload, iter.downloader, iter.thresholds) == topohealth.StatusUnhealthy {
+		c.metrics.UnhealthyAbortsPreDown.Inc()
+		c.logger.Warningf("downloader %s is UNHEALTHY pre-download; attempting anyway", iter.downloader.Name())
+	}
+
+	downloaded, eofSeen := c.downloadWithRetry(ctx, iter, sizeLabel, rLevelLabel, txData, address, rLevel)
+
+	if !downloaded {
+		c.logger.Errorf("all download attempts failed for size %d, dumping topology health and walking chunk tree", contentSize)
+		c.onFailureDump(ctx, iter.cluster, iter.uploader, iter.downloader, address, allChunks, eofSeen, iter.thresholds)
+	}
+
+	c.logger.Infof("completed testing file size: %d bytes", contentSize)
+}
+
+// uploadWithRetry attempts the upload up to 3 times, sleeping TxOnErrWait
+// between attempts (not before the first). Returns the address, duration, and
+// whether any attempt succeeded.
+func (c *Check) uploadWithRetry(ctx context.Context, iter iterCtx, sizeLabel, rLevelLabel string, txData []byte, rLevel *redundancy.Level) (swarm.Address, time.Duration, bool) {
+	var (
+		address    swarm.Address
+		txDuration time.Duration
+	)
+	for attempt := range 3 {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return swarm.ZeroAddress, 0, false
+			case <-time.After(iter.opts.TxOnErrWait):
+			}
+		}
+		txCtx, cancel := context.WithTimeout(ctx, iter.opts.UploadTimeout)
+		c.metrics.UploadAttempts.WithLabelValues(sizeLabel, iter.uploader.Name(), rLevelLabel).Inc()
+		addr, dur, err := iter.runner.Upload(txCtx, iter.uploader, txData, iter.batchID, rLevel)
+		cancel()
+		if err != nil {
+			c.metrics.UploadErrors.WithLabelValues(sizeLabel, iter.uploader.Name(), rLevelLabel).Inc()
+			c.logger.Errorf("upload failed for size %d: %v", len(txData), err)
+			c.logger.Infof("retrying in: %v", iter.opts.TxOnErrWait)
+			continue
+		}
+		address, txDuration = addr, dur
+		return address, txDuration, true
+	}
+	return swarm.ZeroAddress, 0, false
+}
+
+// downloadWithRetry attempts the download up to 3 times. Records per-attempt
+// metrics, classifies EOF errors, and tracks whether any attempt hit
+// io.ErrUnexpectedEOF (used to attribute on-failure walks). On data mismatch
+// it logs the divergence and counts it but does not retry past the loop.
+func (c *Check) downloadWithRetry(ctx context.Context, iter iterCtx, sizeLabel, rLevelLabel string, txData []byte, address swarm.Address, rLevel *redundancy.Level) (downloaded, eofSeen bool) {
+	for attempt := range 3 {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return downloaded, eofSeen
+			case <-time.After(iter.opts.RxOnErrWait):
+			}
+		}
+
+		c.metrics.DownloadAttempts.WithLabelValues(sizeLabel, iter.downloader.Name(), rLevelLabel).Inc()
+
+		rxCtx, cancel := context.WithTimeout(ctx, iter.opts.DownloadTimeout)
+		rxData, rxDuration, err := iter.runner.Download(rxCtx, iter.downloader, address, rLevel)
+		cancel()
+		if err != nil {
+			c.metrics.DownloadErrors.WithLabelValues(sizeLabel, iter.downloader.Name(), rLevelLabel).Inc()
+			if errors.Is(err, io.ErrUnexpectedEOF) {
+				c.metrics.DownloadEOFErrors.WithLabelValues(sizeLabel, iter.downloader.Name(), rLevelLabel).Inc()
+				eofSeen = true
+			}
+			c.logger.Errorf("download failed for size %d: %v", len(txData), err)
+			c.logger.Infof("retrying in: %v", iter.opts.RxOnErrWait)
+			continue
+		}
+
+		if bytes.Equal(rxData, txData) {
+			c.metrics.DownloadDuration.WithLabelValues(sizeLabel, iter.downloader.Name(), rLevelLabel).Observe(rxDuration.Seconds())
+			c.metrics.DownloadSuccess.WithLabelValues(sizeLabel, iter.downloader.Name(), rLevelLabel).Inc()
+			c.metrics.DownloadedBytes.WithLabelValues(iter.downloader.Name(), rLevelLabel).Add(float64(len(txData)))
+			if rxDuration.Seconds() > 0 {
+				c.metrics.DownloadThroughput.WithLabelValues(sizeLabel, iter.downloader.Name(), rLevelLabel).Set(float64(len(txData)) / rxDuration.Seconds())
+			}
+			return true, eofSeen
+		}
+
+		c.logger.Infof("data mismatch for size %d: uploaded and downloaded data differ", len(txData))
+		c.metrics.DownloadMismatch.WithLabelValues(sizeLabel, iter.downloader.Name(), rLevelLabel).Inc()
+		if len(rxData) != len(txData) {
+			c.logger.Errorf("length mismatch for size %d: downloaded %d bytes, uploaded %d bytes", len(txData), len(rxData), len(txData))
+			continue
+		}
+		var diff int
+		for i := range txData {
+			if txData[i] != rxData[i] {
+				diff++
+			}
+		}
+		c.logger.Infof("data mismatch for size %d: found %d different bytes, ~%.2f%%", len(txData), diff, float64(diff)/float64(len(txData))*100)
+	}
+	return downloaded, eofSeen
 }
 
 func (c *Check) Report() []prometheus.Collector {
@@ -388,7 +409,7 @@ func (c *Check) probe(ctx context.Context, phase topohealth.Phase, client *bee.C
 // root), and the full chunk walk that classifies every missing chunk as
 // out-of-AOR (bee#5400 bug 1), in-AOR-not-stored (bug 2/3), or
 // cluster-coverage-gap.
-func (c *Check) onFailureDump(ctx context.Context, cluster orchestration.Cluster, uploader, downloader *bee.Client, root swarm.Address, allChunks []topohealth.ChunkInfo, thresholds topohealth.Thresholds) {
+func (c *Check) onFailureDump(ctx context.Context, cluster orchestration.Cluster, uploader, downloader *bee.Client, root swarm.Address, allChunks []topohealth.ChunkInfo, eofSeen bool, thresholds topohealth.Thresholds) {
 	var (
 		wg      sync.WaitGroup
 		storers []topohealth.StorerResult
@@ -414,7 +435,7 @@ func (c *Check) onFailureDump(ctx context.Context, cluster orchestration.Cluster
 			// chunkWalkMaxBytes or because the local split errored
 			return
 		}
-		c.walkChunksOnFailure(ctx, cluster, root, allChunks)
+		c.walkChunksOnFailure(ctx, cluster, root, allChunks, eofSeen)
 	}()
 	wg.Wait()
 
@@ -429,8 +450,10 @@ func (c *Check) onFailureDump(ctx context.Context, cluster orchestration.Cluster
 
 // walkChunksOnFailure does a HEAD /chunks/{addr} per chunk against its
 // closest full node, records the per-bug counters, and logs every missing or
-// out-of-AOR-present chunk.
-func (c *Check) walkChunksOnFailure(ctx context.Context, cluster orchestration.Cluster, root swarm.Address, chunks []topohealth.ChunkInfo) {
+// out-of-AOR-present chunk. If the failure included an EOF and the walk
+// finds nothing wrong, eof_with_clean_walk_total is incremented — that's the
+// "EOF was NOT bee#5400" signal.
+func (c *Check) walkChunksOnFailure(ctx context.Context, cluster orchestration.Cluster, root swarm.Address, chunks []topohealth.ChunkInfo, eofSeen bool) {
 	storers, err := topohealth.GatherStorers(ctx, cluster)
 	if err != nil {
 		c.logger.Errorf("on_failure gather storers failed: %v", err)
@@ -464,12 +487,16 @@ func (c *Check) walkChunksOnFailure(ctx context.Context, cluster orchestration.C
 	}
 
 	totalMissing := sumPerPosition(res.MissingTotal)
+	totalPresentOOA := sumPerPosition(res.PresentOutOfAOR)
 	if totalMissing > 0 {
 		c.metrics.FilesWithLoss.Inc()
 	}
+	if eofSeen && totalMissing == 0 && totalPresentOOA == 0 {
+		c.metrics.EOFWithCleanWalk.Inc()
+	}
 	c.logger.Infof("on_failure walk: root=%s checked=%d probe_errors=%d missing=%d (out_of_aor=%d, in_aor=%d) present_out_of_aor=%d",
 		root, res.Checked, res.ProbeErrors, totalMissing,
-		sumPerPosition(res.MissingOutOfAOR), sumPerPosition(res.MissingInAOR), sumPerPosition(res.PresentOutOfAOR))
+		sumPerPosition(res.MissingOutOfAOR), sumPerPosition(res.MissingInAOR), totalPresentOOA)
 }
 
 func sumPerPosition(m topohealth.PerPositionCounts) int {

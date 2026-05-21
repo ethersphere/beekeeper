@@ -34,6 +34,7 @@ type metrics struct {
 	ChunksMissingInAOR    *prometheus.CounterVec // {position} — bug 2/3 fingerprint (in-depth but not stored)
 	ChunksPresentOutOfAOR *prometheus.CounterVec // {position} — bug 1 confirmed (chunk exists outside its AOR)
 	FilesWithLoss         prometheus.Counter
+	EOFWithCleanWalk      prometheus.Counter
 }
 
 const (
@@ -281,6 +282,14 @@ func newMetrics(subsystem string) metrics {
 				Subsystem: subsystem,
 				Name:      "files_with_chunk_loss_total",
 				Help:      "Files where the on-failure chunk walk found at least one missing chunk.",
+			},
+		),
+		EOFWithCleanWalk: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "eof_with_clean_walk_total",
+				Help:      "Downloads that failed with unexpected EOF where the chunk walk found nothing missing and no out-of-AOR-present chunks. Strong signal that the EOF was NOT bee#5400 chunk loss but something else (transient retrieval, downloader networking, etc.).",
 			},
 		),
 	}
