@@ -72,6 +72,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	uploadNode := sortedNodes[0]
 	client := clients[uploadNode]
 
+	// Record initial radius before any batch purchase
+	initialState, err := client.ReserveState(ctx)
+	if err != nil {
+		return fmt.Errorf("node %s: get initial reserve state: %w", uploadNode, err)
+	}
+	c.logger.Infof("node %s: initial reserve state: radius=%d storageRadius=%d", uploadNode, initialState.Radius, initialState.StorageRadius)
+
 	// Step 1: Create postage batch with explicit amount for controlled expiry
 	c.logger.Infof("node %s: creating postage batch amount=%d depth=%d", uploadNode, o.PostageAmount, o.PostageDepth)
 	batchID, err := client.CreatePostageBatch(ctx, o.PostageAmount, o.PostageDepth, o.PostageLabel, false)
@@ -100,6 +107,20 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 	}
 	c.logger.Infof("node %s: file uploaded, address=%s", uploadNode, file.Address())
 
+	// Check radius after batch purchase + upload
+	postUploadState, err := client.ReserveState(ctx)
+	if err != nil {
+		return fmt.Errorf("node %s: get post-upload reserve state: %w", uploadNode, err)
+	}
+	c.logger.Infof("node %s: post-upload reserve state: radius=%d storageRadius=%d", uploadNode, postUploadState.Radius, postUploadState.StorageRadius)
+
+	radiusIncreased := postUploadState.Radius > initialState.Radius
+	if radiusIncreased {
+		c.logger.Infof("node %s: radius increased from %d to %d after batch purchase", uploadNode, initialState.Radius, postUploadState.Radius)
+	} else {
+		c.logger.Infof("node %s: radius unchanged at %d (reserve capacity large enough to absorb batch)", uploadNode, postUploadState.Radius)
+	}
+
 	// Step 3: Verify file is retrievable before expiry
 	size, hash, err := client.DownloadFile(ctx, file.Address(), nil)
 	if err != nil {
@@ -115,8 +136,22 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts int
 		return err
 	}
 
-	// Step 5: Post-expiry checks
-	return c.verifyPostExpiry(ctx, clients, sortedNodes, file, batchID)
+	// Step 5: Post-expiry checks (batch unusable, uploads rejected)
+	if err := c.verifyPostExpiry(ctx, clients, sortedNodes, file, batchID); err != nil {
+		return err
+	}
+
+	// Step 6: If radius increased, wait for it to decrease back after GC
+	// The reserve worker decreases radius when reserve count drops below
+	// 50% capacity and syncRate == 0.
+	if radiusIncreased {
+		if err := c.waitForRadiusDecrease(ctx, client, uploadNode, postUploadState.Radius, o); err != nil {
+			return err
+		}
+	}
+
+	c.logger.Infof("stamp-expiry check passed")
+	return nil
 }
 
 func (c *Check) waitForExpiry(ctx context.Context, client *bee.Client, batchID string, o Options) error {
@@ -144,6 +179,37 @@ func (c *Check) waitForExpiry(ctx context.Context, client *bee.Client, batchID s
 
 			if batch.BatchTTL <= 0 || !batch.Usable {
 				c.logger.Infof("batch %s expired", batchID)
+				return nil
+			}
+		}
+	}
+}
+
+func (c *Check) waitForRadiusDecrease(ctx context.Context, client *bee.Client, nodeName string, postUploadRadius uint8, o Options) error {
+	c.logger.Infof("node %s: waiting for radius to decrease from %d after GC (poll=%s, max=%s)", nodeName, postUploadRadius, o.PollInterval, o.MaxWait)
+
+	deadline := time.After(o.MaxWait)
+	ticker := time.NewTicker(o.PollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-deadline:
+			state, _ := client.ReserveState(ctx)
+			return fmt.Errorf("node %s: radius did not decrease from %d within %s (current: radius=%d storageRadius=%d)", nodeName, postUploadRadius, o.MaxWait, state.Radius, state.StorageRadius)
+		case <-ticker.C:
+			state, err := client.ReserveState(ctx)
+			if err != nil {
+				c.logger.Infof("node %s: failed to get reserve state: %v", nodeName, err)
+				continue
+			}
+
+			c.logger.Infof("node %s: current radius=%d storageRadius=%d", nodeName, state.Radius, state.StorageRadius)
+
+			if state.Radius < postUploadRadius {
+				c.logger.Infof("node %s: radius decreased from %d to %d after expiry+GC", nodeName, postUploadRadius, state.Radius)
 				return nil
 			}
 		}
@@ -186,6 +252,5 @@ func (c *Check) verifyPostExpiry(ctx context.Context, clients map[string]*bee.Cl
 	}
 	c.logger.Infof("node %s: upload with expired batch correctly rejected: %v", uploadNode, err)
 
-	c.logger.Infof("stamp-expiry check passed")
 	return nil
 }
