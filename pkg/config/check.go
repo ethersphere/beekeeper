@@ -35,6 +35,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/check/stake"
+	"github.com/ethersphere/beekeeper/pkg/check/stampexpiry"
 	"github.com/ethersphere/beekeeper/pkg/check/withdraw"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -492,6 +493,28 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
 
+			return opts, nil
+		},
+	},
+	"stamp-expiry": {
+		NewAction: stampexpiry.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
+			checkOpts := new(struct {
+				FileSize      *int64         `yaml:"file-size"`
+				PostageAmount *int64         `yaml:"postage-amount"`
+				PostageDepth  *uint64        `yaml:"postage-depth"`
+				PostageLabel  *string        `yaml:"postage-label"`
+				PollInterval  *time.Duration `yaml:"poll-interval"`
+				MaxWait       *time.Duration `yaml:"max-wait"`
+				Seed          *int64         `yaml:"seed"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := stampexpiry.NewDefaultOptions()
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
 			return opts, nil
 		},
 	},
