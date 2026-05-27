@@ -56,9 +56,7 @@ swap-enable: {{.SwapEnable}}
 swap-factory-address: {{.SwapFactoryAddress}}
 swap-initial-deposit: {{.SwapInitialDeposit}}
 tracing-enable: {{.TracingEnabled}}
-tracing-otlp-endpoint: {{.TracingOTLPEndpoint}}
-tracing-otlp-insecure: {{.TracingOTLPInsecure}}
-tracing-sampling-ratio: {{.TracingSamplingRatio}}
+tracing-endpoint: {{.TracingEndpoint}}
 tracing-service-name: {{.TracingServiceName}}
 verbosity: {{.Verbosity}}
 warmup-time: {{.WarmupTime}}
