@@ -58,9 +58,7 @@ type BeeConfig struct {
 	SwapFactoryAddress          *string        `yaml:"swap-factory-address"`
 	SwapInitialDeposit          *uint64        `yaml:"swap-initial-deposit"`
 	TracingEnabled              *bool          `yaml:"tracing-enabled"`
-	TracingOTLPEndpoint         *string        `yaml:"tracing-otlp-endpoint"`
-	TracingOTLPInsecure         *bool          `yaml:"tracing-otlp-insecure"`
-	TracingSamplingRatio        *float64       `yaml:"tracing-sampling-ratio"`
+	TracingEndpoint             *string        `yaml:"tracing-endpoint"`
 	TracingServiceName          *string        `yaml:"tracing-service-name"`
 	Verbosity                   *uint64        `yaml:"verbosity"`
 	WarmupTime                  *time.Duration `yaml:"warmup-time"`
@@ -98,14 +96,6 @@ func (b *BeeConfig) Export() (config orchestration.Config) {
 
 	if config.BlockchainRPCEndpoint == "" && b.SwapEndpoint != nil {
 		config.BlockchainRPCEndpoint = *b.SwapEndpoint
-	}
-
-	// Bee's tracing-sampling-ratio semantics: 0 disables sampling, 1 samples
-	// everything. Default to 1 when unset so existing beekeeper configs (which
-	// never specified the key) keep the prior "sample everything" behavior
-	// rather than silently turning tracing off.
-	if b.TracingSamplingRatio == nil {
-		config.TracingSamplingRatio = 1.0
 	}
 
 	return config
