@@ -24,6 +24,7 @@ block-time: {{ .BlockTime }}
 blockchain-rpc-endpoint: {{.BlockchainRPCEndpoint}}
 bootnode-mode: {{.BootnodeMode}}
 bootnode: {{.Bootnodes}}
+bzz-token-address: {{.BzzTokenAddress}}
 cache-capacity: {{.CacheCapacity}}
 chequebook-enable: {{.ChequebookEnable}}
 cors-allowed-origins: {{.CORSAllowedOrigins}}

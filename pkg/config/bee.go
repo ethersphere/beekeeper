@@ -25,6 +25,7 @@ type BeeConfig struct {
 	BlockTime                   *uint64        `yaml:"block-time"`
 	BootnodeMode                *bool          `yaml:"bootnode-mode"`
 	Bootnodes                   *string        `yaml:"bootnodes"`
+	BzzTokenAddress             *string        `yaml:"bzz-token-address"`
 	CacheCapacity               *uint64        `yaml:"cache-capacity"`
 	ChequebookEnable            *bool          `yaml:"chequebook-enable"`
 	CORSAllowedOrigins          *string        `yaml:"cors-allowed-origins"`

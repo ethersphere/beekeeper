@@ -84,6 +84,7 @@ type Config struct {
 	BlockTime                   uint64        // chain block time
 	BootnodeMode                bool          // cause the node to always accept incoming connections
 	Bootnodes                   string        // initial nodes to connect to
+	BzzTokenAddress             string        // bzz token contract address
 	CacheCapacity               uint64        // cache capacity in chunks, multiply by 4096 (MaxChunkSize) to get approximate capacity in bytes
 	ChequebookEnable            bool          // enable chequebook
 	CORSAllowedOrigins          string        // origins with CORS headers enabled
