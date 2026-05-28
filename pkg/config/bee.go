@@ -60,6 +60,7 @@ type BeeConfig struct {
 	TracingEnabled              *bool          `yaml:"tracing-enabled"`
 	TracingOTLPEndpoint         *string        `yaml:"tracing-otlp-endpoint"`
 	TracingOTLPInsecure         *bool          `yaml:"tracing-otlp-insecure"`
+	TracingOTLPProtocol         *string        `yaml:"tracing-otlp-protocol"`
 	TracingSamplingRatio        *float64       `yaml:"tracing-sampling-ratio"`
 	TracingServiceName          *string        `yaml:"tracing-service-name"`
 	Verbosity                   *uint64        `yaml:"verbosity"`
@@ -106,6 +107,17 @@ func (b *BeeConfig) Export() (config orchestration.Config) {
 	// rather than silently turning tracing off.
 	if b.TracingSamplingRatio == nil {
 		config.TracingSamplingRatio = 1.0
+	}
+
+	// Mirror bee's OTLP defaults: insecure transport (suitable for a local
+	// collector) over HTTP. The k8s config template always emits these keys,
+	// so leaving them at Go zero values would override bee's own defaults with
+	// insecure=false and an empty protocol.
+	if b.TracingOTLPInsecure == nil {
+		config.TracingOTLPInsecure = true
+	}
+	if b.TracingOTLPProtocol == nil {
+		config.TracingOTLPProtocol = "http"
 	}
 
 	return config

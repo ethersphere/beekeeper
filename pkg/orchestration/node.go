@@ -118,6 +118,7 @@ type Config struct {
 	TracingEnabled              bool          // enable tracing
 	TracingOTLPEndpoint         string        // OTLP/HTTP endpoint for tracing data (host:port)
 	TracingOTLPInsecure         bool          // disable TLS for the OTLP exporter
+	TracingOTLPProtocol         string        // OTLP transport protocol: http or grpc
 	TracingSamplingRatio        float64       // head-based sampling ratio in [0,1]; 1 samples everything
 	TracingServiceName          string        // service name identifier for tracing
 	Verbosity                   uint64        // log verbosity level 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=trace
