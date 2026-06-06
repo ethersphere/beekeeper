@@ -101,7 +101,7 @@ clusters:
 node-groups:
   local:
     _inherit: ""
-    image: k3d-registry.localhost:5000/ethersphere/bee:latest
+    image: ethersphere/bee:latest
     image-pull-policy: Always
     ingress-annotations:
       nginx.ingress.kubernetes.io/affinity: "cookie"
@@ -137,6 +137,10 @@ node-groups:
     p2p-wss-node-port: 31635
   local-gc:
     _inherit: "local"
+  local-test:
+    _inherit: "local"
+    image: ethersphere/bee:master-scenario-b
+    image-pull-policy: IfNotPresent
   local-light:
     _inherit: "local"
 
@@ -150,7 +154,7 @@ bee-configs:
     autotls-domain: "local.test"
     autotls-registration-endpoint: http://p2p-forge.local.svc.cluster.local:8080
     block-time: 1
-    blockchain-rpc-endpoint: "ws://geth-swap:8546"
+    blockchain-rpc-endpoint: "ws://10.43.138.185:8546"
     bootnode-mode: false
     bootnodes: ""
     cache-capacity: 20000
@@ -218,6 +222,9 @@ bee-configs:
     _inherit: "bee-local"
     bootnode: /dnsaddr/localhost
     full-node: false
+  bee-local-test:
+    _inherit: "bee-local"
+    cache-capacity: 200
   bee-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10
@@ -459,3 +466,14 @@ checks:
       forge-dns-address: "127.0.0.1:30053" # When running inside cluster, use p2p-forge.local.svc.cluster.local:53
       forge-tls-host-address: "" # When running locally, use 127.0.0.1:31635
       pebble-mgmt-url: "https://127.0.0.1:31500/roots/0" # When running inside cluster, use https://pebble.local.svc.cluster.local:15000/roots/0
+  ci-radius-decrease:
+    options:
+      upload-size-mb: 4
+      overflow-timeout: 5m
+      cascade-timeout: 2m
+      recovery-timeout: 20m
+      postage-label: radius-decrease-check
+      postage-amount: 1
+      postage-depth: 17
+    timeout: 28m
+    type: radius-decrease
