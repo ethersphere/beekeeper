@@ -199,24 +199,16 @@ func (c *Check) upload(ctx context.Context, t transferrer, uploader *bee.Client,
 	sizeLabel := strconv.Itoa(len(data))
 	rLevelLabel := redundancyLevelLabel(rLevel)
 
-	var (
-		txCtx    context.Context
-		txCancel context.CancelFunc = func() {}
-	)
-	defer func() { txCancel() }()
-
 	for range 3 {
-		txCancel()
-
 		select {
 		case <-ctx.Done():
 			return swarm.ZeroAddress, false
 		case <-time.After(o.TxOnErrWait):
 		}
 
-		txCtx, txCancel = context.WithTimeout(ctx, o.UploadTimeout)
-
+		txCtx, txCancel := context.WithTimeout(ctx, o.UploadTimeout)
 		address, txDuration, err := t.Upload(txCtx, uploader, data, batchID, rLevel)
+		txCancel()
 		if err != nil {
 			c.metrics.Upload.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel, resultFailure).Inc()
 			c.logger.Errorf("upload failed for size %d: %v", len(data), err)
@@ -246,24 +238,16 @@ func (c *Check) download(ctx context.Context, t transferrer, downloader *bee.Cli
 	sizeLabel := strconv.Itoa(len(want))
 	rLevelLabel := redundancyLevelLabel(rLevel)
 
-	var (
-		rxCtx    context.Context
-		rxCancel context.CancelFunc = func() {}
-	)
-	defer func() { rxCancel() }()
-
 	for range 3 {
-		rxCancel()
-
 		select {
 		case <-ctx.Done():
 			return
 		case <-time.After(o.RxOnErrWait):
 		}
 
-		rxCtx, rxCancel = context.WithTimeout(ctx, o.DownloadTimeout)
-
+		rxCtx, rxCancel := context.WithTimeout(ctx, o.DownloadTimeout)
 		data, rxDuration, err := t.Download(rxCtx, downloader, addr, rLevel)
+		rxCancel()
 		if err != nil {
 			c.metrics.Download.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel, resultError).Inc()
 			c.logger.Errorf("download failed for size %d: %v", len(want), err)
