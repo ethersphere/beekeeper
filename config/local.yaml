@@ -404,13 +404,13 @@ checks:
       postage-new-depth: 18
   ci-stamp-expiry:
     type: stamp-expiry
-    timeout: 15m
+    timeout: 20m
     options:
       file-size: 1048576
-      postage-amount: 1000
+      postage-ttl: 5m
       postage-depth: 17
-      poll-interval: 5s
-      max-wait: 10m
+      poll-interval: 15s
+      max-wait: 15m
       seed: 42
   ci-stake:
     type: stake

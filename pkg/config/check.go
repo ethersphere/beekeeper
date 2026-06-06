@@ -500,13 +500,13 @@ var Checks = map[string]CheckType{
 		NewAction: stampexpiry.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (interface{}, error) {
 			checkOpts := new(struct {
-				FileSize      *int64         `yaml:"file-size"`
-				PostageAmount *int64         `yaml:"postage-amount"`
-				PostageDepth  *uint64        `yaml:"postage-depth"`
-				PostageLabel  *string        `yaml:"postage-label"`
-				PollInterval  *time.Duration `yaml:"poll-interval"`
-				MaxWait       *time.Duration `yaml:"max-wait"`
-				Seed          *int64         `yaml:"seed"`
+				FileSize     *int64         `yaml:"file-size"`
+				PostageTTL   *time.Duration `yaml:"postage-ttl"`
+				PostageDepth *uint64        `yaml:"postage-depth"`
+				PostageLabel *string        `yaml:"postage-label"`
+				PollInterval *time.Duration `yaml:"poll-interval"`
+				MaxWait      *time.Duration `yaml:"max-wait"`
+				Seed         *int64         `yaml:"seed"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
