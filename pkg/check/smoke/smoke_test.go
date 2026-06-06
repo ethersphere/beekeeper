@@ -17,6 +17,13 @@ func TestResolveRLevels(t *testing.T) {
 		}
 	})
 
+	t.Run("empty non-nil slice defaults to single nil level", func(t *testing.T) {
+		got := resolveRLevels([]*redundancy.Level{})
+		if len(got) != 1 || got[0] != nil {
+			t.Fatalf("expected single nil level, got %v", got)
+		}
+	})
+
 	t.Run("returns configured levels unchanged", func(t *testing.T) {
 		l := redundancy.Level(1)
 		in := []*redundancy.Level{&l}
@@ -47,6 +54,7 @@ func TestCountByteDiff(t *testing.T) {
 		{"all differ", []byte{1, 2, 3}, []byte{4, 5, 6}, 3},
 		{"some differ", []byte{1, 2, 3}, []byte{1, 9, 3}, 1},
 		{"shorter b compares min length", []byte{1, 2, 3}, []byte{1, 2}, 0},
+		{"shorter a compares min length", []byte{1, 2}, []byte{1, 2, 3}, 0},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
