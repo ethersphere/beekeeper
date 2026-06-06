@@ -30,6 +30,9 @@ const (
 	resultMismatch = "mismatch"
 )
 
+// msgRetryingIn is the log format used when scheduling a retry after a failure.
+const msgRetryingIn = "retrying in: %v"
+
 // Options represents smoke test options
 type Options struct {
 	ContentSize     int64
@@ -142,7 +145,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 		if err != nil {
 			c.metrics.BatchCreate.WithLabelValues(resultError).Inc()
 			c.logger.Errorf("create new batch failed: %v", err)
-			c.logger.Infof("retrying in: %v", o.TxOnErrWait)
+			c.logger.Infof(msgRetryingIn, o.TxOnErrWait)
 			time.Sleep(o.TxOnErrWait)
 			continue
 		}
@@ -212,7 +215,7 @@ func (c *Check) upload(ctx context.Context, t transferrer, uploader *bee.Client,
 		if err != nil {
 			c.metrics.Upload.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel, resultFailure).Inc()
 			c.logger.Errorf("upload failed for size %d: %v", len(data), err)
-			c.logger.Infof("retrying in: %v", o.TxOnErrWait)
+			c.logger.Infof(msgRetryingIn, o.TxOnErrWait)
 			continue
 		}
 
@@ -251,7 +254,7 @@ func (c *Check) download(ctx context.Context, t transferrer, downloader *bee.Cli
 		if err != nil {
 			c.metrics.Download.WithLabelValues(sizeLabel, downloader.Name(), rLevelLabel, resultError).Inc()
 			c.logger.Errorf("download failed for size %d: %v", len(want), err)
-			c.logger.Infof("retrying in: %v", o.RxOnErrWait)
+			c.logger.Infof(msgRetryingIn, o.RxOnErrWait)
 			continue
 		}
 
