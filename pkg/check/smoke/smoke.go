@@ -314,3 +314,28 @@ func redundancyLevelLabel(rLevel *redundancy.Level) string {
 	}
 	return strconv.Itoa(int(*rLevel))
 }
+
+// resolveRLevels returns the configured redundancy levels, defaulting to a single
+// nil level (redundancy disabled) when none are configured.
+func resolveRLevels(levels []*redundancy.Level) []*redundancy.Level {
+	if len(levels) == 0 {
+		return []*redundancy.Level{nil}
+	}
+	return levels
+}
+
+// countByteDiff returns the number of differing bytes between a and b, comparing
+// up to the length of the shorter slice.
+func countByteDiff(a, b []byte) int {
+	n := len(a)
+	if len(b) < n {
+		n = len(b)
+	}
+	diff := 0
+	for i := range n {
+		if a[i] != b[i] {
+			diff++
+		}
+	}
+	return diff
+}
