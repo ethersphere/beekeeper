@@ -161,7 +161,7 @@ bee-configs:
     db-disable-seeks-compaction: false
     db-open-files-limit: 200
     db-write-buffer-size: 33554432
-    full-node: true
+    node-mode: full
     mainnet: false
     nat-addr: ""
     nat-wss-addr: ""
@@ -201,9 +201,10 @@ bee-configs:
     p2p-wss-enable: true
   bee-local-ultralight-autotls:
     _inherit: "bee-local-dns"
-    full-node: false
+    node-mode: ultra-light
     p2p-wss-enable: true
     blockchain-rpc-endpoint: # ultralight nodes don't connect to the blockchain
+    swap-enable: false
   bootnode-local:
     _inherit: "bee-local"
     bootnode-mode: true
@@ -217,7 +218,7 @@ bee-configs:
   bee-local-light:
     _inherit: "bee-local"
     bootnode: /dnsaddr/localhost
-    full-node: false
+    node-mode: light
   bee-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10

@@ -92,7 +92,8 @@ type Config struct {
 	DbDisableSeeksCompaction    bool          // disables DB compactions triggered by seeks
 	DbOpenFilesLimit            int           // number of open files allowed by database
 	DbWriteBufferSize           int           // size of the database write buffer in bytes
-	FullNode                    bool          // cause the node to start in full mode
+	FullNode                    bool          // cause the node to start in full mode (deprecated: use NodeMode)
+	NodeMode                    string        // node operational mode: full, light, or ultra-light
 	Mainnet                     bool          // enable mainnet
 	NATAddr                     string        // NAT exposed address
 	NATWSSAddr                  string        // NAT exposed secure WebSocket address
@@ -122,4 +123,21 @@ type Config struct {
 	WarmupTime                  time.Duration // warmup time pull/pushsync protocols
 	WelcomeMessage              string        // send a welcome message string during handshakes
 	WithdrawAddress             string        // allowed addresses for wallet withdrawal
+}
+
+// IsFullNode reports whether the node is configured as a full node.
+// It checks NodeMode first; falls back to the deprecated FullNode bool.
+func (c Config) IsFullNode() bool {
+	if c.NodeMode != "" {
+		return c.NodeMode == "full"
+	}
+	return c.FullNode
+}
+
+// IsLightNode reports whether the node is configured as a light node.
+func (c Config) IsLightNode() bool {
+	if c.NodeMode != "" {
+		return c.NodeMode == "light"
+	}
+	return !c.FullNode
 }

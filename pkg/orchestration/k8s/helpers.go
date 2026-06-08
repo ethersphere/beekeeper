@@ -33,6 +33,7 @@ db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
 db-open-files-limit: {{.DbOpenFilesLimit}}
 db-write-buffer-size: {{.DbWriteBufferSize}}
 full-node: {{.FullNode}}
+node-mode: {{.NodeMode}}
 mainnet: {{.Mainnet}}
 nat-addr: {{.NATAddr}}
 nat-wss-addr: {{.NATWSSAddr}}

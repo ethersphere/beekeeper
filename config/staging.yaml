@@ -35,7 +35,7 @@ bee-configs:
     api-addr: ":1633"
     blockchain-rpc-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
     bootnodes: /dnsaddr/testnet.ethswarm.org
-    full-node: true
+    node-mode: full
     mainnet: false
     network-id: 10
     p2p-addr: ":1634"
