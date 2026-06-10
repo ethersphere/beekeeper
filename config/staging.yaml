@@ -34,14 +34,14 @@ bee-configs:
     _inherit: ""
     api-addr: ":1633"
     blockchain-rpc-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
-    bootnodes: /dnsaddr/testnet.ethswarm.org
+    bootnode: ["/dnsaddr/testnet.ethswarm.org"]
     full-node: true
     mainnet: false
     network-id: 10
     p2p-addr: ":1634"
     password: "beekeeper"
     swap-enable: true
-    tracing-enabled: true
+    tracing-enable: true
     tracing-endpoint: "10.10.11.199:6831"
     tracing-service-name: "bee"
     verbosity: 4

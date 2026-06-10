@@ -152,10 +152,10 @@ bee-configs:
     block-time: 1
     blockchain-rpc-endpoint: "ws://geth-swap:8546"
     bootnode-mode: false
-    bootnodes: ""
+    bootnode: []
     cache-capacity: 20000
     chequebook-enable: true
-    cors-allowed-origins: ""
+    cors-allowed-origins: []
     data-dir: "/home/bee/.bee"
     db-block-cache-capacity: 33554432
     db-disable-seeks-compaction: false
@@ -178,7 +178,7 @@ bee-configs:
     postage-stamp-start-block: 1
     price-oracle-address: "0x5aFE06fcC0855a76a15c3544b0886EDBE3294d62"
     redistribution-address: "0x09Ad42a7d020244920309FfA14EA376dd2D3b7d5"
-    resolver-options: ""
+    resolver-options: []
     staking-address: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
     storage-incentives-enable: true
     swap-enable: true
@@ -187,14 +187,14 @@ bee-configs:
     verbosity: 5
     warmup-time: 0s
     welcome-message: "Welcome to the Swarm, this is a local cluster!"
-    withdrawal-addresses-whitelist: "0xec44cb15b1b033e74d55ac5d0e24d861bde54532"
+    withdrawal-addresses-whitelist: ["0xec44cb15b1b033e74d55ac5d0e24d861bde54532"]
   bootnode-local-dns-autotls:
     _inherit: "bee-local-dns"
     bootnode-mode: true
     p2p-wss-enable: true
   bee-local-autotls:
     _inherit: "bee-local-dns"
-    bootnode: /dnsaddr/bootnode-0-headless.local.svc.cluster.local
+    bootnode: ["/dnsaddr/bootnode-0-headless.local.svc.cluster.local"]
     p2p-wss-enable: true
   bee-local-light-autotls:
     _inherit: "bee-local-light"
@@ -209,14 +209,14 @@ bee-configs:
     bootnode-mode: true
   bee-local-dns:
     _inherit: "bee-local"
-    bootnode: /dnsaddr/localhost
+    bootnode: ["/dnsaddr/localhost"]
   bootnode-local-dns:
     _inherit: "bee-local"
-    bootnode: /dnsaddr/localhost
+    bootnode: ["/dnsaddr/localhost"]
     bootnode-mode: true
   bee-local-light:
     _inherit: "bee-local"
-    bootnode: /dnsaddr/localhost
+    bootnode: ["/dnsaddr/localhost"]
     full-node: false
   bee-local-gc:
     _inherit: "bee-local"

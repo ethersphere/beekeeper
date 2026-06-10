@@ -247,9 +247,13 @@ func setupBootnodes(ctx context.Context,
 				nodeName = node.Name
 			}
 
-			bConfig.Bootnodes = fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
-			bootnodesOut = bConfig.Bootnodes
-			nodeOpts := setupNodeOptions(node, &bConfig)
+			// each node gets its own config copy, as the bootnode list is
+			// node-specific and nodes are set up concurrently
+			nodeConfig := bConfig
+			bootnodes := fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
+			nodeConfig.Bootnodes = &[]string{bootnodes}
+			bootnodesOut = bootnodes
+			nodeOpts := setupNodeOptions(node, &nodeConfig)
 			nodeCount++
 			go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, nodeOpts, nodeResultChan, orchestration.WithNoOptions())
 		}
@@ -299,8 +303,8 @@ func setupNodes(ctx context.Context,
 		}
 		bConfig := beeConfig.Export()
 
-		if bConfig.Bootnodes == "" {
-			bConfig.Bootnodes = bootnodesIn
+		if (bConfig.Bootnodes == nil || len(*bConfig.Bootnodes) == 0) && bootnodesIn != "" {
+			bConfig.Bootnodes = &[]string{bootnodesIn}
 		}
 		ngOptions.BeeConfig = &bConfig
 

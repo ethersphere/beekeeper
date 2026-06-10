@@ -98,8 +98,20 @@ func mergeConfigs[T any](configs map[string]T) (map[string]T, error) {
 			p := reflect.ValueOf(&parentConfig).Elem()
 			m := reflect.ValueOf(&v).Elem()
 			for i := 0; i < m.NumField(); i++ {
-				if m.Field(i).IsNil() && !p.Field(i).IsNil() {
-					m.Field(i).Set(p.Field(i))
+				mf, pf := m.Field(i), p.Field(i)
+				// Recurse one level into embedded structs (e.g. the
+				// orchestration.Config embedded in BeeConfig) so inheritance is
+				// applied per flag instead of all-or-nothing.
+				if mf.Kind() == reflect.Struct {
+					for j := 0; j < mf.NumField(); j++ {
+						if mf.Field(j).IsNil() && !pf.Field(j).IsNil() {
+							mf.Field(j).Set(pf.Field(j))
+						}
+					}
+					continue
+				}
+				if mf.IsNil() && !pf.IsNil() {
+					mf.Set(pf)
 				}
 			}
 		}

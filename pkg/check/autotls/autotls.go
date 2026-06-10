@@ -302,9 +302,10 @@ func (c *Check) forgeConfig(ctx context.Context, cluster orchestration.Cluster, 
 			continue
 		}
 		cfg := node.Config()
-		forgeDomain = cfg.AutoTLSDomain
-		if strings.Contains(cfg.AutoTLSCAEndpoint, "pebble") {
-			mgmtURL := pebbleMgmtURL(cfg.AutoTLSCAEndpoint)
+		forgeDomain = orchestration.Deref(cfg.AutoTLSDomain)
+		caEndpoint := orchestration.Deref(cfg.AutoTLSCAEndpoint)
+		if strings.Contains(caEndpoint, "pebble") {
+			mgmtURL := pebbleMgmtURL(caEndpoint)
 			if pebbleMgmtURLOverride != "" {
 				mgmtURL = pebbleMgmtURLOverride
 			}

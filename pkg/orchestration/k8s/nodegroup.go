@@ -672,11 +672,18 @@ func (g *NodeGroup) pregenerateSwarmKey(ctx context.Context, name string) (err e
 		return err
 	}
 
-	if !n.Config().SwapEnable || !n.Config().ChequebookEnable {
+	if !orchestration.Deref(n.Config().SwapEnable) || !orchestration.Deref(n.Config().ChequebookEnable) {
 		var key *orchestration.EncryptedKey
 
 		if n.SwarmKey() == nil {
-			key, err = orchestration.NewEncryptedKey(n.Config().Password)
+			// The pregenerated Swarm key is encrypted with this password and the
+			// same password must reach Bee (via .bee.yaml) so it can decrypt the
+			// key. If it is absent, Beekeeper must not guess Bee's default.
+			if n.Config().Password == nil {
+				return fmt.Errorf("password is required in bee config to pregenerate the Swarm key for node %s", name)
+			}
+
+			key, err = orchestration.NewEncryptedKey(*n.Config().Password)
 			if err != nil {
 				return fmt.Errorf("create Swarm key for node %s: %w", name, err)
 			}

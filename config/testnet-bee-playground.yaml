@@ -45,10 +45,10 @@ bee-configs:
     block-time: 12
     blockchain-rpc-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
     bootnode-mode: false
-    bootnodes: # /dnsaddr/testnet.ethswarm.org
+    bootnode: # /dnsaddr/testnet.ethswarm.org
     cache-capacity: 1000000
     chequebook-enable: true
-    cors-allowed-origins: ""
+    cors-allowed-origins: []
     data-dir: "/home/bee/.bee"
     db-block-cache-capacity: 33554432
     db-disable-seeks-compaction: true
@@ -68,7 +68,7 @@ bee-configs:
     storage-incentives-enable: true
     swap-enable: true
     swap-initial-deposit: 0
-    tracing-enabled: false
+    tracing-enable: false
     tracing-endpoint: "10.10.11.199:6831"
     tracing-service-name: "bee-playground"
     verbosity: 5
