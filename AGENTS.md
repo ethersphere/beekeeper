@@ -43,7 +43,7 @@ The big-picture layers (each is one or more packages under `pkg/`):
 - **Config (`pkg/config/`)** — parses the YAML config dir (`clusters`, `node-groups`, `bee-configs`, `checks`, `simulations`), resolves `_inherit` inheritance, and exports into the `orchestration.*Options` types. Read from a local dir or a Git repo (`config-git-repo`).
 - **Orchestration (`pkg/orchestration/`)** — backend-agnostic `Cluster` → `NodeGroup` → `Node` model. The `k8s/` backend translates it into Kubernetes resources; `notset/` is the no-op fallback when K8s is disabled.
 - **Checks (`pkg/check/`)** — each check implements the `beekeeper.Action` interface and is registered by name in the `Checks` map in `pkg/config/check.go`; `pkg/check/runner.go` resolves names to implementations and runs them.
-- **Clients** — `pkg/bee/` (+ `pkg/bee/api/`) is the HTTP client for a running Bee node; `pkg/k8s/` wraps the Kubernetes client (with fakes under `pkg/k8s/mocks/`); `pkg/swap/` is the Geth/blockchain client.
+- **Clients** — `pkg/bee/` (+ `pkg/bee/api/`) is the HTTP client for a running Bee node; `pkg/k8s/` wraps the Kubernetes client (tested with client-go's fake clientset; `pkg/k8s/mocks/` holds only the `ClientConfig`/RoundTripper doubles); `pkg/swap/` is the Geth/blockchain client.
 - **Operational packages** — `stamper`, `nuker`, `restart`, `funder` act on already-running nodes and discover them through `pkg/node/` (`NodeProvider`: Beekeeper cluster, namespace+label, or Helm), not the orchestration layer.
 
 ## Deployment / operating modes
@@ -58,7 +58,7 @@ Commands work against clusters provisioned in three different ways — know whic
 
 - **Code style**: prefer clear, idiomatic Go that follows standard best practices and principles — small focused functions, explicit error wrapping with context, no premature abstraction. Keep changes minimal and consistent with the surrounding code.
 - **Commits & PR titles**: Conventional Commits, lowercase type, no trailing period, `feat(scope): …` style (enforced by `commitlint.config.js`). Do not push commits; when a commit message is requested, use the subject line only — no body/description.
-- **Tests**: prefer external test packages (`package foo_test`); use the `pkg/k8s/mocks` fakes instead of a live cluster. The race detector must pass.
+- **Tests**: prefer external test packages (`package foo_test`). Test the `pkg/k8s` clients against client-go's fake clientset instead of a live cluster — `fake.NewClientset()` with `PrependReactor` for error paths, and `watch.NewRaceFreeFake` + `PrependWatchReactor` for watch paths (buffer/drive events, bound tests with `context.WithTimeout`, never `time.Sleep`). The only hand-written mock left is `pkg/k8s/mocks` (the `ClientConfig`/`RoundTripper` doubles backing `pkg/k8s/k8s_test.go`). The race detector must pass.
 - **Dependencies**: do not add or bump modules unless the task requires it (Dependabot handles routine bumps).
 - **Linting**: `gofmt` + `gofumpt` formatting and the linters in `.golangci.yml` (errorlint, errname, nilerr, goconst, misspell, unconvert, copyloopvar) must pass. Note this repo does **not** use BSD copyright file headers — don't add them.
 

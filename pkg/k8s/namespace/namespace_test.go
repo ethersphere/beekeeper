@@ -1,21 +1,34 @@
 package namespace_test
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/ethersphere/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
+// newErrorClientset returns a fake clientset seeded with objects whose
+// verb/resource action fails with err, used to exercise the error branches
+// without a hand-written mock.
+func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
+	cs := fake.NewClientset(objects...)
+	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, err
+	})
+	return cs
+}
+
 func TestCreate(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name      string
 		nsName    string
@@ -32,7 +45,7 @@ func TestCreate(t *testing.T) {
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := namespace.NewClient(test.clientset)
-			response, err := client.Create(context.Background(), test.nsName)
+			response, err := client.Create(t.Context(), test.nsName)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -72,6 +85,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name      string
 		nsName    string
@@ -103,7 +117,7 @@ func TestUpdate(t *testing.T) {
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := namespace.NewClient(test.clientset)
-			response, err := client.Update(context.Background(), test.nsName, test.otpions)
+			response, err := client.Update(t.Context(), test.nsName, test.otpions)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -139,6 +153,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name      string
 		nsName    string
@@ -199,17 +214,28 @@ func TestDelete(t *testing.T) {
 			errorMsg: fmt.Errorf("namespace test is not managed by beekeeper, try kubectl"),
 		},
 		{
-			name:      mocks.DeleteBad,
-			nsName:    "test",
-			clientset: mocks.NewClientset(),
-			errorMsg:  fmt.Errorf("deleting namespace test: mock error: namespace \"test\" can not be deleted"),
+			name:   "delete_error",
+			nsName: "test",
+			// Seed a beekeeper-managed namespace so the Get + managed-by check
+			// pass and Set reaches the Delete call, which the reactor fails.
+			clientset: newErrorClientset("delete", "namespaces",
+				errors.New("mock error: namespace \"test\" can not be deleted"),
+				&v1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test",
+						Labels: map[string]string{
+							"app.kubernetes.io/managed-by": "beekeeper",
+						},
+					},
+				}),
+			errorMsg: fmt.Errorf("deleting namespace test: mock error: namespace \"test\" can not be deleted"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := namespace.NewClient(test.clientset)
-			err := client.Delete(context.Background(), test.nsName)
+			err := client.Delete(t.Context(), test.nsName)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())

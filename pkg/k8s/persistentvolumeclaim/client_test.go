@@ -1,20 +1,33 @@
 package persistentvolumeclaim_test
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
 	pvc "github.com/ethersphere/beekeeper/pkg/k8s/persistentvolumeclaim"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
+// newErrorClientset returns a fake clientset seeded with objects whose
+// verb/resource action fails with err, used to exercise the error branches
+// without a hand-written mock.
+func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
+	cs := fake.NewClientset(objects...)
+	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, err
+	})
+	return cs
+}
+
 func TestSet(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name         string
 		pvcName      string
@@ -70,23 +83,25 @@ func TestSet(t *testing.T) {
 			},
 		},
 		{
-			name:      "create_error",
-			pvcName:   mocks.CreateBad,
-			clientset: mocks.NewClientset(),
-			errorMsg:  fmt.Errorf("creating pvc create_bad in namespace test: mock error: cannot create pvc"),
+			name:    "create_error",
+			pvcName: "test_pvc",
+			// No object seeded, so Update returns NotFound and Set falls through
+			// to Create, which the reactor fails.
+			clientset: newErrorClientset("create", "persistentvolumeclaims", errors.New("mock error: cannot create pvc")),
+			errorMsg:  fmt.Errorf("creating pvc test_pvc in namespace test: mock error: cannot create pvc"),
 		},
 		{
 			name:      "update_error",
-			pvcName:   mocks.UpdateBad,
-			clientset: mocks.NewClientset(),
-			errorMsg:  fmt.Errorf("updating pvc update_bad in namespace test: mock error: cannot update pvc"),
+			pvcName:   "test_pvc",
+			clientset: newErrorClientset("update", "persistentvolumeclaims", errors.New("mock error: cannot update pvc")),
+			errorMsg:  fmt.Errorf("updating pvc test_pvc in namespace test: mock error: cannot update pvc"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := pvc.NewClient(test.clientset)
-			response, err := client.Set(context.Background(), test.pvcName, "test", test.options)
+			response, err := client.Set(t.Context(), test.pvcName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -125,6 +140,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name      string
 		pvcName   string
@@ -153,16 +169,16 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:      "delete_error",
-			pvcName:   mocks.DeleteBad,
-			clientset: mocks.NewClientset(),
-			errorMsg:  fmt.Errorf("deleting pvc delete_bad in namespace test: mock error: cannot delete pvc"),
+			pvcName:   "test_pvc",
+			clientset: newErrorClientset("delete", "persistentvolumeclaims", errors.New("mock error: cannot delete pvc")),
+			errorMsg:  fmt.Errorf("deleting pvc test_pvc in namespace test: mock error: cannot delete pvc"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := pvc.NewClient(test.clientset)
-			err := client.Delete(context.Background(), test.pvcName, "test")
+			err := client.Delete(t.Context(), test.pvcName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
