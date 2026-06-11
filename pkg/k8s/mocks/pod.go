@@ -127,3 +127,8 @@ func (*Pod) Update(ctx context.Context, pod *v1.Pod, opts metav1.UpdateOptions) 
 		return nil, errors.NewNotFound(schema.GroupResource{}, pod.Name)
 	}
 }
+
+// UpdateResize implements v1.PodInterface
+func (*Pod) UpdateResize(ctx context.Context, podName string, pod *v1.Pod, opts metav1.UpdateOptions) (*v1.Pod, error) {
+	panic("unimplemented")
+}

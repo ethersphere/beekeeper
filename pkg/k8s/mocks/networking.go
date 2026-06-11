@@ -14,6 +14,16 @@ func NewNetworkingV1() *NetworkingV1 {
 	return &NetworkingV1{}
 }
 
+// IPAddresses implements v1.NetworkingV1Interface
+func (*NetworkingV1) IPAddresses() v1.IPAddressInterface {
+	panic("unimplemented")
+}
+
+// ServiceCIDRs implements v1.NetworkingV1Interface
+func (*NetworkingV1) ServiceCIDRs() v1.ServiceCIDRInterface {
+	panic("unimplemented")
+}
+
 // Ingresses implements v1.NetworkingV1Interface
 func (*NetworkingV1) Ingresses(namespace string) v1.IngressInterface {
 	return NewIngress()
