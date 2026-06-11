@@ -194,7 +194,6 @@ bee-configs:
     p2p-wss-enable: true
   bee-local-autotls:
     _inherit: "bee-local-dns"
-    bootnode: ["/dnsaddr/bootnode-0-headless.local.svc.cluster.local"]
     p2p-wss-enable: true
   bee-local-light-autotls:
     _inherit: "bee-local-light"
@@ -209,14 +208,11 @@ bee-configs:
     bootnode-mode: true
   bee-local-dns:
     _inherit: "bee-local"
-    bootnode: ["/dnsaddr/localhost"]
   bootnode-local-dns:
     _inherit: "bee-local"
-    bootnode: ["/dnsaddr/localhost"]
     bootnode-mode: true
   bee-local-light:
     _inherit: "bee-local"
-    bootnode: ["/dnsaddr/localhost"]
     full-node: false
   bee-local-gc:
     _inherit: "bee-local"
