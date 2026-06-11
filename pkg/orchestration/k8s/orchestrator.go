@@ -53,6 +53,15 @@ func (n *nodeOrchestrator) StoppedNodes(ctx context.Context, namespace string) (
 
 // Create
 func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
+	// The API and P2P listen addresses are required: the container ports and
+	// services built below need a concrete port number.
+	if o.Config.APIAddr == nil {
+		return fmt.Errorf("api-addr is required in bee config")
+	}
+	if o.Config.P2PAddr == nil {
+		return fmt.Errorf("p2p-addr is required in bee config")
+	}
+
 	// bee configuration: only the flags set in Beekeeper's config are rendered
 	// (nil pointers are omitted via omitempty), so any flag absent here falls
 	// back to the Bee node's own built-in default.
@@ -107,9 +116,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	n.log.Infof("serviceaccount %s is set in namespace %s", svcAccount, o.Namespace)
 
 	// api service
-	if o.Config.APIAddr == nil {
-		return fmt.Errorf("api-addr is required in bee config")
-	}
 	portAPI, err := parsePort(*o.Config.APIAddr)
 	if err != nil {
 		return fmt.Errorf("parsing API port from config: %w", err)
@@ -187,9 +193,6 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	}
 
 	// p2p service
-	if o.Config.P2PAddr == nil {
-		return fmt.Errorf("p2p-addr is required in bee config")
-	}
 	portP2P, err := parsePort(*o.Config.P2PAddr)
 	if err != nil {
 		return fmt.Errorf("parsing P2P port from config: %w", err)

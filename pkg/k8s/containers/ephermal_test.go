@@ -37,10 +37,7 @@ func Test_EphemeralContainers_ToK8S(t *testing.T) {
 							ReadOnlyRootFilesystem:   new(bool),
 							AllowPrivilegeEscalation: new(bool),
 							RunAsGroup:               new(int64),
-							ProcMount: func() *v1.ProcMountType {
-								procMountType := v1.ProcMountType("")
-								return &procMountType
-							}(),
+							// unset ProcMount stays nil; the API server rejects an empty value
 						},
 					},
 				},
