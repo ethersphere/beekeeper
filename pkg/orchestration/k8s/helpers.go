@@ -13,58 +13,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 )
 
-const (
-	configTemplate = `
-allow-private-cidrs: {{ .AllowPrivateCIDRs }}
-api-addr: {{.APIAddr}}
-autotls-ca-endpoint: {{.AutoTLSCAEndpoint}}
-autotls-domain: {{.AutoTLSDomain}}
-autotls-registration-endpoint: {{.AutoTLSRegistrationEndpoint}}
-block-time: {{ .BlockTime }}
-blockchain-rpc-endpoint: {{.BlockchainRPCEndpoint}}
-bootnode-mode: {{.BootnodeMode}}
-bootnode: {{.Bootnodes}}
-cache-capacity: {{.CacheCapacity}}
-chequebook-enable: {{.ChequebookEnable}}
-cors-allowed-origins: {{.CORSAllowedOrigins}}
-data-dir: {{.DataDir}}
-db-block-cache-capacity: {{.DbBlockCacheCapacity}}
-db-disable-seeks-compaction: {{.DbDisableSeeksCompaction}}
-db-open-files-limit: {{.DbOpenFilesLimit}}
-db-write-buffer-size: {{.DbWriteBufferSize}}
-full-node: {{.FullNode}}
-mainnet: {{.Mainnet}}
-nat-addr: {{.NATAddr}}
-nat-wss-addr: {{.NATWSSAddr}}
-network-id: {{.NetworkID}}
-p2p-addr: {{.P2PAddr}}
-p2p-ws-enable: {{.P2PWSEnable}}
-p2p-wss-addr: {{.P2PWSSAddr}}
-p2p-wss-enable: {{.P2PWSSEnable}}
-password: {{.Password}}
-payment-early-percent: {{.PaymentEarly}}
-payment-threshold: {{.PaymentThreshold}}
-payment-tolerance-percent: {{.PaymentTolerance}}
-postage-stamp-address: {{ .PostageStampAddress }}
-postage-stamp-start-block: {{ .PostageContractStartBlock }}
-price-oracle-address: {{ .PriceOracleAddress }}
-redistribution-address: {{ .RedistributionAddress }}
-resolver-options: {{.ResolverOptions}}
-staking-address: {{ .StakingAddress }}
-storage-incentives-enable: {{ .StorageIncentivesEnable }}
-swap-enable: {{.SwapEnable}}
-swap-factory-address: {{.SwapFactoryAddress}}
-swap-initial-deposit: {{.SwapInitialDeposit}}
-tracing-enable: {{.TracingEnabled}}
-tracing-endpoint: {{.TracingEndpoint}}
-tracing-service-name: {{.TracingServiceName}}
-verbosity: {{.Verbosity}}
-warmup-time: {{.WarmupTime}}
-welcome-message: {{.WelcomeMessage}}
-withdrawal-addresses-whitelist: {{.WithdrawAddress}}
-`
-)
-
 type setInitContainersOptions struct {
 	AutoTLSEnabled bool
 }

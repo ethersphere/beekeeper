@@ -1,10 +1,8 @@
 package k8s
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"html/template"
 
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
@@ -17,6 +15,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	"gopkg.in/yaml.v3"
 )
 
 var _ orchestration.NodeOrchestrator = (*nodeOrchestrator)(nil)
@@ -54,10 +53,21 @@ func (n *nodeOrchestrator) StoppedNodes(ctx context.Context, namespace string) (
 
 // Create
 func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOptions) (err error) {
-	// bee configuration
-	var config bytes.Buffer
-	if err := template.Must(template.New("").Parse(configTemplate)).Execute(&config, o.Config); err != nil {
-		return err
+	// The API and P2P listen addresses are required: the container ports and
+	// services built below need a concrete port number.
+	if o.Config.APIAddr == nil {
+		return fmt.Errorf("api-addr is required in bee config")
+	}
+	if o.Config.P2PAddr == nil {
+		return fmt.Errorf("p2p-addr is required in bee config")
+	}
+
+	// bee configuration: only the flags set in Beekeeper's config are rendered
+	// (nil pointers are omitted via omitempty), so any flag absent here falls
+	// back to the Bee node's own built-in default.
+	config, err := yaml.Marshal(o.Config)
+	if err != nil {
+		return fmt.Errorf("marshalling bee config: %w", err)
 	}
 
 	configCM := o.Name
@@ -65,7 +75,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 		Annotations: o.Annotations,
 		Labels:      o.Labels,
 		Data: map[string]string{
-			".bee.yaml": config.String(),
+			".bee.yaml": string(config),
 		},
 	}); err != nil {
 		return fmt.Errorf("set configmap in namespace %s: %w", o.Namespace, err)
@@ -106,7 +116,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	n.log.Infof("serviceaccount %s is set in namespace %s", svcAccount, o.Namespace)
 
 	// api service
-	portAPI, err := parsePort(o.Config.APIAddr)
+	portAPI, err := parsePort(*o.Config.APIAddr)
 	if err != nil {
 		return fmt.Errorf("parsing API port from config: %w", err)
 	}
@@ -183,30 +193,30 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	}
 
 	// p2p service
-	portP2P, err := parsePort(o.Config.P2PAddr)
+	portP2P, err := parsePort(*o.Config.P2PAddr)
 	if err != nil {
 		return fmt.Errorf("parsing P2P port from config: %w", err)
 	}
 
 	var nodePortP2P int32
-	if len(o.Config.NATAddr) > 0 {
-		nodePortP2P, err = parsePort(o.Config.NATAddr)
+	if natAddr := orchestration.Deref(o.Config.NATAddr); len(natAddr) > 0 {
+		nodePortP2P, err = parsePort(natAddr)
 		if err != nil {
 			return fmt.Errorf("parsing NAT address from config: %w", err)
 		}
 	}
 
 	var portP2PWSS int32
-	if len(o.Config.P2PWSSAddr) > 0 {
-		portP2PWSS, err = parsePort(o.Config.P2PWSSAddr)
+	if p2pWSSAddr := orchestration.Deref(o.Config.P2PWSSAddr); len(p2pWSSAddr) > 0 {
+		portP2PWSS, err = parsePort(p2pWSSAddr)
 		if err != nil {
 			return fmt.Errorf("parsing P2P WSS port from config: %w", err)
 		}
 	}
 
 	var nodePortP2PWSS int32
-	if len(o.Config.NATWSSAddr) > 0 {
-		nodePortP2PWSS, err = parsePort(o.Config.NATWSSAddr)
+	if natWSSAddr := orchestration.Deref(o.Config.NATWSSAddr); len(natWSSAddr) > 0 {
+		nodePortP2PWSS, err = parsePort(natWSSAddr)
 		if err != nil {
 			return fmt.Errorf("parsing NAT WSS address from config: %w", err)
 		}
@@ -297,7 +307,7 @@ func (n *nodeOrchestrator) Create(ctx context.Context, o orchestration.CreateOpt
 	sSet := o.Name
 	libP2PEnabled := len(o.LibP2PKey) > 0
 	swarmEnabled := o.SwarmKey != nil
-	autoTLSEnabled := o.Config.P2PWSSEnable
+	autoTLSEnabled := orchestration.Deref(o.Config.P2PWSSEnable)
 
 	if _, err := n.k8s.StatefulSet.Set(ctx, sSet, o.Namespace, statefulset.Options{
 		Annotations: o.Annotations,
