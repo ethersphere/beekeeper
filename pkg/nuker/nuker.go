@@ -371,7 +371,7 @@ func restoreReadinessProbes(target, original *v1.StatefulSet) {
 	for i := range target.Spec.Template.Spec.Containers {
 		c := &target.Spec.Template.Spec.Containers[i]
 		if probe, ok := originalProbes[c.Name]; ok {
-			c.ReadinessProbe = probe
+			c.ReadinessProbe = probe.DeepCopy()
 		}
 	}
 }
