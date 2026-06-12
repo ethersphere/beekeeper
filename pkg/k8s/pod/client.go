@@ -213,14 +213,6 @@ func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespac
 	c.log.Debugf("waiting for pod %s to complete recreation and execution lifecycle", podName)
 	defer c.log.Debugf("watch for pod %s in namespace %s done", podName, namespace)
 
-	watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("metadata.name=%s", podName),
-	})
-	if err != nil {
-		return fmt.Errorf("getting watch for pod %s in namespace %s: %w", podName, namespace, err)
-	}
-	defer watcher.Stop()
-
 	watchCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
@@ -228,26 +220,67 @@ func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespac
 	currentState := WaitingForDeletion
 	c.log.Debugf("starting pod recreation lifecycle watch for %s, initial state: %s", podName, currentState)
 
+	listOptions := metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("metadata.name=%s", podName),
+	}
+
+	// The API server closes watches routinely (idle timeouts, etcd compaction,
+	// rollouts), which closes the result channel. The outer loop re-establishes the
+	// watch and resumes from the last observed resourceVersion so we neither miss
+	// events nor spin on a closed channel until the timeout fires.
+	for {
+		watcher, err := c.clientset.CoreV1().Pods(namespace).Watch(watchCtx, listOptions)
+		if err != nil {
+			return fmt.Errorf("getting watch for pod %s in namespace %s: %w", podName, namespace, err)
+		}
+
+		done, err := c.consumeWatchEvents(watchCtx, watcher, &currentState, &listOptions.ResourceVersion, podName, containerName)
+		watcher.Stop()
+		if err != nil {
+			return err
+		}
+		if done {
+			c.log.Debugf("pod %s container completed successfully", podName)
+			return nil
+		}
+
+		c.log.Debugf("watch for pod %s closed, re-establishing from resourceVersion %q (current state: %s)", podName, listOptions.ResourceVersion, currentState)
+	}
+}
+
+// consumeWatchEvents drives the state machine from a single watch. It returns
+// done=true once the pod has completed, an error on failure or timeout, or
+// done=false with a nil error when the watch channel closes so the caller can
+// re-establish it. resourceVersion is advanced as events arrive so a re-established
+// watch resumes without missing or replaying events.
+func (c *Client) consumeWatchEvents(ctx context.Context, watcher watch.Interface, currentState *PodRecreationState, resourceVersion *string, podName, containerName string) (bool, error) {
 	for {
 		select {
-		case event := <-watcher.ResultChan():
-			newState, err := c.processEventInState(event, currentState, podName, containerName)
+		case event, ok := <-watcher.ResultChan():
+			if !ok {
+				return false, nil
+			}
+
+			if pod, ok := event.Object.(*v1.Pod); ok && pod.ResourceVersion != "" {
+				*resourceVersion = pod.ResourceVersion
+			}
+
+			newState, err := c.processEventInState(event, *currentState, podName, containerName)
 			if err != nil {
-				return err
+				return false, err
 			}
 
-			if newState != currentState {
-				c.log.Debugf("pod %s transitioning from %s to %s", podName, currentState, newState)
-				currentState = newState
+			if newState != *currentState {
+				c.log.Debugf("pod %s transitioning from %s to %s", podName, *currentState, newState)
+				*currentState = newState
 			}
 
-			if currentState == Completed {
-				c.log.Debugf("pod %s container completed successfully", podName)
-				return nil
+			if *currentState == Completed {
+				return true, nil
 			}
 
-		case <-watchCtx.Done():
-			return fmt.Errorf("timed out waiting for pod %s to complete (current state: %s)", podName, currentState)
+		case <-ctx.Done():
+			return false, fmt.Errorf("timed out waiting for pod %s to complete (current state: %s)", podName, *currentState)
 		}
 	}
 }
@@ -276,31 +309,51 @@ func (c *Client) processEventInState(event watch.Event, currentState PodRecreati
 			c.log.Debugf("pod %s has been recreated", podName)
 			return WaitingForRunning, nil
 		}
-	case WaitingForRunning:
-		if event.Type == watch.Modified {
-			for _, status := range pod.Status.ContainerStatuses {
-				if status.Name == containerName && status.State.Running != nil {
-					c.log.Debugf("pod %s container %s is now running", podName, containerName)
-					return WaitingForCompletion, nil
-				}
-			}
+	case WaitingForRunning, WaitingForCompletion:
+		if event.Type != watch.Modified {
+			return currentState, nil
 		}
-	case WaitingForCompletion:
-		if event.Type == watch.Modified {
-			for _, status := range pod.Status.ContainerStatuses {
-				if status.Name == containerName && status.State.Terminated != nil {
-					termState := status.State.Terminated
-					if termState.Reason == "Error" {
-						return currentState, fmt.Errorf("pod %s container %s terminated with an error (ExitCode: %d)", podName, containerName, termState.ExitCode)
-					}
-					if termState.Reason == "Completed" {
-						return Completed, nil
-					}
-				}
-			}
+		status, ok := containerStatus(pod, containerName)
+		if !ok {
+			return currentState, nil
+		}
+		// A short-lived container (e.g. the nuke task) can be observed already
+		// terminated before we ever see it Running, so termination is handled from
+		// either state to avoid stalling in WaitingForRunning until the timeout.
+		if status.State.Terminated != nil {
+			return c.evaluateTermination(podName, containerName, status.State.Terminated)
+		}
+		if currentState == WaitingForRunning && status.State.Running != nil {
+			c.log.Debugf("pod %s container %s is now running", podName, containerName)
+			return WaitingForCompletion, nil
 		}
 	}
 	return currentState, nil
+}
+
+// containerStatus returns the status of the named container, if present.
+func containerStatus(pod *v1.Pod, containerName string) (v1.ContainerStatus, bool) {
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.Name == containerName {
+			return status, true
+		}
+	}
+	return v1.ContainerStatus{}, false
+}
+
+// evaluateTermination maps a terminated container state to a lifecycle outcome:
+// Completed on success, an error on failure, and WaitingForCompletion for any
+// other reason so the watch keeps waiting for a definitive result.
+func (c *Client) evaluateTermination(podName, containerName string, termState *v1.ContainerStateTerminated) (PodRecreationState, error) {
+	switch termState.Reason {
+	case "Completed":
+		c.log.Debugf("pod %s container %s completed", podName, containerName)
+		return Completed, nil
+	case "Error":
+		return WaitingForCompletion, fmt.Errorf("pod %s container %s terminated with an error (ExitCode: %d)", podName, containerName, termState.ExitCode)
+	default:
+		return WaitingForCompletion, nil
+	}
 }
 
 // WaitForRunning polls a pod until its status is 'Running'.

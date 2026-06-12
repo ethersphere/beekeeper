@@ -361,6 +361,25 @@ func podWatchClientset(w *watch.RaceFreeFakeWatcher, watchErr error) kubernetes.
 	return cs
 }
 
+// podMultiWatchClientset returns a fake clientset that serves a fresh watcher
+// from watchers on each Watch call, mimicking the API server closing a watch and
+// the caller re-establishing it. Calls past the slice return a closed watcher.
+func podMultiWatchClientset(watchers ...watch.Interface) kubernetes.Interface {
+	cs := fake.NewClientset()
+	i := 0
+	cs.PrependWatchReactor("pods", func(k8stesting.Action) (bool, watch.Interface, error) {
+		if i >= len(watchers) {
+			closed := watch.NewRaceFreeFake()
+			closed.Stop()
+			return true, closed, nil
+		}
+		w := watchers[i]
+		i++
+		return true, w, nil
+	})
+	return cs
+}
+
 // runningReadyPod is a Pod event payload that satisfies WatchNewRunning's
 // running-and-ready filter.
 func runningReadyPod(name string) *v1.Pod {
@@ -543,6 +562,58 @@ func TestWaitForPodRecreationAndCompletion(t *testing.T) {
 		err := client.WaitForPodRecreationAndCompletion(ctx, "test", "bee-0", "bee")
 		if err == nil || err.Error() != "pod bee-0 container bee terminated with an error (ExitCode: 1)" {
 			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("completes_when_terminated_before_running", func(t *testing.T) {
+		// A short-lived container can be observed already terminated before any
+		// Running event arrives; the lifecycle must still complete.
+		w := watch.NewRaceFreeFake()
+		w.Delete(lifecyclePod())                // -> WaitingForCreation
+		w.Add(lifecyclePod())                   // -> WaitingForRunning
+		w.Modify(terminatedPod("Completed", 0)) // terminated while WaitingForRunning -> Completed
+
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		client := pod.NewClient(podWatchClientset(w, nil), logging.New(io.Discard, 0))
+		if err := client.WaitForPodRecreationAndCompletion(ctx, "test", "bee-0", "bee"); err != nil {
+			t.Errorf("error not expected, got: %s", err.Error())
+		}
+	})
+
+	t.Run("errors_when_terminated_with_error_before_running", func(t *testing.T) {
+		w := watch.NewRaceFreeFake()
+		w.Delete(lifecyclePod())
+		w.Add(lifecyclePod())
+		w.Modify(terminatedPod("Error", 2)) // terminated with error while WaitingForRunning
+
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		client := pod.NewClient(podWatchClientset(w, nil), logging.New(io.Discard, 0))
+		err := client.WaitForPodRecreationAndCompletion(ctx, "test", "bee-0", "bee")
+		if err == nil || err.Error() != "pod bee-0 container bee terminated with an error (ExitCode: 2)" {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("reestablishes_watch_after_channel_close", func(t *testing.T) {
+		// First watch delivers the early lifecycle then closes (Stop closes the
+		// channel; buffered events stay drainable). The state machine must resume
+		// from the second watch and complete rather than spin on the closed channel.
+		w1 := watch.NewRaceFreeFake()
+		w1.Delete(lifecyclePod()) // -> WaitingForCreation
+		w1.Add(lifecyclePod())    // -> WaitingForRunning
+		w1.Stop()                 // channel closes after the two buffered events
+
+		w2 := watch.NewRaceFreeFake()
+		w2.Modify(runningPod())                  // -> WaitingForCompletion
+		w2.Modify(terminatedPod("Completed", 0)) // -> Completed
+
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		client := pod.NewClient(podMultiWatchClientset(w1, w2), logging.New(io.Discard, 0))
+		if err := client.WaitForPodRecreationAndCompletion(ctx, "test", "bee-0", "bee"); err != nil {
+			t.Errorf("error not expected, got: %s", err.Error())
 		}
 	})
 
