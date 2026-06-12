@@ -1,20 +1,22 @@
 package service_test
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
-	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 )
 
 func TestSet(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name        string
 		serviceName string
@@ -65,28 +67,34 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:        "create_error",
-			serviceName: mocks.CreateBad,
-			clientset:   mocks.NewClientset(),
-			errorMsg:    fmt.Errorf("creating service create_bad in namespace test: mock error: cannot create service"),
+			serviceName: "test_service",
+			// No object seeded, so Get returns NotFound and Set falls through to
+			// Create, which the reactor fails.
+			clientset: k8stest.NewErrorClientset("create", "services", errors.New("mock error: cannot create service")),
+			errorMsg:  fmt.Errorf("creating service test_service in namespace test: mock error: cannot create service"),
 		},
 		{
 			name:        "update_error",
-			serviceName: mocks.UpdateBad,
-			clientset:   mocks.NewClientset(),
-			errorMsg:    fmt.Errorf("updating service update_bad in namespace test: mock error: cannot update service"),
+			serviceName: "test_service",
+			// Seed the service so Get succeeds and Set reaches Update, which the
+			// reactor fails.
+			clientset: k8stest.NewErrorClientset("update", "services", errors.New("mock error: cannot update service"),
+				&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test_service", Namespace: "test"}}),
+			errorMsg: fmt.Errorf("updating service test_service in namespace test: mock error: cannot update service"),
 		},
 		{
 			name:        "get_error",
-			serviceName: "get_bad",
-			clientset:   mocks.NewClientset(),
-			errorMsg:    fmt.Errorf("getting service get_bad in namespace test: mock error: unknown"),
+			serviceName: "test_service",
+			// Get fails with a non-NotFound error, so Set returns the get error.
+			clientset: k8stest.NewErrorClientset("get", "services", errors.New("mock error: unknown")),
+			errorMsg:  fmt.Errorf("getting service test_service in namespace test: mock error: unknown"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := service.NewClient(test.clientset)
-			response, err := client.Set(context.Background(), test.serviceName, "test", test.options)
+			response, err := client.Set(t.Context(), test.serviceName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -124,6 +132,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name        string
 		serviceName string
@@ -152,16 +161,16 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:        "delete_error",
-			serviceName: mocks.DeleteBad,
-			clientset:   mocks.NewClientset(),
-			errorMsg:    fmt.Errorf("deleting service delete_bad in namespace test: mock error: cannot delete service"),
+			serviceName: "test_service",
+			clientset:   k8stest.NewErrorClientset("delete", "services", errors.New("mock error: cannot delete service")),
+			errorMsg:    fmt.Errorf("deleting service test_service in namespace test: mock error: cannot delete service"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := service.NewClient(test.clientset)
-			err := client.Delete(context.Background(), test.serviceName, "test")
+			err := client.Delete(t.Context(), test.serviceName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -176,4 +185,168 @@ func TestDelete(t *testing.T) {
 			}
 		})
 	}
+}
+
+// svc is a small helper for building a Service fixture in namespace "test".
+func svc(name string, clusterIP string, labels map[string]string, ports ...v1.ServicePort) *v1.Service {
+	return &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "test",
+			Labels:    labels,
+		},
+		Spec: v1.ServiceSpec{
+			ClusterIP: clusterIP,
+			Ports:     ports,
+		},
+	}
+}
+
+func TestGetNodes(t *testing.T) {
+	t.Parallel()
+	beeLabels := map[string]string{"node-group": "bee"}
+
+	testTable := []struct {
+		name          string
+		labelSelector string
+		clientset     kubernetes.Interface
+		expected      []service.NodeInfo
+		errorMsg      error
+	}{
+		{
+			name:          "filters_by_api_port_and_cluster_ip",
+			labelSelector: "node-group=bee",
+			clientset: fake.NewClientset(
+				// api port + real ClusterIP → included
+				svc("bee-0", "10.0.0.1", beeLabels, v1.ServicePort{Name: "api", Port: 1633}),
+				// api port but headless ClusterIP → excluded
+				svc("bee-1", "None", beeLabels, v1.ServicePort{Name: "api", Port: 1633}),
+				// matching labels but no api port → excluded
+				svc("bee-2", "10.0.0.3", beeLabels, v1.ServicePort{Name: "p2p", Port: 1634}),
+				// has api port but does not match the label selector → excluded
+				svc("other-0", "10.0.0.4", map[string]string{"node-group": "other"}, v1.ServicePort{Name: "api", Port: 1633}),
+			),
+			expected: []service.NodeInfo{
+				{Name: "bee-0", Endpoint: "http://10.0.0.1:1633"},
+			},
+		},
+		{
+			name:          "no_matching_services",
+			labelSelector: "node-group=bee",
+			clientset:     fake.NewClientset(),
+			expected:      nil,
+		},
+		{
+			name:          "list_error",
+			labelSelector: "node-group=bee",
+			clientset:     k8stest.NewErrorClientset("list", "services", errors.New("mock error")),
+			errorMsg:      fmt.Errorf("listing services in namespace test: mock error"),
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.name, func(t *testing.T) {
+			client := service.NewClient(test.clientset)
+			nodes, err := client.GetNodes(t.Context(), "test", test.labelSelector)
+			if test.errorMsg == nil {
+				if err != nil {
+					t.Errorf("error not expected, got: %s", err.Error())
+				}
+				if !reflect.DeepEqual(nodes, test.expected) {
+					t.Errorf("nodes expected: %#v, got: %#v", test.expected, nodes)
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
+				}
+				if err.Error() != test.errorMsg.Error() {
+					t.Errorf("error expected: %s, got: %s", test.errorMsg.Error(), err.Error())
+				}
+				if nodes != nil {
+					t.Errorf("nodes not expected")
+				}
+			}
+		})
+	}
+}
+
+func TestFindNode(t *testing.T) {
+	t.Parallel()
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "bee-0",
+			Labels: map[string]string{"app": "bee", "node": "0"},
+		},
+	}
+
+	testTable := []struct {
+		name            string
+		clientset       kubernetes.Interface
+		expectedNode    *service.NodeInfo
+		expectedSvcName string
+		errorMsg        error
+	}{
+		{
+			name: "match_found",
+			clientset: fake.NewClientset(
+				// nil selector → skipped
+				svc("a-no-selector", "10.0.0.1", nil, v1.ServicePort{Name: "api", Port: 1633}),
+				// selector does not match the pod labels → skipped
+				selectorSvc("m-non-matching", "10.0.0.2", map[string]string{"app": "other"}, v1.ServicePort{Name: "api", Port: 1633}),
+				// selector matches and has an api port → returned
+				selectorSvc("z-matching-api", "10.0.0.9", map[string]string{"app": "bee"}, v1.ServicePort{Name: "api", Port: 1633}),
+			),
+			expectedNode:    &service.NodeInfo{Name: "z-matching-api", Endpoint: "http://10.0.0.9:1633"},
+			expectedSvcName: "z-matching-api",
+		},
+		{
+			name: "match_but_no_api_port",
+			clientset: fake.NewClientset(
+				// selector matches but no api port → falls through to the not-found error
+				selectorSvc("matching-no-api", "10.0.0.5", map[string]string{"app": "bee"}, v1.ServicePort{Name: "p2p", Port: 1634}),
+			),
+			errorMsg: fmt.Errorf("no matching service found for pod bee-0"),
+		},
+		{
+			name:      "list_error",
+			clientset: k8stest.NewErrorClientset("list", "services", errors.New("mock error")),
+			errorMsg:  fmt.Errorf("listing services in namespace test: mock error"),
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.name, func(t *testing.T) {
+			client := service.NewClient(test.clientset)
+			node, svc, err := client.FindNode(t.Context(), "test", pod)
+			if test.errorMsg == nil {
+				if err != nil {
+					t.Errorf("error not expected, got: %s", err.Error())
+				}
+				if !reflect.DeepEqual(node, test.expectedNode) {
+					t.Errorf("node expected: %#v, got: %#v", test.expectedNode, node)
+				}
+				if svc == nil || svc.Name != test.expectedSvcName {
+					t.Errorf("service expected with name %q, got: %#v", test.expectedSvcName, svc)
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
+				}
+				if err.Error() != test.errorMsg.Error() {
+					t.Errorf("error expected: %s, got: %s", test.errorMsg.Error(), err.Error())
+				}
+				if node != nil || svc != nil {
+					t.Errorf("node/service not expected")
+				}
+			}
+		})
+	}
+}
+
+// selectorSvc builds a Service with a spec Selector (used by FindNode) in
+// namespace "test".
+func selectorSvc(name string, clusterIP string, selector map[string]string, ports ...v1.ServicePort) *v1.Service {
+	s := svc(name, clusterIP, nil, ports...)
+	s.Spec.Selector = selector
+	return s
 }

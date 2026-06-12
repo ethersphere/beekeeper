@@ -24,6 +24,7 @@ _test
 dist/
 .idea/
 .vscode/
+.claude/
 .vs/
 .DS_Store
 tmp/
