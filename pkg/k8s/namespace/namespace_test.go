@@ -6,26 +6,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper"
-	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	k8stesting "k8s.io/client-go/testing"
-)
 
-// newErrorClientset returns a fake clientset seeded with objects whose
-// verb/resource action fails with err, used to exercise the error branches
-// without a hand-written mock.
-func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
-	cs := fake.NewClientset(objects...)
-	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, err
-	})
-	return cs
-}
+	"github.com/ethersphere/beekeeper"
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/k8s/namespace"
+)
 
 func TestCreate(t *testing.T) {
 	t.Parallel()
@@ -218,7 +207,7 @@ func TestDelete(t *testing.T) {
 			nsName: "test",
 			// Seed a beekeeper-managed namespace so the Get + managed-by check
 			// pass and Set reaches the Delete call, which the reactor fails.
-			clientset: newErrorClientset("delete", "namespaces",
+			clientset: k8stest.NewErrorClientset("delete", "namespaces",
 				errors.New("mock error: namespace \"test\" can not be deleted"),
 				&v1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{

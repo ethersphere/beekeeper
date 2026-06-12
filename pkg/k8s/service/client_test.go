@@ -6,25 +6,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/service"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	k8stesting "k8s.io/client-go/testing"
-)
 
-// newErrorClientset returns a fake clientset seeded with objects whose
-// verb/resource action fails with err, used to exercise the error branches
-// without a hand-written mock.
-func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
-	cs := fake.NewClientset(objects...)
-	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, err
-	})
-	return cs
-}
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/k8s/service"
+)
 
 func TestSet(t *testing.T) {
 	t.Parallel()
@@ -81,7 +70,7 @@ func TestSet(t *testing.T) {
 			serviceName: "test_service",
 			// No object seeded, so Get returns NotFound and Set falls through to
 			// Create, which the reactor fails.
-			clientset: newErrorClientset("create", "services", errors.New("mock error: cannot create service")),
+			clientset: k8stest.NewErrorClientset("create", "services", errors.New("mock error: cannot create service")),
 			errorMsg:  fmt.Errorf("creating service test_service in namespace test: mock error: cannot create service"),
 		},
 		{
@@ -89,7 +78,7 @@ func TestSet(t *testing.T) {
 			serviceName: "test_service",
 			// Seed the service so Get succeeds and Set reaches Update, which the
 			// reactor fails.
-			clientset: newErrorClientset("update", "services", errors.New("mock error: cannot update service"),
+			clientset: k8stest.NewErrorClientset("update", "services", errors.New("mock error: cannot update service"),
 				&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: "test_service", Namespace: "test"}}),
 			errorMsg: fmt.Errorf("updating service test_service in namespace test: mock error: cannot update service"),
 		},
@@ -97,7 +86,7 @@ func TestSet(t *testing.T) {
 			name:        "get_error",
 			serviceName: "test_service",
 			// Get fails with a non-NotFound error, so Set returns the get error.
-			clientset: newErrorClientset("get", "services", errors.New("mock error: unknown")),
+			clientset: k8stest.NewErrorClientset("get", "services", errors.New("mock error: unknown")),
 			errorMsg:  fmt.Errorf("getting service test_service in namespace test: mock error: unknown"),
 		},
 	}
@@ -173,7 +162,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:        "delete_error",
 			serviceName: "test_service",
-			clientset:   newErrorClientset("delete", "services", errors.New("mock error: cannot delete service")),
+			clientset:   k8stest.NewErrorClientset("delete", "services", errors.New("mock error: cannot delete service")),
 			errorMsg:    fmt.Errorf("deleting service test_service in namespace test: mock error: cannot delete service"),
 		},
 	}
@@ -250,7 +239,7 @@ func TestGetNodes(t *testing.T) {
 		{
 			name:          "list_error",
 			labelSelector: "node-group=bee",
-			clientset:     newErrorClientset("list", "services", errors.New("mock error")),
+			clientset:     k8stest.NewErrorClientset("list", "services", errors.New("mock error")),
 			errorMsg:      fmt.Errorf("listing services in namespace test: mock error"),
 		},
 	}
@@ -320,7 +309,7 @@ func TestFindNode(t *testing.T) {
 		},
 		{
 			name:      "list_error",
-			clientset: newErrorClientset("list", "services", errors.New("mock error")),
+			clientset: k8stest.NewErrorClientset("list", "services", errors.New("mock error")),
 			errorMsg:  fmt.Errorf("listing services in namespace test: mock error"),
 		},
 	}

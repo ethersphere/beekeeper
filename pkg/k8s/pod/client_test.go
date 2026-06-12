@@ -9,28 +9,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
-	"github.com/ethersphere/beekeeper/pkg/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	k8stesting "k8s.io/client-go/testing"
-)
 
-// newErrorClientset returns a fake clientset seeded with objects whose
-// verb/resource action fails with err, used to exercise the error branches
-// without a hand-written mock.
-func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
-	cs := fake.NewClientset(objects...)
-	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, err
-	})
-	return cs
-}
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/k8s/pod"
+	"github.com/ethersphere/beekeeper/pkg/logging"
+)
 
 func TestSet(t *testing.T) {
 	t.Parallel()
@@ -70,13 +60,13 @@ func TestSet(t *testing.T) {
 			podName: "test_pod",
 			// No object seeded, so Update returns NotFound and Set falls through
 			// to Create, which the reactor fails.
-			clientset: newErrorClientset("create", "pods", errors.New("mock error: cannot create pod")),
+			clientset: k8stest.NewErrorClientset("create", "pods", errors.New("mock error: cannot create pod")),
 			errorMsg:  fmt.Errorf("creating pod test_pod in namespace test: mock error: cannot create pod"),
 		},
 		{
 			name:      "update_error",
 			podName:   "test_pod",
-			clientset: newErrorClientset("update", "pods", errors.New("mock error: cannot update pod")),
+			clientset: k8stest.NewErrorClientset("update", "pods", errors.New("mock error: cannot update pod")),
 			errorMsg:  fmt.Errorf("updating pod test_pod in namespace test: mock error: cannot update pod"),
 		},
 	}
@@ -153,7 +143,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:      "delete_error",
 			podName:   "test_pod",
-			clientset: newErrorClientset("delete", "pods", errors.New("mock error: cannot delete pod")),
+			clientset: k8stest.NewErrorClientset("delete", "pods", errors.New("mock error: cannot delete pod")),
 			errorMsg:  fmt.Errorf("deleting pod test_pod in namespace test: mock error: cannot delete pod"),
 		},
 	}
@@ -201,7 +191,7 @@ func TestGet(t *testing.T) {
 		{
 			name:      "get_error",
 			podName:   "p0",
-			clientset: newErrorClientset("get", "pods", errors.New("mock error")),
+			clientset: k8stest.NewErrorClientset("get", "pods", errors.New("mock error")),
 			errorMsg:  fmt.Errorf("getting pod p0 in namespace test: mock error"),
 		},
 	}
@@ -256,7 +246,7 @@ func TestDeletePods(t *testing.T) {
 	})
 
 	t.Run("list_error", func(t *testing.T) {
-		client := pod.NewClient(newErrorClientset("list", "pods", errors.New("mock error")), logging.New(io.Discard, 0))
+		client := pod.NewClient(k8stest.NewErrorClientset("list", "pods", errors.New("mock error")), logging.New(io.Discard, 0))
 		deleted, err := client.DeletePods(t.Context(), "test", "app=bee")
 		if err == nil || err.Error() != "listing pods in namespace test: mock error" {
 			t.Errorf("unexpected error: %v", err)
@@ -267,7 +257,7 @@ func TestDeletePods(t *testing.T) {
 	})
 
 	t.Run("delete_error", func(t *testing.T) {
-		cs := newErrorClientset("delete", "pods", errors.New("mock error"), newPod("p0", beeLabels))
+		cs := k8stest.NewErrorClientset("delete", "pods", errors.New("mock error"), newPod("p0", beeLabels))
 		client := pod.NewClient(cs, logging.New(io.Discard, 0))
 		deleted, err := client.DeletePods(t.Context(), "test", "app=bee")
 		if err == nil || err.Error() != "some pods failed to delete: [mock error]" {
@@ -322,7 +312,7 @@ func TestGetControllingStatefulSet(t *testing.T) {
 	})
 
 	t.Run("pod_get_error", func(t *testing.T) {
-		client := pod.NewClient(newErrorClientset("get", "pods", errors.New("mock error")), logging.New(io.Discard, 0))
+		client := pod.NewClient(k8stest.NewErrorClientset("get", "pods", errors.New("mock error")), logging.New(io.Discard, 0))
 		_, err := client.GetControllingStatefulSet(t.Context(), "p0", "test")
 		if err == nil || err.Error() != "getting pod p0 in namespace test: mock error" {
 			t.Errorf("unexpected error: %v", err)
@@ -331,7 +321,7 @@ func TestGetControllingStatefulSet(t *testing.T) {
 
 	t.Run("statefulset_get_error", func(t *testing.T) {
 		// pod Get succeeds (seeded), but the StatefulSet Get reactor fails.
-		cs := newErrorClientset("get", "statefulsets", errors.New("mock error"), podWithOwner("StatefulSet"))
+		cs := k8stest.NewErrorClientset("get", "statefulsets", errors.New("mock error"), podWithOwner("StatefulSet"))
 		client := pod.NewClient(cs, logging.New(io.Discard, 0))
 		_, err := client.GetControllingStatefulSet(t.Context(), "p0", "test")
 		if err == nil || err.Error() != "getting StatefulSet sts-0 in namespace test: mock error" {
@@ -464,7 +454,7 @@ func TestWaitForRunning(t *testing.T) {
 	})
 
 	t.Run("get_error", func(t *testing.T) {
-		client := pod.NewClient(newErrorClientset("get", "pods", errors.New("mock error")), logging.New(io.Discard, 0))
+		client := pod.NewClient(k8stest.NewErrorClientset("get", "pods", errors.New("mock error")), logging.New(io.Discard, 0))
 		err := client.WaitForRunning(t.Context(), "test", "test_pod")
 		if err == nil || err.Error() != "getting pod test_pod in namespace test: mock error" {
 			t.Errorf("unexpected error: %v", err)

@@ -6,25 +6,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	k8stesting "k8s.io/client-go/testing"
-)
 
-// newErrorClientset returns a fake clientset seeded with objects whose
-// verb/resource action fails with err, used to exercise the error branches
-// without a hand-written mock.
-func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
-	cs := fake.NewClientset(objects...)
-	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, err
-	})
-	return cs
-}
+	"github.com/ethersphere/beekeeper/pkg/k8s/configmap"
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+)
 
 func TestSet(t *testing.T) {
 	t.Parallel()
@@ -69,13 +58,13 @@ func TestSet(t *testing.T) {
 			configName: "test_config_map",
 			// No object seeded, so Update returns NotFound and Set falls through
 			// to Create, which the reactor fails.
-			clientset: newErrorClientset("create", "configmaps", errors.New("mock error: cannot create config map")),
+			clientset: k8stest.NewErrorClientset("create", "configmaps", errors.New("mock error: cannot create config map")),
 			errorMsg:  fmt.Errorf("creating configmap test_config_map in namespace test: mock error: cannot create config map"),
 		},
 		{
 			name:       "update_error",
 			configName: "test_config_map",
-			clientset:  newErrorClientset("update", "configmaps", errors.New("mock error: cannot update config map")),
+			clientset:  k8stest.NewErrorClientset("update", "configmaps", errors.New("mock error: cannot update config map")),
 			errorMsg:   fmt.Errorf("updating configmap test_config_map in namespace test: mock error: cannot update config map"),
 		},
 	}
@@ -153,7 +142,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:       "delete_error",
 			configName: "test_config_map",
-			clientset:  newErrorClientset("delete", "configmaps", errors.New("mock error: cannot delete config map")),
+			clientset:  k8stest.NewErrorClientset("delete", "configmaps", errors.New("mock error: cannot delete config map")),
 			errorMsg:   fmt.Errorf("deleting configmap test_config_map in namespace test: mock error: cannot delete config map"),
 		},
 	}

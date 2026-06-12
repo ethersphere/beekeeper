@@ -9,31 +9,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
-	"github.com/ethersphere/beekeeper/pkg/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	k8stesting "k8s.io/client-go/testing"
-)
 
-// newErrorClientset returns a fake clientset seeded with objects whose
-// verb/resource action fails with err, used to exercise the error branches
-// without a hand-written mock.
-func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
-	cs := fake.NewClientset(objects...)
-	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, err
-	})
-	return cs
-}
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/k8s/statefulset"
+	"github.com/ethersphere/beekeeper/pkg/logging"
+)
 
 // newStatefulSet builds a StatefulSet fixture in namespace "test" with a single
 // container, so UpdateImage (which indexes Containers[0]) can run against it.
@@ -104,13 +94,13 @@ func TestSet(t *testing.T) {
 			statefulsetName: "test_statefulset",
 			// No object seeded, so Update returns NotFound and Set falls through
 			// to Create, which the reactor fails.
-			clientset: newErrorClientset("create", "statefulsets", errors.New("mock error: cannot create statefulset")),
+			clientset: k8stest.NewErrorClientset("create", "statefulsets", errors.New("mock error: cannot create statefulset")),
 			errorMsg:  fmt.Errorf("creating statefulset test_statefulset in namespace test: mock error: cannot create statefulset"),
 		},
 		{
 			name:            "update_error",
 			statefulsetName: "test_statefulset",
-			clientset:       newErrorClientset("update", "statefulsets", errors.New("mock error: cannot update statefulset")),
+			clientset:       k8stest.NewErrorClientset("update", "statefulsets", errors.New("mock error: cannot update statefulset")),
 			errorMsg:        fmt.Errorf("updating statefulset test_statefulset in namespace test: mock error: cannot update statefulset"),
 		},
 	}
@@ -198,7 +188,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:            "delete_error",
 			statefulsetName: "test_statefulset",
-			clientset:       newErrorClientset("delete", "statefulsets", errors.New("mock error: cannot delete statefulset")),
+			clientset:       k8stest.NewErrorClientset("delete", "statefulsets", errors.New("mock error: cannot delete statefulset")),
 			errorMsg:        fmt.Errorf("deleting statefulset test_statefulset in namespace test: mock error: cannot delete statefulset"),
 		},
 	}
@@ -254,7 +244,7 @@ func TestReadyReplicas(t *testing.T) {
 			name:            "replicas_error",
 			statefulsetName: "test_statefulset",
 			// Get fails with a non-NotFound error, so ReadyReplicas surfaces it.
-			clientset: newErrorClientset("get", "statefulsets", errors.New("mock error: bad request")),
+			clientset: k8stest.NewErrorClientset("get", "statefulsets", errors.New("mock error: bad request")),
 			errorMsg:  fmt.Errorf("getting ReadyReplicas from statefulset test_statefulset in namespace test: mock error: bad request"),
 		},
 	}
@@ -427,12 +417,12 @@ func TestRunningStatefulSets(t *testing.T) {
 			name:      "not_found_in_namespace",
 			namespace: "test",
 			// List returns NotFound, which RunningStatefulSets treats as empty.
-			clientset: newErrorClientset("list", "statefulsets", apierrors.NewNotFound(schema.GroupResource{}, "test")),
+			clientset: k8stest.NewErrorClientset("list", "statefulsets", apierrors.NewNotFound(schema.GroupResource{}, "test")),
 		},
 		{
 			name:      "wrong_namespace",
 			namespace: "bad_test",
-			clientset: newErrorClientset("list", "statefulsets", errors.New("mock error")),
+			clientset: k8stest.NewErrorClientset("list", "statefulsets", errors.New("mock error")),
 			errorMsg:  fmt.Errorf("list statefulsets in namespace bad_test: mock error"),
 		},
 	}
@@ -592,12 +582,12 @@ func TestStoppedStatefulSets(t *testing.T) {
 			name:      "not_found_in_namespace",
 			namespace: "test",
 			// List returns NotFound, which StoppedStatefulSets treats as empty.
-			clientset: newErrorClientset("list", "statefulsets", apierrors.NewNotFound(schema.GroupResource{}, "test")),
+			clientset: k8stest.NewErrorClientset("list", "statefulsets", apierrors.NewNotFound(schema.GroupResource{}, "test")),
 		},
 		{
 			name:      "wrong_namespace",
 			namespace: "bad_test",
-			clientset: newErrorClientset("list", "statefulsets", errors.New("mock error")),
+			clientset: k8stest.NewErrorClientset("list", "statefulsets", errors.New("mock error")),
 			errorMsg:  fmt.Errorf("list statefulsets in namespace bad_test: mock error"),
 		},
 	}
@@ -652,7 +642,7 @@ func TestStatefulSets(t *testing.T) {
 		{
 			name:          "list_error",
 			labelSelector: "app=bee",
-			clientset:     newErrorClientset("list", "statefulsets", errors.New("mock error")),
+			clientset:     k8stest.NewErrorClientset("list", "statefulsets", errors.New("mock error")),
 			errorMsg:      fmt.Errorf("list statefulsets in namespace test: mock error"),
 		},
 	}
@@ -703,7 +693,7 @@ func TestGet(t *testing.T) {
 		{
 			name:      "get_error",
 			stsName:   "sts-0",
-			clientset: newErrorClientset("get", "statefulsets", errors.New("mock error")),
+			clientset: k8stest.NewErrorClientset("get", "statefulsets", errors.New("mock error")),
 			errorMsg:  fmt.Errorf("getting statefulset sts-0 in namespace test: mock error"),
 		},
 	}
@@ -759,7 +749,7 @@ func TestUpdateImage(t *testing.T) {
 	})
 
 	t.Run("get_error", func(t *testing.T) {
-		client := statefulset.NewClient(newErrorClientset("get", "statefulsets", errors.New("mock error")), logging.New(io.Discard, 0))
+		client := statefulset.NewClient(k8stest.NewErrorClientset("get", "statefulsets", errors.New("mock error")), logging.New(io.Discard, 0))
 		err := client.UpdateImage(t.Context(), "sts-0", "test", "bee:new")
 		if err == nil || err.Error() != "getting statefulset sts-0 in namespace test: mock error" {
 			t.Errorf("unexpected error: %v", err)
@@ -767,7 +757,7 @@ func TestUpdateImage(t *testing.T) {
 	})
 
 	t.Run("update_error", func(t *testing.T) {
-		cs := newErrorClientset("update", "statefulsets", errors.New("mock error"), newStatefulSet("sts-0", "bee:old"))
+		cs := k8stest.NewErrorClientset("update", "statefulsets", errors.New("mock error"), newStatefulSet("sts-0", "bee:old"))
 		client := statefulset.NewClient(cs, logging.New(io.Discard, 0))
 		err := client.UpdateImage(t.Context(), "sts-0", "test", "bee:new")
 		if err == nil || err.Error() != "updating statefulset sts-0 in namespace test: mock error" {
@@ -822,7 +812,7 @@ func TestGetUpdateStrategy(t *testing.T) {
 		},
 		{
 			name:      "get_error",
-			clientset: newErrorClientset("get", "statefulsets", errors.New("mock error")),
+			clientset: k8stest.NewErrorClientset("get", "statefulsets", errors.New("mock error")),
 			errorMsg:  fmt.Errorf("getting statefulset sts-0 in namespace test: mock error"),
 		},
 	}
@@ -878,7 +868,7 @@ func TestUpdate(t *testing.T) {
 		{
 			name:        "update_error",
 			statefulSet: newStatefulSet("sts-0", "bee:new"),
-			clientset:   newErrorClientset("update", "statefulsets", errors.New("mock error")),
+			clientset:   k8stest.NewErrorClientset("update", "statefulsets", errors.New("mock error")),
 			errorMsg:    fmt.Errorf("updating statefulset sts-0 in namespace test: mock error"),
 		},
 	}

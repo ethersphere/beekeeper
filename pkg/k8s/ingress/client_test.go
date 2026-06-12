@@ -7,28 +7,17 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
-	"github.com/ethersphere/beekeeper/pkg/logging"
 	v1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	k8stesting "k8s.io/client-go/testing"
-)
 
-// newErrorClientset returns a fake clientset seeded with objects whose
-// verb/resource action fails with err, used to exercise the error branches
-// without a hand-written mock.
-func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
-	cs := fake.NewClientset(objects...)
-	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, err
-	})
-	return cs
-}
+	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/logging"
+)
 
 func TestSet(t *testing.T) {
 	t.Parallel()
@@ -129,13 +118,13 @@ func TestSet(t *testing.T) {
 			ingressName: "test_ingress",
 			// No object seeded, so Update returns NotFound and Set falls through
 			// to Create, which the reactor fails.
-			clientset: newErrorClientset("create", "ingresses", errors.New("mock error: cannot create ingress")),
+			clientset: k8stest.NewErrorClientset("create", "ingresses", errors.New("mock error: cannot create ingress")),
 			errorMsg:  fmt.Errorf("creating ingress test_ingress in namespace test: mock error: cannot create ingress"),
 		},
 		{
 			name:        "update_error",
 			ingressName: "test_ingress",
-			clientset:   newErrorClientset("update", "ingresses", errors.New("mock error: cannot update ingress")),
+			clientset:   k8stest.NewErrorClientset("update", "ingresses", errors.New("mock error: cannot update ingress")),
 			errorMsg:    fmt.Errorf("updating ingress test_ingress in namespace test: mock error: cannot update ingress"),
 		},
 	}
@@ -211,7 +200,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:        "delete_error",
 			ingressName: "test_ingress",
-			clientset:   newErrorClientset("delete", "ingresses", errors.New("mock error: cannot delete ingress")),
+			clientset:   k8stest.NewErrorClientset("delete", "ingresses", errors.New("mock error: cannot delete ingress")),
 			errorMsg:    fmt.Errorf("deleting ingress test_ingress in namespace test: mock error: cannot delete ingress"),
 		},
 	}
@@ -304,13 +293,13 @@ func TestGetNodes(t *testing.T) {
 		{
 			name:      "not_found",
 			label:     "app=bee",
-			clientset: newErrorClientset("list", "ingresses", apierrors.NewNotFound(schema.GroupResource{}, "test")),
+			clientset: k8stest.NewErrorClientset("list", "ingresses", apierrors.NewNotFound(schema.GroupResource{}, "test")),
 			expected:  nil,
 		},
 		{
 			name:      "list_error",
 			label:     "app=bee",
-			clientset: newErrorClientset("list", "ingresses", errors.New("mock error")),
+			clientset: k8stest.NewErrorClientset("list", "ingresses", errors.New("mock error")),
 			errorMsg:  fmt.Errorf("list ingresses in namespace test: mock error"),
 		},
 	}

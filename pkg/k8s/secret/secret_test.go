@@ -6,25 +6,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	k8stesting "k8s.io/client-go/testing"
-)
 
-// newErrorClientset returns a fake clientset seeded with objects whose
-// verb/resource action fails with err, used to exercise the error branches
-// without a hand-written mock.
-func newErrorClientset(verb, resource string, err error, objects ...runtime.Object) kubernetes.Interface {
-	cs := fake.NewClientset(objects...)
-	cs.PrependReactor(verb, resource, func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, err
-	})
-	return cs
-}
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
+)
 
 func TestSet(t *testing.T) {
 	t.Parallel()
@@ -74,13 +63,13 @@ func TestSet(t *testing.T) {
 			secretName: "test_secret",
 			// No object seeded, so Update returns NotFound and Set falls through
 			// to Create, which the reactor fails.
-			clientset: newErrorClientset("create", "secrets", errors.New("mock error: cannot create secret")),
+			clientset: k8stest.NewErrorClientset("create", "secrets", errors.New("mock error: cannot create secret")),
 			errorMsg:  fmt.Errorf("creating secret test_secret in namespace test: mock error: cannot create secret"),
 		},
 		{
 			name:       "update_error",
 			secretName: "test_secret",
-			clientset:  newErrorClientset("update", "secrets", errors.New("mock error: cannot update secret")),
+			clientset:  k8stest.NewErrorClientset("update", "secrets", errors.New("mock error: cannot update secret")),
 			errorMsg:   fmt.Errorf("updating secret test_secret in namespace test: mock error: cannot update secret"),
 		},
 	}
@@ -159,7 +148,7 @@ func TestDelete(t *testing.T) {
 		{
 			name:       "delete_error",
 			secretName: "test_secret",
-			clientset:  newErrorClientset("delete", "secrets", errors.New("mock error: cannot delete secret")),
+			clientset:  k8stest.NewErrorClientset("delete", "secrets", errors.New("mock error: cannot delete secret")),
 			errorMsg:   fmt.Errorf("deleting secret test_secret in namespace test: mock error: cannot delete secret"),
 		},
 	}
