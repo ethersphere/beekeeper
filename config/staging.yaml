@@ -42,7 +42,7 @@ bee-configs:
     password: "beekeeper"
     swap-enable: true
     tracing-enabled: true
-    tracing-endpoint: "10.10.11.199:6831"
+    tracing-otlp-endpoint: "10.10.11.199:4318"
     tracing-service-name: "bee"
     verbosity: 4
     welcome-message: Welcome to the bee staging environment created by Beekeeper!

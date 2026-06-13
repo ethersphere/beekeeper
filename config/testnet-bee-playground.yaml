@@ -69,7 +69,7 @@ bee-configs:
     swap-enable: true
     swap-initial-deposit: 0
     tracing-enabled: false
-    tracing-endpoint: "10.10.11.199:6831"
+    tracing-otlp-endpoint: "10.10.11.199:4318"
     tracing-service-name: "bee-playground"
     verbosity: 5
     warmup-time: 5m0s
