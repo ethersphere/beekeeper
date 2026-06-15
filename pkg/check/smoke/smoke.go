@@ -25,7 +25,6 @@ import (
 // result label values for the smoke metrics.
 const (
 	resultSuccess  = "success"
-	resultFailure  = "failure"
 	resultError    = "error"
 	resultMismatch = "mismatch"
 )
@@ -213,7 +212,7 @@ func (c *Check) upload(ctx context.Context, t transferrer, uploader *bee.Client,
 		address, txDuration, err := t.Upload(txCtx, uploader, data, batchID, rLevel)
 		txCancel()
 		if err != nil {
-			c.metrics.Upload.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel, resultFailure).Inc()
+			c.metrics.Upload.WithLabelValues(sizeLabel, uploader.Name(), rLevelLabel, resultError).Inc()
 			c.logger.Errorf("upload failed for size %d: %v", len(data), err)
 			c.logger.Infof(msgRetryingIn, o.TxOnErrWait)
 			continue
