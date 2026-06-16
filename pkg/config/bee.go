@@ -1,9 +1,6 @@
 package config
 
 import (
-	"reflect"
-	"time"
-
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 )
 
@@ -11,59 +8,17 @@ type Inheritable interface {
 	GetParentName() string
 }
 
-// BeeConfig represents Bee configuration
+// BeeConfig represents Bee configuration as read from Beekeeper's YAML config.
+//
+// It embeds orchestration.Config (the Bee flag set), so the flag fields are
+// defined in exactly one place and the same yaml tags — the Bee flag names —
+// are used both for reading the config here and for rendering the node's
+// .bee.yaml. The only thing BeeConfig adds is the config-file-only concern of
+// inheritance (_inherit). Export returns just the embedded Config, so neither
+// _inherit nor any other config-loading detail can leak into the rendered file.
 type BeeConfig struct {
-	// parent to inherit settings from
-	*Inherit `yaml:",inline"`
-	// Bee configuration
-	AllowPrivateCIDRs           *bool          `yaml:"allow-private-cidrs"`
-	APIAddr                     *string        `yaml:"api-addr"`
-	AutoTLSCAEndpoint           *string        `yaml:"autotls-ca-endpoint"`
-	AutoTLSDomain               *string        `yaml:"autotls-domain"`
-	AutoTLSRegistrationEndpoint *string        `yaml:"autotls-registration-endpoint"`
-	BlockchainRPCEndpoint       *string        `yaml:"blockchain-rpc-endpoint"`
-	BlockTime                   *uint64        `yaml:"block-time"`
-	BootnodeMode                *bool          `yaml:"bootnode-mode"`
-	Bootnodes                   *string        `yaml:"bootnodes"`
-	CacheCapacity               *uint64        `yaml:"cache-capacity"`
-	ChequebookEnable            *bool          `yaml:"chequebook-enable"`
-	CORSAllowedOrigins          *string        `yaml:"cors-allowed-origins"`
-	DataDir                     *string        `yaml:"data-dir"`
-	DbBlockCacheCapacity        *int           `yaml:"db-block-cache-capacity"`
-	DbDisableSeeksCompaction    *bool          `yaml:"db-disable-seeks-compaction"`
-	DbOpenFilesLimit            *int           `yaml:"db-open-files-limit"`
-	DbWriteBufferSize           *int           `yaml:"db-write-buffer-size"`
-	FullNode                    *bool          `yaml:"full-node"`
-	Mainnet                     *bool          `yaml:"mainnet"`
-	NATAddr                     *string        `yaml:"nat-addr"`
-	NATWSSAddr                  *string        `yaml:"nat-wss-addr"`
-	NetworkID                   *uint64        `yaml:"network-id"`
-	P2PAddr                     *string        `yaml:"p2p-addr"`
-	P2PWSEnable                 *bool          `yaml:"p2p-ws-enable"`
-	P2PWSSAddr                  *string        `yaml:"p2p-wss-addr"`
-	P2PWSSEnable                *bool          `yaml:"p2p-wss-enable"`
-	Password                    *string        `yaml:"password"`
-	PaymentEarly                *uint64        `yaml:"payment-early-percent"`
-	PaymentThreshold            *uint64        `yaml:"payment-threshold"`
-	PaymentTolerance            *uint64        `yaml:"payment-tolerance-percent"`
-	PostageContractStartBlock   *uint64        `yaml:"postage-stamp-start-block"`
-	PostageStampAddress         *string        `yaml:"postage-stamp-address"`
-	PriceOracleAddress          *string        `yaml:"price-oracle-address"`
-	RedistributionAddress       *string        `yaml:"redistribution-address"`
-	ResolverOptions             *string        `yaml:"resolver-options"`
-	StakingAddress              *string        `yaml:"staking-address"`
-	StorageIncentivesEnable     *string        `yaml:"storage-incentives-enable"`
-	SwapEnable                  *bool          `yaml:"swap-enable"`
-	SwapEndpoint                *string        `yaml:"swap-endpoint"` // deprecated: use blockchain-rpc-endpoint
-	SwapFactoryAddress          *string        `yaml:"swap-factory-address"`
-	SwapInitialDeposit          *uint64        `yaml:"swap-initial-deposit"`
-	TracingEnabled              *bool          `yaml:"tracing-enabled"`
-	TracingEndpoint             *string        `yaml:"tracing-endpoint"`
-	TracingServiceName          *string        `yaml:"tracing-service-name"`
-	Verbosity                   *uint64        `yaml:"verbosity"`
-	WarmupTime                  *time.Duration `yaml:"warmup-time"`
-	WelcomeMessage              *string        `yaml:"welcome-message"`
-	WithdrawAddress             *string        `yaml:"withdrawal-addresses-whitelist"`
+	*Inherit             `yaml:",inline"`
+	orchestration.Config `yaml:",inline"`
 }
 
 func (b BeeConfig) GetParentName() string {
@@ -73,30 +28,9 @@ func (b BeeConfig) GetParentName() string {
 	return ""
 }
 
-// Export exports BeeConfig to orchestration.Config
-func (b *BeeConfig) Export() (config orchestration.Config) {
-	localVal := reflect.ValueOf(b).Elem()
-	localType := reflect.TypeFor[BeeConfig]()
-	remoteVal := reflect.ValueOf(&config).Elem()
-
-	for i := range localVal.NumField() {
-		localField := localVal.Field(i)
-		if localField.IsValid() && !localField.IsNil() {
-			localFieldVal := localVal.Field(i).Elem()
-			localFieldName := localType.Field(i).Name
-
-			remoteFieldVal := remoteVal.FieldByName(localFieldName)
-			if remoteFieldVal.IsValid() && remoteFieldVal.Type() == localFieldVal.Type() {
-				remoteFieldVal.Set(localFieldVal)
-			}
-		}
-	}
-
-	config = remoteVal.Interface().(orchestration.Config)
-
-	if config.BlockchainRPCEndpoint == "" && b.SwapEndpoint != nil {
-		config.BlockchainRPCEndpoint = *b.SwapEndpoint
-	}
-
-	return config
+// Export returns the Bee flag configuration to be rendered into the node's
+// .bee.yaml. Inheritance has already been resolved during config loading and is
+// not part of the embedded Config.
+func (b *BeeConfig) Export() orchestration.Config {
+	return b.Config
 }

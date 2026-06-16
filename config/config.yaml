@@ -94,10 +94,10 @@ bee-configs:
     block-time: 1
     blockchain-rpc-endpoint: "ws://geth-swap.bee-playground.svc.swarm1.local:8546"
     bootnode-mode: false
-    bootnodes: ""
+    bootnode: []
     cache-capacity: 1000000
     chequebook-enable: true
-    cors-allowed-origins: ""
+    cors-allowed-origins: []
     data-dir: "/home/bee/.bee"
     db-block-cache-capacity: 33554432
     db-disable-seeks-compaction: false
@@ -117,19 +117,19 @@ bee-configs:
     postage-stamp-start-block: 1
     price-oracle-address: "0x5aFE06fcC0855a76a15c3544b0886EDBE3294d62"
     redistribution-address: "0x09Ad42a7d020244920309FfA14EA376dd2D3b7d5"
-    resolver-options: ""
+    resolver-options: []
     staking-address: "0xfc28330f1ecE0ef2371B724E0D19c1EE60B728b2"
     storage-incentives-enable: true
     swap-enable: true
     swap-factory-address: "0xdD661f2500bA5831e3d1FEbAc379Ea1bF80773Ac"
     swap-initial-deposit: 500000000000000000
-    tracing-enabled: true
+    tracing-enable: true
     tracing-endpoint: "10.10.11.199:6831"
     tracing-service-name: "bee"
     verbosity: 5 # 1=error, 2=warn, 3=info, 4=debug, 5=trace
     warmup-time: 0s
     welcome-message: "Welcome to the Swarm, you are Bee-ing connected!"
-    withdrawal-addresses-whitelist: "0xec44cb15b1b033e74d55ac5d0e24d861bde54532"
+    withdrawal-addresses-whitelist: ["0xec44cb15b1b033e74d55ac5d0e24d861bde54532"]
   bootnode:
     _inherit: "default"
     bootnode-mode: true
