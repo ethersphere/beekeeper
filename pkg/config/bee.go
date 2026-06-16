@@ -58,9 +58,9 @@ type BeeConfig struct {
 	SwapFactoryAddress          *string        `yaml:"swap-factory-address"`
 	SwapInitialDeposit          *uint64        `yaml:"swap-initial-deposit"`
 	TracingEnabled              *bool          `yaml:"tracing-enabled"`
-	TracingOTLPEndpoint         *string        `yaml:"tracing-otlp-endpoint"`
-	TracingOTLPInsecure         *bool          `yaml:"tracing-otlp-insecure"`
-	TracingOTLPProtocol         *string        `yaml:"tracing-otlp-protocol"`
+	TracingOTLPEndpoint         *string        `yaml:"tracing-endpoint"`
+	TracingOTLPInsecure         *bool          `yaml:"tracing-insecure"`
+	TracingOTLPProtocol         *string        `yaml:"tracing-protocol"`
 	TracingSamplingRatio        *float64       `yaml:"tracing-sampling-ratio"`
 	TracingServiceName          *string        `yaml:"tracing-service-name"`
 	Verbosity                   *uint64        `yaml:"verbosity"`
