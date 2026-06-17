@@ -9,7 +9,7 @@ clusters:
     api-insecure-tls: true
     api-scheme: http
     funding:
-      eth: 0.1
+      eth: 0.01
       bzz: 3.0
     node-groups:
       bootnode:
@@ -44,33 +44,16 @@ bee-configs:
     api-addr: :1633
     block-time: 12
     blockchain-rpc-endpoint: http://rpc-sepolia-haproxy.default.svc.swarm1.local
-    bootnode-mode: false
-    bootnodes: # /dnsaddr/testnet.ethswarm.org
-    cache-capacity: 1000000
+    # bootnode: [dnsaddr/testnet.ethswarm.org]
     chequebook-enable: true
-    cors-allowed-origins: ""
     data-dir: "/home/bee/.bee"
-    db-block-cache-capacity: 33554432
-    db-disable-seeks-compaction: true
-    db-open-files-limit: 200
-    db-write-buffer-size: 33554432
     full-node: true
     mainnet: false
-    nat-addr: ""
     network-id: 5
     p2p-addr: :1634
-    p2p-ws-enable: true
     password: "beekeeper"
-    payment-early-percent: 50
-    payment-threshold: 13500000
-    payment-tolerance-percent: 25
-    postage-stamp-start-block: 0
     storage-incentives-enable: true
     swap-enable: true
-    swap-initial-deposit: 0
-    tracing-enabled: false
-    tracing-endpoint: "10.10.11.199:6831"
-    tracing-service-name: "bee-playground"
     verbosity: 5
     warmup-time: 5m0s
     welcome-message: Welcome to the bee-playground!

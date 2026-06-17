@@ -206,8 +206,10 @@ func (s PodRecreationState) String() string {
 }
 
 // WaitForPodRecreationAndCompletion waits for a pod to go through the complete lifecycle:
-// DELETED -> ADDED -> RUNNING -> COMPLETED
-func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespace, podName string) error {
+// DELETED -> ADDED -> RUNNING -> COMPLETED.
+// containerName selects which container's state drives the lifecycle; if empty,
+// the pod's first container is used.
+func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespace, podName, containerName string) error {
 	c.log.Debugf("waiting for pod %s to complete recreation and execution lifecycle", podName)
 	defer c.log.Debugf("watch for pod %s in namespace %s done", podName, namespace)
 
@@ -229,7 +231,7 @@ func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespac
 	for {
 		select {
 		case event := <-watcher.ResultChan():
-			newState, err := c.processEventInState(event, currentState, podName)
+			newState, err := c.processEventInState(event, currentState, podName, containerName)
 			if err != nil {
 				return err
 			}
@@ -251,14 +253,17 @@ func (c *Client) WaitForPodRecreationAndCompletion(ctx context.Context, namespac
 }
 
 // processEventInState handles state transitions based on the received event
-func (c *Client) processEventInState(event watch.Event, currentState PodRecreationState, podName string) (PodRecreationState, error) {
+func (c *Client) processEventInState(event watch.Event, currentState PodRecreationState, podName, containerName string) (PodRecreationState, error) {
 	pod, ok := event.Object.(*v1.Pod)
 	if !ok {
 		c.log.Debugf("watch event is not a pod, skipping")
 		return currentState, nil
 	}
 
-	containerName := pod.Spec.Containers[0].Name
+	// Fall back to the first container when no specific one was requested.
+	if containerName == "" && len(pod.Spec.Containers) > 0 {
+		containerName = pod.Spec.Containers[0].Name
+	}
 
 	switch currentState {
 	case WaitingForDeletion:
