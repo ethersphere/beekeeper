@@ -22,6 +22,7 @@ type StatusResponse struct {
 	IsReachable             bool    `json:"isReachable"`
 	LastSyncedBlock         uint64  `json:"lastSyncedBlock"`
 	CommittedDepth          uint8   `json:"committedDepth"`
+	IsWarmingUp             bool    `json:"isWarmingUp"`
 }
 
 // Ping pings given node

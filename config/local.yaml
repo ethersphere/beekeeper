@@ -373,6 +373,23 @@ checks:
         - light
     timeout: 30m
     type: load
+  ci-reserve-radius:
+    options:
+      postage-ttl: 24h
+      postage-depth: 22
+      postage-label: reserve-radius
+      blob-size: 1048576
+      max-uploads: 60
+      target-radius: 1
+      warmup-wait: 15m
+      increase-timeout: 5m
+      settle-wait: 1m
+      decrease-timeout: 20m
+      poll-interval: 15s
+      upload-groups:
+        - bee
+    timeout: 45m
+    type: reserve-radius
   ci-soc:
     options:
       postage-ttl: 24h

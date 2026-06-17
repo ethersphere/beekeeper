@@ -149,6 +149,13 @@ Sequence observed (3 full nodes, uploading 1 MB blobs to `bee-0`):
 5. **Decrease ↔ resync interlock (staircase)** — decrease requires `SyncRate()==0`, but a decrease
    triggers pull-sync (`pullsyncRate>0`), which then blocks the next decrease until it drains.
    Radius settles in steps, not one jump.
+6. **It does not return to a fixed floor** — after `2→1`, the radius held at **1 for 30+ min and never
+   reached 0** (still 1 at re-check, even with `pullsyncRate==0` on two of three nodes by then;
+   `reserveSizeWithinRadius` rose to equal `reserveSize` as the reserve reorganized within radius 1).
+   The `1→0` step simply did not occur in-window — the exact gate is secondary (candidate: residual
+   sync noise and/or how `countWithinRadius` evaluates at the boundary). Design takeaway: the check
+   must assert *"a decrease occurred AND pullsync recovered"*, NOT *"radius returned to N"* — the
+   equilibrium depends on data volume and sync state.
 
 **Implications for the Phase 2 check (bake these in):**
 
@@ -197,28 +204,28 @@ Copy the shape of `smoke` (`pkg/check/smoke/smoke.go`), `feed`, `load`. Concrete
 
 ## Phase 2 — The beekeeper check (`pkg/check/reserveradius`)
 
-On a **new branch** (`feat/reserve-radius-check`). Mirror the existing check structure
+On branch **`ljubisa-radius-check`**. Mirrors the existing check structure
 (`Action` interface, `NewCheck(logger)`, `metrics.Reporter`, the conventions above);
-register in `pkg/config/check.go` and add a `ci-reserve-radius` entry to `config/local.yaml`.
+registered in `pkg/config/check.go`, `ci-reserve-radius` entry in `config/local.yaml`.
 
-- [ ] `pkg/check/reserveradius/reserveradius.go`
-      - `Options`: target direction (increase/decrease), upload size, postage
-        (`PostageTTL` not raw amount), poll interval, overflow/recovery timeouts, seed.
-      - `Run`: (1) pick a random full node via `cluster.ShuffledFullNodeClients`;
-        (2) record baseline `/status` + `/reservestate`; (3) **stage** the change
-        (buy batch, upload to overflow / drive decrease); (4) **monitor**: poll
-        until `storageRadius` reaches target and then `pullsyncRate` returns to 0
-        (reuse #581's `waitForRadius` / `waitForRecovery`); (5) assert + emit metrics.
-      - Fail messages must name the suspected cause (e.g. puller `manage()` stuck,
-        cf. #581) and the timeout hit.
-- [ ] `pkg/check/reserveradius/metrics.go` — emit: `storage_radius` gauge per node
-      over time, `time_to_radius_change_seconds`, `time_to_resync_seconds`
-      (pullsync→0), `reserve_size` / `reserve_size_within_radius` gauges,
-      `pullsync_rate` gauge. Implement `Report()`.
-- [ ] Register in `pkg/config/check.go` `Checks` map + `NewOptions` decoder.
-- [ ] `config/local.yaml`: `ci-reserve-radius` check + (if needed) a patched
-      node-group/bee-config. Generous timeout.
-- [ ] Gate: `make build && make vet && make lint && make test`.
+- [x] `pkg/check/reserveradius/reserveradius.go` — `Run` = `waitForWarmupDone` →
+      baseline → `driveIncrease` (upload blobs until `storageRadius≥TargetRadius`, reuses
+      `test.Upload`) → settle (pushsync drain) → `observeDecrease` (assert a decrease vs the
+      per-node peak; watch `pullsyncRate` recovery; timeout message names the PR #581 puller stall).
+- [x] `pkg/check/reserveradius/metrics.go` — `storage_radius` / `reserve_size` /
+      `pullsync_rate` gauges per node + `time_to_increase_seconds` / `time_to_decrease_seconds`.
+- [x] Registered in `pkg/config/check.go` (type `reserve-radius`); added `IsWarmingUp` to
+      `pkg/bee/api/status.go` `StatusResponse` (node returns `isWarmingUp`; struct lacked it).
+- [x] `config/local.yaml`: `ci-reserve-radius` (timeout 45m). Runs against the patched image.
+- [x] Gate: `make build`, `go vet`, `golangci-lint` (0 issues) all green. (Unit tests deferred.)
+- [x] **Validated end-to-end (2026-06-17)** on a fresh local-dns: increase 0→1 in 3s (1 MiB),
+      1-min settle, **decrease observed on bee-2 after 13m16s with `pullsyncRate>0` recovery=true**,
+      `check completed successfully` (total 14m36s). Confirms the ~13-min stabilization-gated
+      decrease and that the 20-min `DecreaseTimeout` is correctly sized.
+
+Open follow-ups (not blockers): make `pullsyncRate>0` recovery a **hard** gate once its rate floor is
+characterised on a data-heavy cluster (Phase 3); add external `_test` package; optional `increase`-only
+and `both` directions.
 
 ## Phase 3 — Real ephemeral cluster, no patch
 
