@@ -8,9 +8,6 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// compile simulation whether ClientsetMock implements interface
-var _ kubernetes.Interface = (*Clientset)(nil)
-
 type Client struct {
 	expectError bool
 }

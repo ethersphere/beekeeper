@@ -1,20 +1,22 @@
 package secret_test
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
-	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/k8s/secret"
 )
 
 func TestSet(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name       string
 		secretName string
@@ -58,22 +60,24 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:       "create_error",
-			secretName: mocks.CreateBad,
-			clientset:  mocks.NewClientset(),
-			errorMsg:   fmt.Errorf("creating secret create_bad in namespace test: mock error: cannot create secret"),
+			secretName: "test_secret",
+			// No object seeded, so Update returns NotFound and Set falls through
+			// to Create, which the reactor fails.
+			clientset: k8stest.NewErrorClientset("create", "secrets", errors.New("mock error: cannot create secret")),
+			errorMsg:  fmt.Errorf("creating secret test_secret in namespace test: mock error: cannot create secret"),
 		},
 		{
 			name:       "update_error",
-			secretName: mocks.UpdateBad,
-			clientset:  mocks.NewClientset(),
-			errorMsg:   fmt.Errorf("updating secret update_bad in namespace test: mock error: cannot update secret"),
+			secretName: "test_secret",
+			clientset:  k8stest.NewErrorClientset("update", "secrets", errors.New("mock error: cannot update secret")),
+			errorMsg:   fmt.Errorf("updating secret test_secret in namespace test: mock error: cannot update secret"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := secret.NewClient(test.clientset)
-			response, err := client.Set(context.Background(), test.secretName, "test", test.options)
+			response, err := client.Set(t.Context(), test.secretName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -114,6 +118,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name       string
 		secretName string
@@ -142,16 +147,16 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:       "delete_error",
-			secretName: mocks.DeleteBad,
-			clientset:  mocks.NewClientset(),
-			errorMsg:   fmt.Errorf("deleting secret delete_bad in namespace test: mock error: cannot delete secret"),
+			secretName: "test_secret",
+			clientset:  k8stest.NewErrorClientset("delete", "secrets", errors.New("mock error: cannot delete secret")),
+			errorMsg:   fmt.Errorf("deleting secret test_secret in namespace test: mock error: cannot delete secret"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := secret.NewClient(test.clientset)
-			err := client.Delete(context.Background(), test.secretName, "test")
+			err := client.Delete(t.Context(), test.secretName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())

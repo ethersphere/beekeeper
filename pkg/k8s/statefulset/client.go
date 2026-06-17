@@ -62,6 +62,10 @@ func (c *Client) ReadyReplicas(ctx context.Context, name, namespace string) (rea
 	return ready, err
 }
 
+// notReadyLogInterval is how often ReadyReplicasWatch logs that the StatefulSet
+// is not ready yet. It is a package var so tests can shorten it.
+var notReadyLogInterval = 5 * time.Second
+
 // ReadyReplicasWatch returns number of Pods created by the StatefulSet controller that have a Ready Condition by watching events
 func (c *Client) ReadyReplicasWatch(ctx context.Context, name, namespace string) (ready int32, err error) {
 	watcher, err := c.clientset.AppsV1().StatefulSets(namespace).Watch(ctx, metav1.ListOptions{
@@ -72,7 +76,7 @@ func (c *Client) ReadyReplicasWatch(ctx context.Context, name, namespace string)
 	}
 	defer watcher.Stop()
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(notReadyLogInterval)
 	defer ticker.Stop()
 
 	// Use a select statement to listen for either events from the watcher or a context cancellation
