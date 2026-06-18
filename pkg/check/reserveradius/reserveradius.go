@@ -123,17 +123,24 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("create batch on %s: %w", uploader.Name(), err)
 	}
 	c.logger.WithField("batch_id", batchID).Infof("node %s: using batch", uploader.Name())
-	if err := c.driveIncrease(ctx, uploader, nodes, batchID, o); err != nil {
+	peak := make(map[string]uint8, len(nodes))
+	if err := c.driveIncrease(ctx, uploader, nodes, batchID, o, peak); err != nil {
 		return err
 	}
 
-	// 3. Let pushsync overshoot drain before snapshotting the peak.
-	c.logger.Infof("uploads stopped; waiting %s for pushsync to settle", o.SettleWait)
-	if err := sleepCtx(ctx, o.SettleWait); err != nil {
-		return err
+	// 3. Keep raising the per-node high-water `peak` through the settle window.
+	//    The decrease can begin during settle (on an already-stabilised node it is
+	//    near-immediate), so peak must be the max seen — a single post-settle read
+	//    would come back at baseline and make a decrease impossible to detect.
+	c.logger.Infof("uploads stopped; tracking peak for %s (pushsync settle)", o.SettleWait)
+	settleDeadline := time.Now().Add(o.SettleWait)
+	for time.Now().Before(settleDeadline) {
+		if err := sleepCtx(ctx, o.PollInterval); err != nil {
+			return err
+		}
+		c.updatePeak(ctx, nodes, peak)
 	}
-	peak := c.radiusByNode(ctx, nodes)
-	c.logger.Infof("peak storageRadius per node after settle: %v", peak)
+	c.logger.Infof("peak storageRadius per node: %v", peak)
 
 	// 4. Observe the decrease + pull-sync recovery.
 	return c.observeDecrease(ctx, nodes, peak, o)
@@ -168,7 +175,7 @@ func (c *Check) waitForWarmupDone(ctx context.Context, nodes orchestration.Clien
 }
 
 // driveIncrease uploads blobs to the uploader until any observed node reaches TargetRadius.
-func (c *Check) driveIncrease(ctx context.Context, uploader *bee.Client, nodes orchestration.ClientList, batchID string, o Options) error {
+func (c *Check) driveIncrease(ctx context.Context, uploader *bee.Client, nodes orchestration.ClientList, batchID string, o Options, peak map[string]uint8) error {
 	c.logger.Infof("driving increase: %d-byte blobs to %s until storageRadius>=%d (max %d uploads, timeout %s)",
 		o.BlobSize, uploader.Name(), o.TargetRadius, o.MaxUploads, o.IncreaseTimeout)
 	start := time.Now()
@@ -190,7 +197,7 @@ func (c *Check) driveIncrease(ctx context.Context, uploader *bee.Client, nodes o
 			c.logger.Errorf("upload #%d failed: %v", i, err)
 			continue
 		}
-		mx := c.snapshot(ctx, nodes, "increase")
+		mx := c.updatePeak(ctx, nodes, peak)
 		c.logger.Infof("increase: upload #%d, max storageRadius=%d (target %d)", i, mx, o.TargetRadius)
 		if mx >= o.TargetRadius {
 			c.metrics.TimeToIncrease.Set(time.Since(start).Seconds())
@@ -268,16 +275,27 @@ func (c *Check) snapshot(ctx context.Context, nodes orchestration.ClientList, ph
 	return mx
 }
 
-func (c *Check) radiusByNode(ctx context.Context, nodes orchestration.ClientList) map[string]uint8 {
-	out := make(map[string]uint8, len(nodes))
+// updatePeak polls each node, emits metrics, raises the per-node high-water peak,
+// logs a line, and returns the current max storageRadius across nodes.
+func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, peak map[string]uint8) uint8 {
+	var mx uint8
 	for _, n := range nodes {
 		s, err := n.Status(ctx)
 		if err != nil {
+			c.logger.Debugf("%s: status error: %v", n.Name(), err)
 			continue
 		}
-		out[n.Name()] = s.StorageRadius
+		c.emit(n.Name(), s)
+		if s.StorageRadius > peak[n.Name()] {
+			peak[n.Name()] = s.StorageRadius
+		}
+		if s.StorageRadius > mx {
+			mx = s.StorageRadius
+		}
+		c.logger.Infof("%s: storageRadius=%d (peak %d) reserveSize=%d withinR=%d pullsyncRate=%.4f",
+			n.Name(), s.StorageRadius, peak[n.Name()], s.ReserveSize, s.ReserveSizeWithinRadius, s.PullsyncRate)
 	}
-	return out
+	return mx
 }
 
 func (c *Check) emit(node string, s *api.StatusResponse) {
