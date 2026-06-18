@@ -482,6 +482,7 @@ var Checks = map[string]CheckType{
 				DownloadGroups          *[]string      `yaml:"download-groups"`
 				MaxCommittedDepth       *uint8         `yaml:"max-committed-depth"`
 				CommittedDepthCheckWait *time.Duration `yaml:"committed-depth-check-wait"`
+				DecreaseHold            *time.Duration `yaml:"decrease-hold"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
@@ -500,6 +501,8 @@ var Checks = map[string]CheckType{
 		NewAction: reserveradius.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
+				Mode            *string        `yaml:"mode"`
+				Duration        *time.Duration `yaml:"duration"`
 				RndSeed         *int64         `yaml:"rnd-seed"`
 				PostageTTL      *time.Duration `yaml:"postage-ttl"`
 				PostageDepth    *uint64        `yaml:"postage-depth"`
@@ -512,6 +515,7 @@ var Checks = map[string]CheckType{
 				IncreaseTimeout *time.Duration `yaml:"increase-timeout"`
 				SettleWait      *time.Duration `yaml:"settle-wait"`
 				DecreaseTimeout *time.Duration `yaml:"decrease-timeout"`
+				RecoveryWait    *time.Duration `yaml:"recovery-wait"`
 				PollInterval    *time.Duration `yaml:"poll-interval"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {

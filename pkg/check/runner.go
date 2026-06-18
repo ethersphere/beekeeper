@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -46,7 +47,7 @@ func NewCheckRunner(
 	}
 }
 
-func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
+func (c *CheckRunner) Run(ctx context.Context, checks []string, parallel bool) error {
 	if len(checks) == 0 {
 		return nil
 	}
@@ -91,41 +92,62 @@ func (c *CheckRunner) Run(ctx context.Context, checks []string) error {
 		})
 	}
 
-	checkResults := make([]checkResult, 0, len(validatedChecks))
-	hasFailures := false
-
-	// run checks
-	for _, check := range validatedChecks {
-		c.logger.WithFields(map[string]any{
-			"type":    check.typeName,
-			"options": fmt.Sprintf("%+v", check.options),
-		}).Infof("running check: %s", check.name)
-
-		err := check.Run(ctx, c.cluster)
-		if err != nil {
-			hasFailures = true
-			c.logger.WithFields(map[string]any{
-				"type":  check.typeName,
-				"error": err,
-			}).Errorf("'%s' check failed", check.name)
-		} else {
-			c.logger.WithField("type", check.typeName).Infof("'%s' check completed successfully", check.name)
+	// run checks — each writes its own index, so the slice needs no locking
+	checkResults := make([]checkResult, len(validatedChecks))
+	if parallel {
+		c.logger.WithField("count", len(validatedChecks)).Info("running checks concurrently")
+		var wg sync.WaitGroup
+		for i, check := range validatedChecks {
+			wg.Go(func() {
+				checkResults[i] = c.runOne(ctx, check)
+			})
 		}
-
-		// append check result
-		checkResults = append(checkResults, checkResult{
-			check:     check.name,
-			err:       err,
-			timestamp: time.Now(),
-		})
+		wg.Wait()
+	} else {
+		for i, check := range validatedChecks {
+			checkResults[i] = c.runOne(ctx, check)
+		}
 	}
 
+	hasFailures := false
+	for _, r := range checkResults {
+		if r.err != nil {
+			hasFailures = true
+			break
+		}
+	}
 	if hasFailures {
 		return formatErrorReport(checkResults)
 	}
 
 	c.logger.WithField("total_checks", len(checkResults)).Info("All checks completed successfully")
 	return nil
+}
+
+// runOne runs a single prepared check, logs the outcome, and returns its result.
+// Each check carries its own timeout (checkRun.Run), and an error does not cancel
+// the shared parent context, so concurrent checks fail independently.
+func (c *CheckRunner) runOne(ctx context.Context, check checkRun) checkResult {
+	c.logger.WithFields(map[string]any{
+		"type":    check.typeName,
+		"options": fmt.Sprintf("%+v", check.options),
+	}).Infof("running check: %s", check.name)
+
+	err := check.Run(ctx, c.cluster)
+	if err != nil {
+		c.logger.WithFields(map[string]any{
+			"type":  check.typeName,
+			"error": err,
+		}).Errorf("'%s' check failed", check.name)
+	} else {
+		c.logger.WithField("type", check.typeName).Infof("'%s' check completed successfully", check.name)
+	}
+
+	return checkResult{
+		check:     check.name,
+		err:       err,
+		timestamp: time.Now(),
+	}
 }
 
 type checkRun struct {

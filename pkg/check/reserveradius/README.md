@@ -1,10 +1,18 @@
 # reserve-radius check
 
-Stages a **storage-radius change** across a Bee cluster and verifies the node
-recovers afterwards. It drives the radius up by uploading, then watches for the
-radius to come back down and for pull-sync to react — catching regressions in the
-puller's reaction to a radius change (the `manage()` / `disconnectPeer()` path that
-caused the liveness bug in beekeeper PR #581).
+Exercises a **storage-radius change** across a Bee cluster and verifies the node
+recovers afterwards — catching regressions in the puller's reaction to a radius
+change (the `manage()` / `disconnectPeer()` path that caused the liveness bug in
+beekeeper PR #581).
+
+It has two modes (`Options.Mode`):
+
+- **`drive`** (default) — a one-shot run: upload to force the radius up, then watch
+  it come back down and assert pull-sync recovers.
+- **`observe`** — a long-running monitor: does **not** upload; watches radius
+  transitions for `Duration` while something else drives the cluster (typically the
+  `load` check running in parallel via `--parallel-checks`), recording every up/down
+  transition and asserting recovery after each decrease. This is the soak mode.
 
 > Keep this file in sync with the code. If you change `Options`, the `Run` flow, the
 > emitted metrics, the registration, or the bee-patch requirement, update the matching
@@ -12,7 +20,9 @@ caused the liveness bug in beekeeper PR #581).
 
 ## What it does (`Run` flow)
 
-`reserveradius.go`, in order:
+`Run` dispatches on `Mode`.
+
+**`drive`** (`runDrive`):
 
 1. **`waitForWarmupDone`** — block until every observed node reports
    `isWarmingUp == false`. The reserve worker's *decrease* loop is gated on
@@ -22,35 +32,42 @@ caused the liveness bug in beekeeper PR #581).
    `BlobSize` random blobs to it until any observed node's `storageRadius` reaches
    `TargetRadius` (or `MaxUploads` / `IncreaseTimeout`). Tracks a **per-node
    high-water `peak`**.
-4. **settle** — keep polling for `SettleWait`, still raising `peak`. This matters:
-   on an already-stabilized node the decrease can begin *during* settle, so `peak`
-   must be the max seen, not a single post-settle read (otherwise it reads back at
-   baseline and no decrease is ever detectable).
+4. **settle** — keep polling for `SettleWait`, still raising `peak` (on an
+   already-stabilized node the decrease can begin *during* settle, so `peak` must be
+   the max seen, not a single post-settle read).
 5. **`observeDecrease`** — poll until any node's `storageRadius` falls below its
-   `peak` (success), watching `pullsyncRate` for recovery along the way. If no
-   decrease occurs within `DecreaseTimeout`, fail with a message pointing at the
-   PR #581 puller stall.
+   `peak`, watching `pullsyncRate` for recovery. No decrease within `DecreaseTimeout`
+   fails with a message pointing at the PR #581 puller stall.
+
+**`observe`** (`runObserve`): `waitForWarmupDone`, snapshot a baseline, then for
+`Duration` poll every `PollInterval`, comparing each node's `storageRadius` to its
+last value. Every change is recorded as an up/down transition (metric + log); after a
+**down** transition, wait up to `RecoveryWait` for `pullsyncRate > 0`. A decrease that
+never recovers is counted and the check fails at the end listing the count. Never uploads.
 
 ## Options
 
 Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 `pkg/config/check.go` under the `reserve-radius` entry.
 
-| field | yaml | default | purpose |
-| --- | --- | --- | --- |
-| `RndSeed` | `rnd-seed` | `time.Now().UnixNano()` | seed for `random.PseudoGenerator` → shuffled node pick |
-| `PostageTTL` | `postage-ttl` | `24h` | batch TTL (use TTL, not a raw amount) |
-| `PostageDepth` | `postage-depth` | `22` | batch depth |
-| `PostageLabel` | `postage-label` | `reserve-radius` | batch label |
-| `UploadGroups` | `upload-groups` | `[bee]` | node groups to upload to / observe (empty = all full nodes) |
-| `BlobSize` | `blob-size` | `1048576` (1 MiB) | bytes per upload |
-| `MaxUploads` | `max-uploads` | `60` | cap on uploads in the increase phase |
-| `TargetRadius` | `target-radius` | `1` | storageRadius to reach before stopping uploads |
-| `WarmupWait` | `warmup-wait` | `15m` | max wait for nodes to finish warmup |
-| `IncreaseTimeout` | `increase-timeout` | `5m` | max time to reach `TargetRadius` |
-| `SettleWait` | `settle-wait` | `1m` | post-upload window (pushsync drain + peak tracking) |
-| `DecreaseTimeout` | `decrease-timeout` | `20m` | max time to observe a decrease |
-| `PollInterval` | `poll-interval` | `15s` | poll cadence |
+| field | yaml | default | mode | purpose |
+| --- | --- | --- | --- | --- |
+| `Mode` | `mode` | `drive` | both | `drive` (upload to force a change) or `observe` (monitor only) |
+| `Duration` | `duration` | `12h` | observe | total monitor run length |
+| `RecoveryWait` | `recovery-wait` | `5m` | observe | max wait for pull-sync recovery after each decrease |
+| `RndSeed` | `rnd-seed` | `time.Now().UnixNano()` | both | seed for `random.PseudoGenerator` → shuffled node pick |
+| `UploadGroups` | `upload-groups` | `[bee]` | both | node groups to observe (and, in drive, upload to) |
+| `PollInterval` | `poll-interval` | `15s` | both | poll cadence |
+| `PostageTTL` | `postage-ttl` | `24h` | drive | batch TTL (use TTL, not a raw amount) |
+| `PostageDepth` | `postage-depth` | `22` | drive | batch depth |
+| `PostageLabel` | `postage-label` | `reserve-radius` | drive | batch label |
+| `BlobSize` | `blob-size` | `1048576` (1 MiB) | drive | bytes per upload |
+| `MaxUploads` | `max-uploads` | `60` | drive | cap on uploads in the increase phase |
+| `TargetRadius` | `target-radius` | `1` | drive | storageRadius to reach before stopping uploads |
+| `WarmupWait` | `warmup-wait` | `15m` | both | max wait for nodes to finish warmup |
+| `IncreaseTimeout` | `increase-timeout` | `5m` | drive | max time to reach `TargetRadius` |
+| `SettleWait` | `settle-wait` | `1m` | drive | post-upload window (pushsync drain + peak tracking) |
+| `DecreaseTimeout` | `decrease-timeout` | `20m` | drive | max time to observe a decrease |
 
 ## Metrics (`metrics.go`)
 
@@ -61,8 +78,9 @@ check runs with `--metrics-enabled`). Namespace `beekeeper`, subsystem
 - `…_storage_radius{node}` — gauge, storageRadius per node
 - `…_reserve_size{node}` — gauge, reserve size (chunks) per node
 - `…_pullsync_rate{node}` — gauge, `/status` pullsyncRate per node
-- `…_time_to_increase_seconds` — gauge, first-upload → `TargetRadius`
-- `…_time_to_decrease_seconds` — gauge, uploads-stopped → first observed decrease
+- `…_time_to_increase_seconds` / `…_time_to_decrease_seconds` — gauges (drive mode)
+- `…_radius_transitions_total{node,direction}` — counter, observed up/down transitions (observe mode)
+- `…_recovery_observed_total{node,result}` — counter, recovery outcome `recovered`/`timeout` (observe mode)
 
 ## Requirements
 
@@ -76,13 +94,20 @@ check runs with `--metrics-enabled`). Namespace `beekeeper`, subsystem
 
 ## Running it
 
-Against a patched local cluster (`local-dns`), via the `ci-reserve-radius` config
-entry (timeout 45m):
+Against a patched local cluster (`local-dns`):
 
 ```sh
+# drive (one-shot): force a change and assert recovery
 ./dist/beekeeper check --cluster-name=local-dns --checks=ci-reserve-radius --log-verbosity=info
-# add --metrics-enabled=true --metrics-pusher-address=localhost:9091 to push metrics
+
+# soak: load oscillates the radius, reserve-radius observes it, both run concurrently
+./dist/beekeeper check --cluster-name=local-dns \
+  --checks=ci-load-soak,ci-reserve-radius-observe --parallel-checks \
+  --metrics-enabled=true --metrics-pusher-address=localhost:9091 --log-verbosity=info
 ```
+
+`--parallel-checks` runs the listed checks in goroutines instead of sequentially;
+checks fail independently (a monitor failure does not stop the load run).
 
 ## Observed behavior (local, patched cluster)
 
@@ -94,21 +119,23 @@ entry (timeout 45m):
 - **Pull-sync on a radius change is a puller reconfiguration**: `bee_puller_worker`
   contracts on increase / expands on decrease, with a `bee_puller_worker_errors`
   cancel-storm. Actual resync volume (`bee_pullsync_chunks_delivered`) is ~0 on a
-  near-empty cluster — meaningful resync needs data (Phase 3 / real cluster).
+  near-empty cluster — meaningful resync needs data (real cluster).
 
 ## Known limitations / follow-ups
 
-- Pull-sync recovery is **observed and logged, not asserted** (`observeDecrease` has a
-  `TODO`). `/status` `pullsyncRate` is a poor signal on light clusters (stays ~0); a
-  robust assertion would scrape node `/metrics` (`bee_puller_worker`,
-  `bee_pullsync_chunks_delivered`) and check the worker set reconfigures and recovers.
-- Direction is fixed to increase-then-decrease; `increase`-only / `both` not yet supported.
+- Recovery is asserted via `/status` `pullsyncRate`, which is a poor signal on light
+  clusters (stays ~0, so observe mode can false-`timeout`). A stronger signal is
+  scraping node `/metrics` (`bee_puller_worker`, `bee_pullsync_chunks_delivered`) and
+  checking the worker set reconfigures and recovers — not yet wired in.
+- Direction is fixed to increase-then-decrease (drive) / observe-both (observe); no
+  `increase`-only assertion mode yet.
 - No unit tests yet (external `_test` package TBD).
 
 ## Related
 
-- `docs/radius-check-plan.md` — design, phases, spike findings.
+- `docs/radius-check-plan.md` — design, phases, spike findings, the driver/observer split.
 - `.claude/skills/radius-testing/` — operating know-how, `radius-poll.sh`, the
   Pushgateway/Prometheus/Grafana metrics stack (`metrics/`).
 - Prior art: PR #581 (`radiusdecrease`), PR #591 (`stampexpiry`), `pkg/check/gc`,
-  `pkg/check/load` (the committedDepth-gated upload primitive), `pkg/check/smoke`.
+  `pkg/check/load` (the committedDepth-gated upload primitive, reused as the soak driver),
+  `pkg/check/smoke`.

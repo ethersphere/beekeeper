@@ -37,6 +37,7 @@ type Options struct {
 	DownloadGroups          []string
 	MaxCommittedDepth       uint8
 	CommittedDepthCheckWait time.Duration
+	DecreaseHold            time.Duration // once target reached and committedDepth drops, pause uploads this long before re-filling (0 = disabled)
 	IterationWait           time.Duration
 }
 
@@ -57,6 +58,7 @@ func NewDefaultOptions() Options {
 		DownloadGroups:          []string{},
 		MaxCommittedDepth:       2,
 		CommittedDepthCheckWait: 5 * time.Minute,
+		DecreaseHold:            0,
 		IterationWait:           5 * time.Minute,
 	}
 }
@@ -70,6 +72,9 @@ var _ beekeeper.Action = (*Check)(nil)
 type Check struct {
 	metrics metrics
 	logger  logging.Logger
+
+	mu            sync.Mutex
+	reachedTarget bool // set once committedDepth reaches max; consumed on the following decrease
 }
 
 func NewCheck(log logging.Logger) beekeeper.Action {
@@ -185,7 +190,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 					default:
 					}
 
-					if !c.checkCommittedDepth(ctx, uploader, o.MaxCommittedDepth, o.CommittedDepthCheckWait) {
+					if !c.checkCommittedDepth(ctx, uploader, o.MaxCommittedDepth, o.CommittedDepthCheckWait, o.DecreaseHold) {
 						return
 					}
 
@@ -299,7 +304,7 @@ func (c *Check) run(ctx context.Context, cluster orchestration.Cluster, o Option
 	return nil
 }
 
-func (c *Check) checkCommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait time.Duration) bool {
+func (c *Check) checkCommittedDepth(ctx context.Context, client *bee.Client, maxDepth uint8, wait, decreaseHold time.Duration) bool {
 	for {
 		statusResp, err := client.Status(ctx)
 		if err != nil {
@@ -308,8 +313,21 @@ func (c *Check) checkCommittedDepth(ctx context.Context, client *bee.Client, max
 		}
 
 		if statusResp.CommittedDepth < maxDepth {
+			// Below target. If committedDepth just dropped from the target and a
+			// decrease-hold is set, pause uploads for that window before re-filling
+			// so the radius decrease + resync can play out without interference.
+			if decreaseHold > 0 && c.consumeReachedTarget() {
+				c.logger.Infof("committedDepth dropped to %d (max %d); holding uploads for %v before re-filling", statusResp.CommittedDepth, maxDepth, decreaseHold)
+				select {
+				case <-ctx.Done():
+					return false
+				case <-time.After(decreaseHold):
+				}
+			}
 			return true
 		}
+
+		c.markReachedTarget()
 		c.logger.Infof("waiting %v for CommittedDepth to decrease. Current: %d, Max: %d", wait, statusResp.CommittedDepth, maxDepth)
 
 		select {
@@ -319,6 +337,24 @@ func (c *Check) checkCommittedDepth(ctx context.Context, client *bee.Client, max
 		case <-time.After(wait):
 		}
 	}
+}
+
+func (c *Check) markReachedTarget() {
+	c.mu.Lock()
+	c.reachedTarget = true
+	c.mu.Unlock()
+}
+
+// consumeReachedTarget reports whether the target was reached since the last call,
+// resetting the flag so the decrease-hold fires once per fill→drop cycle (re-arming).
+func (c *Check) consumeReachedTarget() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.reachedTarget {
+		c.reachedTarget = false
+		return true
+	}
+	return false
 }
 
 func (c *Check) Report() []prometheus.Collector {

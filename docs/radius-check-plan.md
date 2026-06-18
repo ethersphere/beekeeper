@@ -227,6 +227,33 @@ Open follow-ups (not blockers): make `pullsyncRate>0` recovery a **hard** gate o
 characterised on a data-heavy cluster (Phase 3); add external `_test` package; optional `increase`-only
 and `both` directions.
 
+## Phase 2.5 — driver/observer split + parallel checks (soak)
+
+To test radius behavior over long runs (24h–3 days), split the **uploader** (load) from the
+**observer** (reserve-radius) and run them concurrently, so the cluster oscillates repeatedly and
+we get statistical coverage of resync/recovery rather than a single transition.
+
+- [x] **`--parallel-checks` flag** (`cmd/beekeeper/cmd/check.go` + `pkg/check/runner.go`) — opt-in;
+      default stays sequential. When set, `runner.Run` runs the listed checks in goroutines via a
+      `WaitGroup`; each carries its own timeout and an error does not cancel the others (independent
+      failures — a monitor blip won't kill a 24h load run).
+- [x] **`load` re-arming `decrease-hold`** (`pkg/check/load/load.go`) — new `DecreaseHold` duration
+      (yaml `decrease-hold`, default 0 = today's behavior). Once `committedDepth` reaches
+      `max-committed-depth` and then drops, pause uploads for `decrease-hold` before re-filling, then
+      re-arm → repeated fill→decrease→hold→re-fill cycles. State guarded by a mutex (single-uploader soak).
+- [x] **`reserve-radius` `mode: drive | observe`** (`pkg/check/reserveradius/`) — `drive` = the existing
+      one-shot flow; `observe` = a `Duration`-bounded monitor (no uploads) that records up/down
+      transitions and asserts recovery (`RecoveryWait`) after each decrease. New metrics
+      `radius_transitions_total{node,direction}` and `recovery_observed_total{node,result}`.
+- [x] Config: `ci-reserve-radius-observe` (mode observe) + `ci-load-soak` (decrease-hold) in `config/local.yaml`.
+
+Run the soak: `beekeeper check --checks=ci-load-soak,ci-reserve-radius-observe --parallel-checks ...`.
+Watch the Grafana `radius-cluster-behavior` / `pullsync-behavior` dashboards for repeated cycles.
+
+Note: observe-mode recovery is asserted via `/status` `pullsyncRate` (weak on light clusters — can
+false-`timeout`); the stronger node-`/metrics` signal (`bee_puller_worker`, `chunks_delivered`) is the
+Phase-3 follow-up.
+
 ## Phase 3 — Real ephemeral cluster, no patch
 
 - [ ] Run the same check against an unpatched ephemeral k8s cluster with realistic

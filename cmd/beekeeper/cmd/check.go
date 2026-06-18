@@ -22,6 +22,7 @@ func (c *command) initCheckCmd() error {
 		optionNameSeed                 = "seed"
 		optionNameTimeout              = "timeout"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
+		optionNameParallelChecks       = "parallel-checks"
 	)
 
 	cmd := &cobra.Command{
@@ -103,7 +104,7 @@ Use --metrics-enabled to collect and push metrics to Prometheus.`,
 
 				checkRunner := check.NewCheckRunner(checkGlobalConfig, c.config.Checks, cluster, metricsPusher, tracer, c.log)
 
-				return checkRunner.Run(ctx, checks)
+				return checkRunner.Run(ctx, checks, c.globalConfig.GetBool(optionNameParallelChecks))
 			})
 		},
 		PreRunE: c.preRunE,
@@ -113,6 +114,7 @@ Use --metrics-enabled to collect and push metrics to Prometheus.`,
 	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.staging.internal", "prometheus metrics pusher address")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing checks")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
+	cmd.Flags().Bool(optionNameParallelChecks, false, "run the listed checks concurrently instead of sequentially")
 	cmd.Flags().Bool(optionNameMetricsEnabled, true, "enable metrics")
 	cmd.Flags().Int64(optionNameSeed, -1, "seed, -1 for random")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")

@@ -34,6 +34,8 @@ import (
 
 // Options represents reserve-radius check options.
 type Options struct {
+	Mode            string        // "drive" (upload to force a change) or "observe" (monitor a change driven externally)
+	Duration        time.Duration // observe mode: total monitor run length
 	RndSeed         int64
 	PostageTTL      time.Duration
 	PostageDepth    uint64
@@ -46,12 +48,15 @@ type Options struct {
 	IncreaseTimeout time.Duration // max time to reach TargetRadius
 	SettleWait      time.Duration // wait after uploads for pushsync overshoot to drain
 	DecreaseTimeout time.Duration // max time to observe a decrease after uploads stop
+	RecoveryWait    time.Duration // observe mode: max wait for pull-sync recovery after each decrease
 	PollInterval    time.Duration
 }
 
 // NewDefaultOptions returns new default options.
 func NewDefaultOptions() Options {
 	return Options{
+		Mode:            ModeDrive,
+		Duration:        12 * time.Hour,
 		RndSeed:         time.Now().UnixNano(),
 		PostageTTL:      24 * time.Hour,
 		PostageDepth:    22,
@@ -64,6 +69,7 @@ func NewDefaultOptions() Options {
 		IncreaseTimeout: 5 * time.Minute,
 		SettleWait:      time.Minute,
 		DecreaseTimeout: 20 * time.Minute,
+		RecoveryWait:    5 * time.Minute,
 		PollInterval:    15 * time.Second,
 	}
 }
@@ -85,31 +91,58 @@ func NewCheck(log logging.Logger) beekeeper.Action {
 	}
 }
 
-// Run stages a radius increase, then observes the decrease + pull-sync recovery.
+// Mode values for Options.Mode.
+const (
+	ModeDrive   = "drive"   // upload to force a radius change, then observe the decrease
+	ModeObserve = "observe" // monitor radius changes driven externally (e.g. by the load check)
+)
+
+// Run dispatches on Mode: drive (force a change and observe it) or observe
+// (monitor changes driven externally, e.g. by a parallel load check).
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) error {
 	o, ok := opts.(Options)
 	if !ok {
 		return errors.New("invalid options type")
 	}
-	if o.TargetRadius == 0 {
-		return errors.New("target-radius must be > 0")
+	switch o.Mode {
+	case "", ModeDrive:
+		return c.runDrive(ctx, cluster, o)
+	case ModeObserve:
+		return c.runObserve(ctx, cluster, o)
+	default:
+		return fmt.Errorf("invalid mode %q (want %q or %q)", o.Mode, ModeDrive, ModeObserve)
 	}
+}
 
+// selectNodes returns the observed full-node clients (shuffled, optionally filtered to UploadGroups).
+func (c *Check) selectNodes(ctx context.Context, cluster orchestration.Cluster, o Options) (orchestration.ClientList, error) {
 	c.logger.Infof("random seed: %d", o.RndSeed)
 	rnd := random.PseudoGenerator(o.RndSeed)
 	fullNodeClients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
 	if err != nil {
-		return fmt.Errorf("get shuffled full node clients: %w", err)
+		return nil, fmt.Errorf("get shuffled full node clients: %w", err)
 	}
 	nodes := fullNodeClients
 	if len(o.UploadGroups) > 0 {
 		nodes = fullNodeClients.FilterByNodeGroups(o.UploadGroups)
 	}
 	if len(nodes) < 1 {
-		return fmt.Errorf("reserve-radius check requires at least 1 full node, got %d", len(nodes))
+		return nil, fmt.Errorf("reserve-radius check requires at least 1 full node, got %d", len(nodes))
+	}
+	return nodes, nil
+}
+
+// runDrive uploads to force a radius increase, then observes the decrease + recovery.
+func (c *Check) runDrive(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+	if o.TargetRadius == 0 {
+		return errors.New("target-radius must be > 0")
+	}
+	nodes, err := c.selectNodes(ctx, cluster, o)
+	if err != nil {
+		return err
 	}
 	uploader := nodes[0] // a random node, since the list is shuffled
-	c.logger.Infof("uploader: %s, observing %d node(s)", uploader.Name(), len(nodes))
+	c.logger.Infof("mode=drive uploader: %s, observing %d node(s)", uploader.Name(), len(nodes))
 
 	// 1. Wait for warmup/stabilization — the decrease loop is gated on it.
 	if err := c.waitForWarmupDone(ctx, nodes, o); err != nil {
@@ -144,6 +177,85 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	// 4. Observe the decrease + pull-sync recovery.
 	return c.observeDecrease(ctx, nodes, peak, o)
+}
+
+// runObserve monitors radius transitions for Duration without uploading; the radius
+// is expected to be driven externally (e.g. by a parallel load check). It records
+// every up/down transition, and after each decrease waits up to RecoveryWait for
+// pull-sync to resume — decreases that never recover are reported at the end.
+func (c *Check) runObserve(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+	nodes, err := c.selectNodes(ctx, cluster, o)
+	if err != nil {
+		return err
+	}
+	c.logger.Infof("mode=observe monitoring %d node(s) for %s (no uploads; drive the radius externally, e.g. the load check)", len(nodes), o.Duration)
+
+	if err := c.waitForWarmupDone(ctx, nodes, o); err != nil {
+		return err
+	}
+
+	last := make(map[string]uint8, len(nodes))          // last seen storageRadius per node
+	recoverBy := make(map[string]time.Time, len(nodes)) // node -> deadline to see recovery after a decrease
+	unrecovered := 0
+
+	// seed baseline radii
+	for _, n := range nodes {
+		if s, err := n.Status(ctx); err == nil {
+			last[n.Name()] = s.StorageRadius
+			c.emit(n.Name(), s)
+		}
+	}
+	c.logger.Info("observe: baseline captured; watching for radius transitions")
+
+	deadline := time.Now().Add(o.Duration)
+	for time.Now().Before(deadline) {
+		if err := sleepCtx(ctx, o.PollInterval); err != nil {
+			return err // parent context cancelled (e.g. check timeout)
+		}
+		for _, n := range nodes {
+			s, err := n.Status(ctx)
+			if err != nil {
+				continue
+			}
+			name := n.Name()
+			c.emit(name, s)
+			cur := s.StorageRadius
+
+			if prev, seen := last[name]; seen && cur != prev {
+				dir := "up"
+				if cur < prev {
+					dir = "down"
+				}
+				c.metrics.RadiusTransitions.WithLabelValues(name, dir).Inc()
+				c.logger.Infof("observe: %s storageRadius %d -> %d (%s) reserveSize=%d pullsyncRate=%.4f", name, prev, cur, dir, s.ReserveSize, s.PullsyncRate)
+				if dir == "down" {
+					recoverBy[name] = time.Now().Add(o.RecoveryWait)
+				}
+			}
+			last[name] = cur
+
+			// recovery tracking after a decrease
+			if rd, waiting := recoverBy[name]; waiting {
+				switch {
+				case s.PullsyncRate > 0:
+					delete(recoverBy, name)
+					c.metrics.RecoveryObserved.WithLabelValues(name, "recovered").Inc()
+					c.logger.Infof("observe: %s pull-sync recovered (pullsyncRate=%.4f)", name, s.PullsyncRate)
+				case time.Now().After(rd):
+					delete(recoverBy, name)
+					unrecovered++
+					c.metrics.RecoveryObserved.WithLabelValues(name, "timeout").Inc()
+					c.logger.Warningf("observe: %s no pull-sync recovery within %s after decrease (cf. PR #581)", name, o.RecoveryWait)
+				}
+			}
+		}
+	}
+
+	if unrecovered > 0 {
+		return fmt.Errorf("observe: %d radius decrease(s) showed no pull-sync recovery within %s", unrecovered, o.RecoveryWait)
+	}
+	c.logger.Infof("observe: completed %s monitor with all decreases recovered", o.Duration)
+	return nil
 }
 
 // waitForWarmupDone blocks until every observed node reports isWarmingUp=false.

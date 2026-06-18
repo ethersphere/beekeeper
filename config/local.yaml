@@ -390,6 +390,32 @@ checks:
         - bee
     timeout: 45m
     type: reserve-radius
+  ci-reserve-radius-observe:
+    options:
+      mode: observe
+      duration: 30m
+      recovery-wait: 10m
+      poll-interval: 15s
+      upload-groups:
+        - bee
+    timeout: 35m
+    type: reserve-radius
+  ci-load-soak:
+    options:
+      content-size: 1048576
+      postage-ttl: 24h
+      postage-depth: 22
+      postage-label: load-soak
+      duration: 30m
+      uploader-count: 1
+      downloader-count: 0
+      max-committed-depth: 1
+      committed-depth-check-wait: 15s
+      decrease-hold: 2m
+      upload-groups:
+        - bee
+    timeout: 35m
+    type: load
   ci-soc:
     options:
       postage-ttl: 24h
