@@ -233,7 +233,7 @@ To test radius behavior over long runs (24h–3 days), split the **uploader** (l
 **observer** (reserve-radius) and run them concurrently, so the cluster oscillates repeatedly and
 we get statistical coverage of resync/recovery rather than a single transition.
 
-- [x] **`--parallel-checks` flag** (`cmd/beekeeper/cmd/check.go` + `pkg/check/runner.go`) — opt-in;
+- [x] **`--parallel` flag** (`cmd/beekeeper/cmd/check.go` + `pkg/check/runner.go`) — opt-in;
       default stays sequential. When set, `runner.Run` runs the listed checks in goroutines via a
       `WaitGroup`; each carries its own timeout and an error does not cancel the others (independent
       failures — a monitor blip won't kill a 24h load run).
@@ -247,7 +247,7 @@ we get statistical coverage of resync/recovery rather than a single transition.
       `radius_transitions_total{node,direction}` and `recovery_observed_total{node,result}`.
 - [x] Config: `ci-reserve-radius-observe` (mode observe) + `ci-load-soak` (decrease-hold) in `config/local.yaml`.
 
-Run the soak: `beekeeper check --checks=ci-load-soak,ci-reserve-radius-observe --parallel-checks ...`.
+Run the soak: `beekeeper check --checks=ci-load-soak,ci-reserve-radius-observe --parallel ...`.
 Watch the Grafana `radius-cluster-behavior` / `pullsync-behavior` dashboards for repeated cycles.
 
 Note: observe-mode recovery is asserted via `/status` `pullsyncRate` (weak on light clusters — can

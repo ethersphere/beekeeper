@@ -11,7 +11,7 @@ It has two modes (`Options.Mode`):
   it come back down and assert pull-sync recovers.
 - **`observe`** — a long-running monitor: does **not** upload; watches radius
   transitions for `Duration` while something else drives the cluster (typically the
-  `load` check running in parallel via `--parallel-checks`), recording every up/down
+  `load` check running in parallel via `--parallel`), recording every up/down
   transition and asserting recovery after each decrease. This is the soak mode.
 
 > Keep this file in sync with the code. If you change `Options`, the `Run` flow, the
@@ -102,11 +102,11 @@ Against a patched local cluster (`local-dns`):
 
 # soak: load oscillates the radius, reserve-radius observes it, both run concurrently
 ./dist/beekeeper check --cluster-name=local-dns \
-  --checks=ci-load-soak,ci-reserve-radius-observe --parallel-checks \
+  --checks=ci-load-soak,ci-reserve-radius-observe --parallel \
   --metrics-enabled=true --metrics-pusher-address=localhost:9091 --log-verbosity=info
 ```
 
-`--parallel-checks` runs the listed checks in goroutines instead of sequentially;
+`--parallel` runs the listed checks in goroutines instead of sequentially;
 checks fail independently (a monitor failure does not stop the load run).
 
 ## Observed behavior (local, patched cluster)
