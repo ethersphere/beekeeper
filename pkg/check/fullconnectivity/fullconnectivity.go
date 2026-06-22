@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
@@ -87,7 +86,7 @@ func (c *Check) checkFullNodesConnectivity(ctx context.Context, cluster orchestr
 			}
 
 			for _, p := range allPeers {
-				if !contains(overlays, p) {
+				if !overlays.Contains(p) {
 					c.logger.Infof("Node %s. Failed. Invalid peer: %s. Node: %s", node, p.String(), overlay)
 					return errFullConnectivity
 				}
@@ -130,7 +129,7 @@ func (c *Check) checkLightNodesConnectivity(ctx context.Context, cluster orchest
 			}
 
 			for _, p := range allPeers {
-				if !contains(overlays, p) {
+				if !overlays.Contains(p) {
 					c.logger.Infof("Node %s. Failed. Invalid peer: %s. Node: %s", node, p.String(), overlay)
 					return errFullConnectivity
 				}
@@ -141,17 +140,4 @@ func (c *Check) checkLightNodesConnectivity(ctx context.Context, cluster orchest
 	}
 
 	return err
-}
-
-// contains checks if a given set of swarm.Address contains given swarm.Address
-func contains(s orchestration.ClusterOverlays, a swarm.Address) bool {
-	for _, v := range s {
-		for _, o := range v {
-			if o.Equal(a) {
-				return true
-			}
-		}
-	}
-
-	return false
 }
