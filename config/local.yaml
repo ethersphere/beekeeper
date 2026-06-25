@@ -153,6 +153,7 @@ bee-configs:
     blockchain-rpc-endpoint: "ws://geth-swap:8546"
     bootnode-mode: false
     bootnode: []
+    bzz-token-address: "0x6AAB14FE9cccd64A502d23842d916eB5321c26E7"
     cache-capacity: 20000
     chequebook-enable: true
     cors-allowed-origins: []
