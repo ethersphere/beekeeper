@@ -1,154 +1,90 @@
 # Reserve-radius change check — plan
 
-Status: **draft / not started**. Owner: TBD. Last updated: 2026-06-16.
+Status: **Phases 0–2.5 done; Phase 3 + A/B pending.** Branch `ljubisa-radius-soak`.
 
-> **Working agreement**
-> - Build the check on a **new feature branch off `master`** (e.g.
->   `feat/reserve-radius-check`), never directly on `master`. The patched-local
->   experiments and the bee-side patch may also need a coordinated bee branch.
-> - The check must follow the **standardized behaviour of existing checks** — same
->   shape, helpers, and idioms as `smoke` / `feed` / `load` (random full-node
->   selection via `cluster.ShuffledFullNodeClients`, seeded RNG, `PostageTTL`-based
->   batches, `metrics.Reporter`). See "Standard check conventions" below; do not
->   invent a new pattern.
-
-A repeatable, automated way to stage a **storage-radius change** across a Bee
-cluster and capture what happens to the reserve and to pull-sync afterwards. The
-end product is a beekeeper check (`pkg/check/reserveradius`) plus the metrics it
-emits. Operating know-how lives in the `radius-testing` skill; this doc is the
-design and the build checklist.
+A repeatable, automated way to stage a **storage-radius change** across a Bee cluster and
+verify pull-sync recovers afterwards. End product: a beekeeper check
+(`pkg/check/reserveradius`) plus the metrics it emits. Operating know-how lives in the
+`radius-testing` skill; this doc is the design and build checklist.
 
 ## Pull-sync validation (the real target)
 
-The narrow goal is "force a radius decrease, confirm the puller doesn't deadlock"
-(PR #581). The **broader goal** — why @sig/@marios want this harness — is to make a
-**reproducible test of the October network halt** and to validate the pull-sync
-redesign (SWIP-25 / `pullsync-optimal-design`).
+The narrow goal is "force a radius decrease, confirm the puller doesn't deadlock" (PR #581).
+The broader goal — why @sig/@marios want this — is a **reproducible test of the October
+network halt** and validation of the pull-sync redesign (SWIP-25 / `pullsync-optimal-design`).
 
-**The October mechanism.** A large operator went offline → network commitment dropped
-→ **storage radius decreased**, which is a neighbourhood **merge**: neighbourhood size
-`k` transiently jumps to ~8, so every node must suddenly re-sync a much larger reserve
-from many more peers. Today's pull-sync is "correctness through redundancy" — each of
-`k` peers runs an independent session with **up to k× redundant deliveries** per chunk,
-no shared dedup, no explicit failover-with-exclude; on a depth change bins get
-"cancelled and restarted repeatedly, causing unbounded delay," and stalls livelock.
-Result: incomplete reserves → wrong `ReserveSample` → nodes **freeze, skip redistribution
-rounds, go unresponsive** (→ slashing risk). The avalanche.
+**The October mechanism.** A large operator went offline → commitment dropped → **storage
+radius decreased**, a neighbourhood **merge**: `k` jumps to ~8, so every node must re-sync a
+much larger reserve from many more peers. Today's pull-sync is "correctness through
+redundancy" — up to **k× redundant deliveries** per chunk, no shared dedup, no
+failover-with-exclude; on a depth change bins are cancelled/restarted repeatedly (unbounded
+delay) and stalls livelock. Result: incomplete reserves → wrong `ReserveSample` → nodes
+**freeze, skip rounds, go unresponsive** (slashing risk).
 
-**What the test must show** on a staged radius **decrease**:
+**What the test must show** on a staged decrease:
 
-- **Completeness** — each node's reserve catches up (`reserveSizeWithinRadius` recovers).
-- **Liveness / no halt** — nodes don't freeze, redistribution `round` keeps advancing,
-  `isFullySynced` returns within a bound.
+- **Completeness** — reserves catch up (`reserveSizeWithinRadius` recovers).
+- **Liveness** — no freezes, `round` keeps advancing, `isFullySynced` returns within a bound.
 - **Bounded convergence** — resync finishes in bounded time; no stuck `STALLED` bins.
-- **(SWIP-25 efficiency)** — redundant deliveries drop ~k×→1× (`offered/delivered` ratio).
-- Ideally **A/B**: current bee reproduces the halt; fixed bee doesn't.
+- **Efficiency (SWIP-25)** — redundant deliveries drop ~k×→1× (`offered/delivered` ratio).
 
-**What the check now measures toward this** (implemented): observe mode reads
-`/status` **and `/redistributionstate`** and asserts the halt indicators — un-recovered
-decreases (prefers `isFullySynced`, falls back to `pullsyncRate`) and **freeze episodes**
-(`isFrozen`). New metrics: `fully_synced`, `frozen`, `redistribution_round`,
-`reserve_within_radius`, `last_sample_duration_seconds`, `time_to_fully_synced_seconds`.
-The `radius-cluster-behavior` dashboard has a **Halt indicators** row (fullySynced/frozen,
-round-advance, `is_playing_errors` rate, the offered/delivered redundancy ratio).
+**Implemented so far:** observe mode reads `/status` + `/redistributionstate` and asserts the
+halt indicators — un-recovered decreases (prefers `isFullySynced`, falls back to `pullsyncRate`)
+and **freeze episodes**. Metrics: `fully_synced`, `frozen`, `redistribution_round`,
+`reserve_within_radius`, `last_sample_duration_seconds`, `time_to_fully_synced_seconds`. The
+`radius-cluster-behavior` dashboard has a **Halt indicators** row.
 
-**Still needs a sync with @marios + scale** (not solo-buildable):
+**Still needs @marios + scale:** exact pass/fail thresholds; the per-`(peer,bin)` `STALLED` /
+`MaxStallsPerBin` metrics (only @sig's fixed PR exposes them); the **~20-node cluster** (the
+merge needs scale); the **A/B harness** (below).
 
-- Exact pass/fail thresholds (the `isFullySynced` bound after a decrease, acceptable
-  convergence time, the redundancy-ratio target).
-- The per-`(peer,bin)` `STALLED` / `MaxStallsPerBin` metrics — only the **fixed**
-  pull-sync (@sig's PR) exposes those; the check would then scrape them.
-- A **~20-node ephemeral cluster** — the merge (`k→8`) needs scale; 3 local nodes can't
-  form a realistic neighbourhood. This is ljubisa's stated end goal.
-- An **A/B harness** (same scenario, current vs fixed bee, diff the signals).
+## Prior art
 
-## Why this is hard (and what prior tryouts taught us)
+- **PR #581** (`radiusdecrease`) — forces a decrease (overflow tiny reserve, 0→1→0), polls
+  `/status` for `pullsyncRate>0` recovery. Needs a patched bee image. The real radius tryout.
+- **PR #591** (`stampexpiry`) — patch-free, observes radius via stamp expiry. Review feedback:
+  use `PostageTTL`, random node, periodic/RC cadence, not standard CI.
+- **GC check** (`pkg/check/gc/reserve.go`) — precedent for a patch-dependent check; patches live
+  in `bee/.github/patches/`, applied by bee's beekeeper workflow.
 
-- A stock node's reserve is far too large to overflow in CI-time, so a radius
-  transition won't happen on a small local cluster without help.
-- After a radius change, the node **resyncs its reserve over pull-sync**, and the
-  redistribution-game "fully synced" status takes a long time to settle. So the
-  test is **stage → monitor over time**, not a one-shot assertion.
-- **PR #581** (`radiusdecrease`, open, unmerged) — deliberately forces a radius
-  *decrease* (overflow a tiny reserve to push `storageRadius` 0→1, let it fall
-  1→0) and polls `/status` for `pullsyncRate > 0` to confirm puller recovery.
-  Reusable `waitForRadius` / `waitForRecovery` poll loops. **Requires a patched
-  bee image** (`master-scenario-b`) + a coordinated bee PR; no review; carries
-  dirty local config. The real radius tryout.
-- **PR #591** (`stampexpiry`, draft) — patch-free, observes radius only as a side
-  effect of stamp expiry. Review feedback (unactioned): use `PostageTTL`, pick a
-  **random** node not `sortedNodes[0]`, account for the ~10-block batch-usable
-  delay, and run as a **periodic / public-testnet RC** check, not standard CI.
-- **GC check** (`pkg/check/gc/reserve.go`) — the precedent for a check that
-  depends on a bee patch: patches live in `bee/.github/patches/`, applied by
-  bee's beekeeper workflow before the check runs.
+## Signals
 
-## Signals (see the `radius-testing` skill for the full table)
+Per node: `/status` (`storageRadius`, `pullsyncRate`, `reserveSize`, `reserveSizeWithinRadius`,
+`committedDepth`, `isWarmingUp`), `/reservestate` (network `radius`), `/redistributionstate`
+(`isFullySynced`, `isFrozen`, `round`). Prometheus: `bee_localstore_*`, `bee_pullsync_*`,
+`bee_storageincentives_*`. Full table in the `radius-testing` skill.
 
-Per node, HTTP API (`http://<node>.localhost`):
-`/status` → `storageRadius`, `pullsyncRate`, `reserveSize`,
-`reserveSizeWithinRadius`, `committedDepth`; `/reservestate` → `radius`,
-`commitment`; `/redistributionstate` (full-mode only) → `isFullySynced`, `phase`.
-Prometheus: `bee_localstore_storage_radius`, `bee_localstore_reserve_size*`,
-`bee_pullsync_chunks_*`, `bee_postage_radius`, `bee_storageincentives_*`.
+## Approach
 
-## Approach: patched-local first, then real ephemeral
+Patched-local first (deterministic, fast transitions) → unpatched ephemeral k8s (realistic
+timing, periodic/RC cadence). Same check, different environment and timeouts.
 
-**Decision:** start with a **patched local cluster** for deterministic, fast radius
-transitions; graduate to an **unpatched ephemeral k8s cluster** for realistic
-timing (periodic/RC cadence). Both phases drive the same check; only the
-environment and timeouts differ.
+## Phase 0 — Local scaffolding (done)
 
----
+- [x] `/cluster-verify`, `/cluster-up`, `/cluster-down` commands.
+- [x] `radius-testing` skill + `scripts/radius-poll.sh` monitor.
 
-## Phase 0 — Local loop scaffolding (mostly done)
+## Staging the change (reuse the `load` check)
 
-- [x] `/cluster-verify` command — verify substrate + Bee nodes + capture a
-      reserve/radius baseline.
-- [x] `/cluster-up` / `/cluster-down` commands — wrap beelocal + docker + beekeeper.
-- [x] `radius-testing` skill + `scripts/radius-poll.sh` — the monitoring poller.
-- [ ] Run `/cluster-up local-dns`, `/cluster-verify local-dns`, confirm a clean
-      baseline (`storageRadius==0`, full nodes connected).
+Don't pre-compute byte counts — upload in a loop, watch the signal, stop at a target. `load`
+(`pkg/check/load/load.go`) already does this: `MaxCommittedDepth` gates uploads via
+`checkCommittedDepth` (`committedDepth = storageRadius + capacityDoubling`).
 
-## Staging the change: driving the radius via uploads (reuse the `load` check)
+**Increase and decrease are not symmetric.** Increase is upload-driven (fill past capacity →
+eviction → radius up). Decrease is not — per `bee/pkg/storer/reserve.go`, radius drops only when
+the reserve is under-utilized AND fully synced (`SyncRate()==0`) above `minimumRadius`. Trigger
+it by inflating first, then letting the patched reserve worker re-evaluate (0→1→0 cascade).
 
-You do **not** pre-compute "how many bytes" to upload — you upload in a loop, watch the
-radius signal, and stop at a target. The `load` check already does exactly this:
+## Phase 1 — Spike: force a change with a patched bee (done)
 
-- `load` (`pkg/check/load/load.go`) has `MaxCommittedDepth` and gates every upload on
-  `checkCommittedDepth(client, max, wait)`, which reads `client.Status(ctx).CommittedDepth`
-  and keeps uploading while `CommittedDepth < max` (and *waits* once the cap is reached).
-  Since `committedDepth = storageRadius + capacityDoubling`, capping committedDepth caps radius.
-  `ci-load` in `config/local.yaml` already wires `max-committed-depth: 2`.
-
-**Increase and decrease are NOT symmetric — this is the crux:**
-
-- **Increase** is upload-driven: fill the reserve past capacity ⇒ eviction ⇒ `storageRadius`
-  rises. `load` already produces this.
-- **Decrease** is *not* upload-driven. Per `bee/pkg/storer/reserve.go`, radius decreases only
-  when the reserve is **under-utilized** AND the node is **fully synced** (`SyncRate()==0`) AND
-  above `minimumRadius`. Trigger it by first inflating radius, then letting the patched
-  (tiny-reserve, threshold=capacity, fast wake-up) reserve worker re-evaluate — PR #581's
-  "overflow to push 0→1, then watch it fall 1→0" cascade. **The resync-over-decrease is the
-  mechanism that is not yet understood, so it must be observed (spike) before it is designed.**
-
-**Decisions:**
-- The final `reserveradius` check **drives its own upload** (it needs tight
-  stage→poll→record→assert control), **reusing load's committedDepth-gated upload primitive**
-  — factor it into a shared helper rather than copy/paste. Smaller batches = finer radius control.
-- For the **initial spike**, drive uploads with the existing `ci-load` check (set
-  `max-committed-depth` to the target) while `radius-poll.sh` records the timeline — no new Go.
-
-## Phase 1 — Empirical spike: force a change with a patched bee, observe decrease + resync
-
-- [x] **Patch created** (in `bee/.github/patches/`, GC-check pattern). All three symbols
-      are unreachable by config — `ReserveCapacity` = `(1<<doubling)*DefaultReserveCapacity`
-      in `node.go:300` (no shrink flag); `ReserveWakeUpDuration` and `threshold()` aren't flags:
-      - `radius_threshold.patch` → `pkg/storer/reserve.go:45` — `threshold` `capacity*5/10`(50%) → `capacity`(100%).
-      - `radius_reserve.patch` → `pkg/storer/storer.go:251` `DefaultReserveCapacity` `1<<22`→`200`;
-        `:411` `ReserveWakeUpDuration` `30m`→`10s` (drives `thresholdTicker` at reserve.go:130).
-      gofmt-clean, verified to apply cleanly. `minimum-storage-radius` defaults to 0 so 1→0 is allowed.
-- [ ] **Apply, build, push, redeploy** (revert source after build so the bee tree stays clean):
+- [x] **Patch created** in `bee/.github/patches/` (GC-check pattern; all three symbols are
+      unreachable by config) — what and why:
+      - `radius_reserve.patch`: `DefaultReserveCapacity` 1<<22→**200** (so ~2 MB moves the radius —
+        stock is too large to budge in CI-time) and `ReserveWakeUpDuration` 30m→**10s** (the reserve
+        worker re-evaluates in seconds, not 30 min).
+      - `radius_threshold.patch`: decrease `threshold` 50%→**100%** (makes the 1→0 decrease reachable).
+      gofmt-clean, applies cleanly.
+- [ ] **Apply, build, push, redeploy** (revert source after build):
 
 ```sh
 cd <bee-repo>
@@ -160,209 +96,68 @@ docker push k3d-registry.localhost:5000/ethersphere/bee:latest
 git checkout pkg/storer/reserve.go pkg/storer/storer.go
 ```
 
-Then redeploy so nodes pull the patched `:latest` (imagePullPolicy: Always):
-`/cluster-down local-dns` → `/cluster-up local-dns` (or `kubectl rollout restart statefulset -n local`).
-To wire into CI later, add the two `patch` lines to bee's `.github/workflows/beekeeper.yml`
-"Apply patches and build" step (next to `postage_api`/`retrieval`).
+Then `/cluster-down local-dns` → `/cluster-up local-dns`. To wire into CI, add the two `patch`
+lines to bee's `.github/workflows/beekeeper.yml` "Apply patches and build" step.
 
-- [ ] **Drive the increase** with the existing `ci-load` check (no new Go): set
-      `max-committed-depth` to the target so it uploads until `storageRadius`/`committedDepth`
-      reaches it. Run `radius-poll.sh` alongside to record the 0→target timeline.
-- [ ] **Observe the decrease + resync** — stop uploads and watch whether `storageRadius`
-      falls back and how pull-sync behaves (`pullsyncRate`, `reserveSize`,
-      `reserveSizeWithinRadius` over time). Capture the full CSV timeline; use `/loop` for the
-      long watch. This answers the open question of *how* resync-over-radius-decrease works.
-- [x] **Gate met** — spike reproduced a real increase, decrease, and resync (findings below).
+### Why the check is shaped this way (spike, 2026-06-17)
 
-### Spike findings (2026-06-17, local-dns, patched `:200/10s/100%` image)
+The decrease is slow and non-obvious; each fact below maps to a check decision:
 
-Sequence observed (3 full nodes, uploading 1 MB blobs to `bee-0`):
+- **Lags ~10 min, stabilization-gated** (the reserve worker's decrease loop waits on the
+  startup-stabilizer) → long timeouts (decrease ≥15 min), gate on `isWarmingUp==false`.
+- **Overshoots, then settles in a staircase** (in-flight pushsync keeps filling after uploads stop;
+  each decrease triggers pull-sync that blocks the next) → wait for pushsync drain and track the
+  high-water peak before treating a value as settled.
+- **No fixed floor** (radius held at 1 for 30+ min) → assert *"a decrease occurred AND pull-sync
+  recovered"*, not *"radius returned to N"*.
+- **Puller drives it** — `node/puller "radius decrease"` + a `syncWorker context cancelled` storm =
+  the PR #581 `manage()`/`disconnectPeer()` path (the liveness risk).
 
-1. **Increase is immediate** — `storageRadius` 0→1 after ~2 uploads (~2 MB), 0→2 within ~14 s.
-   On stock capacity it never moves; the patch is what makes it observable.
-2. **Overshoot after uploads stop** — radius kept climbing (1→2) *after* uploads ceased,
-   because in-flight **pushsync** keeps filling reserves. "Uploads stopped" ≠ "radius settled".
-3. **Decrease lags ~10 min and is gated on stabilization** — the 2→1 decrease fired at
-   ~10.5 min after node start (`node "Sync status check evaluated" stabilized=true`), ~30 s
-   after a 10-min watch window ended. The reserve worker's decrease loop sits behind the
-   startup-stabilizer gate (`reserve.go` `startReserveWorkers` waits on `startupStabilizer`),
-   so a fresh node won't decrease for several minutes regardless of reserve state.
-4. **Puller drives the reconfiguration** — `node/puller "radius decrease" old=2 new=1`, preceded
-   by a storm of `syncWorker context cancelled` (disconnect/reconnect per bin). This is the
-   PR #581 `manage()`/`disconnectPeer()` path — the liveness risk lives here.
-5. **Decrease ↔ resync interlock (staircase)** — decrease requires `SyncRate()==0`, but a decrease
-   triggers pull-sync (`pullsyncRate>0`), which then blocks the next decrease until it drains.
-   Radius settles in steps, not one jump.
-6. **It does not return to a fixed floor** — after `2→1`, the radius held at **1 for 30+ min and never
-   reached 0** (still 1 at re-check, even with `pullsyncRate==0` on two of three nodes by then;
-   `reserveSizeWithinRadius` rose to equal `reserveSize` as the reserve reorganized within radius 1).
-   The `1→0` step simply did not occur in-window — the exact gate is secondary (candidate: residual
-   sync noise and/or how `countWithinRadius` evaluates at the boundary). Design takeaway: the check
-   must assert *"a decrease occurred AND pullsync recovered"*, NOT *"radius returned to N"* — the
-   equilibrium depends on data volume and sync state.
+## Phase 2 — The check (done)
 
-**Implications for the Phase 2 check (bake these in):**
+`pkg/check/reserveradius/` on branch `ljubisa-radius-check`. `Run` = `waitForWarmupDone` →
+baseline → `driveIncrease` → settle → `observeDecrease` (assert a decrease vs per-node peak +
+recovery). Registered as type `reserve-radius` (`pkg/config/check.go`); `ci-reserve-radius` in
+`config/local.yaml`; added `IsWarmingUp` to `StatusResponse`. build/vet/lint green.
 
-- Use a **random full node** but expect the transition to show on whichever node's neighborhood
-  fills — assert on the cluster, not one node.
-- **Long, staged timeouts**: increase ~minutes; decrease/settle **≥15 min** (cf. PR #581's 20-min
-  recovery). Don't fail fast.
-- "Radius reached target" must wait for **pushsync to drain** (overshoot) before treating a value
-  as settled — poll until `storageRadius` is stable for K ticks AND `pullsyncRate==0`, not a single read.
-- Gate the decrease assertion on **`isWarmingUp==false`/stabilized** first; before that, no decrease can occur.
-- The key liveness signal is `pullsyncRate>0` returning after the decrease (puller workers
-  recovered) — the same assertion PR #581 makes. A stuck `manage()` shows as `pullsyncRate` flat at 0.
-- `radius-poll.sh` with `-i 15` + auto-stop-on-stable is the right monitor; the in-repo check
-  formalizes this loop.
+- [x] **Validated end-to-end (2026-06-17)**: increase 0→1 in 3s, 1-min settle, decrease observed
+      at 13m16s with recovery, check passed (total 14m36s). Confirms the ~13-min decrease lag and
+      the 20-min `DecreaseTimeout`.
 
-## Standard check conventions (match existing checks — don't invent a pattern)
+## Phase 2.5 — driver/observer split + parallel (done)
 
-Copy the shape of `smoke` (`pkg/check/smoke/smoke.go`), `feed`, `load`. Concretely:
+For long soaks (24h+), split the **uploader** (load) from the **observer** (reserve-radius) and
+run them concurrently so the cluster oscillates repeatedly.
 
-- **Boilerplate:** `Options` struct + `NewDefaultOptions() Options`; compile check
-  `var _ beekeeper.Action = (*Check)(nil)`; `Check{ metrics, logger }`;
-  `NewCheck(log logging.Logger) beekeeper.Action` → `&Check{metrics: newMetrics("check_reserve_radius"), logger: log}`.
-- **Run signature:** `Run(ctx context.Context, cluster orchestration.Cluster, opts any) error`,
-  first line `o, ok := opts.(Options); if !ok { return errors.New("invalid options type") }`.
-- **Seeded RNG + random node selection** (the part the user called out — `smoke.go:116-131`).
-  Take `[0]` of the shuffled list; never hard-index an unshuffled list / always-node-0 (the
-  exact thing flagged in PR #591 review):
+- [x] **`--parallel` flag** (`check.go` + `runner.go`) — opt-in; checks run in goroutines and
+      fail independently (a monitor blip won't kill a 24h load).
+- [x] **`load` re-arming `decrease-hold`** — after `committedDepth` hits the cap and drops, pause
+      uploads then re-arm → repeated fill→decrease→hold cycles.
+- [x] **`reserve-radius` `mode: drive | observe`** — `observe` = `Duration`-bounded monitor (no
+      uploads) recording transitions + asserting recovery. Config: `ci-load-soak`,
+      `ci-reserve-radius-observe`.
 
-  ```go
-  rnd := random.PseudoGenerator(o.RndSeed)              // pkg/random
-  fullNodeClients, err := cluster.ShuffledFullNodeClients(ctx, rnd)  // (ctx, *rand.Rand) (ClientList, error)
-  if err != nil { return fmt.Errorf("get shuffled full node clients: %w", err) }
-  if len(fullNodeClients) < 1 { return fmt.Errorf("reserve-radius check requires at least 1 full node, got %d", len(fullNodeClients)) }
-  node := fullNodeClients[0]                            // a random node, since the list is shuffled
-  c.logger.Infof("random seed: %d", o.RndSeed)
-  ```
+Run: `beekeeper check --checks=ci-load-soak,ci-reserve-radius-observe --parallel`.
 
-- **Postage:** use `node.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)`
-  with `PostageTTL time.Duration` (default `24h`), **not** a raw amount.
-- **Options idioms:** `RndSeed int64` defaulting to `time.Now().UnixNano()`; durations as
-  `time.Duration`; a `Duration` + `scheduler.NewDurationExecutor(...)` if it's a long/repeating run.
-- **Loops:** `select { case <-ctx.Done(): return nil; default: }` guard each iteration.
-- **Errors:** wrap with context (`fmt.Errorf("...: %w", err)`); failure messages name the
-  suspected cause + the timeout hit.
-- **Tests:** external `package reserveradius_test`; race detector clean.
+## Phase 3 — Real ephemeral cluster
 
-## Phase 2 — The beekeeper check (`pkg/check/reserveradius`)
-
-On branch **`ljubisa-radius-check`**. Mirrors the existing check structure
-(`Action` interface, `NewCheck(logger)`, `metrics.Reporter`, the conventions above);
-registered in `pkg/config/check.go`, `ci-reserve-radius` entry in `config/local.yaml`.
-
-- [x] `pkg/check/reserveradius/reserveradius.go` — `Run` = `waitForWarmupDone` →
-      baseline → `driveIncrease` (upload blobs until `storageRadius≥TargetRadius`, reuses
-      `test.Upload`) → settle (pushsync drain) → `observeDecrease` (assert a decrease vs the
-      per-node peak; watch `pullsyncRate` recovery; timeout message names the PR #581 puller stall).
-- [x] `pkg/check/reserveradius/metrics.go` — `storage_radius` / `reserve_size` /
-      `pullsync_rate` gauges per node + `time_to_increase_seconds` / `time_to_decrease_seconds`.
-- [x] Registered in `pkg/config/check.go` (type `reserve-radius`); added `IsWarmingUp` to
-      `pkg/bee/api/status.go` `StatusResponse` (node returns `isWarmingUp`; struct lacked it).
-- [x] `config/local.yaml`: `ci-reserve-radius` (timeout 45m). Runs against the patched image.
-- [x] Gate: `make build`, `go vet`, `golangci-lint` (0 issues) all green. (Unit tests deferred.)
-- [x] **Validated end-to-end (2026-06-17)** on a fresh local-dns: increase 0→1 in 3s (1 MiB),
-      1-min settle, **decrease observed on bee-2 after 13m16s with `pullsyncRate>0` recovery=true**,
-      `check completed successfully` (total 14m36s). Confirms the ~13-min stabilization-gated
-      decrease and that the 20-min `DecreaseTimeout` is correctly sized.
-
-Open follow-ups (not blockers): make `pullsyncRate>0` recovery a **hard** gate once its rate floor is
-characterised on a data-heavy cluster (Phase 3); add external `_test` package; optional `increase`-only
-and `both` directions.
-
-## Phase 2.5 — driver/observer split + parallel checks (soak)
-
-To test radius behavior over long runs (24h–3 days), split the **uploader** (load) from the
-**observer** (reserve-radius) and run them concurrently, so the cluster oscillates repeatedly and
-we get statistical coverage of resync/recovery rather than a single transition.
-
-- [x] **`--parallel` flag** (`cmd/beekeeper/cmd/check.go` + `pkg/check/runner.go`) — opt-in;
-      default stays sequential. When set, `runner.Run` runs the listed checks in goroutines via a
-      `WaitGroup`; each carries its own timeout and an error does not cancel the others (independent
-      failures — a monitor blip won't kill a 24h load run).
-- [x] **`load` re-arming `decrease-hold`** (`pkg/check/load/load.go`) — new `DecreaseHold` duration
-      (yaml `decrease-hold`, default 0 = today's behavior). Once `committedDepth` reaches
-      `max-committed-depth` and then drops, pause uploads for `decrease-hold` before re-filling, then
-      re-arm → repeated fill→decrease→hold→re-fill cycles. State guarded by a mutex (single-uploader soak).
-- [x] **`reserve-radius` `mode: drive | observe`** (`pkg/check/reserveradius/`) — `drive` = the existing
-      one-shot flow; `observe` = a `Duration`-bounded monitor (no uploads) that records up/down
-      transitions and asserts recovery (`RecoveryWait`) after each decrease. New metrics
-      `radius_transitions_total{node,direction}` and `recovery_observed_total{node,result}`.
-- [x] Config: `ci-reserve-radius-observe` (mode observe) + `ci-load-soak` (decrease-hold) in `config/local.yaml`.
-
-Run the soak: `beekeeper check --checks=ci-load-soak,ci-reserve-radius-observe --parallel ...`.
-Watch the Grafana `radius-cluster-behavior` / `pullsync-behavior` dashboards for repeated cycles.
-
-Note: observe-mode recovery is asserted via `/status` `pullsyncRate` (weak on light clusters — can
-false-`timeout`); the stronger node-`/metrics` signal (`bee_puller_worker`, `chunks_delivered`) is the
-Phase-3 follow-up.
-
-## Phase 3 — Real ephemeral cluster, no patch
-
-- [ ] Run the same check against an unpatched ephemeral k8s cluster with realistic
-      reserve sizes and timing; expect long durations.
-- [ ] Wire it as a **periodic / public-testnet RC** check (per #591 review), not
-      standard PR CI. A/B candidate bee versions by comparing the emitted metrics.
+- [ ] Run the check against an unpatched ~20-node ephemeral cluster (realistic timing).
+- [ ] Wire as a periodic / public-testnet RC check (per #591), not standard PR CI.
 
 ## A/B testing procedure (current vs fixed bee)
 
-The single-build check only says "this build halted / didn't halt." To **prove the pull-sync
-fix works**, run the *identical* radius-decrease scenario against two builds and diff them:
+Run the *identical* radius-decrease scenario against two builds and diff them:
 
-- **A = current bee** (stock `master`) — the baseline; expected to **reproduce** the halt.
-- **B = fixed bee** (@sig's SWIP-25 pull-sync PR) — expected to **survive** the same scenario.
-
-**Why both:** if B alone doesn't halt, that may just mean the scenario was too mild. Showing **A
-halts first calibrates the test** — it proves the scenario reproduces the failure, so B surviving
-is real evidence. The **A→B delta is the proof**. (It's the empirical complement to the design
-doc's analytical + TLA+ proof — the implementation behaving as the design predicts on a real net.)
-
-**Procedure:**
-
-1. **Scenario fixed and deterministic** — same `RndSeed`, same `load`/decrease config, same cluster
-   size, keys, and data volume for both runs. Any difference confounds the comparison.
-2. **Build two images** — `…/bee:current` (stock) and `…/bee:fixed` (the PR branch); push both
-   (the existing `docker-build`/patch mechanism). For A, no pull-sync fix; for B, the PR.
-3. **Run the same scenario against each** (two clusters, or redeploy the same one per image) with
-   `--metrics-enabled`. **Label each run** so both land in one Prometheus — e.g. distinct pushgateway
-   job names or an external `build=current|fixed` label per deployment.
-4. **Diff the halt indicators** (Grafana side-by-side, or a small report):
-
-   | signal | A (current) expected | B (fixed) expected |
-   |---|---|---|
-   | freeze episodes / `is_playing_errors` rate | fire | none |
-   | un-recovered decreases (`fully_synced` timeout) | yes | no |
-   | `time_to_fully_synced_seconds` | huge / never | bounded |
-   | redistribution `round` | stuck / skipped | keeps advancing |
-   | `reserve_within_radius` (completeness) | stalls low | catches up |
-   | `offered/delivered` redundancy ratio | ~k | ~1 (SWIP-25 target) |
-
-**Gating / dependencies:**
-
-- **Scale** — only meaningful on the **~20-node cluster**: the halt is a neighbourhood *merge*
-  (k→8), so on 3 local nodes **neither** A nor B halts and there is nothing to diff. A/B is a
-  Phase-3 activity.
-- **B must exist** — depends on @sig's PR being buildable; we don't control its timing.
-- **Reproducing the halt in A** is itself part of the research — the scenario must be severe enough
-  (operator-offline → radius decrease) to trigger it reliably.
-- Likely a **documented runbook or a thin wrapper command** (build A/B → run scenario twice → label
-  → compare), not new check logic — the check + metrics + dashboards already exist.
+- **A = current bee** (stock `master`) — expected to **reproduce** the halt.
+- **B = fixed bee** (@sig's SWIP-25 PR) — expected to **survive** it.
 
 ## Open questions
 
-- Increase, decrease, or both? Decrease exercises the known puller bug (#581) and
-  is the higher-value regression target; increase is the common steady-state path.
-- Patch vs config: how much of the small-reserve setup can come from `bee-config`
-  knobs alone, avoiding a source patch entirely?
-- Does `/redistributionstate` need full-mode + incentives enabled on the local
-  cluster, or do we assert purely on `/status` + `/reservestate`?
-- Metrics sink for local runs: pushgateway vs scrape vs the CSV from `radius-poll.sh`.
+- Patch vs config: can the small-reserve setup come from `bee-config` knobs alone?
+- Does `/redistributionstate` need full-mode + incentives locally, or assert on `/status` +
+  `/reservestate` only?
+- Metrics sink for local runs: pushgateway vs scrape vs `radius-poll.sh` CSV.
 
 ## References
 
 - Skill: `.claude/skills/radius-testing/SKILL.md` (+ `scripts/radius-poll.sh`)
-- Prior art: PR #581, PR #591, `pkg/check/gc/reserve.go`, `pkg/check/pingpong/`,
-  `pkg/check/smoke/metrics.go`
-- Bee internals: `bee/pkg/storer/reserve.go`, `bee/pkg/postage/batchstore/store.go`,
-  `bee/pkg/api/{status,postage,redistribution}.go`
