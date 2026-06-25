@@ -39,11 +39,20 @@ It has two modes (`Options.Mode`):
    `peak`, watching `pullsyncRate` for recovery. No decrease within `DecreaseTimeout`
    fails with a message pointing at the PR #581 puller stall.
 
-**`observe`** (`runObserve`): `waitForWarmupDone`, snapshot a baseline, then for
-`Duration` poll every `PollInterval`, comparing each node's `storageRadius` to its
-last value. Every change is recorded as an up/down transition (metric + log); after a
-**down** transition, wait up to `RecoveryWait` for `pullsyncRate > 0`. A decrease that
-never recovers is counted and the check fails at the end listing the count. Never uploads.
+**`observe`** (`runObserve`): `waitForWarmupDone`, then for `Duration` poll every
+`PollInterval`, reading both `/status` and **`/redistributionstate`** per node. It records
+up/down `storageRadius` transitions, and asserts the **halt indicators** that define the
+October failure:
+
+- **recovery after a decrease** — after a **down** transition, the node must recover within
+  `RecoveryWait`. Recovery prefers the redistribution signal **`isFullySynced && !isFrozen`**
+  (the real "can play the game" signal); if `/redistributionstate` is unavailable (not
+  full-mode), it falls back to `pullsyncRate > 0`.
+- **freeze episodes** — a node reporting `isFrozen` is skipping redistribution rounds (a halt
+  symptom); each freeze episode is counted.
+
+Un-recovered decreases or freezes fail the check at the end. Never uploads (the radius is
+driven externally, e.g. by a parallel `load` check).
 
 ## Options
 
@@ -79,8 +88,12 @@ check runs with `--metrics-enabled`). Namespace `beekeeper`, subsystem
 - `…_reserve_size{node}` — gauge, reserve size (chunks) per node
 - `…_pullsync_rate{node}` — gauge, `/status` pullsyncRate per node
 - `…_time_to_increase_seconds` / `…_time_to_decrease_seconds` — gauges (drive mode)
+- `…_reserve_within_radius{node}` — gauge, reserve chunks within radius (completeness signal)
 - `…_radius_transitions_total{node,direction}` — counter, observed up/down transitions (observe mode)
 - `…_recovery_observed_total{node,result}` — counter, recovery outcome `recovered`/`timeout` (observe mode)
+- `…_time_to_fully_synced_seconds` — gauge, decrease → isFullySynced again (observe mode)
+- from `/redistributionstate` (observe mode): `…_fully_synced{node}`, `…_frozen{node}`,
+  `…_redistribution_round{node}`, `…_last_sample_duration_seconds{node}` — the halt indicators
 
 ## Requirements
 
@@ -123,10 +136,15 @@ checks fail independently (a monitor failure does not stop the load run).
 
 ## Known limitations / follow-ups
 
-- Recovery is asserted via `/status` `pullsyncRate`, which is a poor signal on light
-  clusters (stays ~0, so observe mode can false-`timeout`). A stronger signal is
-  scraping node `/metrics` (`bee_puller_worker`, `bee_pullsync_chunks_delivered`) and
-  checking the worker set reconfigures and recovers — not yet wired in.
+- Observe-mode recovery uses `/redistributionstate` (`isFullySynced`/`isFrozen`) where
+  available, falling back to `/status` `pullsyncRate` (weak on light clusters — can
+  false-`timeout`). The **exact thresholds** (the `isFullySynced` bound, acceptable
+  convergence time, the `offered/delivered` redundancy target) need to come from the
+  pull-sync design owner (@marios) — see `docs/radius-check-plan.md` "Pull-sync validation".
+- Per-`(peer,bin)` `STALLED` / `MaxStallsPerBin` signals from the **fixed** pull-sync
+  (@sig's PR) are not yet scraped (they don't exist on stock bee).
+- The neighbourhood **merge** (`k→8` on a decrease) needs a ~20-node cluster to reproduce;
+  the local 3-node cluster proves the mechanism and pipeline only.
 - Direction is fixed to increase-then-decrease (drive) / observe-both (observe); no
   `increase`-only assertion mode yet.
 - No unit tests yet (external `_test` package TBD).

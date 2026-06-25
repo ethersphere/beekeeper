@@ -1089,3 +1089,8 @@ func (c *Client) FindFeedUpdate(ctx context.Context, signer crypto.Signer, topic
 func (c *Client) Status(ctx context.Context) (*api.StatusResponse, error) {
 	return c.api.Status.Status(ctx)
 }
+
+// RedistributionState returns the node's redistribution-game state (full-mode only).
+func (c *Client) RedistributionState(ctx context.Context) (*api.RedistributionState, error) {
+	return c.api.Redistribution.RedistributionState(ctx)
+}

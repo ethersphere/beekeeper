@@ -6,13 +6,20 @@ import (
 )
 
 type metrics struct {
-	StorageRadius     *prometheus.GaugeVec
-	ReserveSize       *prometheus.GaugeVec
-	PullsyncRate      *prometheus.GaugeVec
-	TimeToIncrease    prometheus.Gauge
-	TimeToDecrease    prometheus.Gauge
-	RadiusTransitions *prometheus.CounterVec
-	RecoveryObserved  *prometheus.CounterVec
+	StorageRadius       *prometheus.GaugeVec
+	ReserveSize         *prometheus.GaugeVec
+	ReserveWithinRadius *prometheus.GaugeVec
+	PullsyncRate        *prometheus.GaugeVec
+	TimeToIncrease      prometheus.Gauge
+	TimeToDecrease      prometheus.Gauge
+	TimeToFullySynced   prometheus.Gauge
+	RadiusTransitions   *prometheus.CounterVec
+	RecoveryObserved    *prometheus.CounterVec
+	// redistribution-game liveness (observe mode), from /redistributionstate
+	FullySynced        *prometheus.GaugeVec
+	Frozen             *prometheus.GaugeVec
+	RedistRound        *prometheus.GaugeVec
+	LastSampleDuration *prometheus.GaugeVec
 }
 
 func newMetrics(subsystem string) metrics {
@@ -78,7 +85,24 @@ func newMetrics(subsystem string) metrics {
 			},
 			[]string{"node", "result"},
 		),
+		ReserveWithinRadius: nodeGauge(subsystem, "reserve_within_radius", "Reserve chunks within the storage radius, per node (completeness signal)."),
+		TimeToFullySynced: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: m.Namespace, Subsystem: subsystem,
+			Name: "time_to_fully_synced_seconds", Help: "Seconds from a radius decrease to the node reporting isFullySynced again.",
+		}),
+		FullySynced:        nodeGauge(subsystem, "fully_synced", "Redistribution isFullySynced per node (1=yes, 0=no) — can the node play the game."),
+		Frozen:             nodeGauge(subsystem, "frozen", "Redistribution isFrozen per node (1=frozen) — a halt symptom (skips rounds)."),
+		RedistRound:        nodeGauge(subsystem, "redistribution_round", "Current redistribution round per node (stuck round = halt symptom)."),
+		LastSampleDuration: nodeGauge(subsystem, "last_sample_duration_seconds", "Last reserve-sample duration per node, from /redistributionstate."),
 	}
+}
+
+// nodeGauge builds a per-node GaugeVec in the check namespace/subsystem.
+func nodeGauge(subsystem, name, help string) *prometheus.GaugeVec {
+	return prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{Namespace: m.Namespace, Subsystem: subsystem, Name: name, Help: help},
+		[]string{"node"},
+	)
 }
 
 // Report implements the metrics.Reporter interface.

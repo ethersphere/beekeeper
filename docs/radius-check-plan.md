@@ -18,6 +18,50 @@ end product is a beekeeper check (`pkg/check/reserveradius`) plus the metrics it
 emits. Operating know-how lives in the `radius-testing` skill; this doc is the
 design and the build checklist.
 
+## Pull-sync validation (the real target)
+
+The narrow goal is "force a radius decrease, confirm the puller doesn't deadlock"
+(PR #581). The **broader goal** — why @sig/@marios want this harness — is to make a
+**reproducible test of the October network halt** and to validate the pull-sync
+redesign (SWIP-25 / `pullsync-optimal-design`).
+
+**The October mechanism.** A large operator went offline → network commitment dropped
+→ **storage radius decreased**, which is a neighbourhood **merge**: neighbourhood size
+`k` transiently jumps to ~8, so every node must suddenly re-sync a much larger reserve
+from many more peers. Today's pull-sync is "correctness through redundancy" — each of
+`k` peers runs an independent session with **up to k× redundant deliveries** per chunk,
+no shared dedup, no explicit failover-with-exclude; on a depth change bins get
+"cancelled and restarted repeatedly, causing unbounded delay," and stalls livelock.
+Result: incomplete reserves → wrong `ReserveSample` → nodes **freeze, skip redistribution
+rounds, go unresponsive** (→ slashing risk). The avalanche.
+
+**What the test must show** on a staged radius **decrease**:
+
+- **Completeness** — each node's reserve catches up (`reserveSizeWithinRadius` recovers).
+- **Liveness / no halt** — nodes don't freeze, redistribution `round` keeps advancing,
+  `isFullySynced` returns within a bound.
+- **Bounded convergence** — resync finishes in bounded time; no stuck `STALLED` bins.
+- **(SWIP-25 efficiency)** — redundant deliveries drop ~k×→1× (`offered/delivered` ratio).
+- Ideally **A/B**: current bee reproduces the halt; fixed bee doesn't.
+
+**What the check now measures toward this** (implemented): observe mode reads
+`/status` **and `/redistributionstate`** and asserts the halt indicators — un-recovered
+decreases (prefers `isFullySynced`, falls back to `pullsyncRate`) and **freeze episodes**
+(`isFrozen`). New metrics: `fully_synced`, `frozen`, `redistribution_round`,
+`reserve_within_radius`, `last_sample_duration_seconds`, `time_to_fully_synced_seconds`.
+The `radius-cluster-behavior` dashboard has a **Halt indicators** row (fullySynced/frozen,
+round-advance, `is_playing_errors` rate, the offered/delivered redundancy ratio).
+
+**Still needs a sync with @marios + scale** (not solo-buildable):
+
+- Exact pass/fail thresholds (the `isFullySynced` bound after a decrease, acceptable
+  convergence time, the redundancy-ratio target).
+- The per-`(peer,bin)` `STALLED` / `MaxStallsPerBin` metrics — only the **fixed**
+  pull-sync (@sig's PR) exposes those; the check would then scrape them.
+- A **~20-node ephemeral cluster** — the merge (`k→8`) needs scale; 3 local nodes can't
+  form a realistic neighbourhood. This is ljubisa's stated end goal.
+- An **A/B harness** (same scenario, current vs fixed bee, diff the signals).
+
 ## Why this is hard (and what prior tryouts taught us)
 
 - A stock node's reserve is far too large to overflow in CI-time, so a radius

@@ -179,10 +179,22 @@ func (c *Check) runDrive(ctx context.Context, cluster orchestration.Cluster, o O
 	return c.observeDecrease(ctx, nodes, peak, o)
 }
 
-// runObserve monitors radius transitions for Duration without uploading; the radius
-// is expected to be driven externally (e.g. by a parallel load check). It records
-// every up/down transition, and after each decrease waits up to RecoveryWait for
-// pull-sync to resume — decreases that never recover are reported at the end.
+// obsNode is the per-node state the observe monitor tracks across polls.
+type obsNode struct {
+	lastRadius uint8
+	haveRadius bool
+	recoverBy  time.Time // non-zero => awaiting recovery after a decrease
+	downAt     time.Time // when the pending decrease started (for time-to-recovery)
+	frozen     bool      // currently inside a frozen episode
+}
+
+// runObserve monitors a cluster for Duration without uploading; the radius is driven
+// externally (e.g. by a parallel load check). It records every up/down radius
+// transition and, after each decrease, asserts the node recovers — preferring the
+// redistribution-game signal (isFullySynced, not frozen) over the weaker pullsyncRate
+// when /redistributionstate is available. It also flags freeze episodes directly
+// (a frozen node skips rounds — the October halt symptom). Halt indicators
+// (un-recovered decreases or freezes) fail the check at the end.
 func (c *Check) runObserve(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	nodes, err := c.selectNodes(ctx, cluster, o)
 	if err != nil {
@@ -194,18 +206,13 @@ func (c *Check) runObserve(ctx context.Context, cluster orchestration.Cluster, o
 		return err
 	}
 
-	last := make(map[string]uint8, len(nodes))          // last seen storageRadius per node
-	recoverBy := make(map[string]time.Time, len(nodes)) // node -> deadline to see recovery after a decrease
-	unrecovered := 0
-
-	// seed baseline radii
+	st := make(map[string]*obsNode, len(nodes))
 	for _, n := range nodes {
-		if s, err := n.Status(ctx); err == nil {
-			last[n.Name()] = s.StorageRadius
-			c.emit(n.Name(), s)
-		}
+		st[n.Name()] = &obsNode{}
 	}
-	c.logger.Info("observe: baseline captured; watching for radius transitions")
+	redistAvailable := true // flips false on first error; selects which recovery signal to use
+	unrecovered, freezes := 0, 0
+	c.logger.Info("observe: watching radius transitions, freezes, and redistribution liveness")
 
 	deadline := time.Now().Add(o.Duration)
 	for time.Now().Before(deadline) {
@@ -213,48 +220,85 @@ func (c *Check) runObserve(ctx context.Context, cluster orchestration.Cluster, o
 			return err // parent context cancelled (e.g. check timeout)
 		}
 		for _, n := range nodes {
+			name := n.Name()
+			ns := st[name]
+
 			s, err := n.Status(ctx)
 			if err != nil {
 				continue
 			}
-			name := n.Name()
 			c.emit(name, s)
-			cur := s.StorageRadius
 
-			if prev, seen := last[name]; seen && cur != prev {
+			// redistribution-game state (full-mode only; best-effort)
+			var rs *api.RedistributionState
+			if redistAvailable {
+				if r, rerr := n.RedistributionState(ctx); rerr == nil {
+					rs = r
+					c.emitRedist(name, r)
+				} else {
+					redistAvailable = false
+					c.logger.Warningf("observe: /redistributionstate unavailable (%v); using pullsyncRate for recovery, no freeze detection", rerr)
+				}
+			}
+
+			// radius transition
+			cur := s.StorageRadius
+			if ns.haveRadius && cur != ns.lastRadius {
 				dir := "up"
-				if cur < prev {
+				if cur < ns.lastRadius {
 					dir = "down"
 				}
 				c.metrics.RadiusTransitions.WithLabelValues(name, dir).Inc()
-				c.logger.Infof("observe: %s storageRadius %d -> %d (%s) reserveSize=%d pullsyncRate=%.4f", name, prev, cur, dir, s.ReserveSize, s.PullsyncRate)
+				c.logger.Infof("observe: %s storageRadius %d -> %d (%s) within=%d pullsyncRate=%.4f", name, ns.lastRadius, cur, dir, s.ReserveSizeWithinRadius, s.PullsyncRate)
 				if dir == "down" {
-					recoverBy[name] = time.Now().Add(o.RecoveryWait)
+					ns.recoverBy = time.Now().Add(o.RecoveryWait)
+					ns.downAt = time.Now()
 				}
 			}
-			last[name] = cur
+			ns.lastRadius = cur
+			ns.haveRadius = true
+
+			// freeze detection — a frozen node skips redistribution rounds (halt symptom)
+			if rs != nil {
+				switch {
+				case rs.IsFrozen && !ns.frozen:
+					ns.frozen = true
+					freezes++
+					c.logger.Warningf("observe: %s is FROZEN at round %d (halt symptom; lastFrozenRound=%d)", name, rs.Round, rs.LastFrozenRound)
+				case !rs.IsFrozen:
+					ns.frozen = false
+				}
+			}
 
 			// recovery tracking after a decrease
-			if rd, waiting := recoverBy[name]; waiting {
+			if !ns.recoverBy.IsZero() {
+				recovered, reason := false, ""
 				switch {
-				case s.PullsyncRate > 0:
-					delete(recoverBy, name)
+				case rs != nil && rs.IsFullySynced && !rs.IsFrozen:
+					recovered, reason = true, "fullySynced"
+				case rs == nil && s.PullsyncRate > 0:
+					recovered, reason = true, "pullsyncRate(fallback)"
+				}
+				switch {
+				case recovered:
 					c.metrics.RecoveryObserved.WithLabelValues(name, "recovered").Inc()
-					c.logger.Infof("observe: %s pull-sync recovered (pullsyncRate=%.4f)", name, s.PullsyncRate)
-				case time.Now().After(rd):
-					delete(recoverBy, name)
+					c.metrics.TimeToFullySynced.Set(time.Since(ns.downAt).Seconds())
+					c.logger.Infof("observe: %s recovered after decrease in %s (%s)", name, time.Since(ns.downAt).Round(time.Second), reason)
+					ns.recoverBy = time.Time{}
+				case time.Now().After(ns.recoverBy):
 					unrecovered++
 					c.metrics.RecoveryObserved.WithLabelValues(name, "timeout").Inc()
-					c.logger.Warningf("observe: %s no pull-sync recovery within %s after decrease (cf. PR #581)", name, o.RecoveryWait)
+					c.logger.Warningf("observe: %s did NOT recover within %s after decrease (not fullySynced / no pull-sync) — pull-sync halt symptom (cf. PR #581)", name, o.RecoveryWait)
+					ns.recoverBy = time.Time{}
 				}
 			}
 		}
 	}
 
-	if unrecovered > 0 {
-		return fmt.Errorf("observe: %d radius decrease(s) showed no pull-sync recovery within %s", unrecovered, o.RecoveryWait)
+	if unrecovered > 0 || freezes > 0 {
+		return fmt.Errorf("observe: halt indicators over %s — %d decrease(s) without recovery, %d freeze episode(s)", o.Duration, unrecovered, freezes)
 	}
-	c.logger.Infof("observe: completed %s monitor with all decreases recovered", o.Duration)
+	c.logger.Infof("observe: completed %s monitor — no halt indicators (all decreases recovered, no freezes)", o.Duration)
 	return nil
 }
 
@@ -413,7 +457,22 @@ func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, 
 func (c *Check) emit(node string, s *api.StatusResponse) {
 	c.metrics.StorageRadius.WithLabelValues(node).Set(float64(s.StorageRadius))
 	c.metrics.ReserveSize.WithLabelValues(node).Set(float64(s.ReserveSize))
+	c.metrics.ReserveWithinRadius.WithLabelValues(node).Set(float64(s.ReserveSizeWithinRadius))
 	c.metrics.PullsyncRate.WithLabelValues(node).Set(s.PullsyncRate)
+}
+
+func (c *Check) emitRedist(node string, r *api.RedistributionState) {
+	c.metrics.FullySynced.WithLabelValues(node).Set(b2f(r.IsFullySynced))
+	c.metrics.Frozen.WithLabelValues(node).Set(b2f(r.IsFrozen))
+	c.metrics.RedistRound.WithLabelValues(node).Set(float64(r.Round))
+	c.metrics.LastSampleDuration.WithLabelValues(node).Set(r.LastSampleDurationSeconds)
+}
+
+func b2f(b bool) float64 {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) error {

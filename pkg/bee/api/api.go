@@ -42,22 +42,23 @@ type Client struct {
 	service    service      // Reuse a single struct instead of allocating one for each service on the heap.
 
 	// Services that API provides.
-	Act         *ActService
-	Bytes       *BytesService
-	Chunks      *ChunksService
-	Dirs        *DirsService
-	Feed        *FeedService
-	Files       *FilesService
-	Node        *NodeService
-	PingPong    *PingPongService
-	Pinning     *PinningService
-	Postage     *PostageService
-	PSS         *PSSService
-	SOC         *SOCService
-	Stake       *StakingService
-	Status      *StatusService
-	Stewardship *StewardshipService
-	Tags        *TagsService
+	Act            *ActService
+	Bytes          *BytesService
+	Chunks         *ChunksService
+	Dirs           *DirsService
+	Feed           *FeedService
+	Files          *FilesService
+	Node           *NodeService
+	PingPong       *PingPongService
+	Pinning        *PinningService
+	Postage        *PostageService
+	PSS            *PSSService
+	Redistribution *RedistributionService
+	SOC            *SOCService
+	Stake          *StakingService
+	Status         *StatusService
+	Stewardship    *StewardshipService
+	Tags           *TagsService
 }
 
 // NewClient constructs a new Client.
@@ -103,6 +104,7 @@ func newClient(apiURL *url.URL, httpClient *http.Client) (c *Client) {
 	c.Pinning = (*PinningService)(&c.service)
 	c.Postage = (*PostageService)(&c.service)
 	c.PSS = (*PSSService)(&c.service)
+	c.Redistribution = (*RedistributionService)(&c.service)
 	c.SOC = (*SOCService)(&c.service)
 	c.Stake = (*StakingService)(&c.service)
 	c.Status = (*StatusService)(&c.service)
