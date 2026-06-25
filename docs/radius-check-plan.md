@@ -305,6 +305,50 @@ Phase-3 follow-up.
 - [ ] Wire it as a **periodic / public-testnet RC** check (per #591 review), not
       standard PR CI. A/B candidate bee versions by comparing the emitted metrics.
 
+## A/B testing procedure (current vs fixed bee)
+
+The single-build check only says "this build halted / didn't halt." To **prove the pull-sync
+fix works**, run the *identical* radius-decrease scenario against two builds and diff them:
+
+- **A = current bee** (stock `master`) — the baseline; expected to **reproduce** the halt.
+- **B = fixed bee** (@sig's SWIP-25 pull-sync PR) — expected to **survive** the same scenario.
+
+**Why both:** if B alone doesn't halt, that may just mean the scenario was too mild. Showing **A
+halts first calibrates the test** — it proves the scenario reproduces the failure, so B surviving
+is real evidence. The **A→B delta is the proof**. (It's the empirical complement to the design
+doc's analytical + TLA+ proof — the implementation behaving as the design predicts on a real net.)
+
+**Procedure:**
+
+1. **Scenario fixed and deterministic** — same `RndSeed`, same `load`/decrease config, same cluster
+   size, keys, and data volume for both runs. Any difference confounds the comparison.
+2. **Build two images** — `…/bee:current` (stock) and `…/bee:fixed` (the PR branch); push both
+   (the existing `docker-build`/patch mechanism). For A, no pull-sync fix; for B, the PR.
+3. **Run the same scenario against each** (two clusters, or redeploy the same one per image) with
+   `--metrics-enabled`. **Label each run** so both land in one Prometheus — e.g. distinct pushgateway
+   job names or an external `build=current|fixed` label per deployment.
+4. **Diff the halt indicators** (Grafana side-by-side, or a small report):
+
+   | signal | A (current) expected | B (fixed) expected |
+   |---|---|---|
+   | freeze episodes / `is_playing_errors` rate | fire | none |
+   | un-recovered decreases (`fully_synced` timeout) | yes | no |
+   | `time_to_fully_synced_seconds` | huge / never | bounded |
+   | redistribution `round` | stuck / skipped | keeps advancing |
+   | `reserve_within_radius` (completeness) | stalls low | catches up |
+   | `offered/delivered` redundancy ratio | ~k | ~1 (SWIP-25 target) |
+
+**Gating / dependencies:**
+
+- **Scale** — only meaningful on the **~20-node cluster**: the halt is a neighbourhood *merge*
+  (k→8), so on 3 local nodes **neither** A nor B halts and there is nothing to diff. A/B is a
+  Phase-3 activity.
+- **B must exist** — depends on @sig's PR being buildable; we don't control its timing.
+- **Reproducing the halt in A** is itself part of the research — the scenario must be severe enough
+  (operator-offline → radius decrease) to trigger it reliably.
+- Likely a **documented runbook or a thin wrapper command** (build A/B → run scenario twice → label
+  → compare), not new check logic — the check + metrics + dashboards already exist.
+
 ## Open questions
 
 - Increase, decrease, or both? Decrease exercises the known puller bug (#581) and
