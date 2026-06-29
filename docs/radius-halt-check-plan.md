@@ -188,11 +188,13 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
 - [x] Guard: `len(observed) - DisruptNodeCount >= MinSurvivors`, plus a candidate-count check — both
       error out **before** any removal touches the cluster.
 
-**3b — batch-expiry** *(deferred until after Phase 4)*
-> **Deferred:** its defining items (detect expiry → observe eviction → gated radius decrease, else
-> `MONITORED`) are observe-phase logic that must fold into the Phase-4 observe loop, which doesn't
-> exist yet. Node-churn (the primary mechanism the manual repro used) is fully wired, so build Phase 4
-> against it first, then add batch-expiry with its detection folded into the existing loop.
+**3b — batch-expiry** *(sequenced last among the code items)*
+> **Sequenced after Phase 5 (not a hard blocker).** Phase 4 (the observe loop it folds into) now exists,
+> so 3b is unblocked. But batch-expiry is the **secondary** mechanism and its core behaviour — the
+> *gated* radius decrease (`SyncRate==0` + `count<threshold`, "fires intermittently") — is a live-cluster
+> question that can't be behaviour-verified blind. Phase 5 (config + docs for the complete node-churn
+> primary path) is fully verifiable now and is the prerequisite for Phase-6 validation, so it goes first;
+> 3b is implemented best-effort and validated live alongside Phase 6.
 - [ ] Create a soon-to-expire mutable batch — `CreatePostageBatch(ctx, amount, depth, label)` with a
       small explicit `amount`, or `GetOrCreateMutableBatch` with a short `expiring-batch-ttl`. Drive the
       radius (Phase 2) by uploading the fill **under this batch** so its chunks dominate the reserve.
@@ -220,10 +222,12 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
 - [x] Bound the whole observe by `Duration` (`observeOutcome` deadline; onset is delayed/variable ~3–9 min).
 
 ### Phase 5 — Wire options, config, docs
-- [ ] Add the new fields to `pkg/config/check.go` `"reserve-radius"` `NewOptions` struct + defaults in
-      `NewDefaultOptions`.
-- [ ] Add config entries to `config/local.yaml`: `ci-radius-halt` (single self-driving) and, if Phase 0
-      keeps it, a parallel pair reusing `ci-load-soak` + `ci-reserve-radius-observe`+disrupt.
+- [x] Add the new fields to `pkg/config/check.go` `"reserve-radius"` `NewOptions` struct + defaults in
+      `NewDefaultOptions`. (Done incrementally as each option landed — all 25 options mapped + defaulted.)
+- [x] Add config entries to `config/local.yaml`: `ci-radius-halt` (single self-driving halt: stake 1e17
+      → drive all to radius 3 → remove 2 of 6 → observe) and `ci-reserve-radius-observe-disrupt` (the
+      parallel-with-`ci-load-soak` observe+disrupt shape). Both default `verdict: report`; flip to
+      `assert` + `expect-recovery` for the A/B gate. YAML validated (`stake-amount` quoted = string).
 - [ ] Update `pkg/check/reserveradius/README.md`, the `radius-testing` skill, and cross-link
       `docs/radius-halt.md` ↔ this plan.
 

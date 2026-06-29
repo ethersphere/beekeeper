@@ -175,10 +175,21 @@ Against a patched local cluster (`local-dns`):
 ./dist/beekeeper check --cluster-name=local-dns \
   --checks=ci-load-soak,ci-reserve-radius-observe --parallel \
   --metrics-enabled=true --metrics-pusher-address=localhost:9091 --log-verbosity=info
+
+# halt (self-driving): stake → drive all nodes to radius 3 → remove 2 of 6 → observe + classify
+./dist/beekeeper check --cluster-name=local-dns --checks=ci-radius-halt \
+  --metrics-enabled=true --metrics-pusher-address=localhost:9091 --log-verbosity=info
+
+# halt (parallel-with-load): load drives the radius, reserve-radius stakes/disrupts/observes
+./dist/beekeeper check --cluster-name=local-dns \
+  --checks=ci-load-soak,ci-reserve-radius-observe-disrupt --parallel \
+  --metrics-enabled=true --metrics-pusher-address=localhost:9091 --log-verbosity=info
 ```
 
 `--parallel` runs the listed checks in goroutines instead of sequentially;
-checks fail independently (a monitor failure does not stop the load run).
+checks fail independently (a monitor failure does not stop the load run). For the A/B
+regression gate set `verdict: assert` + `expect-recovery` (`false` on A=stock master,
+`true` on B=pullsync-optimal-design).
 
 ## Observed behavior (local, patched cluster)
 

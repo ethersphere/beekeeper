@@ -402,6 +402,59 @@ checks:
         - bee
     timeout: 35m
     type: reserve-radius
+  # Self-driving pull-sync-halt reproduction (single check): stake → drive all nodes to radius 3 →
+  # remove 2 of 6 → observe the survivors. verdict:report records HALT/RECOVERED/MONITORED without
+  # failing; for the A/B gate set verdict:assert + expect-recovery (false on A=stock, true on B=fix).
+  ci-radius-halt:
+    options:
+      mode: halt
+      stake-amount: "100000000000000000" # 1e17 per node (quoted: option is a string)
+      stake-confirm-wait: 2m
+      disrupt-at-radius: 3
+      disrupt-mechanism: node-churn
+      disrupt-node-count: 2
+      disrupt-method: stop
+      min-survivors: 3
+      verdict: report
+      expect-recovery: false
+      recovery-wait: 10m
+      duration: 30m # observe ≥25 min — onset is delayed ~3–9 min
+      poll-interval: 30s
+      postage-ttl: 24h
+      postage-depth: 22
+      postage-label: radius-halt
+      blob-size: 8388608 # 8 MiB
+      max-uploads: 1000
+      warmup-wait: 15m
+      increase-timeout: 30m
+      settle-wait: 2m
+      upload-groups:
+        - bee
+    timeout: 90m
+    type: reserve-radius
+  # Parallel-with-load shape: run alongside ci-load-soak (which drives the radius via
+  # max-committed-depth:3). This check stakes, waits for radius 3, removes 2 of 6, then observes.
+  ci-reserve-radius-observe-disrupt:
+    options:
+      mode: observe
+      stake-amount: "100000000000000000"
+      stake-confirm-wait: 2m
+      disrupt-at-radius: 3
+      disrupt-mechanism: node-churn
+      disrupt-node-count: 2
+      disrupt-method: stop
+      min-survivors: 3
+      verdict: report
+      expect-recovery: false
+      recovery-wait: 10m
+      duration: 30m
+      poll-interval: 30s
+      increase-timeout: 30m # max wait for the load check to drive all nodes to radius 3
+      warmup-wait: 15m
+      upload-groups:
+        - bee
+    timeout: 90m
+    type: reserve-radius
   ci-load-soak:
     options:
       content-size: 8388608
