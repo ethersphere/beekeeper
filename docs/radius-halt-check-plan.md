@@ -163,14 +163,14 @@ or just monitor, all without a red result.
 Shared: a `disruption_total` metric + timestamp marks the onset reference. `disrupt-mechanism: none`
 (or node-churn with `disrupt-node-count: 0`) skips straight to observe (monitor-only).
 
-**3.0 — observe+disrupt dispatch + staging** (resequenced from Phase 2)
-> **Deferred until 3a (disrupt stage) + Phase 4 (observe-outcome) land.** The dispatch wires together
-> stages that don't exist yet, and `runHalt` is the ready consumer for those stages — so build the
-> mechanism + observe-outcome first, then add this dispatch to reuse them. Working 3a first.
-- [ ] Add `disrupt-mechanism` dispatch so `mode: observe` with a mechanism set runs the staged
-      reproduction (wait-to-radius → baseline → disrupt → observe) instead of the plain soak monitor.
-- [ ] `mode: observe`+disrupt staging: poll until every observed node reports
-      `storageRadius >= DisruptAtRadius` (load drives), with a timeout; then `baselineSnapshot`.
+**3.0 — observe+disrupt dispatch + staging** (resequenced from Phase 2; built once 3a + Phase 4 landed)
+- [x] `disrupt-mechanism` dispatch (`disruptionActive` + `runObserveDisrupt`): `mode: observe` with an
+      active mechanism runs the staged reproduction (wait-to-radius → baseline → disrupt → observe →
+      verdict) instead of the plain soak monitor. **Behaviour change:** with the default
+      `node-churn`/count-2, a bare `mode: observe` now disrupts; monitor-only requires
+      `disrupt-mechanism: none` (or count 0). The existing `ci-reserve-radius-observe` was set to `none`.
+- [x] `mode: observe`+disrupt staging (`waitAllReachRadius`): poll until every observed node reports
+      `storageRadius >= DisruptAtRadius` (load drives) within `IncreaseTimeout`; then `baselineSnapshot`.
 
 **3a — node-churn**
 - [x] Add the disruption option surface: `DisruptMechanism` (`disrupt-mechanism`, default `node-churn`),

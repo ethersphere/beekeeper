@@ -644,6 +644,75 @@ type obsNode struct {
 // when /redistributionstate is available. It also flags freeze episodes directly
 // (a frozen node skips rounds — the October halt symptom). Halt indicators
 // (un-recovered decreases or freezes) fail the check at the end.
+// disruptionActive reports whether the configured mechanism will actually disrupt, so
+// observe mode runs the staged reproduction rather than the plain soak monitor.
+// Monitor-only = disrupt-mechanism none, or node-churn with disrupt-node-count 0.
+func disruptionActive(o Options) bool {
+	switch o.DisruptMechanism {
+	case DisruptNone:
+		return false
+	case "", DisruptNodeChurn:
+		return o.DisruptNodeCount > 0
+	default: // batch-expiry / both
+		return true
+	}
+}
+
+// runObserveDisrupt is the parallel-with-load shape: the radius is driven externally
+// (e.g. by a parallel load check), so this check waits for the neighbourhood to
+// populate, snapshots a baseline, disrupts, then observes + classifies the outcome —
+// the same stages as halt mode, minus the self-driving upload.
+func (c *Check) runObserveDisrupt(ctx context.Context, cluster orchestration.Cluster, nodes orchestration.ClientList, o Options) error {
+	if o.DisruptAtRadius == 0 {
+		return errors.New("disrupt-at-radius must be > 0")
+	}
+	c.logger.Infof("mode=observe+disrupt: staged reproduction (mechanism=%s, count=%d); radius driven externally", o.DisruptMechanism, o.DisruptNodeCount)
+
+	if err := c.waitAllReachRadius(ctx, nodes, o); err != nil {
+		return err
+	}
+	c.baselineSnapshot(ctx, nodes)
+
+	survivors, err := c.disrupt(ctx, cluster, nodes, "", o) // no uploader to protect in observe mode
+	if err != nil {
+		return err
+	}
+	disrupted := len(survivors) < len(nodes)
+	disruptedAt := time.Now()
+	c.snapshot(ctx, survivors, "post-disrupt")
+
+	outcome, err := c.observeOutcome(ctx, survivors, disrupted, disruptedAt, o)
+	if err != nil {
+		return err
+	}
+	c.logger.Infof("observe+disrupt: run outcome = %s", outcome)
+	return c.applyVerdict(outcome, o)
+}
+
+// waitAllReachRadius blocks until every node reports storageRadius >= DisruptAtRadius
+// (driven externally, e.g. by a parallel load check) or IncreaseTimeout elapses.
+func (c *Check) waitAllReachRadius(ctx context.Context, nodes orchestration.ClientList, o Options) error {
+	c.logger.Infof("observe+disrupt: waiting up to %s for all %d node(s) to reach storageRadius>=%d (driven externally)", o.IncreaseTimeout, len(nodes), o.DisruptAtRadius)
+	deadline := time.Now().Add(o.IncreaseTimeout)
+	peak := make(map[string]uint8, len(nodes))
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		mn, mx := c.updatePeak(ctx, nodes, peak)
+		if mn >= o.DisruptAtRadius {
+			c.logger.Infof("observe+disrupt: all nodes reached storageRadius %d (max %d)", o.DisruptAtRadius, mx)
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("not all nodes reached storageRadius %d within %s (min=%d) — is the radius being driven (e.g. the load check) and is the reserve patch active?", o.DisruptAtRadius, o.IncreaseTimeout, mn)
+		}
+		if err := sleepCtx(ctx, o.PollInterval); err != nil {
+			return err
+		}
+	}
+}
+
 func (c *Check) runObserve(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	nodes, err := c.selectNodes(ctx, cluster, o)
 	if err != nil {
@@ -657,6 +726,13 @@ func (c *Check) runObserve(ctx context.Context, cluster orchestration.Cluster, o
 
 	if err := c.waitForWarmupDone(ctx, nodes, o); err != nil {
 		return err
+	}
+
+	// observe + disruption configured → run the staged reproduction (parallel-with-load
+	// shape) instead of the plain soak monitor. Monitor-only requires disrupt-mechanism:
+	// none (or node-churn with disrupt-node-count: 0).
+	if disruptionActive(o) {
+		return c.runObserveDisrupt(ctx, cluster, nodes, o)
 	}
 
 	st := make(map[string]*obsNode, len(nodes))

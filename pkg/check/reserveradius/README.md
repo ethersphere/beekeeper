@@ -49,10 +49,22 @@ the cluster stabilizes.
    `peak`, watching `pullsyncRate` for recovery. No decrease within `DecreaseTimeout`
    fails with a message pointing at the PR #581 puller stall.
 
-**`observe`** (`runObserve`): `waitForWarmupDone`, then for `Duration` poll every
-`PollInterval`, reading both `/status` and **`/redistributionstate`** per node. It records
-up/down `storageRadius` transitions, and asserts the **halt indicators** that define the
-October failure:
+**`observe`** (`runObserve`): `waitForWarmupDone`, then **dispatches**:
+
+- **with disruption configured** (`disruptionActive`: an active `disrupt-mechanism` — by default
+  `node-churn` with `disrupt-node-count > 0`) → the **observe+disrupt** staged reproduction
+  (`runObserveDisrupt`): `waitAllReachRadius` (wait for the externally-driven radius to reach
+  `DisruptAtRadius`) → `baselineSnapshot` → `disrupt` → `observeOutcome` → `applyVerdict`. The
+  parallel-with-`load` shape (same stages as `halt`, minus the self-driving upload).
+- **monitor-only** (`disrupt-mechanism: none`, or `node-churn` with `disrupt-node-count: 0`) → the
+  plain soak monitor below.
+
+> **Behaviour note:** with the default `node-churn`/count-2, a bare `mode: observe` now runs
+> observe+disrupt (which **stops nodes**). Set `disrupt-mechanism: none` for a pure soak monitor.
+
+The soak monitor: for `Duration` poll every `PollInterval`, reading both `/status` and
+**`/redistributionstate`** per node. It records up/down `storageRadius` transitions, and asserts the
+**halt indicators** that define the October failure:
 
 - **recovery after a decrease** — after a **down** transition, the node must recover within
   `RecoveryWait`. Recovery prefers the redistribution signal **`isFullySynced && !isFrozen`**

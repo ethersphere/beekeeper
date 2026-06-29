@@ -40,12 +40,12 @@ clusters:
       bee:
         bee-config: bee-local-dns
         config: local-dns
-        count: 3
+        count: 6
         mode: node
       light:
         bee-config: bee-local-light
         config: local-light
-        count: 2
+        count: 0
         mode: node
   local-dns-autotls:
     _inherit: "local"
@@ -394,6 +394,7 @@ checks:
   ci-reserve-radius-observe:
     options:
       mode: observe
+      disrupt-mechanism: none # monitor-only soak; set node-churn to run the staged observe+disrupt reproduction
       duration: 30m
       recovery-wait: 10m
       poll-interval: 15s
@@ -403,14 +404,15 @@ checks:
     type: reserve-radius
   ci-load-soak:
     options:
-      content-size: 1048576
+      content-size: 8388608
       postage-ttl: 24h
       postage-depth: 22
       postage-label: load-soak
       duration: 30m
       uploader-count: 1
       downloader-count: 0
-      max-committed-depth: 1
+      nodes-sync-wait: 10s
+      max-committed-depth: 3
       committed-depth-check-wait: 15s
       decrease-hold: 2m
       upload-groups:
