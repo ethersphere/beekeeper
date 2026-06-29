@@ -234,11 +234,17 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
       links the recipe).
 
 ### Phase 6 — A/B validation
-- [ ] Run `ci-radius-halt` against **A** (patched stock master) → expect halt reproduced
-      (`expect-recovery: false` passes; matches the manual run's numbers).
-- [ ] Exercise **both mechanisms** on A: `node-churn` (matches the manual repro) and `batch-expiry`
-      (the commitment-drop → radius-decrease → merge path); confirm each reaches `HALT` or, when the
-      decrease gate doesn't trip, `MONITORED` (not a failure).
+- [x] Run `ci-radius-halt` against **A** (patched stock master) → **halt reproduced live on `local-dns`
+      (6 nodes, 2026-06-29)**, matching the manual numbers exactly: staking confirmed on-chain on all 6;
+      `driveAllToRadius` took all nodes 0→3 in 8 uploads (~64 MiB, 3m42s); node-churn stopped 2 random
+      nodes (uploader excluded), 4 survivors; onset at ~8m (`within_radius` 0→~2250, `pullsyncRate` spike,
+      `fullySynced→false`); end-state stuck `fullySynced=false` with **staked round-loss** (round 17,
+      `lastPlayed/Won=0`) + a split-brain node at radius 1. **Operational fix:** the global `--timeout`
+      flag DEFAULTS TO 30m and caps the per-check `timeout: 90m` (child context) — must pass
+      `--timeout=95m` or the run is killed mid-observe. README updated; a clean verdict run with the
+      correct timeout confirms the `HALT` classification.
+- [ ] Exercise **both mechanisms** on A: `node-churn` ✅ (matches the manual repro) and `batch-expiry`
+      (deferred — see Phase 3b; the commitment-drop → radius-decrease → merge path, co-developed here).
 - [ ] Build **B** (`pullsync-optimal-design` + the same `radius_*.patch`) and run with
       `expect-recovery: true` → expect survivors re-converge.
 - [ ] `make build vet lint test-race` green. No unit tests required for the check (per prior decision);

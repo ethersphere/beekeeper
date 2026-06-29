@@ -177,11 +177,14 @@ Against a patched local cluster (`local-dns`):
   --metrics-enabled=true --metrics-pusher-address=localhost:9091 --log-verbosity=info
 
 # halt (self-driving): stake → drive all nodes to radius 3 → remove 2 of 6 → observe + classify
-./dist/beekeeper check --cluster-name=local-dns --checks=ci-radius-halt \
+# NOTE: pass --timeout >= the per-check timeout (90m). The global --timeout flag DEFAULTS TO 30m and
+# caps the per-check context, so without it the ~36-min pipeline (stake+drive+settle + 30m observe)
+# is killed mid-observe with "context deadline exceeded".
+./dist/beekeeper check --cluster-name=local-dns --checks=ci-radius-halt --timeout=95m \
   --metrics-enabled=true --metrics-pusher-address=localhost:9091 --log-verbosity=info
 
 # halt (parallel-with-load): load drives the radius, reserve-radius stakes/disrupts/observes
-./dist/beekeeper check --cluster-name=local-dns \
+./dist/beekeeper check --cluster-name=local-dns --timeout=95m \
   --checks=ci-load-soak,ci-reserve-radius-observe-disrupt --parallel \
   --metrics-enabled=true --metrics-pusher-address=localhost:9091 --log-verbosity=info
 ```
