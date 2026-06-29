@@ -178,13 +178,15 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
       `MinSurvivors` (default 3) — with mechanism (`DisruptNodeChurn`/`DisruptBatchExpiry`/`DisruptBoth`/
       `DisruptNone`) and method (`RemoveStop`/`RemoveDelete`) constants, config mapping, defaults, README.
       *(MinSurvivors + DisruptMechanism folded in here since the node-churn stage consumes all of them.)*
-- [ ] **Randomly** select `DisruptNodeCount` nodes, seeded by `rnd-seed` (reproducible); in `halt` mode
-      exclude the uploader so driving still works. Build the **survivor set** the observe loop polls —
-      removed nodes drop out of polling.
-- [ ] Remove via `node.Stop(ctx, cluster.Namespace())` / `node.Delete(...)`. Log + timestamp the
-      removal and the chosen node names. Emit `disruption_total`.
-- [ ] Guard: require `len(survivors) >= MinSurvivors` (default 3); if the count would breach it, error
-      out **before** touching the cluster.
+- [x] **Randomly** select `DisruptNodeCount` nodes, seeded by `rnd-seed` (`rnd.Perm`, reproducible);
+      excludes `excludeName` (the uploader in `halt` mode). Builds the **survivor set** (observed minus
+      removed) returned for the observe loop. `DisruptNodeCount <= 0` = monitor-only (returns all).
+- [x] Remove via `node.Stop(ctx, namespace)` / `node.Delete(...)` (looked up from `cluster.Nodes()` by
+      name), selected by `DisruptMethod`. Logs + RFC3339-timestamps each removal; emits `disruption_total`
+      (labelled by mechanism). Implemented as `disruptNodeChurn`, behind a `disrupt` mechanism dispatcher
+      (node-churn/none done; batch-expiry/both error as Phase-3b). Wired into `runHalt`.
+- [x] Guard: `len(observed) - DisruptNodeCount >= MinSurvivors`, plus a candidate-count check — both
+      error out **before** any removal touches the cluster.
 
 **3b — batch-expiry**
 - [ ] Create a soon-to-expire mutable batch — `CreatePostageBatch(ctx, amount, depth, label)` with a

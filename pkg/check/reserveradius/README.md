@@ -73,8 +73,12 @@ driven externally, e.g. by a parallel `load` check).
    `storageRadius` reaches `DisruptAtRadius` (gates on the **min** across nodes, so the whole
    neighbourhood is populated before disruption), or `MaxUploads` / `IncreaseTimeout`.
 4. **settle** — poll for `SettleWait`.
-5. **disrupt + observe-outcome** — Phase 3/4 (node-churn / batch-expiry, then classify
-   `HALT`/`RECOVERED`/`MONITORED` and apply the verdict). Currently stubbed with TODOs.
+5. **`disrupt`** — apply `DisruptMechanism`. **node-churn** (`disruptNodeChurn`): randomly pick
+   `DisruptNodeCount` nodes (seeded by `rnd-seed`, excluding the uploader), guard `MinSurvivors`
+   **before** touching the cluster, then `Stop` (scale-0) or `Delete` each; returns the **survivor set**.
+   `none` / `disrupt-node-count: 0` is monitor-only; `batch-expiry`/`both` are Phase 3b (not yet).
+6. **observe-outcome** — Phase 4: poll survivors, classify `HALT`/`RECOVERED`/`MONITORED`, apply the
+   verdict. Currently stubbed with a TODO (a post-disruption snapshot is taken).
 
 ## Options
 
@@ -121,6 +125,7 @@ check runs with `--metrics-enabled`). Namespace `beekeeper`, subsystem
 - `…_reserve_within_radius{node}` — gauge, reserve chunks within radius (completeness signal)
 - `…_radius_transitions_total{node,direction}` — counter, observed up/down transitions (observe mode)
 - `…_recovery_observed_total{node,result}` — counter, recovery outcome `recovered`/`timeout` (observe mode)
+- `…_disruption_total{mechanism}` — counter, neighbourhood disruptions applied (halt mode, e.g. `node-churn`)
 - `…_time_to_fully_synced_seconds` — gauge, decrease → isFullySynced again (observe mode)
 - from `/redistributionstate` (observe mode): `…_fully_synced{node}`, `…_frozen{node}`,
   `…_redistribution_round{node}`, `…_last_sample_duration_seconds{node}` — the halt indicators

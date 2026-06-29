@@ -348,10 +348,103 @@ func (c *Check) runHalt(ctx context.Context, cluster orchestration.Cluster, o Op
 		c.updatePeak(ctx, nodes, peak)
 	}
 
-	// TODO(Phase 3): disrupt the neighbourhood (node-churn / batch-expiry).
-	// TODO(Phase 4): observe the outcome, classify HALT|RECOVERED|MONITORED, apply the verdict.
-	c.logger.Info("halt: stake+drive+settle complete; disruption and outcome observation land in Phase 3/4")
+	// 4. Disrupt the neighbourhood; the survivor set is what the observe loop polls.
+	survivors, err := c.disrupt(ctx, cluster, nodes, uploader.Name(), o)
+	if err != nil {
+		return err
+	}
+	c.snapshot(ctx, survivors, "post-disrupt")
+
+	// TODO(Phase 4): observe survivors, classify HALT|RECOVERED|MONITORED, apply the verdict.
+	c.logger.Infof("halt: disruption applied (%s); %d survivor(s); outcome observation lands in Phase 4", o.DisruptMechanism, len(survivors))
 	return nil
+}
+
+// disrupt applies the configured disruption mechanism and returns the survivor set
+// the observe loop should poll. excludeName is kept out of node-churn selection (the
+// uploader in halt mode); pass "" when there is nothing to protect.
+func (c *Check) disrupt(ctx context.Context, cluster orchestration.Cluster, observed orchestration.ClientList, excludeName string, o Options) (orchestration.ClientList, error) {
+	switch o.DisruptMechanism {
+	case DisruptNone:
+		c.logger.Info("disrupt: mechanism=none (monitor-only); no nodes removed")
+		return observed, nil
+	case "", DisruptNodeChurn:
+		return c.disruptNodeChurn(ctx, cluster, observed, excludeName, o)
+	case DisruptBatchExpiry, DisruptBoth:
+		return nil, fmt.Errorf("disrupt-mechanism %q not yet implemented (Phase 3b)", o.DisruptMechanism)
+	default:
+		return nil, fmt.Errorf("invalid disrupt-mechanism %q (want %q, %q, %q or %q)", o.DisruptMechanism, DisruptNodeChurn, DisruptBatchExpiry, DisruptBoth, DisruptNone)
+	}
+}
+
+// disruptNodeChurn randomly selects DisruptNodeCount nodes (seeded by RndSeed,
+// reproducible), excluding excludeName, and removes them via Stop (scale-0) or
+// Delete. The MinSurvivors guard is checked BEFORE any removal, so a too-aggressive
+// count fails without touching the cluster. DisruptNodeCount <= 0 is monitor-only.
+// Returns the survivor ClientList (observed minus removed).
+func (c *Check) disruptNodeChurn(ctx context.Context, cluster orchestration.Cluster, observed orchestration.ClientList, excludeName string, o Options) (orchestration.ClientList, error) {
+	if o.DisruptNodeCount <= 0 {
+		c.logger.Info("disrupt: node-churn disrupt-node-count=0 (monitor-only); no nodes removed")
+		return observed, nil
+	}
+	switch o.DisruptMethod {
+	case "", RemoveStop, RemoveDelete:
+	default:
+		return nil, fmt.Errorf("invalid disrupt-method %q (want %q or %q)", o.DisruptMethod, RemoveStop, RemoveDelete)
+	}
+
+	// Candidate pool excludes the protected node (the uploader in halt mode).
+	candidates := make(orchestration.ClientList, 0, len(observed))
+	for _, n := range observed {
+		if n.Name() != excludeName {
+			candidates = append(candidates, n)
+		}
+	}
+	if o.DisruptNodeCount > len(candidates) {
+		return nil, fmt.Errorf("disrupt: cannot remove %d node(s), only %d candidate(s) available (excluding %q)", o.DisruptNodeCount, len(candidates), excludeName)
+	}
+	if survivors := len(observed) - o.DisruptNodeCount; survivors < o.MinSurvivors {
+		return nil, fmt.Errorf("disrupt: removing %d of %d node(s) would leave %d survivor(s), below min-survivors=%d", o.DisruptNodeCount, len(observed), survivors, o.MinSurvivors)
+	}
+
+	// Reproducible random pick of DisruptNodeCount candidates.
+	rnd := random.PseudoGenerator(o.RndSeed)
+	pick := rnd.Perm(len(candidates))[:o.DisruptNodeCount]
+	removed := make(map[string]bool, len(pick))
+	nodesByName := cluster.Nodes()
+	ns := cluster.Namespace()
+	for _, ci := range pick {
+		name := candidates[ci].Name()
+		node, ok := nodesByName[name]
+		if !ok {
+			return nil, fmt.Errorf("disrupt: node %q not found in cluster", name)
+		}
+		method := o.DisruptMethod
+		if method == "" {
+			method = RemoveStop
+		}
+		var rerr error
+		if method == RemoveDelete {
+			rerr = node.Delete(ctx, ns)
+		} else {
+			rerr = node.Stop(ctx, ns)
+		}
+		if rerr != nil {
+			return nil, fmt.Errorf("disrupt: %s node %q: %w", method, name, rerr)
+		}
+		removed[name] = true
+		c.metrics.Disruptions.WithLabelValues(DisruptNodeChurn).Inc()
+		c.logger.Warningf("disrupt: %s node %q (%d/%d) at %s", method, name, len(removed), o.DisruptNodeCount, time.Now().Format(time.RFC3339))
+	}
+
+	survivors := make(orchestration.ClientList, 0, len(observed)-len(removed))
+	for _, n := range observed {
+		if !removed[n.Name()] {
+			survivors = append(survivors, n)
+		}
+	}
+	c.logger.Infof("disrupt: node-churn removed %d node(s) via %s; %d survivor(s) remain", len(removed), o.DisruptMethod, len(survivors))
+	return survivors, nil
 }
 
 // obsNode is the per-node state the observe monitor tracks across polls.

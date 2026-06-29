@@ -15,6 +15,7 @@ type metrics struct {
 	TimeToFullySynced   prometheus.Gauge
 	RadiusTransitions   *prometheus.CounterVec
 	RecoveryObserved    *prometheus.CounterVec
+	Disruptions         *prometheus.CounterVec
 	// redistribution-game liveness (observe mode), from /redistributionstate
 	FullySynced        *prometheus.GaugeVec
 	Frozen             *prometheus.GaugeVec
@@ -84,6 +85,15 @@ func newMetrics(subsystem string) metrics {
 				Help:      "Pull-sync recovery outcome after a radius decrease, by node and result (recovered/timeout).",
 			},
 			[]string{"node", "result"},
+		),
+		Disruptions: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "disruption_total",
+				Help:      "Neighbourhood disruptions applied, by mechanism (node-churn/batch-expiry).",
+			},
+			[]string{"mechanism"},
 		),
 		ReserveWithinRadius: nodeGauge(subsystem, "reserve_within_radius", "Reserve chunks within the storage radius, per node (completeness signal)."),
 		TimeToFullySynced: prometheus.NewGauge(prometheus.GaugeOpts{
