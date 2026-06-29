@@ -187,13 +187,14 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
 - [x] Guard: `len(observed) - DisruptNodeCount >= MinSurvivors`, plus a candidate-count check — both
       error out **before** any removal touches the cluster.
 
-**3b — batch-expiry** *(sequenced last among the code items)*
-> **Sequenced after Phase 5 (not a hard blocker).** Phase 4 (the observe loop it folds into) now exists,
-> so 3b is unblocked. But batch-expiry is the **secondary** mechanism and its core behaviour — the
-> *gated* radius decrease (`SyncRate==0` + `count<threshold`, "fires intermittently") — is a live-cluster
-> question that can't be behaviour-verified blind. Phase 5 (config + docs for the complete node-churn
-> primary path) is fully verifiable now and is the prerequisite for Phase-6 validation, so it goes first;
-> 3b is implemented best-effort and validated live alongside Phase 6.
+**3b — batch-expiry** *(DEFERRED to live co-development in Phase 6 — decided 2026-06-29)*
+> **Decision (user, 2026-06-29):** defer batch-expiry to live co-development. The whole primary
+> deliverable (node-churn halt, end-to-end, both shapes, config, docs) is complete and verified.
+> Batch-expiry is the **secondary** mechanism and its defining behaviour — the *gated* radius decrease
+> (`SyncRate==0` + `count<threshold`, "fires intermittently") — cannot be behaviour-verified without the
+> patched bee image + a live `local-dns` cluster. Rather than ship speculative, rework-prone code, it is
+> implemented **during Phase 6**, when the cluster is up and the eviction → gated-decrease path can be
+> observed and tuned against real signals. The autonomous code loop ended here.
 - [ ] Create a soon-to-expire mutable batch — `CreatePostageBatch(ctx, amount, depth, label)` with a
       small explicit `amount`, or `GetOrCreateMutableBatch` with a short `expiring-batch-ttl`. Drive the
       radius (Phase 2) by uploading the fill **under this batch** so its chunks dominate the reserve.
