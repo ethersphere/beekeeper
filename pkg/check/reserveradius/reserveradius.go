@@ -506,10 +506,11 @@ type outcomeNode struct {
 	refPlayed uint64
 	refWon    uint64
 
-	onset     bool      // lost sync (fullySynced true->false) after disruption
-	onsetAt   time.Time // when the onset was first seen
-	recovered bool      // returned to fullySynced after an onset
-	recoverBy time.Time // recovery deadline after onset (onsetAt + RecoveryWait)
+	onset      bool      // lost sync (fullySynced true->false) after disruption
+	onsetAt    time.Time // when the onset was first seen
+	recovered  bool      // returned to fullySynced WITHIN RecoveryWait after an onset
+	lateResync bool      // re-synced, but only after RecoveryWait (too slow — a halt symptom)
+	recoverBy  time.Time // recovery deadline after onset (onsetAt + RecoveryWait)
 
 	haveLast   bool
 	lastRound  uint64
@@ -568,10 +569,18 @@ func (c *Check) observeOutcome(ctx context.Context, survivors orchestration.Clie
 				c.metrics.OnsetSeconds.WithLabelValues(name).Set(ns.onsetAt.Sub(disruptedAt).Seconds())
 				c.logger.Warningf("observe-outcome: %s de-synced (fullySynced=false) at round %d, %s after disruption — onset", name, r.Round, ns.onsetAt.Sub(disruptedAt).Round(time.Second))
 			}
-			// recovery: back to fullySynced (and not frozen) after an onset
-			if ns.onset && !ns.recovered && r.IsFullySynced && !r.IsFrozen {
-				ns.recovered = true
-				c.logger.Infof("observe-outcome: %s re-converged %s after onset", name, time.Since(ns.onsetAt).Round(time.Second))
+			// recovery: back to fullySynced (and not frozen) WITHIN RecoveryWait. A
+			// re-sync after the deadline is too slow to count — it stays not-recovered
+			// so it classifies as stuck (the "puller gave up at SyncRate=0" false-sync
+			// is exactly this: it re-flags fullySynced late without truly converging).
+			if ns.onset && !ns.recovered && !ns.lateResync && r.IsFullySynced && !r.IsFrozen {
+				if time.Now().Before(ns.recoverBy) {
+					ns.recovered = true
+					c.logger.Infof("observe-outcome: %s re-converged %s after onset (within recovery-wait)", name, time.Since(ns.onsetAt).Round(time.Second))
+				} else {
+					ns.lateResync = true
+					c.logger.Warningf("observe-outcome: %s re-synced %s after onset — PAST recovery-wait %s, too slow (counts as halt)", name, time.Since(ns.onsetAt).Round(time.Second), o.RecoveryWait)
+				}
 			}
 		}
 	}
