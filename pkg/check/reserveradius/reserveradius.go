@@ -6,7 +6,8 @@
 //
 //  1. wait for warmup/stabilization — the reserve worker's decrease loop is
 //     gated on it, so a fresh node will not decrease for several minutes;
-//  2. drive the radius UP by uploading until a node reaches the target;
+//  2. drive the radius UP by uploading until ALL observed nodes reach the target
+//     committedDepth (confirmed over consecutive polls, not just the uploader);
 //  3. let pushsync overshoot drain (uploads stopping != radius settling);
 //  4. stop uploading and watch for a DECREASE and for pull-sync to recover
 //     (pullsyncRate > 0) — a stuck puller manage()/disconnectPeer() shows as
@@ -21,6 +22,7 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -34,43 +36,43 @@ import (
 
 // Options represents reserve-radius check options.
 type Options struct {
-	Mode            string        // "drive" (upload to force a change) or "observe" (monitor a change driven externally)
-	Duration        time.Duration // observe mode: total monitor run length
-	RndSeed         int64
-	PostageTTL      time.Duration
-	PostageDepth    uint64
-	PostageLabel    string
-	UploadGroups    []string      // node groups to upload to / observe (empty = all full nodes)
-	BlobSize        int64         // bytes per upload
-	MaxUploads      int           // cap on uploads during the increase phase
-	TargetRadius    uint8         // storageRadius to reach before stopping uploads
-	WarmupWait      time.Duration // max wait for nodes to leave warmup before staging
-	IncreaseTimeout time.Duration // max time to reach TargetRadius
-	SettleWait      time.Duration // wait after uploads for pushsync overshoot to drain
-	DecreaseTimeout time.Duration // max time to observe a decrease after uploads stop
-	RecoveryWait    time.Duration // observe mode: max wait for pull-sync recovery after each decrease
-	PollInterval    time.Duration
+	Mode              string        // "drive" (upload to force a change) or "observe" (monitor a change driven externally)
+	Duration          time.Duration // observe mode: total monitor run length
+	RndSeed           int64
+	PostageTTL        time.Duration
+	PostageDepth      uint64
+	PostageLabel      string
+	UploadGroups      []string      // node groups to upload to / observe (empty = all full nodes)
+	BlobSize          int64         // bytes per upload
+	MaxUploads        int           // cap on uploads during the increase phase (0 = unlimited, bounded by IncreaseTimeout)
+	MaxCommittedDepth uint8         // committedDepth to reach before stopping uploads (mirrors the load check's stop condition)
+	WarmupWait        time.Duration // max wait for nodes to leave warmup before staging
+	IncreaseTimeout   time.Duration // max time to reach MaxCommittedDepth
+	SettleWait        time.Duration // wait after uploads for pushsync overshoot to drain
+	DecreaseTimeout   time.Duration // max time to observe a decrease after uploads stop
+	RecoveryWait      time.Duration // observe mode: max wait for pull-sync recovery after each decrease
+	PollInterval      time.Duration
 }
 
 // NewDefaultOptions returns new default options.
 func NewDefaultOptions() Options {
 	return Options{
-		Mode:            ModeDrive,
-		Duration:        12 * time.Hour,
-		RndSeed:         time.Now().UnixNano(),
-		PostageTTL:      24 * time.Hour,
-		PostageDepth:    22,
-		PostageLabel:    "reserve-radius",
-		UploadGroups:    []string{"bee"},
-		BlobSize:        1 << 20, // 1 MiB
-		MaxUploads:      60,
-		TargetRadius:    1,
-		WarmupWait:      15 * time.Minute,
-		IncreaseTimeout: 5 * time.Minute,
-		SettleWait:      time.Minute,
-		DecreaseTimeout: 20 * time.Minute,
-		RecoveryWait:    5 * time.Minute,
-		PollInterval:    15 * time.Second,
+		Mode:              ModeDrive,
+		Duration:          12 * time.Hour,
+		RndSeed:           time.Now().UnixNano(),
+		PostageTTL:        24 * time.Hour,
+		PostageDepth:      22,
+		PostageLabel:      "reserve-radius",
+		UploadGroups:      []string{"bee"},
+		BlobSize:          1 << 20, // 1 MiB
+		MaxUploads:        60,
+		MaxCommittedDepth: 2,
+		WarmupWait:        15 * time.Minute,
+		IncreaseTimeout:   5 * time.Minute,
+		SettleWait:        time.Minute,
+		DecreaseTimeout:   20 * time.Minute,
+		RecoveryWait:      5 * time.Minute,
+		PollInterval:      15 * time.Second,
 	}
 }
 
@@ -134,8 +136,8 @@ func (c *Check) selectNodes(ctx context.Context, cluster orchestration.Cluster, 
 
 // runDrive uploads to force a radius increase, then observes the decrease + recovery.
 func (c *Check) runDrive(ctx context.Context, cluster orchestration.Cluster, o Options) error {
-	if o.TargetRadius == 0 {
-		return errors.New("target-radius must be > 0")
+	if o.MaxCommittedDepth == 0 {
+		return errors.New("max-committed-depth must be > 0")
 	}
 	nodes, err := c.selectNodes(ctx, cluster, o)
 	if err != nil {
@@ -330,39 +332,75 @@ func (c *Check) waitForWarmupDone(ctx context.Context, nodes orchestration.Clien
 	}
 }
 
-// driveIncrease uploads blobs to the uploader until any observed node reaches TargetRadius.
+// driveIncrease uploads blobs to the uploader until its committedDepth reaches
+// MaxCommittedDepth — the same stop condition the load check uses (the network's
+// committed depth drives the storage radius up deterministically, whereas reading
+// storageRadius directly lags). It tracks the per-node peak storageRadius along the
+// way so observeDecrease can later detect the radius falling back.
 func (c *Check) driveIncrease(ctx context.Context, uploader *bee.Client, nodes orchestration.ClientList, batchID string, o Options, peak map[string]uint8) error {
-	c.logger.Infof("driving increase: %d-byte blobs to %s until storageRadius>=%d (max %d uploads, timeout %s)",
-		o.BlobSize, uploader.Name(), o.TargetRadius, o.MaxUploads, o.IncreaseTimeout)
+	// requiredConfirmations: the cluster must report min committedDepth >= target on this
+	// many consecutive polls before we stop — debounces transients and gives pull-sync time
+	// to bring slow peers up to the target (the uploader reaches it first).
+	const requiredConfirmations = 3
+
+	maxDesc := "unlimited"
+	if o.MaxUploads > 0 {
+		maxDesc = fmt.Sprintf("%d", o.MaxUploads)
+	}
+	c.logger.Infof("driving increase: %d-byte blobs to %s until ALL nodes committedDepth>=%d for %d consecutive checks (max %s uploads, timeout %s)",
+		o.BlobSize, uploader.Name(), o.MaxCommittedDepth, requiredConfirmations, maxDesc, o.IncreaseTimeout)
 	start := time.Now()
 	deadline := start.Add(o.IncreaseTimeout)
 	t := test.NewTest(c.logger)
 	data := make([]byte, o.BlobSize)
 
-	for i := 1; i <= o.MaxUploads; i++ {
+	uploads := 0
+	confirmations := 0
+	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("storageRadius did not reach %d within %s (%d uploads) — is the bee reserve patch active and is there enough data?", o.TargetRadius, o.IncreaseTimeout, i-1)
+			return fmt.Errorf("not all nodes reached committedDepth %d within %s (%d uploads) — is the bee reserve patch active and is there enough data?", o.MaxCommittedDepth, o.IncreaseTimeout, uploads)
+		}
+
+		mx, minCD := c.updatePeak(ctx, nodes, peak)
+
+		// Stop once every node has reached the target, confirmed over consecutive polls.
+		if minCD >= o.MaxCommittedDepth {
+			confirmations++
+			c.logger.Infof("all nodes committedDepth>=%d (confirmation %d/%d, maxStorageRadius=%d)", o.MaxCommittedDepth, confirmations, requiredConfirmations, mx)
+			if confirmations >= requiredConfirmations {
+				c.metrics.TimeToIncrease.Set(time.Since(start).Seconds())
+				c.logger.Infof("cluster reached committedDepth %d (all nodes, %dx confirmed) after %d uploads (~%.1f MiB) in %s",
+					o.MaxCommittedDepth, requiredConfirmations, uploads, float64(int64(uploads)*o.BlobSize)/(1<<20), time.Since(start).Round(time.Second))
+				return nil
+			}
+			// Don't upload during confirmation; space the checks so pull-sync keeps peers caught up.
+			if err := sleepCtx(ctx, o.PollInterval); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// A node is still below target → reset the streak and push more data.
+		if confirmations > 0 {
+			c.logger.Infof("min committedDepth fell to %d (<%d) — resetting confirmation streak", minCD, o.MaxCommittedDepth)
+		}
+		confirmations = 0
+		if o.MaxUploads > 0 && uploads >= o.MaxUploads {
+			return fmt.Errorf("not all nodes reached committedDepth %d after %d uploads (min=%d)", o.MaxCommittedDepth, uploads, minCD)
 		}
 		if _, err := crand.Read(data); err != nil {
 			return fmt.Errorf("generate random data: %w", err)
 		}
 		if _, _, err := t.Upload(ctx, uploader, data, batchID, nil); err != nil {
-			c.logger.Errorf("upload #%d failed: %v", i, err)
+			c.logger.Errorf("upload #%d failed: %v", uploads+1, err)
 			continue
 		}
-		mx := c.updatePeak(ctx, nodes, peak)
-		c.logger.Infof("increase: upload #%d, max storageRadius=%d (target %d)", i, mx, o.TargetRadius)
-		if mx >= o.TargetRadius {
-			c.metrics.TimeToIncrease.Set(time.Since(start).Seconds())
-			c.logger.Infof("reached storageRadius %d after %d uploads (~%.1f MiB) in %s",
-				mx, i, float64(int64(i)*o.BlobSize)/(1<<20), time.Since(start).Round(time.Second))
-			return nil
-		}
+		uploads++
+		c.logger.Infof("increase: upload #%d, minCommittedDepth=%d (target %d), maxStorageRadius=%d", uploads, minCD, o.MaxCommittedDepth, mx)
 	}
-	return fmt.Errorf("storageRadius did not reach %d after %d uploads", o.TargetRadius, o.MaxUploads)
 }
 
 // observeDecrease watches for any node's radius to fall below its peak, and for
@@ -431,14 +469,19 @@ func (c *Check) snapshot(ctx context.Context, nodes orchestration.ClientList, ph
 	return mx
 }
 
-// updatePeak polls each node, emits metrics, raises the per-node high-water peak,
-// logs a line, and returns the current max storageRadius across nodes.
-func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, peak map[string]uint8) uint8 {
+// updatePeak polls every node, emits metrics, raises the per-node high-water peak
+// storageRadius, and returns the max storageRadius seen plus the MINIMUM committedDepth
+// across all nodes. If any node is unreachable the min is forced to 0, so a laggard or
+// missing node cannot satisfy the "whole cluster reached target" gate in driveIncrease.
+func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, peak map[string]uint8) (maxRadius, minCommittedDepth uint8) {
 	var mx uint8
+	minCD := uint8(math.MaxUint8)
+	allReachable := true
 	for _, n := range nodes {
 		s, err := n.Status(ctx)
 		if err != nil {
 			c.logger.Debugf("%s: status error: %v", n.Name(), err)
+			allReachable = false
 			continue
 		}
 		c.emit(n.Name(), s)
@@ -448,10 +491,16 @@ func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, 
 		if s.StorageRadius > mx {
 			mx = s.StorageRadius
 		}
-		c.logger.Infof("%s: storageRadius=%d (peak %d) reserveSize=%d withinR=%d pullsyncRate=%.4f",
-			n.Name(), s.StorageRadius, peak[n.Name()], s.ReserveSize, s.ReserveSizeWithinRadius, s.PullsyncRate)
+		if s.CommittedDepth < minCD {
+			minCD = s.CommittedDepth
+		}
+		c.logger.Infof("%s: storageRadius=%d (peak %d) committedDepth=%d reserveSize=%d withinR=%d pullsyncRate=%.4f",
+			n.Name(), s.StorageRadius, peak[n.Name()], s.CommittedDepth, s.ReserveSize, s.ReserveSizeWithinRadius, s.PullsyncRate)
 	}
-	return mx
+	if !allReachable || minCD == math.MaxUint8 {
+		minCD = 0
+	}
+	return mx, minCD
 }
 
 func (c *Check) emit(node string, s *api.StatusResponse) {

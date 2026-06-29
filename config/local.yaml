@@ -379,11 +379,11 @@ checks:
       postage-ttl: 24h
       postage-depth: 22
       postage-label: reserve-radius
-      blob-size: 1048576
+      blob-size: 8388608
       max-uploads: 60
-      target-radius: 1
+      max-committed-depth: 3
       warmup-wait: 15m
-      increase-timeout: 5m
+      increase-timeout: 15m
       settle-wait: 1m
       decrease-timeout: 20m
       poll-interval: 15s

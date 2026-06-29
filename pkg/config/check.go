@@ -501,22 +501,22 @@ var Checks = map[string]CheckType{
 		NewAction: reserveradius.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
-				Mode            *string        `yaml:"mode"`
-				Duration        *time.Duration `yaml:"duration"`
-				RndSeed         *int64         `yaml:"rnd-seed"`
-				PostageTTL      *time.Duration `yaml:"postage-ttl"`
-				PostageDepth    *uint64        `yaml:"postage-depth"`
-				PostageLabel    *string        `yaml:"postage-label"`
-				UploadGroups    *[]string      `yaml:"upload-groups"`
-				BlobSize        *int64         `yaml:"blob-size"`
-				MaxUploads      *int           `yaml:"max-uploads"`
-				TargetRadius    *uint8         `yaml:"target-radius"`
-				WarmupWait      *time.Duration `yaml:"warmup-wait"`
-				IncreaseTimeout *time.Duration `yaml:"increase-timeout"`
-				SettleWait      *time.Duration `yaml:"settle-wait"`
-				DecreaseTimeout *time.Duration `yaml:"decrease-timeout"`
-				RecoveryWait    *time.Duration `yaml:"recovery-wait"`
-				PollInterval    *time.Duration `yaml:"poll-interval"`
+				Mode              *string        `yaml:"mode"`
+				Duration          *time.Duration `yaml:"duration"`
+				RndSeed           *int64         `yaml:"rnd-seed"`
+				PostageTTL        *time.Duration `yaml:"postage-ttl"`
+				PostageDepth      *uint64        `yaml:"postage-depth"`
+				PostageLabel      *string        `yaml:"postage-label"`
+				UploadGroups      *[]string      `yaml:"upload-groups"`
+				BlobSize          *int64         `yaml:"blob-size"`
+				MaxUploads        *int           `yaml:"max-uploads"`
+				MaxCommittedDepth *uint8         `yaml:"max-committed-depth"`
+				WarmupWait        *time.Duration `yaml:"warmup-wait"`
+				IncreaseTimeout   *time.Duration `yaml:"increase-timeout"`
+				SettleWait        *time.Duration `yaml:"settle-wait"`
+				DecreaseTimeout   *time.Duration `yaml:"decrease-timeout"`
+				RecoveryWait      *time.Duration `yaml:"recovery-wait"`
+				PollInterval      *time.Duration `yaml:"poll-interval"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

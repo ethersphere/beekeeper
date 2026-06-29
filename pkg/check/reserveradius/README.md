@@ -29,9 +29,14 @@ It has two modes (`Options.Mode`):
    stabilization, so this is a precondition for the radius ever dropping.
 2. **baseline** — snapshot `/status` for all observed nodes.
 3. **`driveIncrease`** — buy a mutable batch on a random full node, then upload
-   `BlobSize` random blobs to it until any observed node's `storageRadius` reaches
-   `TargetRadius` (or `MaxUploads` / `IncreaseTimeout`). Tracks a **per-node
-   high-water `peak`**.
+   `BlobSize` random blobs to it until **every observed node** reports
+   `committedDepth >= MaxCommittedDepth` for **3 consecutive polls** (or `MaxUploads` /
+   `IncreaseTimeout`). It gates on the **minimum `committedDepth` across all nodes** (not
+   just the uploader, which reaches the target first) and debounces over 3 checks so slow
+   peers have time to catch up via pull-sync. `committedDepth` (= `capacityDoubling +
+   storageRadius`) is the same deterministic stop signal the `load` check uses. Tracks a
+   **per-node high-water `peak`** storageRadius for `observeDecrease`. `MaxUploads: 0` =
+   unlimited (bounded only by `IncreaseTimeout`).
 4. **settle** — keep polling for `SettleWait`, still raising `peak` (on an
    already-stabilized node the decrease can begin *during* settle, so `peak` must be
    the max seen, not a single post-settle read).
@@ -71,10 +76,10 @@ Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 | `PostageDepth` | `postage-depth` | `22` | drive | batch depth |
 | `PostageLabel` | `postage-label` | `reserve-radius` | drive | batch label |
 | `BlobSize` | `blob-size` | `1048576` (1 MiB) | drive | bytes per upload |
-| `MaxUploads` | `max-uploads` | `60` | drive | cap on uploads in the increase phase |
-| `TargetRadius` | `target-radius` | `1` | drive | storageRadius to reach before stopping uploads |
+| `MaxUploads` | `max-uploads` | `60` | drive | cap on uploads in the increase phase (`0` = unlimited, bounded by `IncreaseTimeout`) |
+| `MaxCommittedDepth` | `max-committed-depth` | `2` | drive | committedDepth to reach before stopping uploads (mirrors the `load` check) |
 | `WarmupWait` | `warmup-wait` | `15m` | both | max wait for nodes to finish warmup |
-| `IncreaseTimeout` | `increase-timeout` | `5m` | drive | max time to reach `TargetRadius` |
+| `IncreaseTimeout` | `increase-timeout` | `5m` | drive | max time to reach `MaxCommittedDepth` |
 | `SettleWait` | `settle-wait` | `1m` | drive | post-upload window (pushsync drain + peak tracking) |
 | `DecreaseTimeout` | `decrease-timeout` | `20m` | drive | max time to observe a decrease |
 
