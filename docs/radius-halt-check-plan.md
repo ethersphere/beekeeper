@@ -146,9 +146,10 @@ or just monitor, all without a red result.
       budget expires). Already-mined deposits pass immediately.
 
 ### Phase 2 — Drive (or wait) to the disruption radius
-- [ ] Add `DisruptAtRadius` (default 3) distinct from `TargetRadius`.
-- [ ] `mode: halt`: reuse `driveIncrease` to push **all** observed nodes (not just max) to
-      `DisruptAtRadius`; then run the existing `settle` window.
+- [x] Add `DisruptAtRadius` (default 3, `disrupt-at-radius`) distinct from `TargetRadius`.
+- [x] `mode: halt` (`runHalt`): stake → warmup → `driveAllToRadius` (gates on the **min** node radius,
+      not the max, so ALL observed nodes reach `DisruptAtRadius`) → settle window. `updatePeak` now
+      returns `(min, max)`. Disruption (Phase 3) + outcome observation (Phase 4) are stubbed with TODOs.
 - [ ] `mode: observe`+disrupt: poll until every observed node reports
       `storageRadius >= DisruptAtRadius` (load drives), with a timeout.
 - [ ] Record a pre-disruption baseline snapshot (radius, within, fullySynced, round, stake).

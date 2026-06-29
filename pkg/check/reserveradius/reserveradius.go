@@ -48,7 +48,8 @@ type Options struct {
 	UploadGroups     []string      // node groups to upload to / observe (empty = all full nodes)
 	BlobSize         int64         // bytes per upload
 	MaxUploads       int           // cap on uploads during the increase phase
-	TargetRadius     uint8         // storageRadius to reach before stopping uploads
+	TargetRadius     uint8         // drive mode: storageRadius any node must reach before stopping uploads
+	DisruptAtRadius  uint8         // halt mode: storageRadius ALL observed nodes must reach before disruption
 	WarmupWait       time.Duration // max wait for nodes to leave warmup before staging
 	IncreaseTimeout  time.Duration // max time to reach TargetRadius
 	SettleWait       time.Duration // wait after uploads for pushsync overshoot to drain
@@ -73,6 +74,7 @@ func NewDefaultOptions() Options {
 		BlobSize:         1 << 20, // 1 MiB
 		MaxUploads:       60,
 		TargetRadius:     1,
+		DisruptAtRadius:  3,
 		WarmupWait:       15 * time.Minute,
 		IncreaseTimeout:  5 * time.Minute,
 		SettleWait:       time.Minute,
@@ -103,10 +105,12 @@ func NewCheck(log logging.Logger) beekeeper.Action {
 const (
 	ModeDrive   = "drive"   // upload to force a radius change, then observe the decrease
 	ModeObserve = "observe" // monitor radius changes driven externally (e.g. by the load check)
+	ModeHalt    = "halt"    // self-driving: stake → drive all nodes → disrupt → observe outcome
 )
 
-// Run dispatches on Mode: drive (force a change and observe it) or observe
-// (monitor changes driven externally, e.g. by a parallel load check).
+// Run dispatches on Mode: drive (force a change and observe it), observe
+// (monitor changes driven externally, e.g. by a parallel load check), or halt
+// (self-driving stake → drive → disrupt → observe-outcome reproduction).
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) error {
 	o, ok := opts.(Options)
 	if !ok {
@@ -117,8 +121,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return c.runDrive(ctx, cluster, o)
 	case ModeObserve:
 		return c.runObserve(ctx, cluster, o)
+	case ModeHalt:
+		return c.runHalt(ctx, cluster, o)
 	default:
-		return fmt.Errorf("invalid mode %q (want %q or %q)", o.Mode, ModeDrive, ModeObserve)
+		return fmt.Errorf("invalid mode %q (want %q, %q or %q)", o.Mode, ModeDrive, ModeObserve, ModeHalt)
 	}
 }
 
@@ -269,6 +275,60 @@ func (c *Check) runDrive(ctx context.Context, cluster orchestration.Cluster, o O
 
 	// 4. Observe the decrease + pull-sync recovery.
 	return c.observeDecrease(ctx, nodes, peak, o)
+}
+
+// runHalt self-drives the whole reproduction: stake (optional) → warmup → drive
+// ALL observed nodes to DisruptAtRadius → settle → disrupt → observe the outcome.
+// The disruption (Phase 3) and outcome classification/verdict (Phase 4) stages
+// land in later cycles; for now it completes the stake/drive/settle prefix.
+func (c *Check) runHalt(ctx context.Context, cluster orchestration.Cluster, o Options) error {
+	if o.DisruptAtRadius == 0 {
+		return errors.New("disrupt-at-radius must be > 0")
+	}
+	nodes, err := c.selectNodes(ctx, cluster, o)
+	if err != nil {
+		return err
+	}
+	uploader := nodes[0] // a random node, since the list is shuffled
+	c.logger.Infof("mode=halt uploader: %s, %d observed node(s), disrupt-at-radius=%d", uploader.Name(), len(nodes), o.DisruptAtRadius)
+
+	// 0. Stake (optional) — runs before warmup so deposits confirm while we wait.
+	if err := c.ensureStaked(ctx, cluster, nodes, o); err != nil {
+		return err
+	}
+
+	// 1. Wait for warmup/stabilization.
+	if err := c.waitForWarmupDone(ctx, nodes, o); err != nil {
+		return err
+	}
+	c.snapshot(ctx, nodes, "baseline")
+
+	// 2. Drive every observed node up to DisruptAtRadius (a populated neighbourhood
+	//    is the precondition for the disruption to bite).
+	batchID, err := uploader.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
+	if err != nil {
+		return fmt.Errorf("create batch on %s: %w", uploader.Name(), err)
+	}
+	c.logger.WithField("batch_id", batchID).Infof("node %s: using batch", uploader.Name())
+	peak := make(map[string]uint8, len(nodes))
+	if err := c.driveAllToRadius(ctx, uploader, nodes, batchID, o, peak); err != nil {
+		return err
+	}
+
+	// 3. Settle window — let pushsync overshoot drain before disrupting.
+	c.logger.Infof("halt: all nodes at radius %d; settling for %s before disruption", o.DisruptAtRadius, o.SettleWait)
+	settleDeadline := time.Now().Add(o.SettleWait)
+	for time.Now().Before(settleDeadline) {
+		if err := sleepCtx(ctx, o.PollInterval); err != nil {
+			return err
+		}
+		c.updatePeak(ctx, nodes, peak)
+	}
+
+	// TODO(Phase 3): disrupt the neighbourhood (node-churn / batch-expiry).
+	// TODO(Phase 4): observe the outcome, classify HALT|RECOVERED|MONITORED, apply the verdict.
+	c.logger.Info("halt: stake+drive+settle complete; disruption and outcome observation land in Phase 3/4")
+	return nil
 }
 
 // obsNode is the per-node state the observe monitor tracks across polls.
@@ -449,7 +509,7 @@ func (c *Check) driveIncrease(ctx context.Context, uploader *bee.Client, nodes o
 			c.logger.Errorf("upload #%d failed: %v", i, err)
 			continue
 		}
-		mx := c.updatePeak(ctx, nodes, peak)
+		_, mx := c.updatePeak(ctx, nodes, peak)
 		c.logger.Infof("increase: upload #%d, max storageRadius=%d (target %d)", i, mx, o.TargetRadius)
 		if mx >= o.TargetRadius {
 			c.metrics.TimeToIncrease.Set(time.Since(start).Seconds())
@@ -459,6 +519,43 @@ func (c *Check) driveIncrease(ctx context.Context, uploader *bee.Client, nodes o
 		}
 	}
 	return fmt.Errorf("storageRadius did not reach %d after %d uploads", o.TargetRadius, o.MaxUploads)
+}
+
+// driveAllToRadius uploads blobs to the uploader until EVERY observed node reaches
+// DisruptAtRadius (gates on the min, not the max — the whole neighbourhood must be
+// populated before disruption). Otherwise it mirrors driveIncrease.
+func (c *Check) driveAllToRadius(ctx context.Context, uploader *bee.Client, nodes orchestration.ClientList, batchID string, o Options, peak map[string]uint8) error {
+	c.logger.Infof("halt drive: %d-byte blobs to %s until ALL %d node(s) storageRadius>=%d (max %d uploads, timeout %s)",
+		o.BlobSize, uploader.Name(), len(nodes), o.DisruptAtRadius, o.MaxUploads, o.IncreaseTimeout)
+	start := time.Now()
+	deadline := start.Add(o.IncreaseTimeout)
+	t := test.NewTest(c.logger)
+	data := make([]byte, o.BlobSize)
+
+	for i := 1; i <= o.MaxUploads; i++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("not all nodes reached storageRadius %d within %s (%d uploads) — is the bee reserve patch active and is there enough data?", o.DisruptAtRadius, o.IncreaseTimeout, i-1)
+		}
+		if _, err := crand.Read(data); err != nil {
+			return fmt.Errorf("generate random data: %w", err)
+		}
+		if _, _, err := t.Upload(ctx, uploader, data, batchID, nil); err != nil {
+			c.logger.Errorf("upload #%d failed: %v", i, err)
+			continue
+		}
+		mn, mx := c.updatePeak(ctx, nodes, peak)
+		c.logger.Infof("halt drive: upload #%d, min storageRadius=%d max=%d (target %d)", i, mn, mx, o.DisruptAtRadius)
+		if mn >= o.DisruptAtRadius {
+			c.metrics.TimeToIncrease.Set(time.Since(start).Seconds())
+			c.logger.Infof("all nodes reached storageRadius %d after %d uploads (~%.1f MiB) in %s",
+				o.DisruptAtRadius, i, float64(int64(i)*o.BlobSize)/(1<<20), time.Since(start).Round(time.Second))
+			return nil
+		}
+	}
+	return fmt.Errorf("not all nodes reached storageRadius %d after %d uploads", o.DisruptAtRadius, o.MaxUploads)
 }
 
 // observeDecrease watches for any node's radius to fall below its peak, and for
@@ -528,9 +625,10 @@ func (c *Check) snapshot(ctx context.Context, nodes orchestration.ClientList, ph
 }
 
 // updatePeak polls each node, emits metrics, raises the per-node high-water peak,
-// logs a line, and returns the current max storageRadius across nodes.
-func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, peak map[string]uint8) uint8 {
-	var mx uint8
+// logs a line, and returns the min and max current storageRadius across the nodes
+// that responded (min is 0 if none responded).
+func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, peak map[string]uint8) (minR, maxR uint8) {
+	seen := false
 	for _, n := range nodes {
 		s, err := n.Status(ctx)
 		if err != nil {
@@ -541,13 +639,17 @@ func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, 
 		if s.StorageRadius > peak[n.Name()] {
 			peak[n.Name()] = s.StorageRadius
 		}
-		if s.StorageRadius > mx {
-			mx = s.StorageRadius
+		if s.StorageRadius > maxR {
+			maxR = s.StorageRadius
+		}
+		if !seen || s.StorageRadius < minR {
+			minR = s.StorageRadius
+			seen = true
 		}
 		c.logger.Infof("%s: storageRadius=%d (peak %d) reserveSize=%d withinR=%d pullsyncRate=%.4f",
 			n.Name(), s.StorageRadius, peak[n.Name()], s.ReserveSize, s.ReserveSizeWithinRadius, s.PullsyncRate)
 	}
-	return mx
+	return minR, maxR
 }
 
 func (c *Check) emit(node string, s *api.StatusResponse) {

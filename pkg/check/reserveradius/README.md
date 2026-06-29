@@ -5,7 +5,7 @@ recovers afterwards — catching regressions in the puller's reaction to a radiu
 change (the `manage()` / `disconnectPeer()` path that caused the liveness bug in
 beekeeper PR #581).
 
-It has two modes (`Options.Mode`):
+It has three modes (`Options.Mode`):
 
 - **`drive`** (default) — a one-shot run: upload to force the radius up, then watch
   it come back down and assert pull-sync recovers.
@@ -13,6 +13,10 @@ It has two modes (`Options.Mode`):
   transitions for `Duration` while something else drives the cluster (typically the
   `load` check running in parallel via `--parallel`), recording every up/down
   transition and asserting recovery after each decrease. This is the soak mode.
+- **`halt`** — self-driving pull-sync-halt reproduction: stake → drive **all** observed
+  nodes to `DisruptAtRadius` → settle → disrupt the neighbourhood → observe the outcome.
+  Disruption mechanisms and outcome classification are being built out (Phases 3–4);
+  currently it runs the stake/drive/settle prefix.
 
 > Keep this file in sync with the code. If you change `Options`, the `Run` flow, the
 > emitted metrics, the registration, or the bee-patch requirement, update the matching
@@ -60,6 +64,17 @@ October failure:
 Un-recovered decreases or freezes fail the check at the end. Never uploads (the radius is
 driven externally, e.g. by a parallel `load` check).
 
+**`halt`** (`runHalt`): the self-driving reproduction.
+
+1. **stake** (optional `ensureStaked` pre-step, as above).
+2. **`waitForWarmupDone`** + **baseline** snapshot.
+3. **`driveAllToRadius`** — buy a mutable batch and upload until **every** observed node's
+   `storageRadius` reaches `DisruptAtRadius` (gates on the **min** across nodes, so the whole
+   neighbourhood is populated before disruption), or `MaxUploads` / `IncreaseTimeout`.
+4. **settle** — poll for `SettleWait`.
+5. **disrupt + observe-outcome** — Phase 3/4 (node-churn / batch-expiry, then classify
+   `HALT`/`RECOVERED`/`MONITORED` and apply the verdict). Currently stubbed with TODOs.
+
 ## Options
 
 Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
@@ -67,7 +82,7 @@ Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 
 | field | yaml | default | mode | purpose |
 | --- | --- | --- | --- | --- |
-| `Mode` | `mode` | `drive` | both | `drive` (upload to force a change) or `observe` (monitor only) |
+| `Mode` | `mode` | `drive` | all | `drive` (force a change), `observe` (monitor only), or `halt` (self-driving reproduction) |
 | `Duration` | `duration` | `12h` | observe | total monitor run length |
 | `RecoveryWait` | `recovery-wait` | `5m` | observe | max wait for pull-sync recovery after each decrease |
 | `RndSeed` | `rnd-seed` | `time.Now().UnixNano()` | both | seed for `random.PseudoGenerator` → shuffled node pick |
@@ -81,7 +96,8 @@ Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 | `PostageLabel` | `postage-label` | `reserve-radius` | drive | batch label |
 | `BlobSize` | `blob-size` | `1048576` (1 MiB) | drive | bytes per upload |
 | `MaxUploads` | `max-uploads` | `60` | drive | cap on uploads in the increase phase |
-| `TargetRadius` | `target-radius` | `1` | drive | storageRadius to reach before stopping uploads |
+| `TargetRadius` | `target-radius` | `1` | drive | storageRadius any node must reach before stopping uploads |
+| `DisruptAtRadius` | `disrupt-at-radius` | `3` | halt | storageRadius **all** observed nodes must reach before disruption |
 | `WarmupWait` | `warmup-wait` | `15m` | both | max wait for nodes to finish warmup |
 | `IncreaseTimeout` | `increase-timeout` | `5m` | drive | max time to reach `TargetRadius` |
 | `SettleWait` | `settle-wait` | `1m` | drive | post-upload window (pushsync drain + peak tracking) |
