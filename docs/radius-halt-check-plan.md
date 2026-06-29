@@ -241,8 +241,13 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
       `fullySynced→false`); end-state stuck `fullySynced=false` with **staked round-loss** (round 17,
       `lastPlayed/Won=0`) + a split-brain node at radius 1. **Operational fix:** the global `--timeout`
       flag DEFAULTS TO 30m and caps the per-check `timeout: 90m` (child context) — must pass
-      `--timeout=95m` or the run is killed mid-observe. README updated; a clean verdict run with the
-      correct timeout confirms the `HALT` classification.
+      `--timeout=95m` or the run is killed mid-observe. README updated. A clean `--timeout=95m` run then
+      **completed successfully with `outcome=HALT`** (verdict=report). **Two findings from the clean run:**
+      (a) classification bug — recovery wasn't gated on `recovery-wait`, so a too-slow re-sync was
+      mis-counted as recovered; **fixed** (late re-sync now counts as stuck; the "puller gave up at
+      SyncRate=0" false-sync is exactly this). (b) **scale caveat** — on 4 survivors the halt shows as
+      de-sync + round-loss + *late* re-sync (~26m), not permanent stuck; the forever-stuck halt likely
+      needs ~20 nodes (Phase 7). A/B discrimination must confirm B recovers *within* recovery-wait.
 - [ ] Exercise **both mechanisms** on A: `node-churn` ✅ (matches the manual repro) and `batch-expiry`
       (deferred — see Phase 3b; the commitment-drop → radius-decrease → merge path, co-developed here).
 - [ ] Build **B** (`pullsync-optimal-design` + the same `radius_*.patch`) and run with
