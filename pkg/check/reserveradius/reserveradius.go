@@ -332,11 +332,13 @@ func (c *Check) waitForWarmupDone(ctx context.Context, nodes orchestration.Clien
 	}
 }
 
-// driveIncrease uploads blobs to the uploader until its committedDepth reaches
-// MaxCommittedDepth — the same stop condition the load check uses (the network's
-// committed depth drives the storage radius up deterministically, whereas reading
-// storageRadius directly lags). It tracks the per-node peak storageRadius along the
-// way so observeDecrease can later detect the radius falling back.
+// driveIncrease uploads blobs to the uploader until ALL observed nodes report
+// committedDepth >= MaxCommittedDepth, confirmed over consecutive polls. Gating on the
+// cluster minimum (not just the uploader, which reaches the target first) gives pull-sync
+// time to bring slow peers up. It uses the same committedDepth signal as the load check
+// (committedDepth drives the storage radius up deterministically, whereas reading
+// storageRadius directly lags), and tracks the per-node peak storageRadius along the way
+// so observeDecrease can later detect the radius falling back.
 func (c *Check) driveIncrease(ctx context.Context, uploader *bee.Client, nodes orchestration.ClientList, batchID string, o Options, peak map[string]uint8) error {
 	// requiredConfirmations: the cluster must report min committedDepth >= target on this
 	// many consecutive polls before we stop — debounces transients and gives pull-sync time
@@ -364,10 +366,10 @@ func (c *Check) driveIncrease(ctx context.Context, uploader *bee.Client, nodes o
 			return fmt.Errorf("not all nodes reached committedDepth %d within %s (%d uploads) — is the bee reserve patch active and is there enough data?", o.MaxCommittedDepth, o.IncreaseTimeout, uploads)
 		}
 
-		mx, minCD := c.updatePeak(ctx, nodes, peak)
+		mx, minCD, allReachable := c.updatePeak(ctx, nodes, peak)
 
 		// Stop once every node has reached the target, confirmed over consecutive polls.
-		if minCD >= o.MaxCommittedDepth {
+		if allReachable && minCD >= o.MaxCommittedDepth {
 			confirmations++
 			c.logger.Infof("all nodes committedDepth>=%d (confirmation %d/%d, maxStorageRadius=%d)", o.MaxCommittedDepth, confirmations, requiredConfirmations, mx)
 			if confirmations >= requiredConfirmations {
@@ -469,14 +471,14 @@ func (c *Check) snapshot(ctx context.Context, nodes orchestration.ClientList, ph
 	return mx
 }
 
-// updatePeak polls every node, emits metrics, raises the per-node high-water peak
-// storageRadius, and returns the max storageRadius seen plus the MINIMUM committedDepth
-// across all nodes. If any node is unreachable the min is forced to 0, so a laggard or
-// missing node cannot satisfy the "whole cluster reached target" gate in driveIncrease.
-func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, peak map[string]uint8) (maxRadius, minCommittedDepth uint8) {
-	var mx uint8
+// updatePeak polls every node, emits metrics, and raises the per-node high-water peak
+// storageRadius. It reports the raw observations — the max storageRadius seen, the minimum
+// committedDepth across the reachable nodes (0 if none responded), and whether every node
+// responded — and leaves the "whole cluster reached target" decision to the caller, which
+// combines minCommittedDepth with allReachable.
+func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, peak map[string]uint8) (maxRadius, minCommittedDepth uint8, allReachable bool) {
+	allReachable = true
 	minCD := uint8(math.MaxUint8)
-	allReachable := true
 	for _, n := range nodes {
 		s, err := n.Status(ctx)
 		if err != nil {
@@ -488,8 +490,8 @@ func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, 
 		if s.StorageRadius > peak[n.Name()] {
 			peak[n.Name()] = s.StorageRadius
 		}
-		if s.StorageRadius > mx {
-			mx = s.StorageRadius
+		if s.StorageRadius > maxRadius {
+			maxRadius = s.StorageRadius
 		}
 		if s.CommittedDepth < minCD {
 			minCD = s.CommittedDepth
@@ -497,10 +499,10 @@ func (c *Check) updatePeak(ctx context.Context, nodes orchestration.ClientList, 
 		c.logger.Infof("%s: storageRadius=%d (peak %d) committedDepth=%d reserveSize=%d withinR=%d pullsyncRate=%.4f",
 			n.Name(), s.StorageRadius, peak[n.Name()], s.CommittedDepth, s.ReserveSize, s.ReserveSizeWithinRadius, s.PullsyncRate)
 	}
-	if !allReachable || minCD == math.MaxUint8 {
-		minCD = 0
+	if minCD == math.MaxUint8 {
+		minCD = 0 // no node responded
 	}
-	return mx, minCD
+	return maxRadius, minCD, allReachable
 }
 
 func (c *Check) emit(node string, s *api.StatusResponse) {
