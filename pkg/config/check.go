@@ -519,6 +519,8 @@ var Checks = map[string]CheckType{
 				DisruptNodeCount *int           `yaml:"disrupt-node-count"`
 				DisruptMethod    *string        `yaml:"disrupt-method"`
 				MinSurvivors     *int           `yaml:"min-survivors"`
+				Verdict          *string        `yaml:"verdict"`
+				ExpectRecovery   *bool          `yaml:"expect-recovery"`
 				WarmupWait       *time.Duration `yaml:"warmup-wait"`
 				IncreaseTimeout  *time.Duration `yaml:"increase-timeout"`
 				SettleWait       *time.Duration `yaml:"settle-wait"`

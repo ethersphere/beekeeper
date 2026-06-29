@@ -82,7 +82,9 @@ driven externally, e.g. by a parallel `load` check).
    (`round` advancing while `lastPlayed`/`lastWon` stall). `classifyOutcome` reduces this to
    `MONITORED` (no disruption) / `HALT` (a survivor stuck de-synced past `RecoveryWait` and/or
    round-loss) / `RECOVERED` (all de-synced survivors re-converged), emitting the `outcome` gauge.
-   The **verdict** (report-vs-assert) is the next step (currently always reports).
+7. **`applyVerdict`** — `report` (default) always succeeds on the outcome (only operational errors
+   fail); `assert` fails iff the outcome contradicts `expect-recovery` (`false` ⇒ expect `HALT`,
+   `true` ⇒ expect `RECOVERED`), with `MONITORED` always passing. This is the A/B regression gate.
 
 ## Options
 
@@ -111,6 +113,8 @@ Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 | `DisruptNodeCount` | `disrupt-node-count` | `2` | halt/observe+disrupt | node-churn: full nodes to remove (randomly, seeded by `rnd-seed`); `0` = skip |
 | `DisruptMethod` | `disrupt-method` | `stop` | halt/observe+disrupt | node-churn: `stop` (scale statefulset to 0) or `delete` (statefulset + resources) |
 | `MinSurvivors` | `min-survivors` | `3` | halt/observe+disrupt | refuse to disrupt below this many surviving nodes |
+| `Verdict` | `verdict` | `report` | halt | `report` (never fail on outcome) or `assert` (gate on `expect-recovery`) |
+| `ExpectRecovery` | `expect-recovery` | `false` | halt | `assert` only: `false` ⇒ expect `HALT`, `true` ⇒ expect `RECOVERED` |
 | `WarmupWait` | `warmup-wait` | `15m` | both | max wait for nodes to finish warmup |
 | `IncreaseTimeout` | `increase-timeout` | `5m` | drive | max time to reach `TargetRadius` |
 | `SettleWait` | `settle-wait` | `1m` | drive | post-upload window (pushsync drain + peak tracking) |

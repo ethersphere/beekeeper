@@ -55,6 +55,8 @@ type Options struct {
 	DisruptNodeCount int           // node-churn: full nodes to remove (randomly, seeded by RndSeed); 0 = skip
 	DisruptMethod    string        // node-churn: "stop" (scale-0, default) | "delete"
 	MinSurvivors     int           // refuse to disrupt below this many surviving nodes
+	Verdict          string        // halt mode: "report" (default, never fail on outcome) | "assert" (gate on ExpectRecovery)
+	ExpectRecovery   bool          // halt mode + verdict=assert: false ⇒ expect HALT, true ⇒ expect RECOVERED
 	WarmupWait       time.Duration // max wait for nodes to leave warmup before staging
 	IncreaseTimeout  time.Duration // max time to reach TargetRadius
 	SettleWait       time.Duration // wait after uploads for pushsync overshoot to drain
@@ -84,6 +86,8 @@ func NewDefaultOptions() Options {
 		DisruptNodeCount: 2,
 		DisruptMethod:    RemoveStop,
 		MinSurvivors:     3,
+		Verdict:          VerdictReport,
+		ExpectRecovery:   false,
 		WarmupWait:       15 * time.Minute,
 		IncreaseTimeout:  5 * time.Minute,
 		SettleWait:       time.Minute,
@@ -136,6 +140,12 @@ const (
 	OutcomeMonitored = "MONITORED" // no disruption requested; state recorded only
 	OutcomeHalt      = "HALT"      // post-disruption sustained non-convergence and/or staked round-loss
 	OutcomeRecovered = "RECOVERED" // post-disruption, all de-synced survivors re-converged
+)
+
+// Verdict policies for Options.Verdict.
+const (
+	VerdictReport = "report" // never fail on the outcome; only operational errors fail (default)
+	VerdictAssert = "assert" // fail iff the outcome contradicts expect-recovery (A/B regression gate)
 )
 
 // Run dispatches on Mode: drive (force a change and observe it), observe
@@ -370,8 +380,35 @@ func (c *Check) runHalt(ctx context.Context, cluster orchestration.Cluster, o Op
 		return err
 	}
 	c.logger.Infof("halt: run outcome = %s", outcome)
-	// TODO(Phase 4 verdict): apply the verdict policy (report default / assert on expect-recovery).
-	return nil
+	return c.applyVerdict(outcome, o)
+}
+
+// applyVerdict turns a classified outcome into a check result per the verdict policy.
+// report (default) always succeeds on any outcome (only operational errors, raised
+// earlier, fail). assert fails iff the outcome contradicts expect-recovery; MONITORED
+// always passes (no disruption was requested).
+func (c *Check) applyVerdict(outcome string, o Options) error {
+	switch o.Verdict {
+	case "", VerdictReport:
+		c.logger.Infof("verdict=report: outcome %s (reported, not gated)", outcome)
+		return nil
+	case VerdictAssert:
+		if outcome == OutcomeMonitored {
+			c.logger.Info("verdict=assert: outcome MONITORED (no disruption requested) — pass")
+			return nil
+		}
+		want := OutcomeHalt
+		if o.ExpectRecovery {
+			want = OutcomeRecovered
+		}
+		if outcome == want {
+			c.logger.Infof("verdict=assert: outcome %s matches expect-recovery=%t — pass", outcome, o.ExpectRecovery)
+			return nil
+		}
+		return fmt.Errorf("verdict=assert: outcome %s contradicts expect-recovery=%t (expected %s)", outcome, o.ExpectRecovery, want)
+	default:
+		return fmt.Errorf("invalid verdict %q (want %q or %q)", o.Verdict, VerdictReport, VerdictAssert)
+	}
 }
 
 // disrupt applies the configured disruption mechanism and returns the survivor set
