@@ -361,10 +361,11 @@ func (c *Check) runHalt(ctx context.Context, cluster orchestration.Cluster, o Op
 		return err
 	}
 	disrupted := len(survivors) < len(nodes) // node-churn removed nodes; none/count-0 = monitor-only
+	disruptedAt := time.Now()
 	c.snapshot(ctx, survivors, "post-disrupt")
 
 	// 5. Observe the outcome on the survivors and classify it.
-	outcome, err := c.observeOutcome(ctx, survivors, disrupted, o)
+	outcome, err := c.observeOutcome(ctx, survivors, disrupted, disruptedAt, o)
 	if err != nil {
 		return err
 	}
@@ -486,7 +487,7 @@ type outcomeNode struct {
 // disruption), HALT (a survivor stuck de-synced past RecoveryWait and/or round-loss),
 // or RECOVERED (all de-synced survivors re-converged), emits the outcome metric + a
 // summary, and returns the outcome. The verdict policy is applied by the caller.
-func (c *Check) observeOutcome(ctx context.Context, survivors orchestration.ClientList, disrupted bool, o Options) (string, error) {
+func (c *Check) observeOutcome(ctx context.Context, survivors orchestration.ClientList, disrupted bool, disruptedAt time.Time, o Options) (string, error) {
 	st := make(map[string]*outcomeNode, len(survivors))
 	for _, n := range survivors {
 		st[n.Name()] = &outcomeNode{}
@@ -527,7 +528,8 @@ func (c *Check) observeOutcome(ctx context.Context, survivors orchestration.Clie
 				ns.onset = true
 				ns.onsetAt = time.Now()
 				ns.recoverBy = ns.onsetAt.Add(o.RecoveryWait)
-				c.logger.Warningf("observe-outcome: %s de-synced (fullySynced=false) at round %d — onset", name, r.Round)
+				c.metrics.OnsetSeconds.WithLabelValues(name).Set(ns.onsetAt.Sub(disruptedAt).Seconds())
+				c.logger.Warningf("observe-outcome: %s de-synced (fullySynced=false) at round %d, %s after disruption — onset", name, r.Round, ns.onsetAt.Sub(disruptedAt).Round(time.Second))
 			}
 			// recovery: back to fullySynced (and not frozen) after an onset
 			if ns.onset && !ns.recovered && r.IsFullySynced && !r.IsFrozen {
@@ -563,6 +565,7 @@ func (c *Check) classifyOutcome(st map[string]*outcomeNode, disrupted bool, o Op
 		// staked round-loss: rounds advanced after onset but the node never played/won
 		if ns.onset && ns.haveLast && ns.lastRound > ns.refRound && ns.lastPlayed == ns.refPlayed && ns.lastWon == ns.refWon {
 			roundLoss++
+			c.metrics.RoundLoss.WithLabelValues(name).Inc()
 			c.logger.Warningf("observe-outcome: %s round-loss — round %d->%d while lastPlayed/Won stalled (%d/%d) since de-sync", name, ns.refRound, ns.lastRound, ns.refPlayed, ns.refWon)
 		}
 	}

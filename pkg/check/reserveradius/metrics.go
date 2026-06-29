@@ -17,6 +17,8 @@ type metrics struct {
 	RecoveryObserved    *prometheus.CounterVec
 	Disruptions         *prometheus.CounterVec
 	Outcome             *prometheus.GaugeVec
+	OnsetSeconds        *prometheus.GaugeVec
+	RoundLoss           *prometheus.CounterVec
 	// redistribution-game liveness (observe mode), from /redistributionstate
 	FullySynced        *prometheus.GaugeVec
 	Frozen             *prometheus.GaugeVec
@@ -104,6 +106,24 @@ func newMetrics(subsystem string) metrics {
 				Help:      "Halt-run outcome, one-hot per label (MONITORED/HALT/RECOVERED): the classified one is 1.",
 			},
 			[]string{"outcome"},
+		),
+		OnsetSeconds: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "onset_seconds",
+				Help:      "Seconds from disruption to a survivor's de-sync onset, per node (halt mode).",
+			},
+			[]string{"node"},
+		),
+		RoundLoss: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "round_loss_total",
+				Help:      "Survivors with staked round-loss (rounds advanced while lastPlayed/lastWon stalled), per node.",
+			},
+			[]string{"node"},
 		),
 		ReserveWithinRadius: nodeGauge(subsystem, "reserve_within_radius", "Reserve chunks within the storage radius, per node (completeness signal)."),
 		TimeToFullySynced: prometheus.NewGauge(prometheus.GaugeOpts{

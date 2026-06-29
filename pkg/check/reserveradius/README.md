@@ -131,6 +131,8 @@ check runs with `--metrics-enabled`). Namespace `beekeeper`, subsystem
 - `…_recovery_observed_total{node,result}` — counter, recovery outcome `recovered`/`timeout` (observe mode)
 - `…_disruption_total{mechanism}` — counter, neighbourhood disruptions applied (halt mode, e.g. `node-churn`)
 - `…_outcome{outcome}` — gauge, one-hot halt-run classification (`MONITORED`/`HALT`/`RECOVERED`); the classified one is 1
+- `…_onset_seconds{node}` — gauge, seconds from disruption to a survivor's de-sync onset (halt mode)
+- `…_round_loss_total{node}` — counter, survivors with staked round-loss (rounds advanced while lastPlayed/Won stalled)
 - `…_time_to_fully_synced_seconds` — gauge, decrease → isFullySynced again (observe mode)
 - from `/redistributionstate` (observe mode): `…_fully_synced{node}`, `…_frozen{node}`,
   `…_redistribution_round{node}`, `…_last_sample_duration_seconds{node}` — the halt indicators

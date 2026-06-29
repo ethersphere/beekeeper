@@ -210,9 +210,10 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
       `LastPlayedRound`/`LastWonRound` stall = staked round-loss).
 - [x] Classify the run outcome → `MONITORED` | `HALT` | `RECOVERED` (`classifyOutcome`); emit the
       `outcome` gauge (one-hot) + a clear end-of-run summary (stuck vs recovered survivors, round-loss).
-- [ ] New metrics: `outcome` (labelled) ✅, `disruption_total` ✅, plus **`onset_seconds`** (disrupt→onset)
-      and **`round_loss_total`** still to add, reusing `fully_synced`/`frozen`/`redistribution_round`/
-      `reserve_within_radius`/`pullsync_rate`/`time_to_fully_synced_seconds`.
+- [x] New metrics: `outcome` (labelled), `disruption_total`, `onset_seconds{node}` (disrupt→onset, set
+      on onset) and `round_loss_total{node}` (incremented per round-loss survivor), reusing
+      `fully_synced`/`frozen`/`redistribution_round`/`reserve_within_radius`/`pullsync_rate`/
+      `time_to_fully_synced_seconds`.
 - [ ] Apply the **verdict policy**:
       - `report` (default) → always return success on the outcome; only operational errors fail.
       - `assert` → fail iff the outcome contradicts `expect-recovery`; `MONITORED` always passes.
