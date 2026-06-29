@@ -65,6 +65,8 @@ Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 | `Duration` | `duration` | `12h` | observe | total monitor run length |
 | `RecoveryWait` | `recovery-wait` | `5m` | observe | max wait for pull-sync recovery after each decrease |
 | `RndSeed` | `rnd-seed` | `time.Now().UnixNano()` | both | seed for `random.PseudoGenerator` → shuffled node pick |
+| `StakeAmount` | `stake-amount` | `""` (skip) | both | per-node stake (wei) to ensure before driving, e.g. `"100000000000000000"`; empty/`"0"` skips |
+| `StakeGroups` | `stake-groups` | `nil` (observed) | both | node groups to stake (empty = the observed/selected groups) |
 | `UploadGroups` | `upload-groups` | `[bee]` | both | node groups to observe (and, in drive, upload to) |
 | `PollInterval` | `poll-interval` | `15s` | both | poll cadence |
 | `PostageTTL` | `postage-ttl` | `24h` | drive | batch TTL (use TTL, not a raw amount) |

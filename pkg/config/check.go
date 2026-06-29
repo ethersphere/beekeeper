@@ -504,6 +504,8 @@ var Checks = map[string]CheckType{
 				Mode            *string        `yaml:"mode"`
 				Duration        *time.Duration `yaml:"duration"`
 				RndSeed         *int64         `yaml:"rnd-seed"`
+				StakeAmount     *string        `yaml:"stake-amount"`
+				StakeGroups     *[]string      `yaml:"stake-groups"`
 				PostageTTL      *time.Duration `yaml:"postage-ttl"`
 				PostageDepth    *uint64        `yaml:"postage-depth"`
 				PostageLabel    *string        `yaml:"postage-label"`

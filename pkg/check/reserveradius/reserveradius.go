@@ -37,6 +37,8 @@ type Options struct {
 	Mode            string        // "drive" (upload to force a change) or "observe" (monitor a change driven externally)
 	Duration        time.Duration // observe mode: total monitor run length
 	RndSeed         int64
+	StakeAmount     string   // per-node stake to ensure before driving (wei, e.g. "100000000000000000"); empty/"0" = skip
+	StakeGroups     []string // node groups to stake (empty = the observed/selected groups)
 	PostageTTL      time.Duration
 	PostageDepth    uint64
 	PostageLabel    string
@@ -58,6 +60,8 @@ func NewDefaultOptions() Options {
 		Mode:            ModeDrive,
 		Duration:        12 * time.Hour,
 		RndSeed:         time.Now().UnixNano(),
+		StakeAmount:     "", // skip staking unless set
+		StakeGroups:     nil,
 		PostageTTL:      24 * time.Hour,
 		PostageDepth:    22,
 		PostageLabel:    "reserve-radius",
