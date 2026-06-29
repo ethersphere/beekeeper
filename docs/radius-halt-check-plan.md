@@ -188,7 +188,11 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
 - [x] Guard: `len(observed) - DisruptNodeCount >= MinSurvivors`, plus a candidate-count check — both
       error out **before** any removal touches the cluster.
 
-**3b — batch-expiry**
+**3b — batch-expiry** *(deferred until after Phase 4)*
+> **Deferred:** its defining items (detect expiry → observe eviction → gated radius decrease, else
+> `MONITORED`) are observe-phase logic that must fold into the Phase-4 observe loop, which doesn't
+> exist yet. Node-churn (the primary mechanism the manual repro used) is fully wired, so build Phase 4
+> against it first, then add batch-expiry with its detection folded into the existing loop.
 - [ ] Create a soon-to-expire mutable batch — `CreatePostageBatch(ctx, amount, depth, label)` with a
       small explicit `amount`, or `GetOrCreateMutableBatch` with a short `expiring-batch-ttl`. Drive the
       radius (Phase 2) by uploading the fill **under this batch** so its chunks dominate the reserve.
@@ -200,19 +204,19 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
 - [ ] No node removal — all nodes stay in the observe set.
 
 ### Phase 4 — Observe, classify, report (optionally assert) + round-loss
-- [ ] Extend the per-node observe state: track **onset** (`within_radius` 0→>threshold OR
-      `fullySynced` true→false), the **stall** (`fullySynced` stuck false, `pullsyncRate` decaying,
-      `within_radius` plateau), and **round participation** from `/redistributionstate`
-      (`Round` advancing while `LastPlayedRound`/`LastWonRound` stalls = round-loss).
-- [ ] Classify the run outcome → `MONITORED` | `HALT` | `RECOVERED`; emit it as a labelled metric and
-      a clear end-of-run summary (stuck vs recovered survivors, onset time, rounds lost).
-- [ ] New metrics: `outcome` (labelled), `disruption_total`, `onset_seconds` (removal→onset),
-      `round_loss_total`, plus reuse `fully_synced`, `frozen`, `redistribution_round`,
-      `reserve_within_radius`, `pullsync_rate`, `time_to_fully_synced_seconds`.
+- [x] Extend the per-node observe state (`outcomeNode` in `observeOutcome`): track **onset**
+      (`fullySynced` true→false relative to the first post-disruption reference), **recovery** (back to
+      `fullySynced` within `RecoveryWait`), and **round participation** (`Round` advancing while
+      `LastPlayedRound`/`LastWonRound` stall = staked round-loss).
+- [x] Classify the run outcome → `MONITORED` | `HALT` | `RECOVERED` (`classifyOutcome`); emit the
+      `outcome` gauge (one-hot) + a clear end-of-run summary (stuck vs recovered survivors, round-loss).
+- [ ] New metrics: `outcome` (labelled) ✅, `disruption_total` ✅, plus **`onset_seconds`** (disrupt→onset)
+      and **`round_loss_total`** still to add, reusing `fully_synced`/`frozen`/`redistribution_round`/
+      `reserve_within_radius`/`pullsync_rate`/`time_to_fully_synced_seconds`.
 - [ ] Apply the **verdict policy**:
       - `report` (default) → always return success on the outcome; only operational errors fail.
       - `assert` → fail iff the outcome contradicts `expect-recovery`; `MONITORED` always passes.
-- [ ] Bound the whole observe by `Duration` (default ≥30 min; onset is delayed/variable ~3–9 min).
+- [x] Bound the whole observe by `Duration` (`observeOutcome` deadline; onset is delayed/variable ~3–9 min).
 
 ### Phase 5 — Wire options, config, docs
 - [ ] Add the new fields to `pkg/config/check.go` `"reserve-radius"` `NewOptions` struct + defaults in

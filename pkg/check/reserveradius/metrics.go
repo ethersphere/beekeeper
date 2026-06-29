@@ -16,6 +16,7 @@ type metrics struct {
 	RadiusTransitions   *prometheus.CounterVec
 	RecoveryObserved    *prometheus.CounterVec
 	Disruptions         *prometheus.CounterVec
+	Outcome             *prometheus.GaugeVec
 	// redistribution-game liveness (observe mode), from /redistributionstate
 	FullySynced        *prometheus.GaugeVec
 	Frozen             *prometheus.GaugeVec
@@ -94,6 +95,15 @@ func newMetrics(subsystem string) metrics {
 				Help:      "Neighbourhood disruptions applied, by mechanism (node-churn/batch-expiry).",
 			},
 			[]string{"mechanism"},
+		),
+		Outcome: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: m.Namespace,
+				Subsystem: subsystem,
+				Name:      "outcome",
+				Help:      "Halt-run outcome, one-hot per label (MONITORED/HALT/RECOVERED): the classified one is 1.",
+			},
+			[]string{"outcome"},
 		),
 		ReserveWithinRadius: nodeGauge(subsystem, "reserve_within_radius", "Reserve chunks within the storage radius, per node (completeness signal)."),
 		TimeToFullySynced: prometheus.NewGauge(prometheus.GaugeOpts{

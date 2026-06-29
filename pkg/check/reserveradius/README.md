@@ -77,8 +77,12 @@ driven externally, e.g. by a parallel `load` check).
    `DisruptNodeCount` nodes (seeded by `rnd-seed`, excluding the uploader), guard `MinSurvivors`
    **before** touching the cluster, then `Stop` (scale-0) or `Delete` each; returns the **survivor set**.
    `none` / `disrupt-node-count: 0` is monitor-only; `batch-expiry`/`both` are Phase 3b (not yet).
-6. **observe-outcome** — Phase 4: poll survivors, classify `HALT`/`RECOVERED`/`MONITORED`, apply the
-   verdict. Currently stubbed with a TODO (a post-disruption snapshot is taken).
+6. **`observeOutcome`** — poll the survivors for `Duration`, tracking per node the **onset** of de-sync
+   (`isFullySynced` true→false), **recovery** (back within `RecoveryWait`), and staked **round-loss**
+   (`round` advancing while `lastPlayed`/`lastWon` stall). `classifyOutcome` reduces this to
+   `MONITORED` (no disruption) / `HALT` (a survivor stuck de-synced past `RecoveryWait` and/or
+   round-loss) / `RECOVERED` (all de-synced survivors re-converged), emitting the `outcome` gauge.
+   The **verdict** (report-vs-assert) is the next step (currently always reports).
 
 ## Options
 
@@ -126,6 +130,7 @@ check runs with `--metrics-enabled`). Namespace `beekeeper`, subsystem
 - `…_radius_transitions_total{node,direction}` — counter, observed up/down transitions (observe mode)
 - `…_recovery_observed_total{node,result}` — counter, recovery outcome `recovered`/`timeout` (observe mode)
 - `…_disruption_total{mechanism}` — counter, neighbourhood disruptions applied (halt mode, e.g. `node-churn`)
+- `…_outcome{outcome}` — gauge, one-hot halt-run classification (`MONITORED`/`HALT`/`RECOVERED`); the classified one is 1
 - `…_time_to_fully_synced_seconds` — gauge, decrease → isFullySynced again (observe mode)
 - from `/redistributionstate` (observe mode): `…_fully_synced{node}`, `…_frozen{node}`,
   `…_redistribution_round{node}`, `…_last_sample_duration_seconds{node}` — the halt indicators

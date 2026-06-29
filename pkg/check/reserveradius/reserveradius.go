@@ -131,6 +131,13 @@ const (
 	RemoveDelete = "delete" // delete statefulset + services/ingress/secret/configmap
 )
 
+// Run outcomes classified by the halt observe-outcome stage.
+const (
+	OutcomeMonitored = "MONITORED" // no disruption requested; state recorded only
+	OutcomeHalt      = "HALT"      // post-disruption sustained non-convergence and/or staked round-loss
+	OutcomeRecovered = "RECOVERED" // post-disruption, all de-synced survivors re-converged
+)
+
 // Run dispatches on Mode: drive (force a change and observe it), observe
 // (monitor changes driven externally, e.g. by a parallel load check), or halt
 // (self-driving stake → drive → disrupt → observe-outcome reproduction).
@@ -353,10 +360,16 @@ func (c *Check) runHalt(ctx context.Context, cluster orchestration.Cluster, o Op
 	if err != nil {
 		return err
 	}
+	disrupted := len(survivors) < len(nodes) // node-churn removed nodes; none/count-0 = monitor-only
 	c.snapshot(ctx, survivors, "post-disrupt")
 
-	// TODO(Phase 4): observe survivors, classify HALT|RECOVERED|MONITORED, apply the verdict.
-	c.logger.Infof("halt: disruption applied (%s); %d survivor(s); outcome observation lands in Phase 4", o.DisruptMechanism, len(survivors))
+	// 5. Observe the outcome on the survivors and classify it.
+	outcome, err := c.observeOutcome(ctx, survivors, disrupted, o)
+	if err != nil {
+		return err
+	}
+	c.logger.Infof("halt: run outcome = %s", outcome)
+	// TODO(Phase 4 verdict): apply the verdict policy (report default / assert on expect-recovery).
 	return nil
 }
 
@@ -445,6 +458,134 @@ func (c *Check) disruptNodeChurn(ctx context.Context, cluster orchestration.Clus
 	}
 	c.logger.Infof("disrupt: node-churn removed %d node(s) via %s; %d survivor(s) remain", len(removed), o.DisruptMethod, len(survivors))
 	return survivors, nil
+}
+
+// outcomeNode tracks a survivor's post-disruption trajectory for classification.
+type outcomeNode struct {
+	haveRef   bool
+	refSynced bool   // was the node fullySynced at the first post-disruption reading
+	refRound  uint64 // round participation reference (for staked round-loss)
+	refPlayed uint64
+	refWon    uint64
+
+	onset     bool      // lost sync (fullySynced true->false) after disruption
+	onsetAt   time.Time // when the onset was first seen
+	recovered bool      // returned to fullySynced after an onset
+	recoverBy time.Time // recovery deadline after onset (onsetAt + RecoveryWait)
+
+	haveLast   bool
+	lastRound  uint64
+	lastPlayed uint64
+	lastWon    uint64
+}
+
+// observeOutcome polls the survivor set for Duration after disruption, tracking per
+// node the onset of de-sync (fullySynced true->false), recovery (back to fullySynced
+// within RecoveryWait), and staked round-loss (Round advancing while
+// LastPlayedRound/LastWonRound stall). It classifies the run as MONITORED (no
+// disruption), HALT (a survivor stuck de-synced past RecoveryWait and/or round-loss),
+// or RECOVERED (all de-synced survivors re-converged), emits the outcome metric + a
+// summary, and returns the outcome. The verdict policy is applied by the caller.
+func (c *Check) observeOutcome(ctx context.Context, survivors orchestration.ClientList, disrupted bool, o Options) (string, error) {
+	st := make(map[string]*outcomeNode, len(survivors))
+	for _, n := range survivors {
+		st[n.Name()] = &outcomeNode{}
+	}
+	c.logger.Infof("observe-outcome: watching %d survivor(s) for %s (disrupted=%t, recovery-wait=%s)", len(survivors), o.Duration, disrupted, o.RecoveryWait)
+
+	deadline := time.Now().Add(o.Duration)
+	for time.Now().Before(deadline) {
+		if err := sleepCtx(ctx, o.PollInterval); err != nil {
+			return "", err // parent context cancelled (e.g. check timeout)
+		}
+		for _, n := range survivors {
+			name := n.Name()
+			ns := st[name]
+
+			s, err := n.Status(ctx)
+			if err != nil {
+				continue
+			}
+			c.emit(name, s)
+
+			r, rerr := n.RedistributionState(ctx)
+			if rerr != nil {
+				continue // the redistribution signal is the classifier; skip this poll for the node
+			}
+			c.emitRedist(name, r)
+
+			if !ns.haveRef {
+				ns.haveRef = true
+				ns.refSynced = r.IsFullySynced
+				ns.refRound, ns.refPlayed, ns.refWon = r.Round, r.LastPlayedRound, r.LastWonRound
+			}
+			ns.haveLast = true
+			ns.lastRound, ns.lastPlayed, ns.lastWon = r.Round, r.LastPlayedRound, r.LastWonRound
+
+			// onset: a node that was synced loses sync after disruption
+			if disrupted && ns.refSynced && !ns.onset && !r.IsFullySynced {
+				ns.onset = true
+				ns.onsetAt = time.Now()
+				ns.recoverBy = ns.onsetAt.Add(o.RecoveryWait)
+				c.logger.Warningf("observe-outcome: %s de-synced (fullySynced=false) at round %d — onset", name, r.Round)
+			}
+			// recovery: back to fullySynced (and not frozen) after an onset
+			if ns.onset && !ns.recovered && r.IsFullySynced && !r.IsFrozen {
+				ns.recovered = true
+				c.logger.Infof("observe-outcome: %s re-converged %s after onset", name, time.Since(ns.onsetAt).Round(time.Second))
+			}
+		}
+	}
+
+	return c.classifyOutcome(st, disrupted, o), nil
+}
+
+// classifyOutcome reduces the per-node trajectories to a single run outcome and emits it.
+func (c *Check) classifyOutcome(st map[string]*outcomeNode, disrupted bool, o Options) string {
+	if !disrupted {
+		c.setOutcome(OutcomeMonitored)
+		c.logger.Infof("observe-outcome: MONITORED — no disruption requested; %d node(s) observed for %s", len(st), o.Duration)
+		return OutcomeMonitored
+	}
+
+	desynced, recovered, stuck, roundLoss := 0, 0, 0, 0
+	for name, ns := range st {
+		if ns.onset {
+			desynced++
+		}
+		if ns.onset && ns.recovered {
+			recovered++
+		}
+		// stuck: de-synced, never recovered, past its recovery deadline
+		if ns.onset && !ns.recovered && !ns.recoverBy.IsZero() && time.Now().After(ns.recoverBy) {
+			stuck++
+		}
+		// staked round-loss: rounds advanced after onset but the node never played/won
+		if ns.onset && ns.haveLast && ns.lastRound > ns.refRound && ns.lastPlayed == ns.refPlayed && ns.lastWon == ns.refWon {
+			roundLoss++
+			c.logger.Warningf("observe-outcome: %s round-loss — round %d->%d while lastPlayed/Won stalled (%d/%d) since de-sync", name, ns.refRound, ns.lastRound, ns.refPlayed, ns.refWon)
+		}
+	}
+
+	if stuck > 0 || roundLoss > 0 {
+		c.setOutcome(OutcomeHalt)
+		c.logger.Warningf("observe-outcome: HALT — %d/%d survivor(s) stuck de-synced past %s, %d with staked round-loss (%d de-synced, %d recovered)", stuck, len(st), o.RecoveryWait, roundLoss, desynced, recovered)
+		return OutcomeHalt
+	}
+	c.setOutcome(OutcomeRecovered)
+	c.logger.Infof("observe-outcome: RECOVERED — all %d survivor(s) converged (%d de-synced then recovered)", len(st), recovered)
+	return OutcomeRecovered
+}
+
+// setOutcome one-hot-encodes the classified outcome into the outcome gauge.
+func (c *Check) setOutcome(outcome string) {
+	for _, name := range []string{OutcomeMonitored, OutcomeHalt, OutcomeRecovered} {
+		v := 0.0
+		if name == outcome {
+			v = 1
+		}
+		c.metrics.Outcome.WithLabelValues(name).Set(v)
+	}
 }
 
 // obsNode is the per-node state the observe monitor tracks across polls.
