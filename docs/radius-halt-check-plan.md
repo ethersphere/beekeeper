@@ -150,10 +150,9 @@ or just monitor, all without a red result.
 - [x] `mode: halt` (`runHalt`): stake → warmup → `driveAllToRadius` (gates on the **min** node radius,
       not the max, so ALL observed nodes reach `DisruptAtRadius`) → settle window. `updatePeak` now
       returns `(min, max)`. Disruption (Phase 3) + outcome observation (Phase 4) are stubbed with TODOs.
-- [ ] `mode: observe`+disrupt: poll until every observed node reports
+- [x] `mode: observe`+disrupt: poll until every observed node reports
       `storageRadius >= DisruptAtRadius` (load drives), with a timeout.
-      **(Resequenced → Phase 3: the wait-to-radius helper is dead code until the observe+disrupt
-      dispatch exists, which needs the Phase-3 `disrupt-mechanism`/`disrupt-node-count` options.)**
+      **(Resequenced → done in Phase 3.0 as `waitAllReachRadius`.)**
 - [x] Record a pre-disruption baseline snapshot (`baselineSnapshot`): per node, storageRadius +
       reserveSizeWithinRadius (/status), isFullySynced + round/lastPlayed/lastWon
       (/redistributionstate), and stake — emitted + logged. Wired into `runHalt` (replaces the plain
