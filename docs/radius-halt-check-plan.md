@@ -228,8 +228,10 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
       → drive all to radius 3 → remove 2 of 6 → observe) and `ci-reserve-radius-observe-disrupt` (the
       parallel-with-`ci-load-soak` observe+disrupt shape). Both default `verdict: report`; flip to
       `assert` + `expect-recovery` for the A/B gate. YAML validated (`stake-amount` quoted = string).
-- [ ] Update `pkg/check/reserveradius/README.md`, the `radius-testing` skill, and cross-link
-      `docs/radius-halt.md` ↔ this plan.
+- [x] Update `pkg/check/reserveradius/README.md` (kept current each cycle), the `radius-testing` skill
+      (new "reserve-radius check modes (current)" section: drive/observe/observe+disrupt/halt, mechanisms,
+      verdict, footgun), and cross-link `docs/radius-halt.md` ↔ this plan (back-link added; plan already
+      links the recipe).
 
 ### Phase 6 — A/B validation
 - [ ] Run `ci-radius-halt` against **A** (patched stock master) → expect halt reproduced
