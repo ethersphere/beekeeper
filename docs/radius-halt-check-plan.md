@@ -152,11 +152,22 @@ or just monitor, all without a red result.
       returns `(min, max)`. Disruption (Phase 3) + outcome observation (Phase 4) are stubbed with TODOs.
 - [ ] `mode: observe`+disrupt: poll until every observed node reports
       `storageRadius >= DisruptAtRadius` (load drives), with a timeout.
-- [ ] Record a pre-disruption baseline snapshot (radius, within, fullySynced, round, stake).
+      **(Resequenced → Phase 3: the wait-to-radius helper is dead code until the observe+disrupt
+      dispatch exists, which needs the Phase-3 `disrupt-mechanism`/`disrupt-node-count` options.)**
+- [x] Record a pre-disruption baseline snapshot (`baselineSnapshot`): per node, storageRadius +
+      reserveSizeWithinRadius (/status), isFullySynced + round/lastPlayed/lastWon
+      (/redistributionstate), and stake — emitted + logged. Wired into `runHalt` (replaces the plain
+      `snapshot("baseline")`). Phase 4 will extend it to return the values for onset/round-loss compare.
 
 ### Phase 3 — Disruption mechanisms (`disrupt-mechanism`)
 Shared: a `disruption_total` metric + timestamp marks the onset reference. `disrupt-mechanism: none`
 (or node-churn with `disrupt-node-count: 0`) skips straight to observe (monitor-only).
+
+**3.0 — observe+disrupt dispatch + staging** (resequenced from Phase 2)
+- [ ] Add `disrupt-mechanism` dispatch so `mode: observe` with a mechanism set runs the staged
+      reproduction (wait-to-radius → baseline → disrupt → observe) instead of the plain soak monitor.
+- [ ] `mode: observe`+disrupt staging: poll until every observed node reports
+      `storageRadius >= DisruptAtRadius` (load drives), with a timeout; then `baselineSnapshot`.
 
 **3a — node-churn**
 - [ ] Add `DisruptNodeCount` (default 2; `0` = skip) and `DisruptMethod` (`stop` default | `delete`).

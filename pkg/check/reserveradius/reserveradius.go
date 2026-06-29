@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -301,7 +302,7 @@ func (c *Check) runHalt(ctx context.Context, cluster orchestration.Cluster, o Op
 	if err := c.waitForWarmupDone(ctx, nodes, o); err != nil {
 		return err
 	}
-	c.snapshot(ctx, nodes, "baseline")
+	c.baselineSnapshot(ctx, nodes)
 
 	// 2. Drive every observed node up to DisruptAtRadius (a populated neighbourhood
 	//    is the precondition for the disruption to bite).
@@ -622,6 +623,47 @@ func (c *Check) snapshot(ctx context.Context, nodes orchestration.ClientList, ph
 			phase, n.Name(), s.StorageRadius, s.ReserveSize, s.ReserveSizeWithinRadius, s.PullsyncRate, s.IsWarmingUp)
 	}
 	return mx
+}
+
+// baselineSnapshot logs and emits the pre-disruption reference state for every node:
+// storage radius + reserveSizeWithinRadius (/status), isFullySynced + round
+// participation (/redistributionstate), and stake. Best-effort per node — a failed
+// read shows as "?" in the log. Phase 4 will extend this to return the captured
+// values for onset and staked-round-loss comparison.
+func (c *Check) baselineSnapshot(ctx context.Context, nodes orchestration.ClientList) {
+	for _, n := range nodes {
+		name := n.Name()
+
+		radius, within := "?", "?"
+		if s, err := n.Status(ctx); err == nil {
+			c.emit(name, s)
+			radius = strconv.Itoa(int(s.StorageRadius))
+			within = strconv.FormatUint(s.ReserveSizeWithinRadius, 10)
+		} else {
+			c.logger.Debugf("baseline %s: status error: %v", name, err)
+		}
+
+		synced, round, played, won := "?", "?", "?", "?"
+		if r, err := n.RedistributionState(ctx); err == nil {
+			c.emitRedist(name, r)
+			synced = strconv.FormatBool(r.IsFullySynced)
+			round = strconv.FormatUint(r.Round, 10)
+			played = strconv.FormatUint(r.LastPlayedRound, 10)
+			won = strconv.FormatUint(r.LastWonRound, 10)
+		} else {
+			c.logger.Debugf("baseline %s: redistributionstate error: %v", name, err)
+		}
+
+		stake := "?"
+		if st, err := n.GetStake(ctx); err == nil {
+			stake = st.String()
+		} else {
+			c.logger.Debugf("baseline %s: stake error: %v", name, err)
+		}
+
+		c.logger.Infof("[baseline] %s: storageRadius=%s withinR=%s fullySynced=%s round=%s lastPlayed=%s lastWon=%s stake=%s",
+			name, radius, within, synced, round, played, won, stake)
+	}
 }
 
 // updatePeak polls each node, emits metrics, raises the per-node high-water peak,

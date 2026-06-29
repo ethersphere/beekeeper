@@ -67,7 +67,8 @@ driven externally, e.g. by a parallel `load` check).
 **`halt`** (`runHalt`): the self-driving reproduction.
 
 1. **stake** (optional `ensureStaked` pre-step, as above).
-2. **`waitForWarmupDone`** + **baseline** snapshot.
+2. **`waitForWarmupDone`** + **`baselineSnapshot`** — the pre-disruption reference: per node, storage
+   radius + `reserveSizeWithinRadius`, `isFullySynced` + round/lastPlayed/lastWon, and stake.
 3. **`driveAllToRadius`** — buy a mutable batch and upload until **every** observed node's
    `storageRadius` reaches `DisruptAtRadius` (gates on the **min** across nodes, so the whole
    neighbourhood is populated before disruption), or `MaxUploads` / `IncreaseTimeout`.
