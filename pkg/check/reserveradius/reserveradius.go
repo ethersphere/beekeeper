@@ -21,6 +21,8 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -34,47 +36,49 @@ import (
 
 // Options represents reserve-radius check options.
 type Options struct {
-	Mode            string        // "drive" (upload to force a change) or "observe" (monitor a change driven externally)
-	Duration        time.Duration // observe mode: total monitor run length
-	RndSeed         int64
-	StakeAmount     string   // per-node stake to ensure before driving (wei, e.g. "100000000000000000"); empty/"0" = skip
-	StakeGroups     []string // node groups to stake (empty = the observed/selected groups)
-	PostageTTL      time.Duration
-	PostageDepth    uint64
-	PostageLabel    string
-	UploadGroups    []string      // node groups to upload to / observe (empty = all full nodes)
-	BlobSize        int64         // bytes per upload
-	MaxUploads      int           // cap on uploads during the increase phase
-	TargetRadius    uint8         // storageRadius to reach before stopping uploads
-	WarmupWait      time.Duration // max wait for nodes to leave warmup before staging
-	IncreaseTimeout time.Duration // max time to reach TargetRadius
-	SettleWait      time.Duration // wait after uploads for pushsync overshoot to drain
-	DecreaseTimeout time.Duration // max time to observe a decrease after uploads stop
-	RecoveryWait    time.Duration // observe mode: max wait for pull-sync recovery after each decrease
-	PollInterval    time.Duration
+	Mode             string        // "drive" (upload to force a change) or "observe" (monitor a change driven externally)
+	Duration         time.Duration // observe mode: total monitor run length
+	RndSeed          int64
+	StakeAmount      string        // per-node stake to ensure before driving (wei, e.g. "100000000000000000"); empty/"0" = skip
+	StakeGroups      []string      // node groups to stake (empty = the observed/selected groups)
+	StakeConfirmWait time.Duration // max wait for a deposit to reflect on-chain (~10 blocks)
+	PostageTTL       time.Duration
+	PostageDepth     uint64
+	PostageLabel     string
+	UploadGroups     []string      // node groups to upload to / observe (empty = all full nodes)
+	BlobSize         int64         // bytes per upload
+	MaxUploads       int           // cap on uploads during the increase phase
+	TargetRadius     uint8         // storageRadius to reach before stopping uploads
+	WarmupWait       time.Duration // max wait for nodes to leave warmup before staging
+	IncreaseTimeout  time.Duration // max time to reach TargetRadius
+	SettleWait       time.Duration // wait after uploads for pushsync overshoot to drain
+	DecreaseTimeout  time.Duration // max time to observe a decrease after uploads stop
+	RecoveryWait     time.Duration // observe mode: max wait for pull-sync recovery after each decrease
+	PollInterval     time.Duration
 }
 
 // NewDefaultOptions returns new default options.
 func NewDefaultOptions() Options {
 	return Options{
-		Mode:            ModeDrive,
-		Duration:        12 * time.Hour,
-		RndSeed:         time.Now().UnixNano(),
-		StakeAmount:     "", // skip staking unless set
-		StakeGroups:     nil,
-		PostageTTL:      24 * time.Hour,
-		PostageDepth:    22,
-		PostageLabel:    "reserve-radius",
-		UploadGroups:    []string{"bee"},
-		BlobSize:        1 << 20, // 1 MiB
-		MaxUploads:      60,
-		TargetRadius:    1,
-		WarmupWait:      15 * time.Minute,
-		IncreaseTimeout: 5 * time.Minute,
-		SettleWait:      time.Minute,
-		DecreaseTimeout: 20 * time.Minute,
-		RecoveryWait:    5 * time.Minute,
-		PollInterval:    15 * time.Second,
+		Mode:             ModeDrive,
+		Duration:         12 * time.Hour,
+		RndSeed:          time.Now().UnixNano(),
+		StakeAmount:      "", // skip staking unless set
+		StakeGroups:      nil,
+		StakeConfirmWait: 2 * time.Minute,
+		PostageTTL:       24 * time.Hour,
+		PostageDepth:     22,
+		PostageLabel:     "reserve-radius",
+		UploadGroups:     []string{"bee"},
+		BlobSize:         1 << 20, // 1 MiB
+		MaxUploads:       60,
+		TargetRadius:     1,
+		WarmupWait:       15 * time.Minute,
+		IncreaseTimeout:  5 * time.Minute,
+		SettleWait:       time.Minute,
+		DecreaseTimeout:  20 * time.Minute,
+		RecoveryWait:     5 * time.Minute,
+		PollInterval:     15 * time.Second,
 	}
 }
 
@@ -136,6 +140,85 @@ func (c *Check) selectNodes(ctx context.Context, cluster orchestration.Cluster, 
 	return nodes, nil
 }
 
+// ensureStaked makes sure every node in the staking set has at least StakeAmount
+// staked, depositing the shortfall and confirming on-chain. It is idempotent: a
+// node already at/above the target is skipped, and "already staked" is tolerated.
+// Skips entirely when StakeAmount is empty or "0". The staking set is StakeGroups
+// (full nodes filtered) or, when unset, the observed nodes.
+func (c *Check) ensureStaked(ctx context.Context, cluster orchestration.Cluster, observed orchestration.ClientList, o Options) error {
+	amount := strings.TrimSpace(o.StakeAmount)
+	if amount == "" || amount == "0" {
+		return nil // staking disabled
+	}
+	want, ok := new(big.Int).SetString(amount, 10)
+	if !ok || want.Sign() <= 0 {
+		return fmt.Errorf("invalid stake-amount %q (want a positive base-10 wei integer)", o.StakeAmount)
+	}
+
+	nodes := observed
+	if len(o.StakeGroups) > 0 {
+		rnd := random.PseudoGenerator(o.RndSeed)
+		full, err := cluster.ShuffledFullNodeClients(ctx, rnd)
+		if err != nil {
+			return fmt.Errorf("get full node clients for staking: %w", err)
+		}
+		nodes = full.FilterByNodeGroups(o.StakeGroups)
+	}
+	if len(nodes) == 0 {
+		return errors.New("ensureStaked: no nodes selected for staking")
+	}
+
+	c.logger.Infof("ensureStaked: ensuring >= %s wei staked on %d node(s)", want, len(nodes))
+	for _, n := range nodes {
+		if err := c.ensureNodeStaked(ctx, n, want, o); err != nil {
+			return fmt.Errorf("ensureStaked %s: %w", n.Name(), err)
+		}
+	}
+	return nil
+}
+
+// ensureNodeStaked tops a single node up to want (if below) and confirms the deposit.
+func (c *Check) ensureNodeStaked(ctx context.Context, n *bee.Client, want *big.Int, o Options) error {
+	cur, err := n.GetStake(ctx)
+	if err != nil {
+		return fmt.Errorf("get stake: %w", err)
+	}
+	if cur.Cmp(want) >= 0 {
+		c.logger.Infof("ensureStaked: %s already staked %s wei (>= %s) — skip", n.Name(), cur, want)
+		return nil
+	}
+	c.logger.Infof("ensureStaked: %s staked %s wei < target %s — depositing", n.Name(), cur, want)
+	if _, err := n.DepositStake(ctx, want); err != nil {
+		return fmt.Errorf("deposit stake: %w", err)
+	}
+	// POST /stake returns a tx hash; the staked amount may not reflect until the tx
+	// mines (~a few blocks), so poll until it confirms (or already mined → immediate).
+	return c.waitStakeAtLeast(ctx, n, want, o)
+}
+
+// waitStakeAtLeast polls a node's stake until it reaches want or the budget expires.
+func (c *Check) waitStakeAtLeast(ctx context.Context, n *bee.Client, want *big.Int, o Options) error {
+	deadline := time.Now().Add(o.StakeConfirmWait)
+	var last error
+	for {
+		cur, err := n.GetStake(ctx)
+		last = err
+		if err == nil && cur.Cmp(want) >= 0 {
+			c.logger.Infof("ensureStaked: %s confirmed staked %s wei", n.Name(), cur)
+			return nil
+		}
+		if time.Now().After(deadline) {
+			if last != nil {
+				return fmt.Errorf("stake not confirmed within %s: %w", o.StakeConfirmWait, last)
+			}
+			return fmt.Errorf("stake not confirmed within %s (still below %s wei)", o.StakeConfirmWait, want)
+		}
+		if err := sleepCtx(ctx, o.PollInterval); err != nil {
+			return err
+		}
+	}
+}
+
 // runDrive uploads to force a radius increase, then observes the decrease + recovery.
 func (c *Check) runDrive(ctx context.Context, cluster orchestration.Cluster, o Options) error {
 	if o.TargetRadius == 0 {
@@ -147,6 +230,11 @@ func (c *Check) runDrive(ctx context.Context, cluster orchestration.Cluster, o O
 	}
 	uploader := nodes[0] // a random node, since the list is shuffled
 	c.logger.Infof("mode=drive uploader: %s, observing %d node(s)", uploader.Name(), len(nodes))
+
+	// 0. Stake (optional) — runs before warmup so deposits confirm while we wait.
+	if err := c.ensureStaked(ctx, cluster, nodes, o); err != nil {
+		return err
+	}
 
 	// 1. Wait for warmup/stabilization — the decrease loop is gated on it.
 	if err := c.waitForWarmupDone(ctx, nodes, o); err != nil {
@@ -205,6 +293,10 @@ func (c *Check) runObserve(ctx context.Context, cluster orchestration.Cluster, o
 		return err
 	}
 	c.logger.Infof("mode=observe monitoring %d node(s) for %s (no uploads; drive the radius externally, e.g. the load check)", len(nodes), o.Duration)
+
+	if err := c.ensureStaked(ctx, cluster, nodes, o); err != nil {
+		return err
+	}
 
 	if err := c.waitForWarmupDone(ctx, nodes, o); err != nil {
 		return err

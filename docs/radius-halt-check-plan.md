@@ -137,9 +137,13 @@ or just monitor, all without a red result.
       e.g. `"100000000000000000"`; empty/`"0"` = skip), `StakeGroups` (`stake-groups`, default =
       observed groups). Held as a `string` in `Options` (parsed at use-time) so config mapping and the
       empty=skip sentinel stay trivial.
-- [ ] New stage `ensureStaked`: for each selected node, `GetStake`; if `< StakeAmount`,
-      `DepositStake`; re-read to verify. Idempotent, logged per node. Tolerate "already staked".
-- [ ] Budget the ~10-block usable wait if a fresh batch/stake needs confirmations.
+- [x] New stage `ensureStaked` (+`ensureNodeStaked`): for each node in the staking set (`StakeGroups`,
+      or the observed nodes), `GetStake`; if `< StakeAmount`, `DepositStake`; re-read to verify.
+      Idempotent (already-at-target nodes skipped), logged per node. Wired before warmup in both
+      `runDrive` and `runObserve`, gated on `stake-amount` set.
+- [x] Budget the ~10-block usable wait via `waitStakeAtLeast` + `stake-confirm-wait` (default `2m`):
+      `POST /stake` returns a tx hash, so poll `GetStake` until the deposit confirms on-chain (or the
+      budget expires). Already-mined deposits pass immediately.
 
 ### Phase 2 — Drive (or wait) to the disruption radius
 - [ ] Add `DisruptAtRadius` (default 3) distinct from `TargetRadius`.

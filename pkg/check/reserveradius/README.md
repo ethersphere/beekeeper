@@ -20,7 +20,13 @@ It has two modes (`Options.Mode`):
 
 ## What it does (`Run` flow)
 
-`Run` dispatches on `Mode`.
+`Run` dispatches on `Mode`. Both modes first run an optional **staking pre-step**.
+
+**staking pre-step** (`ensureStaked`, both modes): when `stake-amount` is set, ensure every node in
+the staking set (`stake-groups`, or the observed nodes) has at least that stake — `GetStake`, and if
+below, `DepositStake` then poll until the deposit confirms on-chain (within `stake-confirm-wait`).
+Idempotent: nodes already at/above target are skipped. Runs before warmup so deposits confirm while
+the cluster stabilizes.
 
 **`drive`** (`runDrive`):
 
@@ -67,6 +73,7 @@ Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 | `RndSeed` | `rnd-seed` | `time.Now().UnixNano()` | both | seed for `random.PseudoGenerator` → shuffled node pick |
 | `StakeAmount` | `stake-amount` | `""` (skip) | both | per-node stake (wei) to ensure before driving, e.g. `"100000000000000000"`; empty/`"0"` skips |
 | `StakeGroups` | `stake-groups` | `nil` (observed) | both | node groups to stake (empty = the observed/selected groups) |
+| `StakeConfirmWait` | `stake-confirm-wait` | `2m` | both | max wait for a deposit to confirm on-chain (~10 blocks) |
 | `UploadGroups` | `upload-groups` | `[bee]` | both | node groups to observe (and, in drive, upload to) |
 | `PollInterval` | `poll-interval` | `15s` | both | poll cadence |
 | `PostageTTL` | `postage-ttl` | `24h` | drive | batch TTL (use TTL, not a raw amount) |
