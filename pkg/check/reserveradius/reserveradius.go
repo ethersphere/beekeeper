@@ -51,6 +51,10 @@ type Options struct {
 	MaxUploads       int           // cap on uploads during the increase phase
 	TargetRadius     uint8         // drive mode: storageRadius any node must reach before stopping uploads
 	DisruptAtRadius  uint8         // halt mode: storageRadius ALL observed nodes must reach before disruption
+	DisruptMechanism string        // "node-churn" (default) | "batch-expiry" | "both" | "none"
+	DisruptNodeCount int           // node-churn: full nodes to remove (randomly, seeded by RndSeed); 0 = skip
+	DisruptMethod    string        // node-churn: "stop" (scale-0, default) | "delete"
+	MinSurvivors     int           // refuse to disrupt below this many surviving nodes
 	WarmupWait       time.Duration // max wait for nodes to leave warmup before staging
 	IncreaseTimeout  time.Duration // max time to reach TargetRadius
 	SettleWait       time.Duration // wait after uploads for pushsync overshoot to drain
@@ -76,6 +80,10 @@ func NewDefaultOptions() Options {
 		MaxUploads:       60,
 		TargetRadius:     1,
 		DisruptAtRadius:  3,
+		DisruptMechanism: DisruptNodeChurn,
+		DisruptNodeCount: 2,
+		DisruptMethod:    RemoveStop,
+		MinSurvivors:     3,
 		WarmupWait:       15 * time.Minute,
 		IncreaseTimeout:  5 * time.Minute,
 		SettleWait:       time.Minute,
@@ -107,6 +115,20 @@ const (
 	ModeDrive   = "drive"   // upload to force a radius change, then observe the decrease
 	ModeObserve = "observe" // monitor radius changes driven externally (e.g. by the load check)
 	ModeHalt    = "halt"    // self-driving: stake → drive all nodes → disrupt → observe outcome
+)
+
+// Disruption mechanisms for Options.DisruptMechanism.
+const (
+	DisruptNodeChurn   = "node-churn"   // stop/delete random full nodes (default)
+	DisruptBatchExpiry = "batch-expiry" // expire a fill batch → commitment drop → radius decrease
+	DisruptBoth        = "both"         // batch-expiry + node-churn for a harsher merge
+	DisruptNone        = "none"         // monitor-only (no disruption)
+)
+
+// Node-removal methods for Options.DisruptMethod.
+const (
+	RemoveStop   = "stop"   // scale statefulset to 0 (restorable)
+	RemoveDelete = "delete" // delete statefulset + services/ingress/secret/configmap
 )
 
 // Run dispatches on Mode: drive (force a change and observe it), observe

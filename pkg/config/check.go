@@ -515,6 +515,10 @@ var Checks = map[string]CheckType{
 				MaxUploads       *int           `yaml:"max-uploads"`
 				TargetRadius     *uint8         `yaml:"target-radius"`
 				DisruptAtRadius  *uint8         `yaml:"disrupt-at-radius"`
+				DisruptMechanism *string        `yaml:"disrupt-mechanism"`
+				DisruptNodeCount *int           `yaml:"disrupt-node-count"`
+				DisruptMethod    *string        `yaml:"disrupt-method"`
+				MinSurvivors     *int           `yaml:"min-survivors"`
 				WarmupWait       *time.Duration `yaml:"warmup-wait"`
 				IncreaseTimeout  *time.Duration `yaml:"increase-timeout"`
 				SettleWait       *time.Duration `yaml:"settle-wait"`

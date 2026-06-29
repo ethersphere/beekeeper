@@ -164,13 +164,20 @@ Shared: a `disruption_total` metric + timestamp marks the onset reference. `disr
 (or node-churn with `disrupt-node-count: 0`) skips straight to observe (monitor-only).
 
 **3.0 — observe+disrupt dispatch + staging** (resequenced from Phase 2)
+> **Deferred until 3a (disrupt stage) + Phase 4 (observe-outcome) land.** The dispatch wires together
+> stages that don't exist yet, and `runHalt` is the ready consumer for those stages — so build the
+> mechanism + observe-outcome first, then add this dispatch to reuse them. Working 3a first.
 - [ ] Add `disrupt-mechanism` dispatch so `mode: observe` with a mechanism set runs the staged
       reproduction (wait-to-radius → baseline → disrupt → observe) instead of the plain soak monitor.
 - [ ] `mode: observe`+disrupt staging: poll until every observed node reports
       `storageRadius >= DisruptAtRadius` (load drives), with a timeout; then `baselineSnapshot`.
 
 **3a — node-churn**
-- [ ] Add `DisruptNodeCount` (default 2; `0` = skip) and `DisruptMethod` (`stop` default | `delete`).
+- [x] Add the disruption option surface: `DisruptMechanism` (`disrupt-mechanism`, default `node-churn`),
+      `DisruptNodeCount` (default 2; `0` = skip), `DisruptMethod` (`stop` default | `delete`), and
+      `MinSurvivors` (default 3) — with mechanism (`DisruptNodeChurn`/`DisruptBatchExpiry`/`DisruptBoth`/
+      `DisruptNone`) and method (`RemoveStop`/`RemoveDelete`) constants, config mapping, defaults, README.
+      *(MinSurvivors + DisruptMechanism folded in here since the node-churn stage consumes all of them.)*
 - [ ] **Randomly** select `DisruptNodeCount` nodes, seeded by `rnd-seed` (reproducible); in `halt` mode
       exclude the uploader so driving still works. Build the **survivor set** the observe loop polls —
       removed nodes drop out of polling.

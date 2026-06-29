@@ -99,6 +99,10 @@ Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 | `MaxUploads` | `max-uploads` | `60` | drive | cap on uploads in the increase phase |
 | `TargetRadius` | `target-radius` | `1` | drive | storageRadius any node must reach before stopping uploads |
 | `DisruptAtRadius` | `disrupt-at-radius` | `3` | halt | storageRadius **all** observed nodes must reach before disruption |
+| `DisruptMechanism` | `disrupt-mechanism` | `node-churn` | halt/observe+disrupt | `node-churn`, `batch-expiry`, `both`, or `none` (monitor-only) |
+| `DisruptNodeCount` | `disrupt-node-count` | `2` | halt/observe+disrupt | node-churn: full nodes to remove (randomly, seeded by `rnd-seed`); `0` = skip |
+| `DisruptMethod` | `disrupt-method` | `stop` | halt/observe+disrupt | node-churn: `stop` (scale statefulset to 0) or `delete` (statefulset + resources) |
+| `MinSurvivors` | `min-survivors` | `3` | halt/observe+disrupt | refuse to disrupt below this many surviving nodes |
 | `WarmupWait` | `warmup-wait` | `15m` | both | max wait for nodes to finish warmup |
 | `IncreaseTimeout` | `increase-timeout` | `5m` | drive | max time to reach `TargetRadius` |
 | `SettleWait` | `settle-wait` | `1m` | drive | post-upload window (pushsync drain + peak tracking) |
