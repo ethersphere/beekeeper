@@ -40,7 +40,7 @@ clusters:
       bee:
         bee-config: bee-local-dns
         config: local-dns
-        count: 3
+        count: 6
         mode: node
       light:
         bee-config: bee-local-light
@@ -380,13 +380,15 @@ checks:
       postage-depth: 22
       postage-label: reserve-radius
       blob-size: 8388608
-      max-uploads: 60
+      max-uploads: 0
       max-committed-depth: 3
       warmup-wait: 15m
       increase-timeout: 15m
       settle-wait: 1m
       decrease-timeout: 20m
       poll-interval: 15s
+      stake-amount: "100000000000000000"  # 1e17 wei = minimum stake; ensure + top up before driving ("" / "0" = skip)
+      stake-confirm-wait: 2m
       upload-groups:
         - bee
     timeout: 45m

@@ -24,6 +24,11 @@ It has two modes (`Options.Mode`):
 
 **`drive`** (`runDrive`):
 
+0. **`ensureStaked`** — if `StakeAmount` is set, make sure every node in the staking set
+   (`StakeGroups`, or all full nodes when empty) has at least that stake: read each node's stake,
+   deposit the shortfall, and poll until it confirms on-chain. Idempotent (nodes already
+   at/above target are skipped); a no-op when `StakeAmount` is empty/`0`. `observe` runs this
+   first too.
 1. **`waitForWarmupDone`** — block until every observed node reports
    `isWarmingUp == false`. The reserve worker's *decrease* loop is gated on
    stabilization, so this is a precondition for the radius ever dropping.
@@ -82,6 +87,9 @@ Defaults in `NewDefaultOptions()`; YAML keys (kebab-case) are wired in
 | `IncreaseTimeout` | `increase-timeout` | `5m` | drive | max time to reach `MaxCommittedDepth` |
 | `SettleWait` | `settle-wait` | `1m` | drive | post-upload window (pushsync drain + peak tracking) |
 | `DecreaseTimeout` | `decrease-timeout` | `20m` | drive | max time to observe a decrease |
+| `StakeAmount` | `stake-amount` | `""` | both | per-node stake to ensure before staging, in wei (e.g. `"100000000000000000"`); `""`/`"0"` = skip |
+| `StakeGroups` | `stake-groups` | `nil` | both | node groups to stake (empty = all full nodes) |
+| `StakeConfirmWait` | `stake-confirm-wait` | `2m` | both | max wait for a stake deposit to confirm on-chain |
 
 ## Metrics (`metrics.go`)
 

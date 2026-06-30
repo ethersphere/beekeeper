@@ -20,6 +20,7 @@ type Cluster interface {
 	FlattenOverlays(ctx context.Context, exclude ...string) (map[string]swarm.Address, error)
 	FlattenSettlements(ctx context.Context) (settlements NodeGroupSettlements, err error)
 	FlattenTopologies(ctx context.Context) (topologies map[string]bee.Topology, err error)
+	FullNodeClients(ctx context.Context) (ClientList, error)
 	FullNodeNames() (names []string)
 	GlobalReplicationFactor(ctx context.Context, a swarm.Address) (grf int, err error)
 	LightNodeNames() (names []string)

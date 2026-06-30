@@ -244,14 +244,23 @@ func (c *Cluster) FullNodeNames() (names []string) {
 	return names
 }
 
-// ShuffledFullNodeClients returns a shuffled list of full node clients
-func (c *Cluster) ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) (orchestration.ClientList, error) {
+// FullNodeClients returns the clients of all full (non-bootnode) nodes in the cluster.
+func (c *Cluster) FullNodeClients(ctx context.Context) (orchestration.ClientList, error) {
 	var res orchestration.ClientList
 	for _, node := range c.Nodes() {
 		cfg := node.Config()
 		if orchestration.Deref(cfg.FullNode) && !orchestration.Deref(cfg.BootnodeMode) {
 			res = append(res, node.Client())
 		}
+	}
+	return res, nil
+}
+
+// ShuffledFullNodeClients returns FullNodeClients in a random order.
+func (c *Cluster) ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) (orchestration.ClientList, error) {
+	res, err := c.FullNodeClients(ctx)
+	if err != nil {
+		return nil, err
 	}
 	r.Shuffle(len(res), func(i, j int) {
 		res[i], res[j] = res[j], res[i]

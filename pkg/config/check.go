@@ -517,6 +517,9 @@ var Checks = map[string]CheckType{
 				DecreaseTimeout   *time.Duration `yaml:"decrease-timeout"`
 				RecoveryWait      *time.Duration `yaml:"recovery-wait"`
 				PollInterval      *time.Duration `yaml:"poll-interval"`
+				StakeAmount       *string        `yaml:"stake-amount"`
+				StakeGroups       *[]string      `yaml:"stake-groups"`
+				StakeConfirmWait  *time.Duration `yaml:"stake-confirm-wait"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
