@@ -150,9 +150,10 @@ type Config struct {
 	SwapInitialDeposit          *string        `yaml:"swap-initial-deposit,omitempty"`           // initial deposit if deploying a new chequebook
 	TargetNeighborhood          *string        `yaml:"target-neighborhood,omitempty"`            // neighborhood to target in binary format (ex: 111111001) for mining the initial overlay
 	TracingEnabled              *bool          `yaml:"tracing-enable,omitempty"`                 // enable tracing
-	TracingEndpoint             *string        `yaml:"tracing-endpoint,omitempty"`               // endpoint to send tracing data
-	TracingHost                 *string        `yaml:"tracing-host,omitempty"`                   // host to send tracing data
-	TracingPort                 *string        `yaml:"tracing-port,omitempty"`                   // port to send tracing data
+	TracingEndpoint             *string        `yaml:"tracing-endpoint,omitempty"`               // OTLP collector endpoint for tracing data (host:port)
+	TracingInsecure             *bool          `yaml:"tracing-insecure,omitempty"`               // disable TLS for the OTLP exporter
+	TracingProtocol             *string        `yaml:"tracing-protocol,omitempty"`               // OTLP exporter transport: http or grpc
+	TracingSamplingRatio        *float64       `yaml:"tracing-sampling-ratio,omitempty"`         // head-based sampling ratio in [0,1]; 1 samples everything
 	TracingServiceName          *string        `yaml:"tracing-service-name,omitempty"`           // service name identifier for tracing
 	TransactionDebugMode        *bool          `yaml:"transaction-debug-mode,omitempty"`         // skips the gas estimate step for contract transactions
 	UseSIMD                     *bool          `yaml:"use-simd,omitempty"`                       // use SIMD BMT hasher (available only on linux amd64 platforms)
