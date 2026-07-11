@@ -294,7 +294,18 @@ var Checks = map[string]CheckType{
 	"pingpong": {
 		NewAction: pingpong.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				PingAllPeers *bool `yaml:"ping-all-peers"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
 			opts := pingpong.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
 			return opts, nil
 		},
 	},

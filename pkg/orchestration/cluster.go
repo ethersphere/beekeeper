@@ -78,6 +78,18 @@ type (
 	ClientMap  map[string]*bee.Client
 )
 
+// Contains reports whether addr is the overlay of any node in the cluster.
+func (c ClusterOverlays) Contains(addr swarm.Address) bool {
+	for _, ngo := range c {
+		for _, overlay := range ngo {
+			if overlay.Equal(addr) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // RandomOverlay returns a random overlay from a random NodeGroup
 func (c ClusterOverlays) Random(r *rand.Rand) (nodeGroup string, nodeName string, overlay swarm.Address) {
 	i := r.Intn(len(c))
