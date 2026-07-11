@@ -374,104 +374,34 @@ checks:
         - light
     timeout: 30m
     type: load
+  # Self-driving radius check: upload random data to random full nodes (own postage label) to
+  # drive the storage radius up to target-radius (3); then wait for pull-sync to go idle
+  # (pullsyncRate==0 — the reserve worker only decreases while SyncRate()==0), dilute one batch
+  # down to the chain's minimum validity so it expires soon (commitment drop), and verify the
+  # radius ticks back down below its peak (3 -> 2). Needs the patched bee image (small reserve).
+  # Locally the reserve-worker idle tick drops the radius in ~10 min (before any expiry); on
+  # testnet the drop is expiry-driven (~minimumValidityBlocks after diluting, a few hours) —
+  # there, raise decrease-timeout to ~6h and timeout to ~8h (a chain postage price must be set).
   ci-reserve-radius:
     options:
-      postage-ttl: 24h
+      postage-ttl: 48h # must exceed the 24h min-validity floor (24h lands on the boundary and is rejected)
       postage-depth: 22
       postage-label: reserve-radius
-      blob-size: 1048576
-      max-uploads: 60
-      target-radius: 1
+      blob-size: 8388608 # 8 MiB — bigger blobs reach the higher target radius faster
+      max-uploads: 200
+      target-radius: 3
+      force-decrease: true # dilute one batch to minimum validity to hasten its expiry (commitment drop)
+      dilute-step: 1 # +1 per dilution ~halves TTL; larger jumps revert at the min-validity floor
+      max-dilutions: 20
       warmup-wait: 15m
-      increase-timeout: 5m
-      settle-wait: 1m
-      decrease-timeout: 20m
+      increase-timeout: 30m
+      sync-settle-wait: 10m # wait for pullsyncRate==0 before diluting/observing (the decrease gate)
+      decrease-timeout: 30m # local: the idle tick drops it in ~10min. testnet (expiry-driven): ~6h
       poll-interval: 15s
       upload-groups:
         - bee
     timeout: 45m
     type: reserve-radius
-  ci-reserve-radius-observe:
-    options:
-      mode: observe
-      disrupt-mechanism: none # monitor-only soak; set node-churn to run the staged observe+disrupt reproduction
-      duration: 30m
-      recovery-wait: 10m
-      poll-interval: 15s
-      upload-groups:
-        - bee
-    timeout: 35m
-    type: reserve-radius
-  # Self-driving pull-sync-halt reproduction (single check): stake → drive all nodes to radius 3 →
-  # remove 2 of 6 → observe the survivors. verdict:report records HALT/RECOVERED/MONITORED without
-  # failing; for the A/B gate set verdict:assert + expect-recovery (false on A=stock, true on B=fix).
-  ci-radius-halt:
-    options:
-      mode: halt
-      stake-amount: "100000000000000000" # 1e17 per node (quoted: option is a string)
-      stake-confirm-wait: 2m
-      disrupt-at-radius: 3
-      disrupt-mechanism: node-churn
-      disrupt-node-count: 2
-      disrupt-method: stop
-      min-survivors: 3
-      verdict: report
-      expect-recovery: false
-      recovery-wait: 10m
-      duration: 30m # observe ≥25 min — onset is delayed ~3–9 min
-      poll-interval: 30s
-      postage-ttl: 24h
-      postage-depth: 22
-      postage-label: radius-halt
-      blob-size: 8388608 # 8 MiB
-      max-uploads: 1000
-      warmup-wait: 15m
-      increase-timeout: 30m
-      settle-wait: 2m
-      upload-groups:
-        - bee
-    timeout: 90m
-    type: reserve-radius
-  # Parallel-with-load shape: run alongside ci-load-soak (which drives the radius via
-  # max-committed-depth:3). This check stakes, waits for radius 3, removes 2 of 6, then observes.
-  ci-reserve-radius-observe-disrupt:
-    options:
-      mode: observe
-      stake-amount: "100000000000000000"
-      stake-confirm-wait: 2m
-      disrupt-at-radius: 3
-      disrupt-mechanism: node-churn
-      disrupt-node-count: 2
-      disrupt-method: stop
-      min-survivors: 3
-      verdict: report
-      expect-recovery: false
-      recovery-wait: 10m
-      duration: 30m
-      poll-interval: 30s
-      increase-timeout: 30m # max wait for the load check to drive all nodes to radius 3
-      warmup-wait: 15m
-      upload-groups:
-        - bee
-    timeout: 90m
-    type: reserve-radius
-  ci-load-soak:
-    options:
-      content-size: 8388608
-      postage-ttl: 24h
-      postage-depth: 22
-      postage-label: load-soak
-      duration: 30m
-      uploader-count: 1
-      downloader-count: 0
-      nodes-sync-wait: 10s
-      max-committed-depth: 3
-      committed-depth-check-wait: 15s
-      decrease-hold: 2m
-      upload-groups:
-        - bee
-    timeout: 35m
-    type: load
   ci-soc:
     options:
       postage-ttl: 24h

@@ -9,11 +9,13 @@ fully-staked run (2026-06-26) that pins down the **staked round-loss**: every su
 `is_playing_errors`, and a node that cannot finish the re-sync cannot produce a `ReserveSample`, so it
 loses every round. Remaining: the **A/B** confirmation against **B = `pullsync-optimal-design`**.
 
-**Automation:** this manual recipe is now folded into the `reserveradius` check's `mode: halt` (and the
-`observe`+disrupt shape) — stake → drive radius → disrupt → observe/classify/verdict, unattended. See
-the check plan [`docs/radius-halt-check-plan.md`](radius-halt-check-plan.md) and the check
-[`pkg/check/reserveradius/README.md`](../pkg/check/reserveradius/README.md); the `ci-radius-halt` and
-`ci-reserve-radius-observe-disrupt` entries live in `config/local.yaml`.
+**Automation (historical):** this manual recipe used **node removal** to disrupt the neighbourhood.
+The `reserveradius` check was since simplified to a single self-driving flow whose only disruption
+lever is **batch-expiry via dilution** — node churn was dropped (see
+[`pkg/check/reserveradius/README.md`](../pkg/check/reserveradius/README.md) and
+[`docs/radius-check-plan.md`](radius-check-plan.md)). The findings below still stand as the empirical
+characterization of the halt; the node-churn automation design is retained in
+[`docs/radius-halt-check-plan.md`](radius-halt-check-plan.md) (superseded).
 
 ## Mechanism
 

@@ -1,6 +1,15 @@
 # Reserve-radius check — halt-reproduction mode (plan)
 
-Status: **Plan only — not started.** Branch `ljubisa-radius-soak`.
+> **Superseded (2026-07).** The `reserveradius` check was simplified to a **single
+> self-driving flow with one disruption mechanism: batch-expiry via dilution** (see
+> `docs/radius-check-plan.md` and `pkg/check/reserveradius/README.md`). The `mode: halt`
+> design below — modes, **node churn**, staking, verdict/assert, and HALT/RECOVERED
+> outcome classification — was implemented on this branch and then removed. This doc is
+> kept for the background it captures (the bee-side batch-expiry → commitment-drop →
+> gated-radius-decrease path, and the empirical halt findings that motivated the check);
+> it no longer describes the current code.
+
+Status: **Superseded — see the banner above.** Branch `ljubisa-radius-soak`.
 
 Goal: fold the now-working **manual** pull-sync-halt reproduction (see `docs/radius-halt.md`)
 into the `reserveradius` check so the whole flow runs **unattended in one longer run** —

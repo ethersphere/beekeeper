@@ -1,6 +1,6 @@
 # Reserve-radius change check — plan
 
-Status: **Phases 0–2.5 done; Phase 3 + A/B pending.** Branch `ljubisa-radius-soak`.
+Status: **Local check done (single idle-driven flow); Phase 3 + A/B pending.** Branch `ljubisa-radius-soak-v2`.
 
 A repeatable, automated way to stage a **storage-radius change** across a Bee cluster and
 verify pull-sync recovers afterwards. End product: a beekeeper check
@@ -28,11 +28,18 @@ delay) and stalls livelock. Result: incomplete reserves → wrong `ReserveSample
 - **Bounded convergence** — resync finishes in bounded time; no stuck `STALLED` bins.
 - **Efficiency (SWIP-25)** — redundant deliveries drop ~k×→1× (`offered/delivered` ratio).
 
-**Implemented so far:** observe mode reads `/status` + `/redistributionstate` and asserts the
-halt indicators — un-recovered decreases (prefers `isFullySynced`, falls back to `pullsyncRate`)
-and **freeze episodes**. Metrics: `fully_synced`, `frozen`, `redistribution_round`,
-`reserve_within_radius`, `last_sample_duration_seconds`, `time_to_fully_synced_seconds`. The
-`radius-cluster-behavior` dashboard has a **Halt indicators** row.
+**Implemented so far:** a single self-driving check (`pkg/check/reserveradius`) drives the radius
+up by uploading random data to random nodes to a target (≥3), stops, waits for pull-sync to go idle
+(`pullsyncRate<=0.05` — the reserve worker only decreases while `SyncRate()==0`), dilutes one batch
+to the chain's min-validity floor to hasten its expiry (force-decrease), then asserts the radius
+ticks back down below its peak within a timeout. Metrics per node: `storage_radius`, `reserve_size`,
+`reserve_within_radius`, `pullsync_rate`, plus `time_to_increase_seconds` / `time_to_decrease_seconds`
+/ `dilution_total`. Validated live 2026-07-11 on the patched 6-node local-dns: 0→3 in ~64 MiB /
+~6 min, batch diluted 48h→6h (floored), radius 3→2 at ~8 min. **Locally the decrease is pull-sync-
+idle-gated** (threshold patched to 100% ⇒ commitment/expiry irrelevant); **on testnet it is
+expiry-driven** — dilution hastens the batch expiry that drops commitment. The deeper liveness
+signals (`/redistributionstate` freeze / round-loss)
+are documented in the `radius-testing` skill for follow-up.
 
 **Still needs @marios + scale:** exact pass/fail thresholds; the per-`(peer,bin)` `STALLED` /
 `MaxStallsPerBin` metrics (only @sig's fixed PR exposes them); the **~20-node cluster** (the
@@ -115,29 +122,40 @@ The decrease is slow and non-obvious; each fact below maps to a check decision:
 
 ## Phase 2 — The check (done)
 
-`pkg/check/reserveradius/` on branch `ljubisa-radius-check`. `Run` = `waitForWarmupDone` →
-baseline → `driveIncrease` → settle → `observeDecrease` (assert a decrease vs per-node peak +
-recovery). Registered as type `reserve-radius` (`pkg/config/check.go`); `ci-reserve-radius` in
-`config/local.yaml`; added `IsWarmingUp` to `StatusResponse`. build/vet/lint green.
+`pkg/check/reserveradius/`. `Run` = `selectNodes` → `waitForWarmupDone` → baseline →
+`driveIncrease` (upload random data to random nodes under this check's own postage label, to
+`target-radius`) → `waitPullSyncIdle` (wait `pullsyncRate<=0.05` on all nodes) →
+`diluteToMinValidity` (force-decrease: dilute one batch to the min-validity floor to hasten expiry)
+→ `observeDecrease` (assert the radius ticks below its peak within `decrease-timeout`). Registered
+as type `reserve-radius` (`pkg/config/check.go`); `ci-reserve-radius` in `config/local.yaml`; added
+`IsWarmingUp` to `StatusResponse`. build/vet/lint green.
 
-- [x] **Validated end-to-end (2026-06-17)**: increase 0→1 in 3s, 1-min settle, decrease observed
-      at 13m16s with recovery, check passed (total 14m36s). Confirms the ~13-min decrease lag and
-      the 20-min `DecreaseTimeout`.
+- [x] **Validated end-to-end (2026-06-17)**: increase 0→1 in 3s, decrease observed at 13m16s.
+- [x] **Re-validated (2026-07-11, target 3, dilute-to-min-validity + drop)**: 0→3 in ~64 MiB /
+      ~6 min, pull-sync idled, diluted a batch 48h→24h→12h→6h (floored at the min-validity), radius
+      3→2 at ~8 min, check passed. Needs the patched image (the default registry image is unpatched
+      — the radius won't climb).
 
-## Phase 2.5 — driver/observer split + parallel (done)
+## Phase 2.5 — the decrease lever: pull-sync idle (local) / batch expiry (testnet) (done)
 
-For long soaks (24h+), split the **uploader** (load) from the **observer** (reserve-radius) and
-run them concurrently so the cluster oscillates repeatedly.
+Two paths reach the decrease, both gated on `SyncRate()==0`:
 
-- [x] **`--parallel` flag** (`check.go` + `runner.go`) — opt-in; checks run in goroutines and
-      fail independently (a monitor blip won't kill a 24h load).
-- [x] **`load` re-arming `decrease-hold`** — after `committedDepth` hits the cap and drops, pause
-      uploads then re-arm → repeated fill→decrease→hold cycles.
-- [x] **`reserve-radius` `mode: drive | observe`** — `observe` = `Duration`-bounded monitor (no
-      uploads) recording transitions + asserting recovery. Config: `ci-load-soak`,
-      `ci-reserve-radius-observe`.
+- **Local (patched cluster)** — the reserve worker's gate (`reserve.go`:
+  `countWithinRadius < threshold && SyncRate()==0 && radius > minimumRadius`) reduces to just
+  **`SyncRate()==0`** (`threshold` patched to 100%, `countWithinRadius` well below it), so once
+  pull-sync idles the radius ticks down on its own — measured ~8–13 min after idle. `waitPullSyncIdle`
+  (`pullsyncRate<=0.05`; the rate settles to a small residual, never exactly 0) opens that gate.
+- **Testnet (real reserve)** — the decrease is **commitment-driven**: it needs a batch to expire so
+  its chunks are evicted. `force-decrease` **dilutes one batch to the chain's `minimumValidityBlocks`
+  floor** (each `+1` ~halves TTL; the contract reverts any dilution below the floor, so expiry itself
+  is unreachable — dilution only *hastens* it) so the batch expires in ~a few hours instead of its
+  full TTL. Requires a non-zero chain price (see the `change-storage-price` skill); with price 0
+  batches have infinite TTL. Full mechanics: [`docs/radius-halt.md`] and the radius-testing notes.
 
-Run: `beekeeper check --checks=ci-load-soak,ci-reserve-radius-observe --parallel`.
+The general `load` primitives added along the way remain available but are not wired into the radius
+check: the `--parallel` check flag (`check.go` + `runner.go`) and `load`'s re-arming `decrease-hold`.
+
+Run: `beekeeper check --checks=ci-reserve-radius --timeout=45m` (local; raise `decrease-timeout`/`timeout` on testnet).
 
 ## Phase 3 — Real ephemeral cluster
 

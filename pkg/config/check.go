@@ -501,32 +501,23 @@ var Checks = map[string]CheckType{
 		NewAction: reserveradius.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
-				Mode             *string        `yaml:"mode"`
-				Duration         *time.Duration `yaml:"duration"`
-				RndSeed          *int64         `yaml:"rnd-seed"`
-				StakeAmount      *string        `yaml:"stake-amount"`
-				StakeGroups      *[]string      `yaml:"stake-groups"`
-				StakeConfirmWait *time.Duration `yaml:"stake-confirm-wait"`
-				PostageTTL       *time.Duration `yaml:"postage-ttl"`
-				PostageDepth     *uint64        `yaml:"postage-depth"`
-				PostageLabel     *string        `yaml:"postage-label"`
-				UploadGroups     *[]string      `yaml:"upload-groups"`
-				BlobSize         *int64         `yaml:"blob-size"`
-				MaxUploads       *int           `yaml:"max-uploads"`
-				TargetRadius     *uint8         `yaml:"target-radius"`
-				DisruptAtRadius  *uint8         `yaml:"disrupt-at-radius"`
-				DisruptMechanism *string        `yaml:"disrupt-mechanism"`
-				DisruptNodeCount *int           `yaml:"disrupt-node-count"`
-				DisruptMethod    *string        `yaml:"disrupt-method"`
-				MinSurvivors     *int           `yaml:"min-survivors"`
-				Verdict          *string        `yaml:"verdict"`
-				ExpectRecovery   *bool          `yaml:"expect-recovery"`
-				WarmupWait       *time.Duration `yaml:"warmup-wait"`
-				IncreaseTimeout  *time.Duration `yaml:"increase-timeout"`
-				SettleWait       *time.Duration `yaml:"settle-wait"`
-				DecreaseTimeout  *time.Duration `yaml:"decrease-timeout"`
-				RecoveryWait     *time.Duration `yaml:"recovery-wait"`
-				PollInterval     *time.Duration `yaml:"poll-interval"`
+				RndSeed         *int64         `yaml:"rnd-seed"`
+				PostageTTL      *time.Duration `yaml:"postage-ttl"`
+				PostageDepth    *uint64        `yaml:"postage-depth"`
+				PostageLabel    *string        `yaml:"postage-label"`
+				UploadGroups    *[]string      `yaml:"upload-groups"`
+				BlobSize        *int64         `yaml:"blob-size"`
+				MaxUploads      *int           `yaml:"max-uploads"`
+				TargetRadius    *uint8         `yaml:"target-radius"`
+				ForceDecrease   *bool          `yaml:"force-decrease"`
+				DiluteStep      *uint64        `yaml:"dilute-step"`
+				MaxDilutions    *int           `yaml:"max-dilutions"`
+				GasPrice        *string        `yaml:"gas-price"`
+				WarmupWait      *time.Duration `yaml:"warmup-wait"`
+				IncreaseTimeout *time.Duration `yaml:"increase-timeout"`
+				SyncSettleWait  *time.Duration `yaml:"sync-settle-wait"`
+				DecreaseTimeout *time.Duration `yaml:"decrease-timeout"`
+				PollInterval    *time.Duration `yaml:"poll-interval"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
