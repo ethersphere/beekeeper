@@ -22,6 +22,7 @@ func (c *command) initSimulateCmd() (err error) {
 		optionNameSeed                 = "seed"
 		optionNameTimeout              = "timeout"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
+		optionNameMetricsLabels        = "metrics-labels"
 	)
 
 	cmd := &cobra.Command{
@@ -68,7 +69,13 @@ Use --metrics-enabled to collect performance metrics during simulation.`,
 			)
 
 			if metricsEnabled {
-				metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.log)
+				namespace := cfgCluster.GetNamespace()
+				metricsPusher, cleanup = newMetricsPusher(
+					c.globalConfig.GetString(optionNameMetricsPusherAddress),
+					namespace,
+					metricsGroupingLabels(clusterName, namespace, c.globalConfig.GetStringMapString(optionNameMetricsLabels)),
+					c.log,
+				)
 				// cleanup executes when the calling context terminates
 				defer cleanup()
 			}
@@ -138,6 +145,7 @@ Use --metrics-enabled to collect performance metrics during simulation.`,
 
 	cmd.Flags().String(optionNameClusterName, "default", "cluster name")
 	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.staging.internal", "prometheus metrics pusher address")
+	cmd.Flags().StringToString(optionNameMetricsLabels, nil, "extra Prometheus grouping labels added to every pushed metric (e.g. --metrics-labels team=swarm,ci_run=123); 'cluster' and 'namespace' labels are added automatically")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing simulations")
 	cmd.Flags().StringSlice(optionNameSimulations, []string{"upload"}, "list of simulations to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, true, "enable metrics")
