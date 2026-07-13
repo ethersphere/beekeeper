@@ -275,7 +275,13 @@ func (c *Check) diluteToMinValidity(ctx context.Context, b batchRef, o Options) 
 			c.logger.Warningf("read batch %s on %s: %v; stopping dilution", b.batchID, b.node.Name(), err)
 			return
 		}
-		if !stamp.Exists || stamp.BatchTTL <= 0 {
+		if stamp.BatchTTL < 0 {
+			// batchTTL -1 means "never expires" — the chain postage price is 0, so there is no
+			// expiry to hasten. Skip (the local idle tick still drives the decrease).
+			c.logger.Warningf("batch %s on %s has infinite TTL (chain price is 0) — nothing to hasten; skipping dilution", b.batchID, b.node.Name())
+			return
+		}
+		if !stamp.Exists || stamp.BatchTTL == 0 {
 			c.logger.Infof("batch %s on %s already expired (ttl=%ds)", b.batchID, b.node.Name(), stamp.BatchTTL)
 			return
 		}

@@ -92,13 +92,16 @@ check runs with `--metrics-enabled`). Namespace `beekeeper`, subsystem
 - **Patched bee image.** On stock capacity the reserve is far too large to move.
   The check needs a node built with `bee/.github/patches/radius_reserve.patch`
   (`DefaultReserveCapacity`→4000, `ReserveWakeUpDuration`→10s) and
-  `radius_threshold.patch` (decrease `threshold`→100%). See
-  `docs/radius-check-plan.md` and the `radius-testing` skill. The default local-cluster
-  image is **not** patched — build and push it first, or the radius never climbs.
-- **A non-zero postage price is optional.** The decrease is driven by pull-sync idling
-  (`SyncRate()==0`), not by batch expiry, so it works at price 0 (batches never expire).
-  If a price *is* set (see the `change-storage-price` skill), the contract enforces a 24h
-  minimum batch validity, so `postage-ttl` must exceed 24h — hence the `48h` default.
+  `radius_threshold.patch` (decrease `threshold`→100%). See the `radius-testing` skill. The
+  default local-cluster image is **not** patched — build and push it first, or the radius never
+  climbs.
+- **Postage price — optional locally, required for the testnet (expiry-driven) path.** Locally
+  the decrease is driven by pull-sync idling (`SyncRate()==0`), so the check passes at price 0 —
+  but at price 0 batches have infinite TTL (`batchTTL -1`), so the `force-decrease` dilute step
+  has nothing to hasten and skips itself. On testnet the decrease is **expiry-driven**, so a
+  **non-zero price is required** (set it with the `change-storage-price` skill) — otherwise no
+  batch ever expires. Once a price is set the contract enforces a minimum batch validity, so
+  `postage-ttl` must exceed 24h — hence the `48h` default.
 - **`isWarmingUp` in `StatusResponse`** (`pkg/bee/api/status.go`) — the node returns it;
   the struct field was added for this check's warmup gate.
 
@@ -122,13 +125,12 @@ Against a patched local cluster (`local-dns`):
   batch below `minimumValidityBlocks` (~a few hours here), so a batch floors at ~6h validity and
   can't be diluted to 0. `force-decrease` therefore *hastens* the natural expiry (dilutes to the
   floor) rather than triggering it directly. Locally this is redundant with the idle tick (which
-  fires first); it matters on testnet, where the decrease is expiry-driven. See
-  `docs/radius-check-plan.md`.
+  fires first); it matters on testnet, where the decrease is expiry-driven. See the
+  `radius-testing` skill for the full mechanics.
 
 ## Related
 
-- `docs/radius-check-plan.md` — design, phases, spike findings.
-- `.claude/skills/radius-testing/` — operating know-how, `radius-poll.sh`, the metrics stack.
+- `.claude/skills/radius-testing/` — design, mechanics, operating know-how, `radius-poll.sh`, the metrics stack.
 - `.claude/skills/change-storage-price/` — activating a non-zero postage price on the local chain.
 - Prior art: PR #581 (`radiusdecrease`), PR #591 (`stampexpiry`), `pkg/check/gc`,
   `pkg/check/load`, `pkg/check/smoke`.
