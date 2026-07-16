@@ -31,6 +31,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/pushsync"
 	"github.com/ethersphere/beekeeper/pkg/check/redundancy"
 	"github.com/ethersphere/beekeeper/pkg/check/reserveradius"
+	"github.com/ethersphere/beekeeper/pkg/check/reserveradiusv2"
 	"github.com/ethersphere/beekeeper/pkg/check/retrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
@@ -523,6 +524,41 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := reserveradius.NewDefaultOptions()
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+			return opts, nil
+		},
+	},
+	"reserve-radius-v2": {
+		NewAction: reserveradiusv2.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				RndSeed           *int64         `yaml:"rnd-seed"`
+				PostageTTL        *time.Duration `yaml:"postage-ttl"`
+				BatchDepth        *uint64        `yaml:"batch-depth"`
+				PostageLabel      *string        `yaml:"postage-label"`
+				UploadGroups      *[]string      `yaml:"upload-groups"`
+				BlobSize          *int64         `yaml:"blob-size"`
+				DataPerBatch      *int64         `yaml:"data-per-batch"`
+				MaxBatches        *int           `yaml:"max-batches"`
+				ReserveCapacity   *uint64        `yaml:"reserve-capacity"`
+				TargetFillPercent *float64       `yaml:"target-fill-percent"`
+				Dilute            *bool          `yaml:"dilute"`
+				DiluteStep        *uint64        `yaml:"dilute-step"`
+				DiluteInterval    *time.Duration `yaml:"dilute-interval"`
+				MaxDilutionRounds *int           `yaml:"max-dilution-rounds"`
+				GasPrice          *string        `yaml:"gas-price"`
+				WarmupWait        *time.Duration `yaml:"warmup-wait"`
+				FillTimeout       *time.Duration `yaml:"fill-timeout"`
+				SyncSettleWait    *time.Duration `yaml:"sync-settle-wait"`
+				DecreaseTimeout   *time.Duration `yaml:"decrease-timeout"`
+				PollInterval      *time.Duration `yaml:"poll-interval"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := reserveradiusv2.NewDefaultOptions()
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
