@@ -24,7 +24,7 @@ import (
 // Options represents reserve-radius-v2 check options.
 type Options struct {
 	RndSeed           int64
-	PostageTTL        time.Duration
+	PostageAmount     int64         // amount per batch (each batch is created fresh, never reused)
 	BatchDepth        uint64        // depth of each small batch
 	PostageLabel      string        // label prefix; each batch gets label-<n>
 	UploadGroups      []string      // node groups to upload to / observe (empty = all full nodes)
@@ -49,7 +49,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		RndSeed:           time.Now().UnixNano(),
-		PostageTTL:        48 * time.Hour,
+		PostageAmount:     1000,
 		BatchDepth:        18,
 		PostageLabel:      "reserve-radius-v2",
 		UploadGroups:      []string{"bee"},
@@ -134,7 +134,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 	c.logger.Infof("observing %d node(s); reserve capacity %d chunks, fill target %.1f%%", len(nodes), o.ReserveCapacity, o.TargetFillPercent)
 
-
 	st := &state{peak: make(map[string]uint8), last: make(map[string]uint8)}
 	c.poll(ctx, nodes, st, o)
 
@@ -147,7 +146,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	return c.driveDecrease(ctx, nodes, batches, st, o)
 }
-
 
 // fill creates small batches round-robin across nodes and uploads exactly DataPerBatch
 // bytes under each, stopping once any node's reserve crosses TargetFillPercent.
@@ -172,7 +170,7 @@ func (c *Check) fill(ctx context.Context, nodes orchestration.ClientList, st *st
 
 		node := nodes[(b-1)%len(nodes)]
 		label := fmt.Sprintf("%s-%d", o.PostageLabel, b)
-		batchID, err := node.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.BatchDepth, label)
+		batchID, err := node.CreatePostageBatch(ctx, o.PostageAmount, o.BatchDepth, label, false)
 		if err != nil {
 			c.logger.Warningf("create batch %s on %s failed, skipping: %v", label, node.Name(), err)
 			continue

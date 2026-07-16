@@ -31,6 +31,7 @@ Defaults in `NewDefaultOptions()`; YAML keys wired in `pkg/config/check.go` unde
 
 | yaml | default | purpose |
 | --- | --- | --- |
+| `postage-amount` | `1000` | amount per batch (each batch is created fresh via `CreatePostageBatch`, never reused) |
 | `batch-depth` | `18` | depth of each small batch |
 | `blob-size` | `1048576` (1 MiB) | bytes per upload |
 | `data-per-batch` | `4194304` (4 MiB) | bytes uploaded under each batch |

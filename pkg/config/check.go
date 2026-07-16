@@ -535,7 +535,7 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				RndSeed           *int64         `yaml:"rnd-seed"`
-				PostageTTL        *time.Duration `yaml:"postage-ttl"`
+				PostageAmount     *int64         `yaml:"postage-amount"`
 				BatchDepth        *uint64        `yaml:"batch-depth"`
 				PostageLabel      *string        `yaml:"postage-label"`
 				UploadGroups      *[]string      `yaml:"upload-groups"`
