@@ -134,9 +134,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 	c.logger.Infof("observing %d node(s); reserve capacity %d chunks, fill target %.1f%%", len(nodes), o.ReserveCapacity, o.TargetFillPercent)
 
-	if err := c.waitForWarmupDone(ctx, nodes, o); err != nil {
-		return err
-	}
 
 	st := &state{peak: make(map[string]uint8), last: make(map[string]uint8)}
 	c.poll(ctx, nodes, st, o)
@@ -151,33 +148,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return c.driveDecrease(ctx, nodes, batches, st, o)
 }
 
-// waitForWarmupDone blocks until every observed node reports isWarmingUp=false.
-func (c *Check) waitForWarmupDone(ctx context.Context, nodes orchestration.ClientList, o Options) error {
-	c.logger.Infof("waiting up to %s for nodes to finish warmup", o.WarmupWait)
-	deadline := time.Now().Add(o.WarmupWait)
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		ready := true
-		for _, n := range nodes {
-			s, err := n.Status(ctx)
-			if err != nil || s.IsWarmingUp {
-				ready = false
-			}
-		}
-		if ready {
-			c.logger.Info("all observed nodes finished warmup")
-			return nil
-		}
-		if time.Now().After(deadline) {
-			return fmt.Errorf("nodes still warming up after %s", o.WarmupWait)
-		}
-		if err := sleepCtx(ctx, o.PollInterval); err != nil {
-			return err
-		}
-	}
-}
 
 // fill creates small batches round-robin across nodes and uploads exactly DataPerBatch
 // bytes under each, stopping once any node's reserve crosses TargetFillPercent.
