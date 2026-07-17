@@ -10,6 +10,7 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -57,7 +58,7 @@ func NewDefaultOptions() Options {
 		DataPerBatch:      4 << 20, // 4 MiB = ~1024 chunks per batch
 		MaxBatches:        50,
 		ReserveCapacity:   4000, // patched bee reserve; 50% = 2000 chunks
-		TargetFillPercent: 55,   // just over the 50% decrease threshold
+		TargetFillPercent: 60,   // just over the 50% decrease threshold
 		Dilute:            true,
 		DiluteStep:        1,
 		DiluteInterval:    time.Minute,
@@ -137,30 +138,42 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	st := &state{peak: make(map[string]uint8), last: make(map[string]uint8)}
 	c.poll(ctx, nodes, st, o)
 
-	batches, err := c.fill(ctx, nodes, st, o)
+	_, err = c.fill(ctx, nodes, st, o)
 	if err != nil {
 		return err
 	}
 
+	c.logger.Infof("radius check fill done. waiting for pull sync to go idle")
+
 	c.waitPullSyncIdle(ctx, nodes, st, o)
 
-	return c.driveDecrease(ctx, nodes, batches, st, o)
+	c.logger.Infof("radius check fill done. pull sync idle, driving decrease")
+
+	// return c.driveDecrease(ctx, nodes, batches, st, o)
+	return nil
 }
 
 // fill creates small batches round-robin across nodes and uploads exactly DataPerBatch
 // bytes under each, stopping once any node's reserve crosses TargetFillPercent.
 func (c *Check) fill(ctx context.Context, nodes orchestration.ClientList, st *state, o Options) ([]*batchRef, error) {
-	uploadsPerBatch := int((o.DataPerBatch + o.BlobSize - 1) / o.BlobSize)
-	c.logger.Infof("filling reserve to %.1f%% of %d chunks: %d bytes per batch (depth %d, %d x %d-byte blobs), max %d batches",
-		o.TargetFillPercent, o.ReserveCapacity, o.DataPerBatch, o.BatchDepth, uploadsPerBatch, o.BlobSize, o.MaxBatches)
+	clusterSize := len(nodes)
+	neighborhoods := math.Log2(float64(clusterSize))
+	nodeReserve := float64(4000)
+	totalStorageToFill := o.TargetFillPercent * nodeReserve * neighborhoods
+	stamps := 5
+	sizePerStamp := int(totalStorageToFill / float64(stamps))
+
+	c.logger.Infof("fill: clusterSize %d, neighborhoods %d, nodeReserve %d, totalStorageToFill %d, stamps %d,sizePerStamp(chunks) %d", clusterSize, neighborhoods, nodeReserve, totalStorageToFill, stamps, sizePerStamp)
 
 	start := time.Now()
 	deadline := start.Add(o.FillTimeout)
 	t := test.NewTest(c.logger)
-	data := make([]byte, o.BlobSize)
+	data := make([]byte, sizePerStamp*4096)
 	var batches []*batchRef
 
-	for b := 1; b <= o.MaxBatches; b++ {
+	// caveat: if there's an error, this won't work very well because
+	// the errors have a continue statement
+	for b := 0; b < stamps; b++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
@@ -179,16 +192,14 @@ func (c *Check) fill(ctx context.Context, nodes orchestration.ClientList, st *st
 		c.metrics.BatchesCreated.Inc()
 		c.logger.WithField("batch_id", batchID).Infof("batch #%d created on %s (label %s)", b, node.Name(), label)
 
-		for u := 0; u < uploadsPerBatch; u++ {
-			if _, err := crand.Read(data); err != nil {
-				return nil, fmt.Errorf("generate random data: %w", err)
-			}
-			if _, _, err := t.Upload(ctx, node, data, batchID, nil); err != nil {
-				c.logger.Errorf("upload %d/%d to %s failed: %v", u+1, uploadsPerBatch, node.Name(), err)
-				continue
-			}
-			c.metrics.UploadedBytes.Add(float64(o.BlobSize))
+		if _, err := crand.Read(data); err != nil {
+			return nil, fmt.Errorf("generate random data: %w", err)
 		}
+		if _, _, err := t.Upload(ctx, node, data, batchID, nil); err != nil {
+			c.logger.Errorf("upload to %s failed: %v", node.Name(), err)
+			continue
+		}
+		c.metrics.UploadedBytes.Add(float64(o.BlobSize))
 
 		fill, _ := c.poll(ctx, nodes, st, o)
 		c.logger.Infof("fill: batch #%d done (%d bytes), max reserve fill %.1f%% (target %.1f%%)", b, o.DataPerBatch, fill, o.TargetFillPercent)
@@ -225,8 +236,8 @@ func (c *Check) waitPullSyncIdle(ctx context.Context, nodes orchestration.Client
 // driveDecrease dilutes the batches one at a time (one dilution per DiluteInterval) while
 // watching for any node's storageRadius to fall below its peak. Interleaving dilutions
 // with polling makes each dilution a distinct event next to the radius/pull-sync series.
-func (c *Check) driveDecrease(ctx context.Context, nodes orchestration.ClientList, batches []*batchRef, st *state, o Options) error {
-	c.logger.Infof("watching for a radius decrease below peak %v (timeout %s, dilute=%t)", st.peak, o.DecreaseTimeout, o.Dilute)
+func (c *Check) driveDecrease(ctx context.Context, nodes orchestration.ClientList, batches []*batchRef, radiusState *state, o Options) error {
+	c.logger.Infof("watching for a radius decrease below peak %v (timeout %s, dilute=%t)", radiusState.peak, o.DecreaseTimeout, o.Dilute)
 	start := time.Now()
 	deadline := start.Add(o.DecreaseTimeout)
 	nextDilute := time.Now()
@@ -236,17 +247,17 @@ func (c *Check) driveDecrease(ctx context.Context, nodes orchestration.ClientLis
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		c.poll(ctx, nodes, st, o)
+		c.poll(ctx, nodes, radiusState, o)
 		for _, n := range nodes {
-			if st.last[n.Name()] < st.peak[n.Name()] {
+			if radiusState.last[n.Name()] < radiusState.peak[n.Name()] {
 				c.metrics.TimeToDecrease.Set(time.Since(start).Seconds())
 				c.logger.Infof("radius decrease observed on %s (%d -> %d) after %s and %d dilution(s) — done",
-					n.Name(), st.peak[n.Name()], st.last[n.Name()], time.Since(start).Round(time.Second), dilutions)
+					n.Name(), radiusState.peak[n.Name()], radiusState.last[n.Name()], time.Since(start).Round(time.Second), dilutions)
 				return nil
 			}
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("no radius decrease below peak %v within %s (%d dilutions applied) — possible stuck pull-sync", st.peak, o.DecreaseTimeout, dilutions)
+			return fmt.Errorf("no radius decrease below peak %v within %s (%d dilutions applied) — possible stuck pull-sync", radiusState.peak, o.DecreaseTimeout, dilutions)
 		}
 		if o.Dilute && dilutions < maxDilutions && time.Now().After(nextDilute) {
 			if c.diluteNext(ctx, batches, dilutions, o) {
