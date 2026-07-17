@@ -58,7 +58,7 @@ func NewDefaultOptions() Options {
 		DataPerBatch:      4 << 20, // 4 MiB = ~1024 chunks per batch
 		MaxBatches:        50,
 		ReserveCapacity:   4000, // patched bee reserve; 50% = 2000 chunks
-		TargetFillPercent: 60,   // just over the 50% decrease threshold
+		TargetFillPercent: 0.6,  // just over the 50% decrease threshold
 		Dilute:            true,
 		DiluteStep:        1,
 		DiluteInterval:    time.Minute,
