@@ -144,10 +144,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 
 	c.logger.Infof("radius check fill done. waiting for pull sync to go idle")
+	c.poll(ctx, nodes, st, o)
 
 	c.waitPullSyncIdle(ctx, nodes, st, o)
 
 	c.logger.Infof("radius check fill done. pull sync idle, driving decrease")
+	c.poll(ctx, nodes, st, o)
 
 	// return c.driveDecrease(ctx, nodes, batches, st, o)
 	return nil
@@ -181,7 +183,7 @@ func (c *Check) fill(ctx context.Context, nodes orchestration.ClientList, st *st
 			return nil, fmt.Errorf("reserve did not reach %.1f%% within %s (%d batches) — is the bee reserve patch active?", o.TargetFillPercent, o.FillTimeout, b-1)
 		}
 
-		node := nodes[(b-1)%len(nodes)]
+		node := nodes[b]
 		label := fmt.Sprintf("%s-%d", o.PostageLabel, b)
 		batchID, err := node.CreatePostageBatch(ctx, o.PostageAmount, o.BatchDepth, label, false)
 		if err != nil {
@@ -203,7 +205,7 @@ func (c *Check) fill(ctx context.Context, nodes orchestration.ClientList, st *st
 
 		fill, _ := c.poll(ctx, nodes, st, o)
 		c.logger.Infof("fill: batch #%d done (%d bytes), max reserve fill %.1f%% (target %.1f%%)", b, o.DataPerBatch, fill, o.TargetFillPercent)
-		if fill >= o.TargetFillPercent {
+		if fill >= (o.TargetFillPercent * 100) {
 			c.logger.Infof("reached %.1f%% fill with %d batches (~%.1f MiB) in %s",
 				fill, len(batches), float64(int64(len(batches))*o.DataPerBatch)/(1<<20), time.Since(start).Round(time.Second))
 			return batches, nil
