@@ -59,7 +59,7 @@ func TestSOCPartitionClusterConfig(t *testing.T) {
 		t.Fatalf("group-a bee config: %+v", a)
 	}
 	b, ok := cfg.BeeConfigs["bee-soc-partition-group-b"]
-	if !ok || b.Bootnodes == nil || *b.Bootnodes == "" {
+	if !ok || b.Bootnodes == nil || len(*b.Bootnodes) == 0 {
 		t.Fatalf("group-b must have non-empty bootnodes: %+v", b)
 	}
 	if b.TargetNeighborhood == nil || *b.TargetNeighborhood != "11111100" {
@@ -67,10 +67,10 @@ func TestSOCPartitionClusterConfig(t *testing.T) {
 	}
 
 	exported := b.Export()
-	if exported.TargetNeighborhood != "11111100" {
-		t.Fatalf("export target neighborhood: %q", exported.TargetNeighborhood)
+	if exported.TargetNeighborhood == nil || *exported.TargetNeighborhood != "11111100" {
+		t.Fatalf("export target neighborhood: %v", exported.TargetNeighborhood)
 	}
-	if exported.Bootnodes == "" {
+	if exported.Bootnodes == nil || len(*exported.Bootnodes) == 0 {
 		t.Fatal("export bootnodes empty")
 	}
 }
