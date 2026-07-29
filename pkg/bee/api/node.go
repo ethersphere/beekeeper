@@ -80,12 +80,8 @@ func (n *NodeService) Balances(ctx context.Context) (resp Balances, err error) {
 
 // HasChunk returns true/false if node has a chunk
 func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
-	resp := struct {
-		Message string `json:"message,omitempty"`
-		Code    int    `json:"code,omitempty"`
-	}{}
-
-	err := n.client.requestJSON(ctx, http.MethodGet, "/chunks/"+a.String(), nil, &resp)
+	// HEAD must not decode a JSON body (response is empty); nil target avoids EOF.
+	err := n.client.requestJSON(ctx, http.MethodHead, "/chunks/"+a.String(), nil, nil)
 	if IsHTTPStatusErrorCode(err, http.StatusNotFound) {
 		return false, nil
 	} else if err != nil {

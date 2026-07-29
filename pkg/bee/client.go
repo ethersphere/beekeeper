@@ -3,6 +3,7 @@ package bee
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethersphere/bee/v2/pkg/crypto"
+	"github.com/ethersphere/bee/v2/pkg/postage"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -640,7 +642,7 @@ func (c *Client) SendPSSMessage(ctx context.Context, nodeAddress swarm.Address, 
 	return c.api.PSS.SendMessage(ctx, nodeAddress, publicKey, topic, prefix, bytes.NewReader(data), batchID)
 }
 
-// UploadSOC uploads a single owner chunk to a node with a E
+// UploadSOC uploads a single owner chunk to a node with a batch ID.
 func (c *Client) UploadSOC(ctx context.Context, owner, ID, signature string, data []byte, batchID string) (swarm.Address, error) {
 	resp, err := c.api.SOC.UploadSOC(ctx, owner, ID, signature, bytes.NewReader(data), batchID)
 	if err != nil {
@@ -648,6 +650,21 @@ func (c *Client) UploadSOC(ctx context.Context, owner, ID, signature string, dat
 	}
 
 	return resp.Reference, nil
+}
+
+// UploadSOCWithStamp uploads a single owner chunk using a precomputed postage stamp.
+func (c *Client) UploadSOCWithStamp(ctx context.Context, owner, ID, signature string, data []byte, stamp []byte) (swarm.Address, error) {
+	resp, err := c.api.SOC.UploadSOCWithStamp(ctx, owner, ID, signature, bytes.NewReader(data), hex.EncodeToString(stamp))
+	if err != nil {
+		return swarm.ZeroAddress, err
+	}
+
+	return resp.Reference, nil
+}
+
+// CreateEnvelope requests a postage stamp for addr from the node's stamper.
+func (c *Client) CreateEnvelope(ctx context.Context, addr swarm.Address, batchID string) (*postage.Stamp, error) {
+	return c.api.Envelope.Create(ctx, addr, batchID)
 }
 
 // Settlements represents Settlements's response

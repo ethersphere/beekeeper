@@ -10,6 +10,7 @@ type UploadOptions struct {
 	Pin               bool
 	Tag               uint64
 	BatchID           string
+	Stamp             string // hex-encoded postage stamp; when set, BatchID is ignored
 	Direct            bool
 	ActHistoryAddress swarm.Address
 	RLevel            *redundancy.Level
