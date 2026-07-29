@@ -15,7 +15,6 @@ import (
 	"github.com/ethersphere/bee/v2/pkg/cac"
 	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/ethersphere/bee/v2/pkg/soc"
-	"github.com/ethersphere/bee/v2/pkg/storage"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/beekeeper"
@@ -186,7 +185,7 @@ func (c *Check) testDivergentSOCTieBreak(
 	c.logger.Infof("divergent soc address: %s", socAddress.String())
 
 	// Determine theoretical tie-break winner (lexicographically lower wrapped CAC)
-	wins, err := storage.DivergentChunkWins(soc1, soc2)
+	wins, err := divergentChunkWins(soc1, soc2)
 	if err != nil {
 		return fmt.Errorf("divergent chunk wins comparison: %w", err)
 	}
@@ -261,7 +260,7 @@ func (c *Check) testMultiBatchDivergence(
 	sig2Hex := hex.EncodeToString(soc2.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
 	socAddress := soc1.Address()
 
-	wins, err := storage.DivergentChunkWins(soc1, soc2)
+	wins, err := divergentChunkWins(soc1, soc2)
 	if err != nil {
 		return err
 	}
@@ -374,4 +373,18 @@ func randomID() ([]byte, error) {
 		return nil, err
 	}
 	return key, nil
+}
+
+// divergentChunkWins reports whether ch2 wins over ch1 by having a
+// lexicographically lower wrapped CAC address.
+func divergentChunkWins(ch1, ch2 swarm.Chunk) (bool, error) {
+	s1, err := soc.FromChunk(ch1)
+	if err != nil {
+		return false, fmt.Errorf("soc 1 from chunk: %w", err)
+	}
+	s2, err := soc.FromChunk(ch2)
+	if err != nil {
+		return false, fmt.Errorf("soc 2 from chunk: %w", err)
+	}
+	return bytes.Compare(s2.WrappedChunk().Address().Bytes(), s1.WrappedChunk().Address().Bytes()) < 0, nil
 }
