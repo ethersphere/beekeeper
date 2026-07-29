@@ -64,6 +64,7 @@ bee-configs:
   bee-soc-partition-group-b:
     _inherit: "bee-local-dns"
     full-node: true
-    bootnodes: /dns4/group-b-0-headless.local.svc.cluster.local/tcp/1634/p2p/16Uiu2HAmU7b6hrGccvAHRaQg6VRf84cAHbgqcQT1145CozfQU4ZR
+    bootnode:
+      - /dns4/group-b-0-headless.local.svc.cluster.local/tcp/1634/p2p/16Uiu2HAmU7b6hrGccvAHRaQg6VRf84cAHbgqcQT1145CozfQU4ZR
     target-neighborhood: "11111100"
     welcome-message: "soc-partition group-b"
