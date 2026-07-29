@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
@@ -35,6 +36,7 @@ type Options struct {
 	ReserveCapacity   uint64        // reserve capacity in chunks (patched bee: 4000)
 	TargetFillPercent float64       // stop filling when any node's reserve reaches this % of capacity
 	Dilute            bool          // dilute batches after the fill to trigger the decrease
+	DiluteMode        string        // which batches to dilute: "one" (a random stamp), "half", or "all"
 	DiluteStep        uint64        // depth increase per dilution
 	DiluteInterval    time.Duration // spacing between dilutions so they show as distinct events
 	MaxDilutionRounds int           // cap on dilution rounds (each round dilutes every batch once)
@@ -58,8 +60,9 @@ func NewDefaultOptions() Options {
 		DataPerBatch:      4 << 20, // 4 MiB = ~1024 chunks per batch
 		MaxBatches:        50,
 		ReserveCapacity:   4000, // patched bee reserve; 50% = 2000 chunks
-		TargetFillPercent: 0.6,  // just over the 50% decrease threshold
+		TargetFillPercent: 0.9,  // just over the 50% decrease threshold
 		Dilute:            true,
+		DiluteMode:        DiluteModeOne,
 		DiluteStep:        1,
 		DiluteInterval:    time.Minute,
 		MaxDilutionRounds: 5,
@@ -75,6 +78,13 @@ func NewDefaultOptions() Options {
 // pullSyncIdleRate is the pullsyncRate at or below which pull-sync is treated as idle
 // (the rate decays to a small residual, never exactly 0).
 const pullSyncIdleRate = 0.05
+
+// Dilute modes select how many of the filled batches get diluted after the fill phase.
+const (
+	DiluteModeOne  = "one"  // dilute a single, randomly chosen batch
+	DiluteModeHalf = "half" // dilute half of the batches (rounded up)
+	DiluteModeAll  = "all"  // dilute every batch
+)
 
 var _ beekeeper.Action = (*Check)(nil)
 
@@ -124,7 +134,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	fullNodeClients, err := cluster.ShuffledFullNodeClients(ctx, rnd)
 	if err != nil {
-		return fmt.Errorf("get shuffled full node clients: %w", err)
+		return fmt.Errorf("get shuffled full nodes clients: %w", err)
 	}
 	nodes := fullNodeClients
 	if len(o.UploadGroups) > 0 {
@@ -138,7 +148,12 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	st := &state{peak: make(map[string]uint8), last: make(map[string]uint8)}
 	c.poll(ctx, nodes, st, o)
 
-	_, err = c.fill(ctx, nodes, st, o)
+	// To be used in the second run to manually use curl dilute stamp
+	// for {
+	// 	c.poll(ctx, nodes, st, o)
+	// 	time.Sleep(5 * time.Second)
+	// }
+	batches, err := c.fill(ctx, nodes, st, o)
 	if err != nil {
 		return err
 	}
@@ -148,11 +163,64 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	c.waitPullSyncIdle(ctx, nodes, st, o)
 
-	c.logger.Infof("radius check fill done. pull sync idle, driving decrease")
+	c.logger.Infof("radius check fill done. pull sync idle")
 	c.poll(ctx, nodes, st, o)
 
-	// return c.driveDecrease(ctx, nodes, batches, st, o)
+	if !o.Dilute {
+		c.logger.Infof("dilute disabled; skipping dilution")
+		return nil
+	}
+
+	selected, err := c.selectBatches(batches, o.DiluteMode, rnd)
+	if err != nil {
+		return err
+	}
+	c.logger.Infof("diluting %d of %d batch(es) (mode %q)", len(selected), len(batches), o.DiluteMode)
+	c.dilute(ctx, selected, o)
+
+	c.logger.Infof("dilution done, observing radius")
+	c.poll(ctx, nodes, st, o)
+
 	return nil
+}
+
+// selectBatches picks which of the filled batches to dilute according to mode:
+// "one" (a single random batch), "half" (half, rounded up), or "all".
+func (c *Check) selectBatches(batches []*batchRef, mode string, rnd *rand.Rand) ([]*batchRef, error) {
+	if len(batches) == 0 {
+		return nil, nil
+	}
+	switch mode {
+	case DiluteModeAll:
+		return batches, nil
+	case DiluteModeHalf:
+		shuffled := make([]*batchRef, len(batches))
+		copy(shuffled, batches)
+		rnd.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
+		n := (len(shuffled) + 1) / 2 // round up
+		return shuffled[:n], nil
+	case DiluteModeOne:
+		return []*batchRef{batches[rnd.Intn(len(batches))]}, nil
+	default:
+		return nil, fmt.Errorf("invalid dilute-mode %q (want %q, %q, or %q)", mode, DiluteModeOne, DiluteModeHalf, DiluteModeAll)
+	}
+}
+
+// dilute increases the depth of each selected batch by DiluteStep once.
+func (c *Check) dilute(ctx context.Context, batches []*batchRef, o Options) {
+	for _, b := range batches {
+		if err := ctx.Err(); err != nil {
+			return
+		}
+
+		newDepth := uint64(32)
+		if err := b.node.DilutePostageBatch(ctx, b.batchID, newDepth, o.GasPrice); err != nil {
+			c.logger.Warningf("dilute batch %s on %s to depth %d failed: %v", b.batchID, b.node.Name(), newDepth, err)
+			continue
+		}
+		c.metrics.Dilutions.Inc()
+		c.logger.Infof("diluted batch %s on %s to depth %d", b.batchID, b.node.Name(), newDepth)
+	}
 }
 
 // fill creates small batches round-robin across nodes and uploads exactly DataPerBatch
@@ -165,7 +233,7 @@ func (c *Check) fill(ctx context.Context, nodes orchestration.ClientList, st *st
 	stamps := 5
 	sizePerStamp := int(totalStorageToFill / float64(stamps))
 
-	c.logger.Infof("fill: clusterSize %d, neighborhoods %d, nodeReserve %d, totalStorageToFill %d, stamps %d,sizePerStamp(chunks) %d", clusterSize, neighborhoods, nodeReserve, totalStorageToFill, stamps, sizePerStamp)
+	c.logger.Infof("fill: clusterSize %d, stamps %d, sizePerStamp(chunks) %d", clusterSize, stamps, sizePerStamp)
 
 	start := time.Now()
 	deadline := start.Add(o.FillTimeout)

@@ -545,6 +545,7 @@ var Checks = map[string]CheckType{
 				ReserveCapacity   *uint64        `yaml:"reserve-capacity"`
 				TargetFillPercent *float64       `yaml:"target-fill-percent"`
 				Dilute            *bool          `yaml:"dilute"`
+				DiluteMode        *string        `yaml:"dilute-mode"`
 				DiluteStep        *uint64        `yaml:"dilute-step"`
 				DiluteInterval    *time.Duration `yaml:"dilute-interval"`
 				MaxDilutionRounds *int           `yaml:"max-dilution-rounds"`

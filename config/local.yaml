@@ -402,6 +402,34 @@ checks:
         - bee
     timeout: 45m
     type: reserve-radius
+  # Simplified reserve-radius scenario (v2, WIP): fill the reserve with small, fixed-size
+  # postage batches until fill-percent crosses target-fill-percent, wait for pull-sync to
+  # settle. NOTE: as of this writing fill()/driveDecrease in reserveradiusv2.go are under
+  # active rework — keep this config in sync with pkg/check/reserveradiusv2/reserveradiusv2.go.
+  ci-reserve-radius-v2:
+    options:
+      postage-amount: 1000000000
+      batch-depth: 18
+      postage-label: reserve-radius-v2
+      blob-size: 1048576 # 1 MiB per upload
+      data-per-batch: 4194304 # 4 MiB = ~1024 chunks per batch — granular fill control
+      max-batches: 50
+      reserve-capacity: 4000 # patched bee reserve capacity in chunks
+      target-fill-percent: 0.9
+      dilute: true
+      dilute-mode: one # which batches to dilute: "one" (a random stamp), "half", or "all"
+      dilute-step: 1
+      dilute-interval: 1m # one dilution per minute — distinct events next to radius changes
+      max-dilution-rounds: 5
+      warmup-wait: 15m
+      fill-timeout: 30m
+      sync-settle-wait: 10m
+      decrease-timeout: 30m
+      poll-interval: 10s
+      upload-groups:
+        - bee
+    timeout: 90m
+    type: reserve-radius-v2
   ci-soc:
     options:
       postage-ttl: 24h
