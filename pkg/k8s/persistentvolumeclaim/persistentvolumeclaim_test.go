@@ -108,9 +108,7 @@ func TestToK8s(t *testing.T) {
 							return &m
 						}(),
 						StorageClassName: new(""),
-						DataSource: &v1.TypedLocalObjectReference{
-							APIGroup: new(""),
-						},
+						DataSource:       nil,
 					},
 				},
 			},
