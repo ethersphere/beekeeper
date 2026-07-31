@@ -14,7 +14,7 @@ clusters:
     node-groups:
       bootnode:
         mode: bootnode
-        bee-config: sepolia-playground-bootnode
+        bee-config: geth-playground-bootnode
         config: ng-bee-playground
         nodes:
           - name: bootnode-0
@@ -23,7 +23,7 @@ clusters:
             swarm-key: '{"address":"f176839c150e52fe30e5c2b5c648465c6fdfa532","crypto":{"cipher":"aes-128-ctr","ciphertext":"352af096f0fca9dfbd20a6861bde43d988efe7f179e0a9ffd812a285fdcd63b9","cipherparams":{"iv":"613003f1f1bf93430c92629da33f8828"},"kdf":"scrypt","kdfparams":{"n":32768,"r":8,"p":1,"dklen":32,"salt":"ad1d99a4c64c95c26131e079e8c8a82221d58bf66a7ceb767c33a4c376c564b8"},"mac":"cafda1bc8ca0ffc2b22eb69afd1cf5072fd09412243443be1b0c6832f57924b6"},"version":3}'
       bee:
         mode: node
-        bee-config: sepolia-playground
+        bee-config: geth-playground
         config: ng-bee-playground
         count: 8
 
@@ -43,7 +43,7 @@ node-groups:
 # bee-configs defines Bee configuration that can be assigned to node-groups
 # bee-configs may inherit it's configuration from already defined bee-config and override specific fields from it
 bee-configs:
-  sepolia-playground:
+  geth-playground:
     _inherit: bee-local
     allow-private-cidrs: true
     api-addr: :1633
@@ -62,8 +62,8 @@ bee-configs:
     verbosity: 5
     warmup-time: 5m0s
     welcome-message: Welcome to the bee-playground!
-  sepolia-playground-bootnode:
-    _inherit: "sepolia-playground"
+  geth-playground-bootnode:
+    _inherit: "geth-playground"
     bootnode-mode: true
 
 checks:
