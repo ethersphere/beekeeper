@@ -66,7 +66,7 @@ node-groups:
       nginx.ingress.kubernetes.io/session-cookie-name: "SWARMGATEWAY"
       nginx.ingress.kubernetes.io/session-cookie-path: "default"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    ingress-class: "nginx"
+    ingress-class: "nginx-oss"
     labels:
       app.kubernetes.io/component: "node"
       app.kubernetes.io/name: "bee"
