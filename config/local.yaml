@@ -40,7 +40,7 @@ clusters:
       bee:
         bee-config: bee-local-dns
         config: local-dns
-        count: 6
+        count: 8
         mode: node
       light:
         bee-config: bee-local-light
@@ -417,7 +417,7 @@ checks:
       reserve-capacity: 4000 # patched bee reserve capacity in chunks
       target-fill-percent: 0.9
       dilute: true
-      dilute-mode: one # which batches to dilute: "one" (a random stamp), "half", or "all"
+      dilute-mode: one # which batches to dilute: "none", "one" (a random stamp), "half", or "all"
       dilute-step: 1
       dilute-interval: 1m # one dilution per minute — distinct events next to radius changes
       max-dilution-rounds: 5

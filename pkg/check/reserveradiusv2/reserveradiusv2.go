@@ -36,7 +36,7 @@ type Options struct {
 	ReserveCapacity   uint64        // reserve capacity in chunks (patched bee: 4000)
 	TargetFillPercent float64       // stop filling when any node's reserve reaches this % of capacity
 	Dilute            bool          // dilute batches after the fill to trigger the decrease
-	DiluteMode        string        // which batches to dilute: "one" (a random stamp), "half", or "all"
+	DiluteMode        string        // which batches to dilute: "none", "one" (a random stamp), "half", or "all"
 	DiluteStep        uint64        // depth increase per dilution
 	DiluteInterval    time.Duration // spacing between dilutions so they show as distinct events
 	MaxDilutionRounds int           // cap on dilution rounds (each round dilutes every batch once)
@@ -81,6 +81,7 @@ const pullSyncIdleRate = 0.05
 
 // Dilute modes select how many of the filled batches get diluted after the fill phase.
 const (
+	DiluteModeNone = "none" // dilute no batches
 	DiluteModeOne  = "one"  // dilute a single, randomly chosen batch
 	DiluteModeHalf = "half" // dilute half of the batches (rounded up)
 	DiluteModeAll  = "all"  // dilute every batch
@@ -185,12 +186,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 }
 
 // selectBatches picks which of the filled batches to dilute according to mode:
-// "one" (a single random batch), "half" (half, rounded up), or "all".
+// "none" (no batches), "one" (a single random batch), "half" (half, rounded up), or "all".
 func (c *Check) selectBatches(batches []*batchRef, mode string, rnd *rand.Rand) ([]*batchRef, error) {
 	if len(batches) == 0 {
 		return nil, nil
 	}
 	switch mode {
+	case DiluteModeNone:
+		return nil, nil
 	case DiluteModeAll:
 		return batches, nil
 	case DiluteModeHalf:
@@ -202,7 +205,7 @@ func (c *Check) selectBatches(batches []*batchRef, mode string, rnd *rand.Rand) 
 	case DiluteModeOne:
 		return []*batchRef{batches[rnd.Intn(len(batches))]}, nil
 	default:
-		return nil, fmt.Errorf("invalid dilute-mode %q (want %q, %q, or %q)", mode, DiluteModeOne, DiluteModeHalf, DiluteModeAll)
+		return nil, fmt.Errorf("invalid dilute-mode %q (want %q, %q, %q, or %q)", mode, DiluteModeNone, DiluteModeOne, DiluteModeHalf, DiluteModeAll)
 	}
 }
 
