@@ -47,7 +47,7 @@ bee-configs:
     _inherit: bee-local
     allow-private-cidrs: true
     api-addr: :1633
-    block-time: 12
+    block-time: 1
     blockchain-rpc-endpoint: http://geth-swap:8545
     bootnode: []
     chequebook-enable: true

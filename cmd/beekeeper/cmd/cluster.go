@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -394,6 +395,20 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 	}
 }
 
+const (
+	// fundAttempts is the number of times funding is tried before giving up.
+	fundAttempts = 5
+	// fundRetryDelay is the base delay between funding attempts, multiplied by
+	// the attempt number to back off linearly.
+	fundRetryDelay = 3 * time.Second
+)
+
+// fund tops the given addresses up to the configured minimum amounts.
+//
+// The blockchain RPC endpoint is usually reached through an ingress, which can
+// drop a connection while it reloads, so a single transient error must not
+// abort the whole cluster setup. Retrying is safe because funder.Fund reads the
+// current balances and only transfers the difference, making it idempotent.
 func fund(
 	ctx context.Context,
 	fundAddresses []string,
@@ -402,7 +417,7 @@ func fund(
 	fundOpts orchestration.FundingOptions,
 	log logging.Logger,
 ) error {
-	return funder.Fund(ctx, funder.Config{
+	cfg := funder.Config{
 		Addresses:         fundAddresses,
 		ChainNodeEndpoint: chainNodeEndpoint,
 		WalletKey:         walletKey,
@@ -410,5 +425,29 @@ func fund(
 			NativeCoin: fundOpts.Eth,
 			SwarmToken: fundOpts.Bzz,
 		},
-	}, nil, nil, funder.WithLoggerOption(log))
+	}
+
+	var err error
+	for attempt := 1; attempt <= fundAttempts; attempt++ {
+		if err = funder.Fund(ctx, cfg, nil, nil, funder.WithLoggerOption(log)); err == nil {
+			return nil
+		}
+
+		if attempt == fundAttempts {
+			break
+		}
+
+		delay := time.Duration(attempt) * fundRetryDelay
+		log.Warningf("funding attempt %d/%d failed: %v, retrying in %v", attempt, fundAttempts, err, delay)
+
+		timer := time.NewTimer(delay)
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			timer.Stop()
+			return errors.Join(err, ctx.Err())
+		}
+	}
+
+	return fmt.Errorf("funding failed after %d attempts: %w", fundAttempts, err)
 }
