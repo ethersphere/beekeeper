@@ -396,19 +396,16 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 }
 
 const (
-	// fundAttempts is the number of times funding is tried before giving up.
-	fundAttempts = 5
-	// fundRetryDelay is the base delay between funding attempts, multiplied by
-	// the attempt number to back off linearly.
-	fundRetryDelay = 3 * time.Second
+	fundAttempts   = 2
+	fundRetryDelay = 15 * time.Second
 )
 
-// fund tops the given addresses up to the configured minimum amounts.
+// fund tops the given addresses up to the configured minimum amounts, retrying
+// once so that a transient RPC error does not abort the cluster setup.
 //
-// The blockchain RPC endpoint is usually reached through an ingress, which can
-// drop a connection while it reloads, so a single transient error must not
-// abort the whole cluster setup. Retrying is safe because funder.Fund reads the
-// current balances and only transfers the difference, making it idempotent.
+// node-funder reads balances from the latest mined block and returns as soon as
+// a transfer is broadcast, so a retry that runs before the previous transfer is
+// mined funds the address twice. Keep the delay above the block time.
 func fund(
 	ctx context.Context,
 	fundAddresses []string,

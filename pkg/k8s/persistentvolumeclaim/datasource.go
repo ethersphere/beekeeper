@@ -10,8 +10,7 @@ type DataSource struct {
 }
 
 // toK8S converts DataSource to Kubernetes client object.
-// An unset DataSource must convert to nil, since Kubernetes validates the
-// dataSource field whenever it is present and rejects empty kind/name.
+// An unset DataSource converts to nil, as Kubernetes rejects an empty dataSource.
 func (d *DataSource) toK8S() *v1.TypedLocalObjectReference {
 	if d.APIGroup == "" && d.Kind == "" && d.Name == "" {
 		return nil
