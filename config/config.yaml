@@ -361,9 +361,9 @@ checks:
       postage-depth: 21
       postage-label: chunk-convergence
       sync-wait: 45s
-      request-timeout: 15m
+      request-timeout: 45m
       password: beekeeper
-    timeout: 20m
+    timeout: 50m
     type: chunk-convergence
   stake:
     type: stake

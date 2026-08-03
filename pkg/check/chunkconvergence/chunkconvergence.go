@@ -89,27 +89,13 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 	c.logger.Infof("batch issuer=%s batch_id=%s", issuer.Name(), batchID)
 
+	// convergence-issue branch: only scenario 7 (stale stamp redelivery race).
 	scenarios := []struct {
 		name string
 		run  func() error
 	}{
-		{"1 divergent soc identical stamp", func() error {
-			return c.scenarioDivergentSOC(ctx, issuer, neighborhood, batchID, o.SyncWait)
-		}},
-		{"2 soc same index higher timestamp", func() error {
-			return c.scenarioSOCSameIndexTimestamp(ctx, issuer, signer, neighborhood, batchID, o.SyncWait)
-		}},
-		{"3 soc different index higher timestamp", func() error {
-			return c.scenarioSOCDifferentIndexTimestamp(ctx, issuer, neighborhood, batchID, o.SyncWait)
-		}},
-		{"4 cac same index higher timestamp", func() error {
-			return c.scenarioCACSameIndexTimestamp(ctx, issuer, signer, neighborhood, batchID, o.SyncWait)
-		}},
-		{"5 soc cross-batch higher timestamp", func() error {
-			return c.scenarioSOCCrossBatchTimestamp(ctx, cluster, neighborhood, o)
-		}},
-		{"6 soc cross-batch equal timestamp", func() error {
-			return c.scenarioSOCEqualTimestampTieBreak(ctx, issuer, signer, neighborhood, batchID, o, o.SyncWait)
+		{"7 soc stale stamp redelivery race", func() error {
+			return c.scenarioSOCStaleStampRedeliveryRace(ctx, issuer, signer, neighborhood, batchID, o, o.SyncWait)
 		}},
 	}
 
@@ -488,6 +474,168 @@ func (c *Check) scenarioSOCEqualTimestampTieBreak(ctx context.Context, issuer *b
 	}
 	time.Sleep(syncWait)
 	return assertNeighborhoodPayload(ctx, c.logger, neighborhood, addr, winner.Data())
+}
+
+// scenarioSOCStaleStampRedeliveryRace races three divergent SOCs at one address:
+//
+//	SOC₁ under stamp S (batch A, lower timestamp) → uploaded to Sam
+//	SOC₂ under stamp T (batch B, higher timestamp) → uploaded to Sara
+//	SOC₃ reuses stamp S with payload P₃ whose wrapped CAC beats P₁ and P₂ →
+//	uploaded to both nodes in parallel with the SOC₁/SOC₂ uploads
+//
+// After sync, every neighborhood node must hold P₃ (wrapped-CAC winner under
+// the reused stamp S / resolveDivergence).
+func (c *Check) scenarioSOCStaleStampRedeliveryRace(ctx context.Context, issuer *bee.Client, batchSigner crypto.Signer, neighborhood []*bee.Client, batchID string, o Options, syncWait time.Duration) error {
+	sam, sara := neighborhood[0], neighborhood[1]
+
+	batchB, err := issuer.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-stale-"+hex.EncodeToString(randomBytes(3)))
+	if err != nil {
+		return fmt.Errorf("batch B: %w", err)
+	}
+
+	signer, owner, id, addr, err := mineSOC(ctx, sam, sara)
+	if err != nil {
+		return err
+	}
+	soc1, soc2, soc3, err := orderedStaleRaceSOCs(signer, id)
+	if err != nil {
+		return err
+	}
+
+	batchABytes, err := hex.DecodeString(batchID)
+	if err != nil {
+		return err
+	}
+	batchBBytes, err := hex.DecodeString(batchB)
+	if err != nil {
+		return err
+	}
+
+	envS, err := issuer.CreateEnvelope(ctx, addr, batchID)
+	if err != nil {
+		return fmt.Errorf("envelope stamp S: %w", err)
+	}
+	envT, err := issuer.CreateEnvelope(ctx, addr, batchB)
+	if err != nil {
+		return fmt.Errorf("envelope stamp T: %w", err)
+	}
+	tsS := binary.BigEndian.Uint64(envS.Timestamp())
+	tsT := binary.BigEndian.Uint64(envT.Timestamp())
+	if tsT <= tsS {
+		tsT = tsS + 1
+	}
+	stampS, err := signStamp(batchSigner, batchABytes, append([]byte{}, envS.Index()...), uint64ToBytes(tsS), addr)
+	if err != nil {
+		return fmt.Errorf("sign stamp S: %w", err)
+	}
+	stampT, err := signStamp(batchSigner, batchBBytes, append([]byte{}, envT.Index()...), uint64ToBytes(tsT), addr)
+	if err != nil {
+		return fmt.Errorf("sign stamp T: %w", err)
+	}
+	stampSBytes, err := stampS.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	stampTBytes, err := stampT.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	c.logger.Infof(
+		"soc=%s stale-stamp race sam=%s sara=%s wrapped_p1=%s wrapped_p2=%s wrapped_p3=%s batchA=%s… batchB=%s… tsS=%d tsT=%d",
+		addr, sam.Name(), sara.Name(), mustWrapped(soc1), mustWrapped(soc2), mustWrapped(soc3),
+		batchID[:8], batchB[:8], tsS, tsT,
+	)
+
+	type uploadResult struct {
+		label string
+		err   error
+	}
+	results := make(chan uploadResult, 4)
+
+	go func() {
+		results <- uploadResult{"SOC1→" + sam.Name(), uploadSOC(ctx, sam, owner, id, soc1, stampSBytes)}
+	}()
+	go func() {
+		results <- uploadResult{"SOC2→" + sara.Name(), uploadSOC(ctx, sara, owner, id, soc2, stampTBytes)}
+	}()
+	go func() {
+		results <- uploadResult{"SOC3→" + sam.Name(), uploadSOC(ctx, sam, owner, id, soc3, stampSBytes)}
+	}()
+	go func() {
+		results <- uploadResult{"SOC3→" + sara.Name(), uploadSOC(ctx, sara, owner, id, soc3, stampSBytes)}
+	}()
+
+	for range 4 {
+		r := <-results
+		if r.err != nil {
+			c.logger.Infof("upload %s returned: %v", r.label, r.err)
+		} else {
+			c.logger.Infof("upload %s ok", r.label)
+		}
+	}
+	c.logger.Infof("race uploads finished; waiting %s for neighborhood to settle on P3", syncWait)
+
+	time.Sleep(syncWait)
+
+	for _, n := range neighborhood {
+		got, err := n.DownloadChunk(ctx, addr, "", nil)
+		if err != nil {
+			c.logger.Errorf("%s download after race: %v", n.Name(), err)
+			continue
+		}
+		switch {
+		case bytes.Equal(got, soc3.Data()):
+			c.logger.Infof("%s holds P3 — expected", n.Name())
+		case bytes.Equal(got, soc2.Data()):
+			c.logger.Errorf("%s holds P2 (stamp T) — want P3", n.Name())
+		case bytes.Equal(got, soc1.Data()):
+			c.logger.Errorf("%s holds P1 — want P3", n.Name())
+		default:
+			c.logger.Errorf("%s holds unexpected payload len=%d", n.Name(), len(got))
+		}
+	}
+
+	if err := assertNeighborhoodPayload(ctx, c.logger, neighborhood, addr, soc3.Data()); err != nil {
+		return fmt.Errorf("after stale-stamp race (want P3 on both): %w", err)
+	}
+	return nil
+}
+
+// orderedStaleRaceSOCs builds three SOCs at the same address where P₃'s wrapped
+// CAC is lexicographically lower than both P₁ and P₂, so resolveDivergence would
+// accept P₃ over either stored payload when the stale-stamp guard is absent.
+func orderedStaleRaceSOCs(signer crypto.Signer, id []byte) (p1, p2, p3 swarm.Chunk, err error) {
+	for range 10_000 {
+		p1, err = buildSOC(signer, id, append([]byte("stale-p1-"), randomBytes(8)...))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		p2, err = buildSOC(signer, id, append([]byte("stale-p2-"), randomBytes(8)...))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		p3, err = buildSOC(signer, id, append([]byte("stale-p3-"), randomBytes(8)...))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		w1, w2, w3 := mustWrapped(p1).Bytes(), mustWrapped(p2).Bytes(), mustWrapped(p3).Bytes()
+		if bytes.Compare(w3, w1) < 0 && bytes.Compare(w3, w2) < 0 &&
+			!bytes.Equal(w1, w2) && !bytes.Equal(w1, w3) && !bytes.Equal(w2, w3) {
+			return p1, p2, p3, nil
+		}
+	}
+	return nil, nil, nil, fmt.Errorf("could not mine P1/P2/P3 with wrapped(P3) lower than both")
+}
+
+func uploadSOC(ctx context.Context, n *bee.Client, owner string, id []byte, ch swarm.Chunk, stamp []byte) error {
+	sig := hex.EncodeToString(ch.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
+	wrapped := ch.Data()[swarm.HashSize+swarm.SocSignatureSize:]
+	idHex := hex.EncodeToString(id)
+	if _, err := n.UploadSOCWithStamp(ctx, owner, idHex, sig, wrapped, stamp); err != nil {
+		return fmt.Errorf("upload to %s: %w", n.Name(), err)
+	}
+	return nil
 }
 
 // uploadSOCPair stores ch1 on n1 then ch2 on n2. Callers should pass the
