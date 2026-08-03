@@ -62,30 +62,23 @@ Check: `ci-chunk-convergence` (`chunk-convergence`)
 
 ---
 
-## 5. SOC, cross-batch, higher timestamp
+## 5. CAC, same index, equal timestamp
 
-| Field           | Same / different                                                   |
-| --------------- | ------------------------------------------------------------------ |
-| Address         | same                                                               |
-| Batch           | different                                                          |
-| Stamp           | different                                                          |
-| Stamp index     | different (independent envelopes in different batches)             |
-| Stamp timestamp | different                                                          |
+| Field           | Same / different                                                                 |
+| --------------- | -------------------------------------------------------------------------------- |
+| Address         | different (two CACs in the same postage bucket)                                  |
+| Batch           | same                                                                             |
+| Stamp           | same batch / index / timestamp; signatures differ (each stamp is bound to its CAC address) |
+| Stamp index     | same                                                                             |
+| Stamp timestamp | same                                                                             |
 
-**Expected:** the higher timestamp wins.
+**Expected:** the lexicographically lower CAC address wins; the higher-address CAC is absent.
 
----
-
-## 6. SOC, cross-batch, equal timestamp
-
-| Field           | Same / different                                                   |
-| --------------- | ------------------------------------------------------------------ |
-| Address         | same                                                               |
-| Batch           | different                                                          |
-| Stamp           | different                                                          |
-| Stamp index     | different (independent envelopes; equality is not forced)          |
-| Stamp timestamp | same                                                               |
-
-**Expected:** the stamp with the lexicographically lower stamp hash wins.
-
-**Note:** equal timestamp does not mean the same stamp. The two claims are distinct postage stamps (different batches / stamp hashes) that share only the timestamp value.
+```bash
+# from beekeeper repo, with cluster local-dns up and context k3d-bee
+./dist/beekeeper check \
+  --config config/beekeeper-local.yaml \
+  --config-dir config \
+  --cluster-name local-dns \
+  --checks ci-chunk-convergence
+```

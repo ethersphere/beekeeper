@@ -105,11 +105,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		{"4 cac same index higher timestamp", func() error {
 			return c.scenarioCACSameIndexTimestamp(ctx, issuer, signer, neighborhood, batchID, o.SyncWait)
 		}},
-		{"5 soc cross-batch higher timestamp", func() error {
-			return c.scenarioSOCCrossBatchTimestamp(ctx, cluster, neighborhood, o)
-		}},
-		{"6 soc cross-batch equal timestamp", func() error {
-			return c.scenarioSOCEqualTimestampTieBreak(ctx, issuer, signer, neighborhood, batchID, o, o.SyncWait)
+		{"5 cac same index equal timestamp", func() error {
+			return c.scenarioCACSameIndexEqualTimestamp(ctx, issuer, signer, neighborhood, batchID, o.SyncWait)
 		}},
 	}
 
@@ -338,91 +335,88 @@ func (c *Check) scenarioCACSameIndexTimestamp(ctx context.Context, issuer *bee.C
 	return nil
 }
 
-func (c *Check) scenarioSOCCrossBatchTimestamp(ctx context.Context, cluster orchestration.Cluster, neighborhood []*bee.Client, o Options) error {
-	clients, err := cluster.NodesClients(ctx)
+func (c *Check) scenarioCACSameIndexEqualTimestamp(ctx context.Context, issuer *bee.Client, batchSigner crypto.Signer, neighborhood []*bee.Client, batchID string, syncWait time.Duration) error {
+	addrs, err := neighborhood[0].Addresses(ctx)
 	if err != nil {
 		return err
 	}
-	var issuerA, issuerB *bee.Client
-	for _, cl := range clients {
-		if issuerA == nil {
-			issuerA = cl
-			continue
-		}
-		if issuerB == nil && cl.Name() != issuerA.Name() {
-			issuerB = cl
-			break
-		}
+	low, high, err := orderedCACsInBucket(addrs.Overlay)
+	if err != nil {
+		return err
 	}
-	if issuerA == nil || issuerB == nil {
-		return fmt.Errorf("need two nodes to create two batches")
+	batchBytes, err := hex.DecodeString(batchID)
+	if err != nil {
+		return err
 	}
+	// Same batch, stamp index and timestamp; signatures differ (each stamp is
+	// bound to its CAC address). At equal timestamp the lower address wins.
+	env, err := issuer.CreateEnvelope(ctx, low.Address(), batchID)
+	if err != nil {
+		return fmt.Errorf("envelope for index: %w", err)
+	}
+	index := append([]byte{}, env.Index()...)
+	ts := uint64ToBytes(binary.BigEndian.Uint64(env.Timestamp()))
 
-	batchA, err := issuerA.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-a-"+hex.EncodeToString(randomBytes(3)))
+	stampLow, err := signStamp(batchSigner, batchBytes, index, ts, low.Address())
 	if err != nil {
-		return fmt.Errorf("batch A: %w", err)
+		return err
 	}
-	batchB, err := issuerB.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-b-"+hex.EncodeToString(randomBytes(3)))
+	stampHigh, err := signStamp(batchSigner, batchBytes, index, ts, high.Address())
 	if err != nil {
-		return fmt.Errorf("batch B: %w", err)
+		return err
 	}
+	low = low.WithStamp(stampLow)
+	high = high.WithStamp(stampHigh)
 
-	signer, owner, id, addr, err := mineSOC(ctx, neighborhood[0], neighborhood[1])
-	if err != nil {
+	c.logger.Infof("cac_low=%s cac_high=%s index=%s equal_ts address tie-break", low.Address(), high.Address(), hex.EncodeToString(index))
+	// Upload loser (higher address) first, then winner (lower address).
+	if err := uploadChunkPair(ctx, neighborhood[0], neighborhood[1], high, low); err != nil {
 		return err
 	}
-	older, err := buildSOC(signer, id, append([]byte("soc-xbatch-older-"), randomBytes(4)...))
-	if err != nil {
-		return err
-	}
-	newer, err := buildSOC(signer, id, append([]byte("soc-xbatch-newer-"), randomBytes(4)...))
-	if err != nil {
-		return err
-	}
+	time.Sleep(syncWait)
 
-	stampOld, err := issuerA.CreateEnvelope(ctx, addr, batchA)
-	if err != nil {
-		return fmt.Errorf("envelope A: %w", err)
-	}
-	stampNew, err := issuerB.CreateEnvelope(ctx, addr, batchB)
-	if err != nil {
-		return fmt.Errorf("envelope B: %w", err)
-	}
-	for binary.BigEndian.Uint64(stampNew.Timestamp()) <= binary.BigEndian.Uint64(stampOld.Timestamp()) {
-		stampNew, err = issuerB.CreateEnvelope(ctx, addr, batchB)
+	for _, n := range neighborhood {
+		hasWant, err := n.HasChunk(ctx, low.Address())
 		if err != nil {
-			return fmt.Errorf("envelope B retry: %w", err)
+			return err
+		}
+		hasLose, err := n.HasChunk(ctx, high.Address())
+		if err != nil {
+			return err
+		}
+		c.logger.Infof("%s has_winner=%v has_loser=%v", n.Name(), hasWant, hasLose)
+		if !hasWant {
+			return fmt.Errorf("node %s missing lower-address CAC %s", n.Name(), low.Address())
+		}
+		if hasLose {
+			return fmt.Errorf("node %s still has higher-address CAC %s", n.Name(), high.Address())
 		}
 	}
-	older = older.WithStamp(stampOld)
-	newer = newer.WithStamp(stampNew)
-	oldBytes, _ := stampOld.MarshalBinary()
-	newBytes, _ := stampNew.MarshalBinary()
-
-	c.logger.Infof("soc=%s batchA=%s… batchB=%s…", addr, batchA[:8], batchB[:8])
-	if err := uploadSOCPair(ctx, neighborhood[0], neighborhood[1], owner, id, older, newer, oldBytes, newBytes, true); err != nil {
-		return err
-	}
-	time.Sleep(o.SyncWait)
-	return assertNeighborhoodPayload(ctx, c.logger, neighborhood, addr, newer.Data())
+	return nil
 }
 
-func (c *Check) scenarioSOCEqualTimestampTieBreak(ctx context.Context, issuer *bee.Client, batchSigner crypto.Signer, neighborhood []*bee.Client, batchID string, o Options, syncWait time.Duration) error {
-	// Two batches from the same issuer (bootnode) so one key can sign stamps for both.
-	batchB, err := issuer.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-eqts-"+hex.EncodeToString(randomBytes(3)))
+// scenarioSOCStaleStampRedeliveryRace races three divergent SOCs at one address:
+//
+//	SOC₁ under stamp S (batch A, lower timestamp) → uploaded to Sam
+//	SOC₂ under stamp T (batch B, higher timestamp) → uploaded to Sara
+//	SOC₃ reuses stamp S with payload P₃ whose wrapped CAC beats P₁ and P₂ →
+//	uploaded to both nodes in parallel with the SOC₁/SOC₂ uploads
+//
+// After sync, every neighborhood node must hold P₃ (wrapped-CAC winner under
+// the reused stamp S / resolveDivergence).
+func (c *Check) scenarioSOCStaleStampRedeliveryRace(ctx context.Context, issuer *bee.Client, batchSigner crypto.Signer, neighborhood []*bee.Client, batchID string, o Options, syncWait time.Duration) error {
+	sam, sara := neighborhood[0], neighborhood[1]
+
+	batchB, err := issuer.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-stale-"+hex.EncodeToString(randomBytes(3)))
 	if err != nil {
 		return fmt.Errorf("batch B: %w", err)
 	}
 
-	signer, owner, id, addr, err := mineSOC(ctx, neighborhood[0], neighborhood[1])
+	signer, owner, id, addr, err := mineSOC(ctx, sam, sara)
 	if err != nil {
 		return err
 	}
-	a, err := buildSOC(signer, id, append([]byte("soc-eqts-a-"), randomBytes(4)...))
-	if err != nil {
-		return err
-	}
-	b, err := buildSOC(signer, id, append([]byte("soc-eqts-b-"), randomBytes(4)...))
+	soc1, soc2, soc3, err := orderedStaleRaceSOCs(signer, id)
 	if err != nil {
 		return err
 	}
@@ -435,59 +429,132 @@ func (c *Check) scenarioSOCEqualTimestampTieBreak(ctx context.Context, issuer *b
 	if err != nil {
 		return err
 	}
-	// Valid indexes from real envelopes on each batch; equal timestamps for stampHash tie-break.
-	envA, err := issuer.CreateEnvelope(ctx, addr, batchID)
-	if err != nil {
-		return fmt.Errorf("envelope A: %w", err)
-	}
-	envB, err := issuer.CreateEnvelope(ctx, addr, batchB)
-	if err != nil {
-		return fmt.Errorf("envelope B: %w", err)
-	}
-	ts := binary.BigEndian.Uint64(envA.Timestamp())
-	if tsb := binary.BigEndian.Uint64(envB.Timestamp()); tsb > ts {
-		ts = tsb
-	}
-	tsBytes := uint64ToBytes(ts)
-	idxA := append([]byte{}, envA.Index()...)
-	idxB := append([]byte{}, envB.Index()...)
 
-	stampA, err := signStamp(batchSigner, batchABytes, idxA, tsBytes, addr)
+	envS, err := issuer.CreateEnvelope(ctx, addr, batchID)
+	if err != nil {
+		return fmt.Errorf("envelope stamp S: %w", err)
+	}
+	envT, err := issuer.CreateEnvelope(ctx, addr, batchB)
+	if err != nil {
+		return fmt.Errorf("envelope stamp T: %w", err)
+	}
+	tsS := binary.BigEndian.Uint64(envS.Timestamp())
+	tsT := binary.BigEndian.Uint64(envT.Timestamp())
+	if tsT <= tsS {
+		tsT = tsS + 1
+	}
+	stampS, err := signStamp(batchSigner, batchABytes, append([]byte{}, envS.Index()...), uint64ToBytes(tsS), addr)
+	if err != nil {
+		return fmt.Errorf("sign stamp S: %w", err)
+	}
+	stampT, err := signStamp(batchSigner, batchBBytes, append([]byte{}, envT.Index()...), uint64ToBytes(tsT), addr)
+	if err != nil {
+		return fmt.Errorf("sign stamp T: %w", err)
+	}
+	stampSBytes, err := stampS.MarshalBinary()
 	if err != nil {
 		return err
 	}
-	stampB, err := signStamp(batchSigner, batchBBytes, idxB, tsBytes, addr)
-	if err != nil {
-		return err
-	}
-	hashA, err := stampA.Hash()
-	if err != nil {
-		return err
-	}
-	hashB, err := stampB.Hash()
+	stampTBytes, err := stampT.MarshalBinary()
 	if err != nil {
 		return err
 	}
 
-	var winner, loser swarm.Chunk
-	var winStamp, loseStamp []byte
-	if bytes.Compare(hashA, hashB) < 0 {
-		winner, loser = a.WithStamp(stampA), b.WithStamp(stampB)
-		winStamp, _ = stampA.MarshalBinary()
-		loseStamp, _ = stampB.MarshalBinary()
-	} else {
-		winner, loser = b.WithStamp(stampB), a.WithStamp(stampA)
-		winStamp, _ = stampB.MarshalBinary()
-		loseStamp, _ = stampA.MarshalBinary()
-	}
+	c.logger.Infof(
+		"soc=%s stale-stamp race sam=%s sara=%s wrapped_p1=%s wrapped_p2=%s wrapped_p3=%s batchA=%s… batchB=%s… tsS=%d tsT=%d",
+		addr, sam.Name(), sara.Name(), mustWrapped(soc1), mustWrapped(soc2), mustWrapped(soc3),
+		batchID[:8], batchB[:8], tsS, tsT,
+	)
 
-	c.logger.Infof("soc=%s cross-batch equal_ts lower stampHash wins batchA=%s… batchB=%s…", addr, batchID[:8], batchB[:8])
-	// Upload loser first, then winner.
-	if err := uploadSOCPair(ctx, neighborhood[0], neighborhood[1], owner, id, loser, winner, loseStamp, winStamp, true); err != nil {
-		return err
+	type uploadResult struct {
+		label string
+		err   error
 	}
+	results := make(chan uploadResult, 4)
+
+	go func() {
+		results <- uploadResult{"SOC1→" + sam.Name(), uploadSOC(ctx, sam, owner, id, soc1, stampSBytes)}
+	}()
+	go func() {
+		results <- uploadResult{"SOC2→" + sara.Name(), uploadSOC(ctx, sara, owner, id, soc2, stampTBytes)}
+	}()
+	go func() {
+		results <- uploadResult{"SOC3→" + sam.Name(), uploadSOC(ctx, sam, owner, id, soc3, stampSBytes)}
+	}()
+	go func() {
+		results <- uploadResult{"SOC3→" + sara.Name(), uploadSOC(ctx, sara, owner, id, soc3, stampSBytes)}
+	}()
+
+	for range 4 {
+		r := <-results
+		if r.err != nil {
+			c.logger.Infof("upload %s returned: %v", r.label, r.err)
+		} else {
+			c.logger.Infof("upload %s ok", r.label)
+		}
+	}
+	c.logger.Infof("race uploads finished; waiting %s for neighborhood to settle on P3", syncWait)
+
 	time.Sleep(syncWait)
-	return assertNeighborhoodPayload(ctx, c.logger, neighborhood, addr, winner.Data())
+
+	for _, n := range neighborhood {
+		got, err := n.DownloadChunk(ctx, addr, "", nil)
+		if err != nil {
+			c.logger.Errorf("%s download after race: %v", n.Name(), err)
+			continue
+		}
+		switch {
+		case bytes.Equal(got, soc3.Data()):
+			c.logger.Infof("%s holds P3 — expected", n.Name())
+		case bytes.Equal(got, soc2.Data()):
+			c.logger.Errorf("%s holds P2 (stamp T) — want P3", n.Name())
+		case bytes.Equal(got, soc1.Data()):
+			c.logger.Errorf("%s holds P1 — want P3", n.Name())
+		default:
+			c.logger.Errorf("%s holds unexpected payload len=%d", n.Name(), len(got))
+		}
+	}
+
+	if err := assertNeighborhoodPayload(ctx, c.logger, neighborhood, addr, soc3.Data()); err != nil {
+		return fmt.Errorf("after stale-stamp race (want P3 on both): %w", err)
+	}
+	return nil
+}
+
+// orderedStaleRaceSOCs builds three SOCs at the same address where P₃'s wrapped
+// CAC is lexicographically lower than both P₁ and P₂, so resolveDivergence would
+// accept P₃ over either stored payload when the stale-stamp guard is absent.
+func orderedStaleRaceSOCs(signer crypto.Signer, id []byte) (p1, p2, p3 swarm.Chunk, err error) {
+	for range 10_000 {
+		p1, err = buildSOC(signer, id, append([]byte("stale-p1-"), randomBytes(8)...))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		p2, err = buildSOC(signer, id, append([]byte("stale-p2-"), randomBytes(8)...))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		p3, err = buildSOC(signer, id, append([]byte("stale-p3-"), randomBytes(8)...))
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		w1, w2, w3 := mustWrapped(p1).Bytes(), mustWrapped(p2).Bytes(), mustWrapped(p3).Bytes()
+		if bytes.Compare(w3, w1) < 0 && bytes.Compare(w3, w2) < 0 &&
+			!bytes.Equal(w1, w2) && !bytes.Equal(w1, w3) && !bytes.Equal(w2, w3) {
+			return p1, p2, p3, nil
+		}
+	}
+	return nil, nil, nil, fmt.Errorf("could not mine P1/P2/P3 with wrapped(P3) lower than both")
+}
+
+func uploadSOC(ctx context.Context, n *bee.Client, owner string, id []byte, ch swarm.Chunk, stamp []byte) error {
+	sig := hex.EncodeToString(ch.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
+	wrapped := ch.Data()[swarm.HashSize+swarm.SocSignatureSize:]
+	idHex := hex.EncodeToString(id)
+	if _, err := n.UploadSOCWithStamp(ctx, owner, idHex, sig, wrapped, stamp); err != nil {
+		return fmt.Errorf("upload to %s: %w", n.Name(), err)
+	}
+	return nil
 }
 
 // uploadSOCPair stores ch1 on n1 then ch2 on n2. Callers should pass the
