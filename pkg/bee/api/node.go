@@ -80,15 +80,21 @@ func (n *NodeService) Balances(ctx context.Context) (resp Balances, err error) {
 
 // HasChunk returns true/false if node has a chunk
 func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
-	// HEAD must not decode a JSON body (response is empty); nil target avoids EOF.
-	err := n.client.requestJSON(ctx, http.MethodHead, "/chunks/"+a.String(), nil, nil)
-	if IsHTTPStatusErrorCode(err, http.StatusNotFound) {
-		return false, nil
-	} else if err != nil {
-		return false, err
+	for attempt := 0; attempt < 5; attempt++ {
+		err := n.client.requestJSON(ctx, http.MethodHead, "/chunks/"+a.String(), nil, nil)
+		if IsHTTPStatusErrorCode(err, http.StatusNotFound) {
+			return false, nil
+		}
+		if IsHTTPStatusErrorCode(err, http.StatusServiceUnavailable) {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		if err != nil {
+			return false, err
+		}
+		return true, nil
 	}
-
-	return true, nil
+	return false, fmt.Errorf("has chunk %s: exceeded retries on 503", a.String())
 }
 
 // Health represents node's health

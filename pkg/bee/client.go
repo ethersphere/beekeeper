@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -215,13 +216,19 @@ func (c *Client) DownloadBytes(ctx context.Context, a swarm.Address, opts *api.D
 
 // DownloadChunk downloads chunk from the node
 func (c *Client) DownloadChunk(ctx context.Context, a swarm.Address, targets string, opts *api.DownloadOptions) (data []byte, err error) {
-	r, err := c.api.Chunks.Download(ctx, a, targets, opts)
-	if err != nil {
-		return nil, fmt.Errorf("download chunk %s: %w", a, err)
+	for attempt := 0; attempt < 5; attempt++ {
+		r, err := c.api.Chunks.Download(ctx, a, targets, opts)
+		if err != nil {
+			if api.IsHTTPStatusErrorCode(err, 503) || strings.Contains(err.Error(), "503") || strings.Contains(err.Error(), "Service Unavailable") {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			return nil, fmt.Errorf("download chunk %s: %w", a, err)
+		}
+		defer r.Close()
+		return io.ReadAll(r)
 	}
-	defer r.Close()
-
-	return io.ReadAll(r)
+	return nil, fmt.Errorf("download chunk %s: exceeded retries on 503", a)
 }
 
 // DownloadFileBytes downloads a flie from the node and returns the data.
