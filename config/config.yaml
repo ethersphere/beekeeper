@@ -355,6 +355,16 @@ checks:
       request-timeout: 5m
     timeout: 5m
     type: soc
+  chunk-convergence:
+    options:
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: chunk-convergence
+      sync-wait: 45s
+      request-timeout: 15m
+      password: beekeeper
+    timeout: 20m
+    type: chunk-convergence
   stake:
     type: stake
     timeout: 5m

@@ -1,6 +1,7 @@
 package orchestration
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/ecdsa"
@@ -13,6 +14,7 @@ import (
 	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/scrypt"
+	"golang.org/x/crypto/sha3"
 	"gopkg.in/yaml.v3"
 )
 
@@ -67,6 +69,50 @@ func (k *EncryptedKey) StringJSON() (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+// Decrypt decrypts the encrypted Swarm key with the given password and returns
+// the secp256k1 private key. The key file format matches Ethereum JSON v3.
+func (k *EncryptedKey) Decrypt(password string) (*ecdsa.PrivateKey, error) {
+	if k == nil {
+		return nil, fmt.Errorf("nil encrypted key")
+	}
+	salt, err := hex.DecodeString(k.Crypto.KDFParams.Salt)
+	if err != nil {
+		return nil, fmt.Errorf("decode salt: %w", err)
+	}
+	derivedKey, err := scrypt.Key([]byte(password), salt, k.Crypto.KDFParams.N, k.Crypto.KDFParams.R, k.Crypto.KDFParams.P, k.Crypto.KDFParams.DKLen)
+	if err != nil {
+		return nil, fmt.Errorf("scrypt: %w", err)
+	}
+	cipherText, err := hex.DecodeString(k.Crypto.CipherText)
+	if err != nil {
+		return nil, fmt.Errorf("decode ciphertext: %w", err)
+	}
+	wantMAC, err := hex.DecodeString(k.Crypto.MAC)
+	if err != nil {
+		return nil, fmt.Errorf("decode mac: %w", err)
+	}
+	// Bee keystore MAC is SHA3-256; Ethereum V3 keyfiles use Keccak-256.
+	calculatedMAC := sha3.Sum256(append(derivedKey[16:32], cipherText...))
+	if !bytes.Equal(calculatedMAC[:], wantMAC) {
+		calculatedMACEth, err := crypto.LegacyKeccak256(append(derivedKey[16:32], cipherText...))
+		if err != nil {
+			return nil, fmt.Errorf("mac: %w", err)
+		}
+		if !bytes.Equal(calculatedMACEth, wantMAC) {
+			return nil, fmt.Errorf("invalid password or corrupted key")
+		}
+	}
+	iv, err := hex.DecodeString(k.Crypto.CipherParams.IV)
+	if err != nil {
+		return nil, fmt.Errorf("decode iv: %w", err)
+	}
+	plain, err := aesCTRXOR(derivedKey[:16], cipherText, iv)
+	if err != nil {
+		return nil, fmt.Errorf("decrypt: %w", err)
+	}
+	return crypto.DecodeSecp256k1PrivateKey(plain)
 }
 
 type keyCripto struct {

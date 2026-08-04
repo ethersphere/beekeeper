@@ -12,6 +12,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/autotls"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
+	"github.com/ethersphere/beekeeper/pkg/check/chunkconvergence"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
 	"github.com/ethersphere/beekeeper/pkg/check/feed"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
@@ -34,6 +35,8 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
+	"github.com/ethersphere/beekeeper/pkg/check/socconvergence"
+	"github.com/ethersphere/beekeeper/pkg/check/socmatrix"
 	"github.com/ethersphere/beekeeper/pkg/check/stake"
 	"github.com/ethersphere/beekeeper/pkg/check/withdraw"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -528,6 +531,52 @@ var Checks = map[string]CheckType{
 			return opts, nil
 		},
 	},
+	"socconvergence": {
+		NewAction: socconvergence.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				GasPrice          *string        `yaml:"gas-price"`
+				PostageTTL        *time.Duration `yaml:"postage-ttl"`
+				PostageDepth      *uint64        `yaml:"postage-depth"`
+				PostageLabel      *string        `yaml:"postage-label"`
+				RequestTimeout    *time.Duration `yaml:"request-timeout"`
+				SyncRetryInterval *time.Duration `yaml:"sync-retry-interval"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := socconvergence.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"socmatrix": {
+		NewAction: socmatrix.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				GasPrice          *string        `yaml:"gas-price"`
+				PostageTTL        *time.Duration `yaml:"postage-ttl"`
+				PostageDepth      *uint64        `yaml:"postage-depth"`
+				PostageLabel      *string        `yaml:"postage-label"`
+				RequestTimeout    *time.Duration `yaml:"request-timeout"`
+				SyncRetryInterval *time.Duration `yaml:"sync-retry-interval"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := socmatrix.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
 	"postage": {
 		NewAction: postage.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
@@ -685,6 +734,29 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := gsoc.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"chunk-convergence": {
+		NewAction: chunkconvergence.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				PostageTTL     *time.Duration `yaml:"postage-ttl"`
+				PostageDepth   *uint64        `yaml:"postage-depth"`
+				PostageLabel   *string        `yaml:"postage-label"`
+				SyncWait       *time.Duration `yaml:"sync-wait"`
+				RequestTimeout *time.Duration `yaml:"request-timeout"`
+				Password       *string        `yaml:"password"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := chunkconvergence.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
