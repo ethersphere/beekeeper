@@ -27,7 +27,7 @@ func (s *Spec) ToK8S() v1.ServiceSpec {
 		ClusterIP:                s.ClusterIP,
 		ExternalIPs:              s.ExternalIPs,
 		ExternalName:             s.ExternalName,
-		ExternalTrafficPolicy:    v1.ServiceExternalTrafficPolicyType(s.ExternalTrafficPolicy),
+		ExternalTrafficPolicy:    v1.ServiceExternalTrafficPolicy(s.ExternalTrafficPolicy),
 		LoadBalancerIP:           s.LoadBalancerIP,
 		LoadBalancerSourceRanges: s.LoadBalancerSourceRanges,
 		Ports:                    s.Ports.toK8S(),
