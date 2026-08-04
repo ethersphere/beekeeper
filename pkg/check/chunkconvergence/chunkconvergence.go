@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/cac"
@@ -554,10 +555,18 @@ func uploadSOC(ctx context.Context, n *bee.Client, owner string, id []byte, ch s
 	sig := hex.EncodeToString(ch.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
 	wrapped := ch.Data()[swarm.HashSize+swarm.SocSignatureSize:]
 	idHex := hex.EncodeToString(id)
-	if _, err := n.UploadSOCWithStamp(ctx, owner, idHex, sig, wrapped, stamp); err != nil {
-		return fmt.Errorf("upload to %s: %w", n.Name(), err)
+
+	for attempt := 0; attempt < 5; attempt++ {
+		if _, err := n.UploadSOCWithStamp(ctx, owner, idHex, sig, wrapped, stamp); err != nil {
+			if strings.Contains(err.Error(), "503") || strings.Contains(err.Error(), "Service Unavailable") {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			return fmt.Errorf("upload to %s: %w", n.Name(), err)
+		}
+		return nil
 	}
-	return nil
+	return fmt.Errorf("upload to %s: exceeded 5 retries on 503", n.Name())
 }
 
 // uploadSOCPair stores ch1 on n1 then ch2 on n2. Callers should pass the
