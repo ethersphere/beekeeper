@@ -30,9 +30,7 @@ grows or shrinks from the last index to reach the requested count:
 • if count equals the current size, nothing is done
 
 New nodes are not funded by this command; run "beekeeper node-funder" afterwards
-if they need ETH/BZZ.
-
-This makes it safe to re-run and safe against a partially completed previous scale.`,
+if they need ETH/BZZ.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
