@@ -15,22 +15,24 @@ func (c *command) initScaleCmd() (err error) {
 	const (
 		optionNameNodeGroup = "node-group"
 		optionNameCount     = "count"
-		optionNameWalletKey = "wallet-key"
 		optionNameTimeout   = "timeout"
 	)
 
 	cmd := &cobra.Command{
 		Use:   "scale",
-		Short: "scales up a node group in a running Bee cluster",
-		Long: `Scales up a node group in a running Bee cluster by deploying additional nodes.
+		Short: "scales a node group in a running Bee cluster to the given count",
+		Long: `Scales a node group in a running Bee cluster to the given node count.
 
-Existing nodes are left untouched: for each index in [0, count), the command checks
-whether a node with that index already exists in the node group and only deploys the
-ones that are missing. This makes it safe to re-run and safe against a partially
-completed previous scale.
+The node group's nodes are named <node-group>-0, <node-group>-1, ...; the command
+grows or shrinks from the last index to reach the requested count:
+• if count is greater than the current size, the missing nodes are deployed
+• if count is less than the current size, the highest-indexed nodes are deleted
+• if count equals the current size, nothing is done
 
-Only scaling up (increasing count) is supported; --count must be greater than the
-node group's currently deployed size.`,
+New nodes are not funded by this command; run "beekeeper node-funder" afterwards
+if they need ETH/BZZ.
+
+This makes it safe to re-run and safe against a partially completed previous scale.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx, cancel := context.WithTimeout(cmd.Context(), c.globalConfig.GetDuration(optionNameTimeout))
 			defer cancel()
@@ -42,22 +44,12 @@ node group's currently deployed size.`,
 			if ngName == "" {
 				return fmt.Errorf("node group name not provided")
 			}
-			if count <= 0 {
-				return fmt.Errorf("count must be greater than 0")
-			}
-
-			chainNodeEndpoint := c.globalConfig.GetString(optionNameGethURL)
-			if chainNodeEndpoint == "" {
-				return errBlockchainEndpointNotProvided
-			}
-
-			walletKey := c.globalConfig.GetString(optionNameWalletKey)
-			if walletKey == "" {
-				return fmt.Errorf("wallet key not provided")
+			if count < 0 {
+				return fmt.Errorf("count must be 0 or greater")
 			}
 
 			start := time.Now()
-			err = c.scaleNodeGroup(ctx, clusterName, ngName, count, chainNodeEndpoint, walletKey)
+			err = c.scaleNodeGroup(ctx, clusterName, ngName, count)
 			c.log.Infof("scale took %s", time.Since(start))
 			return err
 		},
@@ -65,9 +57,8 @@ node group's currently deployed size.`,
 	}
 
 	cmd.Flags().String(optionNameClusterName, "", "cluster name")
-	cmd.Flags().String(optionNameNodeGroup, "", "node group to scale up. Required")
-	cmd.Flags().Int(optionNameCount, 0, "new target node count for the node group. Required")
-	cmd.Flags().String(optionNameWalletKey, "", "Hex-encoded private key for the Bee node wallet. Required.")
+	cmd.Flags().String(optionNameNodeGroup, "", "node group to scale. Required")
+	cmd.Flags().Int(optionNameCount, 0, "desired node count for the node group. Required")
 	cmd.Flags().Duration(optionNameTimeout, 30*time.Minute, "timeout")
 
 	c.root.AddCommand(cmd)
@@ -75,9 +66,8 @@ node group's currently deployed size.`,
 	return nil
 }
 
-// scaleNodeGroup deploys the nodes missing between the node group's current size
-// and the requested count, leaving already-deployed nodes untouched.
-func (c *command) scaleNodeGroup(ctx context.Context, clusterName, ngName string, count int, chainNodeEndpoint, walletKey string) error {
+// scaleNodeGroup reconciles a node group to exactly count nodes: growing from the last index if count is larger than the current size, shrinking from the last index if smaller, or doing nothing if count already matches.
+func (c *command) scaleNodeGroup(ctx context.Context, clusterName, ngName string, count int) error {
 	if clusterName == "" {
 		return errMissingClusterName
 	}
@@ -107,6 +97,51 @@ func (c *command) scaleNodeGroup(ctx context.Context, clusterName, ngName string
 		return fmt.Errorf("node group profile %s not defined", ngv.Config)
 	}
 
+	namespace := clusterConfig.GetNamespace()
+
+	currentSize, err := c.nodeGroupSize(ctx, ngName, namespace)
+	if err != nil {
+		return fmt.Errorf("determine current size of node group %s: %w", ngName, err)
+	}
+
+	switch {
+	case count > currentSize:
+		return c.growNodeGroup(ctx, clusterConfig, ngv, ngConfig, ngName, currentSize, count)
+	case count < currentSize:
+		return c.shrinkNodeGroup(ctx, clusterConfig, ngConfig, ngName, currentSize, count)
+	default:
+		c.log.Infof("node group %s already has %d nodes, nothing to do", ngName, count)
+		return nil
+	}
+}
+
+// nodeGroupSize returns the current number of nodes in the node group by probing live StatefulSets from index 0 upward until one is missing.
+// Note: Cannot get from local.yaml config because the node group may have been scaled up or down since the cluster was deployed.
+func (c *command) nodeGroupSize(ctx context.Context, ngName, namespace string) (int, error) {
+	size := 0
+	for {
+		name := fmt.Sprintf("%s-%d", ngName, size)
+		exists, err := c.k8sClient.StatefulSet.Exists(ctx, name, namespace)
+		if err != nil {
+			return 0, fmt.Errorf("checking node %s: %w", name, err)
+		}
+		if !exists {
+			return size, nil
+		}
+		size++
+	}
+}
+
+// growNodeGroup adds nodes to the end of the node group (lowest missing index first) until count are reached.
+// For example, going from 5 to 8 deploys <ngName>-5, <ngName>-6, and <ngName>-7, leaving <ngName>-0..4 untouched.
+func (c *command) growNodeGroup(
+	ctx context.Context,
+	clusterConfig config.Cluster,
+	ngv config.ClusterNodeGroup,
+	ngConfig config.NodeGroup,
+	ngName string,
+	currentSize, count int,
+) error {
 	beeConfig, ok := c.config.BeeConfigs[ngv.BeeConfig]
 	if !ok {
 		return fmt.Errorf("bee profile %s not defined", ngv.BeeConfig)
@@ -126,29 +161,12 @@ func (c *command) scaleNodeGroup(ctx context.Context, clusterName, ngName string
 	ngOptions := ngConfig.Export()
 	ngOptions.BeeConfig = &bConfig
 
-	namespace := clusterConfig.GetNamespace()
-
-	newNames := make([]string, 0, count)
-	for i := range count {
-		name := fmt.Sprintf("%s-%d", ngName, i)
-
-		exists, err := c.k8sClient.StatefulSet.Exists(ctx, name, namespace)
-		if err != nil {
-			return fmt.Errorf("checking node %s: %w", name, err)
-		}
-		if exists {
-			continue
-		}
-
-		newNames = append(newNames, name)
+	newNames := make([]string, 0, count-currentSize)
+	for i := currentSize; i < count; i++ {
+		newNames = append(newNames, fmt.Sprintf("%s-%d", ngName, i))
 	}
 
-	if len(newNames) == 0 {
-		c.log.Infof("node group %s already has %d or more nodes, nothing to do", ngName, count)
-		return nil
-	}
-
-	c.log.Infof("scaling node group %s: deploying %d new node(s): %v", ngName, len(newNames), newNames)
+	c.log.Infof("scaling node group %s from %d to %d: deploying %v", ngName, currentSize, count, newNames)
 
 	cluster := orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterConfig.Export(), c.k8sClient, c.swapClient, c.log)
 	cluster.AddNodeGroup(ngName, ngOptions)
@@ -160,37 +178,20 @@ func (c *command) scaleNodeGroup(ctx context.Context, clusterName, ngName string
 
 	inCluster := c.globalConfig.GetBool(optionNameInCluster)
 
-	type result struct {
-		ethAddress string
-		err        error
-	}
-	resultChan := make(chan result)
-	defer close(resultChan)
+	errChan := make(chan error)
+	defer close(errChan)
 
 	for _, name := range newNames {
 		go func(name string) {
-			ethAddress, err := ng.DeployNode(ctx, name, inCluster, orchestration.NodeOptions{})
-			resultChan <- result{ethAddress: ethAddress, err: err}
+			_, err := ng.DeployNode(ctx, name, inCluster, orchestration.NodeOptions{})
+			errChan <- err
 		}(name)
 	}
 
-	var fundAddresses []string
 	for range newNames {
-		r := <-resultChan
-		if r.err != nil {
-			return fmt.Errorf("deploy node: %w", r.err)
+		if err := <-errChan; err != nil {
+			return fmt.Errorf("deploy node: %w", err)
 		}
-		if r.ethAddress != "" {
-			fundAddresses = append(fundAddresses, r.ethAddress)
-		}
-	}
-
-	if len(fundAddresses) > 0 {
-		fundOpts := ensureFundingDefaults(clusterConfig.Funding.Export(), c.log)
-		if err := fund(ctx, fundAddresses, chainNodeEndpoint, walletKey, fundOpts, c.log); err != nil {
-			return fmt.Errorf("funding new nodes: %w", err)
-		}
-		c.log.Infof("new nodes funded")
 	}
 
 	c.log.Infof("node group %s scaled to %d nodes", ngName, count)
@@ -198,8 +199,51 @@ func (c *command) scaleNodeGroup(ctx context.Context, clusterName, ngName string
 	return nil
 }
 
-// bootnodesForCluster resolves the bootnode multiaddr for a cluster the same way
-// cluster setup does, without deploying or contacting the bootnode node group.
+// shrinkNodeGroup removes nodes from the end of the node group (highest index first) until only count remain.
+// For example, going from 8 to 5 deletes <ngName>-7, <ngName>-6, and <ngName>-5, leaving <ngName>-0..4 untouched.
+func (c *command) shrinkNodeGroup(
+	ctx context.Context,
+	clusterConfig config.Cluster,
+	ngConfig config.NodeGroup,
+	ngName string,
+	currentSize, count int,
+) error {
+	namespace := clusterConfig.GetNamespace()
+
+	cluster := orchestrationK8S.NewCluster(clusterConfig.GetName(), clusterConfig.Export(), c.k8sClient, c.swapClient, c.log)
+	cluster.AddNodeGroup(ngName, ngConfig.Export())
+
+	ng, err := cluster.NodeGroup(ngName)
+	if err != nil {
+		return fmt.Errorf("get node group: %w", err)
+	}
+
+	c.log.Infof("node group %s: shrinking from %d to %d nodes", ngName, currentSize, count)
+
+	// delete from the highest index down, so the remaining nodes are always a contiguous 0..count-1 range with no gaps
+	for i := currentSize - 1; i >= count; i-- {
+		name := fmt.Sprintf("%s-%d", ngName, i)
+
+		c.log.Infof("deleting node %s", name)
+		if err := ng.DeleteNode(ctx, name); err != nil {
+			return fmt.Errorf("deleting node %s: %w", name, err)
+		}
+
+		// the StatefulSet's PVC outlives the StatefulSet itself, so it needs an explicit delete when persistence is enabled for this node group
+		if ngConfig.PersistenceEnabled != nil && *ngConfig.PersistenceEnabled {
+			pvcName := fmt.Sprintf("data-%s-0", name)
+			if err := c.k8sClient.PVC.Delete(ctx, pvcName, namespace); err != nil {
+				return fmt.Errorf("deleting pvc %s: %w", pvcName, err)
+			}
+		}
+	}
+
+	c.log.Infof("node group %s: now has %d nodes", ngName, count)
+
+	return nil
+}
+
+// bootnodesForCluster resolves the bootnode multiaddr for a cluster the same way cluster setup
 func bootnodesForCluster(clusterConfig config.Cluster, cfg *config.Config) (string, error) {
 	for _, v := range clusterConfig.GetNodeGroups() {
 		if v.Mode != bootnodeMode {
