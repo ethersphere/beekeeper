@@ -136,6 +136,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("scenario 3 failed: %w", err)
 	}
 
+	// -------------------------------------------------------------------------
+	// Scenario 4: Multi-Stamp Re-offer Precedence
+	// -------------------------------------------------------------------------
+	c.logger.Infof("--- Scenario 4: Multi-Stamp Re-offer Precedence ---")
+	if err := c.testMultiStampReofferPrecedence(ctx, fullNodeClients, node0, node1, ownerHex, signer, batchID0, batchID1, o); err != nil {
+		return fmt.Errorf("scenario 4 failed: %w", err)
+	}
+
 	c.logger.Infof("socconvergence: all integration test scenarios passed successfully!")
 	return nil
 }
@@ -326,6 +334,85 @@ func (c *Check) testIdenticalSOCChecksum(
 	}
 
 	return c.assertClusterConvergence(ctx, fullNodes, socAddress, ch.Data(), o)
+}
+
+func (c *Check) testMultiStampReofferPrecedence(
+	ctx context.Context,
+	fullNodes []*bee.Client,
+	node0, node1 *bee.Client,
+	ownerHex string,
+	signer crypto.Signer,
+	batchID0, batchID1 string,
+	o Options,
+) error {
+	idBytes, err := randomID()
+	if err != nil {
+		return err
+	}
+	idHex := hex.EncodeToString(idBytes)
+
+	// Create 2 divergent payloads wrapping different CACs
+	payload1 := []byte("reoffer-precedence-payload-omega-401")
+	payload2 := []byte("reoffer-precedence-payload-psi-402")
+
+	ch1, err := cac.New(payload1)
+	if err != nil {
+		return err
+	}
+	ch2, err := cac.New(payload2)
+	if err != nil {
+		return err
+	}
+
+	soc1, err := soc.New(idBytes, ch1).Sign(signer)
+	if err != nil {
+		return err
+	}
+	soc2, err := soc.New(idBytes, ch2).Sign(signer)
+	if err != nil {
+		return err
+	}
+
+	sig1Hex := hex.EncodeToString(soc1.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
+	sig2Hex := hex.EncodeToString(soc2.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
+	socAddress := soc1.Address()
+
+	// 1. Upload soc1 under batchID0 to node0
+	_, err = node0.UploadSOC(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), batchID0)
+	if err != nil {
+		return fmt.Errorf("upload soc1 to node0: %w", err)
+	}
+
+	// 2. Upload soc2 under batchID1 to node1
+	_, err = node1.UploadSOC(ctx, ownerHex, idHex, sig2Hex, ch2.Data(), batchID1)
+	if err != nil {
+		return fmt.Errorf("upload soc2 to node1: %w", err)
+	}
+
+	wins, err := divergentChunkWins(soc1, soc2)
+	if err != nil {
+		return err
+	}
+	var expectedWinnerPayload []byte
+	if wins {
+		expectedWinnerPayload = ch2.Data()
+	} else {
+		expectedWinnerPayload = ch1.Data()
+	}
+
+	// Wait for cluster convergence on initial tie-break winner
+	c.logger.Infof("waiting for initial convergence on address %s...", socAddress.String())
+	if err := c.assertClusterConvergence(ctx, fullNodes, socAddress, expectedWinnerPayload, o); err != nil {
+		return fmt.Errorf("initial convergence failed: %w", err)
+	}
+
+	// 3. Re-offer soc1 under batchID0 to node0 (re-offering weaker/superseded variant)
+	c.logger.Infof("re-offering soc1 under batchID0 to node0...")
+	_, _ = node0.UploadSOC(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), batchID0)
+
+	// Assert cluster STILL converges on expectedWinnerPayload and does NOT revert
+	c.logger.Infof("asserting cluster stability after re-offer on address %s...", socAddress.String())
+	return c.assertClusterConvergence(ctx, fullNodes, socAddress, expectedWinnerPayload, o)
 }
 
 func (c *Check) assertClusterConvergence(

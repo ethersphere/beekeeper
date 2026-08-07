@@ -9,7 +9,7 @@ import (
 // NodeGroup represents node group configuration
 type NodeGroup struct {
 	// parent to inherit settings from
-	*Inherit `yaml:",inline"`
+	Inherit `yaml:",inline"`
 	// node group configuration
 	Annotations               *map[string]string `yaml:"annotations"`
 	Image                     *string            `yaml:"image"`
@@ -33,10 +33,7 @@ type NodeGroup struct {
 }
 
 func (b NodeGroup) GetParentName() string {
-	if b.Inherit != nil {
-		return b.ParentName
-	}
-	return ""
+	return b.ParentName
 }
 
 // Export exports NodeGroup to orchestration.NodeGroupOptions
@@ -47,7 +44,7 @@ func (n *NodeGroup) Export() (o orchestration.NodeGroupOptions) {
 
 	for i := 0; i < localVal.NumField(); i++ {
 		localField := localVal.Field(i)
-		if localField.IsValid() && !localField.IsNil() {
+		if localField.IsValid() && canIsNil(localField) && !localField.IsNil() {
 			localFieldVal := localVal.Field(i).Elem()
 			localFieldName := localType.Field(i).Name
 
