@@ -33,7 +33,7 @@ type NodeGroup struct {
 }
 
 func (b NodeGroup) GetParentName() string {
-	return b.Inherit.ParentName
+	return b.ParentName
 }
 
 // Export exports NodeGroup to orchestration.NodeGroupOptions

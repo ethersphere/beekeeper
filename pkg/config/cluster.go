@@ -24,7 +24,7 @@ type Cluster struct {
 }
 
 func (b Cluster) GetParentName() string {
-	return b.Inherit.ParentName
+	return b.ParentName
 }
 
 // ClusterNodeGroup represents node group in the cluster

@@ -22,7 +22,7 @@ type BeeConfig struct {
 }
 
 func (b BeeConfig) GetParentName() string {
-	return b.Inherit.ParentName
+	return b.ParentName
 }
 
 // Export returns the Bee flag configuration to be rendered into the node's
