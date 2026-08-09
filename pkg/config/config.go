@@ -104,14 +104,13 @@ func mergeConfigs[T any](configs map[string]T) (map[string]T, error) {
 				// applied per flag instead of all-or-nothing.
 				if mf.Kind() == reflect.Struct {
 					for j := 0; j < mf.NumField(); j++ {
-						fj, pfj := mf.Field(j), pf.Field(j)
-						if canIsNil(fj) && fj.IsNil() && canIsNil(pfj) && !pfj.IsNil() {
-							fj.Set(pfj)
+						if mf.Field(j).IsNil() && !pf.Field(j).IsNil() {
+							mf.Field(j).Set(pf.Field(j))
 						}
 					}
 					continue
 				}
-				if canIsNil(mf) && mf.IsNil() && canIsNil(pf) && !pf.IsNil() {
+				if mf.IsNil() && !pf.IsNil() {
 					mf.Set(pf)
 				}
 			}
@@ -122,22 +121,13 @@ func mergeConfigs[T any](configs map[string]T) (map[string]T, error) {
 		return v, nil
 	}
 
-	for k := range configs {
-		if _, err := mergeParent(k); err != nil {
+	for name := range configs {
+		if _, err := mergeParent(name); err != nil {
 			return nil, err
 		}
 	}
 
 	return mergedConfigs, nil
-}
-
-func canIsNil(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Map, reflect.Pointer, reflect.UnsafePointer, reflect.Interface, reflect.Slice:
-		return true
-	default:
-		return false
-	}
 }
 
 // Read reads given YAML files and unmarshals them into Config

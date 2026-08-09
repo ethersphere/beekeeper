@@ -17,12 +17,15 @@ type Inheritable interface {
 // inheritance (_inherit). Export returns just the embedded Config, so neither
 // _inherit nor any other config-loading detail can leak into the rendered file.
 type BeeConfig struct {
-	Inherit              `yaml:",inline"`
+	*Inherit             `yaml:",inline"`
 	orchestration.Config `yaml:",inline"`
 }
 
 func (b BeeConfig) GetParentName() string {
-	return b.ParentName
+	if b.Inherit != nil {
+		return b.ParentName
+	}
+	return ""
 }
 
 // Export returns the Bee flag configuration to be rendered into the node's

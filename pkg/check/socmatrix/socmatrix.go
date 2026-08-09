@@ -163,10 +163,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		c.logger.Infof("socmatrix: scenarios 1-10 completed successfully across %d full nodes", len(fullNodeClients))
 	}
 
-	// -------------------------------------------------------------------------
-	// Precision scenarios 11-16 (former chunk-convergence) — same semantics.
-	// Continue-on-error aggregation matches former chunk-convergence Run().
-	// -------------------------------------------------------------------------
 	n1, n2, err := pickClosestPair(ctx, fullNodeClients)
 	if err != nil {
 		return err

@@ -9,7 +9,7 @@ import (
 // Cluster represents cluster configuration
 type Cluster struct {
 	// parent to inherit settings from
-	Inherit `yaml:",inline"`
+	*Inherit `yaml:",inline"`
 	// Cluster configuration
 	Name               *string                      `yaml:"name,omitempty"`
 	Namespace          *string                      `yaml:"namespace"`
@@ -24,7 +24,10 @@ type Cluster struct {
 }
 
 func (b Cluster) GetParentName() string {
-	return b.ParentName
+	if b.Inherit != nil {
+		return b.ParentName
+	}
+	return ""
 }
 
 // ClusterNodeGroup represents node group in the cluster
@@ -59,7 +62,7 @@ func (c *Cluster) Export() (o orchestration.ClusterOptions) {
 
 	for i := 0; i < localVal.NumField(); i++ {
 		localField := localVal.Field(i)
-		if localField.IsValid() && canIsNil(localField) && !localField.IsNil() {
+		if localField.IsValid() && !localField.IsNil() {
 			localFieldVal := localVal.Field(i).Elem()
 			localFieldName := localType.Field(i).Name
 
