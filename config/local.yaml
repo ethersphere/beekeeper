@@ -382,16 +382,17 @@ checks:
       request-timeout: 5m
     timeout: 5m
     type: soc
-  ci-chunk-convergence:
+  ci-socmatrix:
     options:
       postage-ttl: 24h
       postage-depth: 21
-      postage-label: chunk-convergence
-      sync-wait: 45s
-      request-timeout: 15m
+      postage-label: socmatrix-label
+      sync-wait: 45s # wait after upload for push/pull sync before neighborhood assert (precision 11–16)
+      sync-retry-interval: 2s
+      request-timeout: 45m
       password: beekeeper
-    timeout: 20m
-    type: chunk-convergence
+    timeout: 60m
+    type: socmatrix
   ci-content-availability:
     type: content-availability
     timeout: 5m

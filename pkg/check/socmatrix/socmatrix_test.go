@@ -24,6 +24,12 @@ func TestNewDefaultOptions(t *testing.T) {
 	if opts.RequestTimeout != 10*time.Minute {
 		t.Fatalf("expected RequestTimeout 10m, got %v", opts.RequestTimeout)
 	}
+	if opts.SyncWait != 45*time.Second {
+		t.Fatalf("expected SyncWait 45s, got %v", opts.SyncWait)
+	}
+	if opts.Password != "beekeeper" {
+		t.Fatalf("expected Password beekeeper, got %q", opts.Password)
+	}
 }
 
 func TestNewCheck(t *testing.T) {
