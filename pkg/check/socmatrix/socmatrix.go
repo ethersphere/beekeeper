@@ -114,6 +114,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return fmt.Errorf("node %s: alt batch id: %w", node1.Name(), err)
 	}
 
+	// Try setting up batch issuer and signer for precomputed equal-timestamp stamp tests
+	issuer, batchSigner, _, _ := c.setupIssuerBatch(ctx, cluster, o)
+
 	// API-stamp matrix (1-10): continue-on-error so later scenarios still run.
 	var matrixErrs error
 	runMatrix := func(name string, fn func() error) {
@@ -127,16 +130,16 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 
 	runMatrix("Scenario 1: Divergent SOC Tie-Break (Same Stamp)", func() error {
-		return c.testDivergentSOCTieBreak(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, o)
+		return c.testDivergentSOCTieBreak(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 2: Timestamp Progression (Increasing Timestamp)", func() error {
 		return c.testTimestampProgression(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, o)
 	})
 	runMatrix("Scenario 3: Equal Timestamp Cross-Batch Stamp Hash Precedence", func() error {
-		return c.testCrossBatchStampHashPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, batchID1, o)
+		return c.testCrossBatchStampHashPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, batchID1, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 4: Multi-Stamp Re-Offer Precedence", func() error {
-		return c.testMultiStampReofferPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, batchID1, o)
+		return c.testMultiStampReofferPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, batchID1, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 5: Multi-Batch Sibling Sum Refresh", func() error {
 		return c.testMultiBatchSiblingSumRefresh(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, batchID1, o)
@@ -151,7 +154,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return c.testCACvsSOCTieBreak(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, o)
 	})
 	runMatrix("Scenario 9: 3-Payload Sequenced Divergent SOC Chain", func() error {
-		return c.testSequencedDivergentChain(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, o)
+		return c.testSequencedDivergentChain(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 10: Multi-Owner Independent SOC Isolation", func() error {
 		return c.testMultiOwnerSOCIsolation(ctx, fullNodeClients, node0, node1, ownerHex1, ownerHex2, signer1, signer2, batchID0, o)
@@ -226,6 +229,8 @@ func (c *Check) testDivergentSOCTieBreak(
 	ownerHex string,
 	signer crypto.Signer,
 	batchID string,
+	issuer *bee.Client,
+	batchSigner crypto.Signer,
 	o Options,
 ) error {
 	idBytes, err := randomID()
@@ -266,8 +271,22 @@ func (c *Check) testDivergentSOCTieBreak(
 		expectedPayload = ch1.Data()
 	}
 
-	// Stamp issuer lives only on the batch owner (node0). Upload both payloads
-	// there; assertClusterConvergence still checks all full nodes after sync.
+	if issuer != nil && batchSigner != nil {
+		env, err := issuer.CreateEnvelope(ctx, soc1.Address(), batchID)
+		if err == nil {
+			stampBytes, err := env.MarshalBinary()
+			if err == nil {
+				_, err = node0.UploadSOCWithStamp(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), stampBytes)
+				if err != nil {
+					return fmt.Errorf("upload soc1 with stamp: %w", err)
+				}
+				_, _ = node1.UploadSOCWithStamp(ctx, ownerHex, idHex, sig2Hex, ch2.Data(), stampBytes)
+				return c.assertClusterConvergence(ctx, fullNodes, soc1.Address(), expectedPayload, o)
+			}
+		}
+	}
+
+	// Fallback to API stamp upload if issuer/batchSigner not configured
 	_, err = node0.UploadSOC(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), batchID)
 	if err != nil {
 		return fmt.Errorf("upload soc1: %w", err)
@@ -338,6 +357,8 @@ func (c *Check) testCrossBatchStampHashPrecedence(
 	ownerHex string,
 	signer crypto.Signer,
 	batchID0, batchID1 string,
+	issuer *bee.Client,
+	batchSigner crypto.Signer,
 	o Options,
 ) error {
 	idBytes, err := randomID()
@@ -366,6 +387,40 @@ func (c *Check) testCrossBatchStampHashPrecedence(
 
 	sig1Hex := hex.EncodeToString(soc1.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
 	sig2Hex := hex.EncodeToString(soc2.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
+
+	if issuer != nil && batchSigner != nil {
+		batch0Bytes, err0 := hex.DecodeString(batchID0)
+		batch1Bytes, err1 := hex.DecodeString(batchID1)
+		env0, err2 := issuer.CreateEnvelope(ctx, soc1.Address(), batchID0)
+		env1, err3 := issuer.CreateEnvelope(ctx, soc1.Address(), batchID1)
+		if err0 == nil && err1 == nil && err2 == nil && err3 == nil {
+			ts := binary.BigEndian.Uint64(env0.Timestamp())
+			stamp0, errS0 := signStamp(batchSigner, batch0Bytes, env0.Index(), uint64ToBytes(ts), soc1.Address())
+			stamp1, errS1 := signStamp(batchSigner, batch1Bytes, env1.Index(), uint64ToBytes(ts), soc1.Address())
+			if errS0 == nil && errS1 == nil {
+				hash0, errH0 := stamp0.Hash()
+				hash1, errH1 := stamp1.Hash()
+				if errH0 == nil && errH1 == nil {
+					var expectedPayload []byte
+					if bytes.Compare(hash1, hash0) < 0 {
+						expectedPayload = ch2.Data()
+					} else {
+						expectedPayload = ch1.Data()
+					}
+
+					stamp0Bytes, _ := stamp0.MarshalBinary()
+					stamp1Bytes, _ := stamp1.MarshalBinary()
+
+					_, err = node0.UploadSOCWithStamp(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), stamp0Bytes)
+					if err != nil {
+						return fmt.Errorf("upload soc1 with stamp0: %w", err)
+					}
+					_, _ = node1.UploadSOCWithStamp(ctx, ownerHex, idHex, sig2Hex, ch2.Data(), stamp1Bytes)
+					return c.assertClusterConvergence(ctx, fullNodes, soc1.Address(), expectedPayload, o)
+				}
+			}
+		}
+	}
 
 	wins, err := divergentChunkWins(soc1, soc2)
 	if err != nil {
@@ -397,6 +452,8 @@ func (c *Check) testMultiStampReofferPrecedence(
 	ownerHex string,
 	signer crypto.Signer,
 	batchID0, batchID1 string,
+	issuer *bee.Client,
+	batchSigner crypto.Signer,
 	o Options,
 ) error {
 	idBytes, err := randomID()
@@ -425,6 +482,47 @@ func (c *Check) testMultiStampReofferPrecedence(
 
 	sig1Hex := hex.EncodeToString(soc1.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
 	sig2Hex := hex.EncodeToString(soc2.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
+
+	if issuer != nil && batchSigner != nil {
+		batch0Bytes, err0 := hex.DecodeString(batchID0)
+		batch1Bytes, err1 := hex.DecodeString(batchID1)
+		env0, err2 := issuer.CreateEnvelope(ctx, soc1.Address(), batchID0)
+		env1, err3 := issuer.CreateEnvelope(ctx, soc1.Address(), batchID1)
+		if err0 == nil && err1 == nil && err2 == nil && err3 == nil {
+			ts := binary.BigEndian.Uint64(env0.Timestamp())
+			stamp0, errS0 := signStamp(batchSigner, batch0Bytes, env0.Index(), uint64ToBytes(ts), soc1.Address())
+			stamp1, errS1 := signStamp(batchSigner, batch1Bytes, env1.Index(), uint64ToBytes(ts), soc1.Address())
+			if errS0 == nil && errS1 == nil {
+				hash0, errH0 := stamp0.Hash()
+				hash1, errH1 := stamp1.Hash()
+				if errH0 == nil && errH1 == nil {
+					var expectedPayload []byte
+					if bytes.Compare(hash1, hash0) < 0 {
+						expectedPayload = ch2.Data()
+					} else {
+						expectedPayload = ch1.Data()
+					}
+
+					stamp0Bytes, _ := stamp0.MarshalBinary()
+					stamp1Bytes, _ := stamp1.MarshalBinary()
+
+					_, err = node0.UploadSOCWithStamp(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), stamp0Bytes)
+					if err != nil {
+						return fmt.Errorf("upload soc1 with stamp0: %w", err)
+					}
+					_, _ = node1.UploadSOCWithStamp(ctx, ownerHex, idHex, sig2Hex, ch2.Data(), stamp1Bytes)
+
+					if err := c.assertClusterConvergence(ctx, fullNodes, soc1.Address(), expectedPayload, o); err != nil {
+						return err
+					}
+
+					// Re-offer soc1 under batchID0 with stamp0Bytes (same stamp timestamp)
+					_, _ = node0.UploadSOCWithStamp(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), stamp0Bytes)
+					return c.assertClusterConvergence(ctx, fullNodes, soc1.Address(), expectedPayload, o)
+				}
+			}
+		}
+	}
 
 	wins, err := divergentChunkWins(soc1, soc2)
 	if err != nil {
@@ -630,6 +728,8 @@ func (c *Check) testSequencedDivergentChain(
 	ownerHex string,
 	signer crypto.Signer,
 	batchID string,
+	issuer *bee.Client,
+	batchSigner crypto.Signer,
 	o Options,
 ) error {
 	idBytes, err := randomID()
@@ -653,10 +753,6 @@ func (c *Check) testSequencedDivergentChain(
 	sig1Hex := hex.EncodeToString(soc1.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
 	sig2Hex := hex.EncodeToString(soc2.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
 	sig3Hex := hex.EncodeToString(soc3.Data()[swarm.HashSize : swarm.HashSize+swarm.SocSignatureSize])
-
-	_, _ = node0.UploadSOC(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), batchID)
-	_, _ = node0.UploadSOC(ctx, ownerHex, idHex, sig2Hex, ch2.Data(), batchID)
-	_, _ = node0.UploadSOC(ctx, ownerHex, idHex, sig3Hex, ch3.Data(), batchID)
 
 	// Determine winner among all three
 	win12, _ := divergentChunkWins(soc1, soc2)
@@ -682,6 +778,23 @@ func (c *Check) testSequencedDivergentChain(
 	} else {
 		expectedPayload = ch3.Data()
 	}
+
+	if issuer != nil {
+		env, err := issuer.CreateEnvelope(ctx, soc1.Address(), batchID)
+		if err == nil {
+			stampBytes, err := env.MarshalBinary()
+			if err == nil {
+				_, _ = node0.UploadSOCWithStamp(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), stampBytes)
+				_, _ = node0.UploadSOCWithStamp(ctx, ownerHex, idHex, sig2Hex, ch2.Data(), stampBytes)
+				_, _ = node0.UploadSOCWithStamp(ctx, ownerHex, idHex, sig3Hex, ch3.Data(), stampBytes)
+				return c.assertClusterConvergence(ctx, fullNodes, soc1.Address(), expectedPayload, o)
+			}
+		}
+	}
+
+	_, _ = node0.UploadSOC(ctx, ownerHex, idHex, sig1Hex, ch1.Data(), batchID)
+	_, _ = node0.UploadSOC(ctx, ownerHex, idHex, sig2Hex, ch2.Data(), batchID)
+	_, _ = node0.UploadSOC(ctx, ownerHex, idHex, sig3Hex, ch3.Data(), batchID)
 
 	return c.assertClusterConvergence(ctx, fullNodes, soc1.Address(), expectedPayload, o)
 }
