@@ -9,8 +9,13 @@ type DataSource struct {
 	Name     string
 }
 
-// toK8S converts DataSource to Kubernetes client object
+// toK8S converts DataSource to Kubernetes client object.
+// An unset DataSource converts to nil, as Kubernetes rejects an empty dataSource.
 func (d *DataSource) toK8S() *v1.TypedLocalObjectReference {
+	if d.APIGroup == "" && d.Kind == "" && d.Name == "" {
+		return nil
+	}
+
 	return &v1.TypedLocalObjectReference{
 		APIGroup: &d.APIGroup,
 		Kind:     d.Kind,
