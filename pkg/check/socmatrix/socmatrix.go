@@ -104,24 +104,28 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return err
 	}
 
-	// Try setting up batch issuer and signer for precomputed equal-timestamp stamp tests
-	issuer, batchSigner, batchID0, _ := c.setupIssuerBatch(ctx, cluster, o)
+	// Create postage batches on node0 and node1 for standard API upload scenarios (2, 5, 6, 7, 8, 10)
+	node0BatchID, err := node0.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
+	if err != nil {
+		return fmt.Errorf("node %s: batch id: %w", node0.Name(), err)
+	}
+	node1BatchID, err := node1.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-alt")
+	if err != nil {
+		return fmt.Errorf("node %s: alt batch id: %w", node1.Name(), err)
+	}
 
-	var batchID1 string
+	// Try setting up batch issuer and signer for precomputed equal-timestamp stamp tests (1, 3, 4, 9)
+	issuer, batchSigner, issuerBatchID0, _ := c.setupIssuerBatch(ctx, cluster, o)
+
+	var issuerBatchID1 string
 	if issuer != nil {
-		batchID1, err = issuer.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-alt")
+		issuerBatchID1, err = issuer.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-issuer-alt")
 		if err != nil {
 			return fmt.Errorf("issuer %s: alt batch id: %w", issuer.Name(), err)
 		}
 	} else {
-		batchID0, err = node0.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
-		if err != nil {
-			return fmt.Errorf("node %s: batch id: %w", node0.Name(), err)
-		}
-		batchID1, err = node1.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-alt")
-		if err != nil {
-			return fmt.Errorf("node %s: alt batch id: %w", node1.Name(), err)
-		}
+		issuerBatchID0 = node0BatchID
+		issuerBatchID1 = node1BatchID
 	}
 
 	// API-stamp matrix (1-10): continue-on-error so later scenarios still run.
@@ -137,34 +141,34 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 
 	runMatrix("Scenario 1: Divergent SOC Tie-Break (Same Stamp)", func() error {
-		return c.testDivergentSOCTieBreak(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, issuer, batchSigner, o)
+		return c.testDivergentSOCTieBreak(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, issuerBatchID0, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 2: Timestamp Progression (Increasing Timestamp)", func() error {
-		return c.testTimestampProgression(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, o)
+		return c.testTimestampProgression(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, node0BatchID, o)
 	})
 	runMatrix("Scenario 3: Equal Timestamp Cross-Batch Stamp Hash Precedence", func() error {
-		return c.testCrossBatchStampHashPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, batchID1, issuer, batchSigner, o)
+		return c.testCrossBatchStampHashPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, issuerBatchID0, issuerBatchID1, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 4: Multi-Stamp Re-Offer Precedence", func() error {
-		return c.testMultiStampReofferPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, batchID1, issuer, batchSigner, o)
+		return c.testMultiStampReofferPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, issuerBatchID0, issuerBatchID1, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 5: Multi-Batch Sibling Sum Refresh", func() error {
-		return c.testMultiBatchSiblingSumRefresh(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, batchID1, o)
+		return c.testMultiBatchSiblingSumRefresh(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, node0BatchID, node1BatchID, o)
 	})
 	runMatrix("Scenario 6: Identical Payload Checksum Matching", func() error {
-		return c.testIdenticalChecksumMatching(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, o)
+		return c.testIdenticalChecksumMatching(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, node0BatchID, o)
 	})
 	runMatrix("Scenario 7: CAC vs CAC Stamp Index Collision", func() error {
-		return c.testCACIndexCollision(ctx, fullNodeClients, node0, node1, batchID0, o)
+		return c.testCACIndexCollision(ctx, fullNodeClients, node0, node1, node0BatchID, o)
 	})
 	runMatrix("Scenario 8: CAC vs SOC Stamp Index Tie-Break", func() error {
-		return c.testCACvsSOCTieBreak(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, o)
+		return c.testCACvsSOCTieBreak(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, node0BatchID, o)
 	})
 	runMatrix("Scenario 9: 3-Payload Sequenced Divergent SOC Chain", func() error {
-		return c.testSequencedDivergentChain(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, batchID0, issuer, batchSigner, o)
+		return c.testSequencedDivergentChain(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, issuerBatchID0, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 10: Multi-Owner Independent SOC Isolation", func() error {
-		return c.testMultiOwnerSOCIsolation(ctx, fullNodeClients, node0, node1, ownerHex1, ownerHex2, signer1, signer2, batchID0, o)
+		return c.testMultiOwnerSOCIsolation(ctx, fullNodeClients, node0, node1, ownerHex1, ownerHex2, signer1, signer2, node0BatchID, o)
 	})
 
 	if matrixErrs != nil {
