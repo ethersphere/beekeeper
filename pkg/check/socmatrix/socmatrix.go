@@ -104,18 +104,25 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return err
 	}
 
-	// Create postage batches on node0 and node1
-	batchID0, err := node0.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
-	if err != nil {
-		return fmt.Errorf("node %s: batch id: %w", node0.Name(), err)
-	}
-	batchID1, err := node1.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-alt")
-	if err != nil {
-		return fmt.Errorf("node %s: alt batch id: %w", node1.Name(), err)
-	}
-
 	// Try setting up batch issuer and signer for precomputed equal-timestamp stamp tests
-	issuer, batchSigner, _, _ := c.setupIssuerBatch(ctx, cluster, o)
+	issuer, batchSigner, batchID0, _ := c.setupIssuerBatch(ctx, cluster, o)
+
+	var batchID1 string
+	if issuer != nil {
+		batchID1, err = issuer.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-alt")
+		if err != nil {
+			return fmt.Errorf("issuer %s: alt batch id: %w", issuer.Name(), err)
+		}
+	} else {
+		batchID0, err = node0.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
+		if err != nil {
+			return fmt.Errorf("node %s: batch id: %w", node0.Name(), err)
+		}
+		batchID1, err = node1.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel+"-alt")
+		if err != nil {
+			return fmt.Errorf("node %s: alt batch id: %w", node1.Name(), err)
+		}
+	}
 
 	// API-stamp matrix (1-10): continue-on-error so later scenarios still run.
 	var matrixErrs error
