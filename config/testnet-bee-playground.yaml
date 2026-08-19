@@ -32,7 +32,7 @@ clusters:
 node-groups:
   ng-bee-playground:
     _inherit: default
-    persistence-enabled: true
+    persistence-enabled: false
     image: ethersphere/bee:latest
     ingress-class: "nginx-oss"
     ingress-annotations:

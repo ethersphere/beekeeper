@@ -743,8 +743,6 @@ var Checks = map[string]CheckType{
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
 				PollInterval      *time.Duration `yaml:"poll-interval"`
-				WaitForWarmup     *bool          `yaml:"wait-for-warmup"`
-				Seed              *int64         `yaml:"seed"`
 				TargetFillPercent *float64       `yaml:"target-fill-percent"`
 				ChunksPerUpload   *int           `yaml:"chunks-per-upload"`
 				ReserveCapacity   *int           `yaml:"reserve-capacity"`

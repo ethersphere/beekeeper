@@ -5,7 +5,6 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -93,18 +92,17 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	initialStorageRadius := status.StorageRadius
 
-	uploadPlan := newUploadPlan(initialStorageRadius, o)
-	batchCount := min(o.ChunksPerUpload, len(fullNodes))
+	uploadPlan := newUploadPlan(o)
 
-	c.logger.Infof("cluster: %d full nodes at storage radius %d => %.0f neighborhood(s)", len(fullNodes), initialStorageRadius, uploadPlan.neighborhoods)
-	c.logger.Infof("target %d chunks (%.0f%% of %d per neighborhood), %d chunks per upload", uploadPlan.totalChunks, o.TargetFillPercent*100, o.ReserveCapacity, uploadPlan.chunksPerUpload)
+	c.logger.Infof("cluster: %d full nodes, sizing upload to trigger radius increase", len(fullNodes))
+	c.logger.Infof("target %d chunks (%.0f%% of %d), %d chunks per upload", uploadPlan.totalChunks, o.TargetFillPercent*100, o.ReserveCapacity, uploadPlan.chunksPerUpload)
 
 	chunksBefore, err := c.logClusterState(ctx, cluster, "before")
 	if err != nil {
 		return err
 	}
 
-	batches, err := c.prepareBatches(ctx, fullNodes, batchCount, o)
+	batches, err := c.prepareBatches(ctx, fullNodes, len(fullNodes), o)
 	if err != nil {
 		return err
 	}
@@ -158,16 +156,19 @@ func (c *Check) waitForWarmup(ctx context.Context, cluster orchestration.Cluster
 	defer ticker.Stop()
 
 	for {
-		clients, err := cluster.NodesClients(ctx)
+		clients, err := cluster.ShuffledFullNodeClients(ctx, random.PseudoGenerator(0))
 		if err != nil {
-			return fmt.Errorf("get nodes clients: %w", err)
+			return fmt.Errorf("get full node clients: %w", err)
+		}
+		if len(clients) == 0 {
+			return errors.New("no full nodes available")
 		}
 
 		warmingUp := 0
-		for name, client := range clients {
+		for _, client := range clients {
 			status, err := client.Status(ctx)
 			if err != nil {
-				return fmt.Errorf("node %s: status: %w", name, err)
+				return fmt.Errorf("node %s: status: %w", client.Name(), err)
 			}
 			if status.IsWarmingUp {
 				warmingUp++
@@ -175,14 +176,14 @@ func (c *Check) waitForWarmup(ctx context.Context, cluster orchestration.Cluster
 		}
 
 		if warmingUp == 0 {
-			c.logger.Infof("all %d nodes finished warming up", len(clients))
+			c.logger.Infof("all %d full nodes finished warming up", len(clients))
 			return nil
 		}
-		c.logger.Infof("waiting for %d/%d nodes to finish warming up", warmingUp, len(clients))
+		c.logger.Infof("waiting for %d/%d full nodes to finish warming up", warmingUp, len(clients))
 
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timed out waiting for nodes to finish warming up: %w", ctx.Err())
+			return fmt.Errorf("timed out waiting for full nodes to finish warming up: %w", ctx.Err())
 		case <-ticker.C:
 		}
 	}
@@ -190,21 +191,17 @@ func (c *Check) waitForWarmup(ctx context.Context, cluster orchestration.Cluster
 
 // uploadPlan is the computed upload sizing for a cluster.
 type uploadPlan struct {
-	neighborhoods   float64
 	totalChunks     int
 	chunksPerUpload int
 }
 
-// newUploadPlan calculates upload size based on cluster neighborhoods (2^radius).
-// Chunks replicate across all nodes in a neighborhood, so we size by neighborhood count, not node count.
-// Example: at radius=0 (1 neighborhood), all 8 nodes replicate the same chunks → upload ~4000 total.
-// At radius=1 (2 neighborhoods), nodes split into 2 groups → upload ~8000 (4000 per neighborhood).
-func newUploadPlan(radius uint8, o Options) uploadPlan {
-	neighborhoods := math.Pow(2, float64(radius))
-	totalChunks := int(o.TargetFillPercent * float64(o.ReserveCapacity) * neighborhoods)
+// newUploadPlan calculates upload size needed to trigger a radius increase.
+// We size by reserve capacity with target fill percent; no need to multiply by
+// neighborhoods since we're just overflowing reserves to trigger eviction/radius logic.
+func newUploadPlan(o Options) uploadPlan {
+	totalChunks := int(o.TargetFillPercent * float64(o.ReserveCapacity))
 
 	return uploadPlan{
-		neighborhoods:   neighborhoods,
 		totalChunks:     totalChunks,
 		chunksPerUpload: min(o.ChunksPerUpload, totalChunks),
 	}
@@ -334,7 +331,7 @@ func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestr
 	c.logger.Infof("waiting up to %s for the pushers to fill the reserves and the radius to rise", o.MinRadiusWait)
 
 	startedAt := time.Now()
-	previousTotal, stablePolls := -1, 0
+	prevReserveSize, stablePolls := -1, 0
 
 	for {
 		select {
@@ -351,7 +348,7 @@ func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestr
 		}
 
 		elapsed := time.Since(startedAt)
-		if reserveTotal == previousTotal {
+		if reserveTotal == prevReserveSize {
 			stablePolls++
 			if stablePolls >= stablePollsBeforeGivingUp && elapsed >= o.MinRadiusWait {
 				c.logger.Infof("reserves settled at %d chunks and radius still 0 after %s",
@@ -359,13 +356,13 @@ func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestr
 				return 0, nil
 			}
 		} else {
-			if previousTotal >= 0 {
+			if prevReserveSize >= 0 {
 				c.logger.Infof("reserves at %d chunks (+%d), %d pending in the pushers, radius 0 (%s elapsed)",
-					reserveTotal, reserveTotal-previousTotal, pendingChunks, elapsed.Round(time.Second))
+					reserveTotal, reserveTotal-prevReserveSize, pendingChunks, elapsed.Round(time.Second))
 			}
 			stablePolls = 0
 		}
-		previousTotal = reserveTotal
+		prevReserveSize = reserveTotal
 	}
 }
 
@@ -513,7 +510,7 @@ func (c *Check) waitForPushersIdle(ctx context.Context, nodes orchestration.Clie
 	c.logger.Infof("waiting up to %s for the pusher backlog to settle", options.PushersIdleWait)
 
 	startedAt := time.Now()
-	previousPending, stablePolls := -1, 0
+	prevPendingChunks, stablePolls := -1, 0
 
 	for {
 		_, pendingChunks, _ := c.pipelineState(ctx, nodes)
@@ -524,7 +521,7 @@ func (c *Check) waitForPushersIdle(ctx context.Context, nodes orchestration.Clie
 			return nil
 		}
 
-		if pendingChunks >= previousPending && previousPending >= 0 {
+		if pendingChunks >= prevPendingChunks && prevPendingChunks >= 0 {
 			stablePolls++
 			if stablePolls >= stablePollsBeforeGivingUp {
 				c.logger.Infof("pusher backlog stable at %d chunks after %s, continuing", pendingChunks, elapsed.Round(time.Second))
@@ -540,7 +537,7 @@ func (c *Check) waitForPushersIdle(ctx context.Context, nodes orchestration.Clie
 		}
 
 		c.logger.Infof("%d chunks still pending in the pushers (%s elapsed)", pendingChunks, elapsed.Round(time.Second))
-		previousPending = pendingChunks
+		prevPendingChunks = pendingChunks
 
 		select {
 		case <-ctx.Done():
