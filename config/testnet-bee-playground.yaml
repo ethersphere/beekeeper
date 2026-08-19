@@ -25,7 +25,7 @@ clusters:
         mode: node
         bee-config: geth-playground
         config: ng-bee-playground
-        count: 8
+        count: 16
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
