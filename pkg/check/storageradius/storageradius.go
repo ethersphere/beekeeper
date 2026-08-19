@@ -25,7 +25,7 @@ type Options struct {
 	TargetFillPercent float64       // fraction of capacity to fill (>1 overshoots)
 	ReserveCapacity   int           // per-node reserve capacity
 	PollInterval      time.Duration // how often to check node status
-	ChunksPerUpload   int           // bytes per upload request
+	ChunksPerUpload   int           // chunks per upload request
 	MinRadiusWait     time.Duration // min time watching for radius increase
 	PushersIdleWait   time.Duration // max wait for backlog to settle
 	DiluteDepth       uint64        // depth to dilute to (32 is max)
@@ -108,9 +108,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 
 	uploadedChunks := 0
-	if pending, enough := c.pipelineAlreadyFull(ctx, batches, uploadPlan, o); enough {
+	if pending, enough := c.pipelineAlreadyFull(ctx, batches, uploadPlan); enough {
 		c.logger.Infof("pipeline already holds %d chunks, more than the %d needed, skipping uploads",
-			pending, uploadPlan.chunksNeeded(o))
+			pending, uploadPlan.totalChunks)
 	} else {
 		uploadedChunks, err = c.upload(ctx, batches, uploadPlan, o)
 		if err != nil {
@@ -231,11 +231,6 @@ func (c *Check) logClusterState(ctx context.Context, cluster orchestration.Clust
 	return reserveTotal, nil
 }
 
-// chunksNeeded is how many chunks must reach a single reserve to fill it.
-func (p uploadPlan) chunksNeeded(options Options) int {
-	return int(float64(options.ReserveCapacity) * options.TargetFillPercent)
-}
-
 // nodeBatch pairs a postage batch with the node that owns it.
 type nodeBatch struct {
 	batchID string
@@ -243,7 +238,9 @@ type nodeBatch struct {
 }
 
 // prepareBatches buys postage batches for each node, reusing existing ones to save time and tokens.
-// Uses WaitGroup instead of errgroup to avoid hanging 900s if a batch purchase reverts on-chain.
+// Uses WaitGroup rather than errgroup because a failed purchase must not fail the whole check:
+// batch creation can revert on-chain per node, and the check only needs enough batches to fill
+// one reserve, so failures are collected and reported while the usable batches are returned.
 func (c *Check) prepareBatches(ctx context.Context, nodes orchestration.ClientList, batchCount int, o Options) ([]nodeBatch, error) {
 	c.logger.Infof("preparing %d postage batches in parallel (depth %d, amount %d)",
 		batchCount, o.PostageDepth, o.PostageAmount)
@@ -322,8 +319,9 @@ func (c *Check) batchForNode(ctx context.Context, node *bee.Client, o Options) (
 	return batchID, false, nil
 }
 
-// waitForStorageRadiusIncrease waits for any node's radius to climb above zero.
-// Requires both stable reserves AND MinRadiusWait elapsed, since uploads are deferred.
+// waitForStorageRadiusIncrease waits for any node's radius to climb above zero, returning
+// that radius as soon as one does. It gives up and returns 0 only once the reserves have
+// stopped growing AND MinRadiusWait has elapsed, since uploads reach the reserves lazily.
 func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestration.ClientList, o Options) (uint8, error) {
 	ticker := time.NewTicker(o.PollInterval)
 	defer ticker.Stop()
@@ -367,8 +365,8 @@ func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestr
 }
 
 // pipelineAlreadyFull checks if reserves and pusher backlog already hold enough chunks.
-func (c *Check) pipelineAlreadyFull(ctx context.Context, batches []nodeBatch, plan uploadPlan, options Options) (chunks int, full bool) {
-	chunksNeeded := plan.chunksNeeded(options)
+func (c *Check) pipelineAlreadyFull(ctx context.Context, batches []nodeBatch, plan uploadPlan) (chunks int, full bool) {
+	chunksNeeded := plan.totalChunks
 
 	for _, batch := range batches {
 		status, err := batch.node.Status(ctx)
@@ -644,7 +642,7 @@ func (c *Check) stopWhenPipelineFull(ctx context.Context, batches []nodeBatch, p
 	ticker := time.NewTicker(options.PollInterval)
 	defer ticker.Stop()
 
-	chunksNeeded := plan.chunksNeeded(options)
+	chunksNeeded := plan.totalChunks
 	baseReserve, basePending := c.pipelineBaseline(ctx, batches)
 
 	for {
