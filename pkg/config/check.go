@@ -35,6 +35,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/check/stake"
+	"github.com/ethersphere/beekeeper/pkg/check/storageradius"
 	"github.com/ethersphere/beekeeper/pkg/check/withdraw"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/random"
@@ -729,6 +730,38 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := feed.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"storage-radius": {
+		NewAction: storageradius.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				PollInterval      *time.Duration `yaml:"poll-interval"`
+				WaitForWarmup     *bool          `yaml:"wait-for-warmup"`
+				Seed              *int64         `yaml:"seed"`
+				TargetFillPercent *float64       `yaml:"target-fill-percent"`
+				ChunksPerUpload   *int           `yaml:"chunks-per-upload"`
+				ReserveCapacity   *int           `yaml:"reserve-capacity"`
+				PostageDepth      *uint64        `yaml:"postage-depth"`
+				PostageAmount     *int64         `yaml:"postage-amount"`
+				PostageLabel      *string        `yaml:"postage-label"`
+				MinRadiusWait     *time.Duration `yaml:"min-radius-wait"`
+				PushersIdleWait   *time.Duration `yaml:"pushers-idle-wait"`
+				DiluteDepth       *uint64        `yaml:"dilute-depth"`
+				DiluteWait        *time.Duration `yaml:"dilute-wait"`
+				UploadWavePause   *time.Duration `yaml:"upload-wave-pause"`
+				UploadTimeout     *time.Duration `yaml:"upload-timeout"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := storageradius.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
