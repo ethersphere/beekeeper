@@ -19,34 +19,28 @@ import (
 )
 
 const (
-	// stablePollsBeforeGivingUp is how many consecutive unchanged reserve totals, mean the pushers have finished delivering.
 	stablePollsBeforeGivingUp = 5
 )
 
 type Options struct {
-	PollInterval      time.Duration // wait between status polls
-	WaitForWarmup     bool          // wait for nodes to finish warming up
-	Seed              int64         // seed for randomization
-	TargetFillPercent float64       // fraction of capacity to fill; above 1 overshoots
-	ChunksPerUpload   int           // chunks per /bytes request
-	ReserveCapacity   int           // per-node reserve capacity in chunks, for now we have patched bee docker img that contains 4000 chunks
-	PostageDepth      uint64        // batch depth; must exceed bee's bucket depth of 16
-	PostageAmount     int64         // batch amount; must clear the minimum validity floor
-	PostageLabel      string        // batch label prefix
-	MinRadiusWait     time.Duration // minimum time to watch for a radius increase
-	PushersIdleWait   time.Duration // cap on waiting for the pusher backlog before diluting
-	DiluteDepth       uint64        // depth to dilute batches to; must exceed PostageDepth
-	DiluteWait        time.Duration // how long to wait for the radius to come back down
-	UploadWavePause   time.Duration // pause between upload waves so the watcher can keep up
-	UploadTimeout     time.Duration // timeout for each upload request
-
+	TargetFillPercent float64       // fraction of capacity to fill (>1 overshoots)
+	ReserveCapacity   int           // per-node reserve capacity
+	PollInterval      time.Duration // how often to check node status
+	ChunksPerUpload   int           // bytes per upload request
+	MinRadiusWait     time.Duration // min time watching for radius increase
+	PushersIdleWait   time.Duration // max wait for backlog to settle
+	DiluteDepth       uint64        // depth to dilute to (32 is max)
+	DiluteWait        time.Duration // timeout for radius decrease
+	UploadWavePause   time.Duration // pause between upload waves
+	UploadTimeout     time.Duration // timeout per upload request
+	PostageAmount     int64
+	PostageLabel      string
+	PostageDepth      uint64
 }
 
 func NewDefaultOptions() Options {
 	return Options{
 		PollInterval:      2 * time.Second,
-		WaitForWarmup:     true,
-		Seed:              0,
 		TargetFillPercent: 1.2,
 		ChunksPerUpload:   512,
 		ReserveCapacity:   4000,
@@ -80,37 +74,31 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	startedAt := time.Now()
 
-	if o.WaitForWarmup {
-		if err := c.waitForWarmup(ctx, cluster, o); err != nil {
-			return fmt.Errorf("wait for warmup: %w", err)
-		}
+	if err := c.waitForWarmup(ctx, cluster, o); err != nil {
+		return fmt.Errorf("wait for warmup: %w", err)
 	}
 
-	fullNodes, err := cluster.ShuffledFullNodeClients(ctx, random.PseudoGenerator(o.Seed))
+	fullNodes, err := cluster.ShuffledFullNodeClients(ctx, random.PseudoGenerator(time.Now().UnixNano()))
 	if err != nil {
 		return fmt.Errorf("get shuffled full node clients: %w", err)
 	}
 	if len(fullNodes) == 0 {
-		return errors.New("no full nodes available, fill-reserve requires at least one full node")
+		return errors.New("no full nodes available, storage-radius check requires at least one full node")
 	}
 
 	status, err := fullNodes[0].Status(ctx)
 	if err != nil {
 		return fmt.Errorf("status: %w", err)
 	}
-	startStorageRadius := status.StorageRadius
 
-	// TODO:Log chain state
+	initialStorageRadius := status.StorageRadius
 
-	uploadPlan := newUploadPlan(startStorageRadius, o)
+	uploadPlan := newUploadPlan(initialStorageRadius, o)
 	batchCount := min(o.ChunksPerUpload, len(fullNodes))
-	c.logger.Infof("cluster: %d full nodes at storage radius %d => %.0f neighborhood(s)",
-		len(fullNodes), startStorageRadius, uploadPlan.neighborhoods)
-	c.logger.Infof("target %d chunks (%.0f%% of %d per neighborhood), %d chunks per upload",
-		uploadPlan.totalChunks, o.TargetFillPercent*100, o.ReserveCapacity, uploadPlan.chunksPerUpload)
 
-	// This is needed for the case if there are some nodes that have some reserved chunks already, we need to get the cluster state before we start uploading chunks
-	// can we change name of fun to getClusterState ? and we may log if we want ?
+	c.logger.Infof("cluster: %d full nodes at storage radius %d => %.0f neighborhood(s)", len(fullNodes), initialStorageRadius, uploadPlan.neighborhoods)
+	c.logger.Infof("target %d chunks (%.0f%% of %d per neighborhood), %d chunks per upload", uploadPlan.totalChunks, o.TargetFillPercent*100, o.ReserveCapacity, uploadPlan.chunksPerUpload)
+
 	chunksBefore, err := c.logClusterState(ctx, cluster, "before")
 	if err != nil {
 		return err
@@ -121,7 +109,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return err
 	}
 
-	// A cluster filled by an earlier run can already hold, or have queued, more than this run needs. Uploading then adds chunks that are evicted on arrival, so skip straight to waiting for bee to react to what is already there.
 	uploadedChunks := 0
 	if pending, enough := c.pipelineAlreadyFull(ctx, batches, uploadPlan, o); enough {
 		c.logger.Infof("pipeline already holds %d chunks, more than the %d needed, skipping uploads",
@@ -149,11 +136,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	if storageRadius == 0 {
 		return c.radiusUnchangedError(chunksBefore, chunksAfter, uploadedChunks, o)
 	}
-	c.logger.Infof("storage radius is %d (started at %d)", storageRadius, startStorageRadius)
 
-	// Chunks still arriving could race the dilution, but only if the reserves have
-	// room left to accept them. Once every reserve is at capacity the backlog is
-	// surplus that bee evicts on arrival, so waiting for it to drain is pure delay.
+	c.logger.Infof("storage radius is %d (started at %d)", storageRadius, initialStorageRadius)
+
 	if c.reservesIsAtCapacity(ctx, fullNodes, o) {
 		c.logger.Infof("reserves are at capacity, remaining backlog will be evicted on arrival, diluting now")
 	} else if err := c.waitForPushersIdle(ctx, fullNodes, o); err != nil {
@@ -210,10 +195,10 @@ type uploadPlan struct {
 	chunksPerUpload int
 }
 
-// newUploadPlan sizes the upload to the neighborhoods the cluster spans
-// (2^radius), not the node count: at radius 0 the whole cluster is one
-// neighborhood, so roughly `capacity` chunks fill every node at once.
-// TODO: consider the case where the cluster contains multiple neighborhoods
+// newUploadPlan calculates upload size based on cluster neighborhoods (2^radius).
+// Chunks replicate across all nodes in a neighborhood, so we size by neighborhood count, not node count.
+// Example: at radius=0 (1 neighborhood), all 8 nodes replicate the same chunks → upload ~4000 total.
+// At radius=1 (2 neighborhoods), nodes split into 2 groups → upload ~8000 (4000 per neighborhood).
 func newUploadPlan(radius uint8, o Options) uploadPlan {
 	neighborhoods := math.Pow(2, float64(radius))
 	totalChunks := int(o.TargetFillPercent * float64(o.ReserveCapacity) * neighborhoods)
@@ -260,14 +245,8 @@ type nodeBatch struct {
 	node    *bee.Client
 }
 
-// prepareBatches gets one usable batch per node, reusing an existing one where
-// possible and buying the rest in parallel.
-//
-// A node that cannot provide a batch is skipped rather than failing the check,
-// since buying can revert on-chain. This deliberately uses a WaitGroup, not an
-// errgroup: an errgroup would cancel its siblings on the first error, and because
-// CreatePostageBatch polls with a sleep loop that ignores cancellation, those
-// siblings would keep polling for batches that were never created.
+// prepareBatches buys postage batches for each node, reusing existing ones to save time and tokens.
+// Uses WaitGroup instead of errgroup to avoid hanging 900s if a batch purchase reverts on-chain.
 func (c *Check) prepareBatches(ctx context.Context, nodes orchestration.ClientList, batchCount int, o Options) ([]nodeBatch, error) {
 	c.logger.Infof("preparing %d postage batches in parallel (depth %d, amount %d)",
 		batchCount, o.PostageDepth, o.PostageAmount)
@@ -317,8 +296,7 @@ func (c *Check) prepareBatches(ctx context.Context, nodes orchestration.ClientLi
 	return batches, nil
 }
 
-// batchForNode returns a usable batch for the node, preferring one it already
-// owns so repeat runs neither wait for confirmation nor spend the token allowance.
+// batchForNode finds an existing usable batch or creates a new one.
 func (c *Check) batchForNode(ctx context.Context, node *bee.Client, o Options) (batchID string, reused bool, err error) {
 	label := fmt.Sprintf("%s-%s", o.PostageLabel, node.Name())
 
@@ -347,13 +325,8 @@ func (c *Check) batchForNode(ctx context.Context, node *bee.Client, o Options) (
 	return batchID, false, nil
 }
 
-// waitForRadiusIncrease blocks until a node reports a non-zero storage radius,
-// returning what it saw. It returns zero if the radius never rose.
-//
-// Uploads are deferred, so the pushers deliver them over the following minutes
-// and only then can a reserve exceed capacity and provoke an increase. Quiet
-// reserves are therefore not enough to conclude the radius will stay put, so the
-// minimum wait applies even after the totals stop changing.
+// waitForStorageRadiusIncrease waits for any node's radius to climb above zero.
+// Requires both stable reserves AND MinRadiusWait elapsed, since uploads are deferred.
 func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestration.ClientList, o Options) (uint8, error) {
 	ticker := time.NewTicker(o.PollInterval)
 	defer ticker.Stop()
@@ -396,9 +369,7 @@ func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestr
 	}
 }
 
-// pipelineAlreadyFull reports whether the reserves and pusher backlogs already
-// hold enough chunks to fill a reserve, which happens on a cluster an earlier run
-// has filled. It returns the largest reserve plus its node's backlog.
+// pipelineAlreadyFull checks if reserves and pusher backlog already hold enough chunks.
 func (c *Check) pipelineAlreadyFull(ctx context.Context, batches []nodeBatch, plan uploadPlan, options Options) (chunks int, full bool) {
 	chunksNeeded := plan.chunksNeeded(options)
 
@@ -422,9 +393,7 @@ func (c *Check) pipelineAlreadyFull(ctx context.Context, batches []nodeBatch, pl
 	return chunks, chunks >= chunksNeeded
 }
 
-// upload sends the planned random data across every batch concurrently, one
-// request per node in flight, stopping early once enough chunks are in the
-// pipeline.
+// upload sends random data in parallel, stopping when pipeline holds enough chunks.
 func (c *Check) upload(ctx context.Context, batches []nodeBatch, plan uploadPlan, options Options) (int, error) {
 	totalUploads := plan.uploadCount()
 
@@ -448,15 +417,10 @@ func (c *Check) upload(ctx context.Context, batches []nodeBatch, plan uploadPlan
 	defer cancelWatch()
 	go c.stopWhenPipelineFull(watchCtx, batches, plan, options, stopUploading)
 
-	// Round-robin the requests over the batches so the load spreads across nodes
-	// without tying the request count to the batch count.
-	//
-	// Requests are released in waves of one per batch, pausing between them: a
-	// full poll of every node takes several seconds, so firing everything at once
-	// finishes before the watcher can see the pipeline and report that enough has
-	// been queued. The pause gives it that chance and keeps the overshoot small.
 	for i := range totalUploads {
 		if i > 0 && i%len(batches) == 0 {
+			// Pause between waves so the watcher can poll and detect when to stop.
+			// Without this, uploads finish before the watcher sees them.
 			select {
 			case <-enough:
 			case <-groupCtx.Done():
@@ -472,16 +436,11 @@ func (c *Check) upload(ctx context.Context, batches []nodeBatch, plan uploadPlan
 			default:
 			}
 
-			// Fresh bytes per request: bee addresses chunks by content, so
-			// reusing them would collide instead of filling the reserve.
 			data := make([]byte, int64(plan.chunksPerUpload)*bee.MaxChunkSize)
 			if _, err := crand.Read(data); err != nil {
 				return fmt.Errorf("generate random data: %w", err)
 			}
 
-			// Re-check after generating the data: with many goroutines queued
-			// behind the concurrency limit, the pipeline can fill while this
-			// one waits, and uploading anyway is what overshoots the target.
 			select {
 			case <-enough:
 				return nil
@@ -514,8 +473,7 @@ func (c *Check) upload(ctx context.Context, batches []nodeBatch, plan uploadPlan
 	return uploadedChunks, nil
 }
 
-// radiusUnchangedError explains why the radius never moved: either the chunks
-// never reached a reserve, or they did but capacity was never exceeded.
+// radiusUnchangedError explains why the radius stayed at zero.
 func (c *Check) radiusUnchangedError(chunksBefore, chunksAfter, uploadedChunks int, options Options) error {
 	if chunksAfter <= chunksBefore {
 		return fmt.Errorf("storage radius is still 0 and the reserves did not grow (%d chunks before, %d after, %d uploaded): "+
@@ -527,10 +485,8 @@ func (c *Check) radiusUnchangedError(chunksBefore, chunksAfter, uploadedChunks i
 		chunksBefore, chunksAfter, options.ReserveCapacity)
 }
 
-// reservesAtCapacity reports whether every reachable node is holding a full
-// reserve, meaning any chunks still in flight can only be evicted on arrival.
+// reservesIsAtCapacity checks if all nodes have reserves at 95% or higher.
 func (c *Check) reservesIsAtCapacity(ctx context.Context, nodes orchestration.ClientList, options Options) bool {
-	// Bee holds slightly under capacity while evicting, so allow a small margin.
 	full := options.ReserveCapacity * 95 / 100
 	sawNode := false
 
@@ -548,13 +504,8 @@ func (c *Check) reservesIsAtCapacity(ctx context.Context, nodes orchestration.Cl
 	return sawNode
 }
 
-// waitForPushersIdle waits for the pusher backlog to settle before diluting.
-//
-// It does not wait for zero. A cluster that has been filled repeatedly carries a
-// backlog that drains at a few hundred chunks a minute and may never empty, and
-// the radius has already risen by this point, so waiting it out is pure delay.
-// Settling for a few polls is enough to know incoming chunks will not race the
-// dilution, and PushersIdleWait caps the wait either way.
+// waitForPushersIdle waits for the pusher backlog to stop shrinking.
+// Does not wait for zero, as it may never empty on a repeatedly-filled cluster.
 func (c *Check) waitForPushersIdle(ctx context.Context, nodes orchestration.ClientList, options Options) error {
 	ticker := time.NewTicker(options.PollInterval)
 	defer ticker.Stop()
@@ -573,8 +524,6 @@ func (c *Check) waitForPushersIdle(ctx context.Context, nodes orchestration.Clie
 			return nil
 		}
 
-		// Treat a backlog that is no longer shrinking as settled: the pushers are
-		// as done as they are going to get.
 		if pendingChunks >= previousPending && previousPending >= 0 {
 			stablePolls++
 			if stablePolls >= stablePollsBeforeGivingUp {
@@ -601,13 +550,7 @@ func (c *Check) waitForPushersIdle(ctx context.Context, nodes orchestration.Clie
 	}
 }
 
-// dilute widens every batch and waits for the storage radius to fall.
-//
-// Diluting multiplies a batch's chunk allowance without adding chunks, so the
-// network's committed depth jumps and chunks fall outside each node's storage
-// radius. The count within radius then drops below bee's threshold, which is the
-// first of the three conditions bee requires before stepping the radius down; the
-// others are that pullsync is idle and the radius is above its configured minimum.
+// dilute increases batch depths to push chunks outside the storage radius.
 func (c *Check) dilute(ctx context.Context, nodes orchestration.ClientList, batches []nodeBatch, startRadius uint8, options Options) error {
 	c.logger.Infof("diluting %d batches to depth %d to push chunks outside the storage radius",
 		len(batches), options.DiluteDepth)
@@ -619,7 +562,6 @@ func (c *Check) dilute(ctx context.Context, nodes orchestration.ClientList, batc
 			c.logger.Infof("%s: cannot read batch %s: %v", batch.node.Name(), batch.batchID, err)
 			continue
 		}
-		// Dilution only ever increases depth; bee rejects a lower one.
 		if uint64(stamp.Depth) >= options.DiluteDepth {
 			c.logger.Infof("%s: batch already at depth %d, skipping", batch.node.Name(), stamp.Depth)
 			continue
@@ -640,10 +582,7 @@ func (c *Check) dilute(ctx context.Context, nodes orchestration.ClientList, batc
 	return c.waitForStorageRadiusDecrease(ctx, nodes, startRadius, options)
 }
 
-// waitForRadiusDecrease blocks until the storage radius drops below startRadius.
-//
-// Bee steps the radius down one bin per reserve-worker tick, which is 15 minutes
-// on a stock node, so this is slow by design.
+// waitForStorageRadiusDecrease waits for any node's radius to drop below the starting radius.
 func (c *Check) waitForStorageRadiusDecrease(ctx context.Context, nodes orchestration.ClientList, startRadius uint8, options Options) error {
 	ticker := time.NewTicker(options.PollInterval)
 	defer ticker.Stop()
@@ -661,7 +600,6 @@ func (c *Check) waitForStorageRadiusDecrease(ctx context.Context, nodes orchestr
 		}
 
 		lowestRadius, chunksWithinRadius, pullsyncRate, reachable := c.radiusDecreaseState(ctx, nodes)
-		// One node stepping down is enough: the decrease has been demonstrated.
 		if reachable && lowestRadius < startRadius {
 			c.logger.Infof("storage radius decreased %d -> %d after %s",
 				startRadius, lowestRadius, time.Since(startedAt).Round(time.Second))
@@ -684,8 +622,7 @@ func (c *Check) waitForStorageRadiusDecrease(ctx context.Context, nodes orchestr
 	}
 }
 
-// pipelineState sums reserve sizes and pending pusher backlogs across the cluster,
-// and reports the highest storage radius seen. Unreachable nodes are skipped.
+// pipelineState returns total reserves, pending chunks, and the highest radius in the cluster.
 func (c *Check) pipelineState(ctx context.Context, nodes orchestration.ClientList) (reserveTotal, pendingChunks int, highestRadius uint8) {
 	for _, node := range nodes {
 		if status, err := node.Status(ctx); err == nil {
@@ -699,25 +636,13 @@ func (c *Check) pipelineState(ctx context.Context, nodes orchestration.ClientLis
 	return reserveTotal, pendingChunks, highestRadius
 }
 
-// uploadCount is how many requests are needed to cover the target, rounded up.
-//
-// This is a total rather than a per-batch figure: rounding up per batch would
-// always schedule at least one upload for every batch, which on a cluster with
-// more batches than needed requests overshoots the target several times over.
+// uploadCount returns the total number of upload requests needed.
 func (p uploadPlan) uploadCount() int {
 	return max((p.totalChunks+p.chunksPerUpload-1)/p.chunksPerUpload, 1)
 }
 
-// stopWhenPipelineFull halts uploading once the radius has risen, a reserve is
-// over capacity, or this run has put enough chunks into the pipeline.
-//
-// The last of those is normally the earliest signal. Uploads are deferred, so
-// they sit in the upload store until the pushers deliver them; by the time a
-// reserve looks full the pipeline holds far more than was needed, and anything
-// uploaded beyond that is only evicted on arrival.
-//
-// Progress is measured against the reserve and backlog seen at the start, since a
-// cluster that has been filled before begins with both already well above zero.
+// stopWhenPipelineFull halts uploads once the pipeline holds enough chunks or radius rises.
+// Measures growth from baseline to handle pre-filled clusters.
 func (c *Check) stopWhenPipelineFull(ctx context.Context, batches []nodeBatch, plan uploadPlan, options Options, stopUploading func()) {
 	ticker := time.NewTicker(options.PollInterval)
 	defer ticker.Stop()
@@ -764,8 +689,6 @@ func (c *Check) stopWhenPipelineFull(ctx context.Context, batches []nodeBatch, p
 			}
 		}
 
-		// A reserve already counts what the pipeline delivered, so the pending
-		// backlog adds to it rather than being counted separately.
 		delivered := largestReserve - baseReserve
 		queued := pendingChunks - basePending
 		if sawDebugStore && delivered+queued >= chunksNeeded {
@@ -777,9 +700,7 @@ func (c *Check) stopWhenPipelineFull(ctx context.Context, batches []nodeBatch, p
 	}
 }
 
-
-// pipelineBaseline records the reserve size and pusher backlog before uploading,
-// so progress can be measured as growth rather than absolute totals.
+// pipelineBaseline snapshots reserve size and pusher backlog at the start.
 func (c *Check) pipelineBaseline(ctx context.Context, batches []nodeBatch) (reserve, pending int) {
 	for _, batch := range batches {
 		if status, err := batch.node.Status(ctx); err == nil {
@@ -792,15 +713,9 @@ func (c *Check) pipelineBaseline(ctx context.Context, batches []nodeBatch) (rese
 	return reserve, pending
 }
 
-
-// radiusDecreaseState reports the inputs to bee's radius-decrease decision: the
-// lowest radius in the cluster, chunks held within radius, and the pullsync rate.
-//
-// The lowest radius is what matters because one node stepping down is enough to
-// call the decrease observed. It is reported as reachable=false when no node
-// answered, so a cluster-wide outage is not mistaken for a decrease.
+// radiusDecreaseState returns the lowest radius, chunks within it, and pullsync rate across the cluster.
 func (c *Check) radiusDecreaseState(ctx context.Context, nodes orchestration.ClientList) (lowestRadius uint8, chunksWithinRadius int, pullsyncRate float64, reachable bool) {
-	lowestRadius = math.MaxUint8
+	lowestRadius = uint8(31)
 	for _, node := range nodes {
 		status, err := node.Status(ctx)
 		if err != nil {
