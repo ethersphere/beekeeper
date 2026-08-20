@@ -30,7 +30,7 @@ type Options struct {
 	PushersIdleWait   time.Duration // max wait for backlog to settle
 	DiluteDepth       uint64        // depth to dilute to (32 is max)
 	DiluteWait        time.Duration // timeout for radius decrease
-	UploadWavePause   time.Duration // pause between upload waves
+	UploadWavePause   time.Duration // pause between upload dispatches, so the watcher can catch up
 	UploadTimeout     time.Duration // timeout per upload request
 	PostageAmount     int64
 	PostageLabel      string
@@ -375,15 +375,17 @@ func (c *Check) pipelineAlreadyFull(ctx context.Context, batches []nodeBatch, pl
 		if err != nil {
 			continue
 		}
-		// A radius already above zero means bee has reacted; nothing to add.
-		if status.StorageRadius > 0 {
-			return int(status.ReserveSize), true
-		}
 
 		inPipeline := int(status.ReserveSize)
 		if debugStore, err := batch.node.API().DebugStore.GetDebugStore(ctx); err == nil {
 			inPipeline += debugStore.Upload.PendingUpload
 		}
+
+		// A radius already above 0 means bee has reached the goal
+		if status.StorageRadius > 0 {
+			return inPipeline, true
+		}
+
 		chunks = max(chunks, inPipeline)
 	}
 
@@ -416,8 +418,7 @@ func (c *Check) upload(ctx context.Context, batches []nodeBatch, plan uploadPlan
 
 	for i := range totalUploads {
 		if i > 0 && i%len(batches) == 0 {
-			// Pause between waves so the watcher can poll and detect when to stop.
-			// Without this, uploads finish before the watcher sees them.
+			// Pause between waves so the watcher's independent poll loop gets a chance to observe pipeline growth and call stopUploading before the next wave fires off. Without this, a fast cluster can spin up all uploads within a single PollInterval and the watcher never sees them.
 			select {
 			case <-enough:
 			case <-groupCtx.Done():
@@ -483,6 +484,7 @@ func (c *Check) radiusUnchangedError(chunksBefore, chunksAfter, uploadedChunks i
 }
 
 // reservesIsAtCapacity checks if all nodes have reserves at 95% or higher.
+// An unreachable node counts as not at capacity, since we can't confirm it.
 func (c *Check) reservesIsAtCapacity(ctx context.Context, nodes orchestration.ClientList, options Options) bool {
 	full := options.ReserveCapacity * 95 / 100
 	sawNode := false
@@ -490,7 +492,7 @@ func (c *Check) reservesIsAtCapacity(ctx context.Context, nodes orchestration.Cl
 	for _, node := range nodes {
 		status, err := node.Status(ctx)
 		if err != nil {
-			continue
+			return false
 		}
 		sawNode = true
 		if int(status.ReserveSize) < full {
