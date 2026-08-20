@@ -205,7 +205,6 @@ checks:
     options:
       reserve-capacity: 4000
       target-fill-percent: 1.03
-      stamps: 16
       chunks-per-upload: 512
       postage-depth: 22
       postage-amount: 2073600000

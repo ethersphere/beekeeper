@@ -118,7 +118,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		}
 	}
 
-	storageRadius, err := c.waitForStorageRadiusIncrease(ctx, fullNodes, o)
+	risenNode, storageRadius, err := c.waitForStorageRadiusIncrease(ctx, fullNodes, o)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	} else if err := c.waitForPushersIdle(ctx, fullNodes, o); err != nil {
 		return err
 	}
-	if err := c.dilute(ctx, fullNodes, batches, storageRadius, o); err != nil {
+	if err := c.dilute(ctx, risenNode, batches, storageRadius, o); err != nil {
 		return err
 	}
 
@@ -320,9 +320,11 @@ func (c *Check) batchForNode(ctx context.Context, node *bee.Client, o Options) (
 }
 
 // waitForStorageRadiusIncrease waits for any node's radius to climb above zero, returning
-// that radius as soon as one does. It gives up and returns 0 only once the reserves have
-// stopped growing AND MinRadiusWait has elapsed, since uploads reach the reserves lazily.
-func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestration.ClientList, o Options) (uint8, error) {
+// that node and its radius as soon as one does, so the caller can later check the same
+// node's radius for the decrease rather than a different node that never moved. It gives
+// up and returns a nil node with radius 0 only once the reserves have stopped growing AND
+// MinRadiusWait has elapsed, since uploads reach the reserves lazily.
+func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestration.ClientList, o Options) (*bee.Client, uint8, error) {
 	ticker := time.NewTicker(o.PollInterval)
 	defer ticker.Stop()
 
@@ -334,15 +336,15 @@ func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestr
 	for {
 		select {
 		case <-ctx.Done():
-			return 0, fmt.Errorf("timed out waiting for the storage radius to rise above 0: %w", ctx.Err())
+			return nil, 0, fmt.Errorf("timed out waiting for the storage radius to rise above 0: %w", ctx.Err())
 		case <-ticker.C:
 		}
 
-		reserveTotal, pendingChunks, highestRadius := c.pipelineState(ctx, nodes)
+		reserveTotal, pendingChunks, risenNode, highestRadius := c.pipelineState(ctx, nodes)
 		if highestRadius > 0 {
 			c.logger.Infof("storage radius is %d after %s (reserves at %d chunks)",
 				highestRadius, time.Since(startedAt).Round(time.Second), reserveTotal)
-			return highestRadius, nil
+			return risenNode, highestRadius, nil
 		}
 
 		elapsed := time.Since(startedAt)
@@ -351,7 +353,7 @@ func (c *Check) waitForStorageRadiusIncrease(ctx context.Context, nodes orchestr
 			if stablePolls >= stablePollsBeforeGivingUp && elapsed >= o.MinRadiusWait {
 				c.logger.Infof("reserves settled at %d chunks and radius still 0 after %s",
 					reserveTotal, elapsed.Round(time.Second))
-				return 0, nil
+				return nil, 0, nil
 			}
 		} else {
 			if prevReserveSize >= 0 {
@@ -511,7 +513,7 @@ func (c *Check) waitForPushersIdle(ctx context.Context, nodes orchestration.Clie
 	prevPendingChunks, stablePolls := -1, 0
 
 	for {
-		_, pendingChunks, _ := c.pipelineState(ctx, nodes)
+		_, pendingChunks, _, _ := c.pipelineState(ctx, nodes)
 		elapsed := time.Since(startedAt)
 
 		if pendingChunks == 0 {
@@ -546,7 +548,7 @@ func (c *Check) waitForPushersIdle(ctx context.Context, nodes orchestration.Clie
 }
 
 // dilute increases batch depths to push chunks outside the storage radius.
-func (c *Check) dilute(ctx context.Context, nodes orchestration.ClientList, batches []nodeBatch, startRadius uint8, options Options) error {
+func (c *Check) dilute(ctx context.Context, risenNode *bee.Client, batches []nodeBatch, startRadius uint8, options Options) error {
 	c.logger.Infof("diluting %d batches to depth %d to push chunks outside the storage radius",
 		len(batches), options.DiluteDepth)
 
@@ -574,18 +576,20 @@ func (c *Check) dilute(ctx context.Context, nodes orchestration.ClientList, batc
 		return errors.New("no batches were diluted, cannot provoke a radius decrease")
 	}
 
-	return c.waitForStorageRadiusDecrease(ctx, nodes, startRadius, options)
+	return c.waitForStorageRadiusDecrease(ctx, risenNode, startRadius, options)
 }
 
-// waitForStorageRadiusDecrease waits for any node's radius to drop below the starting radius.
-func (c *Check) waitForStorageRadiusDecrease(ctx context.Context, nodes orchestration.ClientList, startRadius uint8, options Options) error {
+// waitForStorageRadiusDecrease waits for the node whose radius rose to drop back below
+// startRadius. It checks the same node that triggered the increase rather than a
+// cluster-wide extremum, since radius is decided locally per node and other nodes may
+// never have left radius 0.
+func (c *Check) waitForStorageRadiusDecrease(ctx context.Context, risenNode *bee.Client, startRadius uint8, options Options) error {
 	ticker := time.NewTicker(options.PollInterval)
 	defer ticker.Stop()
 
-	c.logger.Infof("waiting up to %s for any node's storage radius to fall below %d", options.DiluteWait, startRadius)
+	c.logger.Infof("waiting up to %s for %s's storage radius to fall below %d", options.DiluteWait, risenNode.Name(), startRadius)
 
 	startedAt := time.Now()
-	decreaseThreshold := options.ReserveCapacity * 8 / 10
 
 	for {
 		select {
@@ -594,41 +598,50 @@ func (c *Check) waitForStorageRadiusDecrease(ctx context.Context, nodes orchestr
 		case <-ticker.C:
 		}
 
-		lowestRadius, chunksWithinRadius, pullsyncRate, reachable := c.radiusDecreaseState(ctx, nodes)
-		if reachable && lowestRadius < startRadius {
-			c.logger.Infof("storage radius decreased %d -> %d after %s",
-				startRadius, lowestRadius, time.Since(startedAt).Round(time.Second))
-			return nil
-		}
+		elapsed := time.Since(startedAt)
 
-		if !reachable {
-			c.logger.Infof("no node answered, retrying")
+		status, err := risenNode.Status(ctx)
+		if err != nil {
+			if elapsed >= options.DiluteWait {
+				return fmt.Errorf("storage radius stayed at %d after %s: %s did not answer: %w",
+					startRadius, options.DiluteWait, risenNode.Name(), err)
+			}
+			c.logger.Infof("%s did not answer, retrying (%s elapsed)", risenNode.Name(), elapsed.Round(time.Second))
 			continue
 		}
 
-		elapsed := time.Since(startedAt)
-		if elapsed >= options.DiluteWait {
-			return fmt.Errorf("storage radius stayed at %d after %s: %d chunks within radius (threshold %d), pullsync rate %.2f",
-				startRadius, options.DiluteWait, chunksWithinRadius, decreaseThreshold, pullsyncRate)
+		if status.StorageRadius < startRadius {
+			c.logger.Infof("%s's storage radius decreased %d -> %d after %s",
+				risenNode.Name(), startRadius, status.StorageRadius, elapsed.Round(time.Second))
+			return nil
 		}
 
-		c.logger.Infof("radius still %d, %d chunks within radius (threshold %d), pullsync %.2f (%s elapsed)",
-			lowestRadius, chunksWithinRadius, decreaseThreshold, pullsyncRate, elapsed.Round(time.Second))
+		if elapsed >= options.DiluteWait {
+			return fmt.Errorf("%s's storage radius stayed at %d after %s: %d chunks within radius, pullsync rate %.2f",
+				risenNode.Name(), startRadius, options.DiluteWait, status.ReserveSizeWithinRadius, status.PullsyncRate)
+		}
+
+		c.logger.Infof("%s's radius still %d, %d chunks within radius, pullsync %.2f (%s elapsed)",
+			risenNode.Name(), status.StorageRadius, status.ReserveSizeWithinRadius, status.PullsyncRate, elapsed.Round(time.Second))
 	}
 }
 
-// pipelineState returns total reserves, pending chunks, and the highest radius in the cluster.
-func (c *Check) pipelineState(ctx context.Context, nodes orchestration.ClientList) (reserveTotal, pendingChunks int, highestRadius uint8) {
+// pipelineState returns total reserves, pending chunks, the highest radius in the cluster,
+// and the node that reported it.
+func (c *Check) pipelineState(ctx context.Context, nodes orchestration.ClientList) (reserveTotal, pendingChunks int, highestRadiusNode *bee.Client, highestRadius uint8) {
 	for _, node := range nodes {
 		if status, err := node.Status(ctx); err == nil {
 			reserveTotal += int(status.ReserveSize)
-			highestRadius = max(highestRadius, status.StorageRadius)
+			if status.StorageRadius > highestRadius || highestRadiusNode == nil {
+				highestRadius = status.StorageRadius
+				highestRadiusNode = node
+			}
 		}
 		if debugStore, err := node.API().DebugStore.GetDebugStore(ctx); err == nil {
 			pendingChunks += debugStore.Upload.PendingUpload
 		}
 	}
-	return reserveTotal, pendingChunks, highestRadius
+	return reserveTotal, pendingChunks, highestRadiusNode, highestRadius
 }
 
 // uploadCount returns the total number of upload requests needed.
@@ -706,20 +719,4 @@ func (c *Check) pipelineBaseline(ctx context.Context, batches []nodeBatch) (rese
 		}
 	}
 	return reserve, pending
-}
-
-// radiusDecreaseState returns the lowest radius, chunks within it, and pullsync rate across the cluster.
-func (c *Check) radiusDecreaseState(ctx context.Context, nodes orchestration.ClientList) (lowestRadius uint8, chunksWithinRadius int, pullsyncRate float64, reachable bool) {
-	lowestRadius = uint8(31)
-	for _, node := range nodes {
-		status, err := node.Status(ctx)
-		if err != nil {
-			continue
-		}
-		reachable = true
-		lowestRadius = min(lowestRadius, status.StorageRadius)
-		chunksWithinRadius += int(status.ReserveSizeWithinRadius)
-		pullsyncRate += status.PullsyncRate
-	}
-	return lowestRadius, chunksWithinRadius, pullsyncRate, reachable
 }
