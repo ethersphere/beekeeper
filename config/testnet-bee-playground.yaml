@@ -25,14 +25,14 @@ clusters:
         mode: node
         bee-config: geth-playground
         config: ng-bee-playground
-        count: 8
+        count: 16
 
 # node-groups defines node groups that can be registered in the cluster
 # node-groups may inherit it's configuration from already defined node-group and override specific fields from it
 node-groups:
   ng-bee-playground:
     _inherit: default
-    persistence-enabled: true
+    persistence-enabled: false
     image: ethersphere/bee:latest
     ingress-class: "nginx-oss"
     ingress-annotations:
@@ -57,6 +57,7 @@ bee-configs:
     network-id: 12345
     p2p-addr: :1634
     password: "beekeeper"
+    payment-threshold: 108000000
     storage-incentives-enable: true
     swap-enable: true
     verbosity: 5
@@ -200,3 +201,20 @@ checks:
       duration: 12h
     timeout: 13h
     type: smoke
+  pg-storage-radius:
+    options:
+      reserve-capacity: 4000
+      target-fill-percent: 1.03
+      chunks-per-upload: 512
+      postage-depth: 22
+      postage-amount: 2073600000
+      postage-label: storage-radius
+      upload-timeout: 10m
+      upload-wave-pause: 5s
+      poll-interval: 2s
+      min-radius-wait: 5m
+      pushers-idle-wait: 2m
+      dilute-depth: 32
+      dilute-wait: 45m
+    timeout: 80m
+    type: storage-radius
