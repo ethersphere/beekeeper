@@ -101,7 +101,7 @@ clusters:
 node-groups:
   local:
     _inherit: ""
-    image: k3d-registry.localhost:5000/ethersphere/bee:latest
+    image: k3d-registry.localhost:5002/ethersphere/bee:latest
     image-pull-policy: Always
     ingress-annotations:
       nginx.ingress.kubernetes.io/affinity: "cookie"
