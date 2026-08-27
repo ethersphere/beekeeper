@@ -6,8 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -126,7 +124,7 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	if err != nil {
 		return err
 	}
-	prefixMatchDepth := 6
+	prefixMatchDepth := 8
 	logger.Infof("gsoc: mining resource id for overlay=%s, prefixMatchDepth=%d", addresses.Overlay, prefixMatchDepth)
 	resourceId, socAddress, err := mineResourceId(ctx, addresses.Overlay, privKey, prefixMatchDepth)
 	if err != nil {
@@ -175,54 +173,21 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 		return err
 	}
 
-	// Wait for all messages to be received or timeout
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-	timeout := time.After(3 * time.Minute)
-
-	for {
-		select {
-		case <-done:
-			return nil
-		case <-timeout:
-			return fmt.Errorf("timeout: not all messages received")
-		case <-ticker.C:
-			receivedMtx.Lock()
-			if len(received) == numChunks {
-				receivedMtx.Unlock()
-				return nil
-			}
-
-			var missing []int
-			for i := range numChunks {
-				want := fmt.Sprintf("data %d", i)
-				if !received[want] {
-					missing = append(missing, i)
-				}
-			}
-			receivedMtx.Unlock()
-
-			if len(missing) == 0 {
-				continue
-			}
-
-			logger.Infof("gsoc: still missing %d chunks: %v. retrying...", len(missing), missing)
-
-			// Retry missing chunks sequentially to avoid flooding
-			for _, i := range missing {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				default:
-				}
-
-				payload := fmt.Sprintf("data %d", i)
-				logger.Infof("gsoc: retrying soc to node=%s, payload=%s", uploadClient.Name(), payload)
-				if err := uploadSoc(ctx, uploadClient, payload, resourceId, batches[i%2], privKey); err != nil {
-					logger.Errorf("gsoc: retry failed for %s: %v", payload, err)
-				}
+	select {
+	case <-done:
+		return nil
+	case <-time.After(3 * time.Minute):
+		receivedMtx.Lock()
+		defer receivedMtx.Unlock()
+		for i := range numChunks {
+			want := fmt.Sprintf("data %d", i)
+			if !received[want] {
+				return fmt.Errorf("message '%s' not received", want)
 			}
 		}
+		return fmt.Errorf("timeout: not all messages received")
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 
@@ -265,31 +230,8 @@ func runInParallel(ctx context.Context, client *bee.Client, numChunks int, batch
 	return errG.Wait()
 }
 
-func getTargetNeighborhood(address swarm.Address, depth int) (string, error) {
-	var targetNeighborhood strings.Builder
-	for i := range depth {
-		hexChar := address.String()[i : i+1]
-		value, err := strconv.ParseUint(hexChar, 16, 4)
-		if err != nil {
-			return "", err
-		}
-		fmt.Fprintf(&targetNeighborhood, "%04b", value)
-	}
-	return targetNeighborhood.String(), nil
-}
-
 func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.PrivateKey, depth int) ([]byte, swarm.Address, error) {
-	targetNeighborhood, err := getTargetNeighborhood(overlay, depth)
-	if err != nil {
-		return nil, swarm.ZeroAddress, err
-	}
-
-	neighborhood, err := swarm.ParseBitStrAddress(targetNeighborhood)
-	if err != nil {
-		return nil, swarm.ZeroAddress, err
-	}
 	nonce := make([]byte, 32)
-	prox := len(targetNeighborhood)
 	owner, err := crypto.NewEthereumAddress(privKey.PublicKey)
 	if err != nil {
 		return nil, swarm.ZeroAddress, err
@@ -309,7 +251,7 @@ func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.P
 			return nil, swarm.ZeroAddress, err
 		}
 
-		if swarm.Proximity(address.Bytes(), neighborhood.Bytes()) >= uint8(prox) {
+		if swarm.Proximity(address.Bytes(), overlay.Bytes()) >= uint8(depth) {
 			return nonce, address, nil
 		}
 		i++

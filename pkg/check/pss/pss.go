@@ -30,7 +30,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		Count:          1,
-		AddressPrefix:  1,
+		AddressPrefix:  2,
 		GasPrice:       "",
 		PostageTTL:     24 * time.Hour,
 		PostageDepth:   22,
