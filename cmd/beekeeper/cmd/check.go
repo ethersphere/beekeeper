@@ -22,6 +22,7 @@ func (c *command) initCheckCmd() error {
 		optionNameSeed                 = "seed"
 		optionNameTimeout              = "timeout"
 		optionNameMetricsPusherAddress = "metrics-pusher-address"
+		optionNameMetricsLabels        = "metrics-labels"
 	)
 
 	cmd := &cobra.Command{
@@ -70,7 +71,13 @@ Use --metrics-enabled to collect and push metrics to Prometheus.`,
 				)
 
 				if metricsEnabled {
-					metricsPusher, cleanup = newMetricsPusher(c.globalConfig.GetString(optionNameMetricsPusherAddress), cfgCluster.GetNamespace(), c.log)
+					namespace := cfgCluster.GetNamespace()
+					metricsPusher, cleanup = newMetricsPusher(
+						c.globalConfig.GetString(optionNameMetricsPusherAddress),
+						namespace,
+						metricsGroupingLabels(clusterName, namespace, c.globalConfig.GetStringMapString(optionNameMetricsLabels)),
+						c.log,
+					)
 					// cleanup executes when the calling context terminates
 					defer cleanup()
 				}
@@ -111,6 +118,7 @@ Use --metrics-enabled to collect and push metrics to Prometheus.`,
 
 	cmd.Flags().String(optionNameClusterName, "", "cluster name. Required")
 	cmd.Flags().String(optionNameMetricsPusherAddress, "pushgateway.staging.internal", "prometheus metrics pusher address")
+	cmd.Flags().StringToString(optionNameMetricsLabels, nil, "extra Prometheus grouping labels added to every pushed metric (e.g. --metrics-labels team=swarm,ci_run=123); 'cluster' and 'namespace' labels are added automatically")
 	cmd.Flags().Bool(optionNameCreateCluster, false, "creates cluster before executing checks")
 	cmd.Flags().StringSlice(optionNameChecks, []string{"pingpong"}, "list of checks to execute")
 	cmd.Flags().Bool(optionNameMetricsEnabled, true, "enable metrics")

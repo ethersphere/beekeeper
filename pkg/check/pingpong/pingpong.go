@@ -3,6 +3,7 @@ package pingpong
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -14,11 +15,16 @@ import (
 )
 
 // Options represents check options
-type Options struct{}
+type Options struct {
+	// PingAllPeers, when true, also pings peers outside the defined cluster.
+	PingAllPeers bool
+}
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
-	return Options{}
+	return Options{
+		PingAllPeers: false,
+	}
 }
 
 // compile check whether Check implements interface
@@ -39,7 +45,20 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 }
 
 // Run executes ping check
-func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ any) (err error) {
+func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) (err error) {
+	o, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type")
+	}
+
+	var clusterOverlays orchestration.ClusterOverlays
+	if !o.PingAllPeers {
+		clusterOverlays, err = cluster.Overlays(ctx)
+		if err != nil {
+			return fmt.Errorf("get overlays: %w", err)
+		}
+	}
+
 	nodeGroups := cluster.NodeGroups()
 	for _, ng := range nodeGroups {
 		nodesClients, err := ng.NodesClients(ctx)
@@ -47,7 +66,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, _ any) (
 			return fmt.Errorf("get nodes clients: %w", err)
 		}
 
-		for n := range nodeStream(ctx, nodesClients) { // TODO: confirm use case for nodeStream(ctx, ng.NodesClientsAll(ctx))
+		for n := range nodeStream(ctx, nodesClients, clusterOverlays, o.PingAllPeers) { // TODO: confirm use case for nodeStream(ctx, ng.NodesClientsAll(ctx))
 			for t := range 5 {
 				time.Sleep(2 * time.Duration(t) * time.Second)
 
@@ -86,7 +105,9 @@ type nodeStreamMsg struct {
 	Error       error
 }
 
-func nodeStream(ctx context.Context, nodes map[string]*bee.Client) <-chan nodeStreamMsg {
+// nodeStream pings each node's peers concurrently. Unless pingAllPeers is set,
+// peers outside the cluster are skipped.
+func nodeStream(ctx context.Context, nodes map[string]*bee.Client, clusterOverlays orchestration.ClusterOverlays, pingAllPeers bool) <-chan nodeStreamMsg {
 	nodeStream := make(chan nodeStreamMsg)
 
 	var wg sync.WaitGroup
@@ -106,6 +127,11 @@ func nodeStream(ctx context.Context, nodes map[string]*bee.Client) <-chan nodeSt
 				nodeStream <- nodeStreamMsg{Name: name, Error: err}
 				return
 			}
+			if !pingAllPeers {
+				peers = slices.DeleteFunc(peers, func(p swarm.Address) bool {
+					return !clusterOverlays.Contains(p)
+				})
+			}
 			if len(peers) == 0 {
 				nodeStream <- nodeStreamMsg{Name: name, Error: fmt.Errorf("no peers")}
 				return
@@ -114,6 +140,7 @@ func nodeStream(ctx context.Context, nodes map[string]*bee.Client) <-chan nodeSt
 			for m := range node.PingStream(ctx, peers) {
 				if m.Error != nil {
 					nodeStream <- nodeStreamMsg{Name: name, Error: m.Error}
+					continue
 				}
 				nodeStream <- nodeStreamMsg{
 					Name:        name,

@@ -1,20 +1,22 @@
 package serviceaccount_test
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
-	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/k8s/serviceaccount"
 )
 
 func TestSet(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name       string
 		secretName string
@@ -55,22 +57,24 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:       "create_error",
-			secretName: mocks.CreateBad,
-			clientset:  mocks.NewClientset(),
-			errorMsg:   fmt.Errorf("creating service account create_bad in namespace test: mock error: cannot create service account"),
+			secretName: "test_service_account",
+			// No object seeded, so Update returns NotFound and Set falls through
+			// to Create, which the reactor fails.
+			clientset: k8stest.NewErrorClientset("create", "serviceaccounts", errors.New("mock error: cannot create service account")),
+			errorMsg:  fmt.Errorf("creating service account test_service_account in namespace test: mock error: cannot create service account"),
 		},
 		{
 			name:       "update_error",
-			secretName: mocks.UpdateBad,
-			clientset:  mocks.NewClientset(),
-			errorMsg:   fmt.Errorf("updating service account update_bad in namespace test: mock error: cannot update service account"),
+			secretName: "test_service_account",
+			clientset:  k8stest.NewErrorClientset("update", "serviceaccounts", errors.New("mock error: cannot update service account")),
+			errorMsg:   fmt.Errorf("updating service account test_service_account in namespace test: mock error: cannot update service account"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := serviceaccount.NewClient(test.clientset)
-			response, err := client.Set(context.Background(), test.secretName, "test", test.options)
+			response, err := client.Set(t.Context(), test.secretName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -120,6 +124,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name       string
 		secretName string
@@ -148,16 +153,16 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:       "delete_error",
-			secretName: mocks.DeleteBad,
-			clientset:  mocks.NewClientset(),
-			errorMsg:   fmt.Errorf("deleting service account delete_bad in namespace test: mock error: cannot delete service account"),
+			secretName: "test_service_account",
+			clientset:  k8stest.NewErrorClientset("delete", "serviceaccounts", errors.New("mock error: cannot delete service account")),
+			errorMsg:   fmt.Errorf("deleting service account test_service_account in namespace test: mock error: cannot delete service account"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := serviceaccount.NewClient(test.clientset)
-			err := client.Delete(context.Background(), test.secretName, "test")
+			err := client.Delete(t.Context(), test.secretName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())

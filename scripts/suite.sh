@@ -3,12 +3,12 @@
 set -euo pipefail
 
 #/
-#/ Usage: 
+#/ Usage:
 #/ ./suite.sh ACTION [OPTION]
-#/ 
+#/
 #/ Description:
 #/ Run beekeeper tests on local or remote cluster
-#/ 
+#/
 #/ Example:
 #/ ./suite.sh all -n bee -r 3
 #/
@@ -123,7 +123,7 @@ if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then
                 ACTION="settlements"
                 shift
             ;;
-            
+
 #/   cashout      run cashout test
             cashout)
                 ACTION="cashout"

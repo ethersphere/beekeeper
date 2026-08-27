@@ -23,6 +23,10 @@ func (sc *SecurityContext) toK8S() *v1.SecurityContext {
 		Capabilities:             sc.Capabilities.toK8S(),
 		Privileged:               &sc.Privileged,
 		ProcMount: func() *v1.ProcMountType {
+			// nil means "use the default";
+			if sc.ProcMount == "" {
+				return nil
+			}
 			p := v1.ProcMountType(sc.ProcMount)
 			return &p
 		}(),

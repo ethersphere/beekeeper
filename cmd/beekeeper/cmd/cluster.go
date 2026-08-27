@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ethersphere/beekeeper/pkg/config"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -247,9 +248,13 @@ func setupBootnodes(ctx context.Context,
 				nodeName = node.Name
 			}
 
-			bConfig.Bootnodes = fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
-			bootnodesOut = bConfig.Bootnodes
-			nodeOpts := setupNodeOptions(node, &bConfig)
+			// each node gets its own config copy, as the bootnode list is
+			// node-specific and nodes are set up concurrently
+			nodeConfig := bConfig
+			bootnodes := fmt.Sprintf(node.Bootnodes, clusterConfig.GetNamespace()) // TODO: improve bootnode management, support more than 2 bootnodes
+			nodeConfig.Bootnodes = &[]string{bootnodes}
+			bootnodesOut = bootnodes
+			nodeOpts := setupNodeOptions(node, &nodeConfig)
 			nodeCount++
 			go setupOrAddNode(ctx, startCluster, inCluster, ng, nodeName, nodeOpts, nodeResultChan, orchestration.WithNoOptions())
 		}
@@ -299,8 +304,8 @@ func setupNodes(ctx context.Context,
 		}
 		bConfig := beeConfig.Export()
 
-		if bConfig.Bootnodes == "" {
-			bConfig.Bootnodes = bootnodesIn
+		if (bConfig.Bootnodes == nil || len(*bConfig.Bootnodes) == 0) && bootnodesIn != "" {
+			bConfig.Bootnodes = &[]string{bootnodesIn}
 		}
 		ngOptions.BeeConfig = &bConfig
 
@@ -390,6 +395,17 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 	}
 }
 
+const (
+	fundAttempts   = 2
+	fundRetryDelay = 15 * time.Second
+)
+
+// fund tops the given addresses up to the configured minimum amounts, retrying
+// once so that a transient RPC error does not abort the cluster setup.
+//
+// node-funder reads balances from the latest mined block and returns as soon as
+// a transfer is broadcast, so a retry that runs before the previous transfer is
+// mined funds the address twice. Keep the delay above the block time.
 func fund(
 	ctx context.Context,
 	fundAddresses []string,
@@ -398,7 +414,7 @@ func fund(
 	fundOpts orchestration.FundingOptions,
 	log logging.Logger,
 ) error {
-	return funder.Fund(ctx, funder.Config{
+	cfg := funder.Config{
 		Addresses:         fundAddresses,
 		ChainNodeEndpoint: chainNodeEndpoint,
 		WalletKey:         walletKey,
@@ -406,5 +422,29 @@ func fund(
 			NativeCoin: fundOpts.Eth,
 			SwarmToken: fundOpts.Bzz,
 		},
-	}, nil, nil, funder.WithLoggerOption(log))
+	}
+
+	var err error
+	for attempt := 1; attempt <= fundAttempts; attempt++ {
+		if err = funder.Fund(ctx, cfg, nil, nil, funder.WithLoggerOption(log)); err == nil {
+			return nil
+		}
+
+		if attempt == fundAttempts {
+			break
+		}
+
+		delay := time.Duration(attempt) * fundRetryDelay
+		log.Warningf("funding attempt %d/%d failed: %v, retrying in %v", attempt, fundAttempts, err, delay)
+
+		timer := time.NewTimer(delay)
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			timer.Stop()
+			return errors.Join(err, ctx.Err())
+		}
+	}
+
+	return fmt.Errorf("funding failed after %d attempts: %w", fundAttempts, err)
 }

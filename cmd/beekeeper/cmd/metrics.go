@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"maps"
 	"sync"
 	"time"
 
@@ -9,10 +10,19 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
-// newMetricsPusher returns a new metrics pusher and a cleanup function.
-func newMetricsPusher(pusherAddress, job string, logger logging.Logger) (*push.Pusher, func()) {
+// newMetricsPusher returns a new metrics pusher and a cleanup function. job sets
+// the Pushgateway "job" label; groupingLabels become part of the grouping key, so
+// Pushgateway attaches them to every pushed series (Vec and non-Vec alike).
+func newMetricsPusher(pusherAddress, job string, groupingLabels map[string]string, logger logging.Logger) (*push.Pusher, func()) {
 	metricsPusher := push.New(pusherAddress, job)
 	metricsPusher.Format(expfmt.NewFormat(expfmt.TypeTextPlain))
+
+	for name, value := range groupingLabels {
+		if value == "" {
+			continue
+		}
+		metricsPusher.Grouping(name, value)
+	}
 
 	killC := make(chan struct{})
 	var wg sync.WaitGroup
@@ -39,4 +49,17 @@ func newMetricsPusher(pusherAddress, job string, logger logging.Logger) (*push.P
 		}
 	}
 	return metricsPusher, cleanupFn
+}
+
+// metricsGroupingLabels merges the run's identity labels (cluster and namespace,
+// always present so metrics can be filtered by them) with operator-supplied
+// labels, which take precedence. Keys must be valid Prometheus label names,
+// otherwise every push fails.
+func metricsGroupingLabels(clusterName, namespace string, custom map[string]string) map[string]string {
+	labels := map[string]string{
+		"cluster":   clusterName,
+		"namespace": namespace,
+	}
+	maps.Copy(labels, custom)
+	return labels
 }

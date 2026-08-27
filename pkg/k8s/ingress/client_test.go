@@ -1,22 +1,26 @@
 package ingress_test
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
 	"testing"
 
-	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
-	"github.com/ethersphere/beekeeper/pkg/k8s/mocks"
-	"github.com/ethersphere/beekeeper/pkg/logging"
 	v1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/ethersphere/beekeeper/pkg/k8s/ingress"
+	"github.com/ethersphere/beekeeper/pkg/k8s/internal/k8stest"
+	"github.com/ethersphere/beekeeper/pkg/logging"
 )
 
 func TestSet(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name         string
 		ingressName  string
@@ -111,22 +115,24 @@ func TestSet(t *testing.T) {
 		},
 		{
 			name:        "create_error",
-			ingressName: mocks.CreateBad,
-			clientset:   mocks.NewClientset(),
-			errorMsg:    fmt.Errorf("creating ingress create_bad in namespace test: mock error: cannot create ingress"),
+			ingressName: "test_ingress",
+			// No object seeded, so Update returns NotFound and Set falls through
+			// to Create, which the reactor fails.
+			clientset: k8stest.NewErrorClientset("create", "ingresses", errors.New("mock error: cannot create ingress")),
+			errorMsg:  fmt.Errorf("creating ingress test_ingress in namespace test: mock error: cannot create ingress"),
 		},
 		{
 			name:        "update_error",
-			ingressName: mocks.UpdateBad,
-			clientset:   mocks.NewClientset(),
-			errorMsg:    fmt.Errorf("updating ingress update_bad in namespace test: mock error: cannot update ingress"),
+			ingressName: "test_ingress",
+			clientset:   k8stest.NewErrorClientset("update", "ingresses", errors.New("mock error: cannot update ingress")),
+			errorMsg:    fmt.Errorf("updating ingress test_ingress in namespace test: mock error: cannot update ingress"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := ingress.NewClient(test.clientset, logging.New(io.Discard, 0))
-			response, err := client.Set(context.Background(), test.ingressName, "test", test.options)
+			response, err := client.Set(t.Context(), test.ingressName, "test", test.options)
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -164,6 +170,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	t.Parallel()
 	testTable := []struct {
 		name        string
 		ingressName string
@@ -192,16 +199,16 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:        "delete_error",
-			ingressName: mocks.DeleteBad,
-			clientset:   mocks.NewClientset(),
-			errorMsg:    fmt.Errorf("deleting ingress delete_bad in namespace test: mock error: cannot delete ingress"),
+			ingressName: "test_ingress",
+			clientset:   k8stest.NewErrorClientset("delete", "ingresses", errors.New("mock error: cannot delete ingress")),
+			errorMsg:    fmt.Errorf("deleting ingress test_ingress in namespace test: mock error: cannot delete ingress"),
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			client := ingress.NewClient(test.clientset, logging.New(io.Discard, 0))
-			err := client.Delete(context.Background(), test.ingressName, "test")
+			err := client.Delete(t.Context(), test.ingressName, "test")
 			if test.errorMsg == nil {
 				if err != nil {
 					t.Errorf("error not expected, got: %s", err.Error())
@@ -239,3 +246,86 @@ func TestDelete(t *testing.T) {
 // 		})
 // 	}
 // }
+
+// ingressWith builds an Ingress in namespace "test" with one rule per host.
+func ingressWith(name string, labels map[string]string, hosts ...string) *v1.Ingress {
+	ing := &v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "test", Labels: labels},
+	}
+	for _, h := range hosts {
+		ing.Spec.Rules = append(ing.Spec.Rules, v1.IngressRule{Host: h})
+	}
+	return ing
+}
+
+func TestGetNodes(t *testing.T) {
+	t.Parallel()
+	beeLabels := map[string]string{"app": "bee"}
+
+	testTable := []struct {
+		name      string
+		label     string
+		clientset kubernetes.Interface
+		expected  []ingress.NodeInfo
+		errorMsg  error
+	}{
+		{
+			name:  "lists_hosts_by_label",
+			label: "app=bee",
+			clientset: fake.NewClientset(
+				// two rules, one with an empty host (skipped)
+				ingressWith("ing-0", beeLabels, "bee0.example.com", ""),
+				ingressWith("ing-1", beeLabels, "bee1.example.com"),
+				// excluded by the label selector
+				ingressWith("other", map[string]string{"app": "other"}, "other.example.com"),
+			),
+			expected: []ingress.NodeInfo{
+				{Name: "ing-0", Host: "bee0.example.com"},
+				{Name: "ing-1", Host: "bee1.example.com"},
+			},
+		},
+		{
+			name:      "no_matching_ingresses",
+			label:     "app=bee",
+			clientset: fake.NewClientset(),
+			expected:  nil,
+		},
+		{
+			name:      "not_found",
+			label:     "app=bee",
+			clientset: k8stest.NewErrorClientset("list", "ingresses", apierrors.NewNotFound(schema.GroupResource{}, "test")),
+			expected:  nil,
+		},
+		{
+			name:      "list_error",
+			label:     "app=bee",
+			clientset: k8stest.NewErrorClientset("list", "ingresses", errors.New("mock error")),
+			errorMsg:  fmt.Errorf("list ingresses in namespace test: mock error"),
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.name, func(t *testing.T) {
+			client := ingress.NewClient(test.clientset, logging.New(io.Discard, 0))
+			nodes, err := client.GetNodes(t.Context(), "test", test.label)
+			if test.errorMsg == nil {
+				if err != nil {
+					t.Errorf("error not expected, got: %s", err.Error())
+				}
+				if !reflect.DeepEqual(nodes, test.expected) {
+					t.Errorf("nodes expected: %#v, got: %#v", test.expected, nodes)
+				}
+			} else {
+				if err == nil {
+					t.Fatalf("error not happened, expected: %s", test.errorMsg.Error())
+				}
+				if err.Error() != test.errorMsg.Error() {
+					t.Errorf("error expected: %s, got: %s", test.errorMsg.Error(), err.Error())
+				}
+				if nodes != nil {
+					t.Errorf("nodes not expected")
+				}
+			}
+		})
+	}
+}
