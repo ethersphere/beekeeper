@@ -2,6 +2,7 @@ package pss
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -132,32 +133,44 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 
 	tStart := time.Now()
 	c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(0)
-	for range 5 {
+	for i := range 5 {
 		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
 		if err == nil {
 			break
 		}
 
-		// check if message is received
-		select {
-		case msg := <-ch:
-			if msg == string(testData) {
-				c.logger.Info("pss: message received despite send failure")
-				return nil
-			}
-		default:
-			// continue
+		c.logger.Infof("pss: send failed: %v", err)
+		if i == 4 {
+			break
 		}
 
-		c.logger.Infof("pss: send failed, retrying in 1s: %v", err)
-		time.Sleep(1 * time.Second)
+		c.logger.Infof("pss: waiting to retry in 1s")
+		select {
+		case msg, ok := <-ch:
+			if !ok {
+				return errors.New("pss websocket closed")
+			}
+			if msg == string(testData) {
+				c.logger.Info("pss: message received despite send failure")
+				c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
+				return nil
+			}
+		case <-time.After(1 * time.Second):
+			// Retry
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	if err != nil {
 		// check if message is received
 		select {
-		case msg := <-ch:
+		case msg, ok := <-ch:
+			if !ok {
+				return errors.New("pss websocket closed")
+			}
 			if msg == string(testData) {
 				c.logger.Info("pss: message received despite send failure")
+				c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
 				return nil
 			}
 		default:

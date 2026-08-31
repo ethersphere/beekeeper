@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -179,11 +180,15 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	case <-time.After(3 * time.Minute):
 		receivedMtx.Lock()
 		defer receivedMtx.Unlock()
+		var errs []error
 		for i := range numChunks {
 			want := fmt.Sprintf("data %d", i)
 			if !received[want] {
-				return fmt.Errorf("message '%s' not received", want)
+				errs = append(errs, fmt.Errorf("message '%s' not received", want))
 			}
+		}
+		if len(errs) > 0 {
+			return errors.Join(errs...)
 		}
 		return fmt.Errorf("timeout: not all messages received")
 	case <-ctx.Done():
