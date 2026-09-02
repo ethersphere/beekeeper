@@ -190,5 +190,13 @@ func (c Config) IsLightNode() bool {
 	if c.NodeMode != nil && *c.NodeMode != "" {
 		return *c.NodeMode == "light"
 	}
-	return !Deref(c.FullNode)
+	return !Deref(c.FullNode) && Deref(c.BlockchainRPCEndpoint) != ""
+}
+
+// IsUltraLightNode reports whether the node is configured as an ultra-light node.
+func (c Config) IsUltraLightNode() bool {
+	if c.NodeMode != nil && *c.NodeMode != "" {
+		return *c.NodeMode == "ultra-light"
+	}
+	return !Deref(c.FullNode) && Deref(c.BlockchainRPCEndpoint) == ""
 }

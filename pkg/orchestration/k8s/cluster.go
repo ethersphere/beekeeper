@@ -233,6 +233,16 @@ func (c *Cluster) LightNodeNames() (names []string) {
 	return names
 }
 
+// UltraLightNodeNames returns a list of ultra-light node names
+func (c *Cluster) UltraLightNodeNames() (names []string) {
+	for name, node := range c.Nodes() {
+		if node.Config().IsUltraLightNode() {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
 // FullNodeNames returns a list of full node names
 func (c *Cluster) FullNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
