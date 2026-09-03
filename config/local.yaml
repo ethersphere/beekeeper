@@ -205,6 +205,8 @@ bee-configs:
     p2p-wss-enable: true
     blockchain-rpc-endpoint: # ultralight nodes don't connect to the blockchain
     swap-enable: false
+    chequebook-enable: false # inherited true is rejected without swap
+    storage-incentives-enable: false # inherited true is rejected in ultra-light mode
   bootnode-local:
     _inherit: "bee-local"
     bootnode-mode: true
@@ -216,6 +218,7 @@ bee-configs:
   bee-local-light:
     _inherit: "bee-local"
     node-mode: light
+    storage-incentives-enable: false # inherited true is rejected in light mode
   bee-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10
