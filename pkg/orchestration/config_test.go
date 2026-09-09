@@ -60,3 +60,78 @@ func TestDeref(t *testing.T) {
 		t.Errorf("Deref(new(false)) = %v, want false", got)
 	}
 }
+
+func TestNodeModeHelpers(t *testing.T) {
+	t.Parallel()
+
+	strPtr := func(s string) *string { return &s }
+	boolPtr := func(b bool) *bool { return &b }
+
+	tests := []struct {
+		name           string
+		cfg            orchestration.Config
+		wantFull       bool
+		wantLight      bool
+		wantUltraLight bool
+	}{
+		{
+			name:           "explicit node-mode full",
+			cfg:            orchestration.Config{NodeMode: strPtr("full")},
+			wantFull:       true,
+			wantLight:      false,
+			wantUltraLight: false,
+		},
+		{
+			name:           "explicit node-mode light",
+			cfg:            orchestration.Config{NodeMode: strPtr("light")},
+			wantFull:       false,
+			wantLight:      true,
+			wantUltraLight: false,
+		},
+		{
+			name:           "explicit node-mode ultra-light",
+			cfg:            orchestration.Config{NodeMode: strPtr("ultra-light")},
+			wantFull:       false,
+			wantLight:      false,
+			wantUltraLight: true,
+		},
+		{
+			name:           "legacy full-node true",
+			cfg:            orchestration.Config{FullNode: boolPtr(true)},
+			wantFull:       true,
+			wantLight:      false,
+			wantUltraLight: false,
+		},
+		{
+			name: "legacy full-node false with rpc (light)",
+			cfg: orchestration.Config{
+				FullNode:              boolPtr(false),
+				BlockchainRPCEndpoint: strPtr("http://localhost:8545"),
+			},
+			wantFull:       false,
+			wantLight:      true,
+			wantUltraLight: false,
+		},
+		{
+			name:           "legacy full-node false without rpc (ultra-light)",
+			cfg:            orchestration.Config{FullNode: boolPtr(false)},
+			wantFull:       false,
+			wantLight:      false,
+			wantUltraLight: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.IsFullNode(); got != tt.wantFull {
+				t.Errorf("IsFullNode() = %v, want %v", got, tt.wantFull)
+			}
+			if got := tt.cfg.IsLightNode(); got != tt.wantLight {
+				t.Errorf("IsLightNode() = %v, want %v", got, tt.wantLight)
+			}
+			if got := tt.cfg.IsUltraLightNode(); got != tt.wantUltraLight {
+				t.Errorf("IsUltraLightNode() = %v, want %v", got, tt.wantUltraLight)
+			}
+		})
+	}
+}

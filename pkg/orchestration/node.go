@@ -113,7 +113,8 @@ type Config struct {
 	DbDisableSeeksCompaction    *bool          `yaml:"db-disable-seeks-compaction,omitempty"`    // disables db compactions triggered by seeks
 	DbOpenFilesLimit            *uint64        `yaml:"db-open-files-limit,omitempty"`            // number of open files allowed by database
 	DbWriteBufferSize           *uint64        `yaml:"db-write-buffer-size,omitempty"`           // size of the database write buffer in bytes
-	FullNode                    *bool          `yaml:"full-node,omitempty"`                      // cause the node to start in full mode
+	FullNode                    *bool          `yaml:"full-node,omitempty"`                      // cause the node to start in full mode (deprecated: use NodeMode)
+	NodeMode                    *string        `yaml:"node-mode,omitempty"`                      // node operational mode: full, light, or ultra-light
 	GasLimitFallback            *uint64        `yaml:"gas-limit-fallback,omitempty"`             // gas limit fallback when estimation fails for contract transactions
 	Mainnet                     *bool          `yaml:"mainnet,omitempty"`                        // triggers connect to main net bootnodes
 	MinimumGasTipCap            *uint64        `yaml:"minimum-gas-tip-cap,omitempty"`            // minimum gas tip cap in wei for transactions, 0 means use suggested gas tip cap
@@ -173,4 +174,29 @@ func Deref[T any](p *T) T {
 		return zero
 	}
 	return *p
+}
+
+// IsFullNode reports whether the node is configured as a full node.
+// It checks NodeMode first; falls back to the deprecated FullNode bool.
+func (c Config) IsFullNode() bool {
+	if c.NodeMode != nil && *c.NodeMode != "" {
+		return *c.NodeMode == "full"
+	}
+	return Deref(c.FullNode)
+}
+
+// IsLightNode reports whether the node is configured as a light node.
+func (c Config) IsLightNode() bool {
+	if c.NodeMode != nil && *c.NodeMode != "" {
+		return *c.NodeMode == "light"
+	}
+	return !Deref(c.FullNode) && Deref(c.BlockchainRPCEndpoint) != ""
+}
+
+// IsUltraLightNode reports whether the node is configured as an ultra-light node.
+func (c Config) IsUltraLightNode() bool {
+	if c.NodeMode != nil && *c.NodeMode != "" {
+		return *c.NodeMode == "ultra-light"
+	}
+	return !Deref(c.FullNode) && Deref(c.BlockchainRPCEndpoint) == ""
 }

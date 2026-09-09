@@ -2,7 +2,8 @@
 bee-configs:
   light-node:
     _inherit: default
-    full-node: false
+    node-mode: light
+    storage-incentives-enable: false # inherited true is rejected in light mode
 
 # node groups for light nodes
 node-groups:
