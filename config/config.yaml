@@ -198,11 +198,6 @@ checks:
       postage-label: gc-check
     timeout: 5m
     type: gc
-  kademlia:
-    options:
-      dynamic: false
-    timeout: 5m
-    type: kademlia
   longavailability:
     options:
       refs:
