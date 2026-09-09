@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -29,14 +28,16 @@ type Options struct {
 	PostageTTL   time.Duration
 	PostageDepth uint64
 	PostageLabel string
+	Chunks       int
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
 		PostageTTL:   24 * time.Hour,
-		PostageDepth: 17,
+		PostageDepth: 22,
 		PostageLabel: "test-label",
+		Chunks:       3,
 	}
 }
 
@@ -95,14 +96,14 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 
 	c.logger.Infof("send messages with different postage batches sequentially...")
-	err = run(ctx, uploadClient, listenClient, batches, c.logger, false)
+	err = run(ctx, uploadClient, listenClient, batches, c.logger, false, o.Chunks)
 	if err != nil {
 		return fmt.Errorf("sequential: %w", err)
 	}
 	c.logger.Infof("done")
 
 	c.logger.Infof("send messages with different postage batches parallel...")
-	err = run(ctx, uploadClient, listenClient, batches, c.logger, true)
+	err = run(ctx, uploadClient, listenClient, batches, c.logger, true, o.Chunks)
 	if err != nil {
 		return fmt.Errorf("parallel: %w", err)
 	}
@@ -111,8 +112,10 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	return nil
 }
 
-func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client, batches []string, logger logging.Logger, parallel bool) error {
-	const numChunks = 10
+func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client, batches []string, logger logging.Logger, parallel bool, numChunks int) error {
+	if numChunks <= 0 {
+		return fmt.Errorf("chunks must be greater than 0")
+	}
 	privKey, err := crypto.GenerateSecp256k1Key()
 	if err != nil {
 		return err
@@ -122,7 +125,7 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	if err != nil {
 		return err
 	}
-	prefixMatchDepth := 6
+	prefixMatchDepth := 8
 	logger.Infof("gsoc: mining resource id for overlay=%s, prefixMatchDepth=%d", addresses.Overlay, prefixMatchDepth)
 	resourceId, socAddress, err := mineResourceId(ctx, addresses.Overlay, privKey, prefixMatchDepth)
 	if err != nil {
@@ -172,20 +175,25 @@ func run(ctx context.Context, uploadClient *bee.Client, listenClient *bee.Client
 	}
 
 	select {
-	case <-time.After(3 * time.Minute):
-		return fmt.Errorf("timeout: not all messages received")
 	case <-done:
-	}
-
-	receivedMtx.Lock()
-	defer receivedMtx.Unlock()
-	for i := range numChunks {
-		want := fmt.Sprintf("data %d", i)
-		if !received[want] {
-			return fmt.Errorf("message '%s' not received", want)
+		return nil
+	case <-time.After(3 * time.Minute):
+		receivedMtx.Lock()
+		defer receivedMtx.Unlock()
+		var missing []string
+		for i := range numChunks {
+			want := fmt.Sprintf("data %d", i)
+			if !received[want] {
+				missing = append(missing, want)
+			}
 		}
+		if len(missing) > 0 {
+			return fmt.Errorf("messages not received: %s", strings.Join(missing, ", "))
+		}
+		return fmt.Errorf("timeout: not all messages received")
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-	return nil
 }
 
 func uploadSoc(ctx context.Context, client *bee.Client, payload string, resourceId []byte, batchID string, privKey *ecdsa.PrivateKey) error {
@@ -227,31 +235,8 @@ func runInParallel(ctx context.Context, client *bee.Client, numChunks int, batch
 	return errG.Wait()
 }
 
-func getTargetNeighborhood(address swarm.Address, depth int) (string, error) {
-	var targetNeighborhood strings.Builder
-	for i := range depth {
-		hexChar := address.String()[i : i+1]
-		value, err := strconv.ParseUint(hexChar, 16, 4)
-		if err != nil {
-			return "", err
-		}
-		fmt.Fprintf(&targetNeighborhood, "%04b", value)
-	}
-	return targetNeighborhood.String(), nil
-}
-
 func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.PrivateKey, depth int) ([]byte, swarm.Address, error) {
-	targetNeighborhood, err := getTargetNeighborhood(overlay, depth)
-	if err != nil {
-		return nil, swarm.ZeroAddress, err
-	}
-
-	neighborhood, err := swarm.ParseBitStrAddress(targetNeighborhood)
-	if err != nil {
-		return nil, swarm.ZeroAddress, err
-	}
 	nonce := make([]byte, 32)
-	prox := len(targetNeighborhood)
 	owner, err := crypto.NewEthereumAddress(privKey.PublicKey)
 	if err != nil {
 		return nil, swarm.ZeroAddress, err
@@ -271,7 +256,7 @@ func mineResourceId(ctx context.Context, overlay swarm.Address, privKey *ecdsa.P
 			return nil, swarm.ZeroAddress, err
 		}
 
-		if swarm.Proximity(address.Bytes(), neighborhood.Bytes()) >= uint8(prox) {
+		if swarm.Proximity(address.Bytes(), overlay.Bytes()) >= uint8(depth) {
 			return nonce, address, nil
 		}
 		i++

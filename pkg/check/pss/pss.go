@@ -2,6 +2,7 @@ package pss
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -30,10 +31,10 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		Count:          1,
-		AddressPrefix:  1,
+		AddressPrefix:  2,
 		GasPrice:       "",
 		PostageTTL:     24 * time.Hour,
-		PostageDepth:   16,
+		PostageDepth:   22,
 		PostageLabel:   "test-label",
 		RequestTimeout: 5 * time.Minute,
 		Seed:           random.Int64(),
@@ -131,8 +132,50 @@ func (c *Check) testPss(nodeAName, nodeBName string, clients map[string]*bee.Cli
 	defer closer()
 
 	tStart := time.Now()
-	err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
+	c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(0)
+	for i := range 5 {
+		err = nodeA.SendPSSMessage(ctx, addrB.Overlay, addrB.PSSPublicKey, testTopic, o.AddressPrefix, testData, batchID)
+		if err == nil {
+			break
+		}
+
+		c.logger.Infof("pss: send failed: %v", err)
+		if i == 4 {
+			break
+		}
+
+		c.logger.Infof("pss: waiting to retry in 1s")
+		select {
+		case msg, ok := <-ch:
+			if !ok {
+				return errors.New("pss websocket closed")
+			}
+			if msg == string(testData) {
+				c.logger.Info("pss: message received despite send failure")
+				c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
+				return nil
+			}
+		case <-time.After(1 * time.Second):
+			// Retry
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 	if err != nil {
+		// check if message is received
+		select {
+		case msg, ok := <-ch:
+			if !ok {
+				return errors.New("pss websocket closed")
+			}
+			if msg == string(testData) {
+				c.logger.Info("pss: message received despite send failure")
+				c.metrics.SendAndReceiveGauge.WithLabelValues(nodeAName, nodeBName).Set(time.Since(tStart).Seconds())
+				return nil
+			}
+		default:
+			// continue
+		}
 		return err
 	}
 	c.logger.Infof("pss: test data sent successfully to node %s. Waiting for response from node %s", nodeAName, nodeBName)
