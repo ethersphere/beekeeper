@@ -13,6 +13,7 @@ type UploadOptions struct {
 	Direct            bool
 	ActHistoryAddress swarm.Address
 	RLevel            *redundancy.Level
+	Encrypt           bool
 
 	// Dirs
 	IndexDocument string

@@ -33,6 +33,7 @@ const (
 	swarmIndexDocumentHeader    = "Swarm-Index-Document"
 	swarmErrorDocumentHeader    = "Swarm-Error-Document"
 	swarmRedundancyLevelHeader  = "Swarm-Redundancy-Level"
+	swarmEncryptHeader          = "Swarm-Encrypt"
 )
 
 // Client manages communication with the Bee API.

@@ -79,6 +79,22 @@ func (n *NodeService) Balances(ctx context.Context) (resp Balances, err error) {
 }
 
 // HasChunk returns true/false if node has a chunk
+// HasChunkLocal reports whether the node holds the chunk in its own store.
+// Unlike HasChunk it issues a HEAD request, which is a local lookup: it does
+// not trigger a network retrieval, so an absent chunk answers immediately
+// instead of costing the retrieval timeout.
+func (n *NodeService) HasChunkLocal(ctx context.Context, a swarm.Address) (bool, error) {
+	// HEAD carries no body, so decode into nothing and read only the status.
+	err := n.client.request(ctx, http.MethodHead, "/chunks/"+a.String(), nil, nil)
+	if IsHTTPStatusErrorCode(err, http.StatusNotFound) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	resp := struct {
 		Message string `json:"message,omitempty"`

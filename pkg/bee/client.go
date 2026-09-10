@@ -270,6 +270,12 @@ func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return c.api.Node.HasChunk(ctx, a)
 }
 
+// HasChunkLocal returns true/false if the node holds the chunk locally, without
+// triggering a network retrieval.
+func (c *Client) HasChunkLocal(ctx context.Context, a swarm.Address) (bool, error) {
+	return c.api.Node.HasChunkLocal(ctx, a)
+}
+
 func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, count int, err error) {
 	has = make([]bool, len(a))
 	for i, addr := range a {
@@ -1006,14 +1012,14 @@ func (c *Client) GetTag(ctx context.Context, tagUID uint64) (resp api.TagRespons
 }
 
 // IsRetrievable checks whether the content on the given address is retrievable.
-func (c *Client) IsRetrievable(ctx context.Context, ref swarm.Address) (bool, error) {
-	return c.api.Stewardship.IsRetrievable(ctx, ref)
+func (c *Client) IsRetrievable(ctx context.Context, ref swarm.Address, o api.StewardshipOptions) (bool, error) {
+	return c.api.Stewardship.IsRetrievable(ctx, ref, o)
 }
 
 // Reupload re-uploads root hash and all of its underlying associated chunks to
 // the network.
-func (c *Client) Reupload(ctx context.Context, ref swarm.Address) error {
-	return c.api.Stewardship.Reupload(ctx, ref)
+func (c *Client) Reupload(ctx context.Context, ref swarm.Address, o api.StewardshipOptions) error {
+	return c.api.Stewardship.Reupload(ctx, ref, o)
 }
 
 // DepositStake deposits stake

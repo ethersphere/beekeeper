@@ -37,6 +37,9 @@ func (b *BytesService) Upload(ctx context.Context, data io.Reader, o UploadOptio
 	if o.RLevel != nil {
 		h.Add(swarmRedundancyLevelHeader, strconv.Itoa(int(*o.RLevel)))
 	}
+	if o.Encrypt {
+		h.Add(swarmEncryptHeader, "true")
+	}
 
 	err := b.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bytes", h, data, &resp)
 	return resp, err

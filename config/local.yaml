@@ -427,6 +427,16 @@ checks:
       seed:
       data-size:
     type: redundancy
+  ci-stewardship:
+    options:
+      postage-ttl: 24h
+      postage-depth: 22
+      postage-label: test-label
+      request-timeout: 5m
+      redundancy-level: 1
+      data-size: 32768
+      seed:
+    type: stewardship
   ci-gsoc:
     options:
       postage-ttl: 24h

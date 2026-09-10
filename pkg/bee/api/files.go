@@ -38,6 +38,12 @@ func (f *FilesService) Upload(ctx context.Context, name string, data io.Reader, 
 		header.Set(deferredUploadHeader, strconv.FormatBool(false))
 	}
 	header.Set(postageStampBatchHeader, o.BatchID)
+	if o.RLevel != nil {
+		header.Set(swarmRedundancyLevelHeader, strconv.Itoa(int(*o.RLevel)))
+	}
+	if o.Encrypt {
+		header.Set(swarmEncryptHeader, "true")
+	}
 
 	err = f.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/bzz?"+url.QueryEscape("name="+name), header, data, &resp)
 	return resp, err
