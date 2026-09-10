@@ -78,10 +78,12 @@ git clone https://github.com/ethersphere/bee
 cd bee
 
 # Install K3s cluster and Geth node
-make beelocal ACTION=prepare SETUP_CONTRACT_IMAGE_TAG=0.9.2 OPTS='skip-vet'
+make beelocal ACTION=prepare SETUP_CONTRACT_IMAGE_TAG=0.9.4 OPTS='skip-vet'
+```
 
-> **Important:** The `SETUP_CONTRACT_IMAGE_TAG=0.9.2` parameter is required and must match exactly. This ensures compatibility with our CI pipeline and production environment. See our [CI workflow](https://github.com/ethersphere/bee/blob/3a5de30aba477560bfc503632479f4793d68dcef/.github/workflows/beekeeper.yml#L15) for reference.
+> **Important:** The `SETUP_CONTRACT_IMAGE_TAG` parameter is required and must match the value Bee's CI uses, currently `0.9.4`. This ensures compatibility with our CI pipeline and production environment. See the [CI workflow](https://github.com/ethersphere/bee/blob/master/.github/workflows/beekeeper.yml) for the current value.
 
+```bash
 # Deploy Bee nodes locally
 cd ../beekeeper
 ./dist/beekeeper create bee-cluster --cluster-name=local-dns
@@ -89,6 +91,12 @@ cd ../beekeeper
 # Verify deployment
 ./dist/beekeeper check --cluster-name=local-dns --checks=ci-pingpong
 ```
+
+**AI assistant helpers:** this repo ships slash commands for the workflow above —
+`/beelocal-up` (k3d cluster, registry, geth-swap), `/cluster-up`, `/cluster-verify`,
+`/cluster-down` — plus reference skills, under `.claude/`. They assume `bee` is a
+sibling checkout. See [AGENTS.md](AGENTS.md) for how paths are resolved and how to add
+your own.
 
 **Need help?** See the [Bee Deployment Guide](https://github.com/ethersphere/bee-staging) for detailed step-by-step instructions.
 
