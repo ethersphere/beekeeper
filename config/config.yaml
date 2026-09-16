@@ -163,6 +163,17 @@ checks:
       node-group: bee
     timeout: 5m
     type: cashout
+  chunk-stream:
+    options:
+      chunks-per-node: 10
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
+      request-batch-size: 5
+      request-timeout: 60s
+      upload-node-count: 3
+    timeout: 5m
+    type: chunk-stream
   datadurability:
     options:
       ref:

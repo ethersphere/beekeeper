@@ -12,6 +12,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/autotls"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
+	"github.com/ethersphere/beekeeper/pkg/check/chunkstream"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
 	"github.com/ethersphere/beekeeper/pkg/check/feed"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
@@ -378,6 +379,32 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := pushsync.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"chunk-stream": {
+		NewAction: chunkstream.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				ChunksPerNode    *int           `yaml:"chunks-per-node"`
+				PostageTTL       *time.Duration `yaml:"postage-ttl"`
+				PostageDepth     *uint64        `yaml:"postage-depth"`
+				PostageLabel     *string        `yaml:"postage-label"`
+				RequestBatchSize *int           `yaml:"request-batch-size"`
+				RequestTimeout   *time.Duration `yaml:"request-timeout"`
+				Seed             *int64         `yaml:"seed"`
+				SkipNotFound     *bool          `yaml:"skip-not-found"`
+				UploadNodeCount  *int           `yaml:"upload-node-count"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := chunkstream.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

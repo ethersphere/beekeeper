@@ -45,6 +45,7 @@ type Client struct {
 	Act         *ActService
 	Bytes       *BytesService
 	Chunks      *ChunksService
+	ChunkStream *ChunkStreamService
 	Dirs        *DirsService
 	Feed        *FeedService
 	Files       *FilesService
@@ -95,6 +96,7 @@ func newClient(apiURL *url.URL, httpClient *http.Client) (c *Client) {
 	c.Act = (*ActService)(&c.service)
 	c.Bytes = (*BytesService)(&c.service)
 	c.Chunks = (*ChunksService)(&c.service)
+	c.ChunkStream = (*ChunkStreamService)(&c.service)
 	c.Dirs = (*DirsService)(&c.service)
 	c.Feed = (*FeedService)(&c.service)
 	c.Files = (*FilesService)(&c.service)
