@@ -446,7 +446,7 @@ func (c *Check) upload(ctx context.Context, batches []nodeBatch, plan uploadPlan
 			}
 
 			uploadCtx, cancel := context.WithTimeout(groupCtx, options.UploadTimeout)
-			address, err := batch.node.UploadBytes(uploadCtx, data, api.UploadOptions{BatchID: batch.batchID})
+			address, err := batch.node.UploadBytes(uploadCtx, data, api.UploadOptions{BatchID: batch.batchID, Direct: true})
 			cancel()
 			if err != nil {
 				return fmt.Errorf("upload to %s: %w", batch.node.Name(), err)
