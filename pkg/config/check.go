@@ -750,7 +750,6 @@ var Checks = map[string]CheckType{
 				PostageAmount     *int64         `yaml:"postage-amount"`
 				PostageLabel      *string        `yaml:"postage-label"`
 				MinRadiusWait     *time.Duration `yaml:"min-radius-wait"`
-				PushersIdleWait   *time.Duration `yaml:"pushers-idle-wait"`
 				DiluteDepth       *uint64        `yaml:"dilute-depth"`
 				DiluteWait        *time.Duration `yaml:"dilute-wait"`
 				UploadWavePause   *time.Duration `yaml:"upload-wave-pause"`

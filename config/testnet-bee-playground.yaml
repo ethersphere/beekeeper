@@ -9,7 +9,7 @@ clusters:
     api-insecure-tls: true
     api-scheme: http
     funding:
-      eth: 1
+      eth: 5
       bzz: 100.0
     node-groups:
       bootnode:
@@ -33,7 +33,7 @@ node-groups:
   ng-bee-playground:
     _inherit: default
     persistence-enabled: false
-    image: ethersphere/bee:latest
+    image: akram951/bee:feat-per-bin-sync-rate-4000
     ingress-class: "nginx-oss"
     ingress-annotations:
       nginx.org/client-max-body-size: "10g"
@@ -209,11 +209,10 @@ checks:
       postage-depth: 22
       postage-amount: 2073600000
       postage-label: storage-radius
-      upload-timeout: 10m
+      upload-timeout: 30m
       upload-wave-pause: 5s
       poll-interval: 2s
       min-radius-wait: 5m
-      pushers-idle-wait: 2m
       dilute-depth: 32
       dilute-wait: 45m
     timeout: 80m
