@@ -42,6 +42,11 @@ clusters:
         config: local-dns
         count: 3
         mode: node
+      bee-legacy:
+        bee-config: bee-local-dns-legacy
+        config: local-dns
+        count: 1
+        mode: node
       light:
         bee-config: bee-local-light
         config: local-light
@@ -212,6 +217,10 @@ bee-configs:
     bootnode-mode: true
   bee-local-dns:
     _inherit: "bee-local"
+  bee-local-dns-legacy:
+    _inherit: "bee-local-dns"
+    node-mode: "" # overrides the inherited mode so bee infers it from full-node (legacy regime)
+    full-node: true
   bootnode-local-dns:
     _inherit: "bee-local"
     bootnode-mode: true
