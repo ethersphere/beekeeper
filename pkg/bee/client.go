@@ -270,6 +270,17 @@ func (c *Client) HasChunk(ctx context.Context, a swarm.Address) (bool, error) {
 	return c.api.Node.HasChunk(ctx, a)
 }
 
+// HasChunkLocal reports whether the node has the chunk in its local store,
+// without retrieving it from the network.
+func (c *Client) HasChunkLocal(ctx context.Context, a swarm.Address) (bool, error) {
+	return c.api.Node.HasChunkLocal(ctx, a)
+}
+
+// Metrics returns the node's metrics in the Prometheus text format.
+func (c *Client) Metrics(ctx context.Context) (string, error) {
+	return c.api.Node.Metrics(ctx)
+}
+
 func (c *Client) HasChunks(ctx context.Context, a []swarm.Address) (has []bool, count int, err error) {
 	has = make([]bool, len(a))
 	for i, addr := range a {
