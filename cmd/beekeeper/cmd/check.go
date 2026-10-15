@@ -104,8 +104,9 @@ Use --metrics-enabled to collect and push metrics to Prometheus.`,
 
 				// set global config
 				checkGlobalConfig := config.CheckGlobalConfig{
-					Seed:    c.globalConfig.GetInt64(optionNameSeed),
-					GethURL: c.globalConfig.GetString(optionNameGethURL),
+					Seed:      c.globalConfig.GetInt64(optionNameSeed),
+					GethURL:   c.globalConfig.GetString(optionNameGethURL),
+					K8sClient: c.k8sClient,
 				}
 
 				checkRunner := check.NewCheckRunner(checkGlobalConfig, c.config.Checks, cluster, metricsPusher, tracer, c.log)

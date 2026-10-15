@@ -12,6 +12,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/autotls"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
+	"github.com/ethersphere/beekeeper/pkg/check/corruptchunk"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
 	"github.com/ethersphere/beekeeper/pkg/check/feed"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
@@ -36,6 +37,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
 	"github.com/ethersphere/beekeeper/pkg/check/stake"
 	"github.com/ethersphere/beekeeper/pkg/check/withdraw"
+	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/random"
 	"gopkg.in/yaml.v3"
@@ -56,8 +58,9 @@ type CheckType struct {
 
 // CheckGlobalConfig represents global configs for all checks
 type CheckGlobalConfig struct {
-	Seed    int64
-	GethURL string
+	Seed      int64
+	GethURL   string
+	K8sClient *k8s.Client
 }
 
 // Checks represents all available check types
@@ -651,6 +654,32 @@ var Checks = map[string]CheckType{
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
 			}
+
+			return opts, nil
+		},
+	},
+	"corrupt-chunk": {
+		NewAction: corruptchunk.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				ImportImage   *string        `yaml:"import-image"`
+				RestartImage  *string        `yaml:"restart-image"`
+				ExpectRemoved *bool          `yaml:"expect-removed"`
+				ReadyTimeout  *time.Duration `yaml:"ready-timeout"`
+				PostageDepth  *uint64        `yaml:"postage-depth"`
+				PostageLabel  *string        `yaml:"postage-label"`
+				PostageTTL    *time.Duration `yaml:"postage-ttl"`
+				Seed          *int64         `yaml:"seed"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := corruptchunk.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+			opts.K8sClient = checkGlobalConfig.K8sClient
 
 			return opts, nil
 		},

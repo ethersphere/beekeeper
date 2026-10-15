@@ -211,6 +211,11 @@ func (c *Client) DownloadBytes(ctx context.Context, a swarm.Address, opts *api.D
 	return io.ReadAll(r)
 }
 
+// Health returns node's health
+func (c *Client) Health(ctx context.Context) (api.Health, error) {
+	return c.api.Node.Health(ctx)
+}
+
 // DownloadChunk downloads chunk from the node
 func (c *Client) DownloadChunk(ctx context.Context, a swarm.Address, targets string, opts *api.DownloadOptions) (data []byte, err error) {
 	r, err := c.api.Chunks.Download(ctx, a, targets, opts)

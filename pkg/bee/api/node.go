@@ -97,7 +97,9 @@ func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, erro
 
 // Health represents node's health
 type Health struct {
-	Status string `json:"status"`
+	Status     string `json:"status"`
+	Version    string `json:"version"`
+	APIVersion string `json:"apiVersion"`
 }
 
 // Health returns node's health
