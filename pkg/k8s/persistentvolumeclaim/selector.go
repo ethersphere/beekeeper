@@ -10,8 +10,13 @@ type Selector struct {
 	MatchExpressions LabelSelectorRequirements
 }
 
-// toK8S converts Selector to Kubernetes client object
+// toK8S converts Selector to Kubernetes client object.
+// An empty selector is left unset. Dynamic provisioners such as local-path
+// reject a claim when spec.selector is present, even if it matches nothing.
 func (s *Selector) toK8S() *metav1.LabelSelector {
+	if len(s.MatchLabels) == 0 && len(s.MatchExpressions) == 0 {
+		return nil
+	}
 	return &metav1.LabelSelector{
 		MatchLabels:      s.MatchLabels,
 		MatchExpressions: s.MatchExpressions.toK8S(),

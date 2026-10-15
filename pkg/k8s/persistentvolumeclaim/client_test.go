@@ -34,7 +34,6 @@ func TestSet(t *testing.T) {
 				Labels:      map[string]string{"label_1": "label_value_1"},
 			},
 			expectedSpec: v1.PersistentVolumeClaimSpec{
-				Selector: &metav1.LabelSelector{},
 				VolumeMode: func() *v1.PersistentVolumeMode {
 					m := v1.PersistentVolumeFilesystem
 					return &m
