@@ -660,7 +660,6 @@ var Checks = map[string]CheckType{
 		NewAction: erasurecoding.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
-				RLevels               *[]uint8       `yaml:"r-levels"`
 				DataSize              *int64         `yaml:"data-size"`
 				BulkDataSize          *int64         `yaml:"bulk-data-size"`
 				UploadConcurrency     *int           `yaml:"upload-concurrency"`

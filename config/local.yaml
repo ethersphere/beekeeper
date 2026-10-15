@@ -433,7 +433,6 @@ checks:
       postage-depth: 22
       postage-label: test-label
       seed:
-      r-levels:
       data-size:
       bulk-data-size: 4194304
       upload-concurrency:

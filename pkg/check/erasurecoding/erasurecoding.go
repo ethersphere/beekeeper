@@ -27,7 +27,6 @@ import (
 )
 
 type Options struct {
-	RLevels               []*redundancy.Level
 	DataSize              int64
 	BulkDataSize          int64
 	UploadConcurrency     int
@@ -81,11 +80,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o any) e
 		return fmt.Errorf("upload concurrency must be positive, got %d", opts.UploadConcurrency)
 	}
 
-	levels, err := resolveLevels(opts.RLevels)
-	if err != nil {
-		return err
-	}
-
 	if opts.UseSIMD {
 		c.logger.Infof("simd hasher active: %t (batch width %d)", enableSIMD(), keccak.BatchWidth())
 	}
@@ -107,7 +101,7 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o any) e
 		return fmt.Errorf("get or create batch: %w", err)
 	}
 
-	for _, level := range levels {
+	for _, level := range []redundancy.Level{redundancy.MEDIUM, redundancy.STRONG, redundancy.INSANE, redundancy.PARANOID} {
 		for _, s := range scenarios(opts) {
 			if err := c.runScenario(ctx, uploader, downloader, batchID, level, s, rnd, opts); err != nil {
 				return fmt.Errorf("level %d %s: %w", level, s.name, err)
@@ -116,20 +110,6 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o any) e
 	}
 
 	return nil
-}
-
-func resolveLevels(levels []*redundancy.Level) ([]redundancy.Level, error) {
-	if len(levels) == 0 {
-		return []redundancy.Level{redundancy.MEDIUM, redundancy.STRONG, redundancy.INSANE, redundancy.PARANOID}, nil
-	}
-	out := make([]redundancy.Level, 0, len(levels))
-	for _, l := range levels {
-		if l == nil || *l == redundancy.NONE || !l.Validate() {
-			return nil, fmt.Errorf("invalid redundancy level %v: must be between %d and %d", l, redundancy.MEDIUM, redundancy.PARANOID)
-		}
-		out = append(out, *l)
-	}
-	return out, nil
 }
 
 func scenarios(opts Options) []scenario {
