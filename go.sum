@@ -113,8 +113,8 @@ github.com/ethersphere/ethproxy v0.0.5 h1:j5Mkm45jqmkET6NwGaJtaxOSFbhoAfOKzHiwHl
 github.com/ethersphere/ethproxy v0.0.5/go.mod h1:7mkVRK3+Mte00jLxFAbUQ/cBepAzwTYpkE64ItCLZYw=
 github.com/ethersphere/go-sw3-abi v0.6.9 h1:TnWLnYkWE5UvC17mQBdUmdkzhPhO8GcqvWy4wvd1QJQ=
 github.com/ethersphere/go-sw3-abi v0.6.9/go.mod h1:BmpsvJ8idQZdYEtWnvxA8POYQ8Rl/NhyCdF0zLMOOJU=
-github.com/ethersphere/node-funder v0.3.0 h1:rZamN4hs53Rt8MdSYSb2HLNTNX6XGzntwcVyJkUySGU=
-github.com/ethersphere/node-funder v0.3.0/go.mod h1:1n5y5yzYFWUAad5ocKmfbXvmTvnNN6r7V4awt36TD9Y=
+github.com/ethersphere/node-funder v0.4.0 h1:bfPjncf2QoGcosgqnWZAPLThWioGdFH4lpyhCzMtZqU=
+github.com/ethersphere/node-funder v0.4.0/go.mod h1:1n5y5yzYFWUAad5ocKmfbXvmTvnNN6r7V4awt36TD9Y=
 github.com/ferranbt/fastssz v0.1.4 h1:OCDB+dYDEQDvAgtAGnTSidK1Pe2tW3nFV40XyMkTeDY=
 github.com/ferranbt/fastssz v0.1.4/go.mod h1:Ea3+oeoRGGLGm5shYAeDgu6PGUlcvQhE2fILyD9+tGg=
 github.com/flynn/noise v1.1.0 h1:KjPQoQCEFdZDiP03phOvGi11+SVVhBG2wOWAorLsstg=
