@@ -101,7 +101,7 @@ clusters:
 node-groups:
   local:
     _inherit: ""
-    image: akram951/bee:before-5634
+    image: akram951/bee:before-5640
     image-pull-policy: Always
     ingress-annotations:
       nginx.ingress.kubernetes.io/affinity: "cookie"
@@ -122,7 +122,7 @@ node-groups:
       beekeeper.ethswarm.org/node-funder: "true"
     node-selector:
       node-group: "local"
-    persistence-enabled: false
+    persistence-enabled: true
     pod-management-policy: "OrderedReady"
     resources-limit-cpu: "250m"
     resources-limit-memory: 0.5Gi
@@ -130,6 +130,8 @@ node-groups:
     resources-request-memory: 0.25Gi
     restart-policy: "Always"
     update-strategy: "RollingUpdate"
+    persistence-storage-class: "local-path"
+    persistence-storage-request: "1Mi"
   local-dns:
     _inherit: "local"
   local-autotls:
@@ -433,7 +435,7 @@ checks:
       postage-depth: 22
       postage-label: test-label
       seed:
-      import-image: ethersphere/bee:2.8.2
+      import-image: akram951/bee:before-5640
       restart-image:
       expect-removed: true
       ready-timeout: 5m

@@ -49,7 +49,7 @@ type Options struct {
 
 func NewDefaultOptions() Options {
 	return Options{
-		ImportImage:   "ethersphere/bee:2.8.2",
+		ImportImage:   "akram951/bee:before-5640",
 		ExpectRemoved: true,
 		ReadyTimeout:  5 * time.Minute,
 		PostageDepth:  22,
@@ -61,6 +61,21 @@ func NewDefaultOptions() Options {
 
 var _ beekeeper.Action = (*Check)(nil)
 
+// Check verifies how a node handles an invalid chunk (neither CAC nor SOC)
+// already sitting in its reserve, the case bee PR #5640 cleans up with
+// migration step 8 on startup.
+//
+// Steps:
+//  1. Pick a full node; its data must be on a persistent volume.
+//  2. Build an invalid chunk: random bytes under a random address, stamped
+//     with a real batch.
+//  3. Swap the node's StatefulSet to ImportImage (bee 7515c4c5, the commit
+//     before PR #5640, whose reserve does not validate chunk types) running
+//     `bee db import reserve` to write the chunk.
+//  4. Restart the node with RestartImage (the original image if empty).
+//  5. GET /chunks/<address>: served means the chunk was kept, not found means
+//     it was removed; compare with ExpectRemoved.
+//  6. Always restore the original StatefulSet.
 type Check struct {
 	logger logging.Logger
 }
