@@ -38,6 +38,8 @@ var placementBeeMetrics = []string{
 	"bee_pushsync_storer",
 	"bee_pushsync_shallow_receipt",
 	"bee_pushsync_out_of_depth_storing",
+	"bee_pusher_total_to_push",
+	"bee_pusher_total_synced",
 	"bee_pusher_total_could_not_sync",
 }
 
@@ -85,6 +87,10 @@ func checkPlacement(ctx context.Context, c orchestration.Cluster, o Options, l l
 	if o.UploadNodeCount > len(storers) {
 		return fmt.Errorf("not enough full nodes in the cluster, required %d, available %d", o.UploadNodeCount, len(storers))
 	}
+	uploaders := storers[:o.UploadNodeCount]
+	if len(o.UploadNodes) > 0 {
+		uploaders = o.UploadNodes
+	}
 	isStorer := make(map[string]bool, len(storers))
 	for _, name := range storers {
 		isStorer[name] = true
@@ -118,9 +124,11 @@ func checkPlacement(ctx context.Context, c orchestration.Cluster, o Options, l l
 	rnd := random.PseudoGenerator(o.Seed)
 	var results []placementResult
 
-	for i := range o.UploadNodeCount {
-		uploaderName := storers[i]
-		uploader := clients[uploaderName]
+	for _, uploaderName := range uploaders {
+		uploader, ok := clients[uploaderName]
+		if !ok {
+			return fmt.Errorf("upload node %s not found in the cluster", uploaderName)
+		}
 
 		batchID, err := uploader.GetOrCreateMutableBatch(ctx, o.PostageTTL, o.PostageDepth, o.PostageLabel)
 		if err != nil {

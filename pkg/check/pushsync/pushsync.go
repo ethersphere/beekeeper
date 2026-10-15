@@ -29,6 +29,7 @@ type Options struct {
 	StorageRadius     uint8         // placement mode: storage radius the cluster nodes run with
 	UploadTimeout     time.Duration // placement mode: time after which a direct upload counts as timed out
 	Deferred          bool          // placement mode: use deferred uploads and read the outcome from the tag
+	UploadNodes       []string      // placement mode: uploader names; overrides UploadNodeCount when set
 }
 
 // NewDefaultOptions returns new default options

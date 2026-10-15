@@ -376,6 +376,7 @@ var Checks = map[string]CheckType{
 				StorageRadius     *uint8         `yaml:"storage-radius"`
 				UploadTimeout     *time.Duration `yaml:"upload-timeout"`
 				Deferred          *bool          `yaml:"deferred"`
+				UploadNodes       *[]string      `yaml:"upload-nodes"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
