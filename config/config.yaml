@@ -134,6 +134,7 @@ bee-configs:
   bootnode:
     _inherit: "default"
     bootnode-mode: true
+    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
 
 # checks defines checks Beekeeper can execute against the cluster
 # type filed allows defining same check with different names and options
