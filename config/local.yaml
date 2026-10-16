@@ -42,6 +42,11 @@ clusters:
         config: local-dns
         count: 3
         mode: node
+      bee-legacy:
+        bee-config: bee-local-dns-legacy
+        config: local-dns
+        count: 1
+        mode: node
       light:
         bee-config: bee-local-light
         config: local-light
@@ -162,7 +167,7 @@ bee-configs:
     db-disable-seeks-compaction: false
     db-open-files-limit: 200
     db-write-buffer-size: 33554432
-    full-node: true
+    node-mode: full
     mainnet: false
     nat-addr: ""
     nat-wss-addr: ""
@@ -192,6 +197,7 @@ bee-configs:
   bootnode-local-dns-autotls:
     _inherit: "bee-local-dns"
     bootnode-mode: true
+    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
     p2p-wss-enable: true
   bee-local-autotls:
     _inherit: "bee-local-dns"
@@ -201,20 +207,30 @@ bee-configs:
     p2p-wss-enable: true
   bee-local-ultralight-autotls:
     _inherit: "bee-local-dns"
-    full-node: false
+    node-mode: ultra-light
     p2p-wss-enable: true
-    blockchain-rpc-endpoint: # ultralight nodes don't connect to the blockchain
+    blockchain-rpc-endpoint: "" # ultralight nodes don't connect to the blockchain; empty, not null, so the inherited endpoint is cleared
+    swap-enable: false
+    chequebook-enable: false # inherited true is rejected without swap
+    storage-incentives-enable: false # inherited true is rejected in ultra-light mode
   bootnode-local:
     _inherit: "bee-local"
     bootnode-mode: true
+    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
   bee-local-dns:
     _inherit: "bee-local"
+  bee-local-dns-legacy:
+    _inherit: "bee-local-dns"
+    node-mode: "" # overrides the inherited mode so bee infers it from full-node (legacy regime)
+    full-node: true
   bootnode-local-dns:
     _inherit: "bee-local"
     bootnode-mode: true
+    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
   bee-local-light:
     _inherit: "bee-local"
-    full-node: false
+    node-mode: light
+    storage-incentives-enable: false # inherited true is rejected in light mode
   bee-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10
@@ -222,6 +238,7 @@ bee-configs:
     _inherit: "bee-local"
     cache-capacity: 10
     bootnode-mode: true
+    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
 
 # CI checks
 checks:

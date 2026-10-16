@@ -226,7 +226,17 @@ func (c *Cluster) NodeNames() (names []string) {
 // LightNodeNames returns a list of light node names
 func (c *Cluster) LightNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
-		if !orchestration.Deref(node.Config().FullNode) {
+		if node.Config().IsLightNode() {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// UltraLightNodeNames returns a list of ultra-light node names
+func (c *Cluster) UltraLightNodeNames() (names []string) {
+	for name, node := range c.Nodes() {
+		if node.Config().IsUltraLightNode() {
 			names = append(names, name)
 		}
 	}
@@ -237,7 +247,7 @@ func (c *Cluster) LightNodeNames() (names []string) {
 func (c *Cluster) FullNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
 		cfg := node.Config()
-		if orchestration.Deref(cfg.FullNode) && !orchestration.Deref(cfg.BootnodeMode) {
+		if cfg.IsFullNode() && !orchestration.Deref(cfg.BootnodeMode) {
 			names = append(names, name)
 		}
 	}
@@ -249,7 +259,7 @@ func (c *Cluster) ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) (or
 	var res orchestration.ClientList
 	for _, node := range c.Nodes() {
 		cfg := node.Config()
-		if orchestration.Deref(cfg.FullNode) && !orchestration.Deref(cfg.BootnodeMode) {
+		if cfg.IsFullNode() && !orchestration.Deref(cfg.BootnodeMode) {
 			res = append(res, node.Client())
 		}
 	}
@@ -464,7 +474,7 @@ func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*be
 		}
 		cfg := node.Config()
 		// closet peer is not a full node. Check other peers in the same bin
-		if !orchestration.Deref(cfg.FullNode) || orchestration.Deref(cfg.BootnodeMode) {
+		if !cfg.IsFullNode() || orchestration.Deref(cfg.BootnodeMode) {
 			skipList = append(skipList, addr)
 			b--
 			continue

@@ -17,7 +17,7 @@ Beekeeper consumes Bee as a library (`github.com/ethersphere/bee/v2` in `go.mod`
 ```bash
 make binary   # build ./dist/beekeeper (CGO disabled, version stamped via -ldflags)
 make test     # unit tests: go test -v ./pkg/...
-make lint     # golangci-lint (pinned v2.10.1; auto-installs if missing)
+make lint     # golangci-lint (pinned v2.11.3; auto-installs if missing)
 ```
 
 Run a single test: `go test -run TestName ./pkg/<package>/...` (add `-race` to mirror CI).
