@@ -175,7 +175,7 @@ checks:
   pg-erasure-coding:
     options:
       levels: [1, 2, 3, 4] # medium, strong, insane, paranoid
-      data-sizes: [262144]
+      data-sizes: [32768]
       postage-ttl: 120h # 5 days
       postage-depth: 22
       postage-label: test-label

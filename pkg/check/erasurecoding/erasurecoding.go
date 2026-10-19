@@ -38,7 +38,7 @@ type Options struct {
 func NewDefaultOptions() Options {
 	return Options{
 		Levels:          []uint8{uint8(redundancy.MEDIUM), uint8(redundancy.STRONG), uint8(redundancy.INSANE), uint8(redundancy.PARANOID)},
-		DataSizes:       []int64{256 * 1024}, // 256 KiB: one group at every redundancy level
+		DataSizes:       []int64{32 * 1024}, // 32 KiB: one group at every redundancy level
 		PostageDepth:    22,
 		PostageLabel:    "erasure-coding-check",
 		PostageTTL:      24 * time.Hour,

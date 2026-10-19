@@ -314,7 +314,7 @@ checks:
   erasure-coding:
     options:
       levels: [1, 2, 3, 4] # medium, strong, insane, paranoid
-      data-sizes: [262144]
+      data-sizes: [32768]
       postage-ttl: 24h
       postage-depth: 21
       postage-label: test-label
