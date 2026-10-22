@@ -145,6 +145,18 @@ func (c *Client) Get(ctx context.Context, name, namespace string) (*appsv1.State
 	return statefulSet, nil
 }
 
+// Exists reports whether a StatefulSet with the given name exists in the namespace.
+func (c *Client) Exists(ctx context.Context, name, namespace string) (bool, error) {
+	_, err := c.clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("getting statefulset %s in namespace %s: %w", name, namespace, err)
+	}
+	return true, nil
+}
+
 // Scale scales StatefulSet
 func (c *Client) Scale(ctx context.Context, name, namespace string, replicas int32) (sc *v1.Scale, err error) {
 	scale := &v1.Scale{
