@@ -17,14 +17,14 @@ Beekeeper consumes Bee as a library (`github.com/ethersphere/bee/v2` in `go.mod`
 ```bash
 make binary   # build ./dist/beekeeper (CGO disabled, version stamped via -ldflags)
 make test     # unit tests: go test -v ./pkg/...
-make lint     # golangci-lint (pinned v2.10.1; auto-installs if missing)
+make lint     # golangci-lint (pinned v2.14.0; auto-installs if missing)
 ```
 
 Run a single test: `go test -run TestName ./pkg/<package>/...` (add `-race` to mirror CI).
 
 CI (`.github/workflows/go.yml`) runs `make vet`, `make check-whitespace`, golangci-lint, `make build`, and `make test`. PR titles are linted as Conventional Commits (`.github/workflows/pr-title.yml`).
 
-Requires Go 1.26. For a full local cluster (K3s/k3d + Geth), follow the **Local Development** quick start in `README.md`.
+Requires Go 1.27. For a full local cluster (K3s/k3d + Geth), follow the **Local Development** quick start in `README.md`.
 
 ## How a run is wired together
 
