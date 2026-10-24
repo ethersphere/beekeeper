@@ -11,10 +11,10 @@ type Selector struct {
 }
 
 // toK8S converts Selector to Kubernetes client object.
-// An empty selector is left unset. Dynamic provisioners such as local-path
+// A nil selector is left unset. Dynamic provisioners such as local-path
 // reject a claim when spec.selector is present, even if it matches nothing.
 func (s *Selector) toK8S() *metav1.LabelSelector {
-	if len(s.MatchLabels) == 0 && len(s.MatchExpressions) == 0 {
+	if s == nil {
 		return nil
 	}
 	return &metav1.LabelSelector{

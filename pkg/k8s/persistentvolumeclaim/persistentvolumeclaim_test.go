@@ -27,7 +27,7 @@ func TestToK8s(t *testing.T) {
 					Spec: pvc.Spec{
 						AccessModes:    []pvc.AccessMode{"1", "2"},
 						RequestStorage: "1Gi",
-						Selector: pvc.Selector{
+						Selector: &pvc.Selector{
 							MatchLabels: map[string]string{"label_1": "label_value_1"},
 							MatchExpressions: []pvc.LabelSelectorRequirement{
 								{
@@ -108,6 +108,44 @@ func TestToK8s(t *testing.T) {
 						}(),
 						StorageClassName: new(""),
 						DataSource:       nil,
+					},
+				},
+			},
+		},
+		{
+			name: "selector_match_expressions_only",
+			pvcs: pvc.PersistentVolumeClaims{
+				{
+					Spec: pvc.Spec{
+						Selector: &pvc.Selector{
+							MatchExpressions: []pvc.LabelSelectorRequirement{
+								{
+									Key:      "label_1",
+									Operator: "In",
+									Values:   []string{"label_value_1"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedPvcs: []v1.PersistentVolumeClaim{
+				{
+					Spec: v1.PersistentVolumeClaimSpec{
+						Selector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "label_1",
+									Operator: "In",
+									Values:   []string{"label_value_1"},
+								},
+							},
+						},
+						VolumeMode: func() *v1.PersistentVolumeMode {
+							m := v1.PersistentVolumeFilesystem
+							return &m
+						}(),
+						StorageClassName: new(""),
 					},
 				},
 			},

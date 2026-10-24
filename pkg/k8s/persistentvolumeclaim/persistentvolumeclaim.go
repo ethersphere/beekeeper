@@ -50,7 +50,7 @@ type Spec struct {
 	AccessModes    AccessModes
 	DataSource     DataSource
 	RequestStorage string
-	Selector       Selector
+	Selector       *Selector
 	StorageClass   string
 	VolumeMode     string
 	VolumeName     string

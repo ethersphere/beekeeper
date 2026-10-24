@@ -57,7 +57,6 @@ func TestSet(t *testing.T) {
 				Annotations: map[string]string{"annotation_1": "annotation_value_X", "annotation_2": "annotation_value_2"},
 			},
 			expectedSpec: v1.PersistentVolumeClaimSpec{
-				Selector: &metav1.LabelSelector{},
 				VolumeMode: func() *v1.PersistentVolumeMode {
 					m := v1.PersistentVolumeFilesystem
 					return &m
@@ -105,7 +104,7 @@ func TestSet(t *testing.T) {
 				}
 
 				if !reflect.DeepEqual(response, expected) {
-					t.Errorf("response expected: %q, got: %q", response, expected)
+					t.Errorf("response expected: %q, got: %q", expected, response)
 				}
 
 			} else {
