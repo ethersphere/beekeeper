@@ -8,6 +8,11 @@ linters:
     - misspell
     - nilerr
     - unconvert
+  settings:
+    goconst:
+      exclude-types:
+        - Call
+        - CompositeLit
   exclusions:
     generated: lax
     presets:
