@@ -154,7 +154,7 @@ func TestNewClient(t *testing.T) {
 					fieldVal := val.Field(i)
 
 					// Check if the field is nil.
-					if (fieldVal.Kind() == reflect.Interface || fieldVal.Kind() == reflect.Ptr) && fieldVal.IsNil() {
+					if (fieldVal.Kind() == reflect.Interface || fieldVal.Kind() == reflect.Pointer) && fieldVal.IsNil() {
 						t.Errorf("nil not expected for '%s' property", val.Type().Field(i).Name)
 					}
 				}

@@ -1,6 +1,6 @@
 module github.com/ethersphere/beekeeper
 
-go 1.26
+go 1.27.3
 
 replace github.com/codahale/hdrhistogram => github.com/HdrHistogram/hdrhistogram-go v1.1.2
 
