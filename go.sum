@@ -119,15 +119,10 @@ github.com/ethersphere/go-storage-incentives-abi v0.9.4 h1:mSIWXQXg5OQmH10QvXMV5
 github.com/ethersphere/go-storage-incentives-abi v0.9.4/go.mod h1:SXvJVtM4sEsaSKD0jc1ClpDLw8ErPoROZDme4Wrc/Nc=
 github.com/ethersphere/go-sw3-abi v0.6.9 h1:TnWLnYkWE5UvC17mQBdUmdkzhPhO8GcqvWy4wvd1QJQ=
 github.com/ethersphere/go-sw3-abi v0.6.9/go.mod h1:BmpsvJ8idQZdYEtWnvxA8POYQ8Rl/NhyCdF0zLMOOJU=
-<<<<<<< HEAD
-github.com/ethersphere/node-funder v0.4.0 h1:bfPjncf2QoGcosgqnWZAPLThWioGdFH4lpyhCzMtZqU=
-github.com/ethersphere/node-funder v0.4.0/go.mod h1:1n5y5yzYFWUAad5ocKmfbXvmTvnNN6r7V4awt36TD9Y=
-=======
 github.com/ethersphere/langos v1.0.0 h1:NBtNKzXTTRSue95uOlzPN4py7Aofs0xWPzyj4AI1Vcc=
 github.com/ethersphere/langos v1.0.0/go.mod h1:dlcN2j4O8sQ+BlCaxeBu43bgr4RQ+inJ+pHwLeZg5Tw=
-github.com/ethersphere/node-funder v0.3.0 h1:rZamN4hs53Rt8MdSYSb2HLNTNX6XGzntwcVyJkUySGU=
-github.com/ethersphere/node-funder v0.3.0/go.mod h1:1n5y5yzYFWUAad5ocKmfbXvmTvnNN6r7V4awt36TD9Y=
->>>>>>> 16ae181 (feat(check): add erasure-coding threshold check)
+github.com/ethersphere/node-funder v0.4.0 h1:bfPjncf2QoGcosgqnWZAPLThWioGdFH4lpyhCzMtZqU=
+github.com/ethersphere/node-funder v0.4.0/go.mod h1:1n5y5yzYFWUAad5ocKmfbXvmTvnNN6r7V4awt36TD9Y=
 github.com/ferranbt/fastssz v0.1.4 h1:OCDB+dYDEQDvAgtAGnTSidK1Pe2tW3nFV40XyMkTeDY=
 github.com/ferranbt/fastssz v0.1.4/go.mod h1:Ea3+oeoRGGLGm5shYAeDgu6PGUlcvQhE2fILyD9+tGg=
 github.com/flynn/noise v1.1.0 h1:KjPQoQCEFdZDiP03phOvGi11+SVVhBG2wOWAorLsstg=
