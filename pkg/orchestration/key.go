@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/sha3"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -14,7 +15,6 @@ import (
 	"github.com/ethersphere/bee/v2/pkg/crypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/scrypt"
-	"golang.org/x/crypto/sha3"
 	"gopkg.in/yaml.v3"
 )
 
