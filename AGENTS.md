@@ -26,6 +26,27 @@ CI (`.github/workflows/go.yml`) runs `make vet`, `make check-whitespace`, golang
 
 Requires Go 1.26. For a full local cluster (K3s/k3d + Geth), follow the **Local Development** quick start in `README.md`.
 
+### Local cluster helpers (`.claude/`)
+
+`.claude/commands/` holds slash commands for that workflow — `/beelocal-up` (k3d
+cluster, registry, geth-swap), `/cluster-up`, `/cluster-verify`, `/cluster-down` — and
+`.claude/skills/` holds reference material they lean on.
+
+They default to the sibling checkouts the quick start produces:
+
+```
+<parent>/beekeeper   <parent>/bee   <parent>/storage-incentives
+```
+
+A sibling repo is resolved first match wins — a `--bee-repo <path>` argument, then
+`$BEE_REPO`, then `$(git rev-parse --show-toplevel)/../bee`. Use the argument for a
+one-off checkout, the environment variable when your layout differs permanently
+(`STORAGE_INCENTIVES_REPO` likewise).
+
+Only the commands and skills listed above are shared; everything else under `.claude/`
+is gitignored, so local settings and personal skills stay out of the repo. To
+contribute a new one, add the file and un-ignore it explicitly in `.gitignore`.
+
 ## How a run is wired together
 
 The root command (`cmd/beekeeper/cmd/cmd.go`) builds shared dependencies in `PersistentPreRunE` before any subcommand runs:

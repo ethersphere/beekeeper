@@ -6,10 +6,10 @@ replace github.com/codahale/hdrhistogram => github.com/HdrHistogram/hdrhistogram
 
 require (
 	github.com/ethereum/go-ethereum v1.17.3
-	github.com/ethersphere/bee/v2 v2.7.0
+	github.com/ethersphere/bee/v2 v2.8.2
 	github.com/ethersphere/bmt v0.1.4
 	github.com/ethersphere/ethproxy v0.0.5
-	github.com/ethersphere/node-funder v0.3.0
+	github.com/ethersphere/node-funder v0.4.0
 	github.com/go-git/go-billy/v5 v5.9.0
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/google/uuid v1.6.0
@@ -50,7 +50,9 @@ require (
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
+	github.com/codahale/hdrhistogram v0.0.0-00010101000000-000000000000 // indirect
 	github.com/consensys/gnark-crypto v0.18.1 // indirect
+	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/crate-crypto/go-eth-kzg v1.5.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -138,7 +140,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
-	github.com/quic-go/quic-go v0.59.1 // indirect
+	github.com/quic-go/quic-go v0.60.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/shirou/gopsutil v3.21.5+incompatible // indirect
