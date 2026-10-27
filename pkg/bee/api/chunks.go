@@ -36,7 +36,11 @@ func (c *ChunksService) Upload(ctx context.Context, data []byte, o UploadOptions
 	if o.Direct {
 		h.Add(deferredUploadHeader, "false")
 	}
-	h.Add(postageStampBatchHeader, o.BatchID)
+	if o.Stamp != "" {
+		h.Add(postageStampHeader, o.Stamp)
+	} else {
+		h.Add(postageStampBatchHeader, o.BatchID)
+	}
 	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks", h, bytes.NewReader(data), &resp)
 	return resp, err
 }
