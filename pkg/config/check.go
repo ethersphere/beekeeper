@@ -13,6 +13,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
+	"github.com/ethersphere/beekeeper/pkg/check/erasurecoding"
 	"github.com/ethersphere/beekeeper/pkg/check/feed"
 	"github.com/ethersphere/beekeeper/pkg/check/fileretrieval"
 	"github.com/ethersphere/beekeeper/pkg/check/fullconnectivity"
@@ -647,6 +648,32 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := redundancy.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"erasurecoding": {
+		NewAction: erasurecoding.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				DataSize              *int64         `yaml:"data-size"`
+				BulkDataSize          *int64         `yaml:"bulk-data-size"`
+				UploadConcurrency     *int           `yaml:"upload-concurrency"`
+				ChunkRetrievalTimeout *time.Duration `yaml:"chunk-retrieval-timeout"`
+				UseSIMD               *bool          `yaml:"use-simd"`
+				PostageDepth          *uint64        `yaml:"postage-depth"`
+				PostageLabel          *string        `yaml:"postage-label"`
+				PostageTTL            *time.Duration `yaml:"postage-ttl"`
+				Seed                  *int64         `yaml:"seed"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := erasurecoding.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)
