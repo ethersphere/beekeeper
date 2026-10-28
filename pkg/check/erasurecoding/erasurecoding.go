@@ -5,7 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
 	"strings"
 	"time"
 
@@ -20,30 +22,34 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const uploadConcurrency = 16
-
 // Options for the erasure-coding check.
 type Options struct {
-	Levels          []uint8       // redundancy levels to test: 1 medium, 2 strong, 3 insane, 4 paranoid
-	DataSizes       []int64       // sizes of the random blobs to split
-	AllDepths       bool          // also test the intermediate chunks above the leaf level
-	PostageDepth    uint64        // depth of the postage batch
-	PostageLabel    string        // label of the postage batch
-	PostageTTL      time.Duration // lifetime of the postage batch
-	DownloadTimeout time.Duration // time allowed for each download
-	Seed            int64
+	Levels                []uint8       // redundancy levels to test: 1 medium, 2 strong, 3 insane, 4 paranoid
+	DataSizes             []int64       // sizes of the random blobs to split
+	AllDepths             bool          // also test the intermediate chunks above the leaf level
+	EveryLeaf             bool          // also withhold the threshold from every leaf group at once
+	EveryLeafDataSize     int64         // size of the random blob for the every-leaf scenario
+	PostageDepth          uint64        // depth of the postage batch
+	PostageLabel          string        // label of the postage batch
+	PostageTTL            time.Duration // lifetime of the postage batch
+	UploadConcurrency     int           // chunks uploaded in parallel
+	DownloadTimeout       time.Duration // time allowed for each download
+	ChunkRetrievalTimeout time.Duration // per-chunk retrieval timeout sent to Bee; zero keeps Bee's default
+	Seed                  int64
 }
 
 // NewDefaultOptions returns the default options.
 func NewDefaultOptions() Options {
 	return Options{
-		Levels:          []uint8{uint8(redundancy.MEDIUM), uint8(redundancy.STRONG), uint8(redundancy.INSANE), uint8(redundancy.PARANOID)},
-		DataSizes:       []int64{32 * 1024}, // 32 KiB: one group at every redundancy level
-		PostageDepth:    22,
-		PostageLabel:    "erasure-coding-check",
-		PostageTTL:      24 * time.Hour,
-		DownloadTimeout: 60 * time.Second,
-		Seed:            time.Now().UnixNano(),
+		Levels:            []uint8{uint8(redundancy.MEDIUM), uint8(redundancy.STRONG), uint8(redundancy.INSANE), uint8(redundancy.PARANOID)},
+		DataSizes:         []int64{32 * 1024}, // 32 KiB: one group at every redundancy level
+		EveryLeafDataSize: 4 << 20,            // 4 MiB: many leaf groups at every redundancy level
+		PostageDepth:      22,
+		PostageLabel:      "erasure-coding-check",
+		PostageTTL:        24 * time.Hour,
+		UploadConcurrency: 16,
+		DownloadTimeout:   60 * time.Second,
+		Seed:              time.Now().UnixNano(),
 	}
 }
 
@@ -62,15 +68,21 @@ func NewCheck(logger logging.Logger) beekeeper.Action {
 
 // scenario is one upload and download.
 type scenario struct {
-	level    redundancy.Level
-	size     int64
-	group    int
-	c        Case
-	fallback bool
+	level     redundancy.Level
+	size      int64
+	group     int
+	c         Case
+	fallback  bool
+	everyLeaf bool // withhold from every leaf group at once instead of from group
 }
 
 func (s scenario) String() string {
-	return fmt.Sprintf("level %d, %d bytes, group %d, %s, fallback %v", s.level, s.size, s.group, s.c, s.fallback)
+	target := fmt.Sprintf("group %d", s.group)
+	if s.everyLeaf {
+		target = "every leaf group"
+	}
+
+	return fmt.Sprintf("level %d, %d bytes, %s, %s, fallback %v", s.level, s.size, target, s.c, s.fallback)
 }
 
 // Run implements beekeeper.Action.
@@ -101,6 +113,25 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o any) e
 	var failures []string
 	total := 0
 
+	// runScenario records a failed scenario and carries on; it stops only when the check is cancelled.
+	runScenario := func(s scenario) error {
+		total++
+
+		if err := c.run(ctx, s, uploader, downloader, batchID, rnd, opts); err != nil {
+			if ctx.Err() != nil {
+				return fmt.Errorf("%s: %w", s, ctx.Err())
+			}
+			c.logger.Errorf("FAIL %s: %v", s, err)
+			failures = append(failures, fmt.Sprintf("%s: %v", s, err))
+
+			return nil
+		}
+
+		c.logger.Infof("ok   %s", s)
+
+		return nil
+	}
+
 	for _, lvl := range opts.Levels {
 		level := redundancy.Level(lvl)
 
@@ -120,21 +151,18 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, o any) e
 					// Fresh data for every upload: chunks left in the network or in the
 					// download node's cache by one scenario must not satisfy the next.
 					for _, fallback := range []bool{false, true} {
-						s := scenario{level: level, size: size, group: group, c: cs, fallback: fallback}
-						total++
-
-						if err := c.run(ctx, s, uploader, downloader, batchID, rnd, opts); err != nil {
-							if ctx.Err() != nil {
-								return fmt.Errorf("%s: %w", s, ctx.Err())
-							}
-							c.logger.Errorf("FAIL %s: %v", s, err)
-							failures = append(failures, fmt.Sprintf("%s: %v", s, err))
-
-							continue
+						if err := runScenario(scenario{level: level, size: size, group: group, c: cs, fallback: fallback}); err != nil {
+							return err
 						}
-
-						c.logger.Infof("ok   %s", s)
 					}
+				}
+			}
+		}
+
+		if opts.EveryLeaf {
+			for _, fallback := range []bool{false, true} {
+				if err := runScenario(scenario{level: level, size: opts.EveryLeafDataSize, c: AtThreshold, fallback: fallback, everyLeaf: true}); err != nil {
+					return err
 				}
 			}
 		}
@@ -158,21 +186,30 @@ func (c *Check) run(ctx context.Context, s scenario, uploader, downloader *bee.C
 		return err
 	}
 
-	groups := tree.SelectGroups(opts.AllDepths)
-	if s.group >= len(groups) {
-		return fmt.Errorf("tree has %d groups under test, want group %d", len(groups), s.group)
+	var withheld []swarm.Address
+	if s.everyLeaf {
+		withheld = tree.LeafDrops(s.c, rnd)
+	} else {
+		groups := tree.SelectGroups(opts.AllDepths)
+		if s.group >= len(groups) {
+			return fmt.Errorf("tree has %d groups under test, want group %d", len(groups), s.group)
+		}
+		withheld = groups[s.group].Drops(s.c, rnd)
 	}
 
-	withheld := groups[s.group].Drops(s.c, rnd)
-
-	if err := upload(ctx, uploader, batchID, tree.Chunks, withheld); err != nil {
+	if err := upload(ctx, uploader, batchID, tree.Chunks, withheld, opts.UploadConcurrency); err != nil {
 		return err
 	}
 
 	dctx, cancel := context.WithTimeout(ctx, opts.DownloadTimeout)
 	defer cancel()
 
-	got, dlErr := downloader.DownloadBytes(dctx, tree.Root, &api.DownloadOptions{RedundancyFallbackMode: &s.fallback})
+	dlOpts := &api.DownloadOptions{RedundancyFallbackMode: &s.fallback}
+	if opts.ChunkRetrievalTimeout > 0 {
+		dlOpts.ChunkRetrievalTimeout = &opts.ChunkRetrievalTimeout
+	}
+
+	got, dlErr := downloader.DownloadBytes(dctx, tree.Root, dlOpts)
 	downloaded := dlErr == nil && bytes.Equal(got, data)
 
 	c.logger.Debugf("%s: withheld %d of %d chunks, download ok %v, err %v", s, len(withheld), len(tree.Chunks), downloaded, dlErr)
@@ -184,20 +221,35 @@ func (c *Check) run(ctx context.Context, s scenario, uploader, downloader *bee.C
 		return fmt.Errorf("withheld %d of %d chunks, download returned different data", len(withheld), len(tree.Chunks))
 	case !want && downloaded:
 		return fmt.Errorf("withheld %d of %d chunks, expected the download to fail but it returned the data", len(withheld), len(tree.Chunks))
+	case !want && dlErr == nil:
+		return fmt.Errorf("withheld %d of %d chunks, download returned %d of %d bytes without an error", len(withheld), len(tree.Chunks), len(got), len(data))
+	case !want && !isRecoveryFailure(dlErr):
+		return fmt.Errorf("withheld %d of %d chunks, download failed for an unexpected reason: %w", len(withheld), len(tree.Chunks), dlErr)
 	}
 
 	return nil
 }
 
+// isRecoveryFailure reports whether a download error is Bee failing to rebuild the data,
+// as opposed to a timeout or a broken connection that would hide a real problem.
+func isRecoveryFailure(err error) bool {
+	var httpErr *api.HTTPStatusError
+	if errors.As(err, &httpErr) {
+		return httpErr.Code == http.StatusNotFound || httpErr.Code == http.StatusInternalServerError
+	}
+
+	return errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF)
+}
+
 // upload sends every chunk except the withheld ones.
-func upload(ctx context.Context, client *bee.Client, batchID string, chunks []swarm.Chunk, withheld []swarm.Address) error {
+func upload(ctx context.Context, client *bee.Client, batchID string, chunks []swarm.Chunk, withheld []swarm.Address, concurrency int) error {
 	skip := make(map[string]bool, len(withheld))
 	for _, a := range withheld {
 		skip[a.ByteString()] = true
 	}
 
 	group, gctx := errgroup.WithContext(ctx)
-	group.SetLimit(uploadConcurrency)
+	group.SetLimit(concurrency)
 
 	for _, ch := range chunks {
 		if skip[ch.Address().ByteString()] {
@@ -240,8 +292,17 @@ func (o Options) validate() error {
 			return fmt.Errorf("data size %d must be larger than one chunk (%d bytes) to have an intermediate chunk", s, swarm.ChunkSize)
 		}
 	}
+	if o.EveryLeaf && o.EveryLeafDataSize <= swarm.ChunkSize {
+		return fmt.Errorf("every-leaf data size %d must be larger than one chunk (%d bytes)", o.EveryLeafDataSize, swarm.ChunkSize)
+	}
+	if o.UploadConcurrency < 1 {
+		return fmt.Errorf("upload concurrency must be positive, got %d", o.UploadConcurrency)
+	}
 	if o.DownloadTimeout <= 0 {
 		return errors.New("download timeout must be positive")
+	}
+	if o.ChunkRetrievalTimeout < 0 {
+		return errors.New("chunk retrieval timeout must not be negative")
 	}
 
 	return nil

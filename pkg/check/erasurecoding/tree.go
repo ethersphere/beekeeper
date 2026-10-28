@@ -98,6 +98,19 @@ func (g Group) withhold(n int, rnd *rand.Rand) []swarm.Address {
 	return picked
 }
 
+// LeafDrops picks the chunk addresses to withhold for the case from every group whose
+// children are leaf data chunks, so one download has to rebuild many groups at once.
+func (t *Tree) LeafDrops(c Case, rnd *rand.Rand) []swarm.Address {
+	var drops []swarm.Address
+	for _, g := range t.Groups {
+		if g.LeafParent {
+			drops = append(drops, g.Drops(c, rnd)...)
+		}
+	}
+
+	return drops
+}
+
 // Tree is the chunk tree of one split blob.
 type Tree struct {
 	Root   swarm.Address

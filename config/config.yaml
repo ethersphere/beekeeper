@@ -319,6 +319,10 @@ checks:
       postage-depth: 21
       postage-label: test-label
       download-timeout: 60s
+      chunk-retrieval-timeout: # empty keeps Bee's default (30s)
+      upload-concurrency: 16
+      every-leaf: false # withhold the threshold from every leaf group of one large blob
+      every-leaf-data-size: 4194304 # 4 MiB, about 1,000 chunks: too slow for bee-local
     timeout: 1h
     type: erasure-coding
   retrieval:
