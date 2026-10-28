@@ -660,14 +660,18 @@ var Checks = map[string]CheckType{
 		NewAction: erasurecoding.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
-				Levels          *[]uint8       `yaml:"levels"`
-				DataSizes       *[]int64       `yaml:"data-sizes"`
-				AllDepths       *bool          `yaml:"all-depths"`
-				PostageDepth    *uint64        `yaml:"postage-depth"`
-				PostageLabel    *string        `yaml:"postage-label"`
-				PostageTTL      *time.Duration `yaml:"postage-ttl"`
-				DownloadTimeout *time.Duration `yaml:"download-timeout"`
-				Seed            *int64         `yaml:"seed"`
+				Levels                *[]uint8       `yaml:"levels"`
+				DataSizes             *[]int64       `yaml:"data-sizes"`
+				AllDepths             *bool          `yaml:"all-depths"`
+				EveryLeaf             *bool          `yaml:"every-leaf"`
+				EveryLeafDataSize     *int64         `yaml:"every-leaf-data-size"`
+				PostageDepth          *uint64        `yaml:"postage-depth"`
+				PostageLabel          *string        `yaml:"postage-label"`
+				PostageTTL            *time.Duration `yaml:"postage-ttl"`
+				UploadConcurrency     *int           `yaml:"upload-concurrency"`
+				DownloadTimeout       *time.Duration `yaml:"download-timeout"`
+				ChunkRetrievalTimeout *time.Duration `yaml:"chunk-retrieval-timeout"`
+				Seed                  *int64         `yaml:"seed"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
