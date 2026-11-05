@@ -58,6 +58,7 @@ type Client struct {
 	Status      *StatusService
 	Stewardship *StewardshipService
 	Tags        *TagsService
+	DebugStore  *DebugStoreService
 }
 
 // NewClient constructs a new Client.
@@ -108,6 +109,7 @@ func newClient(apiURL *url.URL, httpClient *http.Client) (c *Client) {
 	c.Status = (*StatusService)(&c.service)
 	c.Stewardship = (*StewardshipService)(&c.service)
 	c.Tags = (*TagsService)(&c.service)
+	c.DebugStore = (*DebugStoreService)(&c.service)
 
 	return c
 }

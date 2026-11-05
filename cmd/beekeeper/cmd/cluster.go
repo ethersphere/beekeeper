@@ -396,16 +396,21 @@ func setupNodeOptions(node config.ClusterNode, bConfig *orchestration.Config) or
 }
 
 const (
-	fundAttempts   = 2
+	fundAttempts   = 3
 	fundRetryDelay = 15 * time.Second
 )
 
 // fund tops the given addresses up to the configured minimum amounts, retrying
-// once so that a transient RPC error does not abort the cluster setup.
+// so that a transient RPC error does not abort the cluster setup.
 //
 // node-funder reads balances from the latest mined block and returns as soon as
 // a transfer is broadcast, so a retry that runs before the previous transfer is
 // mined funds the address twice. Keep the delay above the block time.
+//
+// A failed send can leave a later transfer queued behind a nonce gap. The retry
+// that fills the gap then rebuilds that queued transfer byte for byte, and geth
+// rejects it as "already known" although it gets mined. The extra attempt only
+// sees the settled balances and sends nothing.
 func fund(
 	ctx context.Context,
 	fundAddresses []string,
