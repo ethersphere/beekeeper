@@ -2,13 +2,13 @@ package bee
 
 import (
 	"bytes"
+	"crypto/sha3"
 	"fmt"
 	"hash"
 	"io"
 	"math/rand"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
-	"golang.org/x/crypto/sha3"
 )
 
 // File represents Bee file
