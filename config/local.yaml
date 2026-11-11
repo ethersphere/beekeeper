@@ -427,6 +427,15 @@ checks:
       seed:
       data-size:
     type: redundancy
+  ci-chunk-stream:
+    options:
+      chunk-count: 10
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
+      request-timeout: 5m
+    timeout: 10m
+    type: chunk-stream
   ci-gsoc:
     options:
       postage-ttl: 24h
