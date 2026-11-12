@@ -34,6 +34,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/settlements"
 	"github.com/ethersphere/beekeeper/pkg/check/smoke"
 	"github.com/ethersphere/beekeeper/pkg/check/soc"
+	"github.com/ethersphere/beekeeper/pkg/check/socmatrix"
 	"github.com/ethersphere/beekeeper/pkg/check/stake"
 	"github.com/ethersphere/beekeeper/pkg/check/withdraw"
 	"github.com/ethersphere/beekeeper/pkg/logging"
@@ -58,6 +59,26 @@ type CheckType struct {
 type CheckGlobalConfig struct {
 	Seed    int64
 	GethURL string
+}
+
+func newSOCMatrixOptions(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+	checkOpts := new(struct {
+		PostageTTL        *time.Duration `yaml:"postage-ttl"`
+		PostageDepth      *uint64        `yaml:"postage-depth"`
+		PostageLabel      *string        `yaml:"postage-label"`
+		RequestTimeout    *time.Duration `yaml:"request-timeout"`
+		SyncRetryInterval *time.Duration `yaml:"sync-retry-interval"`
+		SyncWait          *time.Duration `yaml:"sync-wait"`
+		Password          *string        `yaml:"password"`
+	})
+	if err := check.Options.Decode(checkOpts); err != nil {
+		return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+	}
+	opts := socmatrix.NewDefaultOptions()
+	if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+		return nil, fmt.Errorf("applying options: %w", err)
+	}
+	return opts, nil
 }
 
 // Checks represents all available check types
@@ -527,6 +548,10 @@ var Checks = map[string]CheckType{
 
 			return opts, nil
 		},
+	},
+	"socmatrix": {
+		NewAction:  socmatrix.NewCheck,
+		NewOptions: newSOCMatrixOptions,
 	},
 	"postage": {
 		NewAction: postage.NewCheck,
