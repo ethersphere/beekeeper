@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -93,6 +94,36 @@ func (n *NodeService) HasChunk(ctx context.Context, a swarm.Address) (bool, erro
 	}
 
 	return true, nil
+}
+
+// HasChunkLocal reports whether the chunk is in the node's local store. Unlike
+// HasChunk it uses HEAD, which never retrieves the chunk from the network and
+// so does not change what the node stores.
+func (n *NodeService) HasChunkLocal(ctx context.Context, a swarm.Address) (bool, error) {
+	err := n.client.request(ctx, http.MethodHead, "/chunks/"+a.String(), nil, nil)
+	if IsHTTPStatusErrorCode(err, http.StatusNotFound) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// Metrics returns the node's metrics in the Prometheus text format.
+func (n *NodeService) Metrics(ctx context.Context) (string, error) {
+	r, err := n.client.requestData(ctx, http.MethodGet, "/metrics", nil, nil)
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
 // Health represents node's health

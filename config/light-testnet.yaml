@@ -1,0 +1,75 @@
+# bee-light-testnet: 20 full nodes on an isolated testnet (swarm1), used for A/B runs.
+# The bootnode has no ingress and is not part of the cluster definition.
+clusters:
+  bee-light-testnet:
+    _inherit: ""
+    name: bee
+    namespace: bee-light-testnet
+    disable-namespace: true
+    api-domain: lightnet.testnet.internal
+    api-domain-internal: bee-light-testnet.svc.swarm1.local:1633
+    api-insecure-tls: true
+    api-scheme: http
+    funding:
+      eth: 0.1
+      gbzz: 2.0
+      bzz: 5.0
+    node-groups:
+      bee-1:
+        mode: node
+        bee-config: light-testnet
+        config: ng-light-testnet
+        count: 5
+      bee-2:
+        mode: node
+        bee-config: light-testnet
+        config: ng-light-testnet
+        count: 5
+      bee-3:
+        mode: node
+        bee-config: light-testnet
+        config: ng-light-testnet
+        count: 5
+      bee-4:
+        mode: node
+        bee-config: light-testnet
+        config: ng-light-testnet
+        count: 5
+
+node-groups:
+  ng-light-testnet:
+    _inherit: ""
+
+bee-configs:
+  light-testnet:
+    _inherit: ""
+    full-node: true
+
+checks:
+  lt-pushsync-placement:
+    options:
+      chunks-per-node: 2 # per neighborhood, per uploader
+      mode: placement
+      postage-ttl: 24h
+      postage-depth: 22
+      postage-label: test-label
+      retry-delay: 5s
+      storage-radius: 2 # the radius the nodes report in /status
+      upload-nodes: [bee-1-2, bee-2-0, bee-3-0, bee-3-1, bee-4-3, bee-4-4]
+      upload-timeout: 60s
+    timeout: 60m
+    type: pushsync
+  lt-pushsync-placement-deferred:
+    options:
+      chunks-per-node: 2
+      deferred: true
+      mode: placement
+      postage-ttl: 24h
+      postage-depth: 22
+      postage-label: test-label
+      retry-delay: 30s # the pusher queue is busy with the background load
+      storage-radius: 2
+      upload-nodes: [bee-1-2, bee-2-0, bee-3-0, bee-3-1, bee-4-3, bee-4-4]
+      upload-timeout: 60s
+    timeout: 60m
+    type: pushsync

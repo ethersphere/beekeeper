@@ -40,7 +40,7 @@ clusters:
       bee:
         bee-config: bee-local-dns
         config: local-dns
-        count: 3
+        count: 5
         mode: node
       light:
         bee-config: bee-local-light
@@ -207,10 +207,14 @@ bee-configs:
   bootnode-local:
     _inherit: "bee-local"
     bootnode-mode: true
+  # a forced storage radius splits the small cluster into neighborhoods, some
+  # of them empty, so that out-of-depth storing and shallow receipts can occur
   bee-local-dns:
     _inherit: "bee-local"
+    minimum-storage-radius: 3
   bootnode-local-dns:
     _inherit: "bee-local"
+    minimum-storage-radius: 3
     bootnode-mode: true
   bee-local-light:
     _inherit: "bee-local"
@@ -303,6 +307,33 @@ checks:
         - light
         - bootnode
     timeout: 5m
+    type: pushsync
+  ci-pushsync-placement:
+    options:
+      chunks-per-node: 2 # per neighborhood, per uploader
+      mode: placement
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
+      retry-delay: 3s
+      storage-radius: 3 # must match minimum-storage-radius of the full nodes
+      upload-node-count: 2
+      upload-timeout: 30s
+    timeout: 30m
+    type: pushsync
+  ci-pushsync-placement-deferred:
+    options:
+      chunks-per-node: 2 # per neighborhood, per uploader
+      deferred: true
+      mode: placement
+      postage-ttl: 24h
+      postage-depth: 21
+      postage-label: test-label
+      retry-delay: 3s
+      storage-radius: 3 # must match minimum-storage-radius of the full nodes
+      upload-node-count: 2
+      upload-timeout: 30s
+    timeout: 30m
     type: pushsync
   ci-pushsync-light-chunks:
     options:

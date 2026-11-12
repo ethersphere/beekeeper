@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
@@ -35,6 +36,9 @@ func (c *ChunksService) Upload(ctx context.Context, data []byte, o UploadOptions
 	}
 	if o.Direct {
 		h.Add(deferredUploadHeader, "false")
+	}
+	if o.Tag != 0 {
+		h.Add(swarmTagHeader, strconv.FormatUint(o.Tag, 10))
 	}
 	h.Add(postageStampBatchHeader, o.BatchID)
 	err := c.client.requestWithHeader(ctx, http.MethodPost, "/"+apiVersion+"/chunks", h, bytes.NewReader(data), &resp)
