@@ -32,6 +32,8 @@ type Client struct {
 	nodeGroupName string
 	apiURL        *url.URL
 	retryCount    int
+	retryDelay    time.Duration
+	maxRetryDelay time.Duration
 }
 
 // ClientOptions holds optional parameters for the Client.
@@ -53,6 +55,8 @@ func NewClient(opts ClientOptions) (c *Client, err error) {
 
 	c = &Client{
 		retryCount:    5,
+		retryDelay:    defaultRetryDelay,
+		maxRetryDelay: defaultMaxRetryDelay,
 		log:           opts.Logger,
 		swapClient:    opts.SwapClient,
 		name:          opts.Name,
@@ -516,29 +520,12 @@ func (c *Client) CreatePostageBatch(ctx context.Context, amount int64, depth uin
 	return id, nil
 }
 
+// GetOrCreateMutableBatch returns a usable mutable batch of the node with the
+// given label. The chain is consulted only when a new batch has to be bought.
+// Transient failures of the read-only calls are retried with exponential
+// backoff; buying the batch is never retried.
 func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Duration, depth uint64, label string) (string, error) {
-	csr, err := c.api.Postage.GetChainState(ctx)
-	if err != nil {
-		return "", fmt.Errorf("get chain state: %w", err)
-	}
-
-	blockTime, err := c.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
-	if err != nil {
-		return "", fmt.Errorf("fetching block time: %w", err)
-	}
-
-	amount := int64(1) // use 1 as the minimum amount when the chain price is 0, since any amount is valid
-
-	price := csr.CurrentPrice.Int64()
-	if price > 0 {
-		amount = (int64(postageTTL.Seconds()) / blockTime) * price
-	} else {
-		c.log.Warningf("invalid chain price: %v", price)
-	}
-
-	c.log.Debugf("calculated mutable batch: amount '%d', label '%s', price '%d', block time '%d', ttl '%s'", amount, label, price, blockTime, postageTTL)
-
-	batches, err := c.PostageBatches(ctx)
+	batches, err := retryRead(ctx, c, "get postage batches", c.PostageBatches)
 	if err != nil {
 		return "", fmt.Errorf("get postage batches: %w", err)
 	}
@@ -558,6 +545,29 @@ func (c *Client) GetOrCreateMutableBatch(ctx context.Context, postageTTL time.Du
 			return b.BatchID, nil
 		}
 	}
+
+	csr, err := retryRead(ctx, c, "get chain state", c.api.Postage.GetChainState)
+	if err != nil {
+		return "", fmt.Errorf("get chain state: %w", err)
+	}
+
+	blockTime, err := retryRead(ctx, c, "fetch block time", func(ctx context.Context) (int64, error) {
+		return c.swapClient.FetchBlockTime(ctx, swap.WithOffset(1000))
+	})
+	if err != nil {
+		return "", fmt.Errorf("fetching block time: %w", err)
+	}
+
+	amount := int64(1) // use 1 as the minimum amount when the chain price is 0, since any amount is valid
+
+	price := csr.CurrentPrice.Int64()
+	if price > 0 {
+		amount = (int64(postageTTL.Seconds()) / blockTime) * price
+	} else {
+		c.log.Warningf("invalid chain price: %v", price)
+	}
+
+	c.log.Debugf("calculated mutable batch: amount '%d', label '%s', price '%d', block time '%d', ttl '%s'", amount, label, price, blockTime, postageTTL)
 
 	return c.CreatePostageBatch(ctx, amount, depth, label, false)
 }

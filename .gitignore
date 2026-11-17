@@ -24,7 +24,17 @@ _test
 dist/
 .idea/
 .vscode/
-.claude/
+# Claude Code: local by default — only the entries un-ignored below are shared
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/change-storage-price/
+!.claude/commands/
+.claude/commands/*
+!.claude/commands/beelocal-up.md
+!.claude/commands/cluster-up.md
+!.claude/commands/cluster-verify.md
+!.claude/commands/cluster-down.md
 .vs/
 .DS_Store
 tmp/
