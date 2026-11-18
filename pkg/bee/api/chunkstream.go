@@ -26,12 +26,16 @@ const chunkStreamHandshakeTimeout = 45 * time.Second
 // use; Receive must be called from one goroutine at a time.
 type ChunkStream struct {
 	conn    *websocket.Conn
-	writeMu sync.Mutex // serializes request writes; the connection allows one writer
+	ctx     context.Context
+	stop    func() bool // stops closing conn when ctx ends
+	writeMu sync.Mutex  // serializes request writes; the connection allows one writer
 }
 
 // Open opens a chunk stream. When batchID is not empty it is sent as
 // Swarm-Postage-Batch-Id, which stamps every Put on the connection with that
-// batch and pins the connection to it.
+// batch and pins the connection to it. The stream lives until Close or until
+// ctx ends: then the connection is closed and blocked calls return ctx's
+// error.
 func (c *ChunkStreamService) Open(ctx context.Context, batchID string) (*ChunkStream, error) {
 	header := http.Header{}
 	if batchID != "" {
@@ -67,7 +71,11 @@ func (c *ChunkStreamService) Open(ctx context.Context, batchID string) (*ChunkSt
 		return nil, fmt.Errorf("dial %s: %w", u, err)
 	}
 
-	return &ChunkStream{conn: conn}, nil
+	return &ChunkStream{
+		conn: conn,
+		ctx:  ctx,
+		stop: context.AfterFunc(ctx, func() { _ = conn.Close() }),
+	}, nil
 }
 
 // Get requests the chunk at addr.
@@ -96,10 +104,10 @@ func (s *ChunkStream) send(req *pb.Request, timeout time.Duration) error {
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 	if err := s.conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
-		return fmt.Errorf("set write deadline: %w", err)
+		return fmt.Errorf("set write deadline: %w", s.connErr(err))
 	}
 	if err := s.conn.WriteMessage(websocket.BinaryMessage, msg); err != nil {
-		return fmt.Errorf("write request: %w", err)
+		return fmt.Errorf("write request: %w", s.connErr(err))
 	}
 
 	return nil
@@ -108,11 +116,11 @@ func (s *ChunkStream) send(req *pb.Request, timeout time.Duration) error {
 // Receive reads the next response.
 func (s *ChunkStream) Receive(timeout time.Duration) (*pb.Response, error) {
 	if err := s.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
-		return nil, fmt.Errorf("set read deadline: %w", err)
+		return nil, fmt.Errorf("set read deadline: %w", s.connErr(err))
 	}
 	mt, msg, err := s.conn.ReadMessage()
 	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
+		return nil, fmt.Errorf("read response: %w", s.connErr(err))
 	}
 	if mt != websocket.BinaryMessage {
 		return nil, fmt.Errorf("response: expected a binary frame, got message type %d", mt)
@@ -129,8 +137,21 @@ func (s *ChunkStream) Receive(timeout time.Duration) (*pb.Response, error) {
 	return resp, nil
 }
 
-// Close sends a normal close frame and closes the connection.
+// connErr returns ctx's error instead of err when the connection failed
+// because ctx ended and closed it.
+func (s *ChunkStream) connErr(err error) error {
+	if ctxErr := s.ctx.Err(); ctxErr != nil {
+		return ctxErr
+	}
+	return err
+}
+
+// Close sends a normal close frame and closes the connection. It is a no-op
+// once ctx has ended, since the connection is already closed.
 func (s *ChunkStream) Close() error {
+	if !s.stop() {
+		return nil
+	}
 	msg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
 	if err := s.conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(5*time.Second)); err != nil &&
 		!errors.Is(err, websocket.ErrCloseSent) {

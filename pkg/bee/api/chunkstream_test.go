@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -226,5 +227,55 @@ func TestChunkStreamNoBatchHeader(t *testing.T) {
 
 	if b := <-gotBatch; b != "" {
 		t.Fatalf("batch header: got %q, want none", b)
+	}
+}
+
+// TestChunkStreamContextCancel cancels the context of an open stream and
+// expects a blocked Receive to return the context's error at once rather than
+// at its deadline, and later calls to fail the same way.
+func TestChunkStreamContextCancel(t *testing.T) {
+	gotBatch := make(chan string, 1)
+	srv := chunkStreamServer(t, 0, gotBatch)
+	defer srv.Close()
+
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := NewClient(u, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	stream, err := c.ChunkStream.Open(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-gotBatch
+
+	errc := make(chan error, 1)
+	go func() {
+		_, err := stream.Receive(time.Minute)
+		errc <- err
+	}()
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-errc:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("receive: got %v, want %v", err, context.Canceled)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("receive still blocked after the context was canceled")
+	}
+
+	addr := swarm.MustParseHexAddress("aa00000000000000000000000000000000000000000000000000000000000000")
+	if err := stream.Put(addr, []byte("data"), nil, time.Second); !errors.Is(err, context.Canceled) {
+		t.Fatalf("put: got %v, want %v", err, context.Canceled)
+	}
+	if err := stream.Close(); err != nil {
+		t.Fatalf("close: %v", err)
 	}
 }
