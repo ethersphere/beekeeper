@@ -678,14 +678,15 @@ var Checks = map[string]CheckType{
 		NewAction: chunkstream.NewCheck,
 		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
 			checkOpts := new(struct {
-				ChunkCount     *int           `yaml:"chunk-count"`
-				PostageTTL     *time.Duration `yaml:"postage-ttl"`
-				PostageDepth   *uint64        `yaml:"postage-depth"`
-				PostageLabel   *string        `yaml:"postage-label"`
-				RequestTimeout *time.Duration `yaml:"request-timeout"`
-				RetryCount     *int           `yaml:"retry-count"`
-				RetryDelay     *time.Duration `yaml:"retry-delay"`
-				Seed           *int64         `yaml:"seed"`
+				ChunkCount      *int           `yaml:"chunk-count"`
+				ParallelStreams *int           `yaml:"parallel-streams"`
+				PostageTTL      *time.Duration `yaml:"postage-ttl"`
+				PostageDepth    *uint64        `yaml:"postage-depth"`
+				PostageLabel    *string        `yaml:"postage-label"`
+				RequestTimeout  *time.Duration `yaml:"request-timeout"`
+				RetryCount      *int           `yaml:"retry-count"`
+				RetryDelay      *time.Duration `yaml:"retry-delay"`
+				Seed            *int64         `yaml:"seed"`
 			})
 			if err := check.Options.Decode(checkOpts); err != nil {
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)

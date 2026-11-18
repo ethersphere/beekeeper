@@ -390,6 +390,7 @@ checks:
   chunk-stream:
     options:
       chunk-count: 10
+      parallel-streams: 4
       postage-ttl: 24h
       postage-depth: 21
       postage-label: test-label

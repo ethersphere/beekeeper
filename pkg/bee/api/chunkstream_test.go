@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"testing"
 	"time"
 
@@ -126,6 +127,76 @@ func TestChunkStream(t *testing.T) {
 	p := resp.GetPut()
 	if p == nil || p.Status != pb.Status_STATUS_OK || !bytes.Equal(p.Address, putAddr.Bytes()) {
 		t.Fatalf("put reply: got %v", resp)
+	}
+
+	if err := stream.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestChunkStreamConcurrentPuts puts from several goroutines on one stream and
+// expects every request to reach the server intact (run with -race).
+func TestChunkStreamConcurrentPuts(t *testing.T) {
+	const n = 32
+
+	gotBatch := make(chan string, 1)
+	srv := chunkStreamServer(t, n, gotBatch)
+	defer srv.Close()
+
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := NewClient(u, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stream, err := c.ChunkStream.Open(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-gotBatch
+
+	want := make(map[string]struct{}, n)
+	addrs := make([]swarm.Address, n)
+	for i := range addrs {
+		b := make([]byte, swarm.HashSize)
+		b[0], b[1] = byte(i), 0xcc
+		addrs[i] = swarm.NewAddress(b)
+		want[addrs[i].ByteString()] = struct{}{}
+	}
+
+	var wg sync.WaitGroup
+	errs := make(chan error, n)
+	for _, addr := range addrs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs <- stream.Put(addr, bytes.Repeat([]byte{0xdd}, 4096), []byte{1, 2}, time.Second)
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for range n {
+		resp, err := stream.Receive(time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := resp.GetPut()
+		if p == nil || p.Status != pb.Status_STATUS_OK {
+			t.Fatalf("put reply: got %v", resp)
+		}
+		if _, ok := want[string(p.Address)]; !ok {
+			t.Fatalf("unexpected or duplicate reply for %x", p.Address)
+		}
+		delete(want, string(p.Address))
 	}
 
 	if err := stream.Close(); err != nil {

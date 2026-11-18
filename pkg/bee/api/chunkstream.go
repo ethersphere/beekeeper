@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/ethersphere/bee/v2/pkg/swarm"
@@ -21,10 +22,11 @@ const chunkStreamHandshakeTimeout = 45 * time.Second
 
 // ChunkStream is an open /chunks/stream connection. Requests can be pipelined:
 // the node answers each one with exactly one response carrying the same
-// address, in no particular order. It is not safe for concurrent writes or
-// concurrent reads.
+// address, in no particular order. Get, Put and Close are safe for concurrent
+// use; Receive must be called from one goroutine at a time.
 type ChunkStream struct {
-	conn *websocket.Conn
+	conn    *websocket.Conn
+	writeMu sync.Mutex // serializes request writes; the connection allows one writer
 }
 
 // Open opens a chunk stream. When batchID is not empty it is sent as
@@ -91,6 +93,8 @@ func (s *ChunkStream) send(req *pb.Request, timeout time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("encode request: %w", err)
 	}
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
 	if err := s.conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
 		return fmt.Errorf("set write deadline: %w", err)
 	}

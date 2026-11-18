@@ -20,31 +20,34 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
 	"github.com/ethersphere/beekeeper/pkg/random"
+	"golang.org/x/sync/errgroup"
 )
 
 // Options represents check options
 type Options struct {
-	ChunkCount     int // CACs uploaded over the stream, in addition to one SOC
-	PostageTTL     time.Duration
-	PostageDepth   uint64
-	PostageLabel   string
-	RequestTimeout time.Duration // per websocket read or write
-	RetryCount     int           // download rounds for chunks reported as not found or unavailable
-	RetryDelay     time.Duration
-	Seed           int64
+	ChunkCount      int // CACs uploaded over the stream, in addition to one SOC
+	ParallelStreams int // streams that upload ChunkCount CACs each at the same time
+	PostageTTL      time.Duration
+	PostageDepth    uint64
+	PostageLabel    string
+	RequestTimeout  time.Duration // per websocket read or write
+	RetryCount      int           // download rounds for chunks reported as not found or unavailable
+	RetryDelay      time.Duration
+	Seed            int64
 }
 
 // NewDefaultOptions returns new default options
 func NewDefaultOptions() Options {
 	return Options{
-		ChunkCount:     10,
-		PostageTTL:     24 * time.Hour,
-		PostageDepth:   17,
-		PostageLabel:   "test-label",
-		RequestTimeout: 5 * time.Minute,
-		RetryCount:     3,
-		RetryDelay:     5 * time.Second,
-		Seed:           random.Int64(),
+		ChunkCount:      10,
+		ParallelStreams: 4,
+		PostageTTL:      24 * time.Hour,
+		PostageDepth:    17,
+		PostageLabel:    "test-label",
+		RequestTimeout:  5 * time.Minute,
+		RetryCount:      3,
+		RetryDelay:      5 * time.Second,
+		Seed:            random.Int64(),
 	}
 }
 
@@ -71,9 +74,9 @@ type chunk struct {
 }
 
 // Run uploads chunks to one full node over /chunks/stream and downloads them
-// from another full node over the same endpoint. It also checks a per-request
-// batch, a bad request that must not end the stream, and a chunk that does not
-// exist.
+// from another full node over the same endpoint. It also checks uploads over
+// several streams at the same time, a per-request batch, a bad request that
+// must not end the stream, and a chunk that does not exist.
 func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any) error {
 	o, ok := opts.(Options)
 	if !ok {
@@ -81,6 +84,9 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	}
 	if o.ChunkCount < 1 {
 		return fmt.Errorf("chunk-count must be at least 1, got %d", o.ChunkCount)
+	}
+	if o.ParallelStreams < 1 {
+		return fmt.Errorf("parallel-streams must be at least 1, got %d", o.ParallelStreams)
 	}
 	if o.RetryCount < 1 {
 		return fmt.Errorf("retry-count must be at least 1, got %d", o.RetryCount)
@@ -121,6 +127,24 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 
 	if err := c.upload(ctx, uploader, batchID, chunks, o); err != nil {
 		return fmt.Errorf("node %s: upload: %w", uploader.Name(), err)
+	}
+
+	parallel := make([][]chunk, o.ParallelStreams)
+	for i := range parallel {
+		parallel[i] = make([]chunk, 0, o.ChunkCount)
+		for range o.ChunkCount {
+			ch, err := randomCAC(rnd)
+			if err != nil {
+				return err
+			}
+			parallel[i] = append(parallel[i], ch)
+		}
+	}
+	if err := c.uploadParallel(ctx, uploader, batchID, parallel, o); err != nil {
+		return fmt.Errorf("node %s: parallel upload: %w", uploader.Name(), err)
+	}
+	for _, p := range parallel {
+		chunks = append(chunks, p...)
 	}
 
 	extra, err := randomCAC(rnd)
@@ -176,6 +200,29 @@ func (c *Check) upload(ctx context.Context, node *bee.Client, batchID string, ch
 		}
 	}
 	c.logger.Infof("node %s: uploaded %d chunks in %v", node.Name(), len(chunks), time.Since(start))
+
+	return nil
+}
+
+// uploadParallel uploads each set of chunks over its own stream, all streams
+// at the same time and pinned to the same batch.
+func (c *Check) uploadParallel(ctx context.Context, node *bee.Client, batchID string, sets [][]chunk, o Options) error {
+	start := time.Now()
+	eg, ctx := errgroup.WithContext(ctx)
+	total := 0
+	for i, set := range sets {
+		total += len(set)
+		eg.Go(func() error {
+			if err := c.upload(ctx, node, batchID, set, o); err != nil {
+				return fmt.Errorf("stream %d: %w", i, err)
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	c.logger.Infof("node %s: uploaded %d chunks over %d parallel streams in %v", node.Name(), total, len(sets), time.Since(start))
 
 	return nil
 }
