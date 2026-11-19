@@ -1,8 +1,5 @@
-// Package node provides node discovery and management capabilities for the beekeeper system.
-// It supports multiple discovery methods:
-// 1. BeeClients-based discovery (using pre-configured orchestration clients)
-// 2. Namespace-based discovery (using K8s services/ingress with label selectors)
-// 3. StatefulSet-based discovery (discovering nodes from statefulset names and replica counts)
+// Package node discovers Bee nodes from the cluster configuration, from the
+// services or ingresses of a namespace, or from the pods of statefulsets.
 package node
 
 import (
@@ -59,9 +56,9 @@ type ClientConfig struct {
 	LabelSelector    string
 	DeploymentType   DeploymentType
 	InCluster        bool
-	DiscoveryType    DiscoveryType // Discovery method: beeclients, namespace, or statefulset
-	NodeGroups       []string      // Node groups for filtering nodes (only used with beeclients discovery)
-	StatefulSetNames []string      // Names of statefulsets to discover nodes from (only used with statefulset discovery)
+	DiscoveryType    DiscoveryType
+	NodeGroups       []string // only used with beeclients discovery
+	StatefulSetNames []string // only used with statefulset discovery
 }
 
 type Client struct {
@@ -126,9 +123,6 @@ func (sc *Client) GetNodes(ctx context.Context) (nodes NodeList, err error) {
 		return sc.getStatefulSetNodes(ctx)
 
 	case DiscoveryTypeNamespace:
-		if sc.namespace == "" {
-			return nil, fmt.Errorf("namespace not provided for namespace discovery")
-		}
 		return sc.getNamespaceNodes(ctx)
 
 	case DiscoveryTypeBeeClients:
@@ -235,9 +229,8 @@ func (sc *Client) nodeName(name string) string {
 	return name
 }
 
-// getStatefulSetNodes discovers nodes from the pods of the configured
-// statefulsets. A statefulset or a pod that can not be resolved is logged and
-// skipped, the discovery fails only if no node is found at all.
+// getStatefulSetNodes returns a node for every pod of the configured
+// statefulsets. Statefulsets and pods that can not be resolved are skipped.
 func (sc *Client) getStatefulSetNodes(ctx context.Context) (NodeList, error) {
 	if sc.k8sClient == nil {
 		return nil, fmt.Errorf("k8s client not provided")
@@ -279,7 +272,6 @@ func (sc *Client) getStatefulSetNodes(ctx context.Context) (NodeList, error) {
 	return nodes.Sort(), nil
 }
 
-// getNodesFromStatefulSet returns a node for every replica of the statefulset.
 func (sc *Client) getNodesFromStatefulSet(ctx context.Context, name string) ([]Node, error) {
 	ss, err := sc.k8sClient.StatefulSet.Get(ctx, name, sc.namespace)
 	if err != nil {
@@ -332,9 +324,8 @@ func (sc *Client) getNodesFromStatefulSet(ctx context.Context, name string) ([]N
 	return nodes, nil
 }
 
-// statefulSetEndpoints returns API endpoints of the resources that belong to
-// the same instance as the statefulset, keyed by the resource name. Services
-// are used inside of the cluster, Ingresses and IngressRoutes outside of it.
+// statefulSetEndpoints returns API endpoints, keyed by resource name, of the
+// services (in cluster) or ingresses that share the statefulset instance label.
 func (sc *Client) statefulSetEndpoints(ctx context.Context, ss *appsv1.StatefulSet) map[string]string {
 	instance := ss.Labels[instanceLabel]
 	if instance == "" {
@@ -372,9 +363,8 @@ func (sc *Client) statefulSetEndpoints(ctx context.Context, ss *appsv1.StatefulS
 	return endpoints
 }
 
-// podEndpoint returns the API endpoint of the pod. A resource named after the
-// pod is used first (Helm deployment), then a resource named after a single
-// replica statefulset (Beekeeper deployment), and the pod IP otherwise.
+// podEndpoint returns the endpoint named after the pod (Helm), or after a
+// single replica statefulset (Beekeeper), and falls back to the pod IP.
 func (sc *Client) podEndpoint(pod *v1.Pod, statefulSetName string, replicas int, endpoints map[string]string) (string, error) {
 	if endpoint, ok := endpoints[pod.Name]; ok {
 		return endpoint, nil
@@ -395,7 +385,6 @@ func (sc *Client) podEndpoint(pod *v1.Pod, statefulSetName string, replicas int,
 	return fmt.Sprintf("http://%s", net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(podAPIPort(pod)))), nil
 }
 
-// podAPIPort returns the container port named api, or the default Bee API port.
 func podAPIPort(pod *v1.Pod) int {
 	for _, container := range pod.Spec.Containers {
 		for _, port := range container.Ports {

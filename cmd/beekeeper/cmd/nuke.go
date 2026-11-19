@@ -34,10 +34,7 @@ This command provides StatefulSet update and rollback procedures to maintain clu
 
 The command supports two modes:
 - Default mode: Uses NodeProvider to find Bee nodes (see --discovery-type)
-- StatefulSet names mode: Directly targets specific StatefulSets by name (useful for bootnodes)
-
-With --discovery-type=statefulset the StatefulSets listed in --stateful-sets are used to discover the nodes
-for the default mode, which makes --use-random-neighborhood available for them.`,
+- StatefulSet names mode: Directly targets specific StatefulSets by name (useful for bootnodes)`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
 				if !c.globalConfig.GetBool(optionNameEnableK8S) {
@@ -61,8 +58,7 @@ for the default mode, which makes --use-random-neighborhood available for them.`
 
 				statefulSetNames := c.globalConfig.GetStringSlice(optionNameStatefulSets)
 				restartArgs := c.globalConfig.GetStringSlice(optionNameRestartArgs)
-				// StatefulSets are targeted directly by name, unless they are
-				// used for node discovery.
+				// target StatefulSets directly, unless they are used for node discovery
 				discoveryType := node.DiscoveryType(c.globalConfig.GetString(optionNameDiscoveryType))
 				if len(statefulSetNames) > 0 && discoveryType != node.DiscoveryTypeStatefulSet {
 					namespace := nodeClient.Namespace()
@@ -91,7 +87,7 @@ for the default mode, which makes --use-random-neighborhood available for them.`
 	cmd.Flags().StringSlice(optionNameRestartArgs, []string{"bee", "start", "--config=.bee.yaml"}, "Command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml'")
 	cmd.Flags().Bool(optionNameUseRandomNeighboorhood, false, "Use random neighborhood for Bee nodes (default: false)")
 	cmd.Flags().String(optionNameDeploymentType, string(node.DeploymentTypeBeekeeper), "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
-	cmd.Flags().StringSlice(optionNameStatefulSets, nil, "List of StatefulSet names to target for nuke (e.g., 'bootnode-0,bootnode-1'). When provided, uses direct StatefulSet targeting instead of NodeProvider, unless --discovery-type=statefulset is set, in which case nodes are discovered from the pods of these StatefulSets.")
+	cmd.Flags().StringSlice(optionNameStatefulSets, nil, "List of StatefulSet names to target for nuke (e.g., 'bootnode-0,bootnode-1'). When provided, uses direct StatefulSet targeting instead of NodeProvider, unless --discovery-type=statefulset is set.")
 	addDiscoveryTypeFlag(cmd)
 	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
 	cmd.Flags().Bool(optionNameForgetOverlay, false, "Forget the overlay and deploy a new chequebook on next boot-up.")

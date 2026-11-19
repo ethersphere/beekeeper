@@ -12,8 +12,6 @@ import (
 
 const optionNameDiscoveryType = "discovery-type"
 
-// addDiscoveryTypeFlag registers the --discovery-type flag on a command that
-// resolves its target nodes through createNodeClient.
 func addDiscoveryTypeFlag(cmd *cobra.Command) {
 	cmd.Flags().String(optionNameDiscoveryType, "", fmt.Sprintf(
 		"How Bee nodes are discovered: '%s' (Beekeeper cluster config, requires --cluster-name), '%s' (services/ingresses matching --label-selector) or '%s' (pods of the StatefulSets listed in --%s). If not set, '%s' is used when --namespace is set, otherwise '%s'.",
@@ -22,8 +20,6 @@ func addDiscoveryTypeFlag(cmd *cobra.Command) {
 	))
 }
 
-// addStatefulSetsFlag registers the --stateful-sets flag used by the
-// statefulset discovery type.
 func addStatefulSetsFlag(cmd *cobra.Command) {
 	cmd.Flags().StringSlice(optionNameStatefulSets, nil, fmt.Sprintf(
 		"List of StatefulSet names to discover nodes from (e.g., 'bootnode-0,bootnode-1'). Only used with --%s=%s.",
@@ -31,7 +27,6 @@ func addStatefulSetsFlag(cmd *cobra.Command) {
 	))
 }
 
-// nodeClientConfig holds the node client options read from the command flags.
 type nodeClientConfig struct {
 	namespace        string
 	clusterName      string
@@ -66,7 +61,6 @@ func (c *command) createNodeClient(ctx context.Context, useDeploymentType bool) 
 			return nil, fmt.Errorf("failed to retrieve node clients: %w", err)
 		}
 
-		// the namespace of the cluster is used for all Kubernetes operations
 		config.namespace = cluster.Namespace()
 	}
 
@@ -87,8 +81,7 @@ func (c *command) createNodeClient(ctx context.Context, useDeploymentType bool) 
 	}), nil
 }
 
-// nodeClientConfig reads and validates the node client options before any
-// cluster is set up, so that invalid flag combinations fail fast.
+// nodeClientConfig reads and validates the node client flags.
 func (c *command) nodeClientConfig(useDeploymentType bool) (nodeClientConfig, error) {
 	config := nodeClientConfig{
 		namespace:        c.globalConfig.GetString(optionNameNamespace),
@@ -128,9 +121,8 @@ func (c *command) nodeClientConfig(useDeploymentType bool) (nodeClientConfig, er
 	return config, nil
 }
 
-// resolveDiscoveryType returns the discovery type to use. When it is not
-// requested explicitly, an explicitly set namespace selects the namespace
-// discovery, and the bee clients of the cluster are used otherwise.
+// resolveDiscoveryType returns the requested discovery type. If none is
+// requested, a set namespace takes precedence over the cluster bee clients.
 func resolveDiscoveryType(requested node.DiscoveryType, namespaceSet bool, clusterName string, statefulSetNames []string) (node.DiscoveryType, error) {
 	switch requested {
 	case "":

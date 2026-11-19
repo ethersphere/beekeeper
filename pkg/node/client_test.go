@@ -104,8 +104,7 @@ func TestGetNodes_StatefulSet(t *testing.T) {
 		wantErr          error
 	}{
 		{
-			// Beekeeper deployment: one StatefulSet with a single replica per
-			// node, the api service is named after the StatefulSet.
+			// Beekeeper: one single replica StatefulSet per node
 			name: "beekeeper in cluster uses service named after statefulset",
 			objects: []runtime.Object{
 				newStatefulSet("bee-0", "bee-0", 1),
@@ -136,9 +135,7 @@ func TestGetNodes_StatefulSet(t *testing.T) {
 			},
 		},
 		{
-			// Helm deployment: one StatefulSet with many replicas, resources
-			// of all replicas share the instance label and are named after
-			// the pods.
+			// Helm: one StatefulSet, resources are named after the pods
 			name: "helm resolves an endpoint per replica",
 			objects: []runtime.Object{
 				newStatefulSet("swarm-bee", "swarm", 2),
