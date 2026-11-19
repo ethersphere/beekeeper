@@ -419,6 +419,8 @@ It has the following flags:
 --label-selector string            Kubernetes label selector for filtering resources when namespace is set (use empty string for all). (default "app.kubernetes.io/name=bee")
 --restart-args strings             Command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml' (default [bee,start,--config=.bee.yaml])
 --use-random-neighborhood          Use random neighborhood for Bee nodes (default: false)
+--stateful-sets strings            List of StatefulSet names to target for nuke (e.g., 'bootnode-0,bootnode-1'). Targets the StatefulSets directly, unless --discovery-type=statefulset is set.
+--discovery-type string            How Bee nodes are discovered: 'beeclients', 'namespace' or 'statefulset' (see Node discovery).
 --timeout duration                 timeout (default 30m0s)
 ```
 
@@ -486,6 +488,26 @@ example:
 beekeeper version
 ```
 
+### Node discovery
+
+Commands **nuke**, **restart**, **node-funder** and **stamper** find the Bee nodes they operate on in one of three ways, selected with the `--discovery-type` flag:
+
+| Type          | Nodes are taken from                                                                  | Requires                                 |
+|---------------|---------------------------------------------------------------------------------------|------------------------------------------|
+| `beeclients`  | Beekeeper cluster configuration, optionally filtered with `--node-groups`             | `--cluster-name`                         |
+| `namespace`   | Services (with `--in-cluster`) or Ingresses/IngressRoutes matching `--label-selector` | `--namespace` or `--cluster-name`        |
+| `statefulset` | Pods of the StatefulSets listed in `--stateful-sets`                                  | `--stateful-sets` and one of the above   |
+
+If `--discovery-type` is not set, `namespace` is used when `--namespace` is set, and `beeclients` otherwise. When `--cluster-name` is set, the namespace of that cluster is used.
+
+The `statefulset` discovery returns one node per replica, named after the pod, so it works both for Beekeeper deployments (one StatefulSet with a single replica per node) and for Helm deployments (one StatefulSet with many replicas). The API endpoint of a pod is taken from the Service (with `--in-cluster`) or the Ingress/IngressRoute that has the same `app.kubernetes.io/instance` label as the StatefulSet and is named after the pod, or after the StatefulSet when it has a single replica. If there is none, the pod IP is used, which is reachable only from inside of the cluster; this is still sufficient for commands that do not call the Bee API, such as **restart**. StatefulSets and pods that can not be resolved are logged and skipped.
+
+```bash
+beekeeper restart --namespace=default --discovery-type=statefulset --stateful-sets="bootnode-0,bootnode-1"
+
+beekeeper stamper topup --namespace=default --discovery-type=statefulset --stateful-sets="bee" --topup-to=720h
+```
+
 ### node-funder
 
 Command **node-funder** uses the <https://github.com/ethersphere/node-funder> tool to fund (top up) bee nodes up to the specified amount. It can fund all nodes in a k8s namespace or only specified addresses.
@@ -501,6 +523,8 @@ It has following flags:
 --min-swarm float           Minimum amount of swarm tokens (xBZZ) nodes should have.
 --namespace string          Kubernetes namespace. Overrides cluster name if set.
 --periodic-check duration   Periodic execution check interval.
+--discovery-type string     How Bee nodes are discovered: 'beeclients', 'namespace' or 'statefulset' (see Node discovery).
+--stateful-sets strings     List of StatefulSet names to discover nodes from. Only used with --discovery-type=statefulset.
 --timeout duration          Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
 --wallet-key string         Hex-encoded private key for the Bee node wallet. Required.
 ```
@@ -559,6 +583,8 @@ It has following flags:
 --node-groups strings     Comma-separated list of node groups to target for restarts (applies to all groups if not set).
 --timeout duration        Operation timeout (e.g., 5s, 10m, 1.5h). (default 5m0s)
 --deployment-type string  Indicates how the cluster was deployed: 'beekeeper' or 'helm'. (default "beekeeper")
+--discovery-type string   How Bee nodes are discovered: 'beeclients', 'namespace' or 'statefulset' (see Node discovery).
+--stateful-sets strings   List of StatefulSet names to discover nodes from. Only used with --discovery-type=statefulset.
 ```
 
 example:
@@ -582,6 +608,7 @@ General Notes:
 - `namespace` or `cluster-name` must be specified to locate the bee nodes.
 - If both are provided, `namespace` takes precedence.
 - When `namespace` is set, you can use a `label-selector` to filter specific nodes.
+- All subcommands accept `discovery-type` and `stateful-sets` to select how nodes are found (see [Node discovery](#node-discovery)).
 - Use `batch-ids` to target specific postage batches; this is applied after finding/filtering nodes. If `batch-ids` is not provided, all batches in the filtered nodes are targeted.
 - If `timeout` is set to 0 and `periodic-check` is greater than 0, the operation will run indefinitely with periodic checks.
 

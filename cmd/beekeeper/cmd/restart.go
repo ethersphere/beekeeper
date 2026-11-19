@@ -32,6 +32,7 @@ Restart options:
 • Use --image to specify a new container image for the restarted pods
 • Use --node-groups to target specific node groups within a cluster
 • Use --label-selector to filter which pods to restart in a namespace
+• Use --discovery-type=statefulset with --stateful-sets to restart the pods of specific StatefulSets
 
 This command is useful for:
 • Applying configuration changes that require pod restart
@@ -72,6 +73,8 @@ Requires either --cluster-name or --namespace to be specified.`,
 	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for restarts (applies to all groups if not set). Only used with --cluster-name.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 	cmd.Flags().String(optionNameDeploymentType, "beekeeper", "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
+	addDiscoveryTypeFlag(cmd)
+	addStatefulSetsFlag(cmd)
 
 	c.root.AddCommand(cmd)
 

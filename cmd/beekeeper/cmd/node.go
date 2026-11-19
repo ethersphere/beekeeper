@@ -7,126 +7,151 @@ import (
 
 	"github.com/ethersphere/beekeeper/pkg/bee"
 	"github.com/ethersphere/beekeeper/pkg/node"
+	"github.com/spf13/cobra"
 )
 
+const optionNameDiscoveryType = "discovery-type"
+
+// addDiscoveryTypeFlag registers the --discovery-type flag on a command that
+// resolves its target nodes through createNodeClient.
+func addDiscoveryTypeFlag(cmd *cobra.Command) {
+	cmd.Flags().String(optionNameDiscoveryType, "", fmt.Sprintf(
+		"How Bee nodes are discovered: '%s' (Beekeeper cluster config, requires --cluster-name), '%s' (services/ingresses matching --label-selector) or '%s' (pods of the StatefulSets listed in --%s). If not set, '%s' is used when --namespace is set, otherwise '%s'.",
+		node.DiscoveryTypeBeeClients, node.DiscoveryTypeNamespace, node.DiscoveryTypeStatefulSet, optionNameStatefulSets,
+		node.DiscoveryTypeNamespace, node.DiscoveryTypeBeeClients,
+	))
+}
+
+// addStatefulSetsFlag registers the --stateful-sets flag used by the
+// statefulset discovery type.
+func addStatefulSetsFlag(cmd *cobra.Command) {
+	cmd.Flags().StringSlice(optionNameStatefulSets, nil, fmt.Sprintf(
+		"List of StatefulSet names to discover nodes from (e.g., 'bootnode-0,bootnode-1'). Only used with --%s=%s.",
+		optionNameDiscoveryType, node.DiscoveryTypeStatefulSet,
+	))
+}
+
+// nodeClientConfig holds the node client options read from the command flags.
+type nodeClientConfig struct {
+	namespace        string
+	clusterName      string
+	labelSelector    string
+	deploymentType   string
+	inCluster        bool
+	nodeGroups       []string
+	statefulSetNames []string
+	discoveryType    node.DiscoveryType
+}
+
 func (c *command) createNodeClient(ctx context.Context, useDeploymentType bool) (*node.Client, error) {
-	if err := c.validateNodeClientInputs(useDeploymentType); err != nil {
-		return nil, err
-	}
-
-	config := c.extractNodeClientConfig()
-
-	beeClients, namespace, err := c.setupBeeClients(ctx, config.clusterName)
+	config, err := c.nodeClientConfig(useDeploymentType)
 	if err != nil {
 		return nil, err
 	}
-
-	// Update namespace if we got it from cluster
-	// Namespace is required for all K8s operations (pods, statefulsets, services, ingress)
-	if namespace != "" {
-		config.namespace = namespace
-	}
-
-	discoveryType := c.determineDiscoveryType(beeClients, config.namespace)
 
 	if useDeploymentType {
 		c.log.Infof("using deployment type %s", config.deploymentType)
 	}
 
-	return c.buildNodeClient(beeClients, config, discoveryType), nil
-}
+	var beeClients map[string]*bee.Client
 
-// nodeClientConfig holds the extracted configuration values
-type nodeClientConfig struct {
-	namespace      string
-	clusterName    string
-	labelSelector  string
-	deploymentType string
-	inCluster      bool
-	nodeGroups     []string
-}
+	if config.clusterName != "" {
+		cluster, err := c.setupCluster(ctx, config.clusterName, false)
+		if err != nil {
+			return nil, fmt.Errorf("setting up cluster %s: %w", config.clusterName, err)
+		}
 
-// validateNodeClientInputs validates the input parameters for node client creation
-func (c *command) validateNodeClientInputs(useDeploymentType bool) error {
-	namespace := c.globalConfig.GetString(optionNameNamespace)
-	clusterName := c.globalConfig.GetString(optionNameClusterName)
+		beeClients, err = cluster.NodesClients(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve node clients: %w", err)
+		}
 
-	if clusterName == "" && namespace == "" {
-		return errors.New("either cluster name or namespace must be provided")
+		// the namespace of the cluster is used for all Kubernetes operations
+		config.namespace = cluster.Namespace()
 	}
 
-	if c.globalConfig.IsSet(optionNameNamespace) && namespace == "" {
-		return errors.New("namespace cannot be empty if set")
-	}
+	c.log.Infof("using discovery type %s", config.discoveryType)
 
-	if namespace == "" && useDeploymentType && !isValidDeploymentType(c.globalConfig.GetString(optionNameDeploymentType)) {
-		return errors.New("unsupported deployment type: must be 'beekeeper' or 'helm'")
-	}
-
-	// Note: Namespace will be available either from:
-	// 1. Explicit configuration (optionNameNamespace)
-	// 2. Cluster setup (cluster.Namespace())
-	// This ensures all K8s operations (pods, statefulsets, services, ingress) have the required namespace
-
-	return nil
-}
-
-// extractNodeClientConfig extracts configuration values from global config
-func (c *command) extractNodeClientConfig() nodeClientConfig {
-	return nodeClientConfig{
-		namespace:      c.globalConfig.GetString(optionNameNamespace),
-		clusterName:    c.globalConfig.GetString(optionNameClusterName),
-		labelSelector:  c.globalConfig.GetString(optionNameLabelSelector),
-		deploymentType: c.globalConfig.GetString(optionNameDeploymentType),
-		inCluster:      c.globalConfig.GetBool(optionNameInCluster),
-		nodeGroups:     c.globalConfig.GetStringSlice(optionNameNodeGroups),
-	}
-}
-
-// setupBeeClients sets up bee clients if cluster is specified
-func (c *command) setupBeeClients(ctx context.Context, clusterName string) (map[string]*bee.Client, string, error) {
-	if clusterName == "" {
-		return nil, "", nil
-	}
-
-	cluster, err := c.setupCluster(ctx, clusterName, false)
-	if err != nil {
-		return nil, "", fmt.Errorf("setting up cluster %s: %w", clusterName, err)
-	}
-
-	beeClients, err := cluster.NodesClients(ctx)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to retrieve node clients: %w", err)
-	}
-
-	return beeClients, cluster.Namespace(), nil
-}
-
-// determineDiscoveryType determines the discovery type based on available resources
-func (c *command) determineDiscoveryType(beeClients map[string]*bee.Client, namespace string) node.DiscoveryType {
-	if len(beeClients) > 0 {
-		return node.DiscoveryTypeBeeClients
-	}
-
-	if namespace != "" {
-		return node.DiscoveryTypeNamespace
-	}
-
-	return node.DiscoveryTypeNamespace
-}
-
-// buildNodeClient creates the node client with the provided configuration
-func (c *command) buildNodeClient(beeClients map[string]*bee.Client, config nodeClientConfig, discoveryType node.DiscoveryType) *node.Client {
 	return node.New(&node.ClientConfig{
-		Log:            c.log,
-		HTTPClient:     c.httpClient,
-		K8sClient:      c.k8sClient,
-		BeeClients:     beeClients,
-		Namespace:      config.namespace,
-		LabelSelector:  config.labelSelector,
-		DeploymentType: node.DeploymentType(config.deploymentType),
-		InCluster:      config.inCluster,
-		DiscoveryType:  discoveryType,
-		NodeGroups:     config.nodeGroups,
-	})
+		Log:              c.log,
+		HTTPClient:       c.httpClient,
+		K8sClient:        c.k8sClient,
+		BeeClients:       beeClients,
+		Namespace:        config.namespace,
+		LabelSelector:    config.labelSelector,
+		DeploymentType:   node.DeploymentType(config.deploymentType),
+		InCluster:        config.inCluster,
+		DiscoveryType:    config.discoveryType,
+		NodeGroups:       config.nodeGroups,
+		StatefulSetNames: config.statefulSetNames,
+	}), nil
+}
+
+// nodeClientConfig reads and validates the node client options before any
+// cluster is set up, so that invalid flag combinations fail fast.
+func (c *command) nodeClientConfig(useDeploymentType bool) (nodeClientConfig, error) {
+	config := nodeClientConfig{
+		namespace:        c.globalConfig.GetString(optionNameNamespace),
+		clusterName:      c.globalConfig.GetString(optionNameClusterName),
+		labelSelector:    c.globalConfig.GetString(optionNameLabelSelector),
+		deploymentType:   c.globalConfig.GetString(optionNameDeploymentType),
+		inCluster:        c.globalConfig.GetBool(optionNameInCluster),
+		nodeGroups:       c.globalConfig.GetStringSlice(optionNameNodeGroups),
+		statefulSetNames: c.globalConfig.GetStringSlice(optionNameStatefulSets),
+	}
+
+	if config.clusterName == "" && config.namespace == "" {
+		return config, errors.New("either cluster name or namespace must be provided")
+	}
+
+	namespaceSet := c.globalConfig.IsSet(optionNameNamespace)
+
+	if namespaceSet && config.namespace == "" {
+		return config, errors.New("namespace cannot be empty if set")
+	}
+
+	if config.namespace == "" && useDeploymentType && !isValidDeploymentType(config.deploymentType) {
+		return config, errors.New("unsupported deployment type: must be 'beekeeper' or 'helm'")
+	}
+
+	discoveryType, err := resolveDiscoveryType(
+		node.DiscoveryType(c.globalConfig.GetString(optionNameDiscoveryType)),
+		namespaceSet,
+		config.clusterName,
+		config.statefulSetNames,
+	)
+	if err != nil {
+		return config, err
+	}
+	config.discoveryType = discoveryType
+
+	return config, nil
+}
+
+// resolveDiscoveryType returns the discovery type to use. When it is not
+// requested explicitly, an explicitly set namespace selects the namespace
+// discovery, and the bee clients of the cluster are used otherwise.
+func resolveDiscoveryType(requested node.DiscoveryType, namespaceSet bool, clusterName string, statefulSetNames []string) (node.DiscoveryType, error) {
+	switch requested {
+	case "":
+		if namespaceSet {
+			return node.DiscoveryTypeNamespace, nil
+		}
+		return node.DiscoveryTypeBeeClients, nil
+	case node.DiscoveryTypeBeeClients:
+		if clusterName == "" {
+			return "", fmt.Errorf("discovery type %s requires --%s", requested, optionNameClusterName)
+		}
+		return requested, nil
+	case node.DiscoveryTypeNamespace:
+		return requested, nil
+	case node.DiscoveryTypeStatefulSet:
+		if len(statefulSetNames) == 0 {
+			return "", fmt.Errorf("discovery type %s requires --%s", requested, optionNameStatefulSets)
+		}
+		return requested, nil
+	default:
+		return "", fmt.Errorf("unsupported discovery type %q: must be '%s', '%s' or '%s'",
+			requested, node.DiscoveryTypeBeeClients, node.DiscoveryTypeNamespace, node.DiscoveryTypeStatefulSet)
+	}
 }

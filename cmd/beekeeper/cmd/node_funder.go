@@ -43,6 +43,7 @@ The command ensures nodes maintain minimum balances for:
 
 Use --periodic-check to set up continuous funding monitoring.
 Use --label-selector to filter nodes within a namespace.
+Use --discovery-type=statefulset with --stateful-sets to fund the nodes of specific StatefulSets.
 Requires --wallet-key for the funding account and --geth-url for blockchain access.`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
@@ -126,6 +127,8 @@ Requires --wallet-key for the funding account and --geth-url for blockchain acce
 	cmd.Flags().StringSlice(optionNameNodeGroups, nil, "List of node groups to target for node-funder (applies to all groups if not set). Only used with --cluster-name.")
 	cmd.Flags().Duration(optionNameTimeout, 5*time.Minute, "Operation timeout (e.g., 5s, 10m, 1.5h).")
 	cmd.Flags().Duration(optionNamePeriodicCheck, 0*time.Minute, "Periodic execution check interval.")
+	addDiscoveryTypeFlag(cmd)
+	addStatefulSetsFlag(cmd)
 
 	c.root.AddCommand(cmd)
 
