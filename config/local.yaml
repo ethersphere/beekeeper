@@ -427,6 +427,19 @@ checks:
       seed:
       data-size:
     type: redundancy
+  ci-erasurecoding:
+    options:
+      postage-ttl: 24h
+      postage-depth: 22
+      postage-label: test-label
+      seed:
+      data-size:
+      bulk-data-size: 4194304
+      upload-concurrency:
+      chunk-retrieval-timeout:
+      use-simd: true
+    timeout: 30m
+    type: erasurecoding
   ci-gsoc:
     options:
       postage-ttl: 24h

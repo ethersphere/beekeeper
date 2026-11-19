@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/ethersphere/bee/v2/pkg/file/redundancy"
 	"github.com/ethersphere/bee/v2/pkg/swarm"
 )
@@ -27,5 +29,6 @@ type DownloadOptions struct {
 	Cache                  *bool
 	RLevel                 *redundancy.Level
 	RedundancyFallbackMode *bool
+	ChunkRetrievalTimeout  *time.Duration
 	OnlyRootChunk          *bool
 }

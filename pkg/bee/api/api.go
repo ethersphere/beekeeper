@@ -33,6 +33,7 @@ const (
 	swarmIndexDocumentHeader    = "Swarm-Index-Document"
 	swarmErrorDocumentHeader    = "Swarm-Error-Document"
 	swarmRedundancyLevelHeader  = "Swarm-Redundancy-Level"
+	swarmChunkRetrievalTimeout  = "Swarm-Chunk-Retrieval-Timeout"
 )
 
 // Client manages communication with the Bee API.
@@ -229,6 +230,9 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 	}
 	if opts != nil && opts.RedundancyFallbackMode != nil {
 		req.Header.Set(swarmRedundancyFallbackMode, strconv.FormatBool(*opts.RedundancyFallbackMode))
+	}
+	if opts != nil && opts.ChunkRetrievalTimeout != nil {
+		req.Header.Set(swarmChunkRetrievalTimeout, opts.ChunkRetrievalTimeout.String())
 	}
 	r, err := c.httpClient.Do(req)
 	if err != nil {
