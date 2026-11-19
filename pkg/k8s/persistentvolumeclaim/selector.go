@@ -11,7 +11,12 @@ type Selector struct {
 }
 
 // toK8S converts Selector to Kubernetes client object
+// An empty selector converts to nil: dynamic provisioners such as
+// rancher.io/local-path reject claims that carry any selector, even an empty one.
 func (s *Selector) toK8S() *metav1.LabelSelector {
+	if len(s.MatchLabels) == 0 && len(s.MatchExpressions) == 0 {
+		return nil
+	}
 	return &metav1.LabelSelector{
 		MatchLabels:      s.MatchLabels,
 		MatchExpressions: s.MatchExpressions.toK8S(),
