@@ -9,16 +9,13 @@ import (
 
 var userAgent = "beekeeper/" + beekeeper.Version
 
-// ClientOptions configures the client returned by NewClient.
+// ClientOptions configures NewClient.
 type ClientOptions struct {
-	// InsecureSkipVerify disables TLS certificate verification.
 	InsecureSkipVerify bool
 }
 
-// NewClient returns an HTTP client that sets the beekeeper User-Agent on every
-// request. A transport pools connections per host, so a single client is meant
-// to be shared by all clients that talk to Bee nodes with the same TLS
-// settings, regardless of how many nodes (hosts) they address.
+// NewClient returns a client that sets the beekeeper User-Agent. Share one
+// client across nodes; its transport pools connections per host.
 func NewClient(o ClientOptions) *http.Client {
 	t := newTransport()
 	if o.InsecureSkipVerify {
@@ -30,36 +27,33 @@ func NewClient(o ClientOptions) *http.Client {
 	}
 }
 
-// newTransport returns a copy of http.DefaultTransport, keeping its proxy,
-// timeout, connection pool and HTTP/2 defaults.
+// newTransport clones http.DefaultTransport to keep its timeout and pool defaults.
 func newTransport() *http.Transport {
 	if t, ok := http.DefaultTransport.(*http.Transport); ok {
 		return t.Clone()
 	}
 
-	// http.DefaultTransport was replaced with a different implementation.
 	return &http.Transport{
 		Proxy:             http.ProxyFromEnvironment,
 		ForceAttemptHTTP2: true,
 	}
 }
 
-// HeaderRoundTripper sets the beekeeper User-Agent header on outgoing requests
-// and delegates them to Next, or to http.DefaultTransport if Next is nil.
+// HeaderRoundTripper sets the beekeeper User-Agent header. A nil Next means
+// http.DefaultTransport.
 type HeaderRoundTripper struct {
 	Next http.RoundTripper
 }
 
 func (hrt *HeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	// A RoundTripper must not modify the request it was given.
+	// RoundTrip must not modify the caller's request.
 	req = req.Clone(req.Context())
 	req.Header.Set("User-Agent", userAgent)
 
 	return hrt.next().RoundTrip(req)
 }
 
-// CloseIdleConnections closes idle connections of Next, so that
-// http.Client.CloseIdleConnections reaches the wrapped transport.
+// CloseIdleConnections lets http.Client.CloseIdleConnections reach Next.
 func (hrt *HeaderRoundTripper) CloseIdleConnections() {
 	type closeIdler interface{ CloseIdleConnections() }
 

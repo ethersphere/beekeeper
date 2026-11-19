@@ -16,8 +16,6 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/httpx"
 )
 
-// newConnCountingServer starts a server that counts the TCP connections it
-// accepts, so tests can tell whether the client reuses keep-alive connections.
 func newConnCountingServer(t *testing.T, h http.Handler) (*httptest.Server, *atomic.Int64) {
 	t.Helper()
 
@@ -53,9 +51,7 @@ func newAPIClient(t *testing.T, rawURL string, httpClient *http.Client) *api.Cli
 func TestClient_ReusesConnections(t *testing.T) {
 	const requests = 5
 
-	// A body large enough that it is not consumed as a side effect of reading
-	// the response headers, so the connection is only reusable if the client
-	// drains and closes the body itself.
+	// Larger than the transport's read buffer, so only an explicit drain reads it.
 	largeBody := strings.Repeat("x", 16<<10)
 	overlay := swarm.MustParseHexAddress("ca1e")
 
@@ -197,7 +193,7 @@ func TestClient_UploadSendsContentLength(t *testing.T) {
 
 			c := newAPIClient(t, srv.URL, srv.Client())
 
-			// A reader whose length net/http cannot infer, as used by bee.Client.
+			// net/http cannot infer a TeeReader's length, unlike a strings.Reader.
 			body := io.TeeReader(strings.NewReader(data), io.Discard)
 			if err := tt.upload(t.Context(), c, body, int64(len(data))); err != nil {
 				t.Fatal(err)

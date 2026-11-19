@@ -53,10 +53,9 @@ func NewCluster(name string, o orchestration.ClusterOptions, k8s *k8s.Client, sw
 		opts:             o,
 		nodeGroups:       make(map[string]orchestration.NodeGroup),
 		log:              log,
-		// One client, and so one connection pool, for every node in the cluster.
-		httpClient: httpx.NewClient(httpx.ClientOptions{InsecureSkipVerify: o.APIInsecureTLS}),
-		k8sClient:  k8s,
-		swapClient: swapClient,
+		httpClient:       httpx.NewClient(httpx.ClientOptions{InsecureSkipVerify: o.APIInsecureTLS}),
+		k8sClient:        k8s,
+		swapClient:       swapClient,
 	}
 }
 

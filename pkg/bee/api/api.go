@@ -239,7 +239,6 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 		return nil, nil, err
 	}
 
-	// The caller owns the body and must close it.
 	return r.Body, r.Header, nil
 }
 
@@ -258,9 +257,7 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	req.Header = header
 	req.Header.Add("Accept", contentType)
 
-	// net/http ignores a Content-Length header on outgoing requests and sends
-	// the length from req.ContentLength, which it can infer only for a few
-	// in-memory reader types; for others the body would be sent chunked.
+	// net/http ignores the Content-Length header and sends req.ContentLength.
 	if cl := req.Header.Get("Content-Length"); cl != "" {
 		n, err := strconv.ParseInt(cl, 10, 64)
 		if err != nil {
@@ -292,14 +289,10 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	return nil
 }
 
-// maxDrainBytes bounds how much of an unread response body drainAndClose
-// discards. Reading the remainder lets the transport reuse the connection; a
-// larger remainder is not worth reading, and closing the body then closes the
-// connection instead.
 const maxDrainBytes = 64 << 10
 
-// drainAndClose discards up to maxDrainBytes of the remaining body and closes
-// it, so the underlying keep-alive connection can return to the idle pool.
+// drainAndClose reads the rest of the body, up to maxDrainBytes, and closes it
+// so the connection can be reused.
 func drainAndClose(body io.ReadCloser) {
 	_, _ = io.Copy(io.Discard, io.LimitReader(body, maxDrainBytes))
 	_ = body.Close()

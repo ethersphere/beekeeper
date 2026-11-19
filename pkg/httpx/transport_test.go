@@ -22,7 +22,6 @@ func TestHeaderRoundTripper(t *testing.T) {
 	}
 	req.Header.Set("User-Agent", "caller")
 
-	// Next is nil, so the request goes through http.DefaultTransport.
 	resp, err := (&httpx.HeaderRoundTripper{}).RoundTrip(req)
 	if err != nil {
 		t.Fatal(err)
