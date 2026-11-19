@@ -64,8 +64,8 @@ bee-configs:
     welcome-message: Welcome to the bee-playground!
   geth-playground-bootnode:
     _inherit: "geth-playground"
-    bootnode-mode: true
-    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
+    node-mode: bootnode
+    storage-incentives-enable: false # overrides the inherited true, which bee warns has no effect on a bootnode
 
 checks:
   pg-pingpong:

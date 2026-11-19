@@ -73,6 +73,7 @@ func TestNodeModeHelpers(t *testing.T) {
 		wantFull       bool
 		wantLight      bool
 		wantUltraLight bool
+		wantBootnode   bool
 	}{
 		{
 			name:           "explicit node-mode full",
@@ -94,6 +95,30 @@ func TestNodeModeHelpers(t *testing.T) {
 			wantFull:       false,
 			wantLight:      false,
 			wantUltraLight: true,
+		},
+		{
+			name:           "explicit node-mode bootnode",
+			cfg:            orchestration.Config{NodeMode: strPtr("bootnode")},
+			wantFull:       true,
+			wantLight:      false,
+			wantUltraLight: false,
+			wantBootnode:   true,
+		},
+		{
+			name:           "node-mode full with deprecated bootnode-mode",
+			cfg:            orchestration.Config{NodeMode: strPtr("full"), BootnodeMode: boolPtr(true)},
+			wantFull:       true,
+			wantLight:      false,
+			wantUltraLight: false,
+			wantBootnode:   true,
+		},
+		{
+			name:           "legacy full-node with bootnode-mode",
+			cfg:            orchestration.Config{FullNode: boolPtr(true), BootnodeMode: boolPtr(true)},
+			wantFull:       true,
+			wantLight:      false,
+			wantUltraLight: false,
+			wantBootnode:   true,
 		},
 		{
 			name:           "legacy full-node true",
@@ -131,6 +156,9 @@ func TestNodeModeHelpers(t *testing.T) {
 			}
 			if got := tt.cfg.IsUltraLightNode(); got != tt.wantUltraLight {
 				t.Errorf("IsUltraLightNode() = %v, want %v", got, tt.wantUltraLight)
+			}
+			if got := tt.cfg.IsBootnode(); got != tt.wantBootnode {
+				t.Errorf("IsBootnode() = %v, want %v", got, tt.wantBootnode)
 			}
 		})
 	}

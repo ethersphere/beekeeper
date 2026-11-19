@@ -247,7 +247,7 @@ func (c *Cluster) UltraLightNodeNames() (names []string) {
 func (c *Cluster) FullNodeNames() (names []string) {
 	for name, node := range c.Nodes() {
 		cfg := node.Config()
-		if cfg.IsFullNode() && !orchestration.Deref(cfg.BootnodeMode) {
+		if cfg.IsFullNode() && !cfg.IsBootnode() {
 			names = append(names, name)
 		}
 	}
@@ -259,7 +259,7 @@ func (c *Cluster) ShuffledFullNodeClients(ctx context.Context, r *rand.Rand) (or
 	var res orchestration.ClientList
 	for _, node := range c.Nodes() {
 		cfg := node.Config()
-		if cfg.IsFullNode() && !orchestration.Deref(cfg.BootnodeMode) {
+		if cfg.IsFullNode() && !cfg.IsBootnode() {
 			res = append(res, node.Client())
 		}
 	}
@@ -474,7 +474,7 @@ func (c *Cluster) ClosestFullNodeClient(ctx context.Context, s *bee.Client) (*be
 		}
 		cfg := node.Config()
 		// closet peer is not a full node. Check other peers in the same bin
-		if !cfg.IsFullNode() || orchestration.Deref(cfg.BootnodeMode) {
+		if !cfg.IsFullNode() || cfg.IsBootnode() {
 			skipList = append(skipList, addr)
 			b--
 			continue

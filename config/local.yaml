@@ -156,7 +156,6 @@ bee-configs:
     autotls-registration-endpoint: http://p2p-forge.local.svc.cluster.local:8080
     block-time: 1
     blockchain-rpc-endpoint: "ws://geth-swap:8546"
-    bootnode-mode: false
     bootnode: []
     bzz-token-address: "0x6aab14fe9cccd64a502d23842d916eb5321c26e7"
     cache-capacity: 20000
@@ -196,8 +195,8 @@ bee-configs:
     withdrawal-addresses-whitelist: ["0xec44cb15b1b033e74d55ac5d0e24d861bde54532"]
   bootnode-local-dns-autotls:
     _inherit: "bee-local-dns"
-    bootnode-mode: true
-    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
+    node-mode: bootnode
+    storage-incentives-enable: false # overrides the inherited true, which bee warns has no effect on a bootnode
     p2p-wss-enable: true
   bee-local-autotls:
     _inherit: "bee-local-dns"
@@ -215,8 +214,8 @@ bee-configs:
     storage-incentives-enable: false # inherited true is rejected in ultra-light mode
   bootnode-local:
     _inherit: "bee-local"
-    bootnode-mode: true
-    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
+    node-mode: bootnode
+    storage-incentives-enable: false # overrides the inherited true, which bee warns has no effect on a bootnode
   bee-local-dns:
     _inherit: "bee-local"
   bee-local-dns-legacy:
@@ -225,8 +224,8 @@ bee-configs:
     full-node: true
   bootnode-local-dns:
     _inherit: "bee-local"
-    bootnode-mode: true
-    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
+    node-mode: bootnode
+    storage-incentives-enable: false # overrides the inherited true, which bee warns has no effect on a bootnode
   bee-local-light:
     _inherit: "bee-local"
     node-mode: light
@@ -237,8 +236,8 @@ bee-configs:
   bootnode-local-gc:
     _inherit: "bee-local"
     cache-capacity: 10
-    bootnode-mode: true
-    storage-incentives-enable: false # no effect on bootnodes; bee warns when it is true
+    node-mode: bootnode
+    storage-incentives-enable: false # overrides the inherited true, which bee warns has no effect on a bootnode
 
 # CI checks
 checks:

@@ -99,7 +99,7 @@ type Config struct {
 	BlockchainRPCTLSTimeout     *time.Duration `yaml:"blockchain-rpc-tls-timeout,omitempty"`     // blockchain rpc TLS handshake timeout
 	BlockSyncInterval           *uint64        `yaml:"block-sync-interval,omitempty"`            // block number cache sync interval in blocks
 	BlockTime                   *uint64        `yaml:"block-time,omitempty"`                     // chain block time
-	BootnodeMode                *bool          `yaml:"bootnode-mode,omitempty"`                  // cause the node to always accept incoming connections
+	BootnodeMode                *bool          `yaml:"bootnode-mode,omitempty"`                  // cause the node to always accept incoming connections (deprecated: use NodeMode bootnode)
 	Bootnodes                   *[]string      `yaml:"bootnode,omitempty"`                       // initial nodes to connect to
 	BzzTokenAddress             *string        `yaml:"bzz-token-address,omitempty"`              // bzz token contract address
 	CacheCapacity               *uint64        `yaml:"cache-capacity,omitempty"`                 // cache capacity in chunks, multiply by 4096 to get approximate capacity in bytes
@@ -114,7 +114,7 @@ type Config struct {
 	DbOpenFilesLimit            *uint64        `yaml:"db-open-files-limit,omitempty"`            // number of open files allowed by database
 	DbWriteBufferSize           *uint64        `yaml:"db-write-buffer-size,omitempty"`           // size of the database write buffer in bytes
 	FullNode                    *bool          `yaml:"full-node,omitempty"`                      // cause the node to start in full mode (deprecated: use NodeMode)
-	NodeMode                    *string        `yaml:"node-mode,omitempty"`                      // node operational mode: full, light, or ultra-light
+	NodeMode                    *string        `yaml:"node-mode,omitempty"`                      // node operational mode: full, light, ultra-light, or bootnode
 	GasLimitFallback            *uint64        `yaml:"gas-limit-fallback,omitempty"`             // gas limit fallback when estimation fails for contract transactions
 	Mainnet                     *bool          `yaml:"mainnet,omitempty"`                        // triggers connect to main net bootnodes
 	MinimumGasTipCap            *uint64        `yaml:"minimum-gas-tip-cap,omitempty"`            // minimum gas tip cap in wei for transactions, 0 means use suggested gas tip cap
@@ -176,13 +176,20 @@ func Deref[T any](p *T) T {
 	return *p
 }
 
-// IsFullNode reports whether the node is configured as a full node.
+// IsFullNode reports whether the node is configured as a full node. Bootnodes
+// run as full nodes, so it is also true for them; see IsBootnode.
 // It checks NodeMode first; falls back to the deprecated FullNode bool.
 func (c Config) IsFullNode() bool {
 	if c.NodeMode != nil && *c.NodeMode != "" {
-		return *c.NodeMode == "full"
+		return *c.NodeMode == "full" || *c.NodeMode == "bootnode"
 	}
 	return Deref(c.FullNode)
+}
+
+// IsBootnode reports whether the node is configured as a bootnode, either with
+// node-mode: bootnode or with the deprecated bootnode-mode option.
+func (c Config) IsBootnode() bool {
+	return Deref(c.NodeMode) == "bootnode" || Deref(c.BootnodeMode)
 }
 
 // IsLightNode reports whether the node is configured as a light node.
