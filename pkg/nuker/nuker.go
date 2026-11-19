@@ -46,12 +46,13 @@ func New(cfg *ClientConfig) *Client {
 	}
 
 	return &Client{
-		log:           cfg.Log,
-		k8sClient:     cfg.K8sClient,
-		nodeProvider:  cfg.NodeProvider,
-		image:         cfg.Image,
-		forgetOverlay: cfg.ForgetOverlay,
-		forgetStamps:  cfg.ForgetStamps,
+		log:                   cfg.Log,
+		k8sClient:             cfg.K8sClient,
+		nodeProvider:          cfg.NodeProvider,
+		useRandomNeighborhood: cfg.UseRandomNeighborhood,
+		image:                 cfg.Image,
+		forgetOverlay:         cfg.ForgetOverlay,
+		forgetStamps:          cfg.ForgetStamps,
 	}
 }
 
