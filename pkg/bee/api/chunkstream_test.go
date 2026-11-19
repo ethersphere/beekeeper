@@ -28,7 +28,8 @@ func chunkStreamServer(t *testing.T, n int, gotBatch chan<- string) *httptest.Se
 		}
 		gotBatch <- r.Header.Get(postageStampBatchHeader)
 
-		conn, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
+		upgrader := websocket.Upgrader{Subprotocols: []string{ChunkStreamSubprotocol}}
+		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			t.Error(err)
 			return
@@ -227,6 +228,49 @@ func TestChunkStreamNoBatchHeader(t *testing.T) {
 
 	if b := <-gotBatch; b != "" {
 		t.Fatalf("batch header: got %q, want none", b)
+	}
+}
+
+// TestChunkStreamOlderNode connects to a node that serves only the older
+// upload-only stream, which selects no subprotocol, and expects Open to refuse
+// it before any request is sent.
+func TestChunkStreamOlderNode(t *testing.T) {
+	gotMessage := make(chan bool, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer conn.Close()
+		mt, _, err := conn.ReadMessage()
+		gotMessage <- err == nil && mt == websocket.BinaryMessage
+	}))
+	defer srv.Close()
+
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := NewClient(u, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stream, err := c.ChunkStream.Open(context.Background(), "")
+	if !errors.Is(err, ErrChunkStreamUnsupported) {
+		if stream != nil {
+			_ = stream.Close()
+		}
+		t.Fatalf("got error %v, want %v", err, ErrChunkStreamUnsupported)
+	}
+	select {
+	case got := <-gotMessage:
+		if got {
+			t.Fatal("a request was sent to a node without the chunk stream protocol")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("connection was not closed")
 	}
 }
 

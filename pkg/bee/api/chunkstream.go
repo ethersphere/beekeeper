@@ -20,6 +20,15 @@ type ChunkStreamService service
 
 const chunkStreamHandshakeTimeout = 45 * time.Second
 
+// ChunkStreamSubprotocol is the websocket subprotocol of the chunk stream
+// protocol. Older nodes serve an upload-only stream on the same path and do not
+// select it; they would push requests as raw chunks.
+const ChunkStreamSubprotocol = "bee-chunk-stream-v1"
+
+// ErrChunkStreamUnsupported is returned by Open when the node does not select
+// ChunkStreamSubprotocol. Nothing has been sent on the connection.
+var ErrChunkStreamUnsupported = errors.New("node does not support the chunk stream protocol")
+
 // ChunkStream is an open /chunks/stream connection. Requests can be pipelined:
 // the node answers each one with exactly one response carrying the same
 // address, in no particular order. Get, Put and Close are safe for concurrent
@@ -35,7 +44,8 @@ type ChunkStream struct {
 // Swarm-Postage-Batch-Id, which stamps every Put on the connection with that
 // batch and pins the connection to it. The stream lives until Close or until
 // ctx ends: then the connection is closed and blocked calls return ctx's
-// error.
+// error. A node that does not select ChunkStreamSubprotocol is refused with
+// ErrChunkStreamUnsupported.
 func (c *ChunkStreamService) Open(ctx context.Context, batchID string) (*ChunkStream, error) {
 	header := http.Header{}
 	if batchID != "" {
@@ -59,6 +69,7 @@ func (c *ChunkStreamService) Open(ctx context.Context, batchID string) (*ChunkSt
 	dialer := &websocket.Dialer{
 		Proxy:            http.ProxyFromEnvironment,
 		HandshakeTimeout: chunkStreamHandshakeTimeout,
+		Subprotocols:     []string{ChunkStreamSubprotocol},
 	}
 	conn, resp, err := dialer.DialContext(ctx, u.String(), header)
 	if resp != nil {
@@ -69,6 +80,10 @@ func (c *ChunkStreamService) Open(ctx context.Context, batchID string) (*ChunkSt
 			return nil, fmt.Errorf("dial %s: %w (%s)", u, err, resp.Status)
 		}
 		return nil, fmt.Errorf("dial %s: %w", u, err)
+	}
+	if conn.Subprotocol() != ChunkStreamSubprotocol {
+		_ = conn.Close()
+		return nil, fmt.Errorf("dial %s: %w", u, ErrChunkStreamUnsupported)
 	}
 
 	return &ChunkStream{
