@@ -1,0 +1,178 @@
+package api
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"sync"
+	"time"
+
+	"github.com/ethersphere/bee/v2/pkg/swarm"
+	pb "github.com/ethersphere/beekeeper/pkg/bee/api/chunkstreampb"
+	"github.com/gorilla/websocket"
+)
+
+// ChunkStreamService represents Bee's /chunks/stream websocket endpoint, which
+// carries chunk downloads (Get) and uploads (Put) over a single connection.
+type ChunkStreamService service
+
+const chunkStreamHandshakeTimeout = 45 * time.Second
+
+// ChunkStreamSubprotocol is the websocket subprotocol of the chunk stream
+// protocol. Older nodes serve an upload-only stream on the same path and do not
+// select it; they would push requests as raw chunks.
+const ChunkStreamSubprotocol = "bee-chunk-stream-v1"
+
+// ErrChunkStreamUnsupported is returned by Open when the node does not select
+// ChunkStreamSubprotocol. Nothing has been sent on the connection.
+var ErrChunkStreamUnsupported = errors.New("node does not support the chunk stream protocol")
+
+// ChunkStream is an open /chunks/stream connection. Requests can be pipelined:
+// the node answers each one with exactly one response carrying the same
+// address, in no particular order. Get, Put and Close are safe for concurrent
+// use; Receive must be called from one goroutine at a time.
+type ChunkStream struct {
+	conn    *websocket.Conn
+	ctx     context.Context
+	stop    func() bool // stops closing conn when ctx ends
+	writeMu sync.Mutex  // serializes request writes; the connection allows one writer
+}
+
+// Open opens a chunk stream. When batchID is not empty it is sent as
+// Swarm-Postage-Batch-Id, which stamps every Put on the connection with that
+// batch and pins the connection to it. The stream lives until Close or until
+// ctx ends: then the connection is closed and blocked calls return ctx's
+// error. A node that does not select ChunkStreamSubprotocol is refused with
+// ErrChunkStreamUnsupported.
+func (c *ChunkStreamService) Open(ctx context.Context, batchID string) (*ChunkStream, error) {
+	header := http.Header{}
+	if batchID != "" {
+		header.Set(postageStampBatchHeader, batchID)
+	}
+
+	full, err := c.client.getFullURL("/" + apiVersion + "/chunks/stream")
+	if err != nil {
+		return nil, err
+	}
+	u, err := url.Parse(full)
+	if err != nil {
+		return nil, fmt.Errorf("parse websocket url: %w", err)
+	}
+	if u.Scheme == "https" {
+		u.Scheme = "wss"
+	} else {
+		u.Scheme = "ws"
+	}
+
+	dialer := &websocket.Dialer{
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: chunkStreamHandshakeTimeout,
+		Subprotocols:     []string{ChunkStreamSubprotocol},
+	}
+	conn, resp, err := dialer.DialContext(ctx, u.String(), header)
+	if resp != nil {
+		defer drain(resp.Body)
+	}
+	if err != nil {
+		if resp != nil {
+			return nil, fmt.Errorf("dial %s: %w (%s)", u, err, resp.Status)
+		}
+		return nil, fmt.Errorf("dial %s: %w", u, err)
+	}
+	if conn.Subprotocol() != ChunkStreamSubprotocol {
+		_ = conn.Close()
+		return nil, fmt.Errorf("dial %s: %w", u, ErrChunkStreamUnsupported)
+	}
+
+	return &ChunkStream{
+		conn: conn,
+		ctx:  ctx,
+		stop: context.AfterFunc(ctx, func() { _ = conn.Close() }),
+	}, nil
+}
+
+// Get requests the chunk at addr.
+func (s *ChunkStream) Get(addr swarm.Address, cache pb.CacheOption, timeout time.Duration) error {
+	return s.send(&pb.Request{Body: &pb.Request_Get{Get: &pb.GetRequest{
+		Address: addr.Bytes(),
+		Cache:   cache,
+	}}}, timeout)
+}
+
+// Put uploads a chunk, a CAC or a SOC, under addr. When batchID is set, the node
+// stamps the chunk with that batch instead of the connection's.
+func (s *ChunkStream) Put(addr swarm.Address, data, batchID []byte, timeout time.Duration) error {
+	return s.send(&pb.Request{Body: &pb.Request_Put{Put: &pb.PutRequest{
+		Address: addr.Bytes(),
+		Data:    data,
+		BatchId: batchID,
+	}}}, timeout)
+}
+
+func (s *ChunkStream) send(req *pb.Request, timeout time.Duration) error {
+	msg, err := req.Marshal()
+	if err != nil {
+		return fmt.Errorf("encode request: %w", err)
+	}
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+	if err := s.conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
+		return fmt.Errorf("set write deadline: %w", s.connErr(err))
+	}
+	if err := s.conn.WriteMessage(websocket.BinaryMessage, msg); err != nil {
+		return fmt.Errorf("write request: %w", s.connErr(err))
+	}
+
+	return nil
+}
+
+// Receive reads the next response.
+func (s *ChunkStream) Receive(timeout time.Duration) (*pb.Response, error) {
+	if err := s.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		return nil, fmt.Errorf("set read deadline: %w", s.connErr(err))
+	}
+	mt, msg, err := s.conn.ReadMessage()
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", s.connErr(err))
+	}
+	if mt != websocket.BinaryMessage {
+		return nil, fmt.Errorf("response: expected a binary frame, got message type %d", mt)
+	}
+
+	resp := new(pb.Response)
+	if err := resp.Unmarshal(msg); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+	if resp.GetGet() == nil && resp.GetPut() == nil {
+		return nil, errors.New("response has no body")
+	}
+
+	return resp, nil
+}
+
+// connErr returns ctx's error instead of err when the connection failed
+// because ctx ended and closed it.
+func (s *ChunkStream) connErr(err error) error {
+	if ctxErr := s.ctx.Err(); ctxErr != nil {
+		return ctxErr
+	}
+	return err
+}
+
+// Close sends a normal close frame and closes the connection. It is a no-op
+// once ctx has ended, since the connection is already closed.
+func (s *ChunkStream) Close() error {
+	if !s.stop() {
+		return nil
+	}
+	msg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+	if err := s.conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(5*time.Second)); err != nil &&
+		!errors.Is(err, websocket.ErrCloseSent) {
+		_ = s.conn.Close()
+		return fmt.Errorf("send close message: %w", err)
+	}
+
+	return s.conn.Close()
+}
