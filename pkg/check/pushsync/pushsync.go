@@ -26,6 +26,10 @@ type Options struct {
 	Seed              int64
 	UploadNodeCount   int
 	ExcludeNodeGroups []string
+	StorageRadius     uint8         // placement mode: storage radius the cluster nodes run with
+	UploadTimeout     time.Duration // placement mode: time after which a direct upload counts as timed out
+	Deferred          bool          // placement mode: use deferred uploads and read the outcome from the tag
+	UploadNodes       []string      // placement mode: uploader names; overrides UploadNodeCount when set
 }
 
 // NewDefaultOptions returns new default options
@@ -42,6 +46,8 @@ func NewDefaultOptions() Options {
 		Seed:              random.Int64(),
 		UploadNodeCount:   1,
 		ExcludeNodeGroups: []string{},
+		StorageRadius:     0,
+		UploadTimeout:     30 * time.Second,
 	}
 }
 
@@ -73,6 +79,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 		return checkChunks(ctx, cluster, o, c.logger, c.metrics)
 	case "light-chunks":
 		return checkLightChunks(ctx, cluster, o, c.logger, c.metrics)
+	case "placement":
+		return checkPlacement(ctx, cluster, o, c.logger)
 	default:
 		return c.defaultCheck(ctx, cluster, o)
 	}
