@@ -157,7 +157,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	if err != nil {
 		return err
 	}
-	defer drain(r.Body)
+	defer drainAndClose(r.Body)
 
 	if err = responseErrorHandler(r); err != nil {
 		return err
@@ -191,11 +191,10 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 		return nil, nil, err
 	}
 
-	req, err := http.NewRequest(method, fullURL, body)
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
 	if err != nil {
 		return nil, nil, err
 	}
-	req = req.WithContext(ctx)
 
 	if body != nil {
 		req.Header.Set("Content-Type", contentType)
@@ -236,8 +235,11 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 	}
 
 	if err = responseErrorHandler(r); err != nil {
+		drainAndClose(r.Body)
 		return nil, nil, err
 	}
+
+	// The caller owns the body and must close it.
 	return r.Body, r.Header, nil
 }
 
@@ -248,19 +250,31 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 		return err
 	}
 
-	req, err := http.NewRequest(method, fullURL, body)
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
 	if err != nil {
 		return err
 	}
-	req = req.WithContext(ctx)
 
 	req.Header = header
 	req.Header.Add("Accept", contentType)
+
+	// net/http ignores a Content-Length header on outgoing requests and sends
+	// the length from req.ContentLength, which it can infer only for a few
+	// in-memory reader types; for others the body would be sent chunked.
+	if cl := req.Header.Get("Content-Length"); cl != "" {
+		n, err := strconv.ParseInt(cl, 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse content length %q: %w", cl, err)
+		}
+		req.ContentLength = n
+		req.Header.Del("Content-Length")
+	}
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
+	defer drainAndClose(r.Body)
 
 	if err = responseErrorHandler(r); err != nil {
 		return err
@@ -278,19 +292,17 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	return nil
 }
 
-// drain discards all of the remaining data from the reader and closes it,
-// asynchronously.
-func drain(r io.ReadCloser) {
-	go func() {
-		// Panicking here does not put data in
-		// an inconsistent state.
-		defer func() {
-			_ = recover()
-		}()
+// maxDrainBytes bounds how much of an unread response body drainAndClose
+// discards. Reading the remainder lets the transport reuse the connection; a
+// larger remainder is not worth reading, and closing the body then closes the
+// connection instead.
+const maxDrainBytes = 64 << 10
 
-		_, _ = io.Copy(io.Discard, r)
-		r.Close()
-	}()
+// drainAndClose discards up to maxDrainBytes of the remaining body and closes
+// it, so the underlying keep-alive connection can return to the idle pool.
+func drainAndClose(body io.ReadCloser) {
+	_, _ = io.Copy(io.Discard, io.LimitReader(body, maxDrainBytes))
+	_ = body.Close()
 }
 
 type messageResponse struct {
