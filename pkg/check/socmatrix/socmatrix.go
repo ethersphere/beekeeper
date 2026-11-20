@@ -146,8 +146,8 @@ func (c *Check) Run(ctx context.Context, cluster orchestration.Cluster, opts any
 	runMatrix("Scenario 2: Timestamp Progression (Increasing Timestamp)", func() error {
 		return c.testTimestampProgression(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, node0BatchID, o)
 	})
-	runMatrix("Scenario 3: Equal Timestamp Cross-Batch Stamp Hash Precedence", func() error {
-		return c.testCrossBatchStampHashPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, issuerBatchID0, issuerBatchID1, issuer, batchSigner, o)
+	runMatrix("Scenario 3: Equal Timestamp Cross-Batch Content Precedence", func() error {
+		return c.testCrossBatchEqualTimestampPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, issuerBatchID0, issuerBatchID1, issuer, batchSigner, o)
 	})
 	runMatrix("Scenario 4: Multi-Stamp Re-Offer Precedence", func() error {
 		return c.testMultiStampReofferPrecedence(ctx, fullNodeClients, node0, node1, ownerHex1, signer1, issuerBatchID0, issuerBatchID1, issuer, batchSigner, o)
@@ -361,7 +361,7 @@ func (c *Check) testTimestampProgression(
 	return c.assertClusterConvergence(ctx, fullNodes, soc1.Address(), ch2.Data(), o)
 }
 
-func (c *Check) testCrossBatchStampHashPrecedence(
+func (c *Check) testCrossBatchEqualTimestampPrecedence(
 	ctx context.Context,
 	fullNodes []*bee.Client,
 	node0, node1 *bee.Client,
@@ -409,11 +409,13 @@ func (c *Check) testCrossBatchStampHashPrecedence(
 			stamp0, errS0 := signStamp(batchSigner, batch0Bytes, env0.Index(), uint64ToBytes(ts), soc1.Address())
 			stamp1, errS1 := signStamp(batchSigner, batch1Bytes, env1.Index(), uint64ToBytes(ts), soc1.Address())
 			if errS0 == nil && errS1 == nil {
-				hash0, errH0 := stamp0.Hash()
-				hash1, errH1 := stamp1.Hash()
-				if errH0 == nil && errH1 == nil {
+				// Equal timestamps settle on content: the payload wrapping the
+				// lower CAC address wins, whatever the stamp hashes. Stamp
+				// hashes are malleable and must not decide.
+				wins, errW := divergentChunkWins(soc1, soc2)
+				if errW == nil {
 					var expectedPayload []byte
-					if bytes.Compare(hash1, hash0) < 0 {
+					if wins {
 						expectedPayload = ch2.Data()
 					} else {
 						expectedPayload = ch1.Data()
@@ -504,11 +506,13 @@ func (c *Check) testMultiStampReofferPrecedence(
 			stamp0, errS0 := signStamp(batchSigner, batch0Bytes, env0.Index(), uint64ToBytes(ts), soc1.Address())
 			stamp1, errS1 := signStamp(batchSigner, batch1Bytes, env1.Index(), uint64ToBytes(ts), soc1.Address())
 			if errS0 == nil && errS1 == nil {
-				hash0, errH0 := stamp0.Hash()
-				hash1, errH1 := stamp1.Hash()
-				if errH0 == nil && errH1 == nil {
+				// Equal timestamps settle on content: the payload wrapping the
+				// lower CAC address wins, whatever the stamp hashes. Stamp
+				// hashes are malleable and must not decide.
+				wins, errW := divergentChunkWins(soc1, soc2)
+				if errW == nil {
 					var expectedPayload []byte
-					if bytes.Compare(hash1, hash0) < 0 {
+					if wins {
 						expectedPayload = ch2.Data()
 					} else {
 						expectedPayload = ch1.Data()
