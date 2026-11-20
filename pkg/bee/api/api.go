@@ -17,6 +17,7 @@ const (
 	apiVersion                  = "v1"
 	contentType                 = "application/json, text/plain, */*; charset=utf-8"
 	postageStampBatchHeader     = "Swarm-Postage-Batch-Id"
+	postageStampHeader          = "Swarm-Postage-Stamp"
 	deferredUploadHeader        = "Swarm-Deferred-Upload"
 	swarmAct                    = "Swarm-Act"
 	swarmActHistoryAddress      = "Swarm-Act-History-Address"
@@ -47,6 +48,7 @@ type Client struct {
 	Chunks      *ChunksService
 	ChunkStream *ChunkStreamService
 	Dirs        *DirsService
+	Envelope    *EnvelopeService
 	Feed        *FeedService
 	Files       *FilesService
 	Node        *NodeService
@@ -98,6 +100,7 @@ func newClient(apiURL *url.URL, httpClient *http.Client) (c *Client) {
 	c.Chunks = (*ChunksService)(&c.service)
 	c.ChunkStream = (*ChunkStreamService)(&c.service)
 	c.Dirs = (*DirsService)(&c.service)
+	c.Envelope = (*EnvelopeService)(&c.service)
 	c.Feed = (*FeedService)(&c.service)
 	c.Files = (*FilesService)(&c.service)
 	c.Node = (*NodeService)(&c.service)
