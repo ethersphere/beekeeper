@@ -27,12 +27,13 @@ func (c *command) initNukeCmd() (err error) {
 		Short: "Clears databases and restarts Bee.",
 		Example: `beekeeper nuke --cluster-name=default --restart-args="bee,start,--config=.bee.yaml"
 beekeeper nuke --namespace=my-namespace --stateful-sets="bootnode-0,bootnode-1" --restart-args="bee,start,--config=.bee.yaml"
-beekeeper nuke --namespace=my-namespace --restart-args="bee,start,--config=.bee.yaml" --label-selector="custom-label=bee-node"`,
+beekeeper nuke --namespace=my-namespace --restart-args="bee,start,--config=.bee.yaml" --label-selector="custom-label=bee-node"
+beekeeper nuke --namespace=my-namespace --discovery-type=statefulset --stateful-sets="bee-0,bee-1" --use-random-neighborhood`,
 		Long: `Executes a database nuke operation across Bee nodes in a Kubernetes cluster, forcing each node to resynchronize all data on next startup.
 This command provides StatefulSet update and rollback procedures to maintain cluster stability during the nuke process, ensuring safe and coordinated resets of node state.
 
 The command supports two modes:
-- Default mode: Uses NodeProvider to find Bee nodes (requires ingress/services)
+- Default mode: Uses NodeProvider to find Bee nodes (see --discovery-type)
 - StatefulSet names mode: Directly targets specific StatefulSets by name (useful for bootnodes)`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			return c.withTimeoutHandler(cmd, func(ctx context.Context) error {
@@ -57,7 +58,9 @@ The command supports two modes:
 
 				statefulSetNames := c.globalConfig.GetStringSlice(optionNameStatefulSets)
 				restartArgs := c.globalConfig.GetStringSlice(optionNameRestartArgs)
-				if len(statefulSetNames) > 0 {
+				// target StatefulSets directly, unless they are used for node discovery
+				discoveryType := node.DiscoveryType(c.globalConfig.GetString(optionNameDiscoveryType))
+				if len(statefulSetNames) > 0 && discoveryType != node.DiscoveryTypeStatefulSet {
 					namespace := nodeClient.Namespace()
 					if err := nukerClient.NukeByStatefulSets(ctx, namespace, statefulSetNames, restartArgs); err != nil {
 						return fmt.Errorf("running nuke command with StatefulSet names: %w", err)
@@ -84,7 +87,8 @@ The command supports two modes:
 	cmd.Flags().StringSlice(optionNameRestartArgs, []string{"bee", "start", "--config=.bee.yaml"}, "Command to run in the Bee cluster, e.g. 'db,nuke,--config=.bee.yaml'")
 	cmd.Flags().Bool(optionNameUseRandomNeighboorhood, false, "Use random neighborhood for Bee nodes (default: false)")
 	cmd.Flags().String(optionNameDeploymentType, string(node.DeploymentTypeBeekeeper), "Indicates how the cluster was deployed: 'beekeeper' or 'helm'.")
-	cmd.Flags().StringSlice(optionNameStatefulSets, nil, "List of StatefulSet names to target for nuke (e.g., 'bootnode-0,bootnode-1'). When provided, uses direct StatefulSet targeting instead of NodeProvider.")
+	cmd.Flags().StringSlice(optionNameStatefulSets, nil, "List of StatefulSet names to target for nuke (e.g., 'bootnode-0,bootnode-1'). When provided, uses direct StatefulSet targeting instead of NodeProvider, unless --discovery-type=statefulset is set.")
+	addDiscoveryTypeFlag(cmd)
 	cmd.Flags().String(optionNameImage, "", "Container image to use when restarting pods (defaults to current image if not set).")
 	cmd.Flags().Bool(optionNameForgetOverlay, false, "Forget the overlay and deploy a new chequebook on next boot-up.")
 	cmd.Flags().Bool(optionNameForgetStamps, false, "Forget the existing stamps belonging to the node (they will reappear after a chain resync).")

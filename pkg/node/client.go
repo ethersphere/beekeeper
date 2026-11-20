@@ -1,16 +1,22 @@
+// Package node discovers Bee nodes from the cluster configuration, from the
+// services or ingresses of a namespace, or from the pods of statefulsets.
 package node
 
 import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/ethersphere/beekeeper/pkg/bee/api"
 	"github.com/ethersphere/beekeeper/pkg/k8s"
 	"github.com/ethersphere/beekeeper/pkg/logging"
 	"github.com/ethersphere/beekeeper/pkg/orchestration"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 type DeploymentType string
@@ -18,6 +24,20 @@ type DeploymentType string
 const (
 	DeploymentTypeBeekeeper DeploymentType = "beekeeper"
 	DeploymentTypeHelm      DeploymentType = "helm"
+)
+
+type DiscoveryType string
+
+const (
+	DiscoveryTypeBeeClients  DiscoveryType = "beeclients"
+	DiscoveryTypeNamespace   DiscoveryType = "namespace"
+	DiscoveryTypeStatefulSet DiscoveryType = "statefulset"
+)
+
+const (
+	instanceLabel  = "app.kubernetes.io/instance"
+	apiPortName    = "api"
+	defaultAPIPort = 1633
 )
 
 var ErrNodesNotFound = fmt.Errorf("nodes not found")
@@ -28,29 +48,31 @@ type NodeProvider interface {
 }
 
 type ClientConfig struct {
-	Log            logging.Logger
-	HTTPClient     *http.Client
-	K8sClient      *k8s.Client
-	BeeClients     orchestration.ClientMap
-	Namespace      string
-	LabelSelector  string
-	DeploymentType DeploymentType
-	InCluster      bool
-	UseNamespace   bool     // Overrides the usage of the bee clients
-	NodeGroups     []string // Node groups for filtering nodes (only used with beekeeper deployment)
+	Log              logging.Logger
+	HTTPClient       *http.Client
+	K8sClient        *k8s.Client
+	BeeClients       orchestration.ClientMap
+	Namespace        string
+	LabelSelector    string
+	DeploymentType   DeploymentType
+	InCluster        bool
+	DiscoveryType    DiscoveryType
+	NodeGroups       []string // only used with beeclients discovery
+	StatefulSetNames []string // only used with statefulset discovery
 }
 
 type Client struct {
-	log            logging.Logger
-	httpClient     *http.Client
-	k8sClient      *k8s.Client
-	beeClients     orchestration.ClientMap
-	namespace      string
-	labelSelector  string
-	deploymentType DeploymentType
-	inCluster      bool
-	useNamespace   bool
-	nodeGroups     []string
+	log              logging.Logger
+	httpClient       *http.Client
+	k8sClient        *k8s.Client
+	beeClients       orchestration.ClientMap
+	namespace        string
+	labelSelector    string
+	deploymentType   DeploymentType
+	inCluster        bool
+	discoveryType    DiscoveryType
+	nodeGroups       []string
+	statefulSetNames []string
 }
 
 func New(cfg *ClientConfig) *Client {
@@ -67,16 +89,17 @@ func New(cfg *ClientConfig) *Client {
 	}
 
 	return &Client{
-		log:            cfg.Log,
-		httpClient:     cfg.HTTPClient,
-		k8sClient:      cfg.K8sClient,
-		beeClients:     cfg.BeeClients,
-		namespace:      cfg.Namespace,
-		labelSelector:  cfg.LabelSelector,
-		deploymentType: cfg.DeploymentType,
-		inCluster:      cfg.InCluster,
-		useNamespace:   cfg.UseNamespace,
-		nodeGroups:     cfg.NodeGroups,
+		log:              cfg.Log,
+		httpClient:       cfg.HTTPClient,
+		k8sClient:        cfg.K8sClient,
+		beeClients:       cfg.BeeClients,
+		namespace:        cfg.Namespace,
+		labelSelector:    cfg.LabelSelector,
+		deploymentType:   cfg.DeploymentType,
+		inCluster:        cfg.InCluster,
+		discoveryType:    cfg.DiscoveryType,
+		nodeGroups:       cfg.NodeGroups,
+		statefulSetNames: cfg.StatefulSetNames,
 	}
 }
 
@@ -95,25 +118,30 @@ func (sc *Client) GetNodes(ctx context.Context) (nodes NodeList, err error) {
 		sc.log.Infof("found %d nodes", len(nodes))
 	}()
 
-	if sc.useNamespace && sc.namespace != "" {
+	switch sc.discoveryType {
+	case DiscoveryTypeStatefulSet:
+		return sc.getStatefulSetNodes(ctx)
+
+	case DiscoveryTypeNamespace:
 		return sc.getNamespaceNodes(ctx)
-	}
 
-	if len(sc.beeClients) == 0 {
-		return nil, fmt.Errorf("bee clients not provided")
-	}
+	case DiscoveryTypeBeeClients:
+		if len(sc.beeClients) == 0 {
+			return nil, fmt.Errorf("bee clients not provided")
+		}
+		filteredClients := sc.beeClients.FilterByNodeGroups(sc.nodeGroups)
+		if len(filteredClients) == 0 {
+			return nil, ErrNodesNotFound
+		}
+		nodes = make(NodeList, 0, len(filteredClients))
+		for _, beeClient := range filteredClients {
+			nodes = append(nodes, *NewNode(beeClient.API(), sc.nodeName(beeClient.Name())))
+		}
+		return nodes.Sort(), nil
 
-	filteredClients := sc.beeClients.FilterByNodeGroups(sc.nodeGroups)
-	if len(filteredClients) == 0 {
-		return nil, ErrNodesNotFound
+	default:
+		return nil, fmt.Errorf("unknown discovery type: %q", sc.discoveryType)
 	}
-
-	nodes = make(NodeList, 0, len(filteredClients))
-	for _, beeClient := range filteredClients {
-		nodes = append(nodes, *NewNode(beeClient.API(), sc.nodeName(beeClient.Name())))
-	}
-
-	return nodes.Sort(), nil
 }
 
 func (sc *Client) getNamespaceNodes(ctx context.Context) (nodes []Node, err error) {
@@ -199,4 +227,171 @@ func (sc *Client) nodeName(name string) string {
 		return fmt.Sprintf("%s-0", name)
 	}
 	return name
+}
+
+// getStatefulSetNodes returns a node for every pod of the configured
+// statefulsets. Statefulsets and pods that can not be resolved are skipped.
+func (sc *Client) getStatefulSetNodes(ctx context.Context) (NodeList, error) {
+	if sc.k8sClient == nil {
+		return nil, fmt.Errorf("k8s client not provided")
+	}
+
+	if sc.namespace == "" {
+		return nil, fmt.Errorf("namespace not provided")
+	}
+
+	if len(sc.statefulSetNames) == 0 {
+		return nil, fmt.Errorf("statefulset names not provided")
+	}
+
+	sc.log.Infof("discovering nodes from %d statefulsets: %v", len(sc.statefulSetNames), sc.statefulSetNames)
+
+	var nodes NodeList
+	seen := make(map[string]struct{}, len(sc.statefulSetNames))
+	for _, name := range sc.statefulSetNames {
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+
+		ssNodes, err := sc.getNodesFromStatefulSet(ctx, name)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			sc.log.Warningf("skipping statefulset %s: %v", name, err)
+			continue
+		}
+		nodes = append(nodes, ssNodes...)
+	}
+
+	if len(nodes) == 0 {
+		return nil, ErrNodesNotFound
+	}
+
+	return nodes.Sort(), nil
+}
+
+func (sc *Client) getNodesFromStatefulSet(ctx context.Context, name string) ([]Node, error) {
+	ss, err := sc.k8sClient.StatefulSet.Get(ctx, name, sc.namespace)
+	if err != nil {
+		return nil, fmt.Errorf("get statefulset: %w", err)
+	}
+
+	replicas := 1
+	if ss.Spec.Replicas != nil {
+		replicas = int(*ss.Spec.Replicas)
+	}
+
+	sc.log.Debugf("statefulset %s has %d replicas", name, replicas)
+
+	endpoints := sc.statefulSetEndpoints(ctx, ss)
+
+	nodes := make([]Node, 0, replicas)
+	for i := range replicas {
+		podName := fmt.Sprintf("%s-%d", name, i)
+
+		pod, err := sc.k8sClient.Pods.Get(ctx, podName, sc.namespace)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			sc.log.Warningf("skipping pod %s: %v", podName, err)
+			continue
+		}
+
+		endpoint, err := sc.podEndpoint(pod, name, replicas, endpoints)
+		if err != nil {
+			sc.log.Warningf("skipping pod %s: %v", podName, err)
+			continue
+		}
+
+		apiURL, err := url.Parse(endpoint)
+		if err != nil {
+			sc.log.Warningf("skipping pod %s: parse endpoint %s: %v", podName, endpoint, err)
+			continue
+		}
+
+		apiClient, err := api.NewClient(apiURL, sc.httpClient)
+		if err != nil {
+			sc.log.Warningf("skipping pod %s: create api client: %v", podName, err)
+			continue
+		}
+
+		nodes = append(nodes, *NewNode(apiClient, podName))
+	}
+
+	return nodes, nil
+}
+
+// statefulSetEndpoints returns API endpoints, keyed by resource name, of the
+// services (in cluster) or ingresses that share the statefulset instance label.
+func (sc *Client) statefulSetEndpoints(ctx context.Context, ss *appsv1.StatefulSet) map[string]string {
+	instance := ss.Labels[instanceLabel]
+	if instance == "" {
+		instance = ss.Name
+	}
+	selector := fmt.Sprintf("%s=%s", instanceLabel, instance)
+
+	endpoints := make(map[string]string)
+
+	if sc.inCluster {
+		svcNodes, err := sc.k8sClient.Service.GetNodes(ctx, sc.namespace, selector)
+		if err != nil {
+			sc.log.Warningf("statefulset %s: list api services: %v", ss.Name, err)
+		}
+		for _, n := range svcNodes {
+			endpoints[n.Name] = n.Endpoint
+		}
+		return endpoints
+	}
+
+	ingressNodes, err := sc.k8sClient.Ingress.GetNodes(ctx, sc.namespace, selector)
+	if err != nil {
+		sc.log.Warningf("statefulset %s: list ingress api nodes hosts: %v", ss.Name, err)
+	}
+
+	ingressRouteNodes, err := sc.k8sClient.IngressRoute.GetNodes(ctx, sc.namespace, selector)
+	if err != nil {
+		sc.log.Warningf("statefulset %s: list ingress route api nodes hosts: %v", ss.Name, err)
+	}
+
+	for _, n := range append(ingressNodes, ingressRouteNodes...) {
+		endpoints[n.Name] = fmt.Sprintf("http://%s", n.Host)
+	}
+
+	return endpoints
+}
+
+// podEndpoint returns the endpoint named after the pod (Helm), or after a
+// single replica statefulset (Beekeeper), and falls back to the pod IP.
+func (sc *Client) podEndpoint(pod *v1.Pod, statefulSetName string, replicas int, endpoints map[string]string) (string, error) {
+	if endpoint, ok := endpoints[pod.Name]; ok {
+		return endpoint, nil
+	}
+
+	if endpoint, ok := endpoints[statefulSetName]; ok && replicas == 1 {
+		return endpoint, nil
+	}
+
+	if pod.Status.PodIP == "" {
+		return "", fmt.Errorf("no api service or ingress found and pod has no IP address")
+	}
+
+	if !sc.inCluster {
+		sc.log.Warningf("no ingress found for pod %s, using pod IP %s which may not be reachable from outside of the cluster", pod.Name, pod.Status.PodIP)
+	}
+
+	return fmt.Sprintf("http://%s", net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(podAPIPort(pod)))), nil
+}
+
+func podAPIPort(pod *v1.Pod) int {
+	for _, container := range pod.Spec.Containers {
+		for _, port := range container.Ports {
+			if port.Name == apiPortName {
+				return int(port.ContainerPort)
+			}
+		}
+	}
+	return defaultAPIPort
 }
