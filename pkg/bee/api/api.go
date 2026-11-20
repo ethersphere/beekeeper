@@ -159,7 +159,7 @@ func (c *Client) request(ctx context.Context, method, path string, body io.Reade
 	if err != nil {
 		return err
 	}
-	defer drain(r.Body)
+	defer drainAndClose(r.Body)
 
 	if err = responseErrorHandler(r); err != nil {
 		return err
@@ -193,11 +193,10 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 		return nil, nil, err
 	}
 
-	req, err := http.NewRequest(method, fullURL, body)
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
 	if err != nil {
 		return nil, nil, err
 	}
-	req = req.WithContext(ctx)
 
 	if body != nil {
 		req.Header.Set("Content-Type", contentType)
@@ -238,8 +237,10 @@ func (c *Client) requestDataGetHeader(ctx context.Context, method, path string, 
 	}
 
 	if err = responseErrorHandler(r); err != nil {
+		drainAndClose(r.Body)
 		return nil, nil, err
 	}
+
 	return r.Body, r.Header, nil
 }
 
@@ -250,19 +251,29 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 		return err
 	}
 
-	req, err := http.NewRequest(method, fullURL, body)
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
 	if err != nil {
 		return err
 	}
-	req = req.WithContext(ctx)
 
 	req.Header = header
 	req.Header.Add("Accept", contentType)
+
+	// net/http ignores the Content-Length header and sends req.ContentLength.
+	if cl := req.Header.Get("Content-Length"); cl != "" {
+		n, err := strconv.ParseInt(cl, 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse content length %q: %w", cl, err)
+		}
+		req.ContentLength = n
+		req.Header.Del("Content-Length")
+	}
 
 	r, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
+	defer drainAndClose(r.Body)
 
 	if err = responseErrorHandler(r); err != nil {
 		return err
@@ -280,19 +291,13 @@ func (c *Client) requestWithHeader(ctx context.Context, method, path string, hea
 	return nil
 }
 
-// drain discards all of the remaining data from the reader and closes it,
-// asynchronously.
-func drain(r io.ReadCloser) {
-	go func() {
-		// Panicking here does not put data in
-		// an inconsistent state.
-		defer func() {
-			_ = recover()
-		}()
+const maxDrainBytes = 64 << 10
 
-		_, _ = io.Copy(io.Discard, r)
-		r.Close()
-	}()
+// drainAndClose reads the rest of the body, up to maxDrainBytes, and closes it
+// so the connection can be reused.
+func drainAndClose(body io.ReadCloser) {
+	_, _ = io.Copy(io.Discard, io.LimitReader(body, maxDrainBytes))
+	_ = body.Close()
 }
 
 type messageResponse struct {
