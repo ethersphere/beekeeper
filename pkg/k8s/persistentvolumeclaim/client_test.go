@@ -34,7 +34,6 @@ func TestSet(t *testing.T) {
 				Labels:      map[string]string{"label_1": "label_value_1"},
 			},
 			expectedSpec: v1.PersistentVolumeClaimSpec{
-				Selector: &metav1.LabelSelector{},
 				VolumeMode: func() *v1.PersistentVolumeMode {
 					m := v1.PersistentVolumeFilesystem
 					return &m
@@ -58,7 +57,6 @@ func TestSet(t *testing.T) {
 				Annotations: map[string]string{"annotation_1": "annotation_value_X", "annotation_2": "annotation_value_2"},
 			},
 			expectedSpec: v1.PersistentVolumeClaimSpec{
-				Selector: &metav1.LabelSelector{},
 				VolumeMode: func() *v1.PersistentVolumeMode {
 					m := v1.PersistentVolumeFilesystem
 					return &m
