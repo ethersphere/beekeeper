@@ -84,11 +84,7 @@ func newCommand(opts ...option) (c *command, err error) {
 				return c.initConfig(cmd.Flags().Changed(optionNameClusterName))
 			},
 		},
-		httpClient: &http.Client{
-			Transport: &httpx.HeaderRoundTripper{
-				Next: http.DefaultTransport,
-			},
-		},
+		httpClient: httpx.NewClient(httpx.ClientOptions{}),
 	}
 
 	for _, o := range opts {

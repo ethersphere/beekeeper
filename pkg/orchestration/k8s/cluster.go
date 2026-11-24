@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"maps"
 	"math/rand"
@@ -54,17 +53,9 @@ func NewCluster(name string, o orchestration.ClusterOptions, k8s *k8s.Client, sw
 		opts:             o,
 		nodeGroups:       make(map[string]orchestration.NodeGroup),
 		log:              log,
-		httpClient: &http.Client{
-			Transport: &httpx.HeaderRoundTripper{
-				Next: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: o.APIInsecureTLS,
-					},
-				},
-			},
-		},
-		k8sClient:  k8s,
-		swapClient: swapClient,
+		httpClient:       httpx.NewClient(httpx.ClientOptions{InsecureSkipVerify: o.APIInsecureTLS}),
+		k8sClient:        k8s,
+		swapClient:       swapClient,
 	}
 }
 
