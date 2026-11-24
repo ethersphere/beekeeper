@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -271,6 +272,43 @@ func TestChunkStreamOlderNode(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("connection was not closed")
+	}
+}
+
+// TestChunkStreamRefusedHandshake connects to a node that refuses the upgrade
+// and expects Open to report the node's status and message.
+func TestChunkStreamRefusedHandshake(t *testing.T) {
+	const message = "batch not usable"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"code":400,"message":"` + message + `"}`))
+	}))
+	defer srv.Close()
+
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := NewClient(u, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stream, err := c.ChunkStream.Open(context.Background(), "")
+	if err == nil {
+		_ = stream.Close()
+		t.Fatal("got no error, want a refused handshake")
+	}
+	if !errors.Is(err, websocket.ErrBadHandshake) {
+		t.Fatalf("got error %v, want %v", err, websocket.ErrBadHandshake)
+	}
+	var statusErr *HTTPStatusError
+	if !errors.As(err, &statusErr) || statusErr.Code != http.StatusBadRequest {
+		t.Fatalf("got error %v, want status %d", err, http.StatusBadRequest)
+	}
+	if !strings.Contains(err.Error(), message) {
+		t.Fatalf("got error %q, want it to contain %q", err, message)
 	}
 }
 

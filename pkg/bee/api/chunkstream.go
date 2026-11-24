@@ -72,14 +72,8 @@ func (c *ChunkStreamService) Open(ctx context.Context, batchID string) (*ChunkSt
 		Subprotocols:     []string{ChunkStreamSubprotocol},
 	}
 	conn, resp, err := dialer.DialContext(ctx, u.String(), header)
-	if resp != nil {
-		defer drain(resp.Body)
-	}
 	if err != nil {
-		if resp != nil {
-			return nil, fmt.Errorf("dial %s: %w (%s)", u, err, resp.Status)
-		}
-		return nil, fmt.Errorf("dial %s: %w", u, err)
+		return nil, fmt.Errorf("dial %s: %w", u, handshakeError(err, resp))
 	}
 	if conn.Subprotocol() != ChunkStreamSubprotocol {
 		_ = conn.Close()
@@ -91,6 +85,20 @@ func (c *ChunkStreamService) Open(ctx context.Context, batchID string) (*ChunkSt
 		ctx:  ctx,
 		stop: context.AfterFunc(ctx, func() { _ = conn.Close() }),
 	}, nil
+}
+
+// handshakeError adds the node's answer, if there is one, to a failed dial.
+// resp.Body needs no draining or closing: the dialer replaces it with an
+// in-memory buffer holding the start of that answer.
+func handshakeError(err error, resp *http.Response) error {
+	if resp == nil {
+		return err
+	}
+	respErr := responseErrorHandler(resp)
+	if _, ok := errors.AsType[*HTTPStatusError](respErr); ok {
+		return fmt.Errorf("%w: %w", err, respErr)
+	}
+	return fmt.Errorf("%w (%s)", err, resp.Status)
 }
 
 // Get requests the chunk at addr.
