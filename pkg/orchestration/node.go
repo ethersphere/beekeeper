@@ -101,6 +101,7 @@ type Config struct {
 	BlockTime                   *uint64        `yaml:"block-time,omitempty"`                     // chain block time
 	BootnodeMode                *bool          `yaml:"bootnode-mode,omitempty"`                  // cause the node to always accept incoming connections (deprecated: use NodeMode bootnode)
 	Bootnodes                   *[]string      `yaml:"bootnode,omitempty"`                       // initial nodes to connect to
+	BpsBroker                   *bool          `yaml:"bps-broker,omitempty"`                     // serve BPS cohorts as a broker (full node only)
 	BzzTokenAddress             *string        `yaml:"bzz-token-address,omitempty"`              // bzz token contract address
 	CacheCapacity               *uint64        `yaml:"cache-capacity,omitempty"`                 // cache capacity in chunks, multiply by 4096 to get approximate capacity in bytes
 	CacheRetrieval              *bool          `yaml:"cache-retrieval,omitempty"`                // enable forwarded content caching
