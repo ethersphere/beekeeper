@@ -316,8 +316,12 @@ func TestIsRecoveryFailure(t *testing.T) {
 		{name: "not found", err: api.NewHTTPStatusError(http.StatusNotFound), want: true},
 		{name: "internal server error", err: api.NewHTTPStatusError(http.StatusInternalServerError), want: true},
 		{name: "truncated body", err: fmt.Errorf("read: %w", io.ErrUnexpectedEOF), want: true},
+		{name: "clean eof", err: io.EOF, want: false},
+		{name: "wrapped eof", err: fmt.Errorf("read: %w", io.EOF), want: false},
 		{name: "bad request", err: api.NewHTTPStatusError(http.StatusBadRequest), want: false},
+		{name: "service unavailable", err: api.NewHTTPStatusError(http.StatusServiceUnavailable), want: false},
 		{name: "timeout", err: fmt.Errorf("download: %w", context.DeadlineExceeded), want: false},
+		{name: "canceled", err: fmt.Errorf("download: %w", context.Canceled), want: false},
 		{name: "other", err: errors.New("connection refused"), want: false},
 	}
 

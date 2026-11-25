@@ -232,13 +232,16 @@ func (c *Check) run(ctx context.Context, s scenario, uploader, downloader *bee.C
 
 // isRecoveryFailure reports whether a download error is Bee failing to rebuild the data,
 // as opposed to a timeout or a broken connection that would hide a real problem.
+// 404 and 500 are what Bee returns when the joiner cannot reconstruct; a mid-stream
+// UnexpectedEOF is the same failure seen as a truncated body after HTTP 200.
+// A plain EOF (clean connection close) is not treated as recovery failure.
 func isRecoveryFailure(err error) bool {
 	var httpErr *api.HTTPStatusError
 	if errors.As(err, &httpErr) {
 		return httpErr.Code == http.StatusNotFound || httpErr.Code == http.StatusInternalServerError
 	}
 
-	return errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF)
+	return errors.Is(err, io.ErrUnexpectedEOF)
 }
 
 // upload sends every chunk except the withheld ones.
