@@ -65,11 +65,17 @@ func (p *neighborhoodProvider) GetArgs(ctx context.Context, nodeName string, res
 		return nil, fmt.Errorf("failed to get random neighborhood: %w", err)
 	}
 
-	p.log.Infof("node %s has committed depth %d, using neighborhood value %b", n.Name(), response.StorageRadius, val)
+	neighborhood := formatNeighborhood(response.StorageRadius, val)
 
-	args := append(restartArgs, fmt.Sprintf("--target-neighborhood=%b", val))
+	p.log.Infof("node %s has storage radius %d, using neighborhood %s", n.Name(), response.StorageRadius, neighborhood)
+
+	args := append(restartArgs, "--target-neighborhood="+neighborhood)
 
 	return args, nil
+}
+
+func formatNeighborhood(radius uint8, val int) string {
+	return fmt.Sprintf("%0*b", radius, val)
 }
 
 func (p *neighborhoodProvider) UsesRandomNeighborhood() bool {
