@@ -1,0 +1,6 @@
+* @gacevicljubisa @martinconic @akrem-chabchoub @darkobas2 @crtahlin
+
+# Workflows, release configuration and packaging
+/.github/        @ethersphere/release-reviewers
+/.goreleaser.yml @ethersphere/release-reviewers
+/Dockerfile      @ethersphere/release-reviewers
