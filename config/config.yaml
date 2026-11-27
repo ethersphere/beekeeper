@@ -397,6 +397,11 @@ checks:
       request-timeout: 5m
     timeout: 10m
     type: chunk-stream
+  bps:
+    options:
+      messages: 5
+    timeout: 5m
+    type: bps
   gsoc:
     options:
       postage-ttl: 24h

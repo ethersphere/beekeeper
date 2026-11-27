@@ -11,6 +11,7 @@ import (
 	"github.com/ethersphere/beekeeper/pkg/check/act"
 	"github.com/ethersphere/beekeeper/pkg/check/autotls"
 	"github.com/ethersphere/beekeeper/pkg/check/balances"
+	"github.com/ethersphere/beekeeper/pkg/check/bps"
 	"github.com/ethersphere/beekeeper/pkg/check/cashout"
 	"github.com/ethersphere/beekeeper/pkg/check/chunkstream"
 	"github.com/ethersphere/beekeeper/pkg/check/datadurability"
@@ -692,6 +693,26 @@ var Checks = map[string]CheckType{
 				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
 			}
 			opts := chunkstream.NewDefaultOptions()
+
+			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
+				return nil, fmt.Errorf("applying options: %w", err)
+			}
+
+			return opts, nil
+		},
+	},
+	"bps": {
+		NewAction: bps.NewCheck,
+		NewOptions: func(checkGlobalConfig CheckGlobalConfig, check Check) (any, error) {
+			checkOpts := new(struct {
+				Messages    *int           `yaml:"messages"`
+				Seed        *int64         `yaml:"seed"`
+				StepTimeout *time.Duration `yaml:"step-timeout"`
+			})
+			if err := check.Options.Decode(checkOpts); err != nil {
+				return nil, fmt.Errorf("decoding check %s options: %w", check.Type, err)
+			}
+			opts := bps.NewDefaultOptions()
 
 			if err := applyCheckConfig(checkGlobalConfig, checkOpts, &opts); err != nil {
 				return nil, fmt.Errorf("applying options: %w", err)

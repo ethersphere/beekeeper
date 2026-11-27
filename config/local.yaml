@@ -224,6 +224,7 @@ bee-configs:
     _inherit: "bee-local-dns"
     node-mode: bootnode
     storage-incentives-enable: false # overrides the inherited true, which bee warns has no effect on a bootnode
+    bps-broker: false # inherited true is rejected on a bootnode
     p2p-wss-enable: true
   bee-local-autotls:
     _inherit: "bee-local-dns"
@@ -239,12 +240,14 @@ bee-configs:
     swap-enable: false
     chequebook-enable: false # inherited true is rejected without swap
     storage-incentives-enable: false # inherited true is rejected in ultra-light mode
+    bps-broker: false # inherited true is rejected in ultra-light mode
   bootnode-local:
     _inherit: "bee-local"
     node-mode: bootnode
     storage-incentives-enable: false # overrides the inherited true, which bee warns has no effect on a bootnode
   bee-local-dns:
     _inherit: "bee-local"
+    bps-broker: true
   bee-local-dns-legacy:
     _inherit: "bee-local-dns"
     node-mode: "" # overrides the inherited mode so bee infers it from full-node (legacy regime)
@@ -480,6 +483,11 @@ checks:
       request-timeout: 5m
     timeout: 10m
     type: chunk-stream
+  ci-bps:
+    options:
+      messages: 5
+    timeout: 5m
+    type: bps
   ci-gsoc:
     options:
       postage-ttl: 24h

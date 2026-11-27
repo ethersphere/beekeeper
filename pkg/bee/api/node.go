@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -120,6 +121,48 @@ type Peer struct {
 func (n *NodeService) Peers(ctx context.Context) (resp Peers, err error) {
 	err = n.client.requestJSON(ctx, http.MethodGet, "/peers", nil, &resp)
 	return resp, err
+}
+
+// Blocklist represents the peers the node has blocklisted
+type Blocklist struct {
+	Peers []BlocklistedPeer `json:"peers"`
+}
+
+// BlocklistedPeer represents a peer the node has blocklisted
+type BlocklistedPeer struct {
+	Address  swarm.Address `json:"address"`
+	Reason   string        `json:"reason"`
+	Duration int           `json:"duration"` // seconds
+}
+
+// Blocklist returns the peers the node has blocklisted
+func (n *NodeService) Blocklist(ctx context.Context) (resp Blocklist, err error) {
+	err = n.client.requestJSON(ctx, http.MethodGet, "/blocklist", nil, &resp)
+	return resp, err
+}
+
+// Metrics returns the node's metrics in the Prometheus text format
+func (n *NodeService) Metrics(ctx context.Context) (string, error) {
+	return n.text(ctx, "/metrics")
+}
+
+// Goroutines returns the stack of every goroutine of the node, one block per
+// goroutine, blocks separated by an empty line
+func (n *NodeService) Goroutines(ctx context.Context) (string, error) {
+	return n.text(ctx, "/debug/pprof/goroutine?debug=2")
+}
+
+func (n *NodeService) text(ctx context.Context, path string) (string, error) {
+	r, err := n.client.requestData(ctx, http.MethodGet, path, nil, nil)
+	if err != nil {
+		return "", err
+	}
+	defer drainAndClose(r)
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return "", fmt.Errorf("read %s: %w", path, err)
+	}
+	return string(b), nil
 }
 
 // ConnectResponse represents the response from the connect endpoint
