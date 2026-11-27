@@ -120,6 +120,11 @@ func (r roles) clients() []*bee.Client {
 	return append([]*bee.Client{r.publisher}, r.subscribers...)
 }
 
+// nodes are the broker and the clients: every node that serves the run.
+func (r roles) nodes() []*bee.Client {
+	return append([]*bee.Client{r.broker}, r.clients()...)
+}
+
 func names(clients []*bee.Client) string {
 	l := make([]string, 0, len(clients))
 	for _, cl := range clients {
@@ -338,7 +343,7 @@ func (c *Check) notABroker(ctx context.Context, r roles) error {
 // usage is what the run's nodes hold for bps.
 type usage struct {
 	cohorts    float64        // the broker's bee_bps_cohorts
-	goroutines map[string]int // bps goroutines per client node
+	goroutines map[string]int // bps goroutines per node, the broker included
 }
 
 func (r roles) usage(ctx context.Context) (usage, error) {
@@ -350,7 +355,7 @@ func (r roles) usage(ctx context.Context) (usage, error) {
 	if u.cohorts, err = metric(metrics, "bee_bps_cohorts"); err != nil {
 		return u, fmt.Errorf("node %s: %w", r.broker.Name(), err)
 	}
-	for _, cl := range r.clients() {
+	for _, cl := range r.nodes() {
 		dump, err := cl.API().Node.Goroutines(ctx)
 		if err != nil {
 			return u, fmt.Errorf("node %s: goroutines: %w", cl.Name(), err)
@@ -371,21 +376,24 @@ func metric(metrics, name string) (float64, error) {
 }
 
 // bpsGoroutines counts the goroutines of a dump that a bps session can leave
-// behind: those that run bps code, and stream readers nobody waits for. A
-// stream reader is started by ReadMsgWithContext; while its caller still waits
-// in that call the read is live, as the long reads of pullsync are, and it is
-// not counted.
+// behind: those that run the protocol (pkg/bps) or the WebSocket bridge (the
+// bps functions of pkg/api), and stream readers nobody waits for. A stream
+// reader is started by ReadMsgWithContext; while its caller still waits in
+// that call the read is live, as the long reads of pullsync are, and it is not
+// counted.
 func bpsGoroutines(dump string) (n int) {
 	const (
 		reader  = "protobuf.Reader.ReadMsgWithContext.func1("
 		waiting = "protobuf.Reader.ReadMsgWithContext("
 		creator = "ReadMsgWithContext in goroutine "
 	)
+	// the bridge's functions and methods are all named bps...
+	own := []string{"/pkg/bps.", "/pkg/api.bps", "/pkg/api.(*Service).bps"}
 	waiters := make(map[string]struct{})
 	var readers []string // the creator of every stream reader
 	for stack := range strings.SplitSeq(dump, "\n\n") {
 		switch {
-		case strings.Contains(stack, "/pkg/bps."):
+		case slices.ContainsFunc(own, func(f string) bool { return strings.Contains(stack, f) }):
 			n++
 		case strings.Contains(stack, reader):
 			_, id, _ := strings.Cut(stack, creator)
@@ -423,7 +431,7 @@ func (c *Check) released(ctx context.Context, r roles, before usage, timeout tim
 			if now.cohorts > before.cohorts {
 				held = append(held, fmt.Sprintf("broker %s holds %g cohorts, %g before the run", r.broker.Name(), now.cohorts, before.cohorts))
 			}
-			for _, cl := range r.clients() {
+			for _, cl := range r.nodes() {
 				if d := now.goroutines[cl.Name()] - before.goroutines[cl.Name()]; d > 0 {
 					held = append(held, fmt.Sprintf("node %s has %d more bps goroutines than before the run", cl.Name(), d))
 				}
